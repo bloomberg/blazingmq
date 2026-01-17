@@ -18,6 +18,7 @@
 from pathlib import Path
 import re
 from collections import namedtuple
+from typing import Dict, List, Optional
 
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
@@ -32,7 +33,270 @@ from blazingmq.dev.it.util import wait_until
 
 BACKLOG_MESSAGES = 400  # minimum to consume before killing / shutting down
 NUM_MESSAGES = 2000
+MAX_PRINT_ERRORS = 100
 POST_INTERVAL_MS = 2
+
+Put = namedtuple("Put", ["message_index", "guid"])
+Ack = namedtuple("Ack", ["message_index", "guid", "status"])
+Push = namedtuple("Push", ["message_index", "guid", "index"])
+Confirm = namedtuple("Confirm", ["message_index", "guid"])
+
+
+class DeliveryLog:
+    """
+    This class is used for verifying integrity of message flow from producer to consumers.
+    """
+
+    def __init__(self, logger, allow_duplicates: bool):
+        self._logger = logger
+        self._allow_duplicates = allow_duplicates
+
+        self._num_acks = 0
+        self._num_nacks = 0
+        self._num_puts = 0
+        self._num_duplicates = 0
+        self._num_errors = 0
+
+        self._errors: List[str] = []
+
+        # Should be initialized once on `feed_producer_log` call:
+        self._puts: List[Optional[Put]] = [None for _ in range(NUM_MESSAGES)]
+        self._acks: List[Optional[Ack]] = [None for _ in range(NUM_MESSAGES)]
+
+        self._guids: Dict[str, int] = {}  # {guid -> index}
+
+        # Should be reinitialized on each `feed_consumer_log` call for each app_id:
+        self._pushes: List[Optional[Push]] = []
+        self._push_order: List[int] = []
+        self._consumed = 0
+        self._num_confirms = 0
+
+    def _print_summary(self, app_id: Optional[str] = None) -> None:
+        if app_id:
+            self._logger.info(
+                f"Summary ({app_id}): {self._num_puts} PUTs"
+                f", {self._num_acks} ACKs"
+                f", {self._num_nacks} NACKs"
+                f", {self._consumed} PUSHs"
+                f", {self._num_confirms} CONFIRMs"
+                f", {self._num_duplicates} duplicates"
+            )
+        else:
+            self._logger.info(
+                f"Summary: {self._num_puts} PUTs"
+                f", {self._num_acks} ACKs"
+                f", {self._num_nacks} NACKs"
+            )
+
+    @staticmethod
+    def _format_message(prefix: str, msg1, msg2=None) -> str:
+        return f"{prefix}: {msg1}" + (f" vs existing {msg2}" if msg2 else "")
+
+    def _warning(self, prefix: str, msg1, msg2=None):
+        self._logger.warning(self._format_message(prefix, msg1, msg2))
+
+    def _error(self, prefix: str, msg1, msg2=None):
+        self._num_errors += 1
+
+        error_log = self._format_message(prefix, msg1, msg2)
+        if len(self._errors) < MAX_PRINT_ERRORS:
+            self._errors.append(error_log)
+        self._logger.error(error_log)
+
+    def _format_error_status(self) -> str:
+        return (
+            f"Found {self._num_errors} errors, printing {min(MAX_PRINT_ERRORS, len(self._errors))}:\n"
+            + "\n".join(self._errors)
+        )
+
+    def _on_put(self, put: Put) -> None:
+        # should be monotonically increasing and not surpass the expected number of messages:
+        assert put.message_index == self._num_puts
+        assert put.message_index < NUM_MESSAGES
+
+        # should be no duplicate PUTs:
+        assert not self._puts[put.message_index]
+
+        # should be unique guid:
+        assert put.guid not in self._guids
+
+        self._guids[put.guid] = put.message_index
+        self._puts[put.message_index] = put
+        self._num_puts += 1
+
+    def _on_ack(self, ack: Ack) -> None:
+        if ack.message_index is None:
+            self._error("unexpected ACK guid", ack)
+        elif self._puts[ack.message_index] is None:
+            self._error("unexpected ACK payload", ack)
+        elif self._acks[ack.message_index]:
+            self._error("duplicate ACK", ack, self._acks[ack.message_index])
+        else:
+            self._acks[ack.message_index] = ack
+
+            if ack.status == 0:
+                self._num_acks += 1
+            else:
+                self._num_nacks += 1
+                self._warning(
+                    f"unsuccessful ({ack.status}) ACK",
+                    ack,
+                    self._puts[ack.message_index],
+                )
+
+    def _on_push(self, push: Push, app_id: str) -> None:
+        message_index = push.message_index
+
+        if self._pushes[message_index]:  # duplicate PUSH
+            self._num_duplicates += 1
+            self._warning(
+                f"{app_id}: duplicate PUSH payload",
+                push,
+                self._pushes[message_index],
+            )
+        else:
+            self._pushes[push.message_index] = push
+            self._push_order.append(push.message_index)
+            self._consumed += 1
+
+            if self._puts[message_index] is None:  # no corresponding PUT
+                self._error(f"{app_id}: unexpected PUSH (no corresponding PUT)", push)
+            elif self._acks[message_index] is None:  # no corresponding ACK:
+                self._error(f"{app_id}: unexpected PUSH (no corresponding ACK)", push)
+            elif self._acks[message_index].guid != push.guid:  # ACK GUID mismatch
+                self._error(
+                    f"{app_id}: GUID mismatch",
+                    push,
+                    self._acks[message_index],
+                )
+
+    def _on_confirm(self, confirm: Confirm, app_id: str) -> None:
+        if confirm.message_index is None:
+            self._error(
+                f"{app_id}: unexpected CONFIRM guid",
+                confirm,
+            )
+        elif self._pushes[confirm.message_index] is None:
+            self._error(f"{app_id}: unexpected CONFIRM", confirm)
+        else:
+            self._num_confirms += 1
+
+    def feed_producer_log(self, path: Path, uri: str) -> None:
+        re_put = re.compile(
+            r"(?i)"  # case insensitive
+            + r" PUT "  # PUT
+            + re.escape(uri)  # queue url
+            + r"\|\[ autoValue = (\d+) \]"  # |autoValue
+            + r"\|(.+)\|"  # |GUID|
+            + r"msg\s*"  # msg
+            + r"(\d+)"  # %d
+        )
+
+        re_ack = re.compile(
+            r" ACK "  # ACK
+            + re.escape(uri)  # queue url
+            + r"\|\[ autoValue = (\d+) \]"  # |autoValue
+            + r"\|(.+)\|"  # |GUID|
+            + r"(-?\d+)\|"  # status|
+        )
+
+        with open(path, encoding="ascii") as f:
+            for line in f:
+                match = re_put.search(line)
+                if match:
+                    guid = match[2]
+                    message_index = int(match[3])
+                    put = Put(message_index, guid)
+                    self._on_put(put)
+                    continue
+
+                match = re_ack.search(line)
+                if match:
+                    guid = match[2]
+                    status = int(match[3])
+                    message_index = self._guids.get(guid)
+                    ack = Ack(
+                        message_index=message_index,
+                        guid=guid,
+                        status=status,
+                    )
+                    self._on_ack(ack)
+                    continue
+
+        self._print_summary()
+        assert self._num_errors == 0, self._format_error_status()
+        assert self._num_puts == self._num_acks
+
+    def feed_consumer_log(self, path: Path, uri: str, app_id: str) -> None:
+        re_push = re.compile(
+            r"(?i)"  # case insensitive
+            + r" PUSH "  # PUSH
+            + re.escape(uri)  # queue url
+            + r"\|(.+)\|"  # |GUID|
+            + r"msg\s*"  # "msg"
+            + r"(\d+)"  # %d
+        )
+
+        re_confirm = re.compile(
+            r"(?i)"  # case insensitive
+            + " CONFIRM "  # CONFIRM
+            + re.escape(uri)  # queue url
+            + r"\|(.+)\|"  # |GUID|
+        )
+
+        # Reinitialize for the current `app_id`:
+        self._pushes: List[Optional[Push]] = [None for _ in range(NUM_MESSAGES)]
+        self._push_order: List[int] = []
+        self._consumed = 0
+        self._num_confirms = 0
+
+        with open(path, encoding="ascii") as f:
+            for line in f:
+                match = re_push.search(line)
+                if match:
+                    message_index = int(match[2])
+                    guid = match[1]
+                    push = Push(
+                        message_index=message_index, guid=guid, index=self._consumed
+                    )
+                    self._on_push(push, app_id)
+                    continue
+
+                match = re_confirm.search(line)
+                if match:
+                    guid = match[1]
+                    message_index = self._guids.get(guid)
+                    confirm = Confirm(message_index=message_index, guid=guid)
+                    self._on_confirm(confirm, app_id)
+                    continue
+
+        self._print_summary(app_id)
+
+        # First, make sure that all ACKed messages were PUSHed
+        num_lost = 0
+        for message_index in range(0, NUM_MESSAGES):
+            if self._pushes[message_index] is None:
+                num_lost += 1
+                if self._acks[message_index]:
+                    self._error(f"{app_id}: missing message", self._acks[message_index])
+
+        assert self._num_errors == 0, self._format_error_status()
+
+        # Secondly, make sure that PUSHes are in correct order
+        previous_index = -1
+        for message_index in self._push_order:
+            if message_index < previous_index:
+                self._error(
+                    f"{app_id}: out of order PUSH",
+                    self._pushes[message_index],
+                    self._pushes[previous_index],
+                )
+            previous_index = message_index
+
+        assert self._num_errors == 0, self._format_error_status()
+        assert self._consumed == self._num_puts
+        assert self._num_duplicates == 0 or self._allow_duplicates
+        assert num_lost == 0
 
 
 @tweak.domain.storage.domain_limits.messages(NUM_MESSAGES)
@@ -58,12 +322,12 @@ class TestPutsRetransmission:
         2. The same order of PUSH messages as the order of PUT messages
             (monotonically increasing "msg%10d|")
         3. No duplicates except for 'kill' cases.  Killing either primary or
-            replica) can result in lost CONFIRMs (among other messagetypes).  The
-            primary (either new or existing) 'redelivers' unconfirmed messages
+            replica) can result in lost CONFIRMs (among other message types).
+            The primary (either new or existing) 'redelivers' unconfirmed messages
             (either because it is the new primary or new replica opens the queue).
             This results in the same message delivered twice to consumer.
          4. No lost messages, even in 'kill primary' cases because of strong
-            consitency.
+            consistency.
     """
 
     work_dir: Path
@@ -96,212 +360,10 @@ class TestPutsRetransmission:
         self.parse_message_logs(allow_duplicates=allow_duplicates)
 
     def parse_message_logs(self, allow_duplicates=False):
-        Put = namedtuple("Put", ["message_index", "guid"])
-        Ack = namedtuple("Ack", ["message_index", "guid", "status"])
-        Push = namedtuple("Push", ["message_index", "guid", "index"])
-        Confirm = namedtuple("Confirm", ["message_index", "guid"])
-
-        puts = [None for i in range(NUM_MESSAGES)]  # all Put messages
-        acks = [None for i in range(NUM_MESSAGES)]  # all Ack messages
-
-        guids = {}  # {guid -> index}
-
-        num_acks = 0
-        num_nacks = 0
-        num_puts = 0
-        num_duplicates = 0
-        num_errors = 0
-
-        def warning(test_logger, prefix, p1, p2=None):
-            test_logger.warning(f"{prefix}: {p1}{f' vs existing {p2}' if p2 else ''}")
-
-        def error(test_logger, prefix, p1, p2=None):
-            nonlocal num_errors
-            num_errors += 1
-            warning(test_logger, prefix, p1, p2)
-
-        consumer_log = self.work_dir / "producer.log"
-        with open(consumer_log, encoding="ascii") as f:
-            re_put = re.compile(
-                r"(?i)"  # case insensitive
-                + r" PUT "  #  PUT
-                + re.escape(self.uri)  # queue url
-                + r"\|\[ autoValue = (\d+) \]"  # |autoValue
-                + r"\|(.+)\|"  # |GUID|
-                + r"msg\s*"  # msg
-                + r"(\d+)"
-            )  # %d
-
-            re_ack = re.compile(
-                r" ACK "  # ACK
-                + re.escape(self.uri)  # queue url
-                + r"\|\[ autoValue = (\d+) \]"  # |autoValue
-                + r"\|(.+)\|"  # |GUID|
-                + r"(-?\d+)\|"
-            )  # status|
-
-            for line in f:
-                match = re_put.search(line)
-                if match:
-                    guid = match[2]
-                    message_index = int(match[3])
-
-                    put = Put(message_index, guid)
-
-                    assert message_index < NUM_MESSAGES
-                    # should be no duplicate PUTs
-                    assert not puts[message_index]
-                    # should be unique guid
-                    assert guid not in guids
-                    # should be monotonically increasing
-                    assert message_index == num_puts
-
-                    guids[guid] = message_index
-                    puts[message_index] = put
-                    num_puts += 1
-                else:
-                    match = re_ack.search(line)
-                    if match:
-                        guid = match[2]
-                        status = int(match[3])
-                        message_index = guids.get(guid)
-
-                        ack = Ack(
-                            message_index=message_index,
-                            guid=guid,
-                            status=status,
-                        )
-
-                        if message_index is None:
-                            error(test_logger, "unexpected ACK guid", ack)
-                        elif puts[message_index] is None:
-                            error(test_logger, "unexpected ACK payload", ack)
-                        elif acks[message_index]:
-                            error(
-                                test_logger, "duplicate ACK", ack, acks[message_index]
-                            )
-                        else:
-                            acks[message_index] = ack
-
-                            if status == 0:
-                                num_acks += 1
-                            else:
-                                num_nacks += 1
-                                warning(
-                                    test_logger,
-                                    f"unsuccessful ({status}) ACK",
-                                    ack,
-                                    puts[message_index],
-                                )
-
-        test_logger.info(f"{num_puts} PUTs, {num_acks} acks, {num_nacks} nacks")
-
-        for uri in self.uris:
-            re_push = re.compile(
-                r"(?i)"  # case insensitive
-                + r" PUSH "  # PUSH
-                + re.escape(uri[0])  # queue url
-                + r"\|(.+)\|"  # |GUID|
-                + r"msg\s*"  # "msg"
-                + r"(\d+)"
-            )  # %d
-
-            re_confirm = re.compile(
-                "(?i)"  # case insensitive
-                r" CONFIRM "  # CONFIRM
-                r"{re.escape(uri[0])}"  # queue url
-                r"\|(.+)\|"
-            )  # |GUID|
-
-            app = uri[1]  # client Id
-            consumer_log = self.work_dir / f"{app}.log"
-            consumed = 0
-            pushes = [None] * NUM_MESSAGES  # Push
-            num_confirms = 0
-
-            with open(consumer_log, encoding="ascii") as f:
-                for line in f:
-                    match = re_push.search(line)
-                    if match:
-                        message_index = int(match[2])
-                        guid = match[1]
-
-                        push = Push(
-                            message_index=message_index, guid=guid, index=consumed
-                        )
-
-                        if pushes[message_index]:  # duplicate PUSH
-                            num_duplicates += 1
-                            warning(
-                                test_logger,
-                                f"{app}: duplicate PUSH payload",
-                                push,
-                                pushes[message_index],
-                            )
-                        else:
-                            pushes[message_index] = push
-                            consumed += 1
-
-                            if puts[message_index] is None:  # no corresponding PUT
-                                error(test_logger, f"{app}: unexpected PUSH", push)
-                            elif acks[message_index] is None:  # no corresponding ACK:
-                                error(test_logger, f"{app}: unexpected PUSH", push)
-                            elif acks[message_index].guid != guid:  # ACK GUID mismatch
-                                error(
-                                    test_logger,
-                                    f"{app}: GUID mismatch",
-                                    push,
-                                    acks[message_index],
-                                )
-                    else:
-                        match = re_confirm.search(line)
-                        if match:
-                            guid = match[1]
-                            message_index = guids.get(guid)
-
-                            confirm = Confirm(message_index=message_index, guid=guid)
-
-                            if message_index is None:
-                                error(
-                                    test_logger,
-                                    f"{app}: unexpected CONFIRM guid",
-                                    confirm,
-                                )
-                            elif pushes[message_index] is None:
-                                error(
-                                    test_logger, f"{app}: unexpected CONFIRM", confirm
-                                )
-                            else:
-                                num_confirms += 1
-
-            test_logger.info(
-                f"{app}: {num_puts} PUTs"
-                f", {num_acks} acks"
-                f", {num_nacks} nacks"
-                f", {consumed} PUSHs"
-                f", {num_confirms} CONFIRMs"
-                f", {num_duplicates} duplicates"
-            )
-
-            num_lost = 0
-            for message_index in range(0, NUM_MESSAGES):
-                if pushes[message_index] is None:
-                    # never received 'message_index'
-                    if acks[message_index]:
-                        error(
-                            test_logger, f"{app}: missing message", acks[message_index]
-                        )
-                    num_lost += 1
-                elif pushes[message_index].index != (message_index - num_lost):
-                    error(
-                        test_logger, f"{app}: out of order PUSH", pushes[message_index]
-                    )
-
-        assert num_puts == num_acks
-        assert consumed == num_puts
-        assert num_errors == 0
-        assert num_duplicates == 0 or allow_duplicates
-        assert num_lost == 0
+        delivery_log = DeliveryLog(test_logger, allow_duplicates)
+        delivery_log.feed_producer_log(self.work_dir / "producer.log", self.uri)
+        for uri, app_id in self.uris:
+            delivery_log.feed_consumer_log(self.work_dir / f"{app_id}.log", uri, app_id)
 
     def capture_number_of_consumed_messages(self, at_least, timeout=20):
         """
