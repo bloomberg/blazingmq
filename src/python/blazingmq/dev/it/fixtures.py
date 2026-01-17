@@ -39,6 +39,8 @@ from enum import IntEnum
 from pathlib import Path
 from typing import Callable, Iterator, List, Optional, Tuple
 import psutil
+from dataclasses import dataclass
+import subprocess
 
 import pytest
 
@@ -50,7 +52,7 @@ import blazingmq.util.logging as bul
 from blazingmq.dev.it.cluster import Cluster
 from blazingmq.dev.it.tweaks import tweak  # pylint: disable=unused-import
 from blazingmq.dev.it.tweaks import TWEAK_ATTRIBUTE, Tweak
-from blazingmq.dev.it.util import internal_use
+from blazingmq.dev.it.util import internal_use, chdir
 from blazingmq.dev.paths import paths
 from blazingmq.dev.pytest import PYTEST_LOG_SPEC_VAR
 from blazingmq.dev.reserveport import reserve_port
@@ -245,7 +247,7 @@ def cluster_fixture(request, configure) -> Iterator[Cluster]:
                 ):
                     try:
                         log_file_path.unlink()
-                    except:
+                    except FileNotFoundError:
                         pass
 
             on_exit.callback(remove_log_file_handler)
@@ -509,6 +511,30 @@ class ForwardProxyConnection(ProxyConnection):
 WorkspaceConfigurator = Callable[..., None]
 
 
+class Tls(IntEnum):
+    NONE = 0
+    HOST = 1
+
+    @property
+    def suffix(self) -> str:
+        return ["", "_tls"][self]
+
+    @property
+    def marks(self):
+        return [
+            [],
+            # TODO(tfoxhall): Figure out how to add a new mark
+            [pytest.mark.tls],
+        ][self]
+
+
+@dataclass(frozen=True)
+class CertificateBundle:
+    certificate_authority: Path
+    host_certificate: Path
+    host_key: Path
+
+
 ###############################################################################
 # single node cluster
 
@@ -533,16 +559,35 @@ def add_test_domains(cluster: cfg.Cluster):
             )
 
 
+def app_tls_config(certificate_bundle: CertificateBundle) -> mqbcfg.TlsConfig:
+    return mqbcfg.TlsConfig(
+        certificate_authority=str(certificate_bundle.certificate_authority),
+        certificate=str(certificate_bundle.host_certificate),
+        key=str(certificate_bundle.host_key),
+    )
+
 def single_node_cluster_config(
-    configurator: cfg.Configurator, port_allocator: Iterator[int], mode: Mode
+    configurator: cfg.Configurator,
+    port_allocator: Iterator[int],
+    mode: Mode,
+    tls: Tls,
+    certificate_bundle: Optional[CertificateBundle] = None,
 ):
     mode.tweak(configurator.proto.cluster)
+    tcp_host = "localhost"
+    tls_enabled = tls != tls.NONE
+    if certificate_bundle is not None:
+        tls_config = app_tls_config(certificate_bundle)
+    else:
+        tls_config = None
 
     broker = configurator.broker(
         name="single",
-        tcp_host="localhost",
+        tcp_host=tcp_host,
         tcp_port=next(port_allocator),
         data_center="single_node",
+        tls=tls_enabled,
+        tls_config=tls_config,
     )
 
     cluster = configurator.cluster(name="itCluster", nodes=[broker])
@@ -578,17 +623,28 @@ def multi_node_cluster_config(
     configurator: cfg.Configurator,
     port_allocator: Iterator[int],
     mode: Mode,
+    tls: Tls,
+    certificate_bundle: Optional[CertificateBundle] = None,
 ) -> None:
     mode.tweak(configurator.proto.cluster)
+    tcp_host = "localhost"
+    tls_enabled = tls != tls.NONE
+    if certificate_bundle is not None:
+        tls_config = app_tls_config(certificate_bundle)
+    else:
+        tls_config = None
+
 
     cluster = configurator.cluster(
         name="itCluster",
         nodes=[
             configurator.broker(
                 name=f"{data_center}{broker}",
-                tcp_host="localhost",
+                tcp_host=tcp_host,
                 tcp_port=next(port_allocator),
                 data_center=data_center,
+                tls=tls_enabled,
+                tls_config=tls_config,
             )
             for data_center in ("east", "west")
             for broker in ("1", "2")
@@ -600,7 +656,7 @@ def multi_node_cluster_config(
     for data_center in ("east", "west"):
         configurator.broker(
             name=f"{data_center}p",
-            tcp_host="localhost",
+            tcp_host=tcp_host,
             tcp_port=next(port_allocator),
             data_center=data_center,
         ).proxy(cluster)
@@ -805,13 +861,14 @@ def virtual_cluster_config(
     mode: Mode,
 ) -> None:
     mode.tweak(configurator.proto.cluster)
+    tcp_host = "localhost"
 
     final_cluster = configurator.cluster(
         name="itCluster",
         nodes=[
             configurator.broker(
                 name=f"{data_center}{broker}",
-                tcp_host="localhost",
+                tcp_host=tcp_host,
                 tcp_port=next(port_allocator),
                 data_center=data_center,
             )
@@ -826,7 +883,7 @@ def virtual_cluster_config(
         nodes=[
             configurator.broker(
                 name=f"{data_center}v",
-                tcp_host="localhost",
+                tcp_host=tcp_host,
                 tcp_port=next(port_allocator),
                 data_center=data_center,
             )
@@ -838,7 +895,7 @@ def virtual_cluster_config(
     for data_center in ("east", "west"):
         configurator.broker(
             name=f"{data_center}p",
-            tcp_host="localhost",
+            tcp_host=tcp_host,
             tcp_port=next(port_allocator),
             data_center=data_center,
         ).proxy(cluster)
@@ -967,3 +1024,102 @@ def fsm_cluster(request):
 @pytest.fixture(params=fsm_multi_cluster_params)
 def fsm_multi_cluster(request):
     yield from cluster_fixture(request, request.param)
+
+
+###############################################################################
+# TLS Cluster Config
+
+
+def generate_certificate_bundle(
+    generator: Path, ca_cert: str, prefix: str, host: str, path: Path,
+) -> CertificateBundle:
+    """Generate a certificate authority and a host certificate in the current directory.
+
+    Args:
+        generator: A path to an executable program that can generate certificates and
+            CAs. See gen-tls-certs.sh for more information on the interface.
+        ca_cert: The name of the certificate authority.
+        prefix: A prefix used to for naming the generated files
+        host: The hostname for the host certificate to use.
+
+    Returns:
+        A CertificateBundle object containing the paths to the generate certificate
+        authority and host certificate.
+    """
+    with chdir(path):
+        subprocess.run([generator, "ca", ca_cert, prefix]).check_returncode()
+        subprocess.run([generator, "server", ca_cert, prefix, host]).check_returncode()
+        return CertificateBundle(
+            certificate_authority=path / ca_cert,
+            host_certificate=path / f"{prefix}host_cert.pem",
+            host_key=path / f"{prefix}private_key.pem",
+        )
+
+
+@pytest.fixture()
+def certificate_bundle(tmp_path, request):
+    """Provide a certificate bundle for use in the current test session.
+
+    This fixture depends on a certificate generator script to be available, which can be
+    specified with the --certificate-generator option.
+    """
+    cert_generator = Path(request.config.getini("certificate_generator")).resolve()
+    return generate_certificate_bundle(
+        cert_generator, ca_cert="ca-cert", prefix="broker_", host="dummy", path=tmp_path,
+    )
+
+
+tls_single_cluster_params = [
+    pytest.param(
+        functools.partial(single_node_cluster_config, mode=mode, tls=Tls.HOST),
+        id="single_node_tls",
+        marks=[
+            pytest.mark.integrationtest,
+            pytest.mark.pr_integrationtest,
+            pytest.mark.single,
+            pytest.mark.tls,
+            *Mode.FSM.marks,
+        ],
+    )
+    for mode in Mode.__members__.values()
+]
+
+
+@pytest.fixture(params=tls_single_cluster_params)
+def tls_single_cluster(request, certificate_bundle):
+    print("Certificate bundle:", certificate_bundle)
+    yield from cluster_fixture(
+        request, functools.partial(request.param, certificate_bundle=certificate_bundle)
+    )
+
+
+tls_multi_cluster_params = [
+    pytest.param(
+        functools.partial(multi_node_cluster_config, mode=mode, tls=Tls.HOST),
+        id="multi_node_tls",
+        marks=[
+            pytest.mark.integrationtest,
+            pytest.mark.pr_integrationtest,
+            pytest.mark.multi,
+            pytest.mark.tls,
+            *Mode.FSM.marks,
+        ],
+    )
+    for mode in Mode.__members__.values()
+]
+
+
+@pytest.fixture(params=tls_multi_cluster_params)
+def tls_multi_cluster(request):
+    yield from cluster_fixture(request, request.param)
+
+
+@pytest.fixture(params=tls_single_cluster_params + tls_multi_cluster_params)
+def tls_cluster(request, certificate_bundle):
+    yield from cluster_fixture(
+        request, functools.partial(request.param, certificate_bundle=certificate_bundle)
+    )
+
+def pytest_addoption(parser, pluginmanager):
+    help_ = "script for generating certificates"
+    parser.addini("certificate_generator", help_, type="string", default=".")

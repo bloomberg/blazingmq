@@ -35,7 +35,6 @@
 // Thread safe.
 
 // BMQ
-
 #include <bmqimp_brokersession.h>
 #include <bmqimp_eventqueue.h>
 #include <bmqimp_negotiatedchannelfactory.h>
@@ -45,6 +44,7 @@
 
 #include <bmqio_channel.h>
 #include <bmqio_channelfactory.h>
+#include <bmqio_channelfactorypipeline.h>
 #include <bmqio_ntcchannelfactory.h>
 #include <bmqio_reconnectingchannelfactory.h>
 #include <bmqio_resolvingchannelfactory.h>
@@ -81,7 +81,7 @@ namespace bmqimp {
 class Application {
   public:
     // PUBLIC TYPES
-    typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
+    typedef bmqp::BlobPoolUtil::BlobSpPool   BlobSpPool;
     typedef bmqp::BlobPoolUtil::BlobSpPoolSp BlobSpPoolSp;
 
   private:
@@ -126,15 +126,8 @@ class Application {
     bdlmt::EventScheduler d_scheduler;
     // Scheduler
 
-    bmqio::NtcChannelFactory d_channelFactory;
-
-    bmqio::ResolvingChannelFactory d_resolvingChannelFactory;
-
-    bmqio::ReconnectingChannelFactory d_reconnectingChannelFactory;
-
-    bmqio::StatChannelFactory d_statChannelFactory;
-
-    NegotiatedChannelFactory d_negotiatedChannelFactory;
+    // ChannelFactoryPipeline_Int d_channelFactoryPipeline;
+    bmqio::ChannelFactoryPipeline d_channelFactoryPipeline;
 
     ChannelFactoryOpHandleMp d_connectHandle_mp;
 
@@ -162,6 +155,9 @@ class Application {
 
     /// Scheduler handle of the recurring event to monitor channels heartbeats.
     bdlmt::EventSchedulerRecurringEventHandle d_heartbeatSchedulerHandle;
+
+    /// Handle for the client side encryption engine
+    bsl::shared_ptr<ntci::EncryptionClient> d_encryptionClient_sp;
 
   private:
     // PRIVATE MANIPULATORS
@@ -226,7 +222,8 @@ class Application {
         const bsl::shared_ptr<bmqp::HeartbeatMonitor>& monitor);
     bsl::shared_ptr<bmqp::HeartbeatMonitor>
     createMonitor(const bsl::shared_ptr<bmqio::Channel>& channel);
-    void startHeartbeat(const bsl::shared_ptr<bmqio::Channel>&         channel,
+    void
+         startHeartbeat(const bsl::shared_ptr<bmqio::Channel>&         channel,
                         const bsl::shared_ptr<bmqp::HeartbeatMonitor>& monitor);
     void stopHeartbeat();
 

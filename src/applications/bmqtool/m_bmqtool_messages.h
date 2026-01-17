@@ -1,4 +1,4 @@
-// Copyright 2014-2025 Bloomberg Finance L.P.
+// Copyright 2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -5244,6 +5244,8 @@ class CommandLineParameters {
     bsl::vector<MessageProperty> d_messageProperties;
     bsl::string                  d_mode;
     bsl::string                  d_broker;
+    bsl::string                  d_tlsAuthority;
+    bsl::string                  d_tlsVersions;
     bsl::string                  d_queueUri;
     bsl::string                  d_queueFlags;
     bsl::string                  d_latency;
@@ -5278,63 +5280,67 @@ class CommandLineParameters {
     enum {
         ATTRIBUTE_ID_MODE                       = 0,
         ATTRIBUTE_ID_BROKER                     = 1,
-        ATTRIBUTE_ID_QUEUE_URI                  = 2,
-        ATTRIBUTE_ID_QUEUE_FLAGS                = 3,
-        ATTRIBUTE_ID_LATENCY                    = 4,
-        ATTRIBUTE_ID_LATENCY_REPORT             = 5,
-        ATTRIBUTE_ID_DUMP_MSG                   = 6,
-        ATTRIBUTE_ID_CONFIRM_MSG                = 7,
-        ATTRIBUTE_ID_EVENT_SIZE                 = 8,
-        ATTRIBUTE_ID_MSG_SIZE                   = 9,
-        ATTRIBUTE_ID_POST_RATE                  = 10,
-        ATTRIBUTE_ID_EVENTS_COUNT               = 11,
-        ATTRIBUTE_ID_MAX_UNCONFIRMED            = 12,
-        ATTRIBUTE_ID_POST_INTERVAL              = 13,
-        ATTRIBUTE_ID_VERBOSITY                  = 14,
-        ATTRIBUTE_ID_LOG_FORMAT                 = 15,
-        ATTRIBUTE_ID_MEMORY_DEBUG               = 16,
-        ATTRIBUTE_ID_THREADS                    = 17,
-        ATTRIBUTE_ID_SHUTDOWN_GRACE             = 18,
-        ATTRIBUTE_ID_NO_SESSION_EVENT_HANDLER   = 19,
-        ATTRIBUTE_ID_STORAGE                    = 20,
-        ATTRIBUTE_ID_LOG                        = 21,
-        ATTRIBUTE_ID_SEQUENTIAL_MESSAGE_PATTERN = 22,
-        ATTRIBUTE_ID_MESSAGE_PROPERTIES         = 23,
-        ATTRIBUTE_ID_SUBSCRIPTIONS              = 24,
-        ATTRIBUTE_ID_AUTO_PUB_SUB_MODULO        = 25,
-        ATTRIBUTE_ID_TIMEOUT_SEC                = 26
+        ATTRIBUTE_ID_TLS_AUTHORITY              = 2,
+        ATTRIBUTE_ID_TLS_VERSIONS               = 3,
+        ATTRIBUTE_ID_QUEUE_URI                  = 4,
+        ATTRIBUTE_ID_QUEUE_FLAGS                = 5,
+        ATTRIBUTE_ID_LATENCY                    = 6,
+        ATTRIBUTE_ID_LATENCY_REPORT             = 7,
+        ATTRIBUTE_ID_DUMP_MSG                   = 8,
+        ATTRIBUTE_ID_CONFIRM_MSG                = 9,
+        ATTRIBUTE_ID_EVENT_SIZE                 = 10,
+        ATTRIBUTE_ID_MSG_SIZE                   = 11,
+        ATTRIBUTE_ID_POST_RATE                  = 12,
+        ATTRIBUTE_ID_EVENTS_COUNT               = 13,
+        ATTRIBUTE_ID_MAX_UNCONFIRMED            = 14,
+        ATTRIBUTE_ID_POST_INTERVAL              = 15,
+        ATTRIBUTE_ID_VERBOSITY                  = 16,
+        ATTRIBUTE_ID_LOG_FORMAT                 = 17,
+        ATTRIBUTE_ID_MEMORY_DEBUG               = 18,
+        ATTRIBUTE_ID_THREADS                    = 19,
+        ATTRIBUTE_ID_SHUTDOWN_GRACE             = 20,
+        ATTRIBUTE_ID_NO_SESSION_EVENT_HANDLER   = 21,
+        ATTRIBUTE_ID_STORAGE                    = 22,
+        ATTRIBUTE_ID_LOG                        = 23,
+        ATTRIBUTE_ID_SEQUENTIAL_MESSAGE_PATTERN = 24,
+        ATTRIBUTE_ID_MESSAGE_PROPERTIES         = 25,
+        ATTRIBUTE_ID_SUBSCRIPTIONS              = 26,
+        ATTRIBUTE_ID_AUTO_PUB_SUB_MODULO        = 27,
+        ATTRIBUTE_ID_TIMEOUT_SEC                = 28
     };
 
-    enum { NUM_ATTRIBUTES = 27 };
+    enum { NUM_ATTRIBUTES = 29 };
 
     enum {
         ATTRIBUTE_INDEX_MODE                       = 0,
         ATTRIBUTE_INDEX_BROKER                     = 1,
-        ATTRIBUTE_INDEX_QUEUE_URI                  = 2,
-        ATTRIBUTE_INDEX_QUEUE_FLAGS                = 3,
-        ATTRIBUTE_INDEX_LATENCY                    = 4,
-        ATTRIBUTE_INDEX_LATENCY_REPORT             = 5,
-        ATTRIBUTE_INDEX_DUMP_MSG                   = 6,
-        ATTRIBUTE_INDEX_CONFIRM_MSG                = 7,
-        ATTRIBUTE_INDEX_EVENT_SIZE                 = 8,
-        ATTRIBUTE_INDEX_MSG_SIZE                   = 9,
-        ATTRIBUTE_INDEX_POST_RATE                  = 10,
-        ATTRIBUTE_INDEX_EVENTS_COUNT               = 11,
-        ATTRIBUTE_INDEX_MAX_UNCONFIRMED            = 12,
-        ATTRIBUTE_INDEX_POST_INTERVAL              = 13,
-        ATTRIBUTE_INDEX_VERBOSITY                  = 14,
-        ATTRIBUTE_INDEX_LOG_FORMAT                 = 15,
-        ATTRIBUTE_INDEX_MEMORY_DEBUG               = 16,
-        ATTRIBUTE_INDEX_THREADS                    = 17,
-        ATTRIBUTE_INDEX_SHUTDOWN_GRACE             = 18,
-        ATTRIBUTE_INDEX_NO_SESSION_EVENT_HANDLER   = 19,
-        ATTRIBUTE_INDEX_STORAGE                    = 20,
-        ATTRIBUTE_INDEX_LOG                        = 21,
-        ATTRIBUTE_INDEX_SEQUENTIAL_MESSAGE_PATTERN = 22,
-        ATTRIBUTE_INDEX_MESSAGE_PROPERTIES         = 23,
-        ATTRIBUTE_INDEX_SUBSCRIPTIONS              = 24,
-        ATTRIBUTE_INDEX_AUTO_PUB_SUB_MODULO        = 25,
-        ATTRIBUTE_INDEX_TIMEOUT_SEC                = 26
+        ATTRIBUTE_INDEX_TLS_AUTHORITY              = 2,
+        ATTRIBUTE_INDEX_TLS_VERSIONS               = 3,
+        ATTRIBUTE_INDEX_QUEUE_URI                  = 4,
+        ATTRIBUTE_INDEX_QUEUE_FLAGS                = 5,
+        ATTRIBUTE_INDEX_LATENCY                    = 6,
+        ATTRIBUTE_INDEX_LATENCY_REPORT             = 7,
+        ATTRIBUTE_INDEX_DUMP_MSG                   = 8,
+        ATTRIBUTE_INDEX_CONFIRM_MSG                = 9,
+        ATTRIBUTE_INDEX_EVENT_SIZE                 = 10,
+        ATTRIBUTE_INDEX_MSG_SIZE                   = 11,
+        ATTRIBUTE_INDEX_POST_RATE                  = 12,
+        ATTRIBUTE_INDEX_EVENTS_COUNT               = 13,
+        ATTRIBUTE_INDEX_MAX_UNCONFIRMED            = 14,
+        ATTRIBUTE_INDEX_POST_INTERVAL              = 15,
+        ATTRIBUTE_INDEX_VERBOSITY                  = 16,
+        ATTRIBUTE_INDEX_LOG_FORMAT                 = 17,
+        ATTRIBUTE_INDEX_MEMORY_DEBUG               = 18,
+        ATTRIBUTE_INDEX_THREADS                    = 19,
+        ATTRIBUTE_INDEX_SHUTDOWN_GRACE             = 20,
+        ATTRIBUTE_INDEX_NO_SESSION_EVENT_HANDLER   = 21,
+        ATTRIBUTE_INDEX_STORAGE                    = 22,
+        ATTRIBUTE_INDEX_LOG                        = 23,
+        ATTRIBUTE_INDEX_SEQUENTIAL_MESSAGE_PATTERN = 24,
+        ATTRIBUTE_INDEX_MESSAGE_PROPERTIES         = 25,
+        ATTRIBUTE_INDEX_SUBSCRIPTIONS              = 26,
+        ATTRIBUTE_INDEX_AUTO_PUB_SUB_MODULO        = 27,
+        ATTRIBUTE_INDEX_TIMEOUT_SEC                = 28
     };
 
     // CONSTANTS
@@ -5343,6 +5349,10 @@ class CommandLineParameters {
     static const char DEFAULT_INITIALIZER_MODE[];
 
     static const char DEFAULT_INITIALIZER_BROKER[];
+
+    static const char DEFAULT_INITIALIZER_TLS_AUTHORITY[];
+
+    static const char DEFAULT_INITIALIZER_TLS_VERSIONS[];
 
     static const char DEFAULT_INITIALIZER_QUEUE_URI[];
 
@@ -5489,6 +5499,14 @@ class CommandLineParameters {
 
     bsl::string& broker();
     // Return a reference to the modifiable "Broker" attribute of this
+    // object.
+
+    bsl::string& tlsAuthority();
+    // Return a reference to the modifiable "TlsAuthority" attribute of
+    // this object.
+
+    bsl::string& tlsVersions();
+    // Return a reference to the modifiable "TlsVersions" attribute of this
     // object.
 
     bsl::string& queueUri();
@@ -5640,6 +5658,14 @@ class CommandLineParameters {
     const bsl::string& broker() const;
     // Return a reference offering non-modifiable access to the "Broker"
     // attribute of this object.
+
+    const bsl::string& tlsAuthority() const;
+    // Return a reference offering non-modifiable access to the
+    // "TlsAuthority" attribute of this object.
+
+    const bsl::string& tlsVersions() const;
+    // Return a reference offering non-modifiable access to the
+    // "TlsVersions" attribute of this object.
 
     const bsl::string& queueUri() const;
     // Return a reference offering non-modifiable access to the "QueueUri"
@@ -10606,6 +10632,8 @@ void CommandLineParameters::hashAppendImpl(
     using bslh::hashAppend;
     hashAppend(hashAlgorithm, this->mode());
     hashAppend(hashAlgorithm, this->broker());
+    hashAppend(hashAlgorithm, this->tlsAuthority());
+    hashAppend(hashAlgorithm, this->tlsVersions());
     hashAppend(hashAlgorithm, this->queueUri());
     hashAppend(hashAlgorithm, this->queueFlags());
     hashAppend(hashAlgorithm, this->latency());
@@ -10637,6 +10665,8 @@ inline bool
 CommandLineParameters::isEqualTo(const CommandLineParameters& rhs) const
 {
     return this->mode() == rhs.mode() && this->broker() == rhs.broker() &&
+           this->tlsAuthority() == rhs.tlsAuthority() &&
+           this->tlsVersions() == rhs.tlsVersions() &&
            this->queueUri() == rhs.queueUri() &&
            this->queueFlags() == rhs.queueFlags() &&
            this->latency() == rhs.latency() &&
@@ -10677,6 +10707,18 @@ int CommandLineParameters::manipulateAttributes(t_MANIPULATOR& manipulator)
     }
 
     ret = manipulator(&d_broker, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BROKER]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_tlsAuthority,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS_AUTHORITY]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_tlsVersions,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS_VERSIONS]);
     if (ret) {
         return ret;
     }
@@ -10852,6 +10894,15 @@ int CommandLineParameters::manipulateAttribute(t_MANIPULATOR& manipulator,
         return manipulator(&d_broker,
                            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BROKER]);
     }
+    case ATTRIBUTE_ID_TLS_AUTHORITY: {
+        return manipulator(
+            &d_tlsAuthority,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS_AUTHORITY]);
+    }
+    case ATTRIBUTE_ID_TLS_VERSIONS: {
+        return manipulator(&d_tlsVersions,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS_VERSIONS]);
+    }
     case ATTRIBUTE_ID_QUEUE_URI: {
         return manipulator(&d_queueUri,
                            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_URI]);
@@ -10988,6 +11039,16 @@ inline bsl::string& CommandLineParameters::mode()
 inline bsl::string& CommandLineParameters::broker()
 {
     return d_broker;
+}
+
+inline bsl::string& CommandLineParameters::tlsAuthority()
+{
+    return d_tlsAuthority;
+}
+
+inline bsl::string& CommandLineParameters::tlsVersions()
+{
+    return d_tlsVersions;
 }
 
 inline bsl::string& CommandLineParameters::queueUri()
@@ -11127,6 +11188,18 @@ int CommandLineParameters::accessAttributes(t_ACCESSOR& accessor) const
     }
 
     ret = accessor(d_broker, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BROKER]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_tlsAuthority,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS_AUTHORITY]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_tlsVersions,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS_VERSIONS]);
     if (ret) {
         return ret;
     }
@@ -11293,6 +11366,14 @@ int CommandLineParameters::accessAttribute(t_ACCESSOR& accessor, int id) const
         return accessor(d_broker,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BROKER]);
     }
+    case ATTRIBUTE_ID_TLS_AUTHORITY: {
+        return accessor(d_tlsAuthority,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS_AUTHORITY]);
+    }
+    case ATTRIBUTE_ID_TLS_VERSIONS: {
+        return accessor(d_tlsVersions,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS_VERSIONS]);
+    }
     case ATTRIBUTE_ID_QUEUE_URI: {
         return accessor(d_queueUri,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_URI]);
@@ -11424,6 +11505,16 @@ inline const bsl::string& CommandLineParameters::mode() const
 inline const bsl::string& CommandLineParameters::broker() const
 {
     return d_broker;
+}
+
+inline const bsl::string& CommandLineParameters::tlsAuthority() const
+{
+    return d_tlsAuthority;
+}
+
+inline const bsl::string& CommandLineParameters::tlsVersions() const
+{
+    return d_tlsVersions;
 }
 
 inline const bsl::string& CommandLineParameters::queueUri() const
@@ -12513,6 +12604,6 @@ inline bool Command::isUndefinedValue() const
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY BLP_BAS_CODEGEN_2025.10.09.2
+// GENERATED BY BLP_BAS_CODEGEN_2025.10.23
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package m_bmqtool --msgComponent messages bmqtoolcmd.xsd

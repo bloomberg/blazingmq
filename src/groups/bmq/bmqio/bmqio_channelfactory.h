@@ -188,6 +188,13 @@ class ChannelFactory {
                          bslma::ManagedPtr<OpHandle>* handle,
                          const ConnectOptions&        options,
                          const ResultCallback&        cb) = 0;
+
+    /// Enable this factory to start creating connections.
+    virtual int start() = 0;
+
+    /// Stop this factory from creating connections and clean up any pending
+    /// connections.
+    virtual void stop() = 0;
 };
 
 }  // close package namespace
