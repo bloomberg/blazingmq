@@ -105,39 +105,45 @@ struct PartitionStateTableEvent {
 
     /// Enumeration used to distinguish among different type of event.
     enum Enum {
-        e_RST_UNKNOWN                  = 0,
-        e_DETECT_SELF_PRIMARY          = 1,
-        e_DETECT_SELF_REPLICA          = 2,
-        e_REPLICA_STATE_RQST           = 3,
-        e_REPLICA_STATE_RSPN           = 4,
-        e_FAIL_REPLICA_STATE_RSPN      = 5,
-        e_PRIMARY_STATE_RQST           = 6,
-        e_PRIMARY_STATE_RSPN           = 7,
-        e_FAIL_PRIMARY_STATE_RSPN      = 8,
-        e_REPLICA_DATA_RQST_PULL       = 9,
-        e_REPLICA_DATA_RQST_PUSH       = 10,
-        e_REPLICA_DATA_RQST_DROP       = 11,
-        e_REPLICA_DATA_RSPN_PULL       = 12,
-        e_REPLICA_DATA_RSPN_PUSH       = 13,
-        e_REPLICA_DATA_RSPN_DROP       = 14,
-        e_FAIL_REPLICA_DATA_RSPN_PULL  = 15,
-        e_CRASH_REPLICA_DATA_RSPN_PULL = 16,
-        e_FAIL_REPLICA_DATA_RSPN_PUSH  = 17,
-        e_FAIL_REPLICA_DATA_RSPN_DROP  = 18,
-        e_DONE_SENDING_DATA_CHUNKS     = 19,
-        e_ERROR_SENDING_DATA_CHUNKS    = 20,
-        e_DONE_RECEIVING_DATA_CHUNKS   = 21,
-        e_ERROR_RECEIVING_DATA_CHUNKS  = 22,
-        e_RECOVERY_DATA                = 23,
-        e_LIVE_DATA                    = 24,
-        e_QUORUM_REPLICA_DATA_RSPN     = 25,
-        e_ISSUE_LIVESTREAM             = 26,
-        e_QUORUM_REPLICA_SEQ           = 27,
-        e_SELF_HIGHEST_SEQ             = 28,
-        e_REPLICA_HIGHEST_SEQ          = 29,
-        e_WATCH_DOG                    = 30,
-        e_STOP_NODE                    = 31,
-        e_NUM_EVENTS                   = 32
+        e_RST_UNKNOWN                   = 0,
+        e_DETECT_SELF_PRIMARY           = 1,
+        e_DETECT_SELF_REPLICA           = 2,
+        e_REPLICA_STATE_RQST            = 3,
+        e_REPLICA_STATE_RSPN            = 4,
+        e_FAIL_REPLICA_STATE_RSPN       = 5,
+        e_PRIMARY_STATE_RQST            = 6,
+        e_PRIMARY_STATE_RSPN            = 7,
+        e_FAIL_PRIMARY_STATE_RSPN       = 8,
+        e_REPLICA_DATA_RQST_PULL        = 9,
+        e_REPLICA_DATA_RQST_PUSH        = 10,
+        e_REPLICA_DATA_RQST_DROP        = 11,
+        e_REPLICA_DATA_RSPN_PULL        = 12,
+        e_REPLICA_DATA_RSPN_PUSH        = 13,
+        e_REPLICA_DATA_RSPN_DROP        = 14,
+        e_FAIL_REPLICA_DATA_RSPN_PULL   = 15,
+        e_CRASH_REPLICA_DATA_RSPN_PULL  = 16,
+        e_FAIL_REPLICA_DATA_RSPN_PUSH   = 17,
+        e_FAIL_REPLICA_DATA_RSPN_DROP   = 18,
+        e_DONE_SENDING_DATA_CHUNKS      = 19,
+        e_ERROR_SENDING_DATA_CHUNKS     = 20,
+        e_DONE_RECEIVING_DATA_CHUNKS    = 21,
+        e_ERROR_RECEIVING_DATA_CHUNKS   = 22,
+        e_RECOVERY_DATA                 = 23,
+        e_LIVE_DATA                     = 24,
+        e_QUORUM_REPLICA_DATA_RSPN      = 25,
+        e_ISSUE_LIVESTREAM              = 26,
+        e_QUORUM_REPLICA_SEQ            = 27,
+        e_SELF_HIGHEST_SEQ              = 28,
+        e_REPLICA_HIGHEST_SEQ           = 29,
+        e_WATCH_DOG                     = 30,
+        e_STOP_NODE                     = 31,
+        e_QUORUM_REPLICA_FILE_SIZES     = 32,
+        e_SELF_RESIZE_STORAGE           = 33,
+        e_REPLICA_RESIZE_STORAGE        = 34,
+        e_REPLICA_DATA_RQST_RESIZE      = 35,
+        e_REPLICA_DATA_RSPN_RESIZE      = 36,
+        e_FAIL_REPLICA_DATA_RSPN_RESIZE = 37,
+        e_NUM_EVENTS                    = 38
     };
 
     // CLASS METHODS
@@ -211,6 +217,12 @@ class PartitionStateTableActions {
 
     virtual void do_storeReplicaSeq(const ARGS& args) = 0;
 
+    virtual void do_storeSelfMaxFileSizes(const ARGS& args) = 0;
+
+    virtual void do_storePrimaryMaxFileSizes(const ARGS& args) = 0;
+
+    virtual void do_storeReplicaMaxFileSizes(const ARGS& args) = 0;
+
     virtual void do_storePartitionInfo(const ARGS& args) = 0;
 
     virtual void do_clearPartitionInfo(const ARGS& args) = 0;
@@ -247,6 +259,10 @@ class PartitionStateTableActions {
 
     virtual void do_failureReplicaDataResponsePush(const ARGS& args) = 0;
 
+    virtual void do_replicaDataRequestResize(const ARGS& args) = 0;
+
+    virtual void do_replicaDataResponseResize(const ARGS& args) = 0;
+
     virtual void do_bufferLiveData(const ARGS& args) = 0;
 
     virtual void do_processBufferedLiveData(const ARGS& args) = 0;
@@ -278,9 +294,13 @@ class PartitionStateTableActions {
 
     virtual void do_reapplyEvent(const ARGS& args) = 0;
 
-    virtual void do_checkQuorumSeq(const ARGS& args) = 0;
+    virtual void do_checkQuorumMaxFileSizesAndSeq(const ARGS& args) = 0;
 
     virtual void do_findHighestSeq(const ARGS& args) = 0;
+
+    virtual void do_findHighestFileSizes(const ARGS& args) = 0;
+
+    virtual void do_overrideMaxFileSizes(const ARGS& args) = 0;
 
     virtual void do_flagFailedReplicaSeq(const ARGS& args) = 0;
 
@@ -296,19 +316,25 @@ class PartitionStateTableActions {
         const ARGS& args);
 
     void
-    do_startWatchDog_storePartitionInfo_openRecoveryFileSet_storeSelfSeq_replicaStateRequest_checkQuorumSeq(
+    do_startWatchDog_storePartitionInfo_openRecoveryFileSet_storeSelfMaxFileSizes_storeSelfSeq_replicaStateRequest_checkQuorumMaxFileSizesAndSeq(
         const ARGS& args);
 
     void
-    do_startWatchDog_storePartitionInfo_openRecoveryFileSet_storeSelfSeq_primaryStateRequest(
+    do_startWatchDog_storePartitionInfo_openRecoveryFileSet_storeSelfMaxFileSizes_storeSelfSeq_primaryStateRequest(
         const ARGS& args);
 
     void
-    do_storeReplicaSeq_primaryStateResponse_checkQuorumSeq(const ARGS& args);
+    do_storeReplicaMaxFileSizes_storeReplicaSeq_primaryStateResponse_checkQuorumMaxFileSizesAndSeq(
+        const ARGS& args);
 
-    void do_storeReplicaSeq_checkQuorumSeq(const ARGS& args);
+    void
+    do_storeReplicaMaxFileSizes_storeReplicaSeq_checkQuorumMaxFileSizesAndSeq(
+        const ARGS& args);
 
-    void do_storePrimarySeq_replicaStateResponse(const ARGS& args);
+    void do_storePrimaryMaxFileSizes_storePrimarySeq_replicaStateResponse(
+        const ARGS& args);
+
+    void do_storePrimaryMaxFileSizes_storePrimarySeq(const ARGS& args);
 
     void do_cleanupMetadata_clearPartitionInfo_reapplyEvent(const ARGS& args);
 
@@ -324,12 +350,20 @@ class PartitionStateTableActions {
     void do_cleanupMetadata_closeRecoveryFileSet_reapplyDetectSelfPrimary(
         const ARGS& args);
 
-    void do_resetReceiveDataCtx_flagFailedReplicaSeq_checkQuorumSeq(
+    void
+    do_resetReceiveDataCtx_flagFailedReplicaSeq_checkQuorumMaxFileSizesAndSeq(
         const ARGS& args);
 
     void do_resetReceiveDataCtx_closeRecoveryFileSet(const ARGS& args);
 
     void do_closeRecoveryFileSet_attemptOpenStorage_startSendDataChunks(
+        const ARGS& args);
+
+    void do_closeRecoveryFileSet_overrideMaxFileSizes_attemptOpenStorage(
+        const ARGS& args);
+
+    void
+    do_closeRecoveryFileSet_overrideMaxFileSizes_attemptOpenStorage_replicaDataResponseResize(
         const ARGS& args);
 
     void
@@ -341,12 +375,13 @@ class PartitionStateTableActions {
     void do_setExpectedDataChunkRange_clearBufferedLiveData(const ARGS& args);
 
     void
-    do_resetReceiveDataCtx_closeRecoveryFileSet_storeSelfSeq_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
+    do_resetReceiveDataCtx_storeSelfMaxFileSizes_storeSelfSeq_closeRecoveryFileSet_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
         const ARGS& args);
 
     void do_stopWatchDog_transitionToActivePrimary(const ARGS& args);
 
-    void do_replicaStateResponse_storePrimarySeq(const ARGS& args);
+    void do_replicaStateResponse_storePrimaryMaxFileSizes_storePrimarySeq(
+        const ARGS& args);
 
     void do_cleanupMetadata_reapplyDetectSelfReplica(const ARGS& args);
 
@@ -378,19 +413,19 @@ class PartitionStateTableActions {
         const ARGS& args);
 
     void
-    do_storeReplicaSeq_primaryStateResponse_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
+    do_storeReplicaMaxFileSizes_storeReplicaSeq_primaryStateResponse_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
         const ARGS& args);
 
     void
-    do_storeSelfSeq_storeReplicaSeq_primaryStateResponse_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
+    do_storeSelfMaxFileSizes_storeSelfSeq_storeReplicaMaxFileSizes_storeReplicaSeq_primaryStateResponse_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
         const ARGS& args);
 
     void
-    do_storeReplicaSeq_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
+    do_storeReplicaMaxFileSizes_storeReplicaSeq_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
         const ARGS& args);
 
     void
-    do_storeSelfSeq_storeReplicaSeq_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
+    do_storeSelfMaxFileSizes_storeSelfSeq_storeReplicaMaxFileSizes_storeReplicaSeq_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
         const ARGS& args);
 
     void
@@ -434,12 +469,12 @@ class PartitionStateTable
         PST_CFG(
             UNKNOWN,
             DETECT_SELF_PRIMARY,
-            startWatchDog_storePartitionInfo_openRecoveryFileSet_storeSelfSeq_replicaStateRequest_checkQuorumSeq,
+            startWatchDog_storePartitionInfo_openRecoveryFileSet_storeSelfMaxFileSizes_storeSelfSeq_replicaStateRequest_checkQuorumMaxFileSizesAndSeq,
             PRIMARY_HEALING_STG1);
         PST_CFG(
             UNKNOWN,
             DETECT_SELF_REPLICA,
-            startWatchDog_storePartitionInfo_openRecoveryFileSet_storeSelfSeq_primaryStateRequest,
+            startWatchDog_storePartitionInfo_openRecoveryFileSet_storeSelfMaxFileSizes_storeSelfSeq_primaryStateRequest,
             REPLICA_HEALING);
         PST_CFG(UNKNOWN, STOP_NODE, none, STOPPED);
         PST_CFG(PRIMARY_HEALING_STG1,
@@ -450,21 +485,35 @@ class PartitionStateTable
                 REPLICA_STATE_RQST,
                 failureReplicaStateResponse,
                 PRIMARY_HEALING_STG1);
-        PST_CFG(PRIMARY_HEALING_STG1,
-                REPLICA_STATE_RSPN,
-                storeReplicaSeq_checkQuorumSeq,
-                PRIMARY_HEALING_STG1);
+        PST_CFG(
+            PRIMARY_HEALING_STG1,
+            REPLICA_STATE_RSPN,
+            storeReplicaMaxFileSizes_storeReplicaSeq_checkQuorumMaxFileSizesAndSeq,
+            PRIMARY_HEALING_STG1);
         PST_CFG(PRIMARY_HEALING_STG1,
                 FAIL_REPLICA_STATE_RSPN,
                 logFailureReplicaStateResponse,
                 PRIMARY_HEALING_STG1);
-        PST_CFG(PRIMARY_HEALING_STG1,
-                PRIMARY_STATE_RQST,
-                storeReplicaSeq_primaryStateResponse_checkQuorumSeq,
-                PRIMARY_HEALING_STG1);
+        PST_CFG(
+            PRIMARY_HEALING_STG1,
+            PRIMARY_STATE_RQST,
+            storeReplicaMaxFileSizes_storeReplicaSeq_primaryStateResponse_checkQuorumMaxFileSizesAndSeq,
+            PRIMARY_HEALING_STG1);
         PST_CFG(PRIMARY_HEALING_STG1,
                 QUORUM_REPLICA_SEQ,
                 findHighestSeq,
+                PRIMARY_HEALING_STG1);
+        PST_CFG(PRIMARY_HEALING_STG1,
+                QUORUM_REPLICA_FILE_SIZES,
+                findHighestFileSizes,
+                PRIMARY_HEALING_STG1);
+        PST_CFG(PRIMARY_HEALING_STG1,
+                SELF_RESIZE_STORAGE,
+                closeRecoveryFileSet_overrideMaxFileSizes_attemptOpenStorage,
+                PRIMARY_HEALING_STG1);
+        PST_CFG(PRIMARY_HEALING_STG1,
+                REPLICA_RESIZE_STORAGE,
+                replicaDataRequestResize,
                 PRIMARY_HEALING_STG1);
         PST_CFG(
             PRIMARY_HEALING_STG1,
@@ -493,23 +542,25 @@ class PartitionStateTable
                 DETECT_SELF_REPLICA,
                 cleanupMetadata_clearPartitionInfo_stopWatchDog_reapplyEvent,
                 UNKNOWN);
-        PST_CFG(PRIMARY_HEALING_STG2,
-                FAIL_REPLICA_DATA_RSPN_PULL,
-                resetReceiveDataCtx_flagFailedReplicaSeq_checkQuorumSeq,
-                PRIMARY_HEALING_STG1);
-        PST_CFG(PRIMARY_HEALING_STG2,
-                CRASH_REPLICA_DATA_RSPN_PULL,
-                resetReceiveDataCtx_flagFailedReplicaSeq_checkQuorumSeq,
-                PRIMARY_HEALING_STG1);
+        PST_CFG(
+            PRIMARY_HEALING_STG2,
+            FAIL_REPLICA_DATA_RSPN_PULL,
+            resetReceiveDataCtx_flagFailedReplicaSeq_checkQuorumMaxFileSizesAndSeq,
+            PRIMARY_HEALING_STG1);
+        PST_CFG(
+            PRIMARY_HEALING_STG2,
+            CRASH_REPLICA_DATA_RSPN_PULL,
+            resetReceiveDataCtx_flagFailedReplicaSeq_checkQuorumMaxFileSizesAndSeq,
+            PRIMARY_HEALING_STG1);
         PST_CFG(
             PRIMARY_HEALING_STG2,
             REPLICA_STATE_RSPN,
-            storeReplicaSeq_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks,
+            storeReplicaMaxFileSizes_storeReplicaSeq_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks,
             PRIMARY_HEALING_STG2);
         PST_CFG(
             PRIMARY_HEALING_STG2,
             PRIMARY_STATE_RQST,
-            storeReplicaSeq_primaryStateResponse_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks,
+            storeReplicaMaxFileSizes_storeReplicaSeq_primaryStateResponse_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks,
             PRIMARY_HEALING_STG2)
         PST_CFG(PRIMARY_HEALING_STG2,
                 RECOVERY_DATA,
@@ -523,7 +574,7 @@ class PartitionStateTable
         PST_CFG(
             PRIMARY_HEALING_STG2,
             REPLICA_DATA_RSPN_PULL,
-            resetReceiveDataCtx_closeRecoveryFileSet_storeSelfSeq_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn,
+            resetReceiveDataCtx_storeSelfMaxFileSizes_storeSelfSeq_closeRecoveryFileSet_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn,
             PRIMARY_HEALING_STG2);
         PST_CFG(PRIMARY_HEALING_STG2,
                 REPLICA_DATA_RSPN_PUSH,
@@ -557,7 +608,7 @@ class PartitionStateTable
                 UNKNOWN);
         PST_CFG(REPLICA_HEALING,
                 REPLICA_STATE_RQST,
-                storePrimarySeq_replicaStateResponse,
+                storePrimaryMaxFileSizes_storePrimarySeq_replicaStateResponse,
                 REPLICA_HEALING);
         PST_CFG(REPLICA_HEALING,
                 PRIMARY_STATE_RQST,
@@ -565,7 +616,7 @@ class PartitionStateTable
                 REPLICA_HEALING);
         PST_CFG(REPLICA_HEALING,
                 PRIMARY_STATE_RSPN,
-                storePrimarySeq,
+                storePrimaryMaxFileSizes_storePrimarySeq,
                 REPLICA_HEALING);
         PST_CFG(REPLICA_HEALING,
                 FAIL_PRIMARY_STATE_RSPN,
@@ -593,6 +644,11 @@ class PartitionStateTable
                 REPLICA_DATA_RQST_DROP,
                 replicaDataResponseDrop_removeStorage_reapplyDetectSelfReplica,
                 REPLICA_HEALING);
+        PST_CFG(
+            REPLICA_HEALING,
+            REPLICA_DATA_RQST_RESIZE,
+            closeRecoveryFileSet_overrideMaxFileSizes_attemptOpenStorage_replicaDataResponseResize,
+            REPLICA_HEALING);
         PST_CFG(REPLICA_HEALING,
                 RECOVERY_DATA,
                 updateStorage,
@@ -658,12 +714,12 @@ class PartitionStateTable
         PST_CFG(
             PRIMARY_HEALED,
             REPLICA_STATE_RSPN,
-            storeSelfSeq_storeReplicaSeq_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks,
+            storeSelfMaxFileSizes_storeSelfSeq_storeReplicaMaxFileSizes_storeReplicaSeq_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks,
             PRIMARY_HEALED);
         PST_CFG(
             PRIMARY_HEALED,
             PRIMARY_STATE_RQST,
-            storeSelfSeq_storeReplicaSeq_primaryStateResponse_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks,
+            storeSelfMaxFileSizes_storeSelfSeq_storeReplicaMaxFileSizes_storeReplicaSeq_primaryStateResponse_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks,
             PRIMARY_HEALED);
         PST_CFG(PRIMARY_HEALED,
                 RST_UNKNOWN,
@@ -718,52 +774,68 @@ void PartitionStateTableActions<ARGS>::
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_startWatchDog_storePartitionInfo_openRecoveryFileSet_storeSelfSeq_replicaStateRequest_checkQuorumSeq(
+    do_startWatchDog_storePartitionInfo_openRecoveryFileSet_storeSelfMaxFileSizes_storeSelfSeq_replicaStateRequest_checkQuorumMaxFileSizesAndSeq(
         const ARGS& args)
 {
     do_startWatchDog(args);
     do_storePartitionInfo(args);
     do_openRecoveryFileSet(args);
+    do_storeSelfMaxFileSizes(args);
     do_storeSelfSeq(args);
     do_replicaStateRequest(args);
-    do_checkQuorumSeq(args);
+    do_checkQuorumMaxFileSizesAndSeq(args);
 }
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_startWatchDog_storePartitionInfo_openRecoveryFileSet_storeSelfSeq_primaryStateRequest(
+    do_startWatchDog_storePartitionInfo_openRecoveryFileSet_storeSelfMaxFileSizes_storeSelfSeq_primaryStateRequest(
         const ARGS& args)
 {
     do_startWatchDog(args);
     do_storePartitionInfo(args);
     do_openRecoveryFileSet(args);
+    do_storeSelfMaxFileSizes(args);
     do_storeSelfSeq(args);
     do_primaryStateRequest(args);
 }
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_storeReplicaSeq_primaryStateResponse_checkQuorumSeq(const ARGS& args)
+    do_storeReplicaMaxFileSizes_storeReplicaSeq_primaryStateResponse_checkQuorumMaxFileSizesAndSeq(
+        const ARGS& args)
 {
+    do_storeReplicaMaxFileSizes(args);
     do_storeReplicaSeq(args);
     do_primaryStateResponse(args);
-    do_checkQuorumSeq(args);
+    do_checkQuorumMaxFileSizesAndSeq(args);
 }
 
 template <typename ARGS>
-void PartitionStateTableActions<ARGS>::do_storeReplicaSeq_checkQuorumSeq(
-    const ARGS& args)
+void PartitionStateTableActions<ARGS>::
+    do_storeReplicaMaxFileSizes_storeReplicaSeq_checkQuorumMaxFileSizesAndSeq(
+        const ARGS& args)
 {
+    do_storeReplicaMaxFileSizes(args);
     do_storeReplicaSeq(args);
-    do_checkQuorumSeq(args);
+    do_checkQuorumMaxFileSizesAndSeq(args);
 }
 
 template <typename ARGS>
-void PartitionStateTableActions<ARGS>::do_storePrimarySeq_replicaStateResponse(
-    const ARGS& args)
+void PartitionStateTableActions<ARGS>::
+    do_storePrimaryMaxFileSizes_storePrimarySeq_replicaStateResponse(
+        const ARGS& args)
 {
+    do_storePrimaryMaxFileSizes(args);
     do_storePrimarySeq(args);
     do_replicaStateResponse(args);
+}
+
+template <typename ARGS>
+void PartitionStateTableActions<
+    ARGS>::do_storePrimaryMaxFileSizes_storePrimarySeq(const ARGS& args)
+{
+    do_storePrimaryMaxFileSizes(args);
+    do_storePrimarySeq(args);
 }
 
 template <typename ARGS>
@@ -817,12 +889,12 @@ void PartitionStateTableActions<ARGS>::
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_resetReceiveDataCtx_flagFailedReplicaSeq_checkQuorumSeq(
+    do_resetReceiveDataCtx_flagFailedReplicaSeq_checkQuorumMaxFileSizesAndSeq(
         const ARGS& args)
 {
     do_resetReceiveDataCtx(args);
     do_flagFailedReplicaSeq(args);
-    do_checkQuorumSeq(args);
+    do_checkQuorumMaxFileSizesAndSeq(args);
 }
 
 template <typename ARGS>
@@ -841,6 +913,27 @@ void PartitionStateTableActions<ARGS>::
     do_closeRecoveryFileSet(args);
     do_attemptOpenStorage(args);
     do_startSendDataChunks(args);
+}
+
+template <typename ARGS>
+void PartitionStateTableActions<ARGS>::
+    do_closeRecoveryFileSet_overrideMaxFileSizes_attemptOpenStorage(
+        const ARGS& args)
+{
+    do_closeRecoveryFileSet(args);
+    do_overrideMaxFileSizes(args);
+    do_attemptOpenStorage(args);
+}
+
+template <typename ARGS>
+void PartitionStateTableActions<ARGS>::
+    do_closeRecoveryFileSet_overrideMaxFileSizes_attemptOpenStorage_replicaDataResponseResize(
+        const ARGS& args)
+{
+    do_closeRecoveryFileSet(args);
+    do_overrideMaxFileSizes(args);
+    do_attemptOpenStorage(args);
+    do_replicaDataResponseResize(args);
 }
 
 template <typename ARGS>
@@ -874,12 +967,13 @@ void PartitionStateTableActions<
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_resetReceiveDataCtx_closeRecoveryFileSet_storeSelfSeq_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
+    do_resetReceiveDataCtx_storeSelfMaxFileSizes_storeSelfSeq_closeRecoveryFileSet_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
         const ARGS& args)
 {
     do_resetReceiveDataCtx(args);
-    do_closeRecoveryFileSet(args);
+    do_storeSelfMaxFileSizes(args);
     do_storeSelfSeq(args);
+    do_closeRecoveryFileSet(args);
     do_attemptOpenStorage(args);
     do_replicaDataRequestPush(args);
     do_replicaDataRequestDrop(args);
@@ -897,10 +991,12 @@ void PartitionStateTableActions<
 }
 
 template <typename ARGS>
-void PartitionStateTableActions<ARGS>::do_replicaStateResponse_storePrimarySeq(
-    const ARGS& args)
+void PartitionStateTableActions<ARGS>::
+    do_replicaStateResponse_storePrimaryMaxFileSizes_storePrimarySeq(
+        const ARGS& args)
 {
     do_replicaStateResponse(args);
+    do_storePrimaryMaxFileSizes(args);
     do_storePrimarySeq(args);
 }
 
@@ -995,9 +1091,10 @@ void PartitionStateTableActions<ARGS>::
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_storeReplicaSeq_primaryStateResponse_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
+    do_storeReplicaMaxFileSizes_storeReplicaSeq_primaryStateResponse_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
         const ARGS& args)
 {
+    do_storeReplicaMaxFileSizes(args);
     do_storeReplicaSeq(args);
     do_primaryStateResponse(args);
     do_replicaDataRequestPush(args);
@@ -1007,10 +1104,12 @@ void PartitionStateTableActions<ARGS>::
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_storeSelfSeq_storeReplicaSeq_primaryStateResponse_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
+    do_storeSelfMaxFileSizes_storeSelfSeq_storeReplicaMaxFileSizes_storeReplicaSeq_primaryStateResponse_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
         const ARGS& args)
 {
+    do_storeSelfMaxFileSizes(args);
     do_storeSelfSeq(args);
+    do_storeReplicaMaxFileSizes(args);
     do_storeReplicaSeq(args);
     do_primaryStateResponse(args);
     do_replicaDataRequestPush(args);
@@ -1020,9 +1119,10 @@ void PartitionStateTableActions<ARGS>::
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_storeReplicaSeq_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
+    do_storeReplicaMaxFileSizes_storeReplicaSeq_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
         const ARGS& args)
 {
+    do_storeReplicaMaxFileSizes(args);
     do_storeReplicaSeq(args);
     do_replicaDataRequestPush(args);
     do_replicaDataRequestDrop(args);
@@ -1031,10 +1131,12 @@ void PartitionStateTableActions<ARGS>::
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_storeSelfSeq_storeReplicaSeq_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
+    do_storeSelfMaxFileSizes_storeSelfSeq_storeReplicaMaxFileSizes_storeReplicaSeq_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
         const ARGS& args)
 {
+    do_storeSelfMaxFileSizes(args);
     do_storeSelfSeq(args);
+    do_storeReplicaMaxFileSizes(args);
     do_storeReplicaSeq(args);
     do_replicaDataRequestPush(args);
     do_replicaDataRequestDrop(args);

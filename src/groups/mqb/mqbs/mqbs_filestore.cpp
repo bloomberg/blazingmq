@@ -14,6 +14,7 @@
 // limitations under the License.
 
 // mqbs_filestore.cpp                                                 -*-C++-*-
+#include "mqbs_filestoreprotocol.h"
 #include <ball_log.h>
 #include <mqbs_filestore.h>
 
@@ -108,8 +109,10 @@ const int k_NAGLE_PACKET_COUNT = 100;
 const int k_KEY_LEN = FileStoreProtocol::k_KEY_LENGTH;
 
 const unsigned int k_REQUESTED_JOURNAL_SPACE =
-    3 * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
-// Above, 3 == 1 journal record being written +
+    4 * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+// Above, 4 == 1 journal record being written +
+//             1 journal `resize storage` record if rolling over
+//               to satisfy rollover policy +
 //             1 journal sync point if rolling over +
 //             1 journal sync point if self needs to issue another sync point
 //             in 'setActivePrimary' with old values
@@ -274,6 +277,22 @@ void printNextEventRecord(bsl::ostream&                       stream,
     stream << "Next record in primary journal: \n";
     printRecord(stream, primaryBlock);
     allocator->deallocate(p);
+}
+
+// Return `true` if the rollover policy is satisfied, `false` otherwise.
+// Set `availableSpacePercent` pointed value with calculated value.
+bool isSatisfyRolloverPolicy(unsigned int*             availableSpacePercent,
+                             const bsls::Types::Uint64 maxFileSize,
+                             const bsls::Types::Uint64 outstandingBytes,
+                             const unsigned int        minAvailSpacePercent)
+{
+    *availableSpacePercent = 0;
+    if (outstandingBytes <= maxFileSize) {
+        *availableSpacePercent = ((maxFileSize - outstandingBytes) * 100) /
+                                 maxFileSize;
+    }
+
+    return *availableSpacePercent >= minAvailSpacePercent;
 }
 
 }  // close unnamed namespace
@@ -443,6 +462,47 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
         return 100 * rc + rc_FILE_ITERATOR_FAILURE;  // RETURN
     }
 
+    // Get partition max file sizes from the file headers
+    d_partitionMaxFileSizes.journalFileSize() =
+        FileStoreProtocolUtil::bmqHeader(journalFd).maxFileSize();
+    d_partitionMaxFileSizes.dataFileSize() =
+        FileStoreProtocolUtil::bmqHeader(dataFd).maxFileSize();
+    if (d_qListAware) {
+        d_partitionMaxFileSizes.qListFileSize() =
+            FileStoreProtocolUtil::bmqHeader(qlistFd).maxFileSize();
+    }
+
+    // Validate max file sizes and compare with config values.
+    bmqp_ctrlmsg::PartitionMaxFileSizes configMaxFileSizes;
+    configMaxFileSizes.journalFileSize() = d_config.maxJournalFileSize();
+    configMaxFileSizes.dataFileSize()    = d_config.maxDataFileSize();
+    if (d_qListAware) {
+        configMaxFileSizes.qListFileSize() = d_config.maxQlistFileSize();
+    }
+
+    if (d_partitionMaxFileSizes == bmqp_ctrlmsg::PartitionMaxFileSizes()) {
+        // If file sizes are ommitted in file header, use config values
+        d_partitionMaxFileSizes = configMaxFileSizes;
+        BALL_LOG_WARN << partitionDesc()
+                      << "Partition max file sizes are omitted in file "
+                         "headers, use from config: "
+                      << d_partitionMaxFileSizes;
+    }
+    else {
+        if (d_partitionMaxFileSizes != configMaxFileSizes) {
+            BALL_LOG_WARN << partitionDesc()
+                          << "Override partition max file sizes from config ["
+                          << configMaxFileSizes
+                          << "] with values from file headers: "
+                          << d_partitionMaxFileSizes;
+        }
+        else {
+            BALL_LOG_INFO << partitionDesc()
+                          << "Partition max file sizes from file headers: "
+                          << d_partitionMaxFileSizes;
+        }
+    }
+
     // Get first sync point after rollover.
     if (jit.firstSyncPointAfterRolloverPosition() > 0) {
         const RecordHeader& recHeader =
@@ -464,25 +524,26 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
     if (0 != jit.lastSyncPointPosition()) {
         const JournalOpRecord& lsp = jit.lastSyncPoint();
         BSLS_ASSERT_SAFE(JournalOpType::e_SYNCPOINT == lsp.type());
+        const JournalOpRecord::SyncPointData& lspd = lsp.syncPointData();
 
         bmqu::MemOutStream out;
         out << partitionDesc() << " Last sync point details: "
             << "SyncPoint sub-type: " << lsp.syncPointType()
-            << ", PrimaryNodeId: " << lsp.primaryNodeId()
-            << ", PrimaryLeaseId (in SyncPt): " << lsp.primaryLeaseId()
-            << ", SequenceNumber (in SyncPt): " << lsp.sequenceNum()
+            << ", PrimaryNodeId: " << lspd.primaryNodeId()
+            << ", PrimaryLeaseId (in SyncPt): " << lspd.primaryLeaseId()
+            << ", SequenceNumber (in SyncPt): " << lspd.sequenceNum()
             << ", PrimaryLeaseId (in RecordHeader): "
             << lsp.header().primaryLeaseId()
             << ", SequenceNumber (in RecordHeader): "
             << lsp.header().sequenceNumber()
             << ", SyncPoint offset in journal: " << jit.lastSyncPointPosition()
             << ", DataFileOffset: "
-            << (static_cast<bsls::Types::Uint64>(lsp.dataFileOffsetDwords()) *
+            << (static_cast<bsls::Types::Uint64>(lspd.dataFileOffsetDwords()) *
                 bmqp::Protocol::k_DWORD_SIZE);
         if (d_qListAware) {
             out << ", QlistFileOffset: "
                 << (static_cast<bsls::Types::Uint64>(
-                        lsp.qlistFileOffsetWords()) *
+                        lspd.qlistFileOffsetWords()) *
                     bmqp::Protocol::k_WORD_SIZE);
         }
         out << ", Timestamp (epoch): " << lsp.header().timestamp()
@@ -596,6 +657,8 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
                 needTruncation = true;
 
                 const JournalOpRecord& lsp = jit.lastSyncPoint();
+                const JournalOpRecord::SyncPointData& lspd =
+                    lsp.syncPointData();
 
                 // (LeaseId, SeqNum) must be extracted from last SyncPt's
                 // record header, not from the SyncPt itself.  The two sequence
@@ -610,12 +673,12 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
 
                 if (d_qListAware) {
                     qlistOffset = static_cast<bsls::Types::Uint64>(
-                                      lsp.qlistFileOffsetWords()) *
+                                      lspd.qlistFileOffsetWords()) *
                                   bmqp::Protocol::k_WORD_SIZE;
                 }
 
                 dataOffset = static_cast<bsls::Types::Uint64>(
-                                 lsp.dataFileOffsetDwords()) *
+                                 lspd.dataFileOffsetDwords()) *
                              bmqp::Protocol::k_DWORD_SIZE;
 
                 BALL_LOG_WARN
@@ -918,12 +981,15 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
     // Ensure that the maximum file size for the partition is equal or greater
     // than the offsets obtained above.
 
-    if (dataFileOffset > d_config.maxDataFileSize() ||
-        (qlistFileOffset > d_config.maxQlistFileSize() && d_qListAware)) {
+    if (dataFileOffset > d_partitionMaxFileSizes.dataFileSize() ||
+        (qlistFileOffset > d_partitionMaxFileSizes.qListFileSize() &&
+         d_qListAware)) {
         BALL_LOG_ERROR << partitionDesc() << "Maximum file sizes specified in "
-                       << "configuration: (" << d_config.maxJournalFileSize()
-                       << ", " << d_config.maxDataFileSize() << ", "
-                       << d_config.maxQlistFileSize() << ") is smaller than "
+                       << "file header: ("
+                       << d_partitionMaxFileSizes.journalFileSize() << ", "
+                       << d_partitionMaxFileSizes.dataFileSize() << ", "
+                       << d_partitionMaxFileSizes.qListFileSize()
+                       << ") is smaller than "
                        << "file sizes on disk for recovery: ("
                        << journalFileOffset << ", " << dataFileOffset << ", "
                        << qlistFileOffset << ") for JOURNAL, DATA and QLIST "
@@ -934,12 +1000,12 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
     // See if journal is full.  If it is, the only way is to update the config
     // to bump the journal file size.
 
-    if (d_config.maxJournalFileSize() <
+    if (d_partitionMaxFileSizes.journalFileSize() <
         (journalFileOffset + 2 * FileStoreProtocol::k_JOURNAL_RECORD_SIZE)) {
         BALL_LOG_ERROR << partitionDesc() << "Journal does not have enough "
                        << "space. Journal offset: " << journalFileOffset
-                       << ", max journal file size per config: "
-                       << d_config.maxJournalFileSize()
+                       << ", max journal file size from file header: "
+                       << d_partitionMaxFileSizes.journalFileSize()
                        << ", additional space (in bytes) required in journal: "
                        << (2 * FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
         return rc_PARTITION_FULL;  // RETURN
@@ -948,11 +1014,13 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
     // Check if DATA and QLIST files are full.  This is not a show stopper,
     // as we may still get some deletions which may make space in those files.
 
-    if (dataFileOffset == d_config.maxDataFileSize() ||
-        (qlistFileOffset == d_config.maxQlistFileSize() && d_qListAware)) {
+    if (dataFileOffset == d_partitionMaxFileSizes.dataFileSize() ||
+        (qlistFileOffset == d_partitionMaxFileSizes.qListFileSize() &&
+         d_qListAware)) {
         BALL_LOG_ERROR << partitionDesc() << "Maximum file sizes specified in "
-                       << "configuration: (" << d_config.maxDataFileSize()
-                       << ", " << d_config.maxQlistFileSize()
+                       << "file header: ("
+                       << d_partitionMaxFileSizes.dataFileSize() << ", "
+                       << d_partitionMaxFileSizes.qListFileSize()
                        << ") is equal to at least one file size on disk for "
                        << "recovery: (" << dataFileOffset << ", "
                        << qlistFileOffset
@@ -962,12 +1030,19 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
     // Close file set as it is in read mode.
     close(*fileSetSp, false);  // flush
 
+    // Set max file sizes in recovery file set
+    // if overridden value is present, use it.
+    const bmqp_ctrlmsg::PartitionMaxFileSizes partitionMaxFileSizes =
+        d_overridenPartitionMaxFileSizes.value_or(d_partitionMaxFileSizes);
+    BSLS_ASSERT_SAFE(partitionMaxFileSizes !=
+                     bmqp_ctrlmsg::PartitionMaxFileSizes());
+
+    recoveryFileSet.setJournalFileSize(partitionMaxFileSizes.journalFileSize())
+        .setDataFileSize(partitionMaxFileSizes.dataFileSize());
+    recoveryFileSet.setQlistFileSize(
+        d_qListAware ? partitionMaxFileSizes.qListFileSize() : 0);
     // Re-open in write mode, grow & map (do not delete on failure).
     bmqu::MemOutStream errorDesc;
-    recoveryFileSet.setJournalFileSize(d_config.maxJournalFileSize())
-        .setDataFileSize(d_config.maxDataFileSize());
-    recoveryFileSet.setQlistFileSize(d_qListAware ? d_config.maxQlistFileSize()
-                                                  : 0);
     rc = FileStoreUtil::openFileSetWriteMode(
         errorDesc,
         recoveryFileSet,
@@ -983,6 +1058,29 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
                        << " mode during recovery. Reason: " << errorDesc.str();
         return rc * 100 + rc_OPEN_FAILURE;  // RETURN
     }
+
+    // Update file header with actual max file size per each file if it is
+    // updated (doesn't match with d_partitionMaxFileSizes)
+    if (fileSetSp->d_dataFile.fileSize() !=
+        d_partitionMaxFileSizes.dataFileSize()) {
+        OffsetPtr<FileHeader> fh(fileSetSp->d_dataFile.block(), 0);
+        fh->setMaxFileSize(fileSetSp->d_dataFile.fileSize());
+    }
+
+    if (fileSetSp->d_journalFile.fileSize() !=
+        d_partitionMaxFileSizes.journalFileSize()) {
+        OffsetPtr<FileHeader> fh(fileSetSp->d_journalFile.block(), 0);
+        fh->setMaxFileSize(fileSetSp->d_journalFile.fileSize());
+    }
+
+    if (d_qListAware && fileSetSp->d_qlistFile.fileSize() !=
+                            d_partitionMaxFileSizes.qListFileSize()) {
+        OffsetPtr<FileHeader> fh(fileSetSp->d_qlistFile.block(), 0);
+        fh->setMaxFileSize(fileSetSp->d_qlistFile.fileSize());
+    }
+
+    // Remember actual max file sizes.
+    d_partitionMaxFileSizes = partitionMaxFileSizes;
 
     // Update file positions to point to the offsets retrieved in
     // 'recoverMessages' call above.
@@ -1583,6 +1681,8 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
 
         if (RecordType::e_JOURNAL_OP == rt) {
             const JournalOpRecord& rec = jit->asJournalOpRecord();
+            const JournalOpRecord::SyncPointData& recData =
+                rec.syncPointData();
             // Perform basic sanity check for as many fields as possible.
 
             if (SyncPointType::e_UNDEFINED == rec.syncPointType()) {
@@ -1595,7 +1695,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 return rc_INVALID_SYNC_PT_SUB_TYPE;  // RETURN
             }
 
-            if (0 == rec.dataFileOffsetDwords()) {
+            if (0 == recData.dataFileOffsetDwords()) {
                 BALL_LOG_ERROR
                     << partitionDesc()
                     << "Encountered a sync point during backward journal "
@@ -1606,15 +1706,15 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 return rc_INVALID_DATA_OFFSET;  // RETURN
             }
 
-            if (dataFd->fileSize() <
-                (static_cast<bsls::Types::Uint64>(rec.dataFileOffsetDwords()) *
-                 bmqp::Protocol::k_DWORD_SIZE)) {
+            if (dataFd->fileSize() < (static_cast<bsls::Types::Uint64>(
+                                          recData.dataFileOffsetDwords()) *
+                                      bmqp::Protocol::k_DWORD_SIZE)) {
                 BALL_LOG_ERROR
                     << partitionDesc()
                     << "Encountered a sync point during backward "
                     << "journal iteration with DATA file offset field ["
                     << (static_cast<bsls::Types::Uint64>(
-                            rec.dataFileOffsetDwords()) *
+                            recData.dataFileOffsetDwords()) *
                         bmqp::Protocol::k_DWORD_SIZE)
                     << "], which is greater than DATA file size ["
                     << dataFd->fileSize()
@@ -1624,7 +1724,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 return rc_INVALID_DATA_OFFSET;  // RETURN
             }
 
-            if (d_qListAware && 0 == rec.qlistFileOffsetWords()) {
+            if (d_qListAware && 0 == recData.qlistFileOffsetWords()) {
                 BALL_LOG_ERROR
                     << partitionDesc()
                     << "Encountered a sync point during backward journal "
@@ -1638,14 +1738,14 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
 
             if (d_qListAware &&
                 qlistFd->fileSize() < (static_cast<bsls::Types::Uint64>(
-                                           rec.qlistFileOffsetWords()) *
+                                           recData.qlistFileOffsetWords()) *
                                        bmqp::Protocol::k_WORD_SIZE)) {
                 BALL_LOG_ERROR << partitionDesc()
                                << "Encountered a sync point during backward "
                                   "journal iteration"
                                << " with QLIST file offset field ["
                                << (static_cast<bsls::Types::Uint64>(
-                                       rec.qlistFileOffsetWords()) *
+                                       recData.qlistFileOffsetWords()) *
                                    bmqp::Protocol::k_WORD_SIZE)
                                << "], which is greater than QLIST file size ["
                                << qlistFd->fileSize()
@@ -1655,7 +1755,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 return rc_INVALID_QLIST_OFFSET;  // RETURN
             }
 
-            if (0 == rec.primaryLeaseId()) {
+            if (0 == recData.primaryLeaseId()) {
                 BALL_LOG_ERROR
                     << partitionDesc()
                     << "Encountered a sync point during backward journal "
@@ -1668,7 +1768,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 return rc_INVALID_PRIMARY_LEASE_ID;  // RETURN
             }
 
-            if (0 == rec.sequenceNum()) {
+            if (0 == recData.sequenceNum()) {
                 BALL_LOG_ERROR
                     << partitionDesc()
                     << "Encountered a sync point during backward journal "
@@ -1687,12 +1787,12 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
             // that SyncPt was issued by new primary on behalf of the old one
             // upon being chosen as the primary.
 
-            if (rec.primaryLeaseId() > primaryLeaseId) {
+            if (recData.primaryLeaseId() > primaryLeaseId) {
                 BMQTSK_ALARMLOG_ALARM("RECOVERY")
                     << partitionDesc()
                     << "Encountered a sync point during backward journal "
                     << "iteration with higher primaryLeaseId: "
-                    << rec.primaryLeaseId()
+                    << recData.primaryLeaseId()
                     << ", current primaryLeaseId: " << primaryLeaseId
                     << ". Record offset: " << jit->recordOffset()
                     << ", record index: " << jit->recordIndex()
@@ -1701,13 +1801,13 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 return rc_INVALID_PRIMARY_LEASE_ID;  // RETURN
             }
 
-            if (rec.primaryLeaseId() == primaryLeaseId) {
-                if (rec.sequenceNum() != sequenceNum) {
+            if (recData.primaryLeaseId() == primaryLeaseId) {
+                if (recData.sequenceNum() != sequenceNum) {
                     BMQTSK_ALARMLOG_ALARM("RECOVERY")
                         << partitionDesc()
                         << "Encountered a sync point during backward journal "
                         << "iteration with incorrect sequence number: "
-                        << rec.sequenceNum()
+                        << recData.sequenceNum()
                         << ", expected sequence number: " << sequenceNum
                         << ". Record offset: " << jit->recordOffset()
                         << ", record index: " << jit->recordIndex()
@@ -1719,14 +1819,12 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
             // Keep track of sync point encountered in the journal.
             bmqp_ctrlmsg::SyncPointOffsetPair spoPair;
             bmqp_ctrlmsg::SyncPoint&          syncPoint = spoPair.syncPoint();
-            syncPoint.primaryLeaseId()                  = rec.primaryLeaseId();
-            syncPoint.sequenceNum()                     = rec.sequenceNum();
-            syncPoint.dataFileOffsetDwords() = rec.dataFileOffsetDwords();
-            syncPoint.qlistFileOffsetWords() = d_qListAware
-                                                   ? rec.qlistFileOffsetWords()
-                                                   : 0;
-            spoPair.offset()                 = jit->recordOffset();
-
+            syncPoint.primaryLeaseId()       = recData.primaryLeaseId();
+            syncPoint.sequenceNum()          = recData.sequenceNum();
+            syncPoint.dataFileOffsetDwords() = recData.dataFileOffsetDwords();
+            syncPoint.qlistFileOffsetWords() =
+                d_qListAware ? recData.qlistFileOffsetWords() : 0;
+            spoPair.offset() = jit->recordOffset();
             d_syncPoints.push_front(spoPair);
 
             // No need to update outstanding journal bytes, since SyncPts are
@@ -2657,12 +2755,21 @@ int FileStore::create(FileSetSp* fileSetSp)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(fileSetSp);
 
+    // Make a copy of config and update it with active partition max file sizes
+    // (override config values)
+    DataStoreConfig                           dataStoreConfig = d_config;
+    const bmqp_ctrlmsg::PartitionMaxFileSizes partitionMaxFileSizes =
+        d_overridenPartitionMaxFileSizes.value_or(d_partitionMaxFileSizes);
+    dataStoreConfig.setMaxDataFileSize(partitionMaxFileSizes.dataFileSize())
+        .setMaxJournalFileSize(partitionMaxFileSizes.journalFileSize())
+        .setMaxQlistFileSize(partitionMaxFileSizes.qListFileSize());
+
     bmqu::MemOutStream errorDesc;
     return FileStoreUtil::create(errorDesc,
                                  fileSetSp,
                                  this,
                                  d_config.partitionId(),
-                                 d_config,
+                                 dataStoreConfig,
                                  partitionDesc(),
                                  d_qListAware,
                                  d_allocator_p);
@@ -2775,14 +2882,15 @@ int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
         d_syncPoints.back().offset());
 
     BSLS_ASSERT_SAFE(JournalOpType::e_SYNCPOINT == journalOpRec->type());
-    BSLS_ASSERT_SAFE(syncPoint.sequenceNum() == journalOpRec->sequenceNum());
+    BSLS_ASSERT_SAFE(syncPoint.sequenceNum() ==
+                     journalOpRec->syncPointData().sequenceNum());
     BSLS_ASSERT_SAFE(syncPoint.primaryLeaseId() ==
-                     journalOpRec->primaryLeaseId());
+                     journalOpRec->syncPointData().primaryLeaseId());
     BSLS_ASSERT_SAFE(syncPoint.dataFileOffsetDwords() ==
-                     journalOpRec->dataFileOffsetDwords());
+                     journalOpRec->syncPointData().dataFileOffsetDwords());
     if (d_qListAware) {
         BSLS_ASSERT_SAFE(syncPoint.qlistFileOffsetWords() ==
-                         journalOpRec->qlistFileOffsetWords());
+                         journalOpRec->syncPointData().qlistFileOffsetWords());
     }
     BSLS_ASSERT_SAFE(SyncPointType::e_UNDEFINED !=
                      journalOpRec->syncPointType());
@@ -2813,10 +2921,9 @@ int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
 
     OffsetPtr<JournalOpRecord> spRec(rJournalFile.block(), rJournalFilePos);
     new (spRec.get())
-        JournalOpRecord(JournalOpType::e_SYNCPOINT,
-                        SyncPointType::e_REGULAR,  // 'regular' sync point
+        JournalOpRecord(SyncPointType::e_REGULAR,  // 'regular' sync point
                         syncPoint.sequenceNum(),
-                        journalOpRec->primaryNodeId(),
+                        journalOpRec->syncPointData().primaryNodeId(),
                         syncPoint.primaryLeaseId(),
                         syncPoint.dataFileOffsetDwords(),
                         d_qListAware ? syncPoint.qlistFileOffsetWords() : 0,
@@ -3012,7 +3119,10 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
         rc_JOURNAL_ROLLOVER_POLICY_FAILURE = -1,
         rc_DATA_ROLLOVER_POLICY_FAILURE    = -2,
         rc_QLIST_ROLLOVER_POLICY_FAILURE   = -3,
-        rc_ROLLOVER_FAILURE                = -4
+        rc_SYNC_POINT_FAILURE              = -4,
+        rc_RESIZE_STORAGE_FAILURE          = -5,
+        rc_ROLLOVER_FAILURE                = -6,
+        rc_SYNC_POINT_FORCE_ISSUE_FAILURE  = -7
     };
 
     // Note: QList file will be deprecated in FSM workflow.
@@ -3023,9 +3133,6 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
     if (!needRollover(file, currentSize, requestedSpace)) {
         return rc_SUCCESS;  // RETURN
     }
-
-    // TBD: make the ratio configurable
-    static const bsls::Types::Uint64 k_MIN_AVAILABLE_SPACE_PERCENT = 20;
 
     // Rollover is needed.  If JOURNAL file requested rollover, mark it as
     // unavailable.  This is needed in the scenario when this routine fails,
@@ -3049,7 +3156,7 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
             << ". Checking if JOURNAL" << (d_qListAware ? ", QLIST" : "")
             << " and DATA files satisfy rollover criteria. "
             << "Minimum required available space in each file: ["
-            << k_MIN_AVAILABLE_SPACE_PERCENT
+            << d_config.minAvailSpacePercent()
             << "%]. Requested record length: " << requestedSpace
             << ". Outstanding bytes in each file:\nJOURNAL: "
             << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
@@ -3073,6 +3180,7 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
     bool           canRollover            = true;
     int            rc                     = rc_SUCCESS;
     FileType::Enum cannotRolloverFileType = FileType::e_UNDEFINED;
+    bmqp_ctrlmsg::PartitionMaxFileSizes adjustedMaxFileSizes;
 
     bsls::Types::Uint64 outstandingBytesJournal =
         activeFileSet->d_outstandingBytesJournal;
@@ -3080,14 +3188,19 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
         outstandingBytesJournal += requestedSpace;
     }
 
-    bsls::Types::Uint64 availableSpacePercentJournal = 0;
-    if (outstandingBytesJournal <= d_config.maxJournalFileSize()) {
-        availableSpacePercentJournal =
-            ((d_config.maxJournalFileSize() - outstandingBytesJournal) * 100) /
-            d_config.maxJournalFileSize();
-    }
+    unsigned int availableSpacePercentJournal = 0;
+    // If journalFileGrowLimit is not set, use current max file size as
+    // grow limit.
+    const bsls::Types::Uint64 journalFileSizeGrowLimit = bsl::max(
+        d_config.journalFileGrowLimit(),
+        d_partitionMaxFileSizes.journalFileSize());
 
-    if (availableSpacePercentJournal < k_MIN_AVAILABLE_SPACE_PERCENT) {
+    adjustedMaxFileSizes.journalFileSize() = adjustPartitionFileSize(
+        &availableSpacePercentJournal,
+        outstandingBytesJournal,
+        d_config.maxJournalFileSize(),
+        journalFileSizeGrowLimit);
+    if (adjustedMaxFileSizes.journalFileSize() == 0) {
         // JOURNAL file can't be rolled over.
 
         canRollover            = false;
@@ -3101,14 +3214,19 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
         outstandingBytesData += requestedSpace;
     }
 
-    bsls::Types::Uint64 availableSpacePercentData = 0;
-    if (outstandingBytesData <= d_config.maxDataFileSize()) {
-        availableSpacePercentData =
-            ((d_config.maxDataFileSize() - outstandingBytesData) * 100) /
-            d_config.maxDataFileSize();
-    }
+    unsigned int availableSpacePercentData = 0;
+    // If dataFileGrowLimit is not set, use current max file size as
+    // grow limit
+    const bsls::Types::Uint64 dataFileSizeGrowLimit = bsl::max(
+        d_config.dataFileGrowLimit(),
+        d_partitionMaxFileSizes.dataFileSize());
 
-    if (availableSpacePercentData < k_MIN_AVAILABLE_SPACE_PERCENT) {
+    adjustedMaxFileSizes.dataFileSize() = adjustPartitionFileSize(
+        &availableSpacePercentData,
+        outstandingBytesData,
+        d_config.maxDataFileSize(),
+        dataFileSizeGrowLimit);
+    if (adjustedMaxFileSizes.dataFileSize() == 0) {
         // DATA file can't be rolled over.
 
         canRollover            = false;
@@ -3116,7 +3234,7 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
         rc                     = rc_DATA_ROLLOVER_POLICY_FAILURE;
     }
 
-    bsls::Types::Uint64 availableSpacePercentQlist = 0;
+    unsigned int availableSpacePercentQlist = 0;
     if (d_qListAware) {
         bsls::Types::Uint64 outstandingBytesQlist =
             activeFileSet->d_outstandingBytesQlist;
@@ -3124,15 +3242,19 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
             outstandingBytesQlist += requestedSpace;
         }
 
-        if (outstandingBytesQlist <= d_config.maxQlistFileSize()) {
-            availableSpacePercentQlist =
-                ((d_config.maxQlistFileSize() - outstandingBytesQlist) * 100) /
-                d_config.maxQlistFileSize();
-        }
+        // If qListFileGrowLimit is not set, use current max file size
+        // as grow limit
+        const bsls::Types::Uint64 qListFileSizeGrowLimit = bsl::max(
+            d_config.qListFileGrowLimit(),
+            d_partitionMaxFileSizes.qListFileSize());
 
-        if (availableSpacePercentQlist < k_MIN_AVAILABLE_SPACE_PERCENT) {
-            // QLIST file can't be rolled over.  Alarm only if we have
-            // encountered this for the first time.
+        adjustedMaxFileSizes.qListFileSize() = adjustPartitionFileSize(
+            &availableSpacePercentQlist,
+            outstandingBytesQlist,
+            d_config.maxQlistFileSize(),
+            qListFileSizeGrowLimit);
+        if (adjustedMaxFileSizes.qListFileSize() == 0) {
+            // QLIST file can't be rolled over.
 
             canRollover            = false;
             cannotRolloverFileType = FileType::e_QLIST;
@@ -3166,33 +3288,33 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
             << "rolled over because rolled over [" << cannotRolloverFileType
             << "] file will have [" << availableSpacePercent
             << "%] available space which is lower than the configured value "
-            << "of [" << k_MIN_AVAILABLE_SPACE_PERCENT << "%]. "
+            << "of [" << d_config.minAvailSpacePercent() << "%]. "
             << "Outstading bytes of each file:";
         bdlb::Print::newlineAndIndent(out, 1, 4);
         printSpaceInUse(
             out,
             "JOURNAL",
             activeFileSet->d_outstandingBytesJournal,
-            d_config.maxJournalFileSize(),
+            activeFileSet->d_journalFile.fileSize(),
             computePercentage(activeFileSet->d_outstandingBytesJournal,
-                              d_config.maxJournalFileSize()));
+                              activeFileSet->d_journalFile.fileSize()));
         bdlb::Print::newlineAndIndent(out, 1, 4);
         printSpaceInUse(
             out,
             "DATA",
             activeFileSet->d_outstandingBytesData,
-            d_config.maxDataFileSize(),
+            d_partitionMaxFileSizes.dataFileSize(),
             computePercentage(activeFileSet->d_outstandingBytesData,
-                              d_config.maxDataFileSize()));
+                              d_partitionMaxFileSizes.dataFileSize()));
         if (d_qListAware) {
             bdlb::Print::newlineAndIndent(out, 1, 4);
             printSpaceInUse(
                 out,
                 "QLIST",
                 activeFileSet->d_outstandingBytesQlist,
-                d_config.maxQlistFileSize(),
+                d_partitionMaxFileSizes.qListFileSize(),
                 computePercentage(activeFileSet->d_outstandingBytesQlist,
-                                  d_config.maxQlistFileSize()));
+                                  d_partitionMaxFileSizes.qListFileSize()));
         }
         out << "\n";
 
@@ -3216,6 +3338,27 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
 
     activeFileSet->d_journalFileAvailable = true;
     // Set the availability flag back to true.
+
+    // Reset overridden max file sizes, not needed anymore.
+    d_overridenPartitionMaxFileSizes.reset();
+
+    // If adjusted max file sizes are different from current,
+    // issue resize storage record BEFORE rollover sync point.
+    BSLS_ASSERT_SAFE(adjustedMaxFileSizes !=
+                     bmqp_ctrlmsg::PartitionMaxFileSizes());
+    if (adjustedMaxFileSizes != d_partitionMaxFileSizes) {
+        rc = issueResizeStorage(adjustedMaxFileSizes);
+        if (0 != rc) {
+            return 10 * rc + rc_RESIZE_STORAGE_FAILURE;  // RETURN
+        }
+
+        BALL_LOG_INFO << partitionDesc()
+                      << "Issued a resize storage record with "
+                      << "adjusted partition file sizes: "
+                      << adjustedMaxFileSizes;
+        // Update current partition max file sizes with adjusted values.
+        d_partitionMaxFileSizes = adjustedMaxFileSizes;
+    }
 
     rc = rollover();
     if (0 != rc) {
@@ -3851,7 +3994,7 @@ void FileStore::alarmHighwatermarkIfNeededDispatched()
 
     const bsls::Types::Uint64 percentageInUseJournal = computePercentage(
         activeFileSet->d_outstandingBytesJournal,
-        d_config.maxJournalFileSize());
+        activeFileSet->d_journalFile.fileSize());
     if (percentageInUseJournal >= k_SPACE_USED_PERCENT_SOFT) {
         needAlarm         = true;
         needAlarmFileType = FileType::e_JOURNAL;
@@ -3859,7 +4002,7 @@ void FileStore::alarmHighwatermarkIfNeededDispatched()
 
     const bsls::Types::Uint64 percentageInUseData = computePercentage(
         activeFileSet->d_outstandingBytesData,
-        d_config.maxDataFileSize());
+        d_partitionMaxFileSizes.dataFileSize());
     if (percentageInUseData >= k_SPACE_USED_PERCENT_SOFT) {
         needAlarm         = true;
         needAlarmFileType = FileType::e_DATA;
@@ -3868,7 +4011,7 @@ void FileStore::alarmHighwatermarkIfNeededDispatched()
     const bsls::Types::Uint64 percentageInUseQlist =
         d_qListAware
             ? computePercentage(activeFileSet->d_outstandingBytesQlist,
-                                d_config.maxQlistFileSize())
+                                d_partitionMaxFileSizes.qListFileSize())
             : 0;
     if (percentageInUseQlist >= k_SPACE_USED_PERCENT_SOFT) {
         needAlarm         = true;
@@ -3888,20 +4031,20 @@ void FileStore::alarmHighwatermarkIfNeededDispatched()
             printSpaceInUse(out,
                             "JOURNAL",
                             activeFileSet->d_outstandingBytesJournal,
-                            d_config.maxJournalFileSize(),
+                            activeFileSet->d_journalFile.fileSize(),
                             percentageInUseJournal);
             bdlb::Print::newlineAndIndent(out, 1, 4);
             printSpaceInUse(out,
                             "DATA",
                             activeFileSet->d_outstandingBytesData,
-                            d_config.maxDataFileSize(),
+                            d_partitionMaxFileSizes.dataFileSize(),
                             percentageInUseData);
             if (d_qListAware) {
                 bdlb::Print::newlineAndIndent(out, 1, 4);
                 printSpaceInUse(out,
                                 "QLIST",
                                 activeFileSet->d_outstandingBytesQlist,
-                                d_config.maxQlistFileSize(),
+                                d_partitionMaxFileSizes.qListFileSize(),
                                 percentageInUseQlist);
             }
             out << "\n";
@@ -4035,6 +4178,39 @@ int FileStore::issueSyncPointInternal(SyncPointType::Enum type,
                                            fs->d_dataFilePosition,
                                            fs->d_journalFilePosition,
                                            d_sequenceNum);
+
+    return rc_SUCCESS;
+}
+
+int FileStore::issueResizeStorage(
+    const bmqp_ctrlmsg::PartitionMaxFileSizes& maxFileSizes)
+{
+    enum { rc_SUCCESS = 0, rc_WRITE_FAILURE = -1 };
+
+    ++d_sequenceNum;  // Increase sequence number for the new record
+
+    // Write to self.
+    int rc = writeResizeStorageRecord(maxFileSizes);
+    if (0 != rc) {
+        BMQTSK_ALARMLOG_ALARM("FILE_IO")
+            << partitionDesc()
+            << "Failed to write resize storage record: " << maxFileSizes
+            << ", rc: " << rc << BMQTSK_ALARMLOG_END;
+
+        // Don't broadcast resize storage record because we failed to apply it
+        // to self
+        return 10 * rc + rc_WRITE_FAILURE;  // RETURN
+    }
+
+    // Retrieve new record offset.
+    bsls::Types::Uint64 resizeStorageJournalOffset =
+        d_fileSets[0]->d_journalFilePosition -
+        FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+
+    // Let replicas know about it.
+    replicateRecord(bmqp::StorageMessageType::e_JOURNAL_OP,
+                    resizeStorageJournalOffset,
+                    true);  // ImmediateFlush flag
 
     return rc_SUCCESS;
 }
@@ -4624,10 +4800,9 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
             return rc_INVALID_CONTENT;  // RETURN
         }
 
-        if (JournalOpType::e_SYNCPOINT == journalOpType) {
-            OffsetPtr<const JournalOpRecord> jOpRec(journal.block(),
-                                                    recordOffset);
+        OffsetPtr<const JournalOpRecord> jOpRec(journal.block(), recordOffset);
 
+        if (JournalOpType::e_SYNCPOINT == journalOpType) {
             if (SyncPointType::e_UNDEFINED == jOpRec->syncPointType()) {
                 BMQTSK_ALARMLOG_ALARM("REPLICATION")
                     << partitionDesc()
@@ -4646,7 +4821,7 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
             // 'recHeader.sequenceNumber()' will be different from
             // 'jOpRec->sequenceNum()'.
 
-            BSLS_ASSERT_SAFE(jOpRec->primaryLeaseId() <=
+            BSLS_ASSERT_SAFE(jOpRec->syncPointData().primaryLeaseId() <=
                              recHeader.primaryLeaseId());
 
             // Keep track of latest sync point.  This needs to occur *before*
@@ -4655,11 +4830,14 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
 
             bmqp_ctrlmsg::SyncPointOffsetPair spoPair;
             bmqp_ctrlmsg::SyncPoint&          syncPoint = spoPair.syncPoint();
-            syncPoint.primaryLeaseId()       = jOpRec->primaryLeaseId();
-            syncPoint.sequenceNum()          = jOpRec->sequenceNum();
-            syncPoint.dataFileOffsetDwords() = jOpRec->dataFileOffsetDwords();
+            syncPoint.primaryLeaseId() =
+                jOpRec->syncPointData().primaryLeaseId();
+            syncPoint.sequenceNum() = jOpRec->syncPointData().sequenceNum();
+            syncPoint.dataFileOffsetDwords() =
+                jOpRec->syncPointData().dataFileOffsetDwords();
             syncPoint.qlistFileOffsetWords() =
-                d_qListAware ? jOpRec->qlistFileOffsetWords() : 0;
+                d_qListAware ? jOpRec->syncPointData().qlistFileOffsetWords()
+                             : 0;
             spoPair.offset() = recordOffset;
 
             // Ensure that replica's DATA file is in sync with that of primary.
@@ -4738,6 +4916,23 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
                     << "self. Current seqNum: (" << d_primaryLeaseId << ", "
                     << d_sequenceNum << ").";
             }
+        }
+        else if (JournalOpType::e_RESIZE_STORAGE == journalOpType) {
+            // Resize storage record
+            // Save the overridden max file sizes to be used by the following
+            // rollover (initiated by sync point of e_ROLLOVER type).
+            bmqp_ctrlmsg::PartitionMaxFileSizes overridenMaxFileSizes;
+            overridenMaxFileSizes.journalFileSize() =
+                jOpRec->resizeStorageData().maxJournalFileSize();
+            overridenMaxFileSizes.dataFileSize() =
+                jOpRec->resizeStorageData().maxDataFileSize();
+            overridenMaxFileSizes.qListFileSize() =
+                jOpRec->resizeStorageData().maxQlistFileSize();
+            d_overridenPartitionMaxFileSizes = overridenMaxFileSizes;
+            BALL_LOG_INFO
+                << partitionDesc()
+                << "Received ResizeStorage record with max file sizes: "
+                << overridenMaxFileSizes;
         }
     }
     else {
@@ -5185,6 +5380,8 @@ FileStore::FileStore(
                         d_blobSpPool_p,
                         allocator)
 , d_firstSyncPointAfterRolloverSeqNum()
+, d_partitionMaxFileSizes()
+, d_overridenPartitionMaxFileSizes()
 {
     // PRECONDITIONS
     BSLS_ASSERT(allocator);
@@ -5206,6 +5403,11 @@ FileStore::FileStore(
 
     d_alarmSoftLimiter.initialize(1, 15 * bdlt::TimeUnitRatio::k_NS_PER_M);
     // Throttling of one maximum alarm per 15 minutes
+
+    // Initialize from config
+    d_partitionMaxFileSizes.dataFileSize()    = d_config.maxDataFileSize();
+    d_partitionMaxFileSizes.journalFileSize() = d_config.maxJournalFileSize();
+    d_partitionMaxFileSizes.qListFileSize()   = d_config.maxQlistFileSize();
 }
 
 FileStore::~FileStore()
@@ -6067,8 +6269,7 @@ int FileStore::writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint& syncPoint,
 
     OffsetPtr<JournalOpRecord> journalOpRec(journal.block(), journalPos);
     new (journalOpRec.get())
-        JournalOpRecord(JournalOpType::e_SYNCPOINT,
-                        type,
+        JournalOpRecord(type,
                         syncPoint.sequenceNum(),
                         d_config.nodeId(),
                         syncPoint.primaryLeaseId(),
@@ -6084,6 +6285,51 @@ int FileStore::writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint& syncPoint,
 
     // Don't update outstanding journal bytes because it is a SyncPt, and we
     // don't rollover SyncPts.
+
+    return rc_SUCCESS;
+}
+
+int FileStore::writeResizeStorageRecord(
+    const bmqp_ctrlmsg::PartitionMaxFileSizes& maxFileSizes)
+{
+    enum { rc_SUCCESS = 0, rc_UNAVAILABLE = -1 };
+
+    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+    FileSet* activeFileSet = d_fileSets[0].get();
+    BSLS_ASSERT_SAFE(activeFileSet);
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+            !activeFileSet->d_journalFileAvailable)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return rc_UNAVAILABLE;  // RETURN
+    }
+
+    // Local refs for convenience.
+
+    MappedFileDescriptor& journal    = activeFileSet->d_journalFile;
+    bsls::Types::Uint64&  journalPos = activeFileSet->d_journalFilePosition;
+
+    // Append journalOp record to journal.  Journal should already have enough
+    // space for one record.
+
+    BSLS_ASSERT_SAFE(journal.fileSize() >=
+                     (journalPos + FileStoreProtocol::k_JOURNAL_RECORD_SIZE));
+
+    OffsetPtr<JournalOpRecord> journalOpRec(journal.block(), journalPos);
+    new (journalOpRec.get())
+        JournalOpRecord(maxFileSizes.journalFileSize(),
+                        maxFileSizes.dataFileSize(),
+                        d_qListAware ? maxFileSizes.qListFileSize() : 0,
+                        RecordHeader::k_MAGIC);
+    journalOpRec->header()
+        .setPrimaryLeaseId(d_primaryLeaseId)
+        .setSequenceNumber(d_sequenceNum)
+        .setTimestamp(
+            bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()));
+    journalPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+
+    // Don't update outstanding journal bytes because this record type
+    // is not rolled over.
 
     return rc_SUCCESS;
 }
@@ -7061,6 +7307,39 @@ void FileStore::gcHistory()
          ++it) {
         it->second->gcHistory(now);
     }
+}
+
+bsls::Types::Uint64
+FileStore::adjustPartitionFileSize(unsigned int*       availableSpacePercent,
+                                   bsls::Types::Uint64 outstandingBytes,
+                                   bsls::Types::Uint64 minFileSize,
+                                   bsls::Types::Uint64 fileSizeGrowLimit)
+{
+    BSLS_ASSERT_SAFE(minFileSize <= fileSizeGrowLimit);
+
+    bsls::Types::Uint64 currMaxFileSize = minFileSize;
+
+    bsls::Types::Uint64 fileSizeGrowStep = d_config.growStepPercent() *
+                                           minFileSize / 100;
+    BSLS_ASSERT_SAFE(fileSizeGrowStep > 0);
+
+    // Find a min file size that satisfies rollover policy
+    bool canRollover = false;
+    while (true) {
+        canRollover = isSatisfyRolloverPolicy(availableSpacePercent,
+                                              currMaxFileSize,
+                                              outstandingBytes,
+                                              d_config.minAvailSpacePercent());
+        if (canRollover || currMaxFileSize == fileSizeGrowLimit) {
+            // Policy is met or reached the limit
+            break;  // BREAK
+        }
+        // Increase file size by step up to limit
+        currMaxFileSize = bsl::min(currMaxFileSize + fileSizeGrowStep,
+                                   fileSizeGrowLimit);
+    }
+
+    return (canRollover ? currMaxFileSize : 0);
 }
 
 void FileStore::applyForEachQueue(const QueueFunctor& functor) const
