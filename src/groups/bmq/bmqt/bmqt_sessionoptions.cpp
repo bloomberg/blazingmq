@@ -45,6 +45,7 @@ SessionOptions::SessionOptions(bslma::Allocator* allocator)
 , d_eventQueueLowWatermark(50)
 , d_eventQueueHighWatermark(2 * 1000)
 , d_eventQueueSize(-1)  // DEPRECATED: will be removed in future release
+, d_authnCredentialCb(NULL)
 , d_hostHealthMonitor_sp(NULL)
 , d_dtContext_sp(NULL)
 , d_dtTracer_sp(NULL)
@@ -68,6 +69,7 @@ SessionOptions::SessionOptions(const SessionOptions& other,
 , d_eventQueueLowWatermark(other.eventQueueLowWatermark())
 , d_eventQueueHighWatermark(other.eventQueueHighWatermark())
 , d_eventQueueSize(-1)  // DEPRECATED: will be removed in future release
+, d_authnCredentialCb(other.authnCredentialCb())
 , d_hostHealthMonitor_sp(other.hostHealthMonitor())
 , d_dtContext_sp(other.traceContext())
 , d_dtTracer_sp(other.tracer())
@@ -105,6 +107,8 @@ bsl::ostream& SessionOptions::print(bsl::ostream& stream,
     printer.printAttribute("eventQueueLowWatermark", d_eventQueueLowWatermark);
     printer.printAttribute("eventQueueHighWatermark",
                            d_eventQueueHighWatermark);
+    printer.printAttribute("hasAuthnCredentialCb",
+                           d_authnCredentialCb != NULL);
     printer.printAttribute("hasHostHealthMonitor",
                            d_hostHealthMonitor_sp != NULL);
     printer.printAttribute("hasDistributedTracing", d_dtTracer_sp != NULL);
