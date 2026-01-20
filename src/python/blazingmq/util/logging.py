@@ -58,17 +58,18 @@ import argparse
 import logging
 from pathlib import Path
 import re
-from typing import Any, Optional, Sequence, Union
+from typing import Any, Optional, Sequence, Union, cast
 
 
-def level_value(level, error):
+def level_value(level: str, error: str) -> int:
     if not hasattr(logging, level):
         raise ValueError(error.format(level=level))
 
-    return getattr(logging, level)
+    # Logging level constants are integers
+    return cast(int, getattr(logging, level))
 
 
-def split_category_level(category_level):
+def split_category_level(category_level: str) -> tuple[str, str]:
     match = re.fullmatch(r"(\w+(?:\.\w+)*):(\w+)", category_level)
 
     if not match:
@@ -118,7 +119,7 @@ def apply_normalized_log_levels(levels: tuple[int, list[tuple[str, int]]]) -> No
         logging.getLogger(category).setLevel(level)
 
 
-def apply_log_levels(level_spec):
+def apply_log_levels(level_spec: Optional[str]) -> None:
     """Parse 'level_spec' (a string formatted as defined at the top of the
     file) and set log levels accordingly.
     """
@@ -158,7 +159,7 @@ class Action(argparse.Action):
         apply_normalized_log_levels(levels)
 
 
-def make_parser(switches=None):
+def make_parser(switches: Optional[list[str]] = None) -> argparse.ArgumentParser:
     """Return a Parser object, intended to be used as a parent parser.
 
     Keyword Arguments:
@@ -193,7 +194,7 @@ class LazyStr:
     arguments, and defer rendering the data until it is actually needed.
     """
 
-    def __init__(self, data, **kwargs):
+    def __init__(self, data: Any, **kwargs: Any) -> None:
         self.data = data
         self.kwargs = kwargs
 
@@ -213,7 +214,7 @@ class lazy_json(LazyStr):
     Lazily render data to JSON.
     """
 
-    def __str__(self):
+    def __str__(self) -> str:
         import json
 
         return json.dumps(self.data, **{"indent": 2, **self.kwargs})
@@ -224,13 +225,13 @@ class lazy_pprint(LazyStr):
     Lazily render data using standard 'pprint' module.
     """
 
-    def __str__(self):
+    def __str__(self) -> str:
         import pprint
 
         return pprint.pformat(self.data, **{"indent": 2, "width": 80, **self.kwargs})
 
 
-def _jsonable(data, depth, max_depth):
+def _jsonable(data: Any, depth: int, max_depth: Optional[int]) -> Any:
     if isinstance(data, str):
         return data
 
@@ -267,7 +268,7 @@ class lazy_data(LazyStr):
     - Recursive data structures are not supported.
     """
 
-    def __str__(self):
+    def __str__(self) -> str:
         import json
 
         return json.dumps(

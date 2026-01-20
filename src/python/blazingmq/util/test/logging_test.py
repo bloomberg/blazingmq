@@ -47,7 +47,7 @@ def test_normalize_levels(
     assert blazingmq.util.logging.normalize_log_levels(spec) == expected
 
 
-def test_logging_parser():
+def test_logging_parser() -> None:
     """Tests"""
 
     parser = blazingmq.util.logging.make_parser()
