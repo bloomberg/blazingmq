@@ -854,6 +854,11 @@ class StorageManager BSLS_KEYWORD_FINAL
                                       bmqp_ctrlmsg::PrimaryStatus::Value value)
         BSLS_KEYWORD_OVERRIDE;
 
+    /// Stop all Partition FSMs.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
+    void stopPFSMs() BSLS_KEYWORD_OVERRIDE;
+
     /// Apply `RST_UNKNOWN` event to the Partition FSM for the specified
     /// `partitionId`.
     ///

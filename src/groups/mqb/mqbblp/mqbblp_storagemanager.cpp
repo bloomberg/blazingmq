@@ -497,10 +497,10 @@ void StorageManager::setPrimaryForPartitionDispatched(
                   << " Partition [" << partitionId
                   << "]: received partition/primary info. Primary: "
                   << (primaryNode ? primaryNode->nodeDescription()
-                                  : "**null**")
+                                  : "** NULL **")
                   << ", leaseId: " << primaryLeaseId << ". Current primary: "
                   << (pinfo.primary() ? pinfo.primary()->nodeDescription()
-                                      : "** null **")
+                                      : "** NULL **")
                   << ", leaseId: " << pinfo.primaryLeaseId();
 
     if (primaryLeaseId < pinfo.primaryLeaseId()) {
@@ -512,7 +512,7 @@ void StorageManager::setPrimaryForPartitionDispatched(
             << ". Ignoring this request. Specified primary node: "
             << primaryNode->nodeDescription() << ", current primary node: "
             << (pinfo.primary() ? pinfo.primary()->nodeDescription()
-                                : "** null **")
+                                : "** NULL **")
             << BMQTSK_ALARMLOG_END;
         return;  // RETURN
     }
@@ -1511,6 +1511,16 @@ void StorageManager::setPrimaryStatusForPartition(
     // executed by cluster *DISPATCHER* thread
 
     // PRECONDITION
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+
+    BSLS_ASSERT_OPT(false && "This method should only be invoked in FSM mode");
+}
+
+void StorageManager::stopPFSMs()
+{
+    // executed by cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
 
     BSLS_ASSERT_OPT(false && "This method should only be invoked in FSM mode");

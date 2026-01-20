@@ -267,6 +267,17 @@ void ClusterStateManager::do_initializeQueueKeyInfoMap(
     d_storageManager_p->initializeQueueKeyInfoMap(*d_state_p);
 }
 
+void ClusterStateManager::do_stopPFSMs(
+    BSLA_UNUSED const EventWithMetadata& event)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+
+    d_storageManager_p->stopPFSMs();
+}
+
 void ClusterStateManager::do_updatePrimaryInPFSMs(
     const EventWithMetadata& event)
 {

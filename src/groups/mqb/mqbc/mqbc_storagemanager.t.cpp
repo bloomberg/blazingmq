@@ -1017,6 +1017,7 @@ static void test1_breathingTest()
                     mqbc::PartitionFSM::State::e_UNKNOWN);
 
     // Stop the cluster
+    storageManager.stopPFSMs();
     storageManager.stop();
     helper.d_cluster_mp->stop();
 }
@@ -1083,6 +1084,7 @@ static void test2_unknownDetectSelfPrimary()
     helper.clearChannels();
 
     // Stop the cluster
+    storageManager.stopPFSMs();
     storageManager.stop();
     helper.d_cluster_mp->stop();
 }
@@ -1152,6 +1154,7 @@ static void test3_unknownDetectSelfReplica()
     helper.clearChannels();
 
     // Stop the cluster
+    storageManager.stopPFSMs();
     storageManager.stop();
     helper.d_cluster_mp->stop();
 }
@@ -1262,6 +1265,7 @@ static void test4_primaryHealingStage1ReceivesReplicaStateRqst()
                      mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
 
     // Stop the cluster
+    storageManager.stopPFSMs();
     storageManager.stop();
     helper.d_cluster_mp->stop();
 }
@@ -1368,6 +1372,7 @@ static void test5_primaryHealingStage1ReceivesReplicaStateRspnQuorum()
                      mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG2);
 
     // Stop the cluster
+    storageManager.stopPFSMs();
     storageManager.stop();
     helper.d_cluster_mp->stop();
 }
@@ -1479,6 +1484,7 @@ static void test6_primaryHealingStage1ReceivesPrimaryStateRequestQuorum()
                      mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG2);
 
     // Stop the cluster
+    storageManager.stopPFSMs();
     storageManager.stop();
     helper.d_cluster_mp->stop();
 }
@@ -1587,6 +1593,7 @@ static void test7_primaryHealingStage1ReceivesPrimaryStateRqst()
                      mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
 
     // Stop the cluster
+    storageManager.stopPFSMs();
     storageManager.stop();
     helper.d_cluster_mp->stop();
 }
@@ -1698,6 +1705,7 @@ static void test8_primaryHealingStage1ReceivesReplicaStateRspnNoQuorum()
                      mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
 
     // Stop the cluster
+    storageManager.stopPFSMs();
     storageManager.stop();
     helper.d_cluster_mp->stop();
 }
@@ -1824,6 +1832,7 @@ static void test9_primaryHealingStage1QuorumSendsReplicaDataRequestPull()
         highestSeqNumNode.second);
 
     // Stop the cluster
+    storageManager.stopPFSMs();
     storageManager.stop();
     helper.d_cluster_mp->stop();
 }
@@ -1919,6 +1928,7 @@ static void test10_replicaHealingDetectSelfPrimary()
     helper.clearChannels();
 
     // Stop the cluster
+    storageManager.stopPFSMs();
     storageManager.stop();
     helper.d_cluster_mp->stop();
 }
@@ -2023,6 +2033,7 @@ static void test11_replicaHealingReceivesReplicaStateRqst()
                      mqbc::PartitionFSM::State::e_REPLICA_HEALING);
 
     // Stop the cluster
+    storageManager.stopPFSMs();
     storageManager.stop();
     helper.d_cluster_mp->stop();
 }
@@ -2125,6 +2136,7 @@ static void test12_replicaHealingReceivesPrimaryStateRspn()
                      mqbc::PartitionFSM::State::e_REPLICA_HEALING);
 
     // Stop the cluster
+    storageManager.stopPFSMs();
     storageManager.stop();
     helper.d_cluster_mp->stop();
 }
@@ -2216,6 +2228,7 @@ static void test13_replicaHealingReceivesFailedPrimaryStateRspn()
                      mqbc::PartitionFSM::State::e_REPLICA_HEALING);
 
     // Stop the cluster
+    storageManager.stopPFSMs();
     storageManager.stop();
     helper.d_cluster_mp->stop();
 }
@@ -2326,6 +2339,7 @@ static void test14_replicaHealingReceivesPrimaryStateRqst()
                      mqbc::PartitionFSM::State::e_REPLICA_HEALING);
 
     // Stop the cluster
+    storageManager.stopPFSMs();
     storageManager.stop();
     helper.d_cluster_mp->stop();
 }
@@ -2474,6 +2488,7 @@ static void test15_replicaHealingReceivesReplicaDataRqstPull()
         selfSeqNum);
 
     // Stop the cluster
+    storageManager.stopPFSMs();
     storageManager.stop();
     helper.d_cluster_mp->stop();
 }
@@ -2621,6 +2636,7 @@ static void test16_primaryHealingStage1SelfHighestSendsDataChunks()
                                         destinationReplicas);
 
     // Stop the cluster
+    storageManager.stopPFSMs();
     storageManager.stop();
     helper.d_cluster_mp->stop();
 }

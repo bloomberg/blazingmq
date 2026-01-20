@@ -141,6 +141,11 @@ void StorageManager::setPrimaryStatusForPartition(
     // NOTHING
 }
 
+void StorageManager::stopPFSMs()
+{
+    // NOTHING
+}
+
 void StorageManager::detectPrimaryLossInPFSM(BSLA_UNUSED int partitionId)
 {
     // NOTHING

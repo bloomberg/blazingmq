@@ -184,6 +184,8 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     void do_initializeQueueKeyInfoMap(const EventWithMetadata& event)
         BSLS_KEYWORD_OVERRIDE;
 
+    void do_stopPFSMs(const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
+
     void do_updatePrimaryInPFSMs(const EventWithMetadata& event)
         BSLS_KEYWORD_OVERRIDE;
 

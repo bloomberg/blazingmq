@@ -297,6 +297,11 @@ class StorageManager {
     setPrimaryStatusForPartition(int partitionId,
                                  bmqp_ctrlmsg::PrimaryStatus::Value value) = 0;
 
+    /// Stop all Partition FSMs.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
+    virtual void stopPFSMs() = 0;
+
     /// Apply `RST_UNKNOWN` event to the PartitionFSM for the specified
     /// `partitionId`.
     ///

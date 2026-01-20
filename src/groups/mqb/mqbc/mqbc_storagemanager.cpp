@@ -1095,14 +1095,6 @@ void StorageManager::processShutdownEventDispatched(int partitionId)
         &d_partitionInfoVec[partitionId],
         d_clusterData_p->identity().description(),
         partitionId);
-
-    EventData eventDataVec;
-    eventDataVec.emplace_back(d_clusterData_p->membership().selfNode(),
-                              -1,  // placeholder requestId
-                              partitionId,
-                              1);
-
-    dispatchEventToPartition(PartitionFSM::Event::e_STOP_NODE, eventDataVec);
 }
 
 void StorageManager::forceFlushFileStores()
@@ -1571,12 +1563,13 @@ void StorageManager::do_logFailurePrimaryStateResponse(
 
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
-    BSLS_ASSERT_SAFE(d_partitionInfoVec[partitionId].primary() == sourceNode);
 
     BALL_LOG_WARN << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId << "]: "
                   << "Received failure PrimaryStateResponse from node "
-                  << sourceNode->nodeDescription() << ".";
+                  << (sourceNode ? sourceNode->nodeDescription()
+                                 : "** NULL **")
+                  << ".";
 }
 
 void StorageManager::do_primaryStateRequest(const EventWithData& event)
@@ -3528,15 +3521,6 @@ void StorageManager::stop()
                                  &d_partitionInfoVec[pid],
                                  d_clusterData_p->identity().description(),
                                  pid));
-
-        EventData eventDataVec;
-        eventDataVec.emplace_back(d_clusterData_p->membership().selfNode(),
-                                  -1,  // placeholder requestId
-                                  pid,
-                                  1);
-
-        dispatchEventToPartition(PartitionFSM::Event::e_STOP_NODE,
-                                 eventDataVec);
     }
 
     for (int p = 0; p < d_clusterConfig.partitionConfig().numPartitions();
@@ -3862,6 +3846,24 @@ void StorageManager::setPrimaryStatusForPartition(
         this,
         partitionId,
         value));
+}
+
+void StorageManager::stopPFSMs()
+{
+    // executed by cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+
+    for (size_t pid = 0; pid < d_fileStores.size(); pid++) {
+        EventData eventDataVec;
+        eventDataVec.emplace_back(d_clusterData_p->membership().selfNode(),
+                                  -1,  // placeholder requestId
+                                  pid,
+                                  1);
+        dispatchEventToPartition(PartitionFSM::Event::e_STOP_NODE,
+                                 eventDataVec);
+    }
 }
 
 void StorageManager::detectPrimaryLossInPFSM(int partitionId)
@@ -4483,7 +4485,8 @@ const bmqp_ctrlmsg::PartitionSequenceNumber
 StorageManager::getSelfFirstSyncPointAfterRolloverSequenceNumber(
     int partitionId) const
 {
-    // executed by the *QUEUE DISPATCHER* thread associated with the paritionId
+    // executed by the *QUEUE DISPATCHER* thread associated with the
+    // paritionId
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 <= partitionId &&

@@ -160,7 +160,12 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
                                       bmqp_ctrlmsg::PrimaryStatus::Value value)
         BSLS_KEYWORD_OVERRIDE;
 
-    /// Apply `RST_UNKNOWN` event to the PartitionFSM for the specified
+    /// Stop all Partition FSMs.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
+    void stopPFSMs() BSLS_KEYWORD_OVERRIDE;
+
+    /// Apply `RST_UNKNOWN` event to the Partition FSM for the specified
     /// `partitionId`.
     ///
     /// THREAD: Executed in cluster dispatcher thread.

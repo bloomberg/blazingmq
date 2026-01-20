@@ -220,6 +220,8 @@ class ClusterStateTableActions {
 
     virtual void do_initializeQueueKeyInfoMap(const ARGS& args) = 0;
 
+    virtual void do_stopPFSMs(const ARGS& args) = 0;
+
     virtual void do_updatePrimaryInPFSMs(const ARGS& args) = 0;
 
     virtual void do_sendFollowerLSNRequests(const ARGS& args) = 0;
@@ -284,6 +286,8 @@ class ClusterStateTableActions {
 
     void do_stopWatchDog_cancelRequests_reapplyEvent(const ARGS& args);
 
+    void do_stopPFSMs_stopWatchDog_cancelRequests(const ARGS& args);
+
     void do_stopWatchDog_initializeQueueKeyInfoMap_updatePrimaryInPFSMs(
         const ARGS& args);
 
@@ -292,7 +296,12 @@ class ClusterStateTableActions {
     void
     do_stopWatchDog_cleanupLSNs_cancelRequests_reapplyEvent(const ARGS& args);
 
+    void
+    do_stopPFSMs_stopWatchDog_cleanupLSNs_cancelRequests(const ARGS& args);
+
     void do_cleanupLSNs_reapplyEvent(const ARGS& args);
+
+    void do_stopPFSMs_cleanupLSNs(const ARGS& args);
 
     void do_cancelRequests_reapplySelectFollower(const ARGS& args);
 
@@ -386,7 +395,7 @@ class ClusterStateTable
                 CSL_CMT_SUCCESS,
                 logUnexpectedCSLCommit_and_abort,
                 UNKNOWN);
-        CST_CFG(UNKNOWN, STOP_NODE, none, STOPPED);
+        CST_CFG(UNKNOWN, STOP_NODE, stopPFSMs, STOPPED);
         CST_CFG(FOL_HEALING,
                 SLCT_LDR,
                 stopWatchDog_cancelRequests_reapplyEvent,
@@ -425,7 +434,10 @@ class ClusterStateTable
                 WATCH_DOG,
                 cancelRequests_reapplySelectFollower,
                 UNKNOWN);
-        CST_CFG(FOL_HEALING, STOP_NODE, stopWatchDog_cancelRequests, STOPPED);
+        CST_CFG(FOL_HEALING,
+                STOP_NODE,
+                stopPFSMs_stopWatchDog_cancelRequests,
+                STOPPED);
         CST_CFG(LDR_HEALING_STG1,
                 SLCT_FOL,
                 stopWatchDog_cleanupLSNs_cancelRequests_reapplyEvent,
@@ -484,7 +496,7 @@ class ClusterStateTable
                 UNKNOWN);
         CST_CFG(LDR_HEALING_STG1,
                 STOP_NODE,
-                stopWatchDog_cleanupLSNs_cancelRequests,
+                stopPFSMs_stopWatchDog_cleanupLSNs_cancelRequests,
                 STOPPED);
         CST_CFG(LDR_HEALING_STG2,
                 SLCT_FOL,
@@ -554,7 +566,7 @@ class ClusterStateTable
                 UNKNOWN);
         CST_CFG(LDR_HEALING_STG2,
                 STOP_NODE,
-                stopWatchDog_cleanupLSNs_cancelRequests,
+                stopPFSMs_stopWatchDog_cleanupLSNs_cancelRequests,
                 STOPPED);
         CST_CFG(FOL_HEALED, SLCT_LDR, reapplyEvent, UNKNOWN);
         CST_CFG(FOL_HEALED,
@@ -576,7 +588,7 @@ class ClusterStateTable
         CST_CFG(FOL_HEALED, CSL_CMT_SUCCESS, updatePrimaryInPFSMs, FOL_HEALED);
         CST_CFG(FOL_HEALED, RST_UNKNOWN, none, UNKNOWN);
         CST_CFG(FOL_HEALED, RST_PRIMARY, updatePrimaryInPFSMs, FOL_HEALED);
-        CST_CFG(FOL_HEALED, STOP_NODE, none, STOPPED);
+        CST_CFG(FOL_HEALED, STOP_NODE, stopPFSMs, STOPPED);
         CST_CFG(LDR_HEALED, SLCT_FOL, cleanupLSNs_reapplyEvent, UNKNOWN);
         CST_CFG(LDR_HEALED,
                 FOL_LSN_RQST,
@@ -593,7 +605,7 @@ class ClusterStateTable
         CST_CFG(LDR_HEALED, CSL_CMT_SUCCESS, updatePrimaryInPFSMs, LDR_HEALED);
         CST_CFG(LDR_HEALED, RST_UNKNOWN, cleanupLSNs, UNKNOWN);
         CST_CFG(LDR_HEALED, RST_PRIMARY, updatePrimaryInPFSMs, LDR_HEALED);
-        CST_CFG(LDR_HEALED, STOP_NODE, cleanupLSNs, STOPPED);
+        CST_CFG(LDR_HEALED, STOP_NODE, stopPFSMs_cleanupLSNs, STOPPED);
         CST_CFG(STOPPED, RST_PRIMARY, updatePrimaryInPFSMs, STOPPED);
 #undef CST_CFG
     }
@@ -657,6 +669,15 @@ void ClusterStateTableActions<
 }
 
 template <typename ARGS>
+void ClusterStateTableActions<ARGS>::do_stopPFSMs_stopWatchDog_cancelRequests(
+    const ARGS& args)
+{
+    do_stopPFSMs(args);
+    do_stopWatchDog(args);
+    do_cancelRequests(args);
+}
+
+template <typename ARGS>
 void ClusterStateTableActions<ARGS>::
     do_stopWatchDog_initializeQueueKeyInfoMap_updatePrimaryInPFSMs(
         const ARGS& args)
@@ -686,11 +707,28 @@ void ClusterStateTableActions<ARGS>::
 }
 
 template <typename ARGS>
+void ClusterStateTableActions<ARGS>::
+    do_stopPFSMs_stopWatchDog_cleanupLSNs_cancelRequests(const ARGS& args)
+{
+    do_stopPFSMs(args);
+    do_stopWatchDog(args);
+    do_cleanupLSNs(args);
+    do_cancelRequests(args);
+}
+
+template <typename ARGS>
 void ClusterStateTableActions<ARGS>::do_cleanupLSNs_reapplyEvent(
     const ARGS& args)
 {
     do_cleanupLSNs(args);
     do_reapplyEvent(args);
+}
+
+template <typename ARGS>
+void ClusterStateTableActions<ARGS>::do_stopPFSMs_cleanupLSNs(const ARGS& args)
+{
+    do_stopPFSMs(args);
+    do_cleanupLSNs(args);
 }
 
 template <typename ARGS>
