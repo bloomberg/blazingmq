@@ -29,6 +29,7 @@
 // BMQ
 #include <bmqp_event.h>
 #include <bmqt_resultcode.h>
+#include <bmqtsk_alarmlog.h>
 
 // BDE
 #include <bdlf_bind.h>
@@ -91,6 +92,22 @@ ClusterStateManager::~ClusterStateManager()
 
 // PRIVATE MANIPULATORS
 //   (virtual: mqbc::ClusterStateTableActions)
+void ClusterStateManager::do_abort(const EventWithMetadata& event)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+
+    BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
+        << d_clusterData_p->identity().description()
+        << ": Cluster FSM received unexpected event: " << event.first
+        << " while in " << d_clusterFSM.state() << " state, aborting."
+        << BMQTSK_ALARMLOG_END;
+
+    mqbu::ExitUtil::terminate(mqbu::ExitCode::e_UNSUPPORTED_SCENARIO);  // EXIT
+}
+
 void ClusterStateManager::do_startWatchDog(
     BSLA_UNUSED const EventWithMetadata& event)
 {
@@ -728,6 +745,22 @@ void ClusterStateManager::do_sendFailureRegistrationResponse(
                   << ": sent failure response " << controlMsg
                   << " to registration request from "
                   << inputMessage.source()->nodeDescription();
+}
+
+void ClusterStateManager::do_logUnexpectedCSLCommit(
+    BSLA_UNUSED const EventWithMetadata& event)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+
+    BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                   << ": Cluster FSM is in " << d_clusterFSM.state()
+                   << " state while receiving unexpected CSL commit. Current "
+                      "leader sequence number is "
+                   << d_clusterData_p->electorInfo().leaderMessageSequence()
+                   << ".";
 }
 
 void ClusterStateManager::do_logStaleFollowerLSNResponse(

@@ -169,6 +169,8 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
   private:
     // PRIVATE MANIPULATORS
     //   (virtual: mqbc::ClusterStateTableActions)
+    void do_abort(const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
+
     void
     do_startWatchDog(const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
 
@@ -221,6 +223,9 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
         BSLS_KEYWORD_OVERRIDE;
 
     void do_sendFailureRegistrationResponse(const EventWithMetadata& event)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_logUnexpectedCSLCommit(const EventWithMetadata& event)
         BSLS_KEYWORD_OVERRIDE;
 
     void do_logStaleFollowerLSNResponse(const EventWithMetadata& event)

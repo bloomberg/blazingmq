@@ -200,6 +200,8 @@ class ClusterStateTableActions {
 
     virtual void do_none(const ARGS& args);
 
+    virtual void do_abort(const ARGS& args) = 0;
+
     virtual void do_startWatchDog(const ARGS& args) = 0;
 
     virtual void do_stopWatchDog(const ARGS& args) = 0;
@@ -238,6 +240,8 @@ class ClusterStateTableActions {
     virtual void do_sendRegistrationResponse(const ARGS& args) = 0;
 
     virtual void do_sendFailureRegistrationResponse(const ARGS& args) = 0;
+
+    virtual void do_logUnexpectedCSLCommit(const ARGS& args) = 0;
 
     virtual void do_logStaleFollowerLSNResponse(const ARGS& args) = 0;
 
@@ -302,6 +306,8 @@ class ClusterStateTableActions {
     void do_removeFollowerLSN_checkLSNQuorum(const ARGS& args);
 
     void do_sendRegistrationResponse_applyCSLSelf(const ARGS& args);
+
+    void do_logUnexpectedCSLCommit_and_abort(const ARGS& args);
 };
 
 // =======================
@@ -364,6 +370,10 @@ class ClusterStateTable
         CST_CFG(UNKNOWN,
                 REGISTRATION_RQST,
                 sendFailureRegistrationResponse,
+                UNKNOWN);
+        CST_CFG(UNKNOWN,
+                CSL_CMT_SUCCESS,
+                logUnexpectedCSLCommit_and_abort,
                 UNKNOWN);
         CST_CFG(UNKNOWN, STOP_NODE, none, STOPPED);
         CST_CFG(FOL_HEALING,
@@ -444,6 +454,10 @@ class ClusterStateTable
                 FOL_HIGHEST_LSN,
                 sendFollowerClusterStateRequest,
                 LDR_HEALING_STG2);
+        CST_CFG(LDR_HEALING_STG1,
+                CSL_CMT_SUCCESS,
+                logUnexpectedCSLCommit_and_abort,
+                LDR_HEALING_STG1);
         CST_CFG(LDR_HEALING_STG1,
                 RST_UNKNOWN,
                 stopWatchDog_cleanupLSNs_cancelRequests,
@@ -736,6 +750,14 @@ void ClusterStateTableActions<ARGS>::do_sendRegistrationResponse_applyCSLSelf(
 {
     do_sendRegistrationResponse(args);
     do_applyCSLSelf(args);
+}
+
+template <typename ARGS>
+void ClusterStateTableActions<ARGS>::do_logUnexpectedCSLCommit_and_abort(
+    const ARGS& args)
+{
+    do_logUnexpectedCSLCommit(args);
+    do_abort(args);
 }
 
 }  // close package namespace
