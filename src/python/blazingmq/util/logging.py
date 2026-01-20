@@ -50,6 +50,8 @@ The module contains the following public class:
 
 """
 
+from __future__ import annotations
+
 # pylint: disable=too-few-public-methods
 
 import argparse
@@ -74,11 +76,13 @@ def split_category_level(category_level):
     return match[1].lower(), match[2].upper()
 
 
-def normalize_log_levels(level_spec):
+def normalize_log_levels(
+    level_spec: Optional[str],
+) -> tuple[int, list[tuple[str, int]]]:
     top_bmq_category_level = logging.getLogger().getEffectiveLevel()
 
     if not level_spec:
-        return [top_bmq_category_level]
+        return (top_bmq_category_level, [])
 
     category_levels = level_spec.split(",")
 
@@ -87,20 +91,24 @@ def normalize_log_levels(level_spec):
             category_levels.pop(0).upper(), 'invalid default level "{level}"'
         )
 
-    return [top_bmq_category_level] + [
-        (category, level_value(level, 'invalid level "{level}"'))
-        for category, level in [
-            split_category_level(category_level) for category_level in category_levels
-        ]
-    ]
+    return (
+        top_bmq_category_level,
+        [
+            (category, level_value(level, 'invalid level "{level}"'))
+            for category, level in [
+                split_category_level(category_level)
+                for category_level in category_levels
+            ]
+        ],
+    )
 
 
-def apply_normalized_log_levels(levels):
+def apply_normalized_log_levels(levels: tuple[int, list[tuple[str, int]]]) -> None:
     """Parse 'level_spec' (a string formatted as defined at the top of the
     file) and set log levels accordingly.
     """
 
-    top_level, *category_levels = levels
+    top_level, category_levels = levels
     logging.getLogger().setLevel(top_level)
     logging.getLogger("blazingmq").setLevel(top_level)
 

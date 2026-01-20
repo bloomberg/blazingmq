@@ -23,6 +23,8 @@ scripts for running a cluster consisting of four nodes in two data centers and
 two proxies.
 """
 
+from __future__ import annotations
+
 # pyright: reportOptionalMemberAccess=false
 # pylint: disable=redefined-outer-name
 # mypy: disable-error-code="union-attr"
@@ -132,8 +134,8 @@ def get_option_ini(config, *names):
     return None
 
 
-def task_log_params(normalized_levels):
-    top_default_level, *category_levels = normalized_levels
+def task_log_params(normalized_levels: tuple[int, list[tuple[str, int]]]):
+    top_default_level, category_levels = normalized_levels
 
     proc_default_level = None
     broker_default_level = None
