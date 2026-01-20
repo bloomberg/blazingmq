@@ -58,6 +58,7 @@ import argparse
 import logging
 from pathlib import Path
 import re
+from typing import Any, Optional, Sequence, Union
 
 
 def level_value(level, error):
@@ -130,9 +131,29 @@ class Action(argparse.Action):
     value.
     """
 
-    def __call__(self, parser, namespace, level_spec, option_string=None):
-        setattr(namespace, self.dest, level_spec)
-        levels = normalize_log_levels(level_spec)
+    def __init__(
+        self,
+        option_strings: Sequence[str],
+        dest: str,
+        nargs: Optional[Union[int, str]] = None,
+        **kwargs: Any,
+    ) -> None:
+        # Only one arg value allowed, to safely cast to str
+        if nargs is not None:
+            raise ValueError("nargs not allowed")
+        super().__init__(option_strings, dest, **kwargs)
+
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,
+        values: Union[str, Sequence[Any], None],
+        option_string: Optional[str] = None,
+    ) -> None:
+        # values is always str because only one value allowed in __init__
+        assert isinstance(values, str)
+        setattr(namespace, self.dest, values)
+        levels = normalize_log_levels(values)
         logging.basicConfig(level=levels[0])
         apply_normalized_log_levels(levels)
 
