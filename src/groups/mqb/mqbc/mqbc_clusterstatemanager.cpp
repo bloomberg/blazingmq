@@ -267,6 +267,37 @@ void ClusterStateManager::do_initializeQueueKeyInfoMap(
     d_storageManager_p->initializeQueueKeyInfoMap(*d_state_p);
 }
 
+void ClusterStateManager::do_updatePrimaryInPFSMs(
+    const EventWithMetadata& event)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(d_clusterFSM.isSelfHealed());
+
+    const bsl::vector<int>& modifiedPartitions =
+        event.second.modifiedPartitions();
+    for (bsl::vector<int>::const_iterator it = modifiedPartitions.cbegin();
+         it != modifiedPartitions.cend();
+         ++it) {
+        const int pid = *it;
+
+        if (d_state_p->isSelfPrimary(pid)) {
+            d_storageManager_p->detectSelfPrimaryInPFSM(
+                pid,
+                d_state_p->partition(pid).primaryNode(),
+                d_state_p->partition(pid).primaryLeaseId());
+        }
+        else {
+            d_storageManager_p->detectSelfReplicaInPFSM(
+                pid,
+                d_state_p->partition(pid).primaryNode(),
+                d_state_p->partition(pid).primaryLeaseId());
+        }
+    }
+}
+
 void ClusterStateManager::do_sendFollowerLSNRequests(
     BSLA_UNUSED const EventWithMetadata& event)
 {

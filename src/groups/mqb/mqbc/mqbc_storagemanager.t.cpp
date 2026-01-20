@@ -941,6 +941,18 @@ struct TestHelper {
                                 primaryNode);
         }
         storageManager->initializeQueueKeyInfoMap(*d_cluster_mp->_state());
+        for (size_t pid = 0; pid < numPartitions(); ++pid) {
+            if (d_cluster_mp->_state()->isSelfPrimary(pid)) {
+                storageManager->detectSelfPrimaryInPFSM(pid,
+                                                        primaryNode,
+                                                        1);  // primaryLeaseId
+            }
+            else {
+                storageManager->detectSelfReplicaInPFSM(pid,
+                                                        primaryNode,
+                                                        1);  // primaryLeaseId
+            }
+        }
     }
 
     ~TestHelper() { bmqsys::Time::shutdown(); }
@@ -1887,15 +1899,16 @@ static void test10_replicaHealingDetectSelfPrimary()
 
     const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap =
         storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID);
-
     BSLS_ASSERT_OPT(nodeToSeqNumCtxMap.size() == 1);
 
     // Apply Detect Self Primary event to Self Node.
-
     helper.setPartitionPrimary(&storageManager,
                                k_PARTITION_ID,
-                               1,  // primaryLeaseId
+                               2,  // primaryLeaseId
                                selfNode);
+    storageManager.detectSelfPrimaryInPFSM(k_PARTITION_ID,
+                                           selfNode,
+                                           2);  // primaryLeaseId
 
     BMQTST_ASSERT_EQ(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size(),
                      1U);

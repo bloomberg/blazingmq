@@ -404,21 +404,6 @@ void StorageManager::setPrimaryForPartitionDispatched(
     pinfo.setPrimary(primaryNode);
     pinfo.setPrimaryLeaseId(primaryLeaseId);
     pinfo.setPrimaryStatus(bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE);
-
-    if (!d_isQueueKeyInfoMapVecInitialized) {
-        // We must wait until queue key info map is initialized before
-        // processing primary detection in the Partition FSM.
-
-        return;  // RETURN
-    }
-
-    if (primaryNode->nodeId() ==
-        d_clusterData_p->membership().selfNode()->nodeId()) {
-        processPrimaryDetect(partitionId, primaryNode, primaryLeaseId);
-    }
-    else {
-        processReplicaDetect(partitionId, primaryNode, primaryLeaseId);
-    }
 }
 
 void StorageManager::clearPrimaryForPartitionDispatched(
@@ -467,92 +452,6 @@ void StorageManager::clearPrimaryForPartitionDispatched(
         d_clusterState_p->partitionsInfo().at(partitionId).primaryLeaseId());
 
     dispatchEventToPartition(PartitionFSM::Event::e_RST_UNKNOWN, eventDataVec);
-}
-
-void StorageManager::processPrimaryDetect(int                  partitionId,
-                                          mqbnet::ClusterNode* primaryNode,
-                                          unsigned int         primaryLeaseId)
-{
-    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(0 <= partitionId &&
-                     partitionId < static_cast<int>(d_fileStores.size()));
-    BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
-    BSLS_ASSERT_SAFE(primaryNode->nodeId() ==
-                     d_clusterData_p->membership().selfNode()->nodeId());
-
-    if (d_cluster_p->isStopping()) {
-        BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << " Partition [" << partitionId << "]: "
-                      << "Cluster is stopping; skipping self transition to "
-                      << "Primary to the Partition FSM.";
-        return;  // RETURN
-    }
-
-    // The fact that we are processing primary detection retraoactively implies
-    // that queue key info map must have been initialized.  We cannot set this
-    // flag earlier, or else there could be race condition.  See explanation in
-    // `initializeQueueKeyInfoMap`.
-    d_isQueueKeyInfoMapVecInitialized = true;
-
-    BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
-                  << "Self Transition to Primary in the Partition FSM.";
-
-    EventData eventDataVec;
-    eventDataVec.emplace_back(d_clusterData_p->membership().selfNode(),
-                              -1,  // placeholder requestId
-                              partitionId,
-                              1,
-                              primaryNode,
-                              primaryLeaseId);
-
-    dispatchEventToPartition(PartitionFSM::Event::e_DETECT_SELF_PRIMARY,
-                             eventDataVec);
-}
-
-void StorageManager::processReplicaDetect(int                  partitionId,
-                                          mqbnet::ClusterNode* primaryNode,
-                                          unsigned int         primaryLeaseId)
-{
-    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(0 <= partitionId &&
-                     partitionId < static_cast<int>(d_fileStores.size()));
-    BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
-    BSLS_ASSERT_SAFE(primaryNode->nodeId() !=
-                     d_clusterData_p->membership().selfNode()->nodeId());
-
-    if (d_cluster_p->isStopping()) {
-        BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << " Partition [" << partitionId << "]: "
-                      << "Cluster is stopping; skipping self transition to "
-                      << "Replica to the Partition FSM.";
-        return;  // RETURN
-    }
-
-    // The fact that we are processing primary detection retraoactively implies
-    // that queue key info map must have been initialized.  We cannot set this
-    // flag earlier, or else there could be race condition. See explanation in
-    // `initializeQueueKeyInfoMap`.
-    d_isQueueKeyInfoMapVecInitialized = true;
-
-    BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
-                  << "Self Transition to Replica in the Partition FSM.";
-
-    EventData eventDataVec;
-    eventDataVec.emplace_back(d_clusterData_p->membership().selfNode(),
-                              -1,  // placeholder requestId
-                              partitionId,
-                              1,
-                              primaryNode,
-                              primaryLeaseId);
-
-    dispatchEventToPartition(PartitionFSM::Event::e_DETECT_SELF_REPLICA,
-                             eventDataVec);
 }
 
 void StorageManager::processReplicaDataRequestPull(
@@ -3721,37 +3620,7 @@ void StorageManager::initializeQueueKeyInfoMap(
         }
     }
 
-    for (PartitionsInfoCIter cit = clusterState.partitions().cbegin();
-         cit != clusterState.partitions().cend();
-         ++cit) {
-        const int pid = cit->partitionId();
-
-        mqbs::FileStore* fs = d_fileStores.at(pid).get();
-        BSLS_ASSERT_SAFE(fs);
-        if (clusterState.isSelfPrimary(pid)) {
-            fs->execute(
-                bdlf::BindUtil::bind(&StorageManager::processPrimaryDetect,
-                                     this,
-                                     pid,
-                                     cit->primaryNode(),
-                                     cit->primaryLeaseId()));
-        }
-        else {
-            fs->execute(
-                bdlf::BindUtil::bind(&StorageManager::processReplicaDetect,
-                                     this,
-                                     pid,
-                                     cit->primaryNode(),
-                                     cit->primaryLeaseId()));
-        }
-    }
-
-    // `setPrimaryForPartitionDispatched`, which runs on partition threads,
-    // checks this flag to determine whether to process primary/replica detect.
-    // Setting `d_isQueueKeyInfoMapVecInitialized` to true here in the cluster
-    // dispatcher thread might cause a race condition where primary/replica
-    // detect will be processed twice.  Instead, we set this flag to true
-    // inside the process primary/replica detect methods.
+    d_isQueueKeyInfoMapVecInitialized = true;
 }
 
 void StorageManager::registerQueue(const bmqt::Uri&        uri,
@@ -4010,6 +3879,66 @@ void StorageManager::setPrimaryStatusForPartition(
         this,
         partitionId,
         value));
+}
+
+void StorageManager::detectSelfPrimaryInPFSM(int                  partitionId,
+                                             mqbnet::ClusterNode* primaryNode,
+                                             unsigned int primaryLeaseId)
+{
+    // executed by cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(primaryNode->nodeId() ==
+                     d_clusterData_p->membership().selfNode()->nodeId());
+    BSLS_ASSERT_SAFE(!d_cluster_p->isStopping());
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << " Partition [" << partitionId << "]: "
+                  << "Self Transition to Primary in the Partition FSM.";
+
+    EventData eventDataVec;
+    eventDataVec.emplace_back(d_clusterData_p->membership().selfNode(),
+                              -1,  // placeholder requestId
+                              partitionId,
+                              1,
+                              primaryNode,
+                              primaryLeaseId);
+
+    dispatchEventToPartition(PartitionFSM::Event::e_DETECT_SELF_PRIMARY,
+                             eventDataVec);
+}
+
+void StorageManager::detectSelfReplicaInPFSM(int                  partitionId,
+                                             mqbnet::ClusterNode* primaryNode,
+                                             unsigned int primaryLeaseId)
+{
+    // executed by cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(primaryNode->nodeId() !=
+                     d_clusterData_p->membership().selfNode()->nodeId());
+    BSLS_ASSERT_SAFE(!d_cluster_p->isStopping());
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << " Partition [" << partitionId << "]: "
+                  << "Self Transition to Replica in the Partition FSM.";
+
+    EventData eventDataVec;
+    eventDataVec.emplace_back(d_clusterData_p->membership().selfNode(),
+                              -1,  // placeholder requestId
+                              partitionId,
+                              1,
+                              primaryNode,
+                              primaryLeaseId);
+
+    dispatchEventToPartition(PartitionFSM::Event::e_DETECT_SELF_REPLICA,
+                             eventDataVec);
 }
 
 // MANIPULATORS
