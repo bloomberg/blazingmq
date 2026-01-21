@@ -415,8 +415,8 @@ class Routers {
     struct SubscriptionId {
         /// The Expression.
         const Expressions::SharedItem d_itExpression;
-        const unsigned int            d_upstreamSubQueueId;
         PriorityGroup*                d_priorityGroup;
+        const unsigned int            d_upstreamSubQueueId;
 
         SubscriptionId(const Expressions::SharedItem& itExpression,
                        const unsigned int             upstreamSubQueueId);
@@ -1012,8 +1012,8 @@ inline Routers::SubscriptionId::SubscriptionId(
     const Expressions::SharedItem& itExpression,
     const unsigned int             upstreamSubQueueId)
 : d_itExpression(itExpression)
-, d_upstreamSubQueueId(upstreamSubQueueId)
 , d_priorityGroup(0)
+, d_upstreamSubQueueId(upstreamSubQueueId)
 {
     // NOTHING
 }
