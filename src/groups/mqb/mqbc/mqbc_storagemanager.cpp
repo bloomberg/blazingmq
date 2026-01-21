@@ -4034,9 +4034,7 @@ void StorageManager::unregisterQueue(const bmqt::Uri& uri, int partitionId)
 
     // Dispatch the un-registration to appropriate thread.
 
-    mqbi::Dispatcher::DispatcherEventSp queueEvent = d_dispatcher_p->getEvent(
-        mqbi::DispatcherClientType::e_QUEUE);
-
+    mqbi::Dispatcher::DispatcherEventSp queueEvent = d_cluster_p->getEvent();
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
         .setCallback(
@@ -4088,9 +4086,7 @@ void StorageManager::registerQueueReplica(int                     partitionId,
     // This routine is executed at follower nodes upon commit callback of
     // Queue Assignment Advisory from the leader.
 
-    mqbi::Dispatcher::DispatcherEventSp queueEvent = d_dispatcher_p->getEvent(
-        mqbi::DispatcherClientType::e_QUEUE);
-
+    mqbi::Dispatcher::DispatcherEventSp queueEvent = d_cluster_p->getEvent();
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
         .setCallback(
@@ -4119,9 +4115,7 @@ void StorageManager::unregisterQueueReplica(int              partitionId,
     // This routine is executed at follower nodes upon commit callback of
     // Queue Unassigned Advisory or Queue Update Advisory from the leader.
 
-    mqbi::Dispatcher::DispatcherEventSp queueEvent = d_dispatcher_p->getEvent(
-        mqbi::DispatcherClientType::e_QUEUE);
-
+    mqbi::Dispatcher::DispatcherEventSp queueEvent = d_cluster_p->getEvent();
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
         .setCallback(
@@ -4153,8 +4147,7 @@ void StorageManager::updateQueueReplica(int                     partitionId,
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
 
-    mqbi::Dispatcher::DispatcherEventSp queueEvent = d_dispatcher_p->getEvent(
-        mqbi::DispatcherClientType::e_QUEUE);
+    mqbi::Dispatcher::DispatcherEventSp queueEvent = d_cluster_p->getEvent();
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
         .setCallback(
@@ -4183,8 +4176,7 @@ void StorageManager::resetQueue(const bmqt::Uri& uri,
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
 
-    mqbi::Dispatcher::DispatcherEventSp queueEvent =
-        fs->dispatcher()->getEvent(mqbi::DispatcherClientType::e_QUEUE);
+    mqbi::Dispatcher::DispatcherEventSp queueEvent = d_cluster_p->getEvent();
 
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
