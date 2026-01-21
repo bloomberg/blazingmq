@@ -426,9 +426,9 @@ struct QueueEngineUtil_AppState {
     /// to send the `message` to a highest priority consumer with matching
     /// subscription.  Return corresponding result: `e_SUCCESS`,
     /// `e_NO_SUBSCRIPTION`, `e_NO_CAPACITY`. or `e_NO_CAPACITY_ALL`.
+    /// NOTE: the messages sent by this routine are out of order.
     Routers::Result tryDeliverOneMessage(bsls::TimeInterval*          delay,
-                                         const mqbi::StorageIterator* message,
-                                         bool isOutOfOrder);
+                                         const mqbi::StorageIterator* message);
 
     /// Broadcast to all available consumers, the message having specified
     /// `appData`, `options`, `guid` and `attributes`.  Behavior is
