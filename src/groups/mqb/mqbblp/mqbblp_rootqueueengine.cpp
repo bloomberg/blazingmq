@@ -136,6 +136,16 @@ VirtualIterator::~VirtualIterator()
     d_start_p->clearCache();
 }
 
+void executeInQueueDispatcher(mqbi::Queue*                 queue,
+                              const bsl::function<void()>& fn)
+{
+    // executed by the *SCHEDULER DISPATCHER* thread
+
+    BSLS_ASSERT_SAFE(queue);
+
+    queue->dispatcher()->execute(fn, queue);
+}
+
 }  // close unnamed namespace
 
 // ---------------------
@@ -337,6 +347,11 @@ RootQueueEngine::RootQueueEngine(QueueState*             queueState,
 , d_miscWorkThreadPool_p(queueState->miscWorkThreadPool())
 , d_appsDeliveryContext(d_queueState_p->queue(), allocator)
 , d_flowController()
+, d_flowControlEventHandle()
+, d_flowControlTimerCb(
+      bdlf::BindUtil::bindS(allocator,
+                            &RootQueueEngine::onFlowControlTimer,
+                            this))
 , d_allocator_p(allocator)
 {
     // PRECONDITIONS
@@ -542,6 +557,15 @@ int RootQueueEngine::initializeAppId(const bsl::string& appId,
 
 void RootQueueEngine::resetState(bool isShuttingDown)
 {
+    // executed by the *QUEUE DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
+
+    if (d_flowControlEventHandle) {
+        d_scheduler_p->cancelEventAndWait(&d_flowControlEventHandle);
+    }
+
     for (Apps::iterator it = d_apps.begin(); it != d_apps.end(); ++it) {
         it->second->undoRouting();
         it->second->routing()->reset();
@@ -1380,18 +1404,20 @@ void RootQueueEngine::afterNewMessage()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
-    mqbi::Dispatcher* dispatcher = d_queueState_p->queue()->dispatcher();
+    mqbi::Queue* queue = d_queueState_p->queue();
+    BSLS_ASSERT_SAFE(queue);
 
+    mqbi::Dispatcher* dispatcher = queue->dispatcher();
     BSLS_ASSERT_SAFE(dispatcher);
 
     bsls::Types::Int64 numEvents = dispatcher->numProcessorEvents(
         d_queueState_p->queue());
 
     if (!d_flowController.isIdle()) {
-        d_flowController.update(
-            bsls::SystemTime::now(bsls::SystemClockType::e_MONOTONIC)
-                .totalMilliseconds(),
-            numEvents);
+        const bsls::TimeInterval now = bsls::SystemTime::now(
+            bsls::SystemClockType::e_MONOTONIC);
+
+        d_flowController.update(now.totalMilliseconds(), numEvents);
 
         mqbu::FlowController::Config lastConfig = d_flowController.config();
         const bool isGreen = d_flowController.checkWatermark(k_LOW_WATERMARK,
@@ -1405,20 +1431,32 @@ void RootQueueEngine::afterNewMessage()
                 << d_flowController << "].";
         }
 
-        //        if (!isGreen) {
-        //            BMQ_LOGTHROTTLE_INFO
-        //                << "Local queue: " << d_queueState_p->uri() << " has
-        //                "
-        //                << numEvents << " dispatcher events and throttling
-        //                delivery.";
-        //
-        //            // re-schedule
-        //            dispatcher->execute(
-        //                bdlf::BindUtil::bind(&RootQueueEngine::afterNewMessage,
-        //                this), d_queueState_p->queue());
-        //
-        //            return;
-        //        }
+        if (!isGreen) {
+            BMQ_LOGTHROTTLE_INFO
+                << "Local queue: " << d_queueState_p->uri() << " is at "
+                << numEvents
+                << " dispatcher events and throttling delivery; the timer was "
+                << (d_flowControlEventHandle ? "On." : "Off.");
+
+            if (!d_flowControlEventHandle) {
+                const bsls::TimeInterval timeout(1.0);
+
+                // Our Schedule is of the type e_MONOTONIC,
+                // see m_bmqbrkr::Task::Task.
+
+                d_scheduler_p->scheduleEvent(
+                    &d_flowControlEventHandle,
+                    now + timeout,
+                    bdlf::BindUtil::bindS(d_allocator_p,
+                                          executeInQueueDispatcher,
+                                          queue,
+                                          d_flowControlTimerCb));
+
+                BSLS_ASSERT_SAFE(d_flowControlEventHandle);
+            }
+
+            return;
+        }
     }
 
     // Deliver new messages to active (alive and capable to deliver) consumers
@@ -1440,7 +1478,7 @@ void RootQueueEngine::afterNewMessage()
 
                 // Report queue time metric per App
                 // Report 'queue time' metric for all active appIds
-                d_queueState_p->queue()->stats()->onEvent(
+                queue->stats()->onEvent(
                     mqbstat::QueueStatsDomain::EventType::e_QUEUE_TIME,
                     d_appsDeliveryContext.timeDelta(),
                     app->appId());
@@ -1450,8 +1488,7 @@ void RootQueueEngine::afterNewMessage()
 
         if (!d_appsDeliveryContext.isEmpty()) {
             // Report 'queue time' metric for the entire queue
-            d_queueState_p->queue()
-                ->stats()
+            queue->stats()
                 ->onEvent<mqbstat::QueueStatsDomain::EventType::e_QUEUE_TIME>(
                     d_appsDeliveryContext.timeDelta());
         }
@@ -1472,11 +1509,11 @@ void RootQueueEngine::afterNewMessage()
         }
     }
 
-    if (QueueEngineUtil::isBroadcastMode(d_queueState_p->queue())) {
+    if (QueueEngineUtil::isBroadcastMode(queue)) {
         // Clear storage status
         BSLA_MAYBE_UNUSED mqbi::StorageResult::Enum rc =
-            d_queueState_p->queue()->storage()->removeAll(
-                mqbu::StorageKey::k_NULL_KEY);
+            queue->storage()->removeAll(mqbu::StorageKey::k_NULL_KEY);
+
         // Intended to be used with 'InMemoryStorage'.  Since 'appKey' isn't
         //  used while calling 'removeAll()', it should always succeed.
         BSLS_ASSERT_SAFE(mqbi::StorageResult::e_SUCCESS == rc);
@@ -2020,6 +2057,19 @@ void RootQueueEngine::logAlarmCb(
     out << "\n";
 
     BMQTSK_ALARMLOG_ALARM("QUEUE_STUCK") << out.str() << BMQTSK_ALARMLOG_END;
+}
+
+void RootQueueEngine::onFlowControlTimer()
+{
+    // executed by the *QUEUE DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
+
+    BSLS_ASSERT_SAFE(d_flowControlEventHandle);
+
+    d_flowControlEventHandle.release();
+    afterNewMessage();
 }
 
 void RootQueueEngine::afterAppIdRegistered(

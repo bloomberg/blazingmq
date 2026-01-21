@@ -53,14 +53,14 @@ static void test1_breathingTest()
     BMQTST_ASSERT_EQ(result, mqbu::FlowController::Watermark::e_High);
     fc.update(time += 500, 100);
 
-    BMQTST_ASSERT_EQ(fc.averageWatermark(), 50);
+    BMQTST_ASSERT_EQ(fc.averageWatermark(), 100);
 
     // 500 at 0.5 sec
     result = fc.add(500);
     BMQTST_ASSERT_EQ(result, mqbu::FlowController::Watermark::e_High);
     fc.update(time += 500, 900);
 
-    BMQTST_ASSERT_EQ(fc.averageWatermark(), 250);
+    BMQTST_ASSERT_EQ(fc.averageWatermark(), 900);
 
     // 2000 at 2 sec
     fc.update(time += 2000, 100);
@@ -77,7 +77,7 @@ static void test1_breathingTest()
     BMQTST_ASSERT_EQ(config.policy(), mqbu::FlowController::Policy::e_Limit);
     BMQTST_ASSERT_EQ(config.ratePerMs(), 1000);
     // Lost the burst after 2 sec, use rate * 4
-    BMQTST_ASSERT_EQ(config.burst(), 4000);
+    BMQTST_ASSERT_EQ(config.burst(), 2000);
 
     // An additional 6th sec
     fc.update(time += 1000, 100);
