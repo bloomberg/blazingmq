@@ -64,20 +64,21 @@ class FlowController {
         // PRIVATE DATA
         Policy d_policy;
 
+        /// Leaky bucket drain rate.
         bsls::Types::Int64 d_ratePerMs;
-        // Leaky bucket drain rate.
 
+        /// Leaky bucket size.
         bsls::Types::Int64 d_burst;
-        // Leaky bucket size.
 
       public:
         // CREATORS
         Config();
         Config(Policy policy, int rate, int burst);
 
-        // PUBLIC MANIP{ULATORS
+        // PUBLIC MANIPULATORS
+
+        /// Scale the rate and burst by the specified 'weight / total' ratio.
         void scale(int weight, int total);
-        // Scale the 'd_rate' by the specified 'weight / total' ratio.
 
         // PUBLIC ACCESSORS
         Policy             policy() const;
@@ -98,28 +99,47 @@ class FlowController {
 
   private:
     // PRIVATE DATA
-    bsls::Types::Int64 d_count;
-    bsls::Types::Int64 d_lastUpdateMs;
 
-    Config d_config;
-
-    // Average calculation is tread unsafe, driven by 'update' and 'survey'
-    // assuming singe-thread (the Registry)
+    /// Number of history records to keep
     static const int k_HISTORY_SIZE = 4;
+    /// Timespan of one history record
     static const int k_RECORD_MS =
         bdlt::TimeUnitRatio::k_MS_PER_S;  // 1 sec per record
 
-    bsls::Types::Int64 d_history[k_HISTORY_SIZE];
-    int                d_lastRecord;
-    bsls::Types::Int64 d_currentSecondCount;
-    bsls::Types::Int64 d_currentSecondMs;
-    bsls::Types::Int64 d_currentSecondMaxBurst;
+    /// Current level of the bucket
+    bsls::Types::Int64 d_count;
 
+    /// Ms since last `update` call.
+    bsls::Types::Int64 d_lastUpdateMs;
+
+    /// Current configuration
+    Config d_config;
+
+    /// History records
+    bsls::Types::Int64 d_history[k_HISTORY_SIZE];
+
+    /// Index of the current record
+    int d_currentRecord;
+
+    /// Number of hits since the last history update
+    bsls::Types::Int64 d_currentSecondCount;
+
+    /// Ms since the last history update
+    bsls::Types::Int64 d_currentSecondMs;
+
+    /// Total count in all history records
     bsls::Types::Int64 d_totalCount;
 
-    bsls::Types::Int64 d_currentSecondHits;
+    /// Number of `update` calls for the window calculating average watermark
+    /// and max burst.  Once the number is greater than the window size, save
+    /// the current value as `previous` and then reset it.  The result is then
+    /// a function (avg or max) of two values: the previous and the current.
+    int                d_currentHits;
     bsls::Types::Int64 d_currentAverageWatermark;
     bsls::Types::Int64 d_previousAverageWatermark;
+
+    int d_currentMaxBurst;
+    int d_previousMaxBurst;
 
   private:
     // PRIVATE MANIPULATORS
@@ -132,22 +152,41 @@ class FlowController {
 
     // MANIPULATORS
 
+    /// Add to the buck.  Return either `e_Low` if the bucket is not full,
+    /// `e_High` - if the bucket is full but the current policy does not limit,
+    /// `e_Strict` - if the bucket is full but the current policy does limit.
     Watermark add(int howMany);
 
+    /// Compare the current watermark with the specified `lowThreshold`.  If
+    /// above, enforce limiting policy with 0.75 of either current rate and
+    /// burst values if policy already limits or average observed values from
+    /// the history.
     bool checkWatermark(bsls::Types::Int64 lowThreshold,
-                        bsls::Types::Int64 highThreshold);
+                        bsls::Types::Int64 maxRateLimit);
+
+    /// Provide time to the leaky bucket algorithm in the specified `ms`.
+    /// Provide current watermark in the specified `watermark`.
     void update(bsls::Types::Int64 ms, bsls::Types::Int64 watermark);
 
+    /// Change the configuration
     void configure(const Config& config);
 
     // ACCESSORS
 
+    /// Return policy.  Return rate, and burst from the recorded history.
     Config survey(Policy policy) const;
 
+    /// Return current policy, rate, and burst
     Config config() const;
 
+    /// Return average watermark in the window.
     bsls::Types::Int64 averageWatermark() const;
 
+    /// Return max burst in the window.
+    int maxBurst() const;
+
+    /// Return `true` if there is no recorded activity and the policy does not
+    /// limit.  Return `false` otherwise.
     bool isIdle() const;
 
     bsl::ostream&
@@ -173,7 +212,7 @@ inline FlowController::Config::Config()
 inline FlowController::Config::Config(Policy policy, int rate, int burst)
 : d_policy(policy)
 , d_ratePerMs(rate)
-, d_burst(burst ? burst : d_ratePerMs * 4)
+, d_burst(burst)
 {
     // NOTHING
 }
@@ -219,6 +258,10 @@ inline void FlowController::Config::scale(int weight, int total)
 
     d_ratePerMs = (d_ratePerMs * weight) / total;
     d_burst     = (d_burst * weight) / total;
+
+    if (d_burst < d_ratePerMs) {
+        d_burst = d_ratePerMs;
+    }
 }
 
 // --------------------
@@ -227,17 +270,18 @@ inline void FlowController::Config::scale(int weight, int total)
 
 inline void FlowController::configure(const Config& config)
 {
-    bsls::Types::Int64 delta = d_config.burst() - config.burst();
-
     d_config = config;
-
-    // Reset the state to an empty bucket.
-    d_count += delta;
 }
 
 inline bsls::Types::Int64 FlowController::averageWatermark() const
 {
     return (d_previousAverageWatermark + d_currentAverageWatermark) / 2;
+}
+
+inline int FlowController::maxBurst() const
+{
+    return d_currentMaxBurst > d_previousMaxBurst ? d_currentMaxBurst
+                                                  : d_previousMaxBurst;
 }
 
 inline bool FlowController::isIdle() const

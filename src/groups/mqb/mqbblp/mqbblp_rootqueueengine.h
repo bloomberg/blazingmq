@@ -128,6 +128,10 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
     mqbu::FlowController d_flowController;
 
+    bdlmt::EventSchedulerEventHandle d_flowControlEventHandle;
+
+    const bsl::function<void()> d_flowControlTimerCb;
+
     /// Allocator to use.
     bslma::Allocator* d_allocator_p;
 
@@ -199,6 +203,8 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     void logAlarmCb(
         const bsl::string&                              appId,
         const bslma::ManagedPtr<mqbi::StorageIterator>& oldestMsgIt) const;
+
+    void onFlowControlTimer();
 
   public:
     // TRAITS

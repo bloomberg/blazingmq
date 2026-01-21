@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbu_flowcontroller.h                                              -*-C++-*-
+// mqbu_flowcontroller.cpp                                            -*-C++-*-
 #include <mqbu_flowcontroller.h>
 
 namespace BloombergLP {
@@ -27,14 +27,15 @@ FlowController::FlowController()
 : d_count(0)
 , d_lastUpdateMs(0)
 , d_config()
-, d_lastRecord(0)
+, d_currentRecord(0)
 , d_currentSecondCount(0)
 , d_currentSecondMs(0)
-, d_currentSecondMaxBurst(0)
 , d_totalCount(0)
-, d_currentSecondHits(0)
+, d_currentHits(0)
 , d_currentAverageWatermark(0)
 , d_previousAverageWatermark(0)
+, d_currentMaxBurst(0)
+, d_previousMaxBurst(0)
 {
     for (int i = 0; i < k_HISTORY_SIZE; i++) {
         d_history[i] = 0;
@@ -54,8 +55,8 @@ FlowController::Watermark FlowController::add(int howMany)
     d_count += howMany;
     d_currentSecondCount += howMany;
 
-    if (howMany > d_currentSecondMaxBurst) {
-        d_currentSecondMaxBurst = howMany;
+    if (howMany > d_currentMaxBurst) {
+        d_currentMaxBurst = howMany;
     }
 
     Watermark result = e_Low;
@@ -79,7 +80,7 @@ FlowController::Watermark FlowController::add(int howMany)
 bool FlowController::checkWatermark(bsls::Types::Int64 lowThreshold,
                                     bsls::Types::Int64 maxRateLimit)
 {
-    const FlowController::Policy policy = d_config.policy();
+    const FlowController::Policy policy    = d_config.policy();
     bsls::Types::Int64           watermark = averageWatermark();
 
     if (watermark < lowThreshold) {
@@ -107,7 +108,7 @@ bool FlowController::checkWatermark(bsls::Types::Int64 lowThreshold,
 
         // scale down, times lowThreshold / watermark
 
-        config.scale(lowThreshold, watermark);
+        config.scale(75, 100);
 
         configure(config);
 
@@ -154,32 +155,40 @@ void FlowController::update(bsls::Types::Int64 ms,
         // Accumulate the count at the last minute leaving previous whole
         // minutes blank.
 
-        d_totalCount -= d_history[d_lastRecord];
-        d_history[d_lastRecord] = d_currentSecondCount;
+        d_totalCount -= d_history[d_currentRecord];
+        d_history[d_currentRecord] = d_currentSecondCount;
         d_totalCount += d_currentSecondCount;
 
-        d_currentSecondCount    = 0;
-        d_currentSecondMaxBurst = 0;
+        d_currentSecondCount = 0;
 
         elapsedSinceLastSecondMs -= k_RECORD_MS;
 
-        if (++d_lastRecord == k_HISTORY_SIZE) {
-            d_lastRecord = 0;
+        if (++d_currentRecord == k_HISTORY_SIZE) {
+            d_currentRecord = 0;
         }
     }
 
     // the last second
     d_currentSecondMs = elapsedSinceLastSecondMs;
 
-    if (d_currentSecondHits > 10) {
+    if (d_currentHits > 10 || deltaMs > 10) {
+        // readings are too old.  Advance the window.
+
+        if (deltaMs > 100) {
+            // narrow the window down to just one reading ('watermark')
+            d_currentAverageWatermark = watermark;
+        }
         d_previousAverageWatermark = d_currentAverageWatermark;
         d_currentAverageWatermark  = 0;
-        d_currentSecondHits        = 0;
+        d_currentHits              = 0;
+
+        d_previousMaxBurst = d_currentMaxBurst;
+        d_currentMaxBurst  = 0;
     }
 
-    ++d_currentSecondHits;
+    ++d_currentHits;
     d_currentAverageWatermark += (watermark - d_currentAverageWatermark) /
-                                 d_currentSecondHits;
+                                 d_currentHits;
 }
 
 FlowController::Config FlowController::survey(Policy policy) const
@@ -188,9 +197,9 @@ FlowController::Config FlowController::survey(Policy policy) const
     bsls::Types::Int64 ms  = d_currentSecondMs + k_RECORD_MS * k_HISTORY_SIZE;
 
     // Calculate moving average within approximately 5 min
-    // Use 'd_currentSecondMaxBurst' as the burst size
+    // Use 'd_currentMaxBurst' as the burst size
 
-    return Config(policy, sum * 1000 / ms, d_currentSecondMaxBurst);
+    return Config(policy, sum * 1000 / ms, maxBurst());
 }
 
 FlowController::Config FlowController::config() const
@@ -208,13 +217,13 @@ bsl::ostream& FlowController::print(bsl::ostream& stream,
 
     bdlb::Print::indent(stream, level, spacesPerLevel);
 
-    stream << "config: [" << d_config << "]"
-           << ", count: " << d_count << ", watermark: " << averageWatermark()
+    stream << "config: [" << d_config << "]" << ", count: " << d_count
+           << ", watermark: " << averageWatermark()
            << ", currentSecondCount: " << d_currentSecondCount
-           << ", currentSecondMaxBurst: " << d_currentSecondMaxBurst
+           << ", maxBurst: " << maxBurst()
            << ", currentAverageWatermark: " << d_currentAverageWatermark
-           << ", currentSecondHits: " << d_currentSecondHits
-           << ", previousAverageWatermark: " << d_previousAverageWatermark;
+           << ", previousAverageWatermark: " << d_previousAverageWatermark
+           << ", currentSecondHits: " << d_currentHits;
 
     if (spacesPerLevel >= 0) {
         stream << '\n';
