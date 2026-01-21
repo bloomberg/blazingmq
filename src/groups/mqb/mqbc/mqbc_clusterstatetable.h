@@ -114,28 +114,36 @@ struct ClusterStateTableEvent {
 
     /// Enumeration used to distinguish among different type of event.
     enum Enum {
-        e_SLCT_LDR               = 0,
-        e_SLCT_FOL               = 1,
-        e_FOL_LSN_RQST           = 2,
-        e_FOL_LSN_RSPN           = 3,
-        e_QUORUM_LSN             = 4,
-        e_LOST_QUORUM_LSN        = 5,
-        e_SELF_HIGHEST_LSN       = 6,
-        e_FOL_HIGHEST_LSN        = 7,
-        e_FAIL_FOL_LSN_RSPN      = 8,
-        e_FOL_CSL_RQST           = 9,
-        e_FOL_CSL_RSPN           = 10,
-        e_FAIL_FOL_CSL_RSPN      = 11,
-        e_CRASH_FOL_CSL          = 12,
+        e_SLCT_LDR          = 0,
+        e_SLCT_FOL          = 1,
+        e_FOL_LSN_RQST      = 2,
+        e_FOL_LSN_RSPN      = 3,
+        e_QUORUM_LSN        = 4,
+        e_LOST_QUORUM_LSN   = 5,
+        e_SELF_HIGHEST_LSN  = 6,
+        e_FOL_HIGHEST_LSN   = 7,
+        e_FAIL_FOL_LSN_RSPN = 8,
+        e_FOL_CSL_RQST      = 9,
+        e_FOL_CSL_RSPN      = 10,
+        e_FAIL_FOL_CSL_RSPN = 11,
+        e_CRASH_FOL_CSL     = 12,
+
+        /// Node is stopping.
         e_STOP_NODE              = 13,
         e_REGISTRATION_RQST      = 14,
         e_REGISTRATION_RSPN      = 15,
         e_FAIL_REGISTRATION_RSPN = 16,
-        e_RST_UNKNOWN            = 17,
-        e_CSL_CMT_SUCCESS        = 18,
-        e_CSL_CMT_FAIL           = 19,
-        e_WATCH_DOG              = 20,
-        e_NUM_EVENTS             = 21
+
+        /// Loss of leader -- resetting leader to UNKNOWN state.
+        e_RST_UNKNOWN = 17,
+
+        /// Loss of primary(s), will inform Partition FSMs to reset to
+        /// UNKNOWN state.
+        e_RST_PRIMARY     = 18,
+        e_CSL_CMT_SUCCESS = 19,
+        e_CSL_CMT_FAIL    = 20,
+        e_WATCH_DOG       = 21,
+        e_NUM_EVENTS      = 22
     };
 
     // CLASS METHODS
@@ -412,6 +420,7 @@ class ClusterStateTable
                 RST_UNKNOWN,
                 stopWatchDog_cancelRequests,
                 UNKNOWN);
+        CST_CFG(FOL_HEALING, RST_PRIMARY, updatePrimaryInPFSMs, FOL_HEALING);
         CST_CFG(FOL_HEALING,
                 WATCH_DOG,
                 cancelRequests_reapplySelectFollower,
@@ -465,6 +474,10 @@ class ClusterStateTable
                 RST_UNKNOWN,
                 stopWatchDog_cleanupLSNs_cancelRequests,
                 UNKNOWN);
+        CST_CFG(LDR_HEALING_STG1,
+                RST_PRIMARY,
+                updatePrimaryInPFSMs,
+                LDR_HEALING_STG1);
         CST_CFG(LDR_HEALING_STG1,
                 WATCH_DOG,
                 cleanupLSNs_cancelRequests_reapplySelectLeader,
@@ -532,6 +545,10 @@ class ClusterStateTable
                 stopWatchDog_cleanupLSNs_cancelRequests,
                 UNKNOWN);
         CST_CFG(LDR_HEALING_STG2,
+                RST_PRIMARY,
+                updatePrimaryInPFSMs,
+                LDR_HEALING_STG2);
+        CST_CFG(LDR_HEALING_STG2,
                 WATCH_DOG,
                 cleanupLSNs_cancelRequests_reapplySelectLeader,
                 UNKNOWN);
@@ -558,6 +575,7 @@ class ClusterStateTable
                 FOL_HEALING);
         CST_CFG(FOL_HEALED, CSL_CMT_SUCCESS, updatePrimaryInPFSMs, FOL_HEALED);
         CST_CFG(FOL_HEALED, RST_UNKNOWN, none, UNKNOWN);
+        CST_CFG(FOL_HEALED, RST_PRIMARY, updatePrimaryInPFSMs, FOL_HEALED);
         CST_CFG(FOL_HEALED, STOP_NODE, none, STOPPED);
         CST_CFG(LDR_HEALED, SLCT_FOL, cleanupLSNs_reapplyEvent, UNKNOWN);
         CST_CFG(LDR_HEALED,
@@ -574,7 +592,9 @@ class ClusterStateTable
                 LDR_HEALED);
         CST_CFG(LDR_HEALED, CSL_CMT_SUCCESS, updatePrimaryInPFSMs, LDR_HEALED);
         CST_CFG(LDR_HEALED, RST_UNKNOWN, cleanupLSNs, UNKNOWN);
+        CST_CFG(LDR_HEALED, RST_PRIMARY, updatePrimaryInPFSMs, LDR_HEALED);
         CST_CFG(LDR_HEALED, STOP_NODE, cleanupLSNs, STOPPED);
+        CST_CFG(STOPPED, RST_PRIMARY, updatePrimaryInPFSMs, STOPPED);
 #undef CST_CFG
     }
 };

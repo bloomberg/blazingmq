@@ -418,9 +418,7 @@ void StorageManager::clearPrimaryForPartitionDispatched(
     BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
     BSLS_ASSERT_SAFE(primary);
 
-    mqbs::FileStore* fs    = d_fileStores[partitionId].get();
-    PartitionInfo&   pinfo = d_partitionInfoVec[partitionId];
-
+    PartitionInfo& pinfo = d_partitionInfoVec[partitionId];
     if (primary != pinfo.primary()) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
                       << " Partition [" << partitionId
@@ -433,25 +431,10 @@ void StorageManager::clearPrimaryForPartitionDispatched(
     }
 
     StorageUtil::clearPrimaryForPartition(
-        fs,
+        d_fileStores[partitionId].get(),
         &pinfo,
         d_clusterData_p->identity().description(),
         partitionId);
-
-    BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
-                  << "Self Transition back to Unknown in the Partition FSM.";
-
-    EventData eventDataVec;
-    eventDataVec.emplace_back(
-        d_clusterData_p->membership().selfNode(),
-        -1,  // placeholder requestId
-        partitionId,
-        1,
-        primary,
-        d_clusterState_p->partitionsInfo().at(partitionId).primaryLeaseId());
-
-    dispatchEventToPartition(PartitionFSM::Event::e_RST_UNKNOWN, eventDataVec);
 }
 
 void StorageManager::processReplicaDataRequestPull(
@@ -3879,6 +3862,32 @@ void StorageManager::setPrimaryStatusForPartition(
         this,
         partitionId,
         value));
+}
+
+void StorageManager::detectPrimaryLossInPFSM(int partitionId)
+{
+    // executed by cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(d_partitionInfoVec[partitionId].primary());
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << " Partition [" << partitionId << "]: "
+                  << "Self Transition back to Unknown in the Partition FSM.";
+
+    EventData eventDataVec;
+    eventDataVec.emplace_back(
+        d_clusterData_p->membership().selfNode(),
+        -1,  // placeholder requestId
+        partitionId,
+        1,
+        d_clusterState_p->partitionsInfo().at(partitionId).primaryNode(),
+        d_clusterState_p->partitionsInfo().at(partitionId).primaryLeaseId());
+
+    dispatchEventToPartition(PartitionFSM::Event::e_RST_UNKNOWN, eventDataVec);
 }
 
 void StorageManager::detectSelfPrimaryInPFSM(int                  partitionId,

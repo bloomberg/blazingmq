@@ -141,6 +141,11 @@ void StorageManager::setPrimaryStatusForPartition(
     // NOTHING
 }
 
+void StorageManager::detectPrimaryLossInPFSM(BSLA_UNUSED int partitionId)
+{
+    // NOTHING
+}
+
 void StorageManager::detectSelfPrimaryInPFSM(
     BSLA_UNUSED int partitionId,
     BSLA_UNUSED mqbnet::ClusterNode* primaryNode,

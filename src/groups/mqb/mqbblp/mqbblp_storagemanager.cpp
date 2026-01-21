@@ -1516,6 +1516,16 @@ void StorageManager::setPrimaryStatusForPartition(
     BSLS_ASSERT_OPT(false && "This method should only be invoked in FSM mode");
 }
 
+void StorageManager::detectPrimaryLossInPFSM(BSLA_UNUSED int partitionId)
+{
+    // executed by cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+
+    BSLS_ASSERT_OPT(false && "This method should only be invoked in FSM mode");
+}
+
 void StorageManager::detectSelfPrimaryInPFSM(
     BSLA_UNUSED int partitionId,
     BSLA_UNUSED mqbnet::ClusterNode* primaryNode,

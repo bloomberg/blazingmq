@@ -297,6 +297,12 @@ class StorageManager {
     setPrimaryStatusForPartition(int partitionId,
                                  bmqp_ctrlmsg::PrimaryStatus::Value value) = 0;
 
+    /// Apply `RST_UNKNOWN` event to the PartitionFSM for the specified
+    /// `partitionId`.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
+    virtual void detectPrimaryLossInPFSM(int partitionId) = 0;
+
     /// Apply DETECT_SelfPrimary event to PartitionFSM using the specified
     /// `partitionId`, `primaryNode`, `primaryLeaseId`.
     ///

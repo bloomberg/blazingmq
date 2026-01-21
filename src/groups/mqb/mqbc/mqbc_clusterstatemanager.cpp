@@ -276,20 +276,33 @@ void ClusterStateManager::do_updatePrimaryInPFSMs(
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
     BSLS_ASSERT_SAFE(d_clusterFSM.isSelfHealed());
 
-    const bsl::vector<int>& modifiedPartitions =
+    const ClusterStateTableEvent::Enum eventType = event.first;
+    const bsl::vector<int>&            modifiedPartitions =
         event.second.modifiedPartitions();
     for (bsl::vector<int>::const_iterator it = modifiedPartitions.cbegin();
          it != modifiedPartitions.cend();
          ++it) {
         const int pid = *it;
 
-        if (d_state_p->isSelfPrimary(pid)) {
+        if (d_state_p->partition(pid).primaryNode() == 0) {
+            // Loss of primary
+            BSLS_ASSERT_SAFE(eventType ==
+                             ClusterStateTableEvent::e_RST_PRIMARY);
+            d_storageManager_p->detectPrimaryLossInPFSM(pid);
+        }
+        else if (d_state_p->isSelfPrimary(pid)) {
+            // Self is primary
+            BSLS_ASSERT_SAFE(eventType ==
+                             ClusterStateTableEvent::e_CSL_CMT_SUCCESS);
             d_storageManager_p->detectSelfPrimaryInPFSM(
                 pid,
                 d_state_p->partition(pid).primaryNode(),
                 d_state_p->partition(pid).primaryLeaseId());
         }
         else {
+            // Self is replica
+            BSLS_ASSERT_SAFE(eventType ==
+                             ClusterStateTableEvent::e_CSL_CMT_SUCCESS);
             d_storageManager_p->detectSelfReplicaInPFSM(
                 pid,
                 d_state_p->partition(pid).primaryNode(),
@@ -1523,6 +1536,11 @@ void ClusterStateManager::markOrphan(
                                        pinfo.primaryLeaseId(),
                                        0);  // no primary node
     }
+
+    // Go through Cluster FSM to inform Partiton FSMs about the orphaned
+    // partitions
+    applyFSMEvent(ClusterFSM::Event::e_RST_PRIMARY,
+                  ClusterFSMEventMetadata(partitions, d_allocator_p));
 }
 
 void ClusterStateManager::assignPartitions(

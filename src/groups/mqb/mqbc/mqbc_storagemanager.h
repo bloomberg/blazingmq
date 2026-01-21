@@ -854,6 +854,12 @@ class StorageManager BSLS_KEYWORD_FINAL
                                       bmqp_ctrlmsg::PrimaryStatus::Value value)
         BSLS_KEYWORD_OVERRIDE;
 
+    /// Apply `RST_UNKNOWN` event to the PartitionFSM for the specified
+    /// `partitionId`.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
+    void detectPrimaryLossInPFSM(int partitionId) BSLS_KEYWORD_OVERRIDE;
+
     /// Apply DETECT_SelfPrimary event to PartitionFSM using the specified
     /// `partitionId`, `primaryNode`, `primaryLeaseId`.
     ///
