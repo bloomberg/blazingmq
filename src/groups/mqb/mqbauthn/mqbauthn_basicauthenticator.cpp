@@ -96,6 +96,7 @@ BasicAuthenticator::BasicAuthenticator(
         if (!it->value().isStringValValue()) {
             BALL_LOG_WARN << "Expected string for credential, got type id = "
                           << it->value().selectionId();
+            continue;
         }
         d_credentials[it->key()] = it->value().stringVal();
     }

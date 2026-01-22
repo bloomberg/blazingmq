@@ -1012,6 +1012,7 @@ void TCPSessionFactory::reauthnOnAuthenticationEvent(
     const bsl::shared_ptr<AuthenticationContext>& context =
         channelInfo->d_authenticationCtx_sp;
     const bsl::string& description = channelInfo->d_session_sp->description();
+    bmqu::MemOutStream errStream(d_allocator_p);
 
     bmqp_ctrlmsg::AuthenticationMessage authenticationMessage;
     int rc = event.loadAuthenticationEvent(&authenticationMessage);
@@ -1045,9 +1046,13 @@ void TCPSessionFactory::reauthnOnAuthenticationEvent(
                                                    context,
                                                    channelInfo->d_channel_sp);
     if (rc != 0) {
-        BALL_LOG_ERROR << "#AUTHENTICATION_FAILED " << description
-                       << ": Authentication failed [reason: '"
-                       << errorStream.str() << "', rc: " << rc << "]";
+        errStream << "#AUTHENTICATION_FAILED " << description
+                  << ": Authentication failed [reason: '" << errorStream.str()
+                  << "', rc: " << rc << "]";
+        context->onReauthenticateErrorOrTimeout(rc,
+                                                "reauthenticationError",
+                                                errStream.str(),
+                                                channelInfo->d_channel_sp);
         return;  // RETURN
     }
 }

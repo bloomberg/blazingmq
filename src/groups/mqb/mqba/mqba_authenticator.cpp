@@ -84,7 +84,9 @@ int Authenticator::onAuthenticationRequest(
     bsl::shared_ptr<mqbnet::AuthenticationContext> authenticationContext =
         bsl::allocate_shared<mqbnet::AuthenticationContext>(
             d_allocator_p,
-            context,            // initialConnectionContext
+            context,  // initialConnectionContext
+            authenticationMsg.authenticationRequest()
+                .mechanism(),   // mechanism
             authenticationMsg,  // authenticationMessage
             context
                 ->authenticationEncodingType(),  // authenticationEncodingType
@@ -300,6 +302,25 @@ void Authenticator::authenticate(
         return;  // RETURN
     }
 
+    // For reauthentication, the principal has to match the principal generated
+    // after the initial authentication.
+    if (isReauthn) {
+        if (context->authenticationResult() &&
+            result->principal() !=
+                context->authenticationResult()->principal()) {
+            rc    = rc_AUTHENTICATION_FAILED;
+            error = "Principal cannot change during reauthentication";
+
+            sendAuthenticationResponse(sendResponseErrStream,
+                                       -1,
+                                       error,
+                                       bsl::nullopt,
+                                       channel,
+                                       encodingType);
+            return;  // RETURN
+        }
+    }
+
     // Set authentication result, state and schedule reauthentication timer
     context->setAuthenticationResult(result);
 
@@ -469,9 +490,22 @@ int Authenticator::handleReauthentication(
         rc_REAUTHENTICATION_FAILED = -1,
     };
 
+    if (!context->authenticationMessage().isAuthenticationRequestValue()) {
+        errorDescription
+            << "Authentication message is not an authentication request";
+        return rc_REAUTHENTICATION_FAILED;  // RETURN
+    }
+
+    // The mechanism used to reauthenticate should be the same as the mechanism
+    // used to authenticate initially.
+    if (context->mechanism() !=
+        context->authenticationMessage().authenticationRequest().mechanism()) {
+        errorDescription << "Authentication mechanism mismatch";
+        return rc_REAUTHENTICATION_FAILED;  // RETURN
+    }
+
     int rc =
         authenticateAsync(errorDescription, context, channel, false, true);
-
     if (rc != 0) {
         rc = (rc * 10) + rc_REAUTHENTICATION_FAILED;
     }

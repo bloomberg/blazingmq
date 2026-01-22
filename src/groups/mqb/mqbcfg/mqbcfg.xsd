@@ -332,7 +332,7 @@
       <element name='authenticators'      type='tns:AuthenticatorPluginConfig' minOccurs="0" maxOccurs='unbounded'/>
       <element name='anonymousCredential' type='tns:AnonymousCredential' minOccurs='0'/>
       <element name='minThreads' type='int' default='1'/>
-      <element name='maxThreads' type='int' default='3'/>
+      <element name='maxThreads' type='int' default='50'/>
      </sequence>
   </complexType>
 

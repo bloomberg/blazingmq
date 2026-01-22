@@ -101,6 +101,7 @@ bool AuthenticationState::fromAscii(AuthenticationState::Enum* out,
 
 AuthenticationContext::AuthenticationContext(
     InitialConnectionContext*                  initialConnectionContext,
+    bsl::string_view                           mechanism,
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
     bmqp::EncodingType::Enum                   authenticationEncodingType,
     AuthenticationState::Enum                  state,
@@ -112,6 +113,7 @@ AuthenticationContext::AuthenticationContext(
 , d_timeoutHandle()
 , d_state(state)
 , d_initialConnectionContext_p(initialConnectionContext)
+, d_mechanism(mechanism)
 , d_authenticationMessage(authenticationMessage)
 , d_encodingType(authenticationEncodingType)
 {
@@ -150,10 +152,10 @@ void AuthenticationContext::resetAuthenticationMessage()
 }
 
 int AuthenticationContext::setAuthenticatedAndScheduleReauthn(
-    bsl::ostream&                            errorDescription,
-    bdlmt::EventScheduler*                   scheduler_p,
-    const bsl::optional<bsls::Types::Int64>& lifetimeMs,
-    const bsl::shared_ptr<bmqio::Channel>&   channel)
+    bsl::ostream&          errorDescription,
+    bdlmt::EventScheduler* scheduler_p,
+    BSLA_UNUSED const bsl::optional<bsls::Types::Int64>& lifetimeMs,
+    BSLA_UNUSED const bsl::shared_ptr<bmqio::Channel>& channel)
 {
     // executed by an *AUTHENTICATION* thread
 
@@ -277,6 +279,11 @@ const bsl::shared_ptr<mqbplug::AuthenticationResult>&
 AuthenticationContext::authenticationResult() const
 {
     return d_authenticationResultSp;
+}
+
+bsl::string_view AuthenticationContext::mechanism() const
+{
+    return d_mechanism;
 }
 
 const bmqp_ctrlmsg::AuthenticationMessage&

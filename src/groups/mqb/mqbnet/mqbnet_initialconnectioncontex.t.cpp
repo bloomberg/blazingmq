@@ -65,10 +65,10 @@ struct MockAuthenticator : public mqbnet::Authenticator {
   public:
     int  start(bsl::ostream&) BSLS_KEYWORD_OVERRIDE { return 0; }
     void stop() BSLS_KEYWORD_OVERRIDE {}
-    int  handleAuthentication(
-         bsl::ostream&,
-         const bsl::shared_ptr<mqbnet::InitialConnectionContext>&,
-         const bmqp_ctrlmsg::AuthenticationMessage&) BSLS_KEYWORD_OVERRIDE
+    int  handleAuthentication(bsl::ostream&,
+                              mqbnet::InitialConnectionContext*,
+                              const bmqp_ctrlmsg::AuthenticationMessage&)
+        BSLS_KEYWORD_OVERRIDE
     {
         return 0;
     }
@@ -102,9 +102,7 @@ struct MockNegotiator : public mqbnet::Negotiator {
     {
         return 0;
     }
-    int
-    negotiateOutbound(bsl::ostream&,
-                      const bsl::shared_ptr<mqbnet::InitialConnectionContext>&)
+    int negotiateOutbound(bsl::ostream&, mqbnet::InitialConnectionContext*)
         BSLS_KEYWORD_OVERRIDE
     {
         return 0;
@@ -172,8 +170,16 @@ static void test1_initialConnectionContext()
         }
 
         {  // AuthenticationContext
+            bmqp_ctrlmsg::AuthenticationMessage            authnMsg;
             bsl::shared_ptr<mqbnet::AuthenticationContext> authnCtx =
-                bsl::allocate_shared<mqbnet::AuthenticationContext>(alloc);
+                bsl::allocate_shared<mqbnet::AuthenticationContext>(
+                    alloc,
+                    nullptr,  // initialConnectionContext
+                    "testMechanism",
+                    authnMsg,
+                    bmqp::EncodingType::e_BER,
+                    mqbnet::AuthenticationState::e_AUTHENTICATING,
+                    alloc);
             obj.setAuthenticationContext(authnCtx);
             BMQTST_ASSERT_EQ(authnCtx, obj.authenticationContext());
         }

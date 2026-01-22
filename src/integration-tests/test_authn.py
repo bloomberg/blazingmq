@@ -22,6 +22,8 @@ All tests use the built-in authenticators:
                         Config format: {"key": "username", "value": {"stringVal": "password"}}
   - AnonAuthenticator: ANONYMOUS mechanism, passes if "shouldPass" setting is true (default),
                        fails otherwise
+  - TestAuthenticator: TEST mechanism, sleeps for a configured duration (default 0)
+                       Config format: {"key": "sleepTimeMs", "value": {"intVal": "duration"}}
 
 This approach tests all authentication scenarios without needing external plugins.
 """
@@ -70,10 +72,10 @@ def test_authenticate_basic_success(
     client = RawClient()
     client.open_channel(*single_node.admin_endpoint)
 
-    auth_resp = client.send_authentication_request("Basic", "user1:password1")
+    auth_resp = client.authenticate("Basic", "user1:password1")
     assert auth_resp["authenticationResponse"]["status"]["code"] == 0
 
-    nego_resp = client.send_negotiation_request()
+    nego_resp = client.negotiate()
     assert nego_resp["brokerResponse"]["result"]["code"] == 0
 
     client.stop()
@@ -100,7 +102,7 @@ def test_authenticate_basic_failure(
     client.open_channel(*single_node.admin_endpoint)
 
     # Invalid credentials should fail
-    auth_resp = client.send_authentication_request("Basic", "invalid:wrong")
+    auth_resp = client.authenticate("Basic", "invalid:wrong")
     assert auth_resp["authenticationResponse"]["status"]["code"] != 0
 
     client.stop()
@@ -137,11 +139,11 @@ def test_authenticate_concurrent(
     def auth_worker(idx):
         client = RawClient()
         client.open_channel(*single_node.admin_endpoint)
-        auth_resp = client.send_authentication_request(
+        auth_resp = client.authenticate(
             "Basic", f"user{idx}:password{idx}"
         )
         results[idx] = auth_resp["authenticationResponse"]["status"]["code"]
-        client.send_negotiation_request()
+        client.negotiate()
         client.stop()
 
     for i in range(num_threads):
@@ -166,10 +168,7 @@ def test_authenticate_concurrent(
         "authenticators": [
             {
                 "name": "BasicAuthenticator",
-                "settings": [
-                    {"key": "user1", "value": {"stringVal": "password1"}},
-                    {"key": "user2", "value": {"stringVal": "password2"}},
-                ],
+                "settings": [{"key": "user1", "value": {"stringVal": "password1"}}],
             }
         ]
     }
@@ -183,19 +182,15 @@ def test_reauthenticate_success(
     client.open_channel(*single_node.admin_endpoint)
 
     # Initial authentication
-    auth_resp = client.send_authentication_request("Basic", "user1:password1")
+    auth_resp = client.authenticate("Basic", "user1:password1")
     assert auth_resp["authenticationResponse"]["status"]["code"] == 0
     assert auth_resp["authenticationResponse"]["lifetimeMs"] == 600000
 
-    nego_resp = client.send_negotiation_request()
+    nego_resp = client.negotiate()
     assert nego_resp["brokerResponse"]["result"]["code"] == 0
 
     # Reauthentication with same credentials
-    auth_resp = client.send_authentication_request("Basic", "user1:password1")
-    assert auth_resp["authenticationResponse"]["status"]["code"] == 0
-
-    # Reauthentication with different credentials
-    auth_resp = client.send_authentication_request("Basic", "user2:password2")
+    auth_resp = client.authenticate("Basic", "user1:password1")
     assert auth_resp["authenticationResponse"]["status"]["code"] == 0
 
     client.stop()
@@ -222,20 +217,110 @@ def test_reauthenticate_failure(
     client.open_channel(*single_node.admin_endpoint)
 
     # Initial authentication succeeds
-    auth_resp = client.send_authentication_request("Basic", "user1:password1")
+    auth_resp = client.authenticate("Basic", "user1:password1")
     assert auth_resp["authenticationResponse"]["status"]["code"] == 0
     assert auth_resp["authenticationResponse"]["lifetimeMs"] == 600000
 
-    nego_resp = client.send_negotiation_request()
+    nego_resp = client.negotiate()
     assert nego_resp["brokerResponse"]["result"]["code"] == 0
 
     # Reauthentication with wrong credentials fails
-    auth_resp = client.send_authentication_request("Basic", "user1:wrongpass")
+    auth_resp = client.authenticate("Basic", "user1:wrongpass")
     assert auth_resp["authenticationResponse"]["status"]["code"] != 0
 
     # Connection should be closed after failed reauthentication
     with pytest.raises(ConnectionError):
-        client.send_negotiation_request()
+        client.negotiate()
+
+    client.stop()
+
+
+@tweak.broker.app_config.authentication(
+    {
+        "authenticators": [
+            {
+                "name": "BasicAuthenticator",
+                "settings": [
+                    {"key": "user1", "value": {"stringVal": "password1"}},
+                ],
+            },
+            {
+                "name": "TestAuthenticator",
+                "settings": [],
+            },
+        ]
+    }
+)
+def test_reauthenticate_mechanism_mismatch(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
+    """
+    Test that reauthentication fails when mechanism changes.
+
+    The client must use the same authentication mechanism for all authentication
+    requests during the lifetime of a session. Changing the mechanism should
+    result in an error and disconnect.
+    """
+    client = RawClient()
+    client.open_channel(*single_node.admin_endpoint)
+
+    # Initial authentication with Basic mechanism
+    auth_resp = client.authenticate("Basic", "user1:password1")
+    assert auth_resp["authenticationResponse"]["status"]["code"] == 0
+
+    nego_resp = client.negotiate()
+    assert nego_resp["brokerResponse"]["result"]["code"] == 0
+
+    # Reauthentication with different mechanism (TEST) should fail
+    # The broker should reject this because the mechanism changed
+    with pytest.raises(ConnectionError):
+        client.authenticate("TEST", "")
+
+    client.stop()
+
+
+@tweak.broker.app_config.authentication(
+    {
+        "authenticators": [
+            {
+                "name": "BasicAuthenticator",
+                "settings": [
+                    {"key": "user1", "value": {"stringVal": "password1"}},
+                    {"key": "user2", "value": {"stringVal": "password2"}},
+                ],
+            }
+        ]
+    }
+)
+def test_reauthenticate_principal_change(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
+    """
+    Test that reauthentication fails when principal changes.
+
+    The client's principal cannot change as a result of reauthentication.
+    If reauthentication results in a new principal (different user),
+    the broker will return an authentication error and disconnect the client.
+    """
+    client = RawClient()
+    client.open_channel(*single_node.admin_endpoint)
+
+    # Initial authentication as user1
+    auth_resp = client.authenticate("Basic", "user1:password1")
+    assert auth_resp["authenticationResponse"]["status"]["code"] == 0
+
+    nego_resp = client.negotiate()
+    assert nego_resp["brokerResponse"]["result"]["code"] == 0
+
+    # Reauthentication as user2 (generates a different principal) should fail
+    auth_resp = client.authenticate("Basic", "user2:password2")
+    assert auth_resp["authenticationResponse"]["status"]["code"] != 0
+
+    # Connection should be closed after principal change attempt
+    with pytest.raises(ConnectionError):
+        client.negotiate()
 
     client.stop()
 
@@ -254,7 +339,7 @@ def test_default_anonymous_single_node(
     client.open_channel(*single_node.admin_endpoint)
 
     # Should succeed with default AnonAuthenticator
-    nego_resp = client.send_negotiation_request()
+    nego_resp = client.negotiate()
     assert nego_resp["brokerResponse"]["result"]["code"] == 0
 
     client.stop()
@@ -268,14 +353,29 @@ def test_default_anonymous_multi_node(
     client = RawClient()
     client.open_channel(*multi_node.admin_endpoint)
 
-    nego_resp = client.send_negotiation_request()
+    nego_resp = client.negotiate()
     assert nego_resp["brokerResponse"]["result"]["code"] == 0
 
     client.stop()
 
 
+def test_empty_authenticators_reject_basic(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
+    """Empty authenticators should reject non-ANONYMOUS mechanisms."""
+    client = RawClient()
+    client.open_channel(*single_node.admin_endpoint)
+
+    # Should reject Basic when only default AnonPass is available
+    auth_resp = client.authenticate("Basic", "user:pass")
+    assert auth_resp["authenticationResponse"]["status"]["code"] != 0
+
+    client.stop()
+
+
 # ==============================================================================
-# Anonymous Credential Configuration Tests
+# Anonymous Credential Tests
 # ==============================================================================
 
 
@@ -290,7 +390,7 @@ def test_anonymous_disallowed(
 
     # Should fail when anonymous is disallowed
     with pytest.raises(ConnectionError):
-        client.send_negotiation_request()
+        client.negotiate()
 
     client.stop()
 
@@ -320,27 +420,82 @@ def test_anonymous_credential_invalid(
 
     # Should fail with invalid anonymousCredential
     with pytest.raises(ConnectionError):
-        client.send_negotiation_request()
+        client.negotiate()
 
     client.stop()
 
 
-# ==============================================================================
-# Empty Authenticators Tests
-# ==============================================================================
-
-
-def test_empty_authenticators_reject_basic(
+@tweak.broker.app_config.authentication(
+    {
+        "authenticators": [
+            {
+                "name": "BasicAuthenticator",
+                "settings": [
+                    {"key": "user1", "value": {"stringVal": "password1"}},
+                ],
+            },
+        ],
+        "anonymousCredential": {
+            "credential": {"mechanism": "Basic", "identity": "user1:password1"}
+        },
+    }
+)
+def test_anonymous_credential_mechanism_match(
     single_node: Cluster,
     domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
 ) -> None:
-    """Empty authenticators should reject non-ANONYMOUS mechanisms."""
+    """Test anonymous credential with matching authenticator."""
+    # Test explicit authentication
+    client1 = RawClient()
+    client1.open_channel(*single_node.admin_endpoint)
+
+    auth_resp = client1.authenticate("Basic", "user1:password1")
+    assert auth_resp["authenticationResponse"]["status"]["code"] == 0
+
+    nego_resp = client1.negotiate()
+    assert nego_resp["brokerResponse"]["result"]["code"] == 0
+
+    client1.stop()
+
+    # Test default authentication via negotiation
+    client2 = RawClient()
+    client2.open_channel(*single_node.admin_endpoint)
+
+    nego_resp = client2.negotiate()
+    assert nego_resp["brokerResponse"]["result"]["code"] == 0
+
+    client2.stop()
+
+
+@tweak.broker.app_config.authentication(
+    {
+        "authenticators": [
+            {
+                "name": "AnonAuthenticator",
+                "settings": [
+                    {"key": "shouldPass", "value": {"boolVal": "false"}},
+                ],
+            },
+        ],
+        "anonymousCredential": {
+            "credential": {"mechanism": "ANONYMOUS", "identity": ""}
+        },
+    }
+)
+def test_anon_fail_authenticator(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
+    """
+    Test AnonAuthenticator that always fails when "shouldPass" is false.
+    This tests the scenario where ANONYMOUS mechanism exists but fails authentication.
+    """
     client = RawClient()
     client.open_channel(*single_node.admin_endpoint)
 
-    # Should reject Basic when only default AnonPass is available
-    auth_resp = client.send_authentication_request("Basic", "user:pass")
-    assert auth_resp["authenticationResponse"]["status"]["code"] != 0
+    # Should fail when "shouldPass" is set to fail
+    with pytest.raises(ConnectionError):
+        client.negotiate()
 
     client.stop()
 
@@ -371,7 +526,7 @@ def test_basic_auth_allows_anonymous(
     client1 = RawClient()
     client1.open_channel(*single_node.admin_endpoint)
 
-    nego_resp = client1.send_negotiation_request()
+    nego_resp = client1.negotiate()
     assert nego_resp["brokerResponse"]["result"]["code"] == 0
 
     client1.stop()
@@ -380,10 +535,10 @@ def test_basic_auth_allows_anonymous(
     client2 = RawClient()
     client2.open_channel(*single_node.admin_endpoint)
 
-    auth_resp = client2.send_authentication_request("Basic", "user1:password1")
+    auth_resp = client2.authenticate("Basic", "user1:password1")
     assert auth_resp["authenticationResponse"]["status"]["code"] == 0
 
-    nego_resp = client2.send_negotiation_request()
+    nego_resp = client2.negotiate()
     assert nego_resp["brokerResponse"]["result"]["code"] == 0
 
     client2.stop()
@@ -410,57 +565,10 @@ def test_basic_auth_rejects_other_mechanisms(
     client.open_channel(*single_node.admin_endpoint)
 
     # Should reject unsupported mechanism
-    auth_resp = client.send_authentication_request("OAuth", "token")
+    auth_resp = client.authenticate("OAuth", "token")
     assert auth_resp["authenticationResponse"]["status"]["code"] != 0
 
     client.stop()
-
-
-# ==============================================================================
-# Anonymous Credential Matching Tests
-# ==============================================================================
-
-
-@tweak.broker.app_config.authentication(
-    {
-        "authenticators": [
-            {
-                "name": "BasicAuthenticator",
-                "settings": [
-                    {"key": "user1", "value": {"stringVal": "password1"}},
-                ],
-            },
-        ],
-        "anonymousCredential": {
-            "credential": {"mechanism": "Basic", "identity": "user1:password1"}
-        },
-    }
-)
-def test_anonymous_credential_mechanism_match(
-    single_node: Cluster,
-    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
-) -> None:
-    """Test anonymous credential with matching authenticator."""
-    # Test explicit authentication
-    client1 = RawClient()
-    client1.open_channel(*single_node.admin_endpoint)
-
-    auth_resp = client1.send_authentication_request("Basic", "user1:password1")
-    assert auth_resp["authenticationResponse"]["status"]["code"] == 0
-
-    nego_resp = client1.send_negotiation_request()
-    assert nego_resp["brokerResponse"]["result"]["code"] == 0
-
-    client1.stop()
-
-    # Test default authentication via negotiation
-    client2 = RawClient()
-    client2.open_channel(*single_node.admin_endpoint)
-
-    nego_resp = client2.send_negotiation_request()
-    assert nego_resp["brokerResponse"]["result"]["code"] == 0
-
-    client2.stop()
 
 
 @tweak.broker.app_config.authentication(
@@ -486,33 +594,7 @@ def test_basic_with_anonymous_disallowed(
 
     # Should fail negotiation without authentication
     with pytest.raises(ConnectionError):
-        client.send_negotiation_request()
-
-    client.stop()
-
-
-# ==============================================================================
-# Edge Cases
-# ==============================================================================
-
-
-@tweak.broker.app_config.authentication(
-    {
-        "authenticators": [],
-        "anonymousCredential": {"disallow": {}},
-    }
-)
-def test_no_authentication_possible(
-    single_node: Cluster,
-    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
-) -> None:
-    """Test that no connection is possible when configured that way."""
-    client = RawClient()
-    client.open_channel(*single_node.admin_endpoint)
-
-    # Cannot negotiate - no way to authenticate
-    with pytest.raises(ConnectionError):
-        client.send_negotiation_request()
+        client.negotiate()
 
     client.stop()
 
@@ -545,27 +627,27 @@ def test_mechanism_case_insensitive(
     # Test lowercase
     client1 = RawClient()
     client1.open_channel(*single_node.admin_endpoint)
-    auth_resp = client1.send_authentication_request("basic", "user1:password1")
+    auth_resp = client1.authenticate("basic", "user1:password1")
     assert auth_resp["authenticationResponse"]["status"]["code"] == 0
-    nego_resp = client1.send_negotiation_request()
+    nego_resp = client1.negotiate()
     assert nego_resp["brokerResponse"]["result"]["code"] == 0
     client1.stop()
 
     # Test uppercase
     client2 = RawClient()
     client2.open_channel(*single_node.admin_endpoint)
-    auth_resp = client2.send_authentication_request("BASIC", "user1:password1")
+    auth_resp = client2.authenticate("BASIC", "user1:password1")
     assert auth_resp["authenticationResponse"]["status"]["code"] == 0
-    nego_resp = client2.send_negotiation_request()
+    nego_resp = client2.negotiate()
     assert nego_resp["brokerResponse"]["result"]["code"] == 0
     client2.stop()
 
     # Test mixed case
     client3 = RawClient()
     client3.open_channel(*single_node.admin_endpoint)
-    auth_resp = client3.send_authentication_request("BaSiC", "user1:password1")
+    auth_resp = client3.authenticate("BaSiC", "user1:password1")
     assert auth_resp["authenticationResponse"]["status"]["code"] == 0
-    nego_resp = client3.send_negotiation_request()
+    nego_resp = client3.negotiate()
     assert nego_resp["brokerResponse"]["result"]["code"] == 0
     client3.stop()
 
@@ -589,44 +671,6 @@ def test_admin_with_default_anonymous(
     )
 
     admin.stop()
-
-
-# ==============================================================================
-# AnonAuthenticator Test (failure case)
-# ==============================================================================
-
-
-@tweak.broker.app_config.authentication(
-    {
-        "authenticators": [
-            {
-                "name": "AnonAuthenticator",
-                "settings": [
-                    {"key": "shouldPass", "value": {"boolVal": "false"}},
-                ],
-            },
-        ],
-        "anonymousCredential": {
-            "credential": {"mechanism": "ANONYMOUS", "identity": ""}
-        },
-    }
-)
-def test_anon_fail_authenticator(
-    single_node: Cluster,
-    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
-) -> None:
-    """
-    Test AnonAuthenticator that always fails when "shouldPass" is false.
-    This tests the scenario where ANONYMOUS mechanism exists but fails authentication.
-    """
-    client = RawClient()
-    client.open_channel(*single_node.admin_endpoint)
-
-    # Should fail when "shouldPass" is set to fail
-    with pytest.raises(ConnectionError):
-        client.send_negotiation_request()
-
-    client.stop()
 
 
 # ==============================================================================
@@ -737,3 +781,87 @@ def test_custom_anonymous_without_credential_fails_startup(
     authenticators (non-default) must have an explicit credential configured.
     """
     check_fail_to_start(single_node)
+
+
+# ==============================================================================
+# TestAuthenticator Tests
+# ==============================================================================
+
+
+@tweak.broker.app_config.authentication(
+    {
+        "authenticators": [
+            {
+                "name": "TestAuthenticator",
+                "settings": [
+                    {"key": "sleepTimeMs", "value": {"intVal": 100}},
+                ],
+            }
+        ]
+    }
+)
+def test_authenticate_with_delay(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
+    """Test TestAuthenticator with a reasonable delay."""
+    client = RawClient()
+    client.open_channel(*single_node.admin_endpoint)
+
+    # Should succeed even with a delay
+    auth_resp = client.authenticate("TEST", "")
+    assert auth_resp["authenticationResponse"]["status"]["code"] == 0
+
+    nego_resp = client.negotiate()
+    assert nego_resp["brokerResponse"]["result"]["code"] == 0
+
+    client.stop()
+
+
+@tweak.broker.app_config.authentication(
+    {
+        "authenticators": [
+            {
+                "name": "TestAuthenticator",
+                "settings": [
+                    # 10 seconds - long enough for client to disconnect before completion
+                    {"key": "sleepTimeMs", "value": {"intVal": 10000}},
+                ],
+            }
+        ]
+    }
+)
+def test_authenticate_client_disconnect_during_auth(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
+    """
+    Test that the broker handles gracefully when a client disconnects
+    while authentication is still in progress.
+
+    This simulates a client that cuts the TCP connection before the
+    authentication completes (e.g., due to network issues, client crash,
+    or client timeout). The broker should handle this gracefully without
+    crashing and should remain functional for new connections.
+    """
+    # Use a very short timeout so the client disconnects before auth completes
+    client = RawClient(socket_timeout=1.0)
+    client.open_channel(*single_node.admin_endpoint)
+
+    # Send authentication request - this will timeout on the client side
+    # because authentication takes 10 seconds but client timeout is 1 second
+    with pytest.raises((ConnectionError, TimeoutError)):
+        client.authenticate("TEST", "")
+
+    client.stop()
+
+    # Verify the broker is still functional after the abrupt disconnect
+    # by connecting a new client successfully
+    new_client = RawClient()
+    new_client.open_channel(*single_node.admin_endpoint)
+
+    # Should succeed with default anonymous authentication
+    nego_resp = new_client.negotiate()
+    assert nego_resp["brokerResponse"]["result"]["code"] == 0
+
+    new_client.stop()

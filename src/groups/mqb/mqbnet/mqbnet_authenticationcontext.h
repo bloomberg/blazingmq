@@ -149,6 +149,12 @@ class AuthenticationContext {
     /// reauthentication.
     InitialConnectionContext* d_initialConnectionContext_p;
 
+    /// The authentication mechanism used for this authentication context.
+    /// E.g., "Basic", "JWT", etc.  It is set during the initial
+    /// authentication, and is used to validate the mechanism used during
+    /// reauthentication.
+    bsl::string d_mechanism;
+
     /// The authentication message received during authentication.  This is
     /// held temporarily and cleared after authentication completes.
     bmqp_ctrlmsg::AuthenticationMessage d_authenticationMessage;
@@ -174,6 +180,7 @@ class AuthenticationContext {
     // CREATORS
     AuthenticationContext(
         InitialConnectionContext*                  initialConnectionContext,
+        bsl::string_view                           mechanism,
         const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
         bmqp::EncodingType::Enum                   authenticationEncodingType,
         AuthenticationState::Enum                  state,
@@ -228,6 +235,7 @@ class AuthenticationContext {
     // ACCESSORS
     const bsl::shared_ptr<mqbplug::AuthenticationResult>&
                                                authenticationResult() const;
+    bsl::string_view                           mechanism() const;
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage() const;
     bmqp::EncodingType::Enum                   encodingType() const;
 
