@@ -52,11 +52,19 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}/src/python
         run: |
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
-          pip install "xsdata[cli]"
+          pip install "xsdata[cli]==25.7"
           cd ${{ github.workspace }}
           src/python/bin/schemagen
           src/python/bin/tweakgen
           pytest src/python
+
+      - name: Print generated schemas
+        if: failure()
+        run: |
+          cd ${{ github.workspace }}
+          cat src/python/blazingmq/schemas/mqbcfg.py
+          cat src/python/blazingmq/schemas/mqbconf.py
+          cat src/python/blazingmq/dev/it/tweaks/generated.py
 
   integration_tests_ubuntu:
     name: IT [${{ matrix.cluster }}/${{ matrix.mode }}/${{ matrix.consistency }}]
