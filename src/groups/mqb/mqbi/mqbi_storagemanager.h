@@ -303,7 +303,7 @@ class StorageManager {
     /// THREAD: Executed in cluster dispatcher thread.
     virtual void detectPrimaryLossInPFSM(int partitionId) = 0;
 
-    /// Apply DETECT_SelfPrimary event to PartitionFSM using the specified
+    /// Apply DETECT_SelfPrimary event to Partition FSM using the specified
     /// `partitionId`, `primaryNode`, `primaryLeaseId`.
     ///
     /// THREAD: Executed in cluster dispatcher thread.
@@ -311,7 +311,7 @@ class StorageManager {
                                          mqbnet::ClusterNode* primaryNode,
                                          unsigned int primaryLeaseId) = 0;
 
-    /// Apply DETECT_SelfReplica event to StorageFSM using the specified
+    /// Apply DETECT_SelfReplica event to Partition FSM using the specified
     /// `partitionId`, `primaryNode` and `primaryLeaseId`.
     ///
     /// THREAD: Executed in cluster dispatcher thread.
