@@ -218,7 +218,9 @@ static void test1_breathingTest()
     eventScheduler.start();
 
     {
+        bmqst::StatContext             statContext(bmqst::StatContextConfiguration(1));
         mqba::Dispatcher obj(dispatcherConfig,
+                             &statContext,
                              &eventScheduler,
                              bmqtst::TestHelperUtil::allocator());
     }
@@ -307,7 +309,9 @@ static void test3_executorsSupport()
     dispatcherConfig.clusters().processorConfig().queueSizeHighWatermark() =
         100;
 
+    bmqst::StatContext statContext(bmqst::StatContextConfiguration(1));
     mqba::Dispatcher dispatcher(dispatcherConfig,
+                                &statContext,
                                 &eventScheduler,
                                 bmqtst::TestHelperUtil::allocator());
 
@@ -513,7 +517,9 @@ static void testN1_inDispatcherThread()
     };
 
     {
+        bmqst::StatContext statContext(bmqst::StatContextConfiguration(1));
         mqba::Dispatcher obj(dispatcherConfig,
+                             &statContext,
                              &eventScheduler,
                              bmqtst::TestHelperUtil::allocator());
 

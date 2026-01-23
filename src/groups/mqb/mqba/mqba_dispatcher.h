@@ -49,6 +49,7 @@
 #include <mqbcfg_messages.h>
 #include <mqbi_dispatcher.h>
 #include <mqbu_loadbalancer.h>
+#include <mqbstat_dispatcherstats.h>
 
 #include <bmqc_multiqueuethreadpool.h>
 #include <bmqex_executor.h>
@@ -111,7 +112,7 @@ class Dispatcher_Executor {
     mqbi::Dispatcher::ProcessorHandle d_processorHandle;
 
     bmqst::StatContext* d_statContext_p;
-
+    bmqst::StatContext* d_statContextNew_p;
 
   public:
     // CREATORS
@@ -251,6 +252,12 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
         /// clients for which a flush needs to be called.  The first index of
         /// the vector corresponds to the processor.
         bsl::vector<DispatcherClientPtrVector> d_flushList;
+
+        /// Pointer to Stat context for client
+        bslma::ManagedPtr<bmqst::StatContext> d_clientStatContext_mp;
+
+        /// Vector of stat contexts pointers, one per processor.
+        bsl::vector<bslma::ManagedPtr<bmqst::StatContext>> d_statContextsVec;
 
         /// Vector of stat contexts pointers, one per processor.
         bsl::vector<StatContextData> d_statContexts;
@@ -547,6 +554,11 @@ Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
       if (statContext_mp) {
           statContext_mp->adjustValue(k_STAT_QUEUE, 1);
       }
+    //   bmqst::StatContext* statContext_p = dispatcherContext.d_statContextsVec.at(handle).get();
+    //   if (statContext_p) {
+    //       statContext_p->adjustValue(k_STAT_QUEUE, 1);
+    //   }
+      mqbstat::DispatcherStats::onEnqueue(dispatcherContext.d_statContextsVec.at(handle).get());
 
     } break;
     case mqbi::DispatcherClientType::e_UNDEFINED:

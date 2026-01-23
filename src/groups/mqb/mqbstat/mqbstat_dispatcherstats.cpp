@@ -18,6 +18,7 @@
 
 // BMQ
 #include <bmqst_statcontext.h>
+#include <bmqst_statutil.h>
 
 // BDE
 #include <bdlma_localsequentialallocator.h>
@@ -31,6 +32,76 @@ namespace {
 static const char k_DISPATCHER_STAT_NAME[] = "dispatcher";
 
 }  // close unnamed namespace
+
+// -----------------
+// class DomainStats
+// -----------------
+
+bsls::Types::Int64 DispatcherStats::getValue(const bmqst::StatContext& context,
+                                         int                       snapshotId,
+                                         const Stat::Enum&         stat)
+
+{
+    // invoked from the SNAPSHOT thread
+
+    const bmqst::StatValue::SnapshotLocation latestSnapshot(0, 0);
+    const bmqst::StatValue::SnapshotLocation oldestSnapshot(0, snapshotId);
+
+#define STAT_SINGLE(OPERATION, STAT)                                          \
+    bmqst::StatUtil::OPERATION(                                               \
+        context.value(bmqst::StatContext::e_DIRECT_VALUE, STAT),              \
+        latestSnapshot)
+
+#define STAT_SINGLE_ABS(OPERATION, STAT)                                      \
+    bmqst::StatUtil::OPERATION(                                               \
+        context.value(bmqst::StatContext::e_DIRECT_VALUE, STAT))
+
+
+#define STAT_RANGE(OPERATION, STAT)                                           \
+    bmqst::StatUtil::OPERATION(                                               \
+        context.value(bmqst::StatContext::e_DIRECT_VALUE, STAT),              \
+        latestSnapshot,                                                       \
+        oldestSnapshot)
+
+    switch (stat) {
+    case Stat::e_ENQUEUE_DELTA: {
+        return STAT_RANGE(incrementsDifference, DispatcherStatsIndex::e_STAT_QUEUE);
+    }
+    case Stat::e_DEQUEUE_DELTA: {
+        return STAT_RANGE(decrementsDifference, DispatcherStatsIndex::e_STAT_QUEUE);
+    }
+    case Stat::e_SIZE: {
+        return STAT_SINGLE(value, DispatcherStatsIndex::e_STAT_QUEUE);
+    }
+    case Stat::e_SIZE_MAX: {
+        return STAT_RANGE(rangeMax, DispatcherStatsIndex::e_STAT_QUEUE);
+    }
+    case Stat::e_SIZE_ABS_MAX: {
+        return STAT_SINGLE_ABS(absoluteMax, DispatcherStatsIndex::e_STAT_QUEUE);
+    }
+    case Stat::e_TIME_MIN: {
+        return STAT_RANGE(rangeMin, DispatcherStatsIndex::e_STAT_TIME);
+    }
+    case Stat::e_TIME_AVG: {
+        return STAT_RANGE(averagePerEvent, DispatcherStatsIndex::e_STAT_TIME);
+    }
+    case Stat::e_TIME_MAX: {
+        return STAT_RANGE(rangeMax, DispatcherStatsIndex::e_STAT_TIME);
+    }
+    case Stat::e_TIME_ABS_MAX: {
+        return STAT_SINGLE_ABS(absoluteMax, DispatcherStatsIndex::e_STAT_TIME);
+    }
+    default: {
+        BSLS_ASSERT_SAFE(false && "Attempting to access an unknown stat");
+    }
+    }
+
+    return 0;
+
+#undef STAT_RANGE
+#undef STAT_SINGLE_ABS
+#undef STAT_SINGLE
+}
 
 // ---------------------
 // class DomainStatsUtil
@@ -56,13 +127,19 @@ DispatcherStatsUtil::initializeStatContext(int               historySize,
 }
 
 bslma::ManagedPtr<bmqst::StatContext>
-    initializeDispatcherQueueStatContext(bmqst::StatContext*      parent,
+    DispatcherStatsUtil::initializeSubStatContext(bmqst::StatContext*      parent,
                                 const bslstl::StringRef& name,
                                 bslma::Allocator*        allocator)
 {
     bdlma::LocalSequentialAllocator<512> localAllocator(allocator);
 
     bmqst::StatContextConfiguration statConfig(name, &localAllocator);
+    // statConfig.value("queued_count")
+    //           .value("queued_time", bmqst::StatValue::e_DISCRETE);
+
+    // bslma::ManagedPtr<bmqst::StatContext> statContext = parent->addSubcontext(statConfig);
+
+    // return statContext;
     return parent->addSubcontext(statConfig);
 }                                
 

@@ -22,6 +22,9 @@
 
 #include <bmqsys_threadutil.h>
 
+// MQB
+#include <mqbstat_dispatcherstats.h>
+
 // BDE
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
@@ -68,8 +71,8 @@ Dispatcher_Executor::Dispatcher_Executor(const Dispatcher* dispacher,
                                          const mqbi::DispatcherClient* client)
     BSLS_CPP11_NOEXCEPT : d_processorPool_p(0),
                           d_processorHandle(),
-                          d_statContext_p(0)
-
+                          d_statContext_p(0), 
+                          d_statContextNew_p(0)
 {
     // PRECONDITIONS
     BSLS_ASSERT(dispacher);
@@ -90,6 +93,9 @@ Dispatcher_Executor::Dispatcher_Executor(const Dispatcher* dispacher,
                                 .at(client->dispatcherClientData().clientType())
                                 ->d_statContexts.at(d_processorHandle)
                                 .d_statContext_mp.get();
+    d_statContextNew_p = dispacher->d_contexts
+                                .at(client->dispatcherClientData().clientType())
+                                ->d_statContextsVec.at(d_processorHandle).get();
 }
 
 // ACCESSORS
@@ -98,7 +104,8 @@ bool Dispatcher_Executor::operator==(const Dispatcher_Executor& rhs) const
 {
     return d_processorPool_p == rhs.d_processorPool_p &&
            d_processorHandle == rhs.d_processorHandle &&
-           d_statContext_p == rhs.d_statContext_p;
+           d_statContext_p == rhs.d_statContext_p &&
+           d_statContextNew_p == rhs.d_statContextNew_p;
 }
 
 void Dispatcher_Executor::post(const bsl::function<void()>& f) const
@@ -127,6 +134,11 @@ void Dispatcher_Executor::post(const bsl::function<void()>& f) const
     if (d_statContext_p) {
         d_statContext_p->adjustValue(Dispatcher::k_STAT_QUEUE, 1);
     }
+
+    mqbstat::DispatcherStats::onEnqueue(d_statContextNew_p);
+    // if (d_statContextNew_p) {
+    //     d_statContextNew_p->adjustValue(Dispatcher::k_STAT_QUEUE, 1);
+    // }
 
     // TODO: We should call 'releaseUnmanagedEvent' on the
     //      'bmqc::MultiQueueThreadPool' in case of exception to prevent the
@@ -166,6 +178,8 @@ Dispatcher::DispatcherContext::DispatcherContext(
 , d_flushList(config.numProcessors(),
               DispatcherClientPtrVector(allocator),
               allocator)
+, d_clientStatContext_mp()
+, d_statContextsVec(config.numProcessors(), allocator)
 , d_statContexts(config.numProcessors(), allocator)
 {
     // NOTHING
@@ -226,6 +240,14 @@ int Dispatcher::startContext(bsl::ostream&                    errorDescription,
     context.reset(new (*d_allocator_p)
                       DispatcherContext(config, d_allocator_p),
                   d_allocator_p);
+
+    // Creeate client stat context
+    // bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
+    // bmqst::StatContextConfiguration statConfig(mqbi::DispatcherClientType::toAscii(type), &localAllocator);
+    // context->d_clientStatContext_mp = d_statContext_p->addSubcontext(statConfig);
+    context->d_clientStatContext_mp = mqbstat::DispatcherStatsUtil::initializeSubStatContext(d_statContext_p,
+                                                                 mqbi::DispatcherClientType::toAscii(type),
+                                                                 d_allocator_p);
 
     // Create and start the threadPool
     context->d_threadPool_mp.load(
@@ -320,12 +342,19 @@ Dispatcher::queueCreator(mqbi::DispatcherClientType::Enum             type,
 
 
     // Creeate stat context for the queue
-    // bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
     // TODO:move to startContext? but here we have a queue name for statConfig
     DispatcherContextSp& context = d_contexts[type];
-    bmqst::StatContextConfiguration statConfig(queueName, d_allocator_p);
-    statConfig.value("Queue").value("Time", bmqst::StatValue::e_DISCRETE);
 
+    // bmqst::StatContextConfiguration statConfigNew(queueName, &localAllocator);
+    // statConfigNew.value("Queue").value("Time", bmqst::StatValue::e_DISCRETE);
+    // context->d_statContextsVec.at(processorId) = context->d_clientStatContext_mp->addSubcontext(statConfigNew);
+    context->d_statContextsVec.at(processorId) = mqbstat::DispatcherStatsUtil::initializeSubStatContext(context->d_clientStatContext_mp.get(),
+                                                                                                            queueName,
+                                                                                                            d_allocator_p);
+    // TODO: remove legacy
+    bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
+    bmqst::StatContextConfiguration statConfig(queueName, &localAllocator);
+    statConfig.value("Queue").value("Time", bmqst::StatValue::e_DISCRETE);
     context->d_statContexts.at(processorId).d_statContext_mp = d_rootStatContext.addSubcontext(statConfig);
     bmqst::StatContext* statContext_p = context->d_statContexts.at(processorId).d_statContext_mp.get();
 
@@ -470,6 +499,12 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
             statContext_p->adjustValue(k_STAT_QUEUE, -1);
             statContext_p->reportValue(k_STAT_TIME, queuedTime);
         }
+        // bmqst::StatContext* statContextNew_p = dispatcherContext.d_statContextsVec.at(processorId).get();
+        // if (statContextNew_p) {
+        //     statContextNew_p->adjustValue(k_STAT_QUEUE, -1);
+        //     statContextNew_p->reportValue(k_STAT_TIME, queuedTime);
+        // }
+        mqbstat::DispatcherStats::onDequeue(dispatcherContext.d_statContextsVec.at(processorId).get(), queuedTime);
     }
     else {
         // Empty `event` means queue is empty
@@ -683,8 +718,13 @@ Dispatcher::registerClient(mqbi::DispatcherClient*           client,
         // Update stats
         bmqst::StatContext* statContext_p = context.d_statContexts.at(processor).d_statContext_mp.get();
         if (statContext_p) {
-            statContext_p->adjustValue(Dispatcher::k_STAT_QUEUE, 1);
+            statContext_p->adjustValue(k_STAT_QUEUE, 1);
         }
+        // bmqst::StatContext* statContextNew_p = context.d_statContextsVec.at(processor).get();
+        // if (statContextNew_p) {
+        //     statContextNew_p->adjustValue(Dispatcher::k_STAT_QUEUE, 1);
+        // }
+        mqbstat::DispatcherStats::onEnqueue(context.d_statContextsVec.at(processor).get());
 
         return processor;  // RETURN
     }  // break;
@@ -764,6 +804,11 @@ void Dispatcher::executeOnAllQueues(
         if (statContext_p) {
             statContext_p->adjustValue(Dispatcher::k_STAT_QUEUE, 1);
         }
+        // bmqst::StatContext* statContextNew_p = context.d_statContextsVec[i].get();
+        // if (statContextNew_p) {
+        //     statContextNew_p->adjustValue(Dispatcher::k_STAT_QUEUE, 1);
+        // }
+        mqbstat::DispatcherStats::onEnqueue(context.d_statContextsVec.at(i).get());
     }
 }
 
