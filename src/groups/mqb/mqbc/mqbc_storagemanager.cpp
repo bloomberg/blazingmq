@@ -60,6 +60,37 @@ bool isPrimaryActive(const mqbi::StorageManager_PartitionInfo pinfo)
     return pinfo.primaryStatus() == bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE;
 }
 
+// Limit partition max file sizes to configured grow limits.
+// Return `true` if limit was applied, `false` otherwise.
+bool limitPartitionMaxFileSizes(
+    bmqp_ctrlmsg::PartitionMaxFileSizes& partitionMaxFileSizes,
+    const mqbcfg::PartitionConfig&       partitionCfg)
+{
+    bool limitApplied = false;
+    if (partitionCfg.dataFileGrowLimit() > 0 &&
+        partitionMaxFileSizes.dataFileSize() >
+            partitionCfg.dataFileGrowLimit()) {
+        partitionMaxFileSizes.dataFileSize() =
+            partitionCfg.dataFileGrowLimit();
+        limitApplied = true;
+    }
+    if (partitionCfg.journalFileGrowLimit() > 0 &&
+        partitionMaxFileSizes.journalFileSize() >
+            partitionCfg.journalFileGrowLimit()) {
+        partitionMaxFileSizes.journalFileSize() =
+            partitionCfg.journalFileGrowLimit();
+        limitApplied = true;
+    }
+    if (partitionCfg.qListFileGrowLimit() > 0 &&
+        partitionMaxFileSizes.qListFileSize() >
+            partitionCfg.qListFileGrowLimit()) {
+        partitionMaxFileSizes.qListFileSize() =
+            partitionCfg.qListFileGrowLimit();
+        limitApplied = true;
+    }
+    return limitApplied;
+}
+
 }  // close unnamed namespace
 
 // ----------------------------
@@ -595,6 +626,7 @@ void StorageManager::processReplicaDataRequestPush(
         d_clusterState_p->partitionsInfo().at(partitionId).primaryLeaseId(),
         bmqp_ctrlmsg::PartitionSequenceNumber(),
         bmqp_ctrlmsg::PartitionSequenceNumber(),
+        bmqp_ctrlmsg::PartitionMaxFileSizes(),
         source,
         PartitionSeqNumDataRange(replicaDataRequest.beginSequenceNumber(),
                                  replicaDataRequest.endSequenceNumber()));
@@ -668,6 +700,74 @@ void StorageManager::processReplicaDataRequestDrop(
 
     dispatchEventToPartition(fs,
                              PartitionFSM::Event::e_REPLICA_DATA_RQST_DROP,
+                             eventDataVec);
+}
+
+void StorageManager::processReplicaDataRequestResize(
+    const bmqp_ctrlmsg::ControlMessage& message,
+    mqbnet::ClusterNode*                source)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(message.choice().isClusterMessageValue());
+    BSLS_ASSERT_SAFE(
+        message.choice().clusterMessage().choice().isPartitionMessageValue());
+    BSLS_ASSERT_SAFE(message.choice()
+                         .clusterMessage()
+                         .choice()
+                         .partitionMessage()
+                         .choice()
+                         .isReplicaDataRequestValue());
+
+    const bmqp_ctrlmsg::ReplicaDataRequest& replicaDataRequest =
+        message.choice()
+            .clusterMessage()
+            .choice()
+            .partitionMessage()
+            .choice()
+            .replicaDataRequest();
+
+    BSLS_ASSERT_SAFE(replicaDataRequest.replicaDataType() ==
+                     bmqp_ctrlmsg::ReplicaDataType::E_RESIZE);
+
+    const int partitionId = replicaDataRequest.partitionId();
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(
+        source->nodeId() ==
+        d_clusterState_p->partitionsInfo().at(partitionId).primaryNodeId());
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << " Partition [" << partitionId
+                  << "]: " << "Received ReplicaDataRequestResize: " << message
+                  << " from " << source->nodeDescription() << ".";
+
+    if (d_cluster_p->isStopping()) {
+        BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId << "]: "
+                      << "Cluster is stopping; skipping processing of "
+                      << "ReplicaDataRequestResize.";
+        return;  // RETURN
+    }
+
+    EventData eventDataVec;
+    eventDataVec.emplace_back(
+        source,
+        message.rId().isNull() ? -1 : message.rId().value(),
+        partitionId,
+        1,
+        bmqp_ctrlmsg::PartitionSequenceNumber(),  // seqNum
+        bmqp_ctrlmsg::
+            PartitionSequenceNumber(),  // firstSyncPointAfterRolloverSeqNum
+        replicaDataRequest.partitionMaxFileSizes());
+
+    mqbs::FileStore* fs = d_fileStores[partitionId].get();
+    BSLS_ASSERT_SAFE(fs);
+
+    dispatchEventToPartition(fs,
+                             PartitionFSM::Event::e_REPLICA_DATA_RQST_RESIZE,
                              eventDataVec);
 }
 
@@ -767,7 +867,8 @@ void StorageManager::processPrimaryStateResponseDispatched(
         partitionId,
         1,
         response.latestSequenceNumber(),
-        response.firstSyncPointAfterRolloverSequenceNumber());
+        response.firstSyncPointAfterRolloverSequenceNumber(),
+        response.partitionMaxFileSizes());
 
     dispatchEventToPartition(fs,
                              PartitionFSM::Event::e_PRIMARY_STATE_RSPN,
@@ -897,7 +998,8 @@ void StorageManager::processReplicaStateResponseDispatched(
             d_clusterData_p->membership().selfNode(),
             primaryLeaseId,
             response.latestSequenceNumber(),
-            response.firstSyncPointAfterRolloverSequenceNumber());
+            response.firstSyncPointAfterRolloverSequenceNumber(),
+            response.partitionMaxFileSizes());
 
         BSLS_ASSERT_SAFE(requestPartitionId == response.partitionId());
     }
@@ -1007,6 +1109,12 @@ void StorageManager::processReplicaDataResponseDispatched(
                 PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_DROP,
                 eventDataVec);
         } break;
+        case bmqp_ctrlmsg::ReplicaDataType::E_RESIZE: {
+            dispatchEventToPartition(
+                fs,
+                PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_RESIZE,
+                eventDataVec);
+        } break;
         case bmqp_ctrlmsg::ReplicaDataType::E_UNKNOWN:
         default: {
             BALL_LOG_ERROR << d_clusterData_p->identity().description()
@@ -1084,6 +1192,12 @@ void StorageManager::processReplicaDataResponseDispatched(
         dispatchEventToPartition(fs,
                                  PartitionFSM::Event::e_REPLICA_DATA_RSPN_DROP,
                                  eventDataVec);
+    } break;
+    case bmqp_ctrlmsg::ReplicaDataType::E_RESIZE: {
+        dispatchEventToPartition(
+            fs,
+            PartitionFSM::Event::e_REPLICA_DATA_RSPN_RESIZE,
+            eventDataVec);
     } break;
     case bmqp_ctrlmsg::ReplicaDataType::E_UNKNOWN:
     default: {
@@ -1497,6 +1611,143 @@ void StorageManager::do_storeReplicaSeq(const PartitionFSMArgsSp& args)
     }
 }
 
+void StorageManager::do_storeSelfMaxFileSizes(const PartitionFSMArgsSp& args)
+{
+    // executed by the *QUEUE DISPATCHER* thread associated with the paritionId
+    // contained in 'args'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!args->eventsQueue()->empty());
+
+    const PartitionFSM::EventWithData& eventWithData =
+        args->eventsQueue()->front();
+    const EventData& eventDataVec = eventWithData.second;
+    BSLS_ASSERT_SAFE(eventDataVec.size() >= 1);
+
+    const PartitionFSMEventData& eventData   = eventDataVec[0];
+    const int                    partitionId = eventData.partitionId();
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+
+    mqbnet::ClusterNode* selfNode = d_clusterData_p->membership().selfNode();
+
+    bmqp_ctrlmsg::PartitionMaxFileSizes& selfPartitionMaxFileSizes =
+        d_nodeToPartitionMaxFileSizesMapVec[partitionId][selfNode];
+
+    selfPartitionMaxFileSizes = getSelfPartitionMaxFileSizes(partitionId);
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << ": In Partition [" << partitionId << "]'s FSM, "
+                  << "storing self partition max file sizes as "
+                  << selfPartitionMaxFileSizes;
+}
+
+void StorageManager::do_storePrimaryMaxFileSizes(
+    const PartitionFSMArgsSp& args)
+{
+    // executed by the *QUEUE DISPATCHER* thread associated with the paritionId
+    // contained in 'args'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!args->eventsQueue()->empty());
+
+    const PartitionFSM::EventWithData& eventWithData =
+        args->eventsQueue()->front();
+    const EventData& eventDataVec = eventWithData.second;
+    BSLS_ASSERT_SAFE(eventDataVec.size() >= 1);
+
+    const PartitionFSMEventData& eventData   = eventDataVec[0];
+    int                          partitionId = eventData.partitionId();
+    const bmqp_ctrlmsg::PartitionMaxFileSizes& maxFileSizes =
+        eventData.partitionMaxFileSizes();
+
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+
+    BSLA_MAYBE_UNUSED const PartitionInfo& partitionInfo =
+        d_partitionInfoVec[partitionId];
+    BSLS_ASSERT_SAFE(partitionInfo.primary() == eventData.source());
+    BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfReplica());
+
+    // Information from 'ReplicaStateRequest' or 'PrimaryStateResponse' could
+    // be stale; ignore if so.
+    bool                               hasNew = false;
+    NodeToPartitionMaxFileSizesMapIter it =
+        d_nodeToPartitionMaxFileSizesMapVec[partitionId].find(
+            eventData.source());
+    if (it == d_nodeToPartitionMaxFileSizesMapVec[partitionId].end()) {
+        d_nodeToPartitionMaxFileSizesMapVec[partitionId].insert(
+            bsl::make_pair(eventData.source(),
+                           eventData.partitionMaxFileSizes()));
+        hasNew = true;
+    }
+    else if (eventData.partitionMaxFileSizes() != it->second) {
+        it->second = eventData.partitionMaxFileSizes();
+        hasNew     = true;
+    }
+
+    if (hasNew) {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << ": In Partition [" << partitionId << "]'s FSM, "
+                      << "storing primary partition max file sizes as "
+                      << eventData.partitionMaxFileSizes();
+    }
+}
+
+void StorageManager::do_storeReplicaMaxFileSizes(
+    const PartitionFSMArgsSp& args)
+{
+    // executed by the *QUEUE DISPATCHER* thread associated with the paritionId
+    // contained in 'args'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!args->eventsQueue()->empty());
+
+    const PartitionFSM::EventWithData& eventWithData =
+        args->eventsQueue()->front();
+    const PartitionFSM::Event::Enum event        = eventWithData.first;
+    const EventData&                eventDataVec = eventWithData.second;
+    BSLS_ASSERT_SAFE(eventDataVec.size() >= 1);
+
+    for (EventDataCIter cit = eventDataVec.cbegin();
+         cit != eventDataVec.cend();
+         cit++) {
+        int partitionId = cit->partitionId();
+        const bmqp_ctrlmsg::PartitionMaxFileSizes& maxFileSizes =
+            cit->partitionMaxFileSizes();
+
+        BSLS_ASSERT_SAFE(0 <= partitionId &&
+                         partitionId < static_cast<int>(d_fileStores.size()));
+        BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfPrimary());
+        BSLS_ASSERT_SAFE(d_partitionInfoVec[partitionId].primary()->nodeId() ==
+                         d_clusterData_p->membership().selfNode()->nodeId());
+
+        // Information from 'PrimaryStateRequest' or 'ReplicaStateResponse'
+        // could be stale; ignore if so.
+        bool                               hasNew = false;
+        NodeToPartitionMaxFileSizesMapIter it =
+            d_nodeToPartitionMaxFileSizesMapVec[partitionId].find(
+                cit->source());
+        if (it == d_nodeToPartitionMaxFileSizesMapVec[partitionId].end()) {
+            d_nodeToPartitionMaxFileSizesMapVec[partitionId].insert(
+                bsl::make_pair(cit->source(), maxFileSizes));
+            hasNew = true;
+        }
+        else if (maxFileSizes != it->second ||
+                 event == PartitionFSM::Event::e_PRIMARY_STATE_RQST) {
+            it->second = maxFileSizes;
+            hasNew     = true;
+        }
+
+        if (hasNew) {
+            BALL_LOG_INFO << d_clusterData_p->identity().description()
+                          << ": In Partition [" << partitionId << "]'s FSM, "
+                          << "storing the partition max file sizes of "
+                          << cit->source()->nodeDescription() << " as "
+                          << maxFileSizes;
+        }
+    }
+}
+
 void StorageManager::do_storePartitionInfo(const PartitionFSMArgsSp& args)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with the paritionId
@@ -1613,6 +1864,10 @@ void StorageManager::do_replicaStateRequest(const PartitionFSMArgsSp& args)
     replicaStateRequest.firstSyncPointAfterRolloverSequenceNumber() =
         getSelfFirstSyncPointAfterRolloverSequenceNumber(partitionId);
 
+    // Get own partition max file sizes
+    replicaStateRequest.partitionMaxFileSizes() = getSelfPartitionMaxFileSizes(
+        partitionId);
+
     contextSp->setDestinationNodes(replicas);
     contextSp->setResponseCb(
         bdlf::BindUtil::bind(&StorageManager::processReplicaStateResponse,
@@ -1661,6 +1916,10 @@ void StorageManager::do_replicaStateResponse(const PartitionFSMArgsSp& args)
     // Get own first sync point after rollover sequence number
     response.firstSyncPointAfterRolloverSequenceNumber() =
         getSelfFirstSyncPointAfterRolloverSequenceNumber(partitionId);
+
+    // Get own partition max file sizes
+    response.partitionMaxFileSizes() = getSelfPartitionMaxFileSizes(
+        partitionId);
 
     BSLS_ASSERT_SAFE(eventData.source());
     BSLS_ASSERT_SAFE(eventData.source()->nodeId() ==
@@ -1824,6 +2083,10 @@ void StorageManager::do_primaryStateRequest(const PartitionFSMArgsSp& args)
     primaryStateRequest.firstSyncPointAfterRolloverSequenceNumber() =
         getSelfFirstSyncPointAfterRolloverSequenceNumber(partitionId);
 
+    // Get own partition max file sizes
+    primaryStateRequest.partitionMaxFileSizes() = getSelfPartitionMaxFileSizes(
+        partitionId);
+
     mqbnet::ClusterNode* destNode = eventData.primary();
 
     BSLS_ASSERT_SAFE(destNode);
@@ -1891,6 +2154,10 @@ void StorageManager::do_primaryStateResponse(const PartitionFSMArgsSp& args)
     // Get own first sync point after rollover sequence number
     response.firstSyncPointAfterRolloverSequenceNumber() =
         getSelfFirstSyncPointAfterRolloverSequenceNumber(partitionId);
+
+    // Get own partition max file sizes
+    response.partitionMaxFileSizes() = getSelfPartitionMaxFileSizes(
+        partitionId);
 
     d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
                                                           eventData.source());
@@ -2807,6 +3074,7 @@ void StorageManager::do_cleanupMetadata(const PartitionFSMArgsSp& args)
                          PartitionFSM::State::e_STOPPED);
 
     d_nodeToSeqNumCtxMapVec[partitionId].clear();
+    d_nodeToPartitionMaxFileSizesMapVec[partitionId].clear();
     d_numReplicaDataResponsesReceivedVec[partitionId] = 0;
     d_recoveryManager_mp->resetReceiveDataCtx(partitionId);
 }
@@ -3346,7 +3614,8 @@ void StorageManager::do_reapplyEvent(const PartitionFSMArgsSp& args)
     args->eventsQueue()->push(eventWithData);
 }
 
-void StorageManager::do_checkQuorumSeq(const PartitionFSMArgsSp& args)
+void StorageManager::do_checkQuorumMaxFileSizesAndSeq(
+    const PartitionFSMArgsSp& args)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'args'
@@ -3367,6 +3636,23 @@ void StorageManager::do_checkQuorumSeq(const PartitionFSMArgsSp& args)
                      partitionId < static_cast<int>(d_fileStores.size()));
 
     BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfPrimary());
+
+    // Before checking sequence number quorum, check max file sizes quorum
+    // to update (resize) partition file sizes if needed.
+    if (d_nodeToPartitionMaxFileSizesMapVec[partitionId].size() >=
+        getMaxFileSizesQuorum()) {
+        // If we have a quorum of Replica max file sizes (including self)
+
+        BALL_LOG_INFO
+            << d_clusterData_p->identity().description() << " Partition ["
+            << partitionId << "]: "
+            << "Achieved a quorum of partition max file sizes with a count of "
+            << d_nodeToPartitionMaxFileSizesMapVec[partitionId].size();
+
+        args->eventsQueue()->emplace(
+            PartitionFSM::Event::e_QUORUM_REPLICA_FILE_SIZES,
+            eventWithData.second);
+    }
 
     if (d_nodeToSeqNumCtxMapVec[partitionId].size() >= getSeqNumQuorum()) {
         // If we have a quorum of Replica Sequence numbers (including self
@@ -3441,6 +3727,7 @@ void StorageManager::do_findHighestSeq(const PartitionFSMArgsSp& args)
         highestPartitionSeqNum,
         bmqp_ctrlmsg::
             PartitionSequenceNumber(),  // firstSyncPointAfterRollloverSeqNum
+        bmqp_ctrlmsg::PartitionMaxFileSizes(),
         highestSeqNumNode);
 
     if (selfHighestSeq) {
@@ -3452,6 +3739,294 @@ void StorageManager::do_findHighestSeq(const PartitionFSMArgsSp& args)
             PartitionFSM::Event::e_REPLICA_HIGHEST_SEQ,
             newEventDataVec);
     }
+}
+
+void StorageManager::do_findHighestFileSizes(const PartitionFSMArgsSp& args)
+{
+    // executed by the *QUEUE DISPATCHER* thread associated with the
+    // paritionId contained in 'args'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!args->eventsQueue()->empty());
+
+    const PartitionFSM::EventWithData& eventWithData =
+        args->eventsQueue()->front();
+    const EventData& eventDataVec = eventWithData.second;
+
+    BSLS_ASSERT_SAFE(eventDataVec.size() >= 1);
+
+    const PartitionFSMEventData& eventData   = eventDataVec[0];
+    const int                    partitionId = eventData.partitionId();
+
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfPrimary());
+    BSLS_ASSERT_SAFE(d_nodeToPartitionMaxFileSizesMapVec[partitionId].size() >=
+                     getMaxFileSizesQuorum());
+
+    const NodeToPartitionMaxFileSizesMap& nodeToPartitionMaxFileSizesMap =
+        d_nodeToPartitionMaxFileSizesMapVec[partitionId];
+
+    mqbnet::ClusterNode* const selfNode =
+        d_clusterData_p->membership().selfNode();
+
+    // Initialize highest partition max file sizes with self/primary
+    bmqp_ctrlmsg::PartitionMaxFileSizes highestPartitionMaxFileSizes =
+        nodeToPartitionMaxFileSizesMap.at(selfNode);
+
+    // Find out highest partition max file sizes.
+    for (NodeToPartitionMaxFileSizesMapCIter cit =
+             nodeToPartitionMaxFileSizesMap.cbegin();
+         cit != nodeToPartitionMaxFileSizesMap.cend();
+         cit++) {
+        // Check for higher max file sizes.
+        highestPartitionMaxFileSizes.dataFileSize() = bsl::max(
+            highestPartitionMaxFileSizes.dataFileSize(),
+            cit->second.dataFileSize());
+        highestPartitionMaxFileSizes.journalFileSize() = bsl::max(
+            highestPartitionMaxFileSizes.journalFileSize(),
+            cit->second.journalFileSize());
+        highestPartitionMaxFileSizes.qListFileSize() = bsl::max(
+            highestPartitionMaxFileSizes.qListFileSize(),
+            cit->second.qListFileSize());
+    }
+
+    // Limit highest partition max file sizes to configured grow limits.
+    bmqp_ctrlmsg::PartitionMaxFileSizes limitedHighestPartitionMaxFileSizes;
+    if (limitPartitionMaxFileSizes(limitedHighestPartitionMaxFileSizes,
+                                   d_clusterConfig.partitionConfig())) {
+        BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId << "]: "
+                      << "calculated highest partition max file sizes: "
+                      << highestPartitionMaxFileSizes
+                      << " were limited to grow limits"
+                      << limitedHighestPartitionMaxFileSizes;
+        highestPartitionMaxFileSizes = limitedHighestPartitionMaxFileSizes;
+    }
+
+    BSLS_ASSERT_SAFE(highestPartitionMaxFileSizes !=
+                     bmqp_ctrlmsg::PartitionMaxFileSizes());
+
+    // Find nodes that require to update partition max file sizes
+    // and send them corresponding event.
+    for (NodeToPartitionMaxFileSizesMapCIter cit =
+             nodeToPartitionMaxFileSizesMap.cbegin();
+         cit != nodeToPartitionMaxFileSizesMap.cend();
+         cit++) {
+        if (cit->second == highestPartitionMaxFileSizes) {
+            // Node already has the highest partition max file sizes.
+            continue;  // CONTINUE
+        }
+
+        EventData newEventDataVec;
+
+        const unsigned int primaryLeaseId =
+            d_partitionInfoVec[partitionId].primaryLeaseId();
+
+        newEventDataVec.emplace_back(
+            cit->first,
+            -1,  // placeholder requestId
+            partitionId,
+            1,                                        // incrementCount
+            bmqp_ctrlmsg::PartitionSequenceNumber(),  // seqNum
+            bmqp_ctrlmsg::
+                PartitionSequenceNumber(),  // firstSyncPointAfterRollloverSeqNum
+            highestPartitionMaxFileSizes);
+
+        if (cit->first->nodeId() == selfNode->nodeId()) {
+            // Self needs to resize its partition size.
+            args->eventsQueue()->emplace(
+                PartitionFSM::Event::e_SELF_RESIZE_STORAGE,
+                newEventDataVec);
+        }
+        else {
+            // Replica needs to resize its partition size.
+            args->eventsQueue()->emplace(
+                PartitionFSM::Event::e_REPLICA_RESIZE_STORAGE,
+                newEventDataVec);
+        }
+    }
+}
+
+void StorageManager::do_overrideMaxFileSizes(const PartitionFSMArgsSp& args)
+{
+    // executed by the *QUEUE DISPATCHER* thread associated with the
+    // paritionId contained in 'args'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!args->eventsQueue()->empty());
+
+    const PartitionFSM::EventWithData& eventWithData =
+        args->eventsQueue()->front();
+    const EventData& eventDataVec = eventWithData.second;
+
+    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+
+    const PartitionFSMEventData& eventData   = eventDataVec[0];
+    const int                    partitionId = eventData.partitionId();
+
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+
+    bmqp_ctrlmsg::PartitionMaxFileSizes highestPartitionMaxFileSizes =
+        eventData.partitionMaxFileSizes();
+
+    bmqp_ctrlmsg::PartitionMaxFileSizes limitedHighestPartitionMaxFileSizes;
+    if (limitPartitionMaxFileSizes(limitedHighestPartitionMaxFileSizes,
+                                   d_clusterConfig.partitionConfig())) {
+        BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId
+                      << "]: " << "received highest partition max file sizes: "
+                      << highestPartitionMaxFileSizes
+                      << " were limited to grow limits"
+                      << limitedHighestPartitionMaxFileSizes;
+        highestPartitionMaxFileSizes = limitedHighestPartitionMaxFileSizes;
+    }
+
+    BSLS_ASSERT_SAFE(highestPartitionMaxFileSizes !=
+                     bmqp_ctrlmsg::PartitionMaxFileSizes());
+
+    mqbs::FileStore* fs = d_fileStores[partitionId].get();
+    BSLS_ASSERT_SAFE(fs);
+    BSLS_ASSERT_SAFE(!fs->isOpen());
+
+    fs->overridePartitionMaxFileSizes(highestPartitionMaxFileSizes);
+
+    BALL_LOG_WARN << d_clusterData_p->identity().description()
+                  << " Partition [" << partitionId
+                  << "]: " << "override current partition max file sizes "
+                  << fs->partitionMaxFileSizes() << " with "
+                  << highestPartitionMaxFileSizes;
+}
+
+void StorageManager::do_replicaDataRequestResize(
+    const PartitionFSMArgsSp& args)
+{
+    // executed by the *QUEUE DISPATCHER* thread associated with the paritionId
+    // contained in 'args'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!args->eventsQueue()->empty());
+
+    const PartitionFSM::EventWithData& eventWithData =
+        args->eventsQueue()->front();
+    const EventData& eventDataVec = eventWithData.second;
+
+    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+
+    const PartitionFSMEventData& eventData   = eventDataVec[0];
+    const int                    partitionId = eventData.partitionId();
+
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(d_partitionFSMVec.at(partitionId)->isSelfPrimary());
+
+    bmqp_ctrlmsg::PartitionMaxFileSizes highestPartitionMaxFileSizes =
+        eventData.partitionMaxFileSizes();
+
+    // Send ReplicaDataRequest(E_RESIZE) message to replica
+    RequestManagerType::RequestSp request =
+        d_clusterData_p->requestManager().createRequest();
+    bmqp_ctrlmsg::ReplicaDataRequest& replicaDataRqst =
+        request->request()
+            .choice()
+            .makeClusterMessage()
+            .choice()
+            .makePartitionMessage()
+            .choice()
+            .makeReplicaDataRequest();
+
+    replicaDataRqst.replicaDataType() =
+        bmqp_ctrlmsg::ReplicaDataType::E_RESIZE;
+    replicaDataRqst.partitionId()           = partitionId;
+    replicaDataRqst.partitionMaxFileSizes() = highestPartitionMaxFileSizes;
+
+    mqbnet::ClusterNode* destNode = eventData.source();
+    request->setResponseCb(
+        bdlf::BindUtil::bind(&StorageManager::processReplicaDataResponse,
+                             this,
+                             bdlf::PlaceHolders::_1,
+                             destNode));
+
+    const bmqt::GenericResult::Enum status =
+        d_clusterData_p->cluster().sendRequest(request,
+                                               destNode,
+                                               bsls::TimeInterval(10));
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << " Partition [" << partitionId
+                  << "]: " << "sent ReplicaDataRequest(E_RESIZE) with "
+                  << highestPartitionMaxFileSizes << " to "
+                  << destNode->nodeDescription();
+
+    if (bmqt::GenericResult::e_SUCCESS != status) {
+        EventData failedEventDataVec;
+        failedEventDataVec.emplace_back(destNode,
+                                        -1,  // placeholder responseId
+                                        partitionId,
+                                        1);
+        args->eventsQueue()->emplace(
+            PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_RESIZE,
+            failedEventDataVec);
+    }
+}
+
+void StorageManager::do_replicaDataResponseResize(
+    const PartitionFSMArgsSp& args)
+{
+    // executed by the *QUEUE DISPATCHER* thread associated with the paritionId
+    // contained in 'args'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!args->eventsQueue()->empty());
+
+    const PartitionFSM::EventWithData& eventWithData =
+        args->eventsQueue()->front();
+    const EventData& eventDataVec = eventWithData.second;
+
+    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+
+    const PartitionFSMEventData& eventData   = eventDataVec[0];
+    const int                    partitionId = eventData.partitionId();
+    mqbnet::ClusterNode*         destNode    = eventData.source();
+
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfReplica());
+
+    BSLS_ASSERT_SAFE(destNode);
+    BSLS_ASSERT_SAFE(destNode->nodeId() ==
+                     d_partitionInfoVec[partitionId].primary()->nodeId());
+
+    bmqp_ctrlmsg::ControlMessage controlMsg;
+
+    BSLS_ASSERT_SAFE(eventData.requestId() >= 0);
+
+    // Responding to a ReplicaDataRequestResize
+
+    controlMsg.rId() = eventData.requestId();
+
+    bmqp_ctrlmsg::ReplicaDataResponse& response =
+        controlMsg.choice()
+            .makeClusterMessage()
+            .choice()
+            .makePartitionMessage()
+            .choice()
+            .makeReplicaDataResponse();
+
+    response.replicaDataType()       = bmqp_ctrlmsg::ReplicaDataType::E_RESIZE;
+    response.partitionId()           = partitionId;
+    response.partitionMaxFileSizes() = getSelfPartitionMaxFileSizes(
+        partitionId);
+
+    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
+                                                          eventData.source());
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << " Partition [" << partitionId << "]: " << "Sent response "
+                  << controlMsg
+                  << " to ReplicaDataRequestResize from primary node "
+                  << destNode->nodeDescription() << ".";
 }
 
 void StorageManager::do_flagFailedReplicaSeq(const PartitionFSMArgsSp& args)
@@ -3698,6 +4273,7 @@ StorageManager::StorageManager(
         PrimaryStatusAdvisoryInfos(allocator));
     d_recoveryStartTimes.resize(partitionCfg.numPartitions());
     d_nodeToSeqNumCtxMapVec.resize(partitionCfg.numPartitions());
+    d_nodeToPartitionMaxFileSizesMapVec.resize(partitionCfg.numPartitions());
     d_numReplicaDataResponsesReceivedVec.resize(partitionCfg.numPartitions());
     d_queueKeyInfoMapVec.resize(partitionCfg.numPartitions());
 
@@ -3869,7 +4445,13 @@ int StorageManager::start(bsl::ostream& errorDescription)
         .setNodeId(d_clusterData_p->membership().selfNode()->nodeId())
         .setMaxDataFileSize(partitionCfg.maxDataFileSize())
         .setMaxJournalFileSize(partitionCfg.maxJournalFileSize())
-        .setMaxQlistFileSize(partitionCfg.maxQlistFileSize());
+        .setMaxQlistFileSize(partitionCfg.maxQlistFileSize())
+        .setDataFileGrowLimit(partitionCfg.dataFileGrowLimit())
+        .setJournalFileGrowLimit(partitionCfg.journalFileGrowLimit())
+        .setQlistFileGrowLimit(partitionCfg.qListFileGrowLimit())
+        .setGrowStepPercent(partitionCfg.growStepPercent())
+        .setMinAvailSpacePercent(partitionCfg.minAvailSpacePercent());
+
     // Only relevant fields of data store config are set.
 
     // Get named allocator from associated bmqma::CountingAllocatorStore
@@ -4318,7 +4900,8 @@ void StorageManager::processPrimaryStateRequest(
         partitionId,
         1,
         primaryStateRequest.latestSequenceNumber(),
-        primaryStateRequest.firstSyncPointAfterRolloverSequenceNumber());
+        primaryStateRequest.firstSyncPointAfterRolloverSequenceNumber(),
+        primaryStateRequest.partitionMaxFileSizes());
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
     BSLS_ASSERT_SAFE(fs);
@@ -4378,7 +4961,8 @@ void StorageManager::processReplicaStateRequest(
         partitionId,
         1,
         replicaStateRequest.latestSequenceNumber(),
-        replicaStateRequest.firstSyncPointAfterRolloverSequenceNumber());
+        replicaStateRequest.firstSyncPointAfterRolloverSequenceNumber(),
+        replicaStateRequest.partitionMaxFileSizes());
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
     BSLS_ASSERT_SAFE(fs);
@@ -4422,6 +5006,9 @@ void StorageManager::processReplicaDataRequest(
     } break;  // BREAK
     case bmqp_ctrlmsg::ReplicaDataType::E_DROP: {
         processReplicaDataRequestDrop(message, source);
+    } break;  // BREAK
+    case bmqp_ctrlmsg::ReplicaDataType::E_RESIZE: {
+        processReplicaDataRequestResize(message, source);
     } break;  // BREAK
     case bmqp_ctrlmsg::ReplicaDataType::E_UNKNOWN: BSLA_FALLTHROUGH;
     default: {
@@ -4845,6 +5432,29 @@ StorageManager::getSelfFirstSyncPointAfterRolloverSequenceNumber(
         }
     }
     return selfFirstSyncPointAfterRollloverSeqNum;
+}
+
+const bmqp_ctrlmsg::PartitionMaxFileSizes
+StorageManager::getSelfPartitionMaxFileSizes(int partitionId) const
+{
+    // executed by the *QUEUE DISPATCHER* thread associated with the paritionId
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+
+    mqbs::FileStore* fs = d_fileStores[static_cast<size_t>(partitionId)].get();
+    BSLS_ASSERT_SAFE(fs);
+
+    // Get own partition max file sizes
+    bmqp_ctrlmsg::PartitionMaxFileSizes selfPartitionMaxFileSizes =
+        fs->isOpen()
+            ? fs->partitionMaxFileSizes()
+            : d_recoveryManager_mp->recoverPartitionMaxFileSizes(partitionId);
+
+    BSLS_ASSERT_SAFE(selfPartitionMaxFileSizes !=
+                     bmqp_ctrlmsg::PartitionMaxFileSizes());
+    return selfPartitionMaxFileSizes;
 }
 
 }  // close package namespace

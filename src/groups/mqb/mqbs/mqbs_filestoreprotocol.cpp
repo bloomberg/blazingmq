@@ -641,6 +641,7 @@ const char* JournalOpType::toAscii(JournalOpType::Enum value)
         CASE(UNDEFINED)
         CASE(UNUSED)
         CASE(SYNCPOINT)
+        CASE(RESIZE_STORAGE)
     default: return "(* UNKNOWN *)";
     }
 
@@ -698,12 +699,26 @@ bsl::ostream& JournalOpRecord::print(bsl::ostream& stream,
     printer.printAttribute("header", header());
     printer.printAttribute("flags", flags());
     printer.printAttribute("type", type());
-    printer.printAttribute("syncPointType", syncPointType());
-    printer.printAttribute("sequenceNum", sequenceNum());
-    printer.printAttribute("primaryNodeId", primaryNodeId());
-    printer.printAttribute("primaryLeaseId", primaryLeaseId());
-    printer.printAttribute("dataFileOffsetDwords", dataFileOffsetDwords());
-    printer.printAttribute("qlistFileOffsetWords", qlistFileOffsetWords());
+    if (JournalOpType::e_SYNCPOINT == type()) {
+        printer.printAttribute("syncPointType", syncPointType());
+
+        const JournalOpRecord::SyncPointData& syncPoint = syncPointData();
+        printer.printAttribute("sequenceNum", syncPoint.sequenceNum());
+        printer.printAttribute("primaryNodeId", syncPoint.primaryNodeId());
+        printer.printAttribute("primaryLeaseId", syncPoint.primaryLeaseId());
+        printer.printAttribute("dataFileOffsetDwords",
+                               syncPoint.dataFileOffsetDwords());
+        printer.printAttribute("qlistFileOffsetWords",
+                               syncPoint.qlistFileOffsetWords());
+    }
+    else if (JournalOpType::e_RESIZE_STORAGE == type()) {
+        const mqbs::JournalOpRecord::ResizeStorageData& rsd =
+            resizeStorageData();
+        printer.printAttribute("maxJournalFileSize", rsd.maxJournalFileSize());
+        printer.printAttribute("maxDataFileSize", rsd.maxDataFileSize());
+        printer.printAttribute("maxQlistFileSize", rsd.maxQlistFileSize());
+    }
+
     printer.end();
 
     return stream;

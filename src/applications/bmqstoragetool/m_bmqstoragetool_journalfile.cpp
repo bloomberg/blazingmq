@@ -113,8 +113,7 @@ JournalFile::makeJournalOpRecord(unsigned int        primaryLeaseId,
                                  bsls::Types::Uint64 sequenceNumber)
 {
     OffsetPtr<JournalOpRecord> rec(d_block, d_currPos);
-    new (rec.get()) JournalOpRecord(JournalOpType::e_SYNCPOINT,
-                                    SyncPointType::e_REGULAR,
+    new (rec.get()) JournalOpRecord(SyncPointType::e_REGULAR,
                                     1234567,  // seqNum
                                     25,       // leaderTerm
                                     121,      // leaderNodeId

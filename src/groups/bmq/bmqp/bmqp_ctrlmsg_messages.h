@@ -123,6 +123,9 @@ namespace bmqp_ctrlmsg {
 class LeadershipCessionNotification;
 }
 namespace bmqp_ctrlmsg {
+class PartitionMaxFileSizes;
+}
+namespace bmqp_ctrlmsg {
 class PartitionPrimaryInfo;
 }
 namespace bmqp_ctrlmsg {
@@ -1218,6 +1221,9 @@ class AuthenticationRequest {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::AuthenticationRequest)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::AuthenticationRequest>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -4587,6 +4593,209 @@ BDLAT_DECL_ENUMERATION_TRAITS(bmqp_ctrlmsg::NodeStatus)
 
 namespace bmqp_ctrlmsg {
 
+// ===========================
+// class PartitionMaxFileSizes
+// ===========================
+
+class PartitionMaxFileSizes {
+    // This type represents the maximum file sizes for a partition.
+
+    // INSTANCE DATA
+    bsls::Types::Uint64 d_dataFileSize;
+    bsls::Types::Uint64 d_journalFileSize;
+    bsls::Types::Uint64 d_qListFileSize;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
+
+  public:
+    // TYPES
+    enum {
+        ATTRIBUTE_ID_DATA_FILE_SIZE    = 0,
+        ATTRIBUTE_ID_JOURNAL_FILE_SIZE = 1,
+        ATTRIBUTE_ID_Q_LIST_FILE_SIZE  = 2
+    };
+
+    enum { NUM_ATTRIBUTES = 3 };
+
+    enum {
+        ATTRIBUTE_INDEX_DATA_FILE_SIZE    = 0,
+        ATTRIBUTE_INDEX_JOURNAL_FILE_SIZE = 1,
+        ATTRIBUTE_INDEX_Q_LIST_FILE_SIZE  = 2
+    };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
+
+  public:
+    // CLASS METHODS
+    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
+
+    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
+                                                          int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
+
+    // CREATORS
+    PartitionMaxFileSizes();
+    // Create an object of type 'PartitionMaxFileSizes' having the default
+    // value.
+
+    // MANIPULATORS
+    void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator,
+                            const char*    name,
+                            int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    bsls::Types::Uint64& dataFileSize();
+    // Return a reference to the modifiable "DataFileSize" attribute of
+    // this object.
+
+    bsls::Types::Uint64& journalFileSize();
+    // Return a reference to the modifiable "JournalFileSize" attribute of
+    // this object.
+
+    bsls::Types::Uint64& qListFileSize();
+    // Return a reference to the modifiable "QListFileSize" attribute of
+    // this object.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    template <typename t_ACCESSOR>
+    int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor,
+                        const char* name,
+                        int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    bsls::Types::Uint64 dataFileSize() const;
+    // Return the value of the "DataFileSize" attribute of this object.
+
+    bsls::Types::Uint64 journalFileSize() const;
+    // Return the value of the "JournalFileSize" attribute of this object.
+
+    bsls::Types::Uint64 qListFileSize() const;
+    // Return the value of the "QListFileSize" attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const PartitionMaxFileSizes& lhs,
+                           const PartitionMaxFileSizes& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.dataFileSize() == rhs.dataFileSize() &&
+               lhs.journalFileSize() == rhs.journalFileSize() &&
+               lhs.qListFileSize() == rhs.qListFileSize();
+    }
+
+    friend bool operator!=(const PartitionMaxFileSizes& lhs,
+                           const PartitionMaxFileSizes& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&                stream,
+                                    const PartitionMaxFileSizes& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&            hashAlg,
+                           const PartitionMaxFileSizes& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'PartitionMaxFileSizes'.
+    {
+        object.hashAppendImpl(hashAlg);
+    }
+};
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
+    bmqp_ctrlmsg::PartitionMaxFileSizes)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::PartitionMaxFileSizes>
+: bsl::true_type {};
+
+namespace bmqp_ctrlmsg {
+
 // ==========================
 // class PartitionPrimaryInfo
 // ==========================
@@ -6054,9 +6263,15 @@ struct ReplicaDataType {
 
   public:
     // TYPES
-    enum Value { E_UNKNOWN = 0, E_PULL = 10, E_PUSH = 20, E_DROP = 30 };
+    enum Value {
+        E_UNKNOWN = 0,
+        E_PULL    = 10,
+        E_PUSH    = 20,
+        E_DROP    = 30,
+        E_RESIZE  = 40
+    };
 
-    enum { NUM_ENUMERATORS = 4 };
+    enum { NUM_ENUMERATORS = 5 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -10090,32 +10305,39 @@ class PrimaryStateRequest {
     // numbers as part of this request.
     // partitionId:    partition id for corresponding partition.
     // latestSequenceNumber: Replica's latest sequence number for corresponding
-    // partition.  firstSyncPointAfterRolloverSequenceNumber: Replica's first
-    // sync point after rollover sequence number for corresponding partition.
+    // partition.  firstSyncPointAfterRolloverSequenceNumber: Sequence number
+    // of replica's first sync point  after rollover for corresponding
+    // partition.  partitionMaxFileSizes: Maximum journal/data/qlist file sizes
+    // for corresponding partition.
 
     // INSTANCE DATA
     PartitionSequenceNumber d_latestSequenceNumber;
     PartitionSequenceNumber d_firstSyncPointAfterRolloverSequenceNumber;
+    PartitionMaxFileSizes   d_partitionMaxFileSizes;
     int                     d_partitionId;
 
     // PRIVATE ACCESSORS
     template <typename t_HASH_ALGORITHM>
     void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
 
+    bool isEqualTo(const PrimaryStateRequest& rhs) const;
+
   public:
     // TYPES
     enum {
         ATTRIBUTE_ID_PARTITION_ID                                    = 0,
         ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER                          = 1,
-        ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2
+        ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2,
+        ATTRIBUTE_ID_PARTITION_MAX_FILE_SIZES                        = 3
     };
 
-    enum { NUM_ATTRIBUTES = 3 };
+    enum { NUM_ATTRIBUTES = 4 };
 
     enum {
         ATTRIBUTE_INDEX_PARTITION_ID                                    = 0,
         ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER                          = 1,
-        ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2
+        ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2,
+        ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES                        = 3
     };
 
     // CONSTANTS
@@ -10187,6 +10409,10 @@ class PrimaryStateRequest {
     // "FirstSyncPointAfterRolloverSequenceNumber" attribute of this
     // object.
 
+    PartitionMaxFileSizes& partitionMaxFileSizes();
+    // Return a reference to the modifiable "PartitionMaxFileSizes"
+    // attribute of this object.
+
     // ACCESSORS
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
@@ -10243,6 +10469,10 @@ class PrimaryStateRequest {
     // "FirstSyncPointAfterRolloverSequenceNumber" attribute of this
     // object.
 
+    const PartitionMaxFileSizes& partitionMaxFileSizes() const;
+    // Return a reference offering non-modifiable access to the
+    // "PartitionMaxFileSizes" attribute of this object.
+
     // HIDDEN FRIENDS
     friend bool operator==(const PrimaryStateRequest& lhs,
                            const PrimaryStateRequest& rhs)
@@ -10250,10 +10480,7 @@ class PrimaryStateRequest {
     // have the same value, and 'false' otherwise.  Two attribute objects
     // have the same value if each respective attribute has the same value.
     {
-        return lhs.partitionId() == rhs.partitionId() &&
-               lhs.latestSequenceNumber() == rhs.latestSequenceNumber() &&
-               lhs.firstSyncPointAfterRolloverSequenceNumber() ==
-                   rhs.firstSyncPointAfterRolloverSequenceNumber();
+        return lhs.isEqualTo(rhs);
     }
 
     friend bool operator!=(const PrimaryStateRequest& lhs,
@@ -10304,32 +10531,39 @@ class PrimaryStateResponse {
     // with its sequence numbers.
     // partitionId:    partition id for corresponding partition.
     // latestSequenceNumber: Primary's latest sequence number for corresponding
-    // partition.  firstSyncPointAfterRolloverSequenceNumber: Primary's first
-    // sync point after rollover sequence number for corresponding partition.
+    // partition.  firstSyncPointAfterRolloverSequenceNumber: Sequence number
+    // of primary's first sync point after rollover for corresponding
+    // partition.  partitionMaxFileSizes: Maximum journal/data/qlist file sizes
+    // for corresponding partition.
 
     // INSTANCE DATA
     PartitionSequenceNumber d_latestSequenceNumber;
     PartitionSequenceNumber d_firstSyncPointAfterRolloverSequenceNumber;
+    PartitionMaxFileSizes   d_partitionMaxFileSizes;
     int                     d_partitionId;
 
     // PRIVATE ACCESSORS
     template <typename t_HASH_ALGORITHM>
     void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
 
+    bool isEqualTo(const PrimaryStateResponse& rhs) const;
+
   public:
     // TYPES
     enum {
         ATTRIBUTE_ID_PARTITION_ID                                    = 0,
         ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER                          = 1,
-        ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2
+        ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2,
+        ATTRIBUTE_ID_PARTITION_MAX_FILE_SIZES                        = 3
     };
 
-    enum { NUM_ATTRIBUTES = 3 };
+    enum { NUM_ATTRIBUTES = 4 };
 
     enum {
         ATTRIBUTE_INDEX_PARTITION_ID                                    = 0,
         ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER                          = 1,
-        ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2
+        ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2,
+        ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES                        = 3
     };
 
     // CONSTANTS
@@ -10401,6 +10635,10 @@ class PrimaryStateResponse {
     // "FirstSyncPointAfterRolloverSequenceNumber" attribute of this
     // object.
 
+    PartitionMaxFileSizes& partitionMaxFileSizes();
+    // Return a reference to the modifiable "PartitionMaxFileSizes"
+    // attribute of this object.
+
     // ACCESSORS
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
@@ -10457,6 +10695,10 @@ class PrimaryStateResponse {
     // "FirstSyncPointAfterRolloverSequenceNumber" attribute of this
     // object.
 
+    const PartitionMaxFileSizes& partitionMaxFileSizes() const;
+    // Return a reference offering non-modifiable access to the
+    // "PartitionMaxFileSizes" attribute of this object.
+
     // HIDDEN FRIENDS
     friend bool operator==(const PrimaryStateResponse& lhs,
                            const PrimaryStateResponse& rhs)
@@ -10464,10 +10706,7 @@ class PrimaryStateResponse {
     // have the same value, and 'false' otherwise.  Two attribute objects
     // have the same value if each respective attribute has the same value.
     {
-        return lhs.partitionId() == rhs.partitionId() &&
-               lhs.latestSequenceNumber() == rhs.latestSequenceNumber() &&
-               lhs.firstSyncPointAfterRolloverSequenceNumber() ==
-                   rhs.firstSyncPointAfterRolloverSequenceNumber();
+        return lhs.isEqualTo(rhs);
     }
 
     friend bool operator!=(const PrimaryStateResponse& lhs,
@@ -12012,16 +12251,18 @@ namespace bmqp_ctrlmsg {
 class ReplicaDataRequest {
     // This type represents a request sent to the replica by the primary to
     // start the synchronization of data.
-    // replicaDataType:     type of request i.e.  PULL, PUSH or DROP for
-    // corresponding partition.  partitionId:         partition id for
+    // replicaDataType:     type of request i.e.  PULL, PUSH, DROP or RESIZE
+    // for corresponding partition.  partitionId:         partition id for
     // corresponding partition.  beginSequenceNumber: Primary's begin sequence
     // number for corresponding partition for corresponding data chunks.
     // endSequenceNumber:   Primary's end sequence number for corresponding
-    // partition for corresponding data chunks.
+    // partition for corresponding data chunks.  partitionMaxFileSizes: Maximum
+    // journal/data/qlist file sizes for  corresponding partition.
 
     // INSTANCE DATA
     PartitionSequenceNumber d_beginSequenceNumber;
     PartitionSequenceNumber d_endSequenceNumber;
+    PartitionMaxFileSizes   d_partitionMaxFileSizes;
     int                     d_partitionId;
     ReplicaDataType::Value  d_replicaDataType;
 
@@ -12034,19 +12275,21 @@ class ReplicaDataRequest {
   public:
     // TYPES
     enum {
-        ATTRIBUTE_ID_REPLICA_DATA_TYPE     = 0,
-        ATTRIBUTE_ID_PARTITION_ID          = 1,
-        ATTRIBUTE_ID_BEGIN_SEQUENCE_NUMBER = 2,
-        ATTRIBUTE_ID_END_SEQUENCE_NUMBER   = 3
+        ATTRIBUTE_ID_REPLICA_DATA_TYPE        = 0,
+        ATTRIBUTE_ID_PARTITION_ID             = 1,
+        ATTRIBUTE_ID_BEGIN_SEQUENCE_NUMBER    = 2,
+        ATTRIBUTE_ID_END_SEQUENCE_NUMBER      = 3,
+        ATTRIBUTE_ID_PARTITION_MAX_FILE_SIZES = 4
     };
 
-    enum { NUM_ATTRIBUTES = 4 };
+    enum { NUM_ATTRIBUTES = 5 };
 
     enum {
-        ATTRIBUTE_INDEX_REPLICA_DATA_TYPE     = 0,
-        ATTRIBUTE_INDEX_PARTITION_ID          = 1,
-        ATTRIBUTE_INDEX_BEGIN_SEQUENCE_NUMBER = 2,
-        ATTRIBUTE_INDEX_END_SEQUENCE_NUMBER   = 3
+        ATTRIBUTE_INDEX_REPLICA_DATA_TYPE        = 0,
+        ATTRIBUTE_INDEX_PARTITION_ID             = 1,
+        ATTRIBUTE_INDEX_BEGIN_SEQUENCE_NUMBER    = 2,
+        ATTRIBUTE_INDEX_END_SEQUENCE_NUMBER      = 3,
+        ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES = 4
     };
 
     // CONSTANTS
@@ -12121,6 +12364,10 @@ class ReplicaDataRequest {
     // Return a reference to the modifiable "EndSequenceNumber" attribute
     // of this object.
 
+    PartitionMaxFileSizes& partitionMaxFileSizes();
+    // Return a reference to the modifiable "PartitionMaxFileSizes"
+    // attribute of this object.
+
     // ACCESSORS
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
@@ -12178,6 +12425,10 @@ class ReplicaDataRequest {
     // Return a reference offering non-modifiable access to the
     // "EndSequenceNumber" attribute of this object.
 
+    const PartitionMaxFileSizes& partitionMaxFileSizes() const;
+    // Return a reference offering non-modifiable access to the
+    // "PartitionMaxFileSizes" attribute of this object.
+
     // HIDDEN FRIENDS
     friend bool operator==(const ReplicaDataRequest& lhs,
                            const ReplicaDataRequest& rhs)
@@ -12234,18 +12485,21 @@ namespace bmqp_ctrlmsg {
 class ReplicaDataResponse {
     // This type represents a response sent by a replica to the primary for the
     // data synchronization request received by it.
-    // replicaDataType:     type of request received i.e.  PULL, PUSH or DROP
-    // for corresponding partition.  Note, this field will be set as per the
-    // request received and the primary purpose of sending this field back in
-    // response is for debugging and sanity checking.  partitionId:
+    // replicaDataType:     type of request received i.e.  PULL, PUSH, DROP or
+    // RESIZE for corresponding partition.  Note, this field will be set as per
+    // the request received and the primary purpose of sending this field back
+    // in response is for debugging and sanity checking.  partitionId:
     // partition id for corresponding partition.  beginSequenceNumber:
     // Replica's begin sequence number for corresponding partition for
     // corresponding data chunks.  endSequenceNumber:   Replica's end sequence
     // number for corresponding partition for corresponding data chunks.
+    // partitionMaxFileSizes: Maximum journal/data/qlist file sizes for
+    // corresponding partition.
 
     // INSTANCE DATA
     PartitionSequenceNumber d_beginSequenceNumber;
     PartitionSequenceNumber d_endSequenceNumber;
+    PartitionMaxFileSizes   d_partitionMaxFileSizes;
     int                     d_partitionId;
     ReplicaDataType::Value  d_replicaDataType;
 
@@ -12258,19 +12512,21 @@ class ReplicaDataResponse {
   public:
     // TYPES
     enum {
-        ATTRIBUTE_ID_REPLICA_DATA_TYPE     = 0,
-        ATTRIBUTE_ID_PARTITION_ID          = 1,
-        ATTRIBUTE_ID_BEGIN_SEQUENCE_NUMBER = 2,
-        ATTRIBUTE_ID_END_SEQUENCE_NUMBER   = 3
+        ATTRIBUTE_ID_REPLICA_DATA_TYPE        = 0,
+        ATTRIBUTE_ID_PARTITION_ID             = 1,
+        ATTRIBUTE_ID_BEGIN_SEQUENCE_NUMBER    = 2,
+        ATTRIBUTE_ID_END_SEQUENCE_NUMBER      = 3,
+        ATTRIBUTE_ID_PARTITION_MAX_FILE_SIZES = 4
     };
 
-    enum { NUM_ATTRIBUTES = 4 };
+    enum { NUM_ATTRIBUTES = 5 };
 
     enum {
-        ATTRIBUTE_INDEX_REPLICA_DATA_TYPE     = 0,
-        ATTRIBUTE_INDEX_PARTITION_ID          = 1,
-        ATTRIBUTE_INDEX_BEGIN_SEQUENCE_NUMBER = 2,
-        ATTRIBUTE_INDEX_END_SEQUENCE_NUMBER   = 3
+        ATTRIBUTE_INDEX_REPLICA_DATA_TYPE        = 0,
+        ATTRIBUTE_INDEX_PARTITION_ID             = 1,
+        ATTRIBUTE_INDEX_BEGIN_SEQUENCE_NUMBER    = 2,
+        ATTRIBUTE_INDEX_END_SEQUENCE_NUMBER      = 3,
+        ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES = 4
     };
 
     // CONSTANTS
@@ -12345,6 +12601,10 @@ class ReplicaDataResponse {
     // Return a reference to the modifiable "EndSequenceNumber" attribute
     // of this object.
 
+    PartitionMaxFileSizes& partitionMaxFileSizes();
+    // Return a reference to the modifiable "PartitionMaxFileSizes"
+    // attribute of this object.
+
     // ACCESSORS
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
@@ -12401,6 +12661,10 @@ class ReplicaDataResponse {
     const PartitionSequenceNumber& endSequenceNumber() const;
     // Return a reference offering non-modifiable access to the
     // "EndSequenceNumber" attribute of this object.
+
+    const PartitionMaxFileSizes& partitionMaxFileSizes() const;
+    // Return a reference offering non-modifiable access to the
+    // "PartitionMaxFileSizes" attribute of this object.
 
     // HIDDEN FRIENDS
     friend bool operator==(const ReplicaDataResponse& lhs,
@@ -12461,32 +12725,39 @@ class ReplicaStateRequest {
     // numbers as part of this request.
     // partitionId:    partition id for corresponding partition.
     // latestSequenceNumber: Primary's latest sequence number for corresponding
-    // partition.  firstSyncPointAfterRolloverSequenceNumber: Primary's first
-    // sync point after rollover sequence number for corresponding partition.
+    // partition.  firstSyncPointAfterRolloverSequenceNumber: Sequence number
+    // of primary's first sync point after rollover for corresponding
+    // partition.  partitionMaxFileSizes: Maximum journal/data/qlist file sizes
+    // for corresponding partition.
 
     // INSTANCE DATA
     PartitionSequenceNumber d_latestSequenceNumber;
     PartitionSequenceNumber d_firstSyncPointAfterRolloverSequenceNumber;
+    PartitionMaxFileSizes   d_partitionMaxFileSizes;
     int                     d_partitionId;
 
     // PRIVATE ACCESSORS
     template <typename t_HASH_ALGORITHM>
     void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
 
+    bool isEqualTo(const ReplicaStateRequest& rhs) const;
+
   public:
     // TYPES
     enum {
         ATTRIBUTE_ID_PARTITION_ID                                    = 0,
         ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER                          = 1,
-        ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2
+        ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2,
+        ATTRIBUTE_ID_PARTITION_MAX_FILE_SIZES                        = 3
     };
 
-    enum { NUM_ATTRIBUTES = 3 };
+    enum { NUM_ATTRIBUTES = 4 };
 
     enum {
         ATTRIBUTE_INDEX_PARTITION_ID                                    = 0,
         ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER                          = 1,
-        ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2
+        ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2,
+        ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES                        = 3
     };
 
     // CONSTANTS
@@ -12558,6 +12829,10 @@ class ReplicaStateRequest {
     // "FirstSyncPointAfterRolloverSequenceNumber" attribute of this
     // object.
 
+    PartitionMaxFileSizes& partitionMaxFileSizes();
+    // Return a reference to the modifiable "PartitionMaxFileSizes"
+    // attribute of this object.
+
     // ACCESSORS
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
@@ -12614,6 +12889,10 @@ class ReplicaStateRequest {
     // "FirstSyncPointAfterRolloverSequenceNumber" attribute of this
     // object.
 
+    const PartitionMaxFileSizes& partitionMaxFileSizes() const;
+    // Return a reference offering non-modifiable access to the
+    // "PartitionMaxFileSizes" attribute of this object.
+
     // HIDDEN FRIENDS
     friend bool operator==(const ReplicaStateRequest& lhs,
                            const ReplicaStateRequest& rhs)
@@ -12621,10 +12900,7 @@ class ReplicaStateRequest {
     // have the same value, and 'false' otherwise.  Two attribute objects
     // have the same value if each respective attribute has the same value.
     {
-        return lhs.partitionId() == rhs.partitionId() &&
-               lhs.latestSequenceNumber() == rhs.latestSequenceNumber() &&
-               lhs.firstSyncPointAfterRolloverSequenceNumber() ==
-                   rhs.firstSyncPointAfterRolloverSequenceNumber();
+        return lhs.isEqualTo(rhs);
     }
 
     friend bool operator!=(const ReplicaStateRequest& lhs,
@@ -12675,32 +12951,39 @@ class ReplicaStateResponse {
     // with its sequence numbers.
     // partitionId:    partition id for corresponding partition.
     // latestSequenceNumber: Replica's latest sequence number for corresponding
-    // partition.  firstSyncPointAfterRolloverSequenceNumber: Replica's first
-    // sync point after rollover sequence number for corresponding partition.
+    // partition.  firstSyncPointAfterRolloverSequenceNumber: Sequence number
+    // of replica's first sync point after rollover for corresponding
+    // partition.  partitionMaxFileSizes: Maximum journal/data/qlist file sizes
+    // for corresponding partition.
 
     // INSTANCE DATA
     PartitionSequenceNumber d_latestSequenceNumber;
     PartitionSequenceNumber d_firstSyncPointAfterRolloverSequenceNumber;
+    PartitionMaxFileSizes   d_partitionMaxFileSizes;
     int                     d_partitionId;
 
     // PRIVATE ACCESSORS
     template <typename t_HASH_ALGORITHM>
     void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
 
+    bool isEqualTo(const ReplicaStateResponse& rhs) const;
+
   public:
     // TYPES
     enum {
         ATTRIBUTE_ID_PARTITION_ID                                    = 0,
         ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER                          = 1,
-        ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2
+        ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2,
+        ATTRIBUTE_ID_PARTITION_MAX_FILE_SIZES                        = 3
     };
 
-    enum { NUM_ATTRIBUTES = 3 };
+    enum { NUM_ATTRIBUTES = 4 };
 
     enum {
         ATTRIBUTE_INDEX_PARTITION_ID                                    = 0,
         ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER                          = 1,
-        ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2
+        ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2,
+        ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES                        = 3
     };
 
     // CONSTANTS
@@ -12772,6 +13055,10 @@ class ReplicaStateResponse {
     // "FirstSyncPointAfterRolloverSequenceNumber" attribute of this
     // object.
 
+    PartitionMaxFileSizes& partitionMaxFileSizes();
+    // Return a reference to the modifiable "PartitionMaxFileSizes"
+    // attribute of this object.
+
     // ACCESSORS
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
@@ -12828,6 +13115,10 @@ class ReplicaStateResponse {
     // "FirstSyncPointAfterRolloverSequenceNumber" attribute of this
     // object.
 
+    const PartitionMaxFileSizes& partitionMaxFileSizes() const;
+    // Return a reference offering non-modifiable access to the
+    // "PartitionMaxFileSizes" attribute of this object.
+
     // HIDDEN FRIENDS
     friend bool operator==(const ReplicaStateResponse& lhs,
                            const ReplicaStateResponse& rhs)
@@ -12835,10 +13126,7 @@ class ReplicaStateResponse {
     // have the same value, and 'false' otherwise.  Two attribute objects
     // have the same value if each respective attribute has the same value.
     {
-        return lhs.partitionId() == rhs.partitionId() &&
-               lhs.latestSequenceNumber() == rhs.latestSequenceNumber() &&
-               lhs.firstSyncPointAfterRolloverSequenceNumber() ==
-                   rhs.firstSyncPointAfterRolloverSequenceNumber();
+        return lhs.isEqualTo(rhs);
     }
 
     friend bool operator!=(const ReplicaStateResponse& lhs,
@@ -13962,6 +14250,9 @@ class AuthenticationResponse {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::AuthenticationResponse)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::AuthenticationResponse>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -25207,6 +25498,188 @@ inline bsl::ostream& NodeStatus::print(bsl::ostream&     stream,
     return stream << toString(value);
 }
 
+// ---------------------------
+// class PartitionMaxFileSizes
+// ---------------------------
+
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void PartitionMaxFileSizes::hashAppendImpl(
+    t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->dataFileSize());
+    hashAppend(hashAlgorithm, this->journalFileSize());
+    hashAppend(hashAlgorithm, this->qListFileSize());
+}
+
+// CLASS METHODS
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int PartitionMaxFileSizes::manipulateAttributes(t_MANIPULATOR& manipulator)
+{
+    int ret;
+
+    ret = manipulator(&d_dataFileSize,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DATA_FILE_SIZE]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_journalFileSize,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_JOURNAL_FILE_SIZE]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_qListFileSize,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_Q_LIST_FILE_SIZE]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_MANIPULATOR>
+int PartitionMaxFileSizes::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                               int            id)
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_DATA_FILE_SIZE: {
+        return manipulator(
+            &d_dataFileSize,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DATA_FILE_SIZE]);
+    }
+    case ATTRIBUTE_ID_JOURNAL_FILE_SIZE: {
+        return manipulator(
+            &d_journalFileSize,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_JOURNAL_FILE_SIZE]);
+    }
+    case ATTRIBUTE_ID_Q_LIST_FILE_SIZE: {
+        return manipulator(
+            &d_qListFileSize,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_Q_LIST_FILE_SIZE]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_MANIPULATOR>
+int PartitionMaxFileSizes::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                               const char*    name,
+                                               int            nameLength)
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return manipulateAttribute(manipulator, attributeInfo->d_id);
+}
+
+inline bsls::Types::Uint64& PartitionMaxFileSizes::dataFileSize()
+{
+    return d_dataFileSize;
+}
+
+inline bsls::Types::Uint64& PartitionMaxFileSizes::journalFileSize()
+{
+    return d_journalFileSize;
+}
+
+inline bsls::Types::Uint64& PartitionMaxFileSizes::qListFileSize()
+{
+    return d_qListFileSize;
+}
+
+// ACCESSORS
+template <typename t_ACCESSOR>
+int PartitionMaxFileSizes::accessAttributes(t_ACCESSOR& accessor) const
+{
+    int ret;
+
+    ret = accessor(d_dataFileSize,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DATA_FILE_SIZE]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_journalFileSize,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_JOURNAL_FILE_SIZE]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_qListFileSize,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_Q_LIST_FILE_SIZE]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_ACCESSOR>
+int PartitionMaxFileSizes::accessAttribute(t_ACCESSOR& accessor, int id) const
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_DATA_FILE_SIZE: {
+        return accessor(d_dataFileSize,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DATA_FILE_SIZE]);
+    }
+    case ATTRIBUTE_ID_JOURNAL_FILE_SIZE: {
+        return accessor(
+            d_journalFileSize,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_JOURNAL_FILE_SIZE]);
+    }
+    case ATTRIBUTE_ID_Q_LIST_FILE_SIZE: {
+        return accessor(
+            d_qListFileSize,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_Q_LIST_FILE_SIZE]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_ACCESSOR>
+int PartitionMaxFileSizes::accessAttribute(t_ACCESSOR& accessor,
+                                           const char* name,
+                                           int         nameLength) const
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return accessAttribute(accessor, attributeInfo->d_id);
+}
+
+inline bsls::Types::Uint64 PartitionMaxFileSizes::dataFileSize() const
+{
+    return d_dataFileSize;
+}
+
+inline bsls::Types::Uint64 PartitionMaxFileSizes::journalFileSize() const
+{
+    return d_journalFileSize;
+}
+
+inline bsls::Types::Uint64 PartitionMaxFileSizes::qListFileSize() const
+{
+    return d_qListFileSize;
+}
+
 // --------------------------
 // class PartitionPrimaryInfo
 // --------------------------
@@ -28984,6 +29457,17 @@ void PrimaryStateRequest::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     hashAppend(hashAlgorithm, this->latestSequenceNumber());
     hashAppend(hashAlgorithm,
                this->firstSyncPointAfterRolloverSequenceNumber());
+    hashAppend(hashAlgorithm, this->partitionMaxFileSizes());
+}
+
+inline bool
+PrimaryStateRequest::isEqualTo(const PrimaryStateRequest& rhs) const
+{
+    return this->partitionId() == rhs.partitionId() &&
+           this->latestSequenceNumber() == rhs.latestSequenceNumber() &&
+           this->firstSyncPointAfterRolloverSequenceNumber() ==
+               rhs.firstSyncPointAfterRolloverSequenceNumber() &&
+           this->partitionMaxFileSizes() == rhs.partitionMaxFileSizes();
 }
 
 // CLASS METHODS
@@ -29014,6 +29498,13 @@ int PrimaryStateRequest::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
+    ret = manipulator(
+        &d_partitionMaxFileSizes,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -29038,6 +29529,11 @@ int PrimaryStateRequest::manipulateAttribute(t_MANIPULATOR& manipulator,
             &d_firstSyncPointAfterRolloverSequenceNumber,
             ATTRIBUTE_INFO_ARRAY
                 [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
+    }
+    case ATTRIBUTE_ID_PARTITION_MAX_FILE_SIZES: {
+        return manipulator(
+            &d_partitionMaxFileSizes,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES]);
     }
     default: return NOT_FOUND;
     }
@@ -29075,6 +29571,11 @@ PrimaryStateRequest::firstSyncPointAfterRolloverSequenceNumber()
     return d_firstSyncPointAfterRolloverSequenceNumber;
 }
 
+inline PartitionMaxFileSizes& PrimaryStateRequest::partitionMaxFileSizes()
+{
+    return d_partitionMaxFileSizes;
+}
+
 // ACCESSORS
 template <typename t_ACCESSOR>
 int PrimaryStateRequest::accessAttributes(t_ACCESSOR& accessor) const
@@ -29102,6 +29603,13 @@ int PrimaryStateRequest::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
+    ret = accessor(
+        d_partitionMaxFileSizes,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -29125,6 +29633,11 @@ int PrimaryStateRequest::accessAttribute(t_ACCESSOR& accessor, int id) const
             d_firstSyncPointAfterRolloverSequenceNumber,
             ATTRIBUTE_INFO_ARRAY
                 [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
+    }
+    case ATTRIBUTE_ID_PARTITION_MAX_FILE_SIZES: {
+        return accessor(
+            d_partitionMaxFileSizes,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES]);
     }
     default: return NOT_FOUND;
     }
@@ -29163,6 +29676,12 @@ PrimaryStateRequest::firstSyncPointAfterRolloverSequenceNumber() const
     return d_firstSyncPointAfterRolloverSequenceNumber;
 }
 
+inline const PartitionMaxFileSizes&
+PrimaryStateRequest::partitionMaxFileSizes() const
+{
+    return d_partitionMaxFileSizes;
+}
+
 // --------------------------
 // class PrimaryStateResponse
 // --------------------------
@@ -29177,6 +29696,17 @@ void PrimaryStateResponse::hashAppendImpl(
     hashAppend(hashAlgorithm, this->latestSequenceNumber());
     hashAppend(hashAlgorithm,
                this->firstSyncPointAfterRolloverSequenceNumber());
+    hashAppend(hashAlgorithm, this->partitionMaxFileSizes());
+}
+
+inline bool
+PrimaryStateResponse::isEqualTo(const PrimaryStateResponse& rhs) const
+{
+    return this->partitionId() == rhs.partitionId() &&
+           this->latestSequenceNumber() == rhs.latestSequenceNumber() &&
+           this->firstSyncPointAfterRolloverSequenceNumber() ==
+               rhs.firstSyncPointAfterRolloverSequenceNumber() &&
+           this->partitionMaxFileSizes() == rhs.partitionMaxFileSizes();
 }
 
 // CLASS METHODS
@@ -29207,6 +29737,13 @@ int PrimaryStateResponse::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
+    ret = manipulator(
+        &d_partitionMaxFileSizes,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -29231,6 +29768,11 @@ int PrimaryStateResponse::manipulateAttribute(t_MANIPULATOR& manipulator,
             &d_firstSyncPointAfterRolloverSequenceNumber,
             ATTRIBUTE_INFO_ARRAY
                 [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
+    }
+    case ATTRIBUTE_ID_PARTITION_MAX_FILE_SIZES: {
+        return manipulator(
+            &d_partitionMaxFileSizes,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES]);
     }
     default: return NOT_FOUND;
     }
@@ -29268,6 +29810,11 @@ PrimaryStateResponse::firstSyncPointAfterRolloverSequenceNumber()
     return d_firstSyncPointAfterRolloverSequenceNumber;
 }
 
+inline PartitionMaxFileSizes& PrimaryStateResponse::partitionMaxFileSizes()
+{
+    return d_partitionMaxFileSizes;
+}
+
 // ACCESSORS
 template <typename t_ACCESSOR>
 int PrimaryStateResponse::accessAttributes(t_ACCESSOR& accessor) const
@@ -29295,6 +29842,13 @@ int PrimaryStateResponse::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
+    ret = accessor(
+        d_partitionMaxFileSizes,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -29318,6 +29872,11 @@ int PrimaryStateResponse::accessAttribute(t_ACCESSOR& accessor, int id) const
             d_firstSyncPointAfterRolloverSequenceNumber,
             ATTRIBUTE_INFO_ARRAY
                 [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
+    }
+    case ATTRIBUTE_ID_PARTITION_MAX_FILE_SIZES: {
+        return accessor(
+            d_partitionMaxFileSizes,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES]);
     }
     default: return NOT_FOUND;
     }
@@ -29354,6 +29913,12 @@ inline const PartitionSequenceNumber&
 PrimaryStateResponse::firstSyncPointAfterRolloverSequenceNumber() const
 {
     return d_firstSyncPointAfterRolloverSequenceNumber;
+}
+
+inline const PartitionMaxFileSizes&
+PrimaryStateResponse::partitionMaxFileSizes() const
+{
+    return d_partitionMaxFileSizes;
 }
 
 // ---------------------------
@@ -30692,6 +31257,7 @@ void ReplicaDataRequest::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     hashAppend(hashAlgorithm, this->partitionId());
     hashAppend(hashAlgorithm, this->beginSequenceNumber());
     hashAppend(hashAlgorithm, this->endSequenceNumber());
+    hashAppend(hashAlgorithm, this->partitionMaxFileSizes());
 }
 
 inline bool ReplicaDataRequest::isEqualTo(const ReplicaDataRequest& rhs) const
@@ -30699,7 +31265,8 @@ inline bool ReplicaDataRequest::isEqualTo(const ReplicaDataRequest& rhs) const
     return this->replicaDataType() == rhs.replicaDataType() &&
            this->partitionId() == rhs.partitionId() &&
            this->beginSequenceNumber() == rhs.beginSequenceNumber() &&
-           this->endSequenceNumber() == rhs.endSequenceNumber();
+           this->endSequenceNumber() == rhs.endSequenceNumber() &&
+           this->partitionMaxFileSizes() == rhs.partitionMaxFileSizes();
 }
 
 // CLASS METHODS
@@ -30735,6 +31302,13 @@ int ReplicaDataRequest::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
+    ret = manipulator(
+        &d_partitionMaxFileSizes,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -30762,6 +31336,11 @@ int ReplicaDataRequest::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
         return manipulator(
             &d_endSequenceNumber,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_END_SEQUENCE_NUMBER]);
+    }
+    case ATTRIBUTE_ID_PARTITION_MAX_FILE_SIZES: {
+        return manipulator(
+            &d_partitionMaxFileSizes,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES]);
     }
     default: return NOT_FOUND;
     }
@@ -30803,6 +31382,11 @@ inline PartitionSequenceNumber& ReplicaDataRequest::endSequenceNumber()
     return d_endSequenceNumber;
 }
 
+inline PartitionMaxFileSizes& ReplicaDataRequest::partitionMaxFileSizes()
+{
+    return d_partitionMaxFileSizes;
+}
+
 // ACCESSORS
 template <typename t_ACCESSOR>
 int ReplicaDataRequest::accessAttributes(t_ACCESSOR& accessor) const
@@ -30834,6 +31418,13 @@ int ReplicaDataRequest::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
+    ret = accessor(
+        d_partitionMaxFileSizes,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -30861,6 +31452,11 @@ int ReplicaDataRequest::accessAttribute(t_ACCESSOR& accessor, int id) const
         return accessor(
             d_endSequenceNumber,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_END_SEQUENCE_NUMBER]);
+    }
+    case ATTRIBUTE_ID_PARTITION_MAX_FILE_SIZES: {
+        return accessor(
+            d_partitionMaxFileSizes,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES]);
     }
     default: return NOT_FOUND;
     }
@@ -30904,6 +31500,12 @@ ReplicaDataRequest::endSequenceNumber() const
     return d_endSequenceNumber;
 }
 
+inline const PartitionMaxFileSizes&
+ReplicaDataRequest::partitionMaxFileSizes() const
+{
+    return d_partitionMaxFileSizes;
+}
+
 // -------------------------
 // class ReplicaDataResponse
 // -------------------------
@@ -30917,6 +31519,7 @@ void ReplicaDataResponse::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     hashAppend(hashAlgorithm, this->partitionId());
     hashAppend(hashAlgorithm, this->beginSequenceNumber());
     hashAppend(hashAlgorithm, this->endSequenceNumber());
+    hashAppend(hashAlgorithm, this->partitionMaxFileSizes());
 }
 
 inline bool
@@ -30925,7 +31528,8 @@ ReplicaDataResponse::isEqualTo(const ReplicaDataResponse& rhs) const
     return this->replicaDataType() == rhs.replicaDataType() &&
            this->partitionId() == rhs.partitionId() &&
            this->beginSequenceNumber() == rhs.beginSequenceNumber() &&
-           this->endSequenceNumber() == rhs.endSequenceNumber();
+           this->endSequenceNumber() == rhs.endSequenceNumber() &&
+           this->partitionMaxFileSizes() == rhs.partitionMaxFileSizes();
 }
 
 // CLASS METHODS
@@ -30961,6 +31565,13 @@ int ReplicaDataResponse::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
+    ret = manipulator(
+        &d_partitionMaxFileSizes,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -30989,6 +31600,11 @@ int ReplicaDataResponse::manipulateAttribute(t_MANIPULATOR& manipulator,
         return manipulator(
             &d_endSequenceNumber,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_END_SEQUENCE_NUMBER]);
+    }
+    case ATTRIBUTE_ID_PARTITION_MAX_FILE_SIZES: {
+        return manipulator(
+            &d_partitionMaxFileSizes,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES]);
     }
     default: return NOT_FOUND;
     }
@@ -31030,6 +31646,11 @@ inline PartitionSequenceNumber& ReplicaDataResponse::endSequenceNumber()
     return d_endSequenceNumber;
 }
 
+inline PartitionMaxFileSizes& ReplicaDataResponse::partitionMaxFileSizes()
+{
+    return d_partitionMaxFileSizes;
+}
+
 // ACCESSORS
 template <typename t_ACCESSOR>
 int ReplicaDataResponse::accessAttributes(t_ACCESSOR& accessor) const
@@ -31061,6 +31682,13 @@ int ReplicaDataResponse::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
+    ret = accessor(
+        d_partitionMaxFileSizes,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -31088,6 +31716,11 @@ int ReplicaDataResponse::accessAttribute(t_ACCESSOR& accessor, int id) const
         return accessor(
             d_endSequenceNumber,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_END_SEQUENCE_NUMBER]);
+    }
+    case ATTRIBUTE_ID_PARTITION_MAX_FILE_SIZES: {
+        return accessor(
+            d_partitionMaxFileSizes,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES]);
     }
     default: return NOT_FOUND;
     }
@@ -31131,6 +31764,12 @@ ReplicaDataResponse::endSequenceNumber() const
     return d_endSequenceNumber;
 }
 
+inline const PartitionMaxFileSizes&
+ReplicaDataResponse::partitionMaxFileSizes() const
+{
+    return d_partitionMaxFileSizes;
+}
+
 // -------------------------
 // class ReplicaStateRequest
 // -------------------------
@@ -31144,6 +31783,17 @@ void ReplicaStateRequest::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     hashAppend(hashAlgorithm, this->latestSequenceNumber());
     hashAppend(hashAlgorithm,
                this->firstSyncPointAfterRolloverSequenceNumber());
+    hashAppend(hashAlgorithm, this->partitionMaxFileSizes());
+}
+
+inline bool
+ReplicaStateRequest::isEqualTo(const ReplicaStateRequest& rhs) const
+{
+    return this->partitionId() == rhs.partitionId() &&
+           this->latestSequenceNumber() == rhs.latestSequenceNumber() &&
+           this->firstSyncPointAfterRolloverSequenceNumber() ==
+               rhs.firstSyncPointAfterRolloverSequenceNumber() &&
+           this->partitionMaxFileSizes() == rhs.partitionMaxFileSizes();
 }
 
 // CLASS METHODS
@@ -31174,6 +31824,13 @@ int ReplicaStateRequest::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
+    ret = manipulator(
+        &d_partitionMaxFileSizes,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -31198,6 +31855,11 @@ int ReplicaStateRequest::manipulateAttribute(t_MANIPULATOR& manipulator,
             &d_firstSyncPointAfterRolloverSequenceNumber,
             ATTRIBUTE_INFO_ARRAY
                 [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
+    }
+    case ATTRIBUTE_ID_PARTITION_MAX_FILE_SIZES: {
+        return manipulator(
+            &d_partitionMaxFileSizes,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES]);
     }
     default: return NOT_FOUND;
     }
@@ -31235,6 +31897,11 @@ ReplicaStateRequest::firstSyncPointAfterRolloverSequenceNumber()
     return d_firstSyncPointAfterRolloverSequenceNumber;
 }
 
+inline PartitionMaxFileSizes& ReplicaStateRequest::partitionMaxFileSizes()
+{
+    return d_partitionMaxFileSizes;
+}
+
 // ACCESSORS
 template <typename t_ACCESSOR>
 int ReplicaStateRequest::accessAttributes(t_ACCESSOR& accessor) const
@@ -31262,6 +31929,13 @@ int ReplicaStateRequest::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
+    ret = accessor(
+        d_partitionMaxFileSizes,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -31285,6 +31959,11 @@ int ReplicaStateRequest::accessAttribute(t_ACCESSOR& accessor, int id) const
             d_firstSyncPointAfterRolloverSequenceNumber,
             ATTRIBUTE_INFO_ARRAY
                 [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
+    }
+    case ATTRIBUTE_ID_PARTITION_MAX_FILE_SIZES: {
+        return accessor(
+            d_partitionMaxFileSizes,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES]);
     }
     default: return NOT_FOUND;
     }
@@ -31323,6 +32002,12 @@ ReplicaStateRequest::firstSyncPointAfterRolloverSequenceNumber() const
     return d_firstSyncPointAfterRolloverSequenceNumber;
 }
 
+inline const PartitionMaxFileSizes&
+ReplicaStateRequest::partitionMaxFileSizes() const
+{
+    return d_partitionMaxFileSizes;
+}
+
 // --------------------------
 // class ReplicaStateResponse
 // --------------------------
@@ -31337,6 +32022,17 @@ void ReplicaStateResponse::hashAppendImpl(
     hashAppend(hashAlgorithm, this->latestSequenceNumber());
     hashAppend(hashAlgorithm,
                this->firstSyncPointAfterRolloverSequenceNumber());
+    hashAppend(hashAlgorithm, this->partitionMaxFileSizes());
+}
+
+inline bool
+ReplicaStateResponse::isEqualTo(const ReplicaStateResponse& rhs) const
+{
+    return this->partitionId() == rhs.partitionId() &&
+           this->latestSequenceNumber() == rhs.latestSequenceNumber() &&
+           this->firstSyncPointAfterRolloverSequenceNumber() ==
+               rhs.firstSyncPointAfterRolloverSequenceNumber() &&
+           this->partitionMaxFileSizes() == rhs.partitionMaxFileSizes();
 }
 
 // CLASS METHODS
@@ -31367,6 +32063,13 @@ int ReplicaStateResponse::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
+    ret = manipulator(
+        &d_partitionMaxFileSizes,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -31391,6 +32094,11 @@ int ReplicaStateResponse::manipulateAttribute(t_MANIPULATOR& manipulator,
             &d_firstSyncPointAfterRolloverSequenceNumber,
             ATTRIBUTE_INFO_ARRAY
                 [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
+    }
+    case ATTRIBUTE_ID_PARTITION_MAX_FILE_SIZES: {
+        return manipulator(
+            &d_partitionMaxFileSizes,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES]);
     }
     default: return NOT_FOUND;
     }
@@ -31428,6 +32136,11 @@ ReplicaStateResponse::firstSyncPointAfterRolloverSequenceNumber()
     return d_firstSyncPointAfterRolloverSequenceNumber;
 }
 
+inline PartitionMaxFileSizes& ReplicaStateResponse::partitionMaxFileSizes()
+{
+    return d_partitionMaxFileSizes;
+}
+
 // ACCESSORS
 template <typename t_ACCESSOR>
 int ReplicaStateResponse::accessAttributes(t_ACCESSOR& accessor) const
@@ -31455,6 +32168,13 @@ int ReplicaStateResponse::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
+    ret = accessor(
+        d_partitionMaxFileSizes,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -31478,6 +32198,11 @@ int ReplicaStateResponse::accessAttribute(t_ACCESSOR& accessor, int id) const
             d_firstSyncPointAfterRolloverSequenceNumber,
             ATTRIBUTE_INFO_ARRAY
                 [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
+    }
+    case ATTRIBUTE_ID_PARTITION_MAX_FILE_SIZES: {
+        return accessor(
+            d_partitionMaxFileSizes,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES]);
     }
     default: return NOT_FOUND;
     }
@@ -31514,6 +32239,12 @@ inline const PartitionSequenceNumber&
 ReplicaStateResponse::firstSyncPointAfterRolloverSequenceNumber() const
 {
     return d_firstSyncPointAfterRolloverSequenceNumber;
+}
+
+inline const PartitionMaxFileSizes&
+ReplicaStateResponse::partitionMaxFileSizes() const
+{
+    return d_partitionMaxFileSizes;
 }
 
 // -----------------------------

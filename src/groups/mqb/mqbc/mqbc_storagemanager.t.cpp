@@ -234,11 +234,17 @@ struct TestHelper {
                 .choice()
                 .makeReplicaStateRequest();
 
-        replicaStateRequest.partitionId()    = partitionId;
+        replicaStateRequest.partitionId()          = partitionId;
         replicaStateRequest.latestSequenceNumber() = seqNum;
 
         // TODO: set sequence number once add mocked recovery manager to this
         //       test helper class.
+
+        replicaStateRequest.partitionMaxFileSizes().dataFileSize() =
+            mqbmock::Cluster::k_MAX_DATA_FILE_SIZE;
+        replicaStateRequest.partitionMaxFileSizes().journalFileSize() =
+            mqbmock::Cluster::k_MAX_JOURNAL_FILE_SIZE;
+        replicaStateRequest.partitionMaxFileSizes().qListFileSize() = 0;
 
         for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
              cit != d_cluster_mp->_channels().cend();
@@ -651,8 +657,13 @@ struct TestHelper {
                 .choice()
                 .makePrimaryStateRequest();
 
-        primaryStateRequest.partitionId()    = partitionId;
+        primaryStateRequest.partitionId()          = partitionId;
         primaryStateRequest.latestSequenceNumber() = seqNum;
+        primaryStateRequest.partitionMaxFileSizes().dataFileSize() =
+            mqbmock::Cluster::k_MAX_DATA_FILE_SIZE;
+        primaryStateRequest.partitionMaxFileSizes().journalFileSize() =
+            mqbmock::Cluster::k_MAX_JOURNAL_FILE_SIZE;
+        primaryStateRequest.partitionMaxFileSizes().qListFileSize() = 0;
 
         for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
              cit != d_cluster_mp->_channels().cend();
@@ -689,8 +700,13 @@ struct TestHelper {
                 .choice()
                 .makeReplicaStateResponse();
 
-        replicaStateResponse.partitionId()    = partitionId;
+        replicaStateResponse.partitionId()          = partitionId;
         replicaStateResponse.latestSequenceNumber() = seqNum;
+        replicaStateResponse.partitionMaxFileSizes().dataFileSize() =
+            mqbmock::Cluster::k_MAX_DATA_FILE_SIZE;
+        replicaStateResponse.partitionMaxFileSizes().journalFileSize() =
+            mqbmock::Cluster::k_MAX_JOURNAL_FILE_SIZE;
+        replicaStateResponse.partitionMaxFileSizes().qListFileSize() = 0;
 
         for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
              cit != d_cluster_mp->_channels().cend();
@@ -890,7 +906,12 @@ struct TestHelper {
             .setMaxDataFileSize(partitionCfg.maxDataFileSize())
             .setMaxJournalFileSize(partitionCfg.maxJournalFileSize())
             .setMaxQlistFileSize(partitionCfg.maxQlistFileSize())
-            .setMaxArchivedFileSets(partitionCfg.maxArchivedFileSets());
+            .setMaxArchivedFileSets(partitionCfg.maxArchivedFileSets())
+            .setDataFileGrowLimit(partitionCfg.dataFileGrowLimit())
+            .setJournalFileGrowLimit(partitionCfg.journalFileGrowLimit())
+            .setQlistFileGrowLimit(partitionCfg.qListFileGrowLimit())
+            .setGrowStepPercent(partitionCfg.growStepPercent())
+            .setMinAvailSpacePercent(partitionCfg.minAvailSpacePercent());
 
         bdlmt::FixedThreadPool threadPool(1,
                                           100,
@@ -1334,7 +1355,7 @@ static void test5_primaryHealingStage1ReceivesReplicaStateRqst()
     seqNum.sequenceNumber() = 1U;
     seqNum.primaryLeaseId() = 1U;
 
-    replicaStateRequest.partitionId()    = k_PARTITION_ID;
+    replicaStateRequest.partitionId()          = k_PARTITION_ID;
     replicaStateRequest.latestSequenceNumber() = seqNum;
 
     mqbnet::ClusterNode* source = helper.d_cluster_mp->_clusterData()
@@ -1445,7 +1466,7 @@ static void test6_primaryHealingStage1ReceivesReplicaStateRspnQuorum()
     seqNum.sequenceNumber() = 1U;
     seqNum.primaryLeaseId() = 1U;
 
-    replicaStateResponse.partitionId()    = k_PARTITION_ID;
+    replicaStateResponse.partitionId()          = k_PARTITION_ID;
     replicaStateResponse.latestSequenceNumber() = seqNum;
 
     helper.d_cluster_mp->requestManager().processResponse(message);
@@ -1556,7 +1577,7 @@ static void test7_primaryHealingStage1ReceivesPrimaryStateRequestQuorum()
     seqNum.sequenceNumber() = 1U;
     seqNum.primaryLeaseId() = 1U;
 
-    primaryStateRequest.partitionId()    = k_PARTITION_ID;
+    primaryStateRequest.partitionId()          = k_PARTITION_ID;
     primaryStateRequest.latestSequenceNumber() = seqNum;
 
     storageManager.processPrimaryStateRequest(message, replica1);
@@ -1675,7 +1696,7 @@ static void test8_primaryHealingStage1ReceivesPrimaryStateRqst()
     seqNum.sequenceNumber() = 1U;
     seqNum.primaryLeaseId() = 1U;
 
-    primaryStateRequest.partitionId()    = k_PARTITION_ID;
+    primaryStateRequest.partitionId()          = k_PARTITION_ID;
     primaryStateRequest.latestSequenceNumber() = seqNum;
 
     storageManager.processPrimaryStateRequest(message, replicaNode);
@@ -1781,7 +1802,7 @@ static void test9_primaryHealingStage1ReceivesReplicaStateRspnNoQuorum()
     seqNum.sequenceNumber() = 1U;
     seqNum.primaryLeaseId() = 1U;
 
-    replicaStateResponse.partitionId()    = k_PARTITION_ID;
+    replicaStateResponse.partitionId()          = k_PARTITION_ID;
     replicaStateResponse.latestSequenceNumber() = seqNum;
 
     helper.d_cluster_mp->requestManager().processResponse(message);
@@ -1898,20 +1919,26 @@ static void test10_primaryHealingStage1QuorumSendsReplicaDataRequestPull()
     seqNum.sequenceNumber() = 1U;
     seqNum.primaryLeaseId() = 1U;
 
-    replicaStateResponse.partitionId()    = k_PARTITION_ID;
+    replicaStateResponse.partitionId()          = k_PARTITION_ID;
     replicaStateResponse.latestSequenceNumber() = seqNum;
+
+    replicaStateResponse.partitionMaxFileSizes().dataFileSize() =
+        mqbmock::Cluster::k_MAX_DATA_FILE_SIZE;
+    replicaStateResponse.partitionMaxFileSizes().journalFileSize() =
+        mqbmock::Cluster::k_MAX_JOURNAL_FILE_SIZE;
+    replicaStateResponse.partitionMaxFileSizes().qListFileSize() = 0;
 
     helper.d_cluster_mp->requestManager().processResponse(message);
 
-    message.rId()                         = k_REQUEST_ID + 1;
-    seqNum.sequenceNumber()               = 7U;
-    seqNum.primaryLeaseId()               = 1U;
+    message.rId()                               = k_REQUEST_ID + 1;
+    seqNum.sequenceNumber()                     = 7U;
+    seqNum.primaryLeaseId()                     = 1U;
     replicaStateResponse.latestSequenceNumber() = seqNum;
     helper.d_cluster_mp->requestManager().processResponse(message);
 
-    message.rId()                         = k_REQUEST_ID + 2;
-    seqNum.sequenceNumber()               = 3U;
-    seqNum.primaryLeaseId()               = 1U;
+    message.rId()                               = k_REQUEST_ID + 2;
+    seqNum.sequenceNumber()                     = 3U;
+    seqNum.primaryLeaseId()                     = 1U;
     replicaStateResponse.latestSequenceNumber() = seqNum;
     helper.d_cluster_mp->requestManager().processResponse(message);
 
@@ -2026,20 +2053,26 @@ static void test11_primaryHealingStage2DetectSelfReplica()
     seqNum.sequenceNumber() = 1U;
     seqNum.primaryLeaseId() = 1U;
 
-    replicaStateResponse.partitionId()    = k_PARTITION_ID;
+    replicaStateResponse.partitionId()          = k_PARTITION_ID;
     replicaStateResponse.latestSequenceNumber() = seqNum;
+
+    replicaStateResponse.partitionMaxFileSizes().dataFileSize() =
+        mqbmock::Cluster::k_MAX_DATA_FILE_SIZE;
+    replicaStateResponse.partitionMaxFileSizes().journalFileSize() =
+        mqbmock::Cluster::k_MAX_JOURNAL_FILE_SIZE;
+    replicaStateResponse.partitionMaxFileSizes().qListFileSize() = 0;
 
     helper.d_cluster_mp->requestManager().processResponse(message);
 
-    message.rId()                         = k_REQUEST_ID + 1;
-    seqNum.sequenceNumber()               = 7U;
-    seqNum.primaryLeaseId()               = 1U;
+    message.rId()                               = k_REQUEST_ID + 1;
+    seqNum.sequenceNumber()                     = 7U;
+    seqNum.primaryLeaseId()                     = 1U;
     replicaStateResponse.latestSequenceNumber() = seqNum;
     helper.d_cluster_mp->requestManager().processResponse(message);
 
-    message.rId()                         = k_REQUEST_ID + 2;
-    seqNum.sequenceNumber()               = 3U;
-    seqNum.primaryLeaseId()               = 1U;
+    message.rId()                               = k_REQUEST_ID + 2;
+    seqNum.sequenceNumber()                     = 3U;
+    seqNum.primaryLeaseId()                     = 1U;
     replicaStateResponse.latestSequenceNumber() = seqNum;
     helper.d_cluster_mp->requestManager().processResponse(message);
 
@@ -2276,7 +2309,7 @@ static void test13_replicaHealingReceivesReplicaStateRqst()
     seqNum.sequenceNumber() = 1U;
     seqNum.primaryLeaseId() = 1U;
 
-    replicaStateRequest.partitionId()    = k_PARTITION_ID;
+    replicaStateRequest.partitionId()          = k_PARTITION_ID;
     replicaStateRequest.latestSequenceNumber() = seqNum;
 
     storageManager.processReplicaStateRequest(message, primaryNode);
@@ -2384,7 +2417,7 @@ static void test14_replicaHealingReceivesPrimaryStateRspn()
     seqNum.sequenceNumber() = 1U;
     seqNum.primaryLeaseId() = 1U;
 
-    primaryStateResponse.partitionId()    = k_PARTITION_ID;
+    primaryStateResponse.partitionId()          = k_PARTITION_ID;
     primaryStateResponse.latestSequenceNumber() = seqNum;
 
     helper.d_cluster_mp->requestManager().processResponse(message);
@@ -2590,7 +2623,7 @@ static void test16_replicaHealingReceivesPrimaryStateRqst()
     seqNum.sequenceNumber() = 1U;
     seqNum.primaryLeaseId() = 1U;
 
-    primaryStateRequest.partitionId()    = k_PARTITION_ID;
+    primaryStateRequest.partitionId()          = k_PARTITION_ID;
     primaryStateRequest.latestSequenceNumber() = seqNum;
 
     storageManager.processPrimaryStateRequest(message, rogueNode);
@@ -2715,7 +2748,7 @@ static void test17_replicaHealingReceivesReplicaDataRqstPull()
     k_PRIMARY_SEQ_NUM.sequenceNumber() = 1U;
     k_PRIMARY_SEQ_NUM.primaryLeaseId() = 1U;
 
-    replicaStateRequest.partitionId()    = k_PARTITION_ID;
+    replicaStateRequest.partitionId()          = k_PARTITION_ID;
     replicaStateRequest.latestSequenceNumber() = k_PRIMARY_SEQ_NUM;
 
     storageManager.processReplicaStateRequest(message, primaryNode);
@@ -2868,21 +2901,27 @@ static void test18_primaryHealingStage1SelfHighestSendsDataChunks()
             .makeReplicaStateResponse();
 
     bmqp_ctrlmsg::PartitionSequenceNumber k_REPLICA_SEQ_NUM_1;
-    k_REPLICA_SEQ_NUM_1.primaryLeaseId()  = k_PRIMARY_LEASE_ID;
-    k_REPLICA_SEQ_NUM_1.sequenceNumber()  = 3U;
-    replicaStateResponse.partitionId()    = k_PARTITION_ID;
+    k_REPLICA_SEQ_NUM_1.primaryLeaseId()        = k_PRIMARY_LEASE_ID;
+    k_REPLICA_SEQ_NUM_1.sequenceNumber()        = 3U;
+    replicaStateResponse.partitionId()          = k_PARTITION_ID;
     replicaStateResponse.latestSequenceNumber() = k_REPLICA_SEQ_NUM_1;
+
+    replicaStateResponse.partitionMaxFileSizes().dataFileSize() =
+        mqbmock::Cluster::k_MAX_DATA_FILE_SIZE;
+    replicaStateResponse.partitionMaxFileSizes().journalFileSize() =
+        mqbmock::Cluster::k_MAX_JOURNAL_FILE_SIZE;
+    replicaStateResponse.partitionMaxFileSizes().qListFileSize() = 0;
 
     helper.d_cluster_mp->requestManager().processResponse(message);
 
     bmqp_ctrlmsg::PartitionSequenceNumber k_REPLICA_SEQ_NUM_2;
-    k_REPLICA_SEQ_NUM_2.primaryLeaseId()  = k_PRIMARY_LEASE_ID;
-    k_REPLICA_SEQ_NUM_2.sequenceNumber()  = 5U;
-    message.rId()                         = k_REQUEST_ID + 1;
+    k_REPLICA_SEQ_NUM_2.primaryLeaseId()        = k_PRIMARY_LEASE_ID;
+    k_REPLICA_SEQ_NUM_2.sequenceNumber()        = 5U;
+    message.rId()                               = k_REQUEST_ID + 1;
     replicaStateResponse.latestSequenceNumber() = k_REPLICA_SEQ_NUM_2;
     helper.d_cluster_mp->requestManager().processResponse(message);
 
-    message.rId()                         = k_REQUEST_ID + 2;
+    message.rId()                               = k_REQUEST_ID + 2;
     replicaStateResponse.latestSequenceNumber() = selfSeqNum;
     helper.d_cluster_mp->requestManager().processResponse(message);
 
