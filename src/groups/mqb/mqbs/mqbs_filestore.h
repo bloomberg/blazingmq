@@ -412,6 +412,15 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     // `firstSyncPointOffsetWords`. It is used to determine if cluster node
     // missed rollover.
 
+    bmqp_ctrlmsg::PartitionMaxFileSizes d_partitionMaxFileSizes;
+    // Max file sizes for journal, data and qlist files for this partition.
+
+    bsl::optional<bmqp_ctrlmsg::PartitionMaxFileSizes>
+        d_overridenPartitionMaxFileSizes;
+    // Overriden (by storage manager) max file sizes for journal, data and
+    // qlist files for this partition. If it is not present,
+    // `d_partitionMaxFileSizes` is used.
+
   private:
     // NOT IMPLEMENTED
     FileStore(const FileStore&) BSLS_CPP11_DELETED;
@@ -957,6 +966,12 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     ///         specified `fileStore`'s partitionId.
     void loadSummary(mqbcmd::FileStore* fileStore) const;
 
+    /// Override the max file sizes for this partition with the specified
+    /// `maxFileSizes`. It is set by `StorageManager` when higher max file
+    /// sizes are found after quorum.
+    void overridePartitionMaxFileSizes(
+        const bmqp_ctrlmsg::PartitionMaxFileSizes& maxFileSizes);
+
     // ACCESSORS
 
     /// Return true if this instance is open, false otherwise.
@@ -1044,6 +1059,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Return the first sync point after rollover sequence number.
     const bmqp_ctrlmsg::PartitionSequenceNumber&
     firstSyncPointAfterRolloverSeqNum() const;
+
+    /// Return the max file sizes for this partition.
+    const bmqp_ctrlmsg::PartitionMaxFileSizes& partitionMaxFileSizes() const;
 };
 
 // =======================
@@ -1229,6 +1247,12 @@ FileStore::setLastStrongConsistency(unsigned int        primaryLeaseId,
     d_lastRecoveredStrongConsistency.d_sequenceNum    = sequenceNum;
 }
 
+inline void FileStore::overridePartitionMaxFileSizes(
+    const bmqp_ctrlmsg::PartitionMaxFileSizes& maxFileSizes)
+{
+    d_overridenPartitionMaxFileSizes = maxFileSizes;
+}
+
 // ACCESSORS
 inline const mqbi::DispatcherClientData&
 FileStore::dispatcherClientData() const
@@ -1310,6 +1334,12 @@ inline const bmqp_ctrlmsg::PartitionSequenceNumber&
 FileStore::firstSyncPointAfterRolloverSeqNum() const
 {
     return d_firstSyncPointAfterRolloverSeqNum;
+}
+
+inline const bmqp_ctrlmsg::PartitionMaxFileSizes&
+FileStore::partitionMaxFileSizes() const
+{
+    return d_partitionMaxFileSizes;
 }
 
 // -----------------------

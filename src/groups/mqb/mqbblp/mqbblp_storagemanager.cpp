@@ -1328,7 +1328,12 @@ int StorageManager::start(bsl::ostream& errorDescription)
         .setNodeId(d_clusterData_p->membership().selfNode()->nodeId())
         .setMaxDataFileSize(partitionCfg.maxDataFileSize())
         .setMaxJournalFileSize(partitionCfg.maxJournalFileSize())
-        .setMaxQlistFileSize(partitionCfg.maxQlistFileSize());
+        .setMaxQlistFileSize(partitionCfg.maxQlistFileSize())
+        .setDataFileGrowLimit(partitionCfg.dataFileGrowLimit())
+        .setJournalFileGrowLimit(partitionCfg.journalFileGrowLimit())
+        .setQlistFileGrowLimit(partitionCfg.qListFileGrowLimit())
+        .setGrowStepPercent(partitionCfg.growStepPercent())
+        .setMinAvailSpacePercent(partitionCfg.minAvailSpacePercent());
     // Only relevant fields of data store config are set.
 
     // Get named allocator from associated bmqma::CountingAllocatorStore
