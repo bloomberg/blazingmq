@@ -204,6 +204,7 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
         const bsl::string&                              appId,
         const bslma::ManagedPtr<mqbi::StorageIterator>& oldestMsgIt) const;
 
+    void updateFlowControl(bsls::Types::Int64 nowMs);
     void onFlowControlTimer();
 
   public:

@@ -77,8 +77,9 @@ const bsls::Types::Int64 k_NS_PER_MESSAGE =
     bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
 // Time interval between messages logged with throttling.
 
-const bsls::Types::Int64 k_LOW_WATERMARK  = 10;
-const bsls::Types::Int64 k_MAX_RATE_LIMIT = 500000;
+const bsls::Types::Int64 k_FLOW_CONTROL_LOW_WATERMARK  = 10;
+const bsls::Types::Int64 k_FLOW_CONTROL_MAX_RATE_LIMIT = 500000;
+const unsigned int       k_FLOW_CONTROL_BATCH          = 100;
 
 #define BMQ_LOGTHROTTLE_INFO                                                  \
     BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)           \
@@ -1410,60 +1411,44 @@ void RootQueueEngine::afterNewMessage()
     mqbi::Dispatcher* dispatcher = queue->dispatcher();
     BSLS_ASSERT_SAFE(dispatcher);
 
-    bsls::Types::Int64 numEvents = dispatcher->numProcessorEvents(
-        d_queueState_p->queue());
+    mqbi::StorageIterator* storageIt = d_storageIter_mp.get();
+    bsls::TimeInterval     now       = bsls::SystemTime::now(
+        bsls::SystemClockType::e_MONOTONIC);
+    updateFlowControl(now.totalMilliseconds());
 
-    if (!d_flowController.isIdle()) {
-        const bsls::TimeInterval now = bsls::SystemTime::now(
-            bsls::SystemClockType::e_MONOTONIC);
+    if (d_flowController.isFull()) {
+        BMQ_LOGTHROTTLE_INFO << "Local queue: " << d_queueState_p->uri()
+                             << " throttling delivery; the timer was "
+                             << (d_flowControlEventHandle ? "On." : "Off.");
 
-        d_flowController.update(now.totalMilliseconds(), numEvents);
+        if (!d_flowControlEventHandle) {
+            const bsls::TimeInterval timeout(1.0);
 
-        mqbu::FlowController::Config lastConfig = d_flowController.config();
-        const bool isGreen = d_flowController.checkWatermark(k_LOW_WATERMARK,
-                                                             k_MAX_RATE_LIMIT);
+            // Our Schedule is of the type e_MONOTONIC,
+            // see m_bmqbrkr::Task::Task.
 
-        if (lastConfig != d_flowController.config()) {
-            BMQ_LOGTHROTTLE_INFO
-                << "Local queue: " << d_queueState_p->uri() << " is at "
-                << numEvents
-                << " dispatcher events and updates the throttling policy ["
-                << d_flowController << "].";
+            d_scheduler_p->scheduleEvent(
+                &d_flowControlEventHandle,
+                now + timeout,
+                bdlf::BindUtil::bindS(d_allocator_p,
+                                      executeInQueueDispatcher,
+                                      queue,
+                                      d_flowControlTimerCb));
+
+            BSLS_ASSERT_SAFE(d_flowControlEventHandle);
         }
 
-        if (!isGreen) {
-            BMQ_LOGTHROTTLE_INFO
-                << "Local queue: " << d_queueState_p->uri() << " is at "
-                << numEvents
-                << " dispatcher events and throttling delivery; the timer was "
-                << (d_flowControlEventHandle ? "On." : "Off.");
-
-            if (!d_flowControlEventHandle) {
-                const bsls::TimeInterval timeout(1.0);
-
-                // Our Schedule is of the type e_MONOTONIC,
-                // see m_bmqbrkr::Task::Task.
-
-                d_scheduler_p->scheduleEvent(
-                    &d_flowControlEventHandle,
-                    now + timeout,
-                    bdlf::BindUtil::bindS(d_allocator_p,
-                                          executeInQueueDispatcher,
-                                          queue,
-                                          d_flowControlTimerCb));
-
-                BSLS_ASSERT_SAFE(d_flowControlEventHandle);
-            }
-
-            return;
-        }
+        // bypass the loop and go to the cleaning at the end.
+        storageIt = 0;
     }
 
     // Deliver new messages to active (alive and capable to deliver) consumers
 
-    const Routers::QueueRoutingContext& routingContext =
-        d_queueState_p->routingContext();
-    while (d_appsDeliveryContext.reset(d_storageIter_mp.get())) {
+    bsls::Types::Int64 numMessages = queue->storage()->numMessages(
+        mqbu::StorageKey::k_NULL_KEY);
+    unsigned int batch = k_FLOW_CONTROL_BATCH;
+
+    while (d_appsDeliveryContext.reset(storageIt)) {
         // Assume, all Apps need to deliver (some may be at capacity)
         for (Apps::iterator iter = d_apps.begin(); iter != d_apps.end();
              ++iter) {
@@ -1484,9 +1469,11 @@ void RootQueueEngine::afterNewMessage()
                     app->appId());
             }
         }
-        const unsigned int numHits = routingContext.d_preader->numHits();
+        const unsigned int numHits =
+            d_queueState_p->routingContext().d_preader->numHits();
 
         if (!d_appsDeliveryContext.isEmpty()) {
+            --numMessages;
             // Report 'queue time' metric for the entire queue
             queue->stats()
                 ->onEvent<mqbstat::QueueStatsDomain::EventType::e_QUEUE_TIME>(
@@ -1498,18 +1485,36 @@ void RootQueueEngine::afterNewMessage()
 
         if (result == mqbu::FlowController::e_Strict) {
             BMQ_LOGTHROTTLE_INFO << "Local queue: " << d_queueState_p->uri()
-                                 << " is at " << numEvents
-                                 << " dispatcher events and throttling "
-                                    "delivery; the overhead was "
+                                 << " throttling delivery; the overhead was "
                                  << numHits;
 
             d_appsDeliveryContext.reset(0);
 
-            break;
+            // break the loop and go to the cleaning at the end.
+            storageIt = 0;
+        }
+        else if (result > mqbu::FlowController::e_Zero) {
+            BSLS_ASSERT_SAFE(batch > 0);
+
+            if (--batch == 0) {
+                batch = k_FLOW_CONTROL_BATCH;
+
+                now = bsls::SystemTime::now(
+                    bsls::SystemClockType::e_MONOTONIC);
+                updateFlowControl(now.totalMilliseconds());
+            }
         }
     }
 
     if (QueueEngineUtil::isBroadcastMode(queue)) {
+        if (!d_storageIter_mp->atEnd()) {
+            BMQTSK_ALARMLOG_ALARM("BCAST_SUBSCRIPTIONS")
+                << "Local queue: " << d_queueState_p->uri() << " dropping "
+                << numMessages
+                << " bcast messages because of subscription overhead."
+                << BMQTSK_ALARMLOG_END;
+        }
+
         // Clear storage status
         BSLA_MAYBE_UNUSED mqbi::StorageResult::Enum rc =
             queue->storage()->removeAll(mqbu::StorageKey::k_NULL_KEY);
@@ -2057,6 +2062,39 @@ void RootQueueEngine::logAlarmCb(
     out << "\n";
 
     BMQTSK_ALARMLOG_ALARM("QUEUE_STUCK") << out.str() << BMQTSK_ALARMLOG_END;
+}
+
+void RootQueueEngine::updateFlowControl(bsls::Types::Int64 nowMs)
+{
+    // executed by the *QUEUE DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
+
+    if (d_flowController.isIdle()) {
+        return;
+    }
+
+    mqbi::Queue* queue = d_queueState_p->queue();
+    BSLS_ASSERT_SAFE(queue);
+    // Provide time to the bucket algorithm.
+
+    bsls::Types::Int64 numEvents = queue->dispatcher()->numProcessorEvents(
+        queue);
+
+    d_flowController.update(nowMs, numEvents);
+
+    const mqbu::FlowController::Config before = d_flowController.config();
+    d_flowController.checkWatermark(k_FLOW_CONTROL_LOW_WATERMARK,
+                                    k_FLOW_CONTROL_MAX_RATE_LIMIT);
+
+    if (before != d_flowController.config()) {
+        BMQ_LOGTHROTTLE_INFO
+            << "Local queue: " << d_queueState_p->uri() << " is at "
+            << numEvents
+            << " dispatcher events and updates the throttling policy ["
+            << d_flowController << "].";
+    }
 }
 
 void RootQueueEngine::onFlowControlTimer()
