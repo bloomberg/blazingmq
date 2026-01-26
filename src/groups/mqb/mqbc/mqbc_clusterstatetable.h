@@ -50,14 +50,33 @@ struct ClusterStateTableState {
 
     /// Enumeration used to distinguish among different type of state.
     enum Enum {
-        e_UNKNOWN          = 0,
-        e_FOL_HEALING      = 1,
+        /// The leader is unknown.
+        e_UNKNOWN = 0,
+
+        /// Self is follower, healing its CSL.
+        e_FOL_HEALING = 1,
+
+        /// Self is leader, exchanging leader sequence numbers (LSNs) with
+        /// followers to determine who has the most up-to-date CSL.
         e_LDR_HEALING_STG1 = 2,
+
+        /// Self is leader, healing its CSL and the followers' CSLs.  It will
+        /// apply a CSL leader advisory to heal everyone.
         e_LDR_HEALING_STG2 = 3,
-        e_FOL_HEALED       = 4,
-        e_LDR_HEALED       = 5,
-        e_STOPPED          = 6,
-        e_NUM_STATES       = 7
+
+        /// Self is follower, and its CSL is healed.
+        e_FOL_HEALED = 4,
+
+        /// Self is leader, and its CSL is healed.
+        e_LDR_HEALED = 5,
+
+        /// Self is stopping.  Self could be either leader or follower, or
+        /// leader might be unknown.
+        e_STOPPED = 6,
+
+        /// **NOT A VALID STATE**.  This is an artificial enum value to
+        /// represent the number of states.
+        e_NUM_STATES = 7
     };
 
     // CLASS METHODS
@@ -114,24 +133,61 @@ struct ClusterStateTableEvent {
 
     /// Enumeration used to distinguish among different type of event.
     enum Enum {
-        e_SLCT_LDR          = 0,
-        e_SLCT_FOL          = 1,
-        e_FOL_LSN_RQST      = 2,
-        e_FOL_LSN_RSPN      = 3,
-        e_QUORUM_LSN        = 4,
-        e_LOST_QUORUM_LSN   = 5,
-        e_SELF_HIGHEST_LSN  = 6,
-        e_FOL_HIGHEST_LSN   = 7,
-        e_FAIL_FOL_LSN_RSPN = 8,
-        e_FOL_CSL_RQST      = 9,
-        e_FOL_CSL_RSPN      = 10,
-        e_FAIL_FOL_CSL_RSPN = 11,
-        e_CRASH_FOL_CSL     = 12,
+        /// Self is transitioned as leader, or the transistion is being
+        /// reapplied due to a failure condition such as watchdog firing.
+        e_SLCT_LDR = 0,
 
-        /// Node is stopping.
-        e_STOP_NODE              = 13,
-        e_REGISTRATION_RQST      = 14,
-        e_REGISTRATION_RSPN      = 15,
+        /// Self is transitioned as follower, or the transistion is being
+        /// reapplied due to a failure condition such as watchdog firing.
+        e_SLCT_FOL = 1,
+
+        /// Upon receipt of FollowerLSNRequest.
+        e_FOL_LSN_RQST = 2,
+
+        /// Upon receipt of a success FollowerLSNResponse.
+        e_FOL_LSN_RSPN = 3,
+
+        /// Upon receipt of a failure FollowerLSNResponse.
+        e_FAIL_FOL_LSN_RSPN = 4,
+
+        /// As leader, a quorum of LSNs (including self's) has been gathered.
+        e_QUORUM_LSN = 5,
+
+        /// As leader, the quorum of LSNs has been lost.
+        e_LOST_QUORUM_LSN = 6,
+
+        /// As leader, while viewing the quorum of LSNs, determined that self
+        /// has the highest LSN.
+        e_SELF_HIGHEST_LSN = 7,
+
+        /// As leader, while viewing the quorum of LSNs, determined that a
+        /// follower has the highest LSN.
+        e_FOL_HIGHEST_LSN = 8,
+
+        /// Upon receipt of FollowerClusterStateRequest.
+        e_FOL_CSL_RQST = 9,
+
+        /// Upon receipt of a success FollowerClusterStateResponse.
+        e_FOL_CSL_RSPN = 10,
+
+        /// Upon receipt of a failure FollowerClusterStateResponse.
+        e_FAIL_FOL_CSL_RSPN = 11,
+
+        /// As leader, upon detection that a follower whom we know the LSN of
+        /// has disconnected.
+        e_DISCONNECT_FOL_LSN = 12,
+
+        /// Node is stopping.  Self could be either leader or follower, or
+        /// leader might be unknown.
+        e_STOP_NODE = 13,
+
+        /// Upon receipt of RegistrationRequest.
+        e_REGISTRATION_RQST = 14,
+
+        /// Upon receipt of a success RegistrationResponse.
+        e_REGISTRATION_RSPN = 15,
+
+        /// Upon receipt of a failure RegistrationResponse.
         e_FAIL_REGISTRATION_RSPN = 16,
 
         /// Loss of leader -- resetting leader to UNKNOWN state.
@@ -139,11 +195,20 @@ struct ClusterStateTableEvent {
 
         /// Loss of primary(s), will inform Partition FSMs to reset to
         /// UNKNOWN state.
-        e_RST_PRIMARY     = 18,
+        e_RST_PRIMARY = 18,
+
+        /// Upon CSL commit success.
         e_CSL_CMT_SUCCESS = 19,
-        e_CSL_CMT_FAIL    = 20,
-        e_WATCH_DOG       = 21,
-        e_NUM_EVENTS      = 22
+
+        /// Upon CSL commit failure.
+        e_CSL_CMT_FAIL = 20,
+
+        /// Watchdog triggered due to timeout.
+        e_WATCH_DOG = 21,
+
+        /// **NOT A VALID STATE**.  This is an artificial enum value to
+        /// represent the number of states.
+        e_NUM_EVENTS = 22
     };
 
     // CLASS METHODS
@@ -524,7 +589,7 @@ class ClusterStateTable
             logFailFollowerClusterStateResponse_removeFollowerLSN_checkLSNQuorum,
             LDR_HEALING_STG2);
         CST_CFG(LDR_HEALING_STG2,
-                CRASH_FOL_CSL,
+                DISCONNECT_FOL_LSN,
                 removeFollowerLSN_checkLSNQuorum,
                 LDR_HEALING_STG2);
         CST_CFG(LDR_HEALING_STG2,
