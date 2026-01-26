@@ -261,6 +261,7 @@ void PrometheusStatConsumer::onSnapshot()
     captureClusterPartitionsStats();
     captureDomainStats(leaders);
     captureQueueStats();
+    captureDispatcherStats();
 
     d_prometheusStatExporter_p->onData();
 }
