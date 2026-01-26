@@ -50,7 +50,7 @@ FlowController::FlowController::~FlowController()
 FlowController::Watermark FlowController::add(int howMany)
 {
     if (howMany == 0) {
-        return e_Low;
+        return e_Zero;
     }
     d_count += howMany;
     d_currentSecondCount += howMany;
@@ -77,7 +77,7 @@ FlowController::Watermark FlowController::add(int howMany)
     return result;
 }
 
-bool FlowController::checkWatermark(bsls::Types::Int64 lowThreshold,
+void FlowController::checkWatermark(bsls::Types::Int64 lowThreshold,
                                     bsls::Types::Int64 maxRateLimit)
 {
     const FlowController::Policy policy    = d_config.policy();
@@ -111,14 +111,7 @@ bool FlowController::checkWatermark(bsls::Types::Int64 lowThreshold,
         config.scale(75, 100);
 
         configure(config);
-
-        if (d_count > d_config.burst() && config.policy() == e_Limit) {
-            // Over the bucket
-            return false;  // RETURN
-        }
     }
-
-    return true;
 }
 
 void FlowController::update(bsls::Types::Int64 ms,
@@ -202,7 +195,7 @@ FlowController::Config FlowController::survey(Policy policy) const
     return Config(policy, sum * 1000 / ms, maxBurst());
 }
 
-FlowController::Config FlowController::config() const
+const FlowController::Config& FlowController::config() const
 {
     return d_config;
 }

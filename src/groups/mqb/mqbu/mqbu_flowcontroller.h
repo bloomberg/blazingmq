@@ -90,11 +90,13 @@ class FlowController {
     };
 
     enum Watermark {
-        e_Low = 0  // No overload
+        e_Zero = 0  // No data
         ,
-        e_High = 1  // Resource(s) is(are) at the first high wm
+        e_Low = 1  // No overload
         ,
-        e_Strict = 2  // Drop the data
+        e_High = 2  // Resource(s) is(are) at the first high wm
+        ,
+        e_Strict = 3  // Drop the data
     };
 
   private:
@@ -161,7 +163,7 @@ class FlowController {
     /// above, enforce limiting policy with 0.75 of either current rate and
     /// burst values if policy already limits or average observed values from
     /// the history.
-    bool checkWatermark(bsls::Types::Int64 lowThreshold,
+    void checkWatermark(bsls::Types::Int64 lowThreshold,
                         bsls::Types::Int64 maxRateLimit);
 
     /// Provide time to the leaky bucket algorithm in the specified `ms`.
@@ -177,7 +179,7 @@ class FlowController {
     Config survey(Policy policy) const;
 
     /// Return current policy, rate, and burst
-    Config config() const;
+    const Config& config() const;
 
     /// Return average watermark in the window.
     bsls::Types::Int64 averageWatermark() const;
@@ -188,6 +190,10 @@ class FlowController {
     /// Return `true` if there is no recorded activity and the policy does not
     /// limit.  Return `false` otherwise.
     bool isIdle() const;
+
+    /// Return `true` if the bucket is full and the policy does limit.
+    /// Return `false` otherwise.
+    inline bool isFull() const;
 
     bsl::ostream&
     print(bsl::ostream& stream, int level, int spacesPerLevel) const;
@@ -288,6 +294,11 @@ inline bool FlowController::isIdle() const
 {
     return d_count == 0 && d_totalCount == 0 &&
            config().policy() == Policy::e_None;
+}
+
+inline bool FlowController::isFull() const
+{
+    return (d_count > config().burst() && config().policy() == e_Limit);
 }
 
 // FREE OPERATORS
