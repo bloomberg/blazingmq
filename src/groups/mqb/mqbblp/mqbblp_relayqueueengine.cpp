@@ -225,6 +225,40 @@ const mqbi::StorageIterator* VirtualIterator::next()
     return d_start_p;
 }
 
+bool isConfigureErrorPermanent(
+    const bmqp_ctrlmsg::StatusCategory::Value& value)
+{
+    switch (value) {
+    case bmqp_ctrlmsg::StatusCategory::E_SUCCESS: {
+        return false;
+    }
+    case bmqp_ctrlmsg::StatusCategory::E_UNKNOWN: {
+        return false;
+    }
+    case bmqp_ctrlmsg::StatusCategory::E_TIMEOUT: {
+        return false;
+    }
+    case bmqp_ctrlmsg::StatusCategory::E_NOT_CONNECTED: {
+        return false;
+    }
+    case bmqp_ctrlmsg::StatusCategory::E_CANCELED: {
+        return false;
+    }
+    case bmqp_ctrlmsg::StatusCategory::E_NOT_SUPPORTED: {
+        return true;
+    }
+    case bmqp_ctrlmsg::StatusCategory::E_REFUSED: {
+        return false;
+    }
+    case bmqp_ctrlmsg::StatusCategory::E_INVALID_ARGUMENT: {
+        return true;
+    }
+    case bmqp_ctrlmsg::StatusCategory::E_NOT_READY: {
+        return false;
+    }
+    }
+}
+
 }  // close unnamed namespace
 
 // ==================================
@@ -347,7 +381,7 @@ void RelayQueueEngine::onHandleConfiguredDispatched(
     const bool isHandleKnown = d_queueState_p->handleCatalog().hasHandle(
         handle);
 
-    if (bmqp_ctrlmsg::StatusCategory::E_SUCCESS != status.category()) {
+    if (isConfigureErrorPermanent(status.category())) {
         BMQ_LOGTHROTTLE_WARN
             << "#QUEUE_CONFIGURE_FAILURE"
             << " Received failed 'configure-stream' response for "
@@ -359,8 +393,13 @@ void RelayQueueEngine::onHandleConfiguredDispatched(
         return;  // RETURN
     }
 
-    BSLS_ASSERT_SAFE(bmqp_ctrlmsg::StatusCategory::E_SUCCESS ==
-                     status.category());
+    if (bmqp_ctrlmsg::StatusCategory::E_SUCCESS != status.category()) {
+        BMQ_LOGTHROTTLE_WARN << "Received " << status.category()
+                             << " 'configure-stream' response for "
+                             << Event(handle, d_queueState_p, isHandleKnown)
+                             << ", for parameters [" << downStreamParameters
+                             << "], but will treat it as success.";
+    }
 
     if (!isHandleKnown) {
         BMQ_LOGTHROTTLE_ERROR << "#CLIENT_IMPROPER_BEHAVIOR "
