@@ -11,6 +11,7 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
+// limitations under the License.
 
 // mqbu_flowcontroller.h                                              -*-C++-*-
 #ifndef INCLUDED_MQBU_FLOWCONTROLLER
@@ -123,6 +124,10 @@ class FlowController {
     /// Index of the current record
     int d_currentRecord;
 
+    int d_historySize;
+
+    bool d_isHistoryFull;
+
     /// Number of hits since the last history update
     bsls::Types::Int64 d_currentSecondCount;
 
@@ -142,9 +147,6 @@ class FlowController {
 
     int d_currentMaxBurst;
     int d_previousMaxBurst;
-
-  private:
-    // PRIVATE MANIPULATORS
 
   public:
     // CREATORS
