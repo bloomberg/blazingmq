@@ -22,6 +22,8 @@
 
 // BDE
 #include <bdlma_localsequentialallocator.h>
+#include <bdld_datummapbuilder.h>
+#include <ball_log.h>
 
 namespace BloombergLP {
 namespace mqbstat {
@@ -33,9 +35,9 @@ static const char k_DISPATCHER_STAT_NAME[] = "dispatcher";
 
 }  // close unnamed namespace
 
-// -----------------
-// class DomainStats
-// -----------------
+// ---------------------
+// class DispatcherStats
+// ---------------------
 
 bsls::Types::Int64 DispatcherStats::getValue(const bmqst::StatContext& context,
                                          int                       snapshotId,
@@ -46,6 +48,15 @@ bsls::Types::Int64 DispatcherStats::getValue(const bmqst::StatContext& context,
 
     const bmqst::StatValue::SnapshotLocation latestSnapshot(0, 0);
     const bmqst::StatValue::SnapshotLocation oldestSnapshot(0, snapshotId);
+
+#define OLDEST_SNAPSHOT(STAT)                                                 \
+    (bmqst::StatValue::SnapshotLocation(                                      \
+        0,                                                                    \
+        (snapshotId >= 0)                                                     \
+            ? snapshotId                                                      \
+            : (context.value(bmqst::StatContext::e_DIRECT_VALUE, (STAT))      \
+                   .historySize(0) -                                          \
+               1)))
 
 #define STAT_SINGLE(OPERATION, STAT)                                          \
     bmqst::StatUtil::OPERATION(                                               \
@@ -61,7 +72,7 @@ bsls::Types::Int64 DispatcherStats::getValue(const bmqst::StatContext& context,
     bmqst::StatUtil::OPERATION(                                               \
         context.value(bmqst::StatContext::e_DIRECT_VALUE, STAT),              \
         latestSnapshot,                                                       \
-        oldestSnapshot)
+        OLDEST_SNAPSHOT(STAT))
 
     switch (stat) {
     case Stat::e_ENQUEUE_DELTA: {
@@ -80,13 +91,19 @@ bsls::Types::Int64 DispatcherStats::getValue(const bmqst::StatContext& context,
         return STAT_SINGLE_ABS(absoluteMax, DispatcherStatsIndex::e_STAT_QUEUE);
     }
     case Stat::e_TIME_MIN: {
-        return STAT_RANGE(rangeMin, DispatcherStatsIndex::e_STAT_TIME);
+        const bsls::Types::Int64 min =
+            STAT_RANGE(rangeMin, DispatcherStatsIndex::e_STAT_TIME);
+        return min == bsl::numeric_limits<bsls::Types::Int64>::max() ? 0 : min;
     }
     case Stat::e_TIME_AVG: {
-        return STAT_RANGE(averagePerEvent, DispatcherStatsIndex::e_STAT_TIME);
+        const bsls::Types::Int64 avg =
+            STAT_RANGE(averagePerEvent, DispatcherStatsIndex::e_STAT_TIME);
+        return avg == bsl::numeric_limits<bsls::Types::Int64>::max() ? 0 : avg;
     }
     case Stat::e_TIME_MAX: {
-        return STAT_RANGE(rangeMax, DispatcherStatsIndex::e_STAT_TIME);
+        const bsls::Types::Int64 max =
+            STAT_RANGE(rangeMax, DispatcherStatsIndex::e_STAT_TIME);
+        return max == bsl::numeric_limits<bsls::Types::Int64>::min() ? 0 : max;
     }
     case Stat::e_TIME_ABS_MAX: {
         return STAT_SINGLE_ABS(absoluteMax, DispatcherStatsIndex::e_STAT_TIME);
@@ -101,6 +118,7 @@ bsls::Types::Int64 DispatcherStats::getValue(const bmqst::StatContext& context,
 #undef STAT_RANGE
 #undef STAT_SINGLE_ABS
 #undef STAT_SINGLE
+#undef OLDEST_SNAPSHOT
 }
 
 // ---------------------
@@ -127,20 +145,40 @@ DispatcherStatsUtil::initializeStatContext(int               historySize,
 }
 
 bslma::ManagedPtr<bmqst::StatContext>
-    DispatcherStatsUtil::initializeSubStatContext(bmqst::StatContext*      parent,
+    DispatcherStatsUtil::initializeClientStatContext(bmqst::StatContext*      parent,
                                 const bslstl::StringRef& name,
                                 bslma::Allocator*        allocator)
 {
-    bdlma::LocalSequentialAllocator<512> localAllocator(allocator);
+    bdlma::LocalSequentialAllocator<1024> localAllocator(allocator);
 
     bmqst::StatContextConfiguration statConfig(name, &localAllocator);
-    // statConfig.value("queued_count")
-    //           .value("queued_time", bmqst::StatValue::e_DISCRETE);
-
-    // bslma::ManagedPtr<bmqst::StatContext> statContext = parent->addSubcontext(statConfig);
-
-    // return statContext;
     return parent->addSubcontext(statConfig);
+}                                
+
+bslma::ManagedPtr<bmqst::StatContext>
+    DispatcherStatsUtil::initializeQueueStatContext(bmqst::StatContext*      parent,
+                                const bslstl::StringRef& name,
+                                const bslstl::StringRef& client,
+                                unsigned int             processorId,
+                                bslma::Allocator*        allocator)
+{
+    bdlma::LocalSequentialAllocator<2048> localAllocator(allocator);
+
+    bmqst::StatContextConfiguration statConfig(name, &localAllocator);
+
+    bslma::ManagedPtr<bmqst::StatContext> statContext_mp = parent->addSubcontext(statConfig);
+
+    // Build a datum map containing the following values:
+    //: o client: the name of client associated with the queue
+    //: o processorId: the processor Id associated with the queue
+    bslma::ManagedPtr<bdld::ManagedDatum> datum = statContext_mp->datum();
+    bslma::Allocator*     alloc = statContext_mp->datumAllocator();
+    bdld::DatumMapBuilder builder(alloc);
+    builder.pushBack("client", bdld::Datum::copyString(client, alloc));
+    builder.pushBack("processorId", bdld::Datum::createInteger(processorId));
+    datum->adopt(builder.commit());
+
+    return statContext_mp;
 }                                
 
 }  // close package namespace

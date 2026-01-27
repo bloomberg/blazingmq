@@ -133,6 +133,18 @@ class Tagger {
         return *this;
     }
 
+    Tagger& setClient(bsl::string_view value)
+    {
+        labels["Client"] = bsl::string(value);
+        return *this;
+    }
+
+    Tagger& setProcessorId(int value)
+    {
+        labels["ProcessorId"] = bsl::to_string(value);
+        return *this;
+    }
+
     // ACCESSORS
     ::prometheus::Labels& getLabels() { return labels; }
 };
@@ -843,15 +855,14 @@ void PrometheusStatConsumer::captureDispatcherStats()
                  clientIt->subcontextIterator();
              queueIt;
              ++queueIt) {
-            // bslma::ManagedPtr<bdld::ManagedDatum> mdSp = queueIt->datum();
-            // bdld::DatumMapRef                     map = mdSp->datum().theMap();
+            bslma::ManagedPtr<bdld::ManagedDatum> mdSp = queueIt->datum();
+            bdld::DatumMapRef                     map = mdSp->datum().theMap();
 
             Tagger tagger;
             tagger.setInstance(mqbcfg::BrokerConfig::get().brokerInstanceName())
+                  .setClient(map.find("client")->theString())
+                  .setProcessorId(map.find("processorId")->theInteger())
                   .setDataType("host-data");
-            // .setCluster(map.find("cluster")->theString())
-            //     .setDomain(map.find("domain")->theString())
-            //     .setTier(map.find("tier")->theString())
 
             const auto labels = tagger.getLabels();
 

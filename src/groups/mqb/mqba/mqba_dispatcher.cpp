@@ -245,7 +245,7 @@ int Dispatcher::startContext(bsl::ostream&                    errorDescription,
     // bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
     // bmqst::StatContextConfiguration statConfig(mqbi::DispatcherClientType::toAscii(type), &localAllocator);
     // context->d_clientStatContext_mp = d_statContext_p->addSubcontext(statConfig);
-    context->d_clientStatContext_mp = mqbstat::DispatcherStatsUtil::initializeSubStatContext(d_statContext_p,
+    context->d_clientStatContext_mp = mqbstat::DispatcherStatsUtil::initializeClientStatContext(d_statContext_p,
                                                                  mqbi::DispatcherClientType::toAscii(type),
                                                                  d_allocator_p);
 
@@ -348,8 +348,10 @@ Dispatcher::queueCreator(mqbi::DispatcherClientType::Enum             type,
     // bmqst::StatContextConfiguration statConfigNew(queueName, &localAllocator);
     // statConfigNew.value("Queue").value("Time", bmqst::StatValue::e_DISCRETE);
     // context->d_statContextsVec.at(processorId) = context->d_clientStatContext_mp->addSubcontext(statConfigNew);
-    context->d_statContextsVec.at(processorId) = mqbstat::DispatcherStatsUtil::initializeSubStatContext(context->d_clientStatContext_mp.get(),
+    context->d_statContextsVec.at(processorId) = mqbstat::DispatcherStatsUtil::initializeQueueStatContext(context->d_clientStatContext_mp.get(),
                                                                                                             queueName,
+                                                                                                            mqbi::DispatcherClientType::toAscii(type),
+                                                                                                            processorId,
                                                                                                             d_allocator_p);
     // TODO: remove legacy
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);

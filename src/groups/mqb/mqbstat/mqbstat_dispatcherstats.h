@@ -132,14 +132,26 @@ struct DispatcherStatsUtil {
     static bsl::shared_ptr<bmqst::StatContext>
     initializeStatContext(int historySize, bslma::Allocator* allocator);
 
-    /// Initialize the statistics for the dispatcher sub stat context,
-    /// with the specified `parent` context and `name`. It is used to initialize client
-    /// and queue sub-contexts.  Return the created stat context to use for all 
-    /// dispatcher queue level statistics.  Use the specified `allocator` for all
-    ///  stat context and stat values.
+    /// Initialize the statistics for the dispatcher client stat context,
+    /// with the specified `parent` context and `name`.
+    /// Return the created stat context to use for all dispatcher client
+    /// level statistics.  Use the specified `allocator` for all
+    /// stat context and stat values.
     static bslma::ManagedPtr<bmqst::StatContext>
-    initializeSubStatContext(bmqst::StatContext*      parent,
+    initializeClientStatContext(bmqst::StatContext*      parent,
                                 const bslstl::StringRef& name,
+                                bslma::Allocator*        allocator);
+
+    /// Initialize the statistics for the dispatcher queue stat context,
+    /// with the specified `parent` context and `name`.
+    /// Return the created stat context to use for all dispatcher queue
+    /// level statistics.  Use the specified `allocator` for all stat context
+    /// and stat values.
+    static bslma::ManagedPtr<bmqst::StatContext>
+    initializeQueueStatContext(bmqst::StatContext*      parent,
+                                const bslstl::StringRef& name,
+                                const bslstl::StringRef& client,
+                                unsigned int             processorId,
                                 bslma::Allocator*        allocator);
 };
 
