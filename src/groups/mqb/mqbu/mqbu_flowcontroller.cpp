@@ -28,6 +28,8 @@ FlowController::FlowController()
 , d_lastUpdateMs(0)
 , d_config()
 , d_currentRecord(0)
+, d_historySize(0)
+, d_isHistoryFull()
 , d_currentSecondCount(0)
 , d_currentSecondMs(0)
 , d_totalCount(0)
@@ -106,7 +108,7 @@ void FlowController::checkWatermark(bsls::Types::Int64 lowThreshold,
                  ? d_config
                  : survey(mqbu::FlowController::e_Limit));
 
-        // scale down, times lowThreshold / watermark
+        // scale down, 75% (alternatively, lowThreshold / watermark)
 
         config.scale(75, 100);
 
@@ -157,6 +159,7 @@ void FlowController::update(bsls::Types::Int64 ms,
         elapsedSinceLastSecondMs -= k_RECORD_MS;
 
         if (++d_currentRecord == k_HISTORY_SIZE) {
+            d_isHistoryFull = true;
             d_currentRecord = 0;
         }
     }
@@ -187,7 +190,8 @@ void FlowController::update(bsls::Types::Int64 ms,
 FlowController::Config FlowController::survey(Policy policy) const
 {
     bsls::Types::Int64 sum = d_currentSecondCount + d_totalCount;
-    bsls::Types::Int64 ms  = d_currentSecondMs + k_RECORD_MS * k_HISTORY_SIZE;
+    const int numRecords  = d_isHistoryFull ? k_HISTORY_SIZE : d_currentRecord;
+    bsls::Types::Int64 ms = d_currentSecondMs + k_RECORD_MS * numRecords;
 
     // Calculate moving average within approximately 5 min
     // Use 'd_currentMaxBurst' as the burst size

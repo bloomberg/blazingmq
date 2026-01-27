@@ -123,6 +123,10 @@ class FlowController {
     /// Index of the current record
     int d_currentRecord;
 
+    int d_historySize;
+
+    bool d_isHistoryFull;
+
     /// Number of hits since the last history update
     bsls::Types::Int64 d_currentSecondCount;
 
@@ -142,9 +146,6 @@ class FlowController {
 
     int d_currentMaxBurst;
     int d_previousMaxBurst;
-
-  private:
-    // PRIVATE MANIPULATORS
 
   public:
     // CREATORS
