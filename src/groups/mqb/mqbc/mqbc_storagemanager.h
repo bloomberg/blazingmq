@@ -102,7 +102,7 @@ class StorageManagerIterator;
 /// this component.
 class StorageManager BSLS_KEYWORD_FINAL
 : public mqbi::StorageManager,
-  public PartitionStateTableActions<PartitionFSM::PartitionFSMArgsSp>,
+  public PartitionStateTableActions<PartitionFSM::EventWithData>,
   public PartitionFSMObserver {
   private:
     // CLASS-SCOPE CATEGORY
@@ -192,7 +192,7 @@ class StorageManager BSLS_KEYWORD_FINAL
 
   public:
     // TYPES
-    typedef PartitionFSM::PartitionFSMArgsSp PartitionFSMArgsSp;
+    typedef PartitionFSM::EventWithData EventWithData;
 
     /// Pool of shared pointers to Blobs
     typedef StorageUtil::BlobSpPool BlobSpPool;
@@ -356,8 +356,11 @@ class StorageManager BSLS_KEYWORD_FINAL
     ///         for the i-th partitionId.
     bsl::vector<unsigned int> d_numReplicaDataResponsesReceivedVec;
 
-    /// Whether `d_queueKeyInfoMapVec` has been initialized.
-    bsls::AtomicBool d_isQueueKeyInfoMapVecInitialized;
+    /// Whether `d_queueKeyInfoMapVec` has been initialized.  This data
+    /// structure only needs to be initialized once at startup, and no more.
+    ///
+    /// THREAD: **Must** be accessed in the cluster dispatcher thread.
+    bool d_isQueueKeyInfoMapVecInitialized;
 
     /// Mapping from queue key to queue info indexed by partitionId, populated
     /// from cluster state at startup.  This is used to validate against
@@ -457,9 +460,9 @@ class StorageManager BSLS_KEYWORD_FINAL
 
     /// Dispatch the event to *QUEUE DISPATCHER* thread associated with
     /// the partitionId as per the specified `eventDataVec` with the
-    /// specified `event` using the specified `fs`.
-    void dispatchEventToPartition(mqbs::FileStore*          fs,
-                                  PartitionFSM::Event::Enum event,
+    /// specified `event`.  If we are already in *QUEUE DISPATCHER* thread,
+    /// then execute the event in place.
+    void dispatchEventToPartition(PartitionFSM::Event::Enum event,
                                   const EventData&          eventDataVec);
 
     /// Set the primary status of the specified `partitionId` to the specified
@@ -471,17 +474,16 @@ class StorageManager BSLS_KEYWORD_FINAL
         int                                partitionId,
         bmqp_ctrlmsg::PrimaryStatus::Value value);
 
-    /// Apply DETECT_SelfPrimary event to PartitionFSM using the specified
-    /// `partitionId`, `primaryNode`, `primaryLeaseId`.
-    void processPrimaryDetect(int                  partitionId,
-                              mqbnet::ClusterNode* primaryNode,
-                              unsigned int         primaryLeaseId);
+    /// THREAD: This method is invoked in the associated Queue dispatcher
+    ///         thread for the specified `partitionId`.
+    void setPrimaryForPartitionDispatched(int                  partitionId,
+                                          mqbnet::ClusterNode* primaryNode,
+                                          unsigned int         primaryLeaseId);
 
-    /// Apply DETECT_SelfReplica event to StorageFSM using the specified
-    /// `partitionId`, `primaryNode` and `primaryLeaseId`.
-    void processReplicaDetect(int                  partitionId,
-                              mqbnet::ClusterNode* primaryNode,
-                              unsigned int         primaryLeaseId);
+    /// THREAD: This method is invoked in the associated Queue dispatcher
+    ///         thread for the specified `partitionId`.
+    void clearPrimaryForPartitionDispatched(int                  partitionId,
+                                            mqbnet::ClusterNode* primary);
 
     /// Process replica data request of type PULL received from the specified
     /// `source` with the specified `message`.
@@ -566,142 +568,126 @@ class StorageManager BSLS_KEYWORD_FINAL
     void forceFlushFileStores();
 
     //   (virtual: mqbc::PartitionStateTableActions)
-    void
-    do_startWatchDog(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+    void do_startWatchDog(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
-    void do_stopWatchDog(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
-
-    void do_openRecoveryFileSet(const PartitionFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_closeRecoveryFileSet(const PartitionFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_storeSelfSeq(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+    void do_stopWatchDog(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
     void
-    do_storePrimarySeq(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+    do_openRecoveryFileSet(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
     void
-    do_storeReplicaSeq(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+    do_closeRecoveryFileSet(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
-    void do_storePartitionInfo(const PartitionFSMArgsSp& args)
+    void do_storeSelfSeq(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_storePrimarySeq(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_storeReplicaSeq(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void
+    do_replicaStateRequest(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void
+    do_replicaStateResponse(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_failureReplicaStateResponse(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_clearPartitionInfo(const PartitionFSMArgsSp& args)
+    void do_logFailureReplicaStateResponse(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_replicaStateRequest(const PartitionFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_replicaStateResponse(const PartitionFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_failureReplicaStateResponse(const PartitionFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_logFailureReplicaStateResponse(const PartitionFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_logFailurePrimaryStateResponse(const PartitionFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_primaryStateRequest(const PartitionFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_primaryStateResponse(const PartitionFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_failurePrimaryStateResponse(const PartitionFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_replicaDataRequestPush(const PartitionFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_replicaDataResponsePush(const PartitionFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_replicaDataRequestDrop(const PartitionFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_replicaDataResponseDrop(const PartitionFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_replicaDataRequestPull(const PartitionFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_replicaDataResponsePull(const PartitionFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_failureReplicaDataResponsePull(const PartitionFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_failureReplicaDataResponsePush(const PartitionFSMArgsSp& args)
+    void do_logFailurePrimaryStateResponse(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
 
     void
-    do_bufferLiveData(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
-
-    void do_processBufferedLiveData(const PartitionFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_clearBufferedLiveData(const PartitionFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_processBufferedPrimaryStatusAdvisories(
-        const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+    do_primaryStateRequest(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
     void
-    do_processLiveData(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+    do_primaryStateResponse(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_failurePrimaryStateResponse(const EventWithData& event)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_replicaDataRequestPush(const EventWithData& event)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_replicaDataResponsePush(const EventWithData& event)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_replicaDataRequestDrop(const EventWithData& event)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_replicaDataResponseDrop(const EventWithData& event)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_replicaDataRequestPull(const EventWithData& event)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_replicaDataResponsePull(const EventWithData& event)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_failureReplicaDataResponsePull(const EventWithData& event)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_failureReplicaDataResponsePush(const EventWithData& event)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_bufferLiveData(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_processBufferedLiveData(const EventWithData& event)
+        BSLS_KEYWORD_OVERRIDE;
 
     void
-    do_cleanupMetadata(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+    do_clearBufferedLiveData(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
-    void do_startSendDataChunks(const PartitionFSMArgsSp& args)
+    void do_processBufferedPrimaryStatusAdvisories(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_setExpectedDataChunkRange(const PartitionFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
+    void do_processLiveData(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
-    void do_resetReceiveDataCtx(const PartitionFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
+    void do_cleanupMetadata(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
-    void do_attemptOpenStorage(const PartitionFSMArgsSp& args)
+    void
+    do_startSendDataChunks(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_setExpectedDataChunkRange(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
 
     void
-    do_updateStorage(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+    do_resetReceiveDataCtx(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
     void
-    do_removeStorage(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+    do_attemptOpenStorage(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
-    void do_incrementNumRplcaDataRspn(const PartitionFSMArgsSp& args)
+    void do_updateStorage(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_removeStorage(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_incrementNumRplcaDataRspn(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_checkQuorumRplcaDataRspn(const PartitionFSMArgsSp& args)
+    void do_checkQuorumRplcaDataRspn(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_reapplyEvent(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+    void do_reapplyEvent(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_checkQuorumSeq(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_findHighestSeq(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
     void
-    do_checkQuorumSeq(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+    do_flagFailedReplicaSeq(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
-    void
-    do_findHighestSeq(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
-
-    void do_flagFailedReplicaSeq(const PartitionFSMArgsSp& args)
+    void do_transitionToActivePrimary(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_transitionToActivePrimary(const PartitionFSMArgsSp& args)
+    void do_reapplyDetectSelfPrimary(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_reapplyDetectSelfPrimary(const PartitionFSMArgsSp& args)
+    void do_reapplyDetectSelfReplica(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_reapplyDetectSelfReplica(const PartitionFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_unsupportedPrimaryDowngrade(const PartitionFSMArgsSp& args)
+    void do_unsupportedPrimaryDowngrade(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
 
     // PRIVATE ACCESSORS
@@ -867,6 +853,35 @@ class StorageManager BSLS_KEYWORD_FINAL
     void setPrimaryStatusForPartition(int partitionId,
                                       bmqp_ctrlmsg::PrimaryStatus::Value value)
         BSLS_KEYWORD_OVERRIDE;
+
+    /// Stop all Partition FSMs.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
+    void stopPFSMs() BSLS_KEYWORD_OVERRIDE;
+
+    /// Apply `RST_UNKNOWN` event to the Partition FSM for the specified
+    /// `partitionId`.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
+    void detectPrimaryLossInPFSM(int partitionId) BSLS_KEYWORD_OVERRIDE;
+
+    /// Apply DETECT_SelfPrimary event to Partition FSM using the specified
+    /// `partitionId`, `primaryNode`, `primaryLeaseId`.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
+    void
+    detectSelfPrimaryInPFSM(int                  partitionId,
+                            mqbnet::ClusterNode* primaryNode,
+                            unsigned int primaryLeaseId) BSLS_KEYWORD_OVERRIDE;
+
+    /// Apply DETECT_SelfReplica event to Partition FSM using the specified
+    /// `partitionId`, `primaryNode` and `primaryLeaseId`.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
+    void
+    detectSelfReplicaInPFSM(int                  partitionId,
+                            mqbnet::ClusterNode* primaryNode,
+                            unsigned int primaryLeaseId) BSLS_KEYWORD_OVERRIDE;
 
     /// Process primary state request received from the specified `source`
     /// with the specified `message`.
