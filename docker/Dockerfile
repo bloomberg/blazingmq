@@ -40,7 +40,7 @@ RUN bin/build_deps.sh \
         -DCMAKE_PREFIX_PATH=/workspace/srcs/bde-tools/BdeBuildSystem \
         -DCMAKE_INSTALL_LIBDIR=lib64 \
     && cmake --build cmake.bld/Linux --parallel 8 --target bmqbrkr bmqtool \
-    && cmake --install cmake.bld/Linux --prefix=/bmq \
+    && cmake --install cmake.bld/Linux --prefix=/bmq --target bmqbrkr bmqtool \
     && mv /bmq/bin/bmqbrkr.tsk /bmq/bin/bmqbrkr \
     && mv /bmq/bin/bmqtool.tsk /bmq/bin/bmqtool \
     && rm -rf /workspace
