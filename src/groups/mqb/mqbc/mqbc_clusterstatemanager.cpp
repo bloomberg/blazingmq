@@ -1124,7 +1124,7 @@ void ClusterStateManager::onCommit(
 
     const bmqp_ctrlmsg::ClusterMessage& clusterMessage =
         advisory.choice().clusterMessage();
-    bsl::vector<int> modifiedPartitions;
+    bsl::vector<int> modifiedPartitions(d_allocator_p);
     mqbc::ClusterUtil::apply(d_state_p,
                              clusterMessage,
                              *d_clusterData_p,
