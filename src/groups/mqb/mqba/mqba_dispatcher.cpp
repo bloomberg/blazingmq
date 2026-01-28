@@ -57,6 +57,7 @@ Dispatcher_Executor::Dispatcher_Executor(const Dispatcher* dispacher,
                                          const mqbi::DispatcherClient* client)
     BSLS_CPP11_NOEXCEPT : d_eventSource_sp(),
                           d_processorPool_p(0),
+                          d_processorHandle(),
                           d_statContext_p(0)
 {
     // PRECONDITIONS

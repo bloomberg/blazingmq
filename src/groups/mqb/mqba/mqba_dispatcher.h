@@ -47,7 +47,6 @@
 
 // BMQ
 #include <bmqst_statcontext.h>
-#include <bmqst_statvalue.h>
 #include <bmqsys_time.h>
 
 // MQB
