@@ -45,6 +45,11 @@
 /// be executed in-place.  A call to `dispatch` from outside of the executor's
 /// associated processor thread is equivalent to a call to `post`.
 
+// BMQ
+#include <bmqst_statcontext.h>
+#include <bmqst_statvalue.h>
+#include <bmqsys_time.h>
+
 // MQB
 #include <mqbcfg_messages.h>
 #include <mqbi_dispatcher.h>
@@ -67,14 +72,6 @@
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bsls_assert.h>
-
-#include <bmqst_basictableinfoprovider.h>
-#include <bmqst_statcontext.h>
-#include <bmqst_statutil.h>
-#include <bmqst_statvalue.h>
-#include <bmqst_table.h>
-#include <bmqsys_time.h>
-
 
 namespace BloombergLP {
 
@@ -114,7 +111,6 @@ class Dispatcher_Executor {
     mqbi::Dispatcher::ProcessorHandle d_processorHandle;
 
     bmqst::StatContext* d_statContext_p;
-    bmqst::StatContext* d_statContextNew_p;
 
   public:
     // CREATORS
@@ -221,13 +217,6 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
 
     typedef bsl::vector<mqbi::DispatcherClient*> DispatcherClientPtrVector;
 
-    // Index of the different stat values
-    enum StatIndex {
-        k_STAT_QUEUE = 0  // Queue/Dequeue
-        ,
-        k_STAT_TIME = 1  // Event queued time
-    };
-
     /// The purpose is to avoid memory allocation by bdlf::BindUtil::bind
     /// when dispatching CONFIRM from Cluster to Queue.
     class OnNewClientFunctor : public bmqu::ManagedCallback::CallbackFunctor {
@@ -266,34 +255,6 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
       public:
         // PUBLIC DATA
 
-        struct StatContextData {
-          public:
-            /// Stat context to use
-            bslma::ManagedPtr<bmqst::StatContext> d_statContext_mp;
-            /// Table to use for dumping the stats
-            bmqst::Table d_statTable;
-            /// Tip to use when printing stats,
-            /// include the delta stats fields
-            /// (diffs since previous print)
-            bmqst::BasicTableInfoProvider d_statTip;
-            /// Tip to use when printing stats,
-            /// excluding the delta stats fields
-            /// (typically used when printing
-            /// stats on demand (outside of the
-            /// stat history size), for example
-            /// at exit.
-            bmqst::BasicTableInfoProvider d_statTipNoDelta;
-
-            StatContextData()
-            : d_statContext_mp(0)
-            , d_statTable()
-            , d_statTip(&d_statTable)
-            , d_statTipNoDelta(&d_statTable)
-            {
-                // NOTHING
-            }
-        };
-
         /// Thread pool to use.
         ThreadPoolMp d_threadPool_mp;
 
@@ -308,19 +269,16 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
         /// the vector corresponds to the processor.
         bsl::vector<DispatcherClientPtrVector> d_flushList;
 
-        /// Pointer to Stat context for client
-        bslma::ManagedPtr<bmqst::StatContext> d_clientStatContext_mp;
-
-        /// Vector of stat contexts pointers, one per processor.
-        bsl::vector<bslma::ManagedPtr<bmqst::StatContext>> d_statContextsVec;
-
-        /// Vector of stat contexts pointers, one per processor.
-        bsl::vector<StatContextData> d_statContexts;
-
         /// An event sources that should be exclusively used by the threads
         /// assigned for each processor.
         bsl::vector<bsl::shared_ptr<mqbi::DispatcherEventSource> >
             d_eventSources;
+
+        /// Pointer to stat context for client
+        bslma::ManagedPtr<bmqst::StatContext> d_clientStatContext_mp;
+
+        /// Vector of stat contexts pointers, one per client's processor.
+        bsl::vector<bslma::ManagedPtr<bmqst::StatContext>> d_statContexts;
 
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(DispatcherContext,
@@ -359,14 +317,8 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
     /// The various contexts, one for each `ClientType`.
     bsl::vector<DispatcherContextSp> d_contexts;
 
-    // TODO: remove
-    bmqst::StatContext d_rootStatContext;
-    // Top level stat context for all stats
-
     /// Top-level stat context for all dispatcher client types
     bmqst::StatContext* d_statContext_p;
-
-    bdlmt::EventScheduler::RecurringEventHandle d_statMonitorEventHandle;
 
     /// The event source that can be used by any routine that is not called
     /// from a dispatcher thread.
@@ -557,9 +509,6 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
     /// dispatcher.
     bmqex::Executor
     executor(const mqbi::DispatcherClient* client) const BSLS_KEYWORD_OVERRIDE;
-
-    /// Process/print statistics.
-    void statHandler();
 };
 
 // ============================================================================
@@ -637,15 +586,7 @@ Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
           handle);
 
       // Update stats
-      bslma::ManagedPtr<bmqst::StatContext>& statContext_mp = dispatcherContext.d_statContexts.at(handle).d_statContext_mp;
-      if (statContext_mp) {
-          statContext_mp->adjustValue(k_STAT_QUEUE, 1);
-      }
-    //   bmqst::StatContext* statContext_p = dispatcherContext.d_statContextsVec.at(handle).get();
-    //   if (statContext_p) {
-    //       statContext_p->adjustValue(k_STAT_QUEUE, 1);
-    //   }
-      mqbstat::DispatcherStats::onEnqueue(dispatcherContext.d_statContextsVec.at(handle).get());
+      mqbstat::DispatcherStats::onEnqueue(dispatcherContext.d_statContexts[handle].get());
 
     } break;
     case mqbi::DispatcherClientType::e_UNDEFINED:
