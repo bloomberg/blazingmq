@@ -18,17 +18,73 @@
 
 #include <bmqscm_version.h>
 // BDE
+#include <bdlb_string.h>
+#include <bdls_filesystemutil.h>
 #include <bslim_printer.h>
 #include <bslma_allocator.h>
 
+// BMQ
+#include <bmqu_stringutil.h>
+
 namespace BloombergLP {
 namespace bmqt {
+
+// ======================
+// struct ProtocolVersion
+// ======================
+
+bsl::ostream& ProtocolVersion::print(bsl::ostream&          stream,
+                                     ProtocolVersion::Value value,
+                                     int                    level,
+                                     int                    spacesPerLevel)
+{
+    if (stream.bad()) {
+        return stream;  // RETURN
+    }
+
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printValue(ProtocolVersion::toAscii(value));
+    printer.end();
+
+    return stream;
+}
+
+const char* ProtocolVersion::toAscii(ProtocolVersion::Value value)
+{
+    // Use openssl compatible string representation
+    switch (value) {
+    case e_TLS1_3: return "TLSv1.3";
+    default: return "(* UNKNOWN *)";
+    }
+}
+
+bool ProtocolVersion::fromAscii(ProtocolVersion::Value*  out,
+                                const bslstl::StringRef& str)
+{
+#define CHECKVALUE(M)                                                         \
+    if (bdlb::String::areEqualCaseless(toAscii(ProtocolVersion::e_##M),       \
+                                       str.data(),                            \
+                                       str.length())) {                       \
+        *out = ProtocolVersion::e_##M;                                        \
+        return true;                                                          \
+    }
+
+    CHECKVALUE(TLS1_3);
+
+    // Invalid string
+    return false;
+
+#undef CHECKVALUE
+}
 
 // --------------------
 // class SessionOptions
 // --------------------
 
 const char SessionOptions::k_BROKER_DEFAULT_URI[] = "tcp://localhost:30114";
+
+const char SessionOptions::k_DEFAULT_TLS_PROTOCOL_VERSIONS[] = "TLSv1.3";
 
 SessionOptions::SessionOptions(bslma::Allocator* allocator)
 : d_brokerUri(k_BROKER_DEFAULT_URI, allocator)
@@ -45,6 +101,8 @@ SessionOptions::SessionOptions(bslma::Allocator* allocator)
 , d_eventQueueLowWatermark(50)
 , d_eventQueueHighWatermark(2 * 1000)
 , d_eventQueueSize(-1)  // DEPRECATED: will be removed in future release
+, d_certificateAuthority(allocator)
+, d_protocolVersions(allocator)
 , d_hostHealthMonitor_sp(NULL)
 , d_dtContext_sp(NULL)
 , d_dtTracer_sp(NULL)
@@ -68,11 +126,51 @@ SessionOptions::SessionOptions(const SessionOptions& other,
 , d_eventQueueLowWatermark(other.eventQueueLowWatermark())
 , d_eventQueueHighWatermark(other.eventQueueHighWatermark())
 , d_eventQueueSize(-1)  // DEPRECATED: will be removed in future release
+, d_certificateAuthority(other.certificateAuthority())
+, d_protocolVersions(other.protocolVersions())
 , d_hostHealthMonitor_sp(other.hostHealthMonitor())
 , d_dtContext_sp(other.traceContext())
 , d_dtTracer_sp(other.tracer())
 {
     // NOTHING
+}
+
+SessionOptions&
+SessionOptions::configureTls(bsl::string_view certificateAuthority,
+                             bsl::string_view versions)
+{
+    d_certificateAuthority = certificateAuthority;
+    d_protocolVersions.clear();
+
+    bsl::vector<bsl::string_view> vs =
+        bmqu::StringUtil::strTokenizeRef(versions, ", \t");
+    for (bsl::vector<bsl::string_view>::const_iterator it  = vs.cbegin(),
+                                                       end = vs.cend();
+         it != end;
+         ++it) {
+        ProtocolVersion::Value version;
+
+        if (ProtocolVersion::fromAscii(&version, *it)) {
+            d_protocolVersions.insert(version);
+        }
+        else {
+            BSLS_ASSERT_OPT(false && "Unrecognized protocol version");
+        }
+    }
+
+    // TODO(tfoxhall): Asserts are a terrible way to do validation here but
+    // this seems to be the approach taken for the entire SessionOptions class.
+    BSLS_ASSERT_OPT(bdls::FilesystemUtil::exists(d_certificateAuthority));
+    BSLS_ASSERT_OPT(!d_protocolVersions.empty() &&
+                    "At least one TLS protocol version must be specified");
+
+    return *this;
+}
+
+SessionOptions&
+SessionOptions::configureTls(bsl::string_view certificateAuthority)
+{
+    return configureTls(certificateAuthority, k_DEFAULT_TLS_PROTOCOL_VERSIONS);
 }
 
 bsl::ostream& SessionOptions::print(bsl::ostream& stream,
@@ -108,6 +206,10 @@ bsl::ostream& SessionOptions::print(bsl::ostream& stream,
     printer.printAttribute("hasHostHealthMonitor",
                            d_hostHealthMonitor_sp != NULL);
     printer.printAttribute("hasDistributedTracing", d_dtTracer_sp != NULL);
+    printer.printAttribute("certificateAuthority", d_certificateAuthority);
+    printer.printAttribute("protocolVersions",
+                           d_protocolVersions.cbegin(),
+                           d_protocolVersions.cend());
     printer.end();
 
     return stream;

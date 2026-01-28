@@ -1,6 +1,7 @@
 bmqio_basechannelpartialimp
 bmqio_channel
 bmqio_channelfactory
+bmqio_channelfactorypipeline
 bmqio_channelutil
 bmqio_connectoptions
 bmqio_decoratingchannelpartialimp
