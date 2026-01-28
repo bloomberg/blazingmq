@@ -554,9 +554,7 @@ void QueueHandle::deliverMessageImpl(
     if (d_clientContext_sp->inlineClient() == 0) {
         // Create an event to dispatch delivery of the message to the client
         mqbi::DispatcherClient* client = d_clientContext_sp->client();
-        mqbi::Dispatcher::DispatcherEventSp event =
-            client->dispatcher()->getEvent(client);
-
+        mqbi::Dispatcher::DispatcherEventSp event = d_queue_sp->getEvent();
         (*event)
             .setType(mqbi::DispatcherEventType::e_PUSH)
             .setSource(d_queue_sp.get())
@@ -875,7 +873,8 @@ bool QueueHandle::unregisterSubStream(
     return false;
 }
 
-void QueueHandle::confirmMessage(const bmqt::MessageGUID& msgGUID,
+void QueueHandle::confirmMessage(mqbi::Dispatcher::DispatcherEventRvRef event,
+                                 const bmqt::MessageGUID& msgGUID,
                                  unsigned int             downstreamSubQueueId)
 {
     // executed by *ANY* thread
@@ -892,20 +891,14 @@ void QueueHandle::confirmMessage(const bmqt::MessageGUID& msgGUID,
     // A more generic approach would be to maintain a queue of CONFIRMs per
     // queue (outside of the dispatcher) and process it separately (on idle?).
 
-    mqbi::Dispatcher::DispatcherEventSp queueEvent =
-        d_queue_sp->dispatcher()->getEvent(
-            mqbi::DispatcherClientType::e_QUEUE);
-
-    (*queueEvent).setType(mqbi::DispatcherEventType::e_CALLBACK);
-
-    queueEvent->callback().createInplace<QueueHandle::ConfirmFunctor>(
+    event->setType(mqbi::DispatcherEventType::e_CALLBACK);
+    event->callback().createInplace<QueueHandle::ConfirmFunctor>(
         this,
         msgGUID,
         downstreamSubQueueId);
 
-    d_queue_sp->dispatcher()->dispatchEvent(
-        bslmf::MovableRefUtil::move(queueEvent),
-        d_queue_sp.get());
+    d_queue_sp->dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(event),
+                                            d_queue_sp.get());
 }
 
 void QueueHandle::rejectMessage(const bmqt::MessageGUID& msgGUID,
@@ -1067,8 +1060,7 @@ void QueueHandle::postMessage(const bmqp::PutHeader&              putHeader,
     // cannot check 'd_subscriptions' unless in the QUEUE dispatcher thread
 
     mqbi::Dispatcher::DispatcherEventSp event =
-        d_queue_sp->dispatcher()->getEvent(d_queue_sp.get());
-
+        d_clientContext_sp->client()->getEvent();
     (*event)
         .setType(mqbi::DispatcherEventType::e_PUT)
         .setSource(d_clientContext_sp->client())
@@ -1308,8 +1300,7 @@ void QueueHandle::onAckMessage(const bmqp::AckMessage& ackMessage)
 
     if (inlineClient == 0) {
         mqbi::DispatcherClient* client = d_clientContext_sp->client();
-        mqbi::Dispatcher::DispatcherEventSp event =
-            client->dispatcher()->getEvent(client);
+        mqbi::Dispatcher::DispatcherEventSp event = d_queue_sp->getEvent();
         (*event)
             .setType(mqbi::DispatcherEventType::e_ACK)
             .setSource(d_queue_sp.get())

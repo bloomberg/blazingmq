@@ -193,6 +193,9 @@ void Cluster::_initializeNodeSessions()
                                     statContextSp,
                                     d_allocator_p);
 
+        // We don't call mqbi::Dispatcher::registerClient for node sessions
+        nodeSessionSp->setEventSource(d_dispatcher.createEventSource());
+
         nodeSessionSp->setNodeStatus(bmqp_ctrlmsg::NodeStatus::E_AVAILABLE,
                                      bmqp_ctrlmsg::NodeStatus::E_AVAILABLE);
 

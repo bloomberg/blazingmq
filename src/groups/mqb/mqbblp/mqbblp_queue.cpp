@@ -792,9 +792,8 @@ void Queue::onPushMessage(
     //       LocalQueue dispatcherEvent method to event warn on that invalid
     //       usage.
 
-    mqbi::Dispatcher::DispatcherEventSp dispEvent = dispatcher()->getEvent(
-        this);
-
+    mqbi::Dispatcher::DispatcherEventSp dispEvent =
+        domain()->cluster()->getEvent();
     (*dispEvent)
         .setType(mqbi::DispatcherEventType::e_PUSH)
         .setSource(this)
@@ -867,9 +866,8 @@ void Queue::onAckMessage(const bmqp::AckMessage& ackMessage)
     //       LocalQueue dispatcherEvent method to event warn on that invalid
     //       usage.
 
-    mqbi::Dispatcher::DispatcherEventSp dispEvent = dispatcher()->getEvent(
-        this);
-
+    mqbi::Dispatcher::DispatcherEventSp dispEvent =
+        domain()->cluster()->getEvent();
     (*dispEvent)
         .setType(mqbi::DispatcherEventType::e_ACK)
         .setAckMessage(ackMessage);

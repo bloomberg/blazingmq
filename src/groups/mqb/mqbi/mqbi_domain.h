@@ -40,7 +40,6 @@
 // Components implementing the 'mqbi::Domain' interface *MUST* be thread safe.
 
 // MQB
-
 #include <mqbconfm_messages.h>
 
 // BMQ
