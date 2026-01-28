@@ -16,4 +16,4 @@ bbs_setup_target_uor(bmqstoragetool SKIP_TESTS)
 include(BMQTest)
 bmq_add_application_test(bmqstoragetool COMPAT)
 
-install(TARGETS bmqstoragetool RUNTIME DESTINATION bin)
+install(TARGETS bmqstoragetool RUNTIME DESTINATION bin COMPONENT bmqstoragetool)
