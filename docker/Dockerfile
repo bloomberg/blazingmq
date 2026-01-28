@@ -39,7 +39,7 @@ RUN bin/build_deps.sh \
         -DBDE_BUILD_TARGET_CPP17=ON \
         -DCMAKE_PREFIX_PATH=/workspace/srcs/bde-tools/BdeBuildSystem \
         -DCMAKE_INSTALL_LIBDIR=lib64 \
-    && cmake --build cmake.bld/Linux --parallel 8 bmqbrkr bmqtool \
+    && cmake --build cmake.bld/Linux --parallel 8 --target bmqbrkr,bmqtool \
     && cd srcs/bmq \
     && cmake --install cmake.bld/Linux --prefix=/bmq \
     && mv /bmq/bin/bmqbrkr.tsk /bmq/bin/bmqbrkr \
