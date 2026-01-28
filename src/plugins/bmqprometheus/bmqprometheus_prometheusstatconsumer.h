@@ -201,8 +201,8 @@ class PrometheusStatConsumer : public mqbplug::StatConsumer {
     /// Registry for further publishing to Prometheus.
     void captureDomainStats(const LeaderSet& leaders);
 
-    /// Capture all dispatcher related data points, and store them in Prometheus
-    /// Registry for further publishing to Prometheus.
+    /// Capture all dispatcher related data points, and store them in
+    /// Prometheus Registry for further publishing to Prometheus.
     void captureDispatcherStats();
 
     /// Set internal action counter based on Prometheus publish interval.
