@@ -23,9 +23,9 @@
 //  mqbstat::DispatcherStats: Mechanism to maintain stats of a dispatcher
 //  mqbstat::DomainStatsUtil: Utilities to initialize statistics
 //
-//@DESCRIPTION: 'mqbstat::DomainStats' provides a mechanism to keep track of
-// domain level statistics.  'mqbstat::DomainStatsUtil' is a utility namespace
-// exposing methods to initialize the stat contexts.
+//@DESCRIPTION: 'mqbstat::DispatcherStats' provides a mechanism to keep track
+// of dispatcher level statistics.  'mqbstat::DispatcherStatsUtil' is a utility
+// namespace exposing methods to initialize the stat contexts.
 
 // BMQ
 #include <bmqst_statcontext.h>
@@ -38,7 +38,6 @@
 #include <bsls_types.h>
 
 namespace BloombergLP {
-
 namespace mqbstat {
 
 // =====================
@@ -50,17 +49,6 @@ class DispatcherStats {
   public:
     // TYPES
 
-    // TODO: remove, used for old stats
-    /// Enum representing the various type of events for which statistics
-    /// are monitored.
-    // struct EventType {
-    //     // TYPES
-    //     enum Enum {
-    //         k_STAT_QUEUE = 1, // Queue/Dequeue
-    //         k_STAT_TIME  = 2  // Event queued time
-    //     };
-    // };
-
     /// Enum representing the various type of stats that can be obtained
     /// from this object.
     struct Stat {
@@ -68,19 +56,19 @@ class DispatcherStats {
         enum Enum {
             e_ENQUEUE_DELTA = 0,
             e_DEQUEUE_DELTA = 1,
-            e_SIZE = 2,
-            e_SIZE_MAX = 3,
-            e_SIZE_ABS_MAX = 4,
-            e_TIME_MIN = 5,
-            e_TIME_AVG = 6,
-            e_TIME_MAX = 7,
-            e_TIME_ABS_MAX = 8
+            e_SIZE          = 2,
+            e_SIZE_MAX      = 3,
+            e_SIZE_ABS_MAX  = 4,
+            e_TIME_MIN      = 5,
+            e_TIME_AVG      = 6,
+            e_TIME_MAX      = 7,
+            e_TIME_ABS_MAX  = 8
         };
     };
 
     // CLASS METHODS
 
-    /// Get the value of the specified `stat` reported to the cluster
+    /// Get the value of the specified `stat` reported to the dispatcher
     /// represented by its associated specified `context` as the difference
     /// between the latest snapshot-ed value (i.e., `snapshotId == 0`) and
     /// the value that was recorded at the specified `snapshotId` snapshots
@@ -94,9 +82,10 @@ class DispatcherStats {
     /// Update the `queued_count` field of the specified `queueStatContext`.
     static void onEnqueue(bmqst::StatContext* queueStatContext);
 
-    /// Update the `queued_count` and `queued_time` fields of the specified 
+    /// Update the `queued_count` and `queued_time` fields of the specified
     /// `queueStatContext`.
-    static void onDequeue(bmqst::StatContext* queueStatContext, bsls::Types::Int64 queuedTime);
+    static void onDequeue(bmqst::StatContext* queueStatContext,
+                          bsls::Types::Int64  queuedTime);
 
   private:
     // PRIVATE TYPES
@@ -105,8 +94,8 @@ class DispatcherStats {
     /// dispatcher queues from the clients.
     struct DispatcherStatsIndex {
         enum Enum {
-            e_STAT_QUEUE = 0, // Queue/Dequeue
-            e_STAT_TIME  = 1  // Event queued time
+            e_STAT_QUEUE = 0,  // Queue/Dequeue
+            e_STAT_TIME  = 1   // Event queued time
         };
     };
 
@@ -114,8 +103,8 @@ class DispatcherStats {
     DispatcherStats(const DispatcherStats&) BSLS_CPP11_DELETED;
 
     /// Copy constructor and assignment operator are not implemented.
-    DispatcherStats& operator=(const DispatcherStats&) BSLS_CPP11_DELETED;    
-};       
+    DispatcherStats& operator=(const DispatcherStats&) BSLS_CPP11_DELETED;
+};
 
 // ==========================
 // struct DispatcherStatsUtil
@@ -149,10 +138,10 @@ struct DispatcherStatsUtil {
     /// and stat values.
     static bslma::ManagedPtr<bmqst::StatContext>
     initializeQueueStatContext(bmqst::StatContext*      parent,
-                                const bslstl::StringRef& name,
-                                const bslstl::StringRef& client,
-                                unsigned int             processorId,
-                                bslma::Allocator*        allocator);
+                               const bslstl::StringRef& name,
+                               const bslstl::StringRef& client,
+                               unsigned int             processorId,
+                               bslma::Allocator*        allocator);
 };
 
 // ============================================================================
@@ -168,15 +157,17 @@ inline void DispatcherStats::onEnqueue(bmqst::StatContext* queueStatContext)
     BSLS_ASSERT_SAFE(queueStatContext && "Stat context is not initialized");
 
     queueStatContext->adjustValue(DispatcherStatsIndex::e_STAT_QUEUE, 1);
-}        
+}
 
-inline void DispatcherStats::onDequeue(bmqst::StatContext* queueStatContext, bsls::Types::Int64 queuedTime)
+inline void DispatcherStats::onDequeue(bmqst::StatContext* queueStatContext,
+                                       bsls::Types::Int64  queuedTime)
 {
     BSLS_ASSERT_SAFE(queueStatContext && "Stat context is not initialized");
 
     queueStatContext->adjustValue(DispatcherStatsIndex::e_STAT_QUEUE, -1);
-    queueStatContext->reportValue(DispatcherStatsIndex::e_STAT_TIME, queuedTime);
-}    
+    queueStatContext->reportValue(DispatcherStatsIndex::e_STAT_TIME,
+                                  queuedTime);
+}
 
 }  // close package namespace
 }  // close enterprise namespace

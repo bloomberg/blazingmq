@@ -192,12 +192,13 @@ void StatController::initializeStats()
 
     // ----------
     // Dispatcher
-    bslma::Allocator* dispatcherAllocator = d_allocators.get("DispatcherStats");
+    bslma::Allocator* dispatcherAllocator = d_allocators.get(
+        "DispatcherStats");
     d_statContextsMap.insert(bsl::make_pair(
         bsl::string("dispatcher"),
         StatContextDetails(
             DispatcherStatsUtil::initializeStatContext(historySize,
-                                                   dispatcherAllocator),
+                                                       dispatcherAllocator),
             false)));
 
     // -------

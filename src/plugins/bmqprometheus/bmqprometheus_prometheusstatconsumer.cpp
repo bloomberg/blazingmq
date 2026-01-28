@@ -859,10 +859,11 @@ void PrometheusStatConsumer::captureDispatcherStats()
             bdld::DatumMapRef                     map = mdSp->datum().theMap();
 
             Tagger tagger;
-            tagger.setInstance(mqbcfg::BrokerConfig::get().brokerInstanceName())
-                  .setClient(map.find("client")->theString())
-                  .setProcessorId(map.find("processorId")->theInteger())
-                  .setDataType("host-data");
+            tagger
+                .setInstance(mqbcfg::BrokerConfig::get().brokerInstanceName())
+                .setClient(map.find("client")->theString())
+                .setProcessorId(map.find("processorId")->theInteger())
+                .setDataType("host-data");
 
             const auto labels = tagger.getLabels();
 
@@ -876,19 +877,16 @@ void PrometheusStatConsumer::captureDispatcherStats()
                 {"dispatcher_queue_time_min", Stat::e_TIME_MIN},
                 {"dispatcher_queue_time_avg", Stat::e_TIME_AVG},
                 {"dispatcher_queue_time_max", Stat::e_TIME_MAX},
-                {"dispatcher_queue_time_abs_max", Stat::e_TIME_ABS_MAX}
-            };
+                {"dispatcher_queue_time_abs_max", Stat::e_TIME_ABS_MAX}};
 
             for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
-                    dpIt != bdlb::ArrayUtil::end(defs);
-                    ++dpIt) {
-
+                 dpIt != bdlb::ArrayUtil::end(defs);
+                 ++dpIt) {
                 const bsls::Types::Int64 value =
                     mqbstat::DispatcherStats::getValue(
                         *queueIt,
                         d_snapshotId,
-                        static_cast<Stat::Enum>(
-                            dpIt->d_stat));
+                        static_cast<Stat::Enum>(dpIt->d_stat));
                 updateMetric(dpIt->d_name, labels, value);
             }
         }

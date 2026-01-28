@@ -18,8 +18,8 @@
 
 #include <mqbscm_version.h>
 // BMQ
-#include <bmqu_memoutstream.h>
 #include <bmqsys_threadutil.h>
+#include <bmqu_memoutstream.h>
 
 // MQB
 #include <mqbstat_dispatcherstats.h>
@@ -70,13 +70,15 @@ Dispatcher_Executor::Dispatcher_Executor(const Dispatcher* dispacher,
 
     d_eventSource_sp = client->getEventSource();
 
-    Dispatcher::DispatcherContext* dispatcherContext_p = dispacher->d_contexts
-                            .at(client->dispatcherClientData().clientType()).get();
+    Dispatcher::DispatcherContext* dispatcherContext_p =
+        dispacher->d_contexts.at(client->dispatcherClientData().clientType())
+            .get();
     // set processor
     d_processorPool_p = dispatcherContext_p->d_processorPool_mp.get();
     d_processorHandle = client->dispatcherClientData().processorHandle();
 
-    d_statContext_p = dispatcherContext_p->d_statContexts.at(d_processorHandle).get();
+    d_statContext_p =
+        dispatcherContext_p->d_statContexts.at(d_processorHandle).get();
 }
 
 // ACCESSORS
@@ -242,9 +244,11 @@ int Dispatcher::startContext(bsl::ostream&                    errorDescription,
                   d_allocator_p);
 
     // Create client stat context
-    context->d_clientStatContext_mp = mqbstat::DispatcherStatsUtil::initializeClientStatContext(d_statContext_p,
-                                                                 mqbi::DispatcherClientType::toAscii(type),
-                                                                 d_allocator_p);
+    context->d_clientStatContext_mp =
+        mqbstat::DispatcherStatsUtil::initializeClientStatContext(
+            d_statContext_p,
+            mqbi::DispatcherClientType::toAscii(type),
+            d_allocator_p);
     // Create and start the threadPool
     context->d_threadPool_mp.load(
         new (*d_allocator_p)
@@ -334,14 +338,15 @@ Dispatcher::queueCreator(mqbi::DispatcherClientType::Enum             type,
                              config.queueSize(),
                              bdlf::PlaceHolders::_1));  // state
 
-
     // Create stat context for the client's queue
     DispatcherContext* context = d_contexts[type].get();
-    context->d_statContexts.at(processorId) = mqbstat::DispatcherStatsUtil::initializeQueueStatContext(context->d_clientStatContext_mp.get(),
-                                                                                                            queueName,
-                                                                                                            mqbi::DispatcherClientType::toAscii(type),
-                                                                                                            processorId,
-                                                                                                            d_allocator_p);
+    context->d_statContexts.at(processorId) =
+        mqbstat::DispatcherStatsUtil::initializeQueueStatContext(
+            context->d_clientStatContext_mp.get(),
+            queueName,
+            mqbi::DispatcherClientType::toAscii(type),
+            processorId,
+            d_allocator_p);
     return queue;
 }
 
@@ -353,8 +358,9 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
     if (event) {
         BALL_LOG_TRACE << "Dispatching Event to queue " << processorId
                        << " of " << type << " dispatcher: " << *event;
-        
-        const bsls::Types::Int64 queuedTime = bmqsys::Time::highResolutionTimer() - event->enqueueTime();
+
+        const bsls::Types::Int64 queuedTime =
+            bmqsys::Time::highResolutionTimer() - event->enqueueTime();
 
         DispatcherContext& dispatcherContext = *(d_contexts[type]);
 
@@ -387,11 +393,12 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
                     ->dispatcherClientData()
                     .setAddedToFlushList(true);
             }
-
         }
 
         // Update stats
-        mqbstat::DispatcherStats::onDequeue(dispatcherContext.d_statContexts[processorId].get(), queuedTime);
+        mqbstat::DispatcherStats::onDequeue(
+            dispatcherContext.d_statContexts[processorId].get(),
+            queuedTime);
     }
     else {
         // Empty `event` means queue is empty
@@ -535,11 +542,11 @@ void Dispatcher::stop()
     }
 
 #undef STOP_AND_CLEAR
- 
+
     // Clear all stat sub contexts
     d_statContext_p->clearSubcontexts();
 }
- 
+
 mqbi::Dispatcher::ProcessorHandle
 Dispatcher::registerClient(mqbi::DispatcherClient*           client,
                            mqbi::DispatcherClientType::Enum  type,
@@ -594,7 +601,8 @@ Dispatcher::registerClient(mqbi::DispatcherClient*           client,
             processor);
 
         // Update stats
-        mqbstat::DispatcherStats::onEnqueue(context.d_statContexts.at(processor).get());
+        mqbstat::DispatcherStats::onEnqueue(
+            context.d_statContexts.at(processor).get());
 
         return processor;  // RETURN
     }  // break;
@@ -671,7 +679,8 @@ void Dispatcher::executeOnAllQueues(
 
     // Update stats for all queues
     for (size_t i = 0; i < context_p->d_statContexts.size(); ++i) {
-        mqbstat::DispatcherStats::onEnqueue(context_p->d_statContexts[i].get());
+        mqbstat::DispatcherStats::onEnqueue(
+            context_p->d_statContexts[i].get());
     }
 }
 
@@ -691,7 +700,7 @@ void Dispatcher::synchronize(mqbi::DispatcherClientType::Enum  type,
 
     typedef void (bslmt::Semaphore::*PostFn)();
 
-    bslmt::Semaphore       semaphore;
+    bslmt::Semaphore                       semaphore;
     bsl::shared_ptr<mqbi::DispatcherEvent> event =
         d_defaultEventSource_sp->getEvent();
     (*event)

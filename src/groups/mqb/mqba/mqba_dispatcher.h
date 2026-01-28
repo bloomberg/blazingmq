@@ -53,8 +53,8 @@
 // MQB
 #include <mqbcfg_messages.h>
 #include <mqbi_dispatcher.h>
-#include <mqbu_loadbalancer.h>
 #include <mqbstat_dispatcherstats.h>
+#include <mqbu_loadbalancer.h>
 
 #include <bmqc_multiqueuethreadpool.h>
 #include <bmqex_executor.h>
@@ -278,7 +278,7 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
         bslma::ManagedPtr<bmqst::StatContext> d_clientStatContext_mp;
 
         /// Vector of stat contexts pointers, one per client's processor.
-        bsl::vector<bslma::ManagedPtr<bmqst::StatContext>> d_statContexts;
+        bsl::vector<bslma::ManagedPtr<bmqst::StatContext> > d_statContexts;
 
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(DispatcherContext,
@@ -377,9 +377,9 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
 
     // CREATORS
 
-    /// Create a dispatcher using the specified `config`, `statContext` and `scheduler`.
-    /// All memory allocation will be performed using the specified
-    /// `allocator`.
+    /// Create a dispatcher using the specified `config`, `statContext` and
+    /// `scheduler`. All memory allocation will be performed using the
+    /// specified `allocator`.
     Dispatcher(const mqbcfg::DispatcherConfig& config,
                bmqst::StatContext*             statContext,
                bdlmt::EventScheduler*          scheduler,
@@ -577,16 +577,17 @@ Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
     case mqbi::DispatcherClientType::e_SESSION:
     case mqbi::DispatcherClientType::e_QUEUE:
     case mqbi::DispatcherClientType::e_CLUSTER: {
-      DispatcherContext& dispatcherContext = *(d_contexts[type]);      
-      
-      event->setEnqueueTime(bmqsys::Time::highResolutionTimer());
+        DispatcherContext& dispatcherContext = *(d_contexts[type]);
 
-      dispatcherContext.d_processorPool_mp->enqueueEvent(
-          bslmf::MovableRefUtil::move(event),
-          handle);
+        event->setEnqueueTime(bmqsys::Time::highResolutionTimer());
 
-      // Update stats
-      mqbstat::DispatcherStats::onEnqueue(dispatcherContext.d_statContexts[handle].get());
+        dispatcherContext.d_processorPool_mp->enqueueEvent(
+            bslmf::MovableRefUtil::move(event),
+            handle);
+
+        // Update stats
+        mqbstat::DispatcherStats::onEnqueue(
+            dispatcherContext.d_statContexts[handle].get());
 
     } break;
     case mqbi::DispatcherClientType::e_UNDEFINED:

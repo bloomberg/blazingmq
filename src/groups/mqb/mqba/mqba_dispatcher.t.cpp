@@ -238,8 +238,8 @@ static void test1_breathingTest()
     {
         // Create Dispatcher
         mqbcfg::DispatcherConfig dispatcherConfig = makeConfig();
-        bmqst::StatContext             statContext(bmqst::StatContextConfiguration(1));
-        mqba::Dispatcher         dispatcher(dispatcherConfig,
+        bmqst::StatContext statContext(bmqst::StatContextConfiguration(1));
+        mqba::Dispatcher   dispatcher(dispatcherConfig,
                                     &statContext,
                                     &eventScheduler,
                                     bmqtst::TestHelperUtil::allocator());
@@ -309,8 +309,8 @@ static void test3_executorsSupport()
 
     // create the dispatcher
     mqbcfg::DispatcherConfig dispatcherConfig = makeConfig();
-    bmqst::StatContext statContext(bmqst::StatContextConfiguration(1));
-    mqba::Dispatcher dispatcher(dispatcherConfig,
+    bmqst::StatContext       statContext(bmqst::StatContextConfiguration(1));
+    mqba::Dispatcher         dispatcher(dispatcherConfig,
                                 &statContext,
                                 &eventScheduler,
                                 bmqtst::TestHelperUtil::allocator());
@@ -501,7 +501,10 @@ static void test4_eventSource()
         // Create Dispatcher
         mqbcfg::DispatcherConfig dispatcherConfig = makeConfig();
         bmqst::StatContext statContext(bmqst::StatContextConfiguration(1));
-        mqba::Dispatcher dispatcher(dispatcherConfig, &statContext, &eventScheduler, alloc);
+        mqba::Dispatcher   dispatcher(dispatcherConfig,
+                                    &statContext,
+                                    &eventScheduler,
+                                    alloc);
 
         // Start the dispatcher
         bsl::stringstream startErr(alloc);
@@ -600,7 +603,7 @@ static void testN1_inDispatcherThread()
         // Create dispatcher
         mqbcfg::DispatcherConfig dispatcherConfig = makeConfig();
         bmqst::StatContext statContext(bmqst::StatContextConfiguration(1));
-        mqba::Dispatcher obj(dispatcherConfig,
+        mqba::Dispatcher   obj(dispatcherConfig,
                              &statContext,
                              &eventScheduler,
                              bmqtst::TestHelperUtil::allocator());
