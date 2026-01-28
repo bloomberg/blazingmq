@@ -386,5 +386,5 @@ jobs:
       - name: Docker Cluster Workflow
         run: docker compose -f docker/cluster/docker-compose.yaml up --build -d
 
-      - name: Inpsect Docker images
+      - name: Inspect Docker images
         run: docker image ls
