@@ -200,7 +200,7 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                           << " Partition [" << partitionId
                           << "]: " << "Flushed journal file ["
                           << recoveryCtx.d_recoveryFileSet.journalFile()
-                          << "] upto position ["
+                          << "] up to position ["
                           << recoveryCtx.d_journalFilePosition << "].";
         }
 
@@ -278,7 +278,7 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                           << " Partition [" << partitionId
                           << "]: " << "Flushed data file ["
                           << recoveryCtx.d_recoveryFileSet.dataFile()
-                          << "] upto position ["
+                          << "] up to position ["
                           << recoveryCtx.d_dataFilePosition << "].";
         }
 
@@ -354,7 +354,7 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                           << " Partition [" << partitionId
                           << "]: " << "Flushed QList file ["
                           << recoveryCtx.d_recoveryFileSet.qlistFile()
-                          << "] upto position ["
+                          << "] up to position ["
                           << recoveryCtx.d_qlistFilePosition << "].";
         }
 
@@ -386,7 +386,7 @@ void RecoveryManager::deprecateFileSet(int partitionId)
     else {
         BALL_LOG_INFO << d_clusterData.identity().description()
                       << " Partition [" << partitionId
-                      << "]: " << "Moved qlist file ["
+                      << "]: " << "Moved QList file ["
                       << recoveryCtx.d_recoveryFileSet.qlistFile()
                       << "] to location ["
                       << d_dataStoreConfig.archiveLocation() << "].";
