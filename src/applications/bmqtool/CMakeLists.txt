@@ -35,4 +35,4 @@ bbs_add_target_thread_flags(bmqtool PUBLIC)
 include(BMQTest)
 bmq_add_application_test(bmqtool COMPAT)
 
-install(TARGETS bmqtool RUNTIME DESTINATION bin)
+install(TARGETS bmqtool RUNTIME DESTINATION bin COMPONENT bmqtool)

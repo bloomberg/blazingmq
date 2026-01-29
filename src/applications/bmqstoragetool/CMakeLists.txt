@@ -1,7 +1,7 @@
 # bmqstoragetool
 # --------------
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "SunOS" OR NOT BMQ_TARGET_BMQSTORAGETOOL_NEEDED)
+if("${CMAKE_SYSTEM_NAME}" MATCHES "SunOS" OR NOT BMQ_TARGET_BMQSTORAGETOOL_NEEDED)
   return()
 endif()
 
@@ -16,4 +16,4 @@ bbs_setup_target_uor(bmqstoragetool SKIP_TESTS)
 include(BMQTest)
 bmq_add_application_test(bmqstoragetool COMPAT)
 
-install(TARGETS bmqstoragetool RUNTIME DESTINATION bin)
+install(TARGETS bmqstoragetool RUNTIME DESTINATION bin COMPONENT bmqstoragetool)
