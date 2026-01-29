@@ -21,7 +21,7 @@
 //
 //@CLASSES:
 //  mqbstat::DispatcherStats: Mechanism to maintain stats of a dispatcher
-//  mqbstat::DomainStatsUtil: Utilities to initialize statistics
+//  mqbstat::DispatcherStatsUtil: Utilities to initialize statistics
 //
 //@DESCRIPTION: 'mqbstat::DispatcherStats' provides a mechanism to keep track
 // of dispatcher level statistics.  'mqbstat::DispatcherStatsUtil' is a utility

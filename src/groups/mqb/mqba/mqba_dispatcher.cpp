@@ -440,6 +440,7 @@ Dispatcher::Dispatcher(const mqbcfg::DispatcherConfig& config,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(scheduler->clockType() ==
                      bsls::SystemClockType::e_MONOTONIC);
+    BSLS_ASSERT_SAFE(statContext);
 }
 
 Dispatcher::~Dispatcher()
