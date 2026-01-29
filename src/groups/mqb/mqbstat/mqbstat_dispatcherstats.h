@@ -132,10 +132,10 @@ struct DispatcherStatsUtil {
                                 bslma::Allocator*        allocator);
 
     /// Initialize the statistics for the dispatcher queue stat context,
-    /// with the specified `parent` context and `name`.
-    /// Return the created stat context to use for all dispatcher queue
-    /// level statistics.  Use the specified `allocator` for all stat context
-    /// and stat values.
+    /// with the specified `parent` context `name`, `client`, and
+    /// `processorId`. Return the created stat context to use for all
+    /// dispatcher queue level statistics.  Use the specified `allocator` for
+    /// all stat context and stat values.
     static bslma::ManagedPtr<bmqst::StatContext>
     initializeQueueStatContext(bmqst::StatContext*      parent,
                                const bslstl::StringRef& name,

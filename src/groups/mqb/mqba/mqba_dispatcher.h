@@ -576,17 +576,17 @@ Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
     case mqbi::DispatcherClientType::e_SESSION:
     case mqbi::DispatcherClientType::e_QUEUE:
     case mqbi::DispatcherClientType::e_CLUSTER: {
-        DispatcherContext& dispatcherContext = *(d_contexts[type]);
+        DispatcherContext* dispatcherContext = d_contexts[type].get();
 
         event->setEnqueueTime(bmqsys::Time::highResolutionTimer());
 
-        dispatcherContext.d_processorPool_mp->enqueueEvent(
+        dispatcherContext->d_processorPool_mp->enqueueEvent(
             bslmf::MovableRefUtil::move(event),
             handle);
 
         // Update stats
         mqbstat::DispatcherStats::onEnqueue(
-            dispatcherContext.d_statContexts[handle].get());
+            dispatcherContext->d_statContexts[handle].get());
 
     } break;
     case mqbi::DispatcherClientType::e_UNDEFINED:

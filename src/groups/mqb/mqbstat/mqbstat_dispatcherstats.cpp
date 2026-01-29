@@ -123,15 +123,15 @@ bsls::Types::Int64 DispatcherStats::getValue(const bmqst::StatContext& context,
 #undef OLDEST_SNAPSHOT
 }
 
-// ---------------------
-// class DomainStatsUtil
-// ---------------------
+// -------------------------
+// class DispatcherStatsUtil
+// -------------------------
 
 bsl::shared_ptr<bmqst::StatContext>
 DispatcherStatsUtil::initializeStatContext(int               historySize,
                                            bslma::Allocator* allocator)
 {
-    bdlma::LocalSequentialAllocator<1024> localAllocator(allocator);
+    bdlma::LocalSequentialAllocator<2048> localAllocator(allocator);
 
     bmqst::StatContextConfiguration config(k_DISPATCHER_STAT_NAME,
                                            &localAllocator);
@@ -152,7 +152,7 @@ DispatcherStatsUtil::initializeClientStatContext(bmqst::StatContext* parent,
                                                  const bslstl::StringRef& name,
                                                  bslma::Allocator* allocator)
 {
-    bdlma::LocalSequentialAllocator<1024> localAllocator(allocator);
+    bdlma::LocalSequentialAllocator<2048> localAllocator(allocator);
 
     bmqst::StatContextConfiguration statConfig(name, &localAllocator);
     return parent->addSubcontext(statConfig);
