@@ -805,6 +805,10 @@ void Session::loadMessageEventBuilder(MessageEventBuilder* builder)
 
     builderImplRef.d_guidGenerator_sp = d_impl.d_guidGenerator_sp;
 
+    // Set distributed tracing tracer and context
+    builderImplRef.d_dtTracer_sp  = d_impl.d_sessionOptions.tracer();
+    builderImplRef.d_dtContext_sp = d_impl.d_sessionOptions.traceContext();
+
     // Get bmqimp::Event sharedptr from MessageEventBuilderImpl
     bsl::shared_ptr<bmqimp::Event>& eventImplSpRef =
         reinterpret_cast<bsl::shared_ptr<bmqimp::Event>&>(

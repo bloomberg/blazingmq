@@ -123,13 +123,19 @@ void MessageCorrelationIdContainer::reset()
 }
 
 void MessageCorrelationIdContainer::add(
-    const bmqt::MessageGUID&   key,
-    const bmqt::CorrelationId& correlationId,
-    const bmqp::QueueId&       queueId)
+    const bmqt::MessageGUID&              key,
+    const bmqt::CorrelationId&            correlationId,
+    const bmqp::QueueId&                  queueId,
+    const bsl::shared_ptr<bmqpi::DTSpan>& dtSpan)
 {
     bsls::SpinLockGuard guard(&d_lock);  // LOCK
 
     QueueAndCorrelationId toInsert(correlationId, queueId, d_allocator_p);
+
+    if (dtSpan) {
+        toInsert.d_dtSpan_sp = dtSpan;
+    }
+
     d_correlationIds.insert(bsl::make_pair(key, toInsert));
 }
 

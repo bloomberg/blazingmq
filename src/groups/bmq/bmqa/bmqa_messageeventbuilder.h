@@ -256,7 +256,9 @@
 
 #include <bmqa_message.h>
 #include <bmqa_messageevent.h>
-#include <bmqt_resultcode.h>
+#include <bmqp_messageproperties.h>
+#include <bmqpi_dtcontext.h>
+#include <bmqpi_dttracer.h>
 
 // BDE
 #include <bsl_memory.h>
@@ -269,6 +271,8 @@ class QueueId;
 }
 namespace bmqp {
 class MessageGUIDGenerator;
+class PutEventBuilder;
+class MessageProperties;
 }
 
 namespace bmqa {
@@ -309,6 +313,12 @@ struct MessageEventBuilderImpl {
     /// CONTRACT: the stored value is correct every moment when in READ mode,
     /// and the value is not guaranteed to be correct when in WRITE mode.
     int d_messageEventSizeFinal;
+
+    /// Distributed tracing tracer object.
+    bsl::shared_ptr<bmqpi::DTTracer> d_dtTracer_sp;
+
+    /// Distributed tracing context object.
+    bsl::shared_ptr<bmqpi::DTContext> d_dtContext_sp;
 };
 
 // =========================
@@ -378,6 +388,23 @@ class MessageEventBuilder {
     /// value represents the length of entire message event, *including*
     /// BlazingMQ wire protocol overhead.
     int messageEventSize() const;
+
+  private:
+    // ACCESSORS
+
+    /// Create a child distributed tracing span and inject it into the message
+    /// properties.  Load into the specified `properties` a copy of the
+    /// message properties from the specified `builder` with the trace
+    /// context injected, and load into the specified `span` the created
+    /// span.  Use the specified `queueId` for queue metadata.  If span
+    /// creation or serialization fails, `properties` and `span` are left
+    /// unchanged.  Note that the returned `properties` must be kept alive
+    /// until message serialization completes.
+    void copyPropertiesAndInjectDT(
+        bsl::shared_ptr<bmqp::MessageProperties>* properties,
+        bsl::shared_ptr<bmqpi::DTSpan>*           span,
+        bmqp::PutEventBuilder*                    builder,
+        const bmqa::QueueId&                      queueId) const;
 };
 
 }  // close package namespace

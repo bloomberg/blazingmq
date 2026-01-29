@@ -88,6 +88,9 @@ class MessageCorrelationIdContainer {
         RequestManagerType::RequestSp d_requestContext;
         // Control request context.
 
+        bsl::shared_ptr<bmqpi::DTSpan> d_dtSpan_sp;
+        // Span for the current message.
+
         /// Create a `QueueAndCorrelationId` having an invalid queueId and
         /// empty correlationId using the specified `allocator`.
         QueueAndCorrelationId(bslma::Allocator* allocator);
@@ -197,11 +200,14 @@ class MessageCorrelationIdContainer {
     /// default constructed one.
     void reset();
 
-    /// Add the specified `correlationId` and `queueId` mapping them to the
-    /// specified `key` that can be used to retrieve them later.
-    void add(const bmqt::MessageGUID&   key,
-             const bmqt::CorrelationId& correlationId,
-             const bmqp::QueueId&       queueId);
+    /// Store the specified `correlationId` and `queueId`, and the optional
+    /// `dtSpan` when non-null, under the given `key` so they can be retrieved
+    /// later.
+    void add(const bmqt::MessageGUID&              key,
+             const bmqt::CorrelationId&            correlationId,
+             const bmqp::QueueId&                  queueId,
+             const bsl::shared_ptr<bmqpi::DTSpan>& dtSpan =
+                 bsl::shared_ptr<bmqpi::DTSpan>());
 
     /// Add the specified `context` and the `blob` and return a GUID key
     /// that can be used to retrieve it later.
