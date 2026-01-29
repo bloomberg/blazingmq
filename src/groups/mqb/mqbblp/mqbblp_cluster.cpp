@@ -1044,10 +1044,10 @@ void Cluster::onConfirmEvent(const mqbi::DispatcherConfirmEvent& event)
                            << "', queueId: " << queueId
                            << ", GUID: " << confIt.message().messageGUID()
                            << "] from node " << source->nodeDescription();
-            queueHandle->confirmMessage(
-                bslmf::MovableRefUtil::move(getEvent()),
-                confIt.message().messageGUID(),
-                queueId.subId());
+
+            queueHandle->confirmMessage(getEventSource().get(),
+                                        confIt.message().messageGUID(),
+                                        queueId.subId());
         }
         else {
             BMQU_THROTTLEDACTION_THROTTLE(

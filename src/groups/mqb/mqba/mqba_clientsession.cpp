@@ -1527,10 +1527,9 @@ void ClientSession::onConfirmEvent(const mqbi::DispatcherConfirmEvent& event)
                            << "' GUID: " << confIt.message().messageGUID()
                            << "]";
 
-            queueHandle->confirmMessage(
-                bslmf::MovableRefUtil::move(getEvent()),
-                confIt.message().messageGUID(),
-                subId);
+            queueHandle->confirmMessage(getEventSource().get(),
+                                        confIt.message().messageGUID(),
+                                        subId);
         }
         else {
             BMQ_LOGTHROTTLE_WARN

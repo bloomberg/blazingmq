@@ -141,6 +141,32 @@ void StorageManager::setPrimaryStatusForPartition(
     // NOTHING
 }
 
+void StorageManager::stopPFSMs()
+{
+    // NOTHING
+}
+
+void StorageManager::detectPrimaryLossInPFSM(BSLA_UNUSED int partitionId)
+{
+    // NOTHING
+}
+
+void StorageManager::detectSelfPrimaryInPFSM(
+    BSLA_UNUSED int partitionId,
+    BSLA_UNUSED mqbnet::ClusterNode* primaryNode,
+    BSLA_UNUSED unsigned int         primaryLeaseId)
+{
+    // NOTHING
+}
+
+void StorageManager::detectSelfReplicaInPFSM(
+    BSLA_UNUSED int partitionId,
+    BSLA_UNUSED mqbnet::ClusterNode* primaryNode,
+    BSLA_UNUSED unsigned int         primaryLeaseId)
+{
+    // NOTHING
+}
+
 void StorageManager::processPrimaryStateRequest(
     BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
     BSLA_UNUSED mqbnet::ClusterNode* source)

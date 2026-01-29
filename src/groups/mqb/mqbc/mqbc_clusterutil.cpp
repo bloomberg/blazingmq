@@ -83,8 +83,12 @@ typedef mqbc::ClusterUtil::NumNewPartitionsMapCIter NumNewPartitionsMapCIter;
 void applyPartitionPrimary(
     mqbc::ClusterState*                                    clusterState,
     const bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>& partitions,
-    const mqbc::ClusterData&                               clusterData)
+    const mqbc::ClusterData&                               clusterData,
+    bsl::vector<int>* modifiedPartitions = 0)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(clusterState);
+
     for (int i = 0; i < static_cast<int>(partitions.size()); ++i) {
         const bmqp_ctrlmsg::PartitionPrimaryInfo& info = partitions[i];
 
@@ -94,6 +98,17 @@ void applyPartitionPrimary(
         ClusterNodeSession* ns =
             clusterData.membership().getClusterNodeSession(
                 proposedPrimaryNode);
+
+        // Check if there is a change in primary or leaseId
+        const mqbc::ClusterStatePartitionInfo& partitionInfo =
+            clusterState->partition(info.partitionId());
+        const bool modified = (partitionInfo.primaryNodeId() !=
+                               info.primaryNodeId()) ||
+                              (partitionInfo.primaryLeaseId() !=
+                               info.primaryLeaseId());
+        if (modified && modifiedPartitions) {
+            modifiedPartitions->push_back(info.partitionId());
+        }
 
         clusterState->setPartitionPrimary(info.partitionId(),
                                           info.primaryLeaseId(),
@@ -1612,7 +1627,8 @@ void ClusterUtil::appendClusterNode(bsl::vector<mqbcfg::ClusterNode>* out,
 
 void ClusterUtil::apply(mqbc::ClusterState*                 clusterState,
                         const bmqp_ctrlmsg::ClusterMessage& clusterMessage,
-                        const mqbc::ClusterData&            clusterData)
+                        const mqbc::ClusterData&            clusterData,
+                        bsl::vector<int>*                   modifiedPartitions)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(clusterState);
@@ -1622,12 +1638,18 @@ void ClusterUtil::apply(mqbc::ClusterState*                 clusterState,
     case MsgChoice::SELECTION_ID_PARTITION_PRIMARY_ADVISORY: {
         const bmqp_ctrlmsg::PartitionPrimaryAdvisory& adv =
             clusterMessage.choice().partitionPrimaryAdvisory();
-        applyPartitionPrimary(clusterState, adv.partitions(), clusterData);
+        applyPartitionPrimary(clusterState,
+                              adv.partitions(),
+                              clusterData,
+                              modifiedPartitions);
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_LEADER_ADVISORY: {
         const bmqp_ctrlmsg::LeaderAdvisory& adv =
             clusterMessage.choice().leaderAdvisory();
-        applyPartitionPrimary(clusterState, adv.partitions(), clusterData);
+        applyPartitionPrimary(clusterState,
+                              adv.partitions(),
+                              clusterData,
+                              modifiedPartitions);
         applyQueueAssignment(clusterState, adv.queues());
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_QUEUE_ASSIGNMENT_ADVISORY: {

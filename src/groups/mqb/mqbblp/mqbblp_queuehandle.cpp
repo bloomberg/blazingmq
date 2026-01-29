@@ -873,11 +873,14 @@ bool QueueHandle::unregisterSubStream(
     return false;
 }
 
-void QueueHandle::confirmMessage(mqbi::Dispatcher::DispatcherEventRvRef event,
-                                 const bmqt::MessageGUID& msgGUID,
-                                 unsigned int             downstreamSubQueueId)
+void QueueHandle::confirmMessage(mqbi::DispatcherEventSource* eventSource_p,
+                                 const bmqt::MessageGUID&     msgGUID,
+                                 unsigned int downstreamSubQueueId)
 {
     // executed by *ANY* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(eventSource_p);
 
     // NOTE: We don't verify here that the queue was opened with 'e_READ' flag,
     //       refer to 'confirmMessageDispatched'.
@@ -891,14 +894,17 @@ void QueueHandle::confirmMessage(mqbi::Dispatcher::DispatcherEventRvRef event,
     // A more generic approach would be to maintain a queue of CONFIRMs per
     // queue (outside of the dispatcher) and process it separately (on idle?).
 
-    event->setType(mqbi::DispatcherEventType::e_CALLBACK);
-    event->callback().createInplace<QueueHandle::ConfirmFunctor>(
+    mqbi::DispatcherEventSource::DispatcherEventSp event_sp =
+        eventSource_p->getEvent();
+    event_sp->setType(mqbi::DispatcherEventType::e_CALLBACK);
+    event_sp->callback().createInplace<QueueHandle::ConfirmFunctor>(
         this,
         msgGUID,
         downstreamSubQueueId);
 
-    d_queue_sp->dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(event),
-                                            d_queue_sp.get());
+    d_queue_sp->dispatcher()->dispatchEvent(
+        bslmf::MovableRefUtil::move(event_sp),
+        d_queue_sp.get());
 }
 
 void QueueHandle::rejectMessage(const bmqt::MessageGUID& msgGUID,

@@ -1098,24 +1098,23 @@ void QueueEngineTester::confirm(const bsl::string&       clientText,
     for (bsl::vector<bsl::string>::size_type i = 0; i < msgs.size(); ++i) {
         MessagesMap::iterator it = d_postedMessages.find(msgs[i]);
 
-        bsl::shared_ptr<mqbi::DispatcherEvent> event_sp =
-            dispatcher()->getDefaultEventSource()->getEvent();
-
         if (it != d_postedMessages.end()) {
             // msgGUID was found
             const bmqt::MessageGUID& msgGUID = it->second;
             BSLS_ASSERT_OPT(!msgGUID.isUnset());
 
-            mockHandle->confirmMessage(bslmf::MovableRefUtil::move(event_sp),
-                                       msgGUID,
-                                       subQueueId);
+            mockHandle->confirmMessage(
+                dispatcher()->getDefaultEventSource().get(),
+                msgGUID,
+                subQueueId);
         }
         else {
             // This message was never posted - this is a "legal" testing
             // scenario.
-            mockHandle->confirmMessage(bslmf::MovableRefUtil::move(event_sp),
-                                       d_invalidGuid,
-                                       subQueueId);
+            mockHandle->confirmMessage(
+                dispatcher()->getDefaultEventSource().get(),
+                d_invalidGuid,
+                subQueueId);
         }
     }
 }

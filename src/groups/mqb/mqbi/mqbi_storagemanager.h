@@ -297,6 +297,33 @@ class StorageManager {
     setPrimaryStatusForPartition(int partitionId,
                                  bmqp_ctrlmsg::PrimaryStatus::Value value) = 0;
 
+    /// Stop all Partition FSMs.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
+    virtual void stopPFSMs() = 0;
+
+    /// Apply `RST_UNKNOWN` event to the PartitionFSM for the specified
+    /// `partitionId`.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
+    virtual void detectPrimaryLossInPFSM(int partitionId) = 0;
+
+    /// Apply DETECT_SelfPrimary event to Partition FSM using the specified
+    /// `partitionId`, `primaryNode`, `primaryLeaseId`.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
+    virtual void detectSelfPrimaryInPFSM(int                  partitionId,
+                                         mqbnet::ClusterNode* primaryNode,
+                                         unsigned int primaryLeaseId) = 0;
+
+    /// Apply DETECT_SelfReplica event to Partition FSM using the specified
+    /// `partitionId`, `primaryNode` and `primaryLeaseId`.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
+    virtual void detectSelfReplicaInPFSM(int                  partitionId,
+                                         mqbnet::ClusterNode* primaryNode,
+                                         unsigned int primaryLeaseId) = 0;
+
     /// Process primary state request received from the specified `source`
     /// with the specified `message`.
     virtual void

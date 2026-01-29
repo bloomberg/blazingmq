@@ -14,6 +14,7 @@
 // limitations under the License.
 
 // mqbblp_storagemanager.cpp                                          -*-C++-*-
+#include <ball_log.h>
 #include <mqbblp_storagemanager.h>
 
 #include <mqbscm_version.h>
@@ -496,10 +497,10 @@ void StorageManager::setPrimaryForPartitionDispatched(
                   << " Partition [" << partitionId
                   << "]: received partition/primary info. Primary: "
                   << (primaryNode ? primaryNode->nodeDescription()
-                                  : "**null**")
+                                  : "** NULL **")
                   << ", leaseId: " << primaryLeaseId << ". Current primary: "
                   << (pinfo.primary() ? pinfo.primary()->nodeDescription()
-                                      : "** null **")
+                                      : "** NULL **")
                   << ", leaseId: " << pinfo.primaryLeaseId();
 
     if (primaryLeaseId < pinfo.primaryLeaseId()) {
@@ -511,7 +512,7 @@ void StorageManager::setPrimaryForPartitionDispatched(
             << ". Ignoring this request. Specified primary node: "
             << primaryNode->nodeDescription() << ", current primary node: "
             << (pinfo.primary() ? pinfo.primary()->nodeDescription()
-                                : "** null **")
+                                : "** NULL **")
             << BMQTSK_ALARMLOG_END;
         return;  // RETURN
     }
@@ -594,24 +595,32 @@ void StorageManager::clearPrimaryForPartitionDispatched(
     int                  partitionId,
     mqbnet::ClusterNode* primary)
 {
-    // executed by *DISPATCHER* thread
+    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
 
     // PRECONDITION
-    BSLS_ASSERT_SAFE(0 <= partitionId);
-    BSLS_ASSERT_SAFE(d_fileStores.size() >
-                     static_cast<unsigned int>(partitionId));
-    BSLS_ASSERT_SAFE(d_partitionInfoVec.size() >
-                     static_cast<unsigned int>(partitionId));
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
 
     mqbs::FileStore* fs    = d_fileStores[partitionId].get();
     PartitionInfo&   pinfo = d_partitionInfoVec[partitionId];
+
+    if (primary != pinfo.primary()) {
+        BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId
+                      << "]: Failed to clear primary as specified primary: "
+                      << primary->nodeDescription()
+                      << " is different from current perceived primary: "
+                      << (pinfo.primary() ? pinfo.primary()->nodeDescription()
+                                          : "** null **");
+        return;  // RETURN
+    }
 
     mqbc::StorageUtil::clearPrimaryForPartition(
         fs,
         &pinfo,
         d_clusterData_p->identity().description(),
-        partitionId,
-        primary);
+        partitionId);
 }
 
 void StorageManager::processStorageEventDispatched(
@@ -1504,28 +1513,74 @@ void StorageManager::setPrimaryStatusForPartition(
     // PRECONDITION
     BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
 
-    BSLS_ASSERT_OPT(false && "This method should only be invoked in CSL mode");
+    BSLS_ASSERT_OPT(false && "This method should only be invoked in FSM mode");
+}
+
+void StorageManager::stopPFSMs()
+{
+    // executed by cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+
+    BSLS_ASSERT_OPT(false && "This method should only be invoked in FSM mode");
+}
+
+void StorageManager::detectPrimaryLossInPFSM(BSLA_UNUSED int partitionId)
+{
+    // executed by cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+
+    BSLS_ASSERT_OPT(false && "This method should only be invoked in FSM mode");
+}
+
+void StorageManager::detectSelfPrimaryInPFSM(
+    BSLA_UNUSED int partitionId,
+    BSLA_UNUSED mqbnet::ClusterNode* primaryNode,
+    BSLA_UNUSED unsigned int         primaryLeaseId)
+{
+    // executed by cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+
+    BSLS_ASSERT_OPT(false && "This method should only be invoked in FSM mode");
+}
+
+void StorageManager::detectSelfReplicaInPFSM(
+    BSLA_UNUSED int partitionId,
+    BSLA_UNUSED mqbnet::ClusterNode* primaryNode,
+    BSLA_UNUSED unsigned int         primaryLeaseId)
+{
+    // executed by cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+
+    BSLS_ASSERT_OPT(false && "This method should only be invoked in FSM mode");
 }
 
 void StorageManager::processPrimaryStateRequest(
     BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
     BSLA_UNUSED mqbnet::ClusterNode* source)
 {
-    BSLS_ASSERT_OPT(false && "This method should only be invoked in CSL mode");
+    BSLS_ASSERT_OPT(false && "This method should only be invoked in FSM mode");
 }
 
 void StorageManager::processReplicaStateRequest(
     BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
     BSLA_UNUSED mqbnet::ClusterNode* source)
 {
-    BSLS_ASSERT_OPT(false && "This method should only be invoked in CSL mode");
+    BSLS_ASSERT_OPT(false && "This method should only be invoked in FSM mode");
 }
 
 void StorageManager::processReplicaDataRequest(
     BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
     BSLA_UNUSED mqbnet::ClusterNode* source)
 {
-    BSLS_ASSERT_OPT(false && "This method should only be invoked in CSL mode");
+    BSLS_ASSERT_OPT(false && "This method should only be invoked in FSM mode");
 }
 
 int StorageManager::configureStorage(

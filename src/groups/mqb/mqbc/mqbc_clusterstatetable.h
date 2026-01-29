@@ -50,14 +50,33 @@ struct ClusterStateTableState {
 
     /// Enumeration used to distinguish among different type of state.
     enum Enum {
-        e_UNKNOWN          = 0,
-        e_FOL_HEALING      = 1,
+        /// The leader is unknown.
+        e_UNKNOWN = 0,
+
+        /// Self is follower, healing its CSL.
+        e_FOL_HEALING = 1,
+
+        /// Self is leader, exchanging leader sequence numbers (LSNs) with
+        /// followers to determine who has the most up-to-date CSL.
         e_LDR_HEALING_STG1 = 2,
+
+        /// Self is leader, healing its CSL and the followers' CSLs.  It will
+        /// apply a CSL leader advisory to heal everyone.
         e_LDR_HEALING_STG2 = 3,
-        e_FOL_HEALED       = 4,
-        e_LDR_HEALED       = 5,
-        e_STOPPED          = 6,
-        e_NUM_STATES       = 7
+
+        /// Self is follower, and its CSL is healed.
+        e_FOL_HEALED = 4,
+
+        /// Self is leader, and its CSL is healed.
+        e_LDR_HEALED = 5,
+
+        /// Self is stopping.  Self could be either leader or follower, or
+        /// leader might be unknown.
+        e_STOPPED = 6,
+
+        /// **NOT A VALID STATE**.  This is an artificial enum value to
+        /// represent the number of states.
+        e_NUM_STATES = 7
     };
 
     // CLASS METHODS
@@ -114,28 +133,82 @@ struct ClusterStateTableEvent {
 
     /// Enumeration used to distinguish among different type of event.
     enum Enum {
-        e_SLCT_LDR               = 0,
-        e_SLCT_FOL               = 1,
-        e_FOL_LSN_RQST           = 2,
-        e_FOL_LSN_RSPN           = 3,
-        e_QUORUM_LSN             = 4,
-        e_LOST_QUORUM_LSN        = 5,
-        e_SELF_HIGHEST_LSN       = 6,
-        e_FOL_HIGHEST_LSN        = 7,
-        e_FAIL_FOL_LSN_RSPN      = 8,
-        e_FOL_CSL_RQST           = 9,
-        e_FOL_CSL_RSPN           = 10,
-        e_FAIL_FOL_CSL_RSPN      = 11,
-        e_CRASH_FOL_CSL          = 12,
-        e_STOP_NODE              = 13,
-        e_REGISTRATION_RQST      = 14,
-        e_REGISTRATION_RSPN      = 15,
+        /// Self is transitioned as leader, or the transistion is being
+        /// reapplied due to a failure condition such as watchdog firing.
+        e_SLCT_LDR = 0,
+
+        /// Self is transitioned as follower, or the transistion is being
+        /// reapplied due to a failure condition such as watchdog firing.
+        e_SLCT_FOL = 1,
+
+        /// Upon receipt of FollowerLSNRequest.
+        e_FOL_LSN_RQST = 2,
+
+        /// Upon receipt of a success FollowerLSNResponse.
+        e_FOL_LSN_RSPN = 3,
+
+        /// Upon receipt of a failure FollowerLSNResponse.
+        e_FAIL_FOL_LSN_RSPN = 4,
+
+        /// As leader, a quorum of LSNs (including self's) has been gathered.
+        e_QUORUM_LSN = 5,
+
+        /// As leader, the quorum of LSNs has been lost.
+        e_LOST_QUORUM_LSN = 6,
+
+        /// As leader, while viewing the quorum of LSNs, determined that self
+        /// has the highest LSN.
+        e_SELF_HIGHEST_LSN = 7,
+
+        /// As leader, while viewing the quorum of LSNs, determined that a
+        /// follower has the highest LSN.
+        e_FOL_HIGHEST_LSN = 8,
+
+        /// Upon receipt of FollowerClusterStateRequest.
+        e_FOL_CSL_RQST = 9,
+
+        /// Upon receipt of a success FollowerClusterStateResponse.
+        e_FOL_CSL_RSPN = 10,
+
+        /// Upon receipt of a failure FollowerClusterStateResponse.
+        e_FAIL_FOL_CSL_RSPN = 11,
+
+        /// As leader, upon detection that a follower whom we know the LSN of
+        /// has disconnected.
+        e_DISCONNECT_FOL_LSN = 12,
+
+        /// Node is stopping.  Self could be either leader or follower, or
+        /// leader might be unknown.
+        e_STOP_NODE = 13,
+
+        /// Upon receipt of RegistrationRequest.
+        e_REGISTRATION_RQST = 14,
+
+        /// Upon receipt of a success RegistrationResponse.
+        e_REGISTRATION_RSPN = 15,
+
+        /// Upon receipt of a failure RegistrationResponse.
         e_FAIL_REGISTRATION_RSPN = 16,
-        e_RST_UNKNOWN            = 17,
-        e_CSL_CMT_SUCCESS        = 18,
-        e_CSL_CMT_FAIL           = 19,
-        e_WATCH_DOG              = 20,
-        e_NUM_EVENTS             = 21
+
+        /// Loss of leader -- resetting leader to UNKNOWN state.
+        e_RST_UNKNOWN = 17,
+
+        /// Loss of primary(s), will inform Partition FSMs to reset to
+        /// UNKNOWN state.
+        e_RST_PRIMARY = 18,
+
+        /// Upon CSL commit success.
+        e_CSL_CMT_SUCCESS = 19,
+
+        /// Upon CSL commit failure.
+        e_CSL_CMT_FAIL = 20,
+
+        /// Watchdog triggered due to timeout.
+        e_WATCH_DOG = 21,
+
+        /// **NOT A VALID STATE**.  This is an artificial enum value to
+        /// represent the number of states.
+        e_NUM_EVENTS = 22
     };
 
     // CLASS METHODS
@@ -200,6 +273,8 @@ class ClusterStateTableActions {
 
     virtual void do_none(const ARGS& args);
 
+    virtual void do_abort(const ARGS& args) = 0;
+
     virtual void do_startWatchDog(const ARGS& args) = 0;
 
     virtual void do_stopWatchDog(const ARGS& args) = 0;
@@ -209,6 +284,10 @@ class ClusterStateTableActions {
     virtual void do_applyCSLSelf(const ARGS& args) = 0;
 
     virtual void do_initializeQueueKeyInfoMap(const ARGS& args) = 0;
+
+    virtual void do_stopPFSMs(const ARGS& args) = 0;
+
+    virtual void do_updatePrimaryInPFSMs(const ARGS& args) = 0;
 
     virtual void do_sendFollowerLSNRequests(const ARGS& args) = 0;
 
@@ -238,6 +317,8 @@ class ClusterStateTableActions {
     virtual void do_sendRegistrationResponse(const ARGS& args) = 0;
 
     virtual void do_sendFailureRegistrationResponse(const ARGS& args) = 0;
+
+    virtual void do_logUnexpectedCSLCommit(const ARGS& args) = 0;
 
     virtual void do_logStaleFollowerLSNResponse(const ARGS& args) = 0;
 
@@ -270,14 +351,22 @@ class ClusterStateTableActions {
 
     void do_stopWatchDog_cancelRequests_reapplyEvent(const ARGS& args);
 
-    void do_stopWatchDog_initializeQueueKeyInfoMap(const ARGS& args);
+    void do_stopPFSMs_stopWatchDog_cancelRequests(const ARGS& args);
+
+    void do_stopWatchDog_initializeQueueKeyInfoMap_updatePrimaryInPFSMs(
+        const ARGS& args);
 
     void do_stopWatchDog_cleanupLSNs_cancelRequests(const ARGS& args);
 
     void
     do_stopWatchDog_cleanupLSNs_cancelRequests_reapplyEvent(const ARGS& args);
 
+    void
+    do_stopPFSMs_stopWatchDog_cleanupLSNs_cancelRequests(const ARGS& args);
+
     void do_cleanupLSNs_reapplyEvent(const ARGS& args);
+
+    void do_stopPFSMs_cleanupLSNs(const ARGS& args);
 
     void do_cancelRequests_reapplySelectFollower(const ARGS& args);
 
@@ -302,6 +391,8 @@ class ClusterStateTableActions {
     void do_removeFollowerLSN_checkLSNQuorum(const ARGS& args);
 
     void do_sendRegistrationResponse_applyCSLSelf(const ARGS& args);
+
+    void do_logUnexpectedCSLCommit_and_abort(const ARGS& args);
 };
 
 // =======================
@@ -365,7 +456,11 @@ class ClusterStateTable
                 REGISTRATION_RQST,
                 sendFailureRegistrationResponse,
                 UNKNOWN);
-        CST_CFG(UNKNOWN, STOP_NODE, none, STOPPED);
+        CST_CFG(UNKNOWN,
+                CSL_CMT_SUCCESS,
+                logUnexpectedCSLCommit_and_abort,
+                UNKNOWN);
+        CST_CFG(UNKNOWN, STOP_NODE, stopPFSMs, STOPPED);
         CST_CFG(FOL_HEALING,
                 SLCT_LDR,
                 stopWatchDog_cancelRequests_reapplyEvent,
@@ -392,18 +487,22 @@ class ClusterStateTable
                 FOL_HEALING);
         CST_CFG(FOL_HEALING,
                 CSL_CMT_SUCCESS,
-                stopWatchDog_initializeQueueKeyInfoMap,
+                stopWatchDog_initializeQueueKeyInfoMap_updatePrimaryInPFSMs,
                 FOL_HEALED);
         CST_CFG(FOL_HEALING, CSL_CMT_FAIL, triggerWatchDog, UNKNOWN);
         CST_CFG(FOL_HEALING,
                 RST_UNKNOWN,
                 stopWatchDog_cancelRequests,
                 UNKNOWN);
+        CST_CFG(FOL_HEALING, RST_PRIMARY, updatePrimaryInPFSMs, FOL_HEALING);
         CST_CFG(FOL_HEALING,
                 WATCH_DOG,
                 cancelRequests_reapplySelectFollower,
                 UNKNOWN);
-        CST_CFG(FOL_HEALING, STOP_NODE, stopWatchDog_cancelRequests, STOPPED);
+        CST_CFG(FOL_HEALING,
+                STOP_NODE,
+                stopPFSMs_stopWatchDog_cancelRequests,
+                STOPPED);
         CST_CFG(LDR_HEALING_STG1,
                 SLCT_FOL,
                 stopWatchDog_cleanupLSNs_cancelRequests_reapplyEvent,
@@ -445,16 +544,24 @@ class ClusterStateTable
                 sendFollowerClusterStateRequest,
                 LDR_HEALING_STG2);
         CST_CFG(LDR_HEALING_STG1,
+                CSL_CMT_SUCCESS,
+                logUnexpectedCSLCommit_and_abort,
+                LDR_HEALING_STG1);
+        CST_CFG(LDR_HEALING_STG1,
                 RST_UNKNOWN,
                 stopWatchDog_cleanupLSNs_cancelRequests,
                 UNKNOWN);
+        CST_CFG(LDR_HEALING_STG1,
+                RST_PRIMARY,
+                updatePrimaryInPFSMs,
+                LDR_HEALING_STG1);
         CST_CFG(LDR_HEALING_STG1,
                 WATCH_DOG,
                 cleanupLSNs_cancelRequests_reapplySelectLeader,
                 UNKNOWN);
         CST_CFG(LDR_HEALING_STG1,
                 STOP_NODE,
-                stopWatchDog_cleanupLSNs_cancelRequests,
+                stopPFSMs_stopWatchDog_cleanupLSNs_cancelRequests,
                 STOPPED);
         CST_CFG(LDR_HEALING_STG2,
                 SLCT_FOL,
@@ -482,7 +589,7 @@ class ClusterStateTable
             logFailFollowerClusterStateResponse_removeFollowerLSN_checkLSNQuorum,
             LDR_HEALING_STG2);
         CST_CFG(LDR_HEALING_STG2,
-                CRASH_FOL_CSL,
+                DISCONNECT_FOL_LSN,
                 removeFollowerLSN_checkLSNQuorum,
                 LDR_HEALING_STG2);
         CST_CFG(LDR_HEALING_STG2,
@@ -507,7 +614,7 @@ class ClusterStateTable
                 LDR_HEALING_STG2);
         CST_CFG(LDR_HEALING_STG2,
                 CSL_CMT_SUCCESS,
-                stopWatchDog_initializeQueueKeyInfoMap,
+                stopWatchDog_initializeQueueKeyInfoMap_updatePrimaryInPFSMs,
                 LDR_HEALED);
         CST_CFG(LDR_HEALING_STG2, CSL_CMT_FAIL, triggerWatchDog, UNKNOWN);
         CST_CFG(LDR_HEALING_STG2,
@@ -515,12 +622,16 @@ class ClusterStateTable
                 stopWatchDog_cleanupLSNs_cancelRequests,
                 UNKNOWN);
         CST_CFG(LDR_HEALING_STG2,
+                RST_PRIMARY,
+                updatePrimaryInPFSMs,
+                LDR_HEALING_STG2);
+        CST_CFG(LDR_HEALING_STG2,
                 WATCH_DOG,
                 cleanupLSNs_cancelRequests_reapplySelectLeader,
                 UNKNOWN);
         CST_CFG(LDR_HEALING_STG2,
                 STOP_NODE,
-                stopWatchDog_cleanupLSNs_cancelRequests,
+                stopPFSMs_stopWatchDog_cleanupLSNs_cancelRequests,
                 STOPPED);
         CST_CFG(FOL_HEALED, SLCT_LDR, reapplyEvent, UNKNOWN);
         CST_CFG(FOL_HEALED,
@@ -539,8 +650,10 @@ class ClusterStateTable
                 FOL_CSL_RQST,
                 sendFollowerClusterStateResponse_logErrorLeaderNotHealed,
                 FOL_HEALING);
+        CST_CFG(FOL_HEALED, CSL_CMT_SUCCESS, updatePrimaryInPFSMs, FOL_HEALED);
         CST_CFG(FOL_HEALED, RST_UNKNOWN, none, UNKNOWN);
-        CST_CFG(FOL_HEALED, STOP_NODE, none, STOPPED);
+        CST_CFG(FOL_HEALED, RST_PRIMARY, updatePrimaryInPFSMs, FOL_HEALED);
+        CST_CFG(FOL_HEALED, STOP_NODE, stopPFSMs, STOPPED);
         CST_CFG(LDR_HEALED, SLCT_FOL, cleanupLSNs_reapplyEvent, UNKNOWN);
         CST_CFG(LDR_HEALED,
                 FOL_LSN_RQST,
@@ -554,8 +667,11 @@ class ClusterStateTable
                 FOL_CSL_RQST,
                 sendFailureFollowerClusterStateResponse,
                 LDR_HEALED);
+        CST_CFG(LDR_HEALED, CSL_CMT_SUCCESS, updatePrimaryInPFSMs, LDR_HEALED);
         CST_CFG(LDR_HEALED, RST_UNKNOWN, cleanupLSNs, UNKNOWN);
-        CST_CFG(LDR_HEALED, STOP_NODE, cleanupLSNs, STOPPED);
+        CST_CFG(LDR_HEALED, RST_PRIMARY, updatePrimaryInPFSMs, LDR_HEALED);
+        CST_CFG(LDR_HEALED, STOP_NODE, stopPFSMs_cleanupLSNs, STOPPED);
+        CST_CFG(STOPPED, RST_PRIMARY, updatePrimaryInPFSMs, STOPPED);
 #undef CST_CFG
     }
 };
@@ -618,11 +734,22 @@ void ClusterStateTableActions<
 }
 
 template <typename ARGS>
-void ClusterStateTableActions<ARGS>::do_stopWatchDog_initializeQueueKeyInfoMap(
+void ClusterStateTableActions<ARGS>::do_stopPFSMs_stopWatchDog_cancelRequests(
     const ARGS& args)
+{
+    do_stopPFSMs(args);
+    do_stopWatchDog(args);
+    do_cancelRequests(args);
+}
+
+template <typename ARGS>
+void ClusterStateTableActions<ARGS>::
+    do_stopWatchDog_initializeQueueKeyInfoMap_updatePrimaryInPFSMs(
+        const ARGS& args)
 {
     do_stopWatchDog(args);
     do_initializeQueueKeyInfoMap(args);
+    do_updatePrimaryInPFSMs(args);
 }
 
 template <typename ARGS>
@@ -645,11 +772,28 @@ void ClusterStateTableActions<ARGS>::
 }
 
 template <typename ARGS>
+void ClusterStateTableActions<ARGS>::
+    do_stopPFSMs_stopWatchDog_cleanupLSNs_cancelRequests(const ARGS& args)
+{
+    do_stopPFSMs(args);
+    do_stopWatchDog(args);
+    do_cleanupLSNs(args);
+    do_cancelRequests(args);
+}
+
+template <typename ARGS>
 void ClusterStateTableActions<ARGS>::do_cleanupLSNs_reapplyEvent(
     const ARGS& args)
 {
     do_cleanupLSNs(args);
     do_reapplyEvent(args);
+}
+
+template <typename ARGS>
+void ClusterStateTableActions<ARGS>::do_stopPFSMs_cleanupLSNs(const ARGS& args)
+{
+    do_stopPFSMs(args);
+    do_cleanupLSNs(args);
 }
 
 template <typename ARGS>
@@ -736,6 +880,14 @@ void ClusterStateTableActions<ARGS>::do_sendRegistrationResponse_applyCSLSelf(
 {
     do_sendRegistrationResponse(args);
     do_applyCSLSelf(args);
+}
+
+template <typename ARGS>
+void ClusterStateTableActions<ARGS>::do_logUnexpectedCSLCommit_and_abort(
+    const ARGS& args)
+{
+    do_logUnexpectedCSLCommit(args);
+    do_abort(args);
 }
 
 }  // close package namespace
