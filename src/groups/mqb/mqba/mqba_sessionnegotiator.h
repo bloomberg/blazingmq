@@ -29,11 +29,12 @@
 ///
 /// Thread Safety                              {#mqba_sessionnegotiator_thread}
 /// =============
-/// This component is owned by `InitialConnectionHandler`, and its functions
+/// This component is held by `InitialConnectionContext`, and its functions
 /// are called only from there.  It is not thread safe.
 
 // MQB
 #include <mqbconfm_messages.h>
+#include <mqbnet_initialconnectioncontext.h>
 #include <mqbnet_negotiationcontext.h>
 #include <mqbnet_negotiator.h>
 #include <mqbnet_session.h>
@@ -246,7 +247,7 @@ class SessionNegotiator : public mqbnet::Negotiator {
     /// Return 0 on success, or a non-zero error code and populate the
     /// specified `errorDescription` with a description of the error otherwise.
     int negotiateOutbound(bsl::ostream&                     errorDescription,
-                          const InitialConnectionContextSp& context)
+                          mqbnet::InitialConnectionContext* context)
         BSLS_KEYWORD_OVERRIDE;
 };
 
