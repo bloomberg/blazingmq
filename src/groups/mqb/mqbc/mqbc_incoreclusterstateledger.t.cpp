@@ -393,7 +393,7 @@ struct Tester {
     }
 
     // ACCESSORS
-    bool hasNoMoreBroadcastedMessages() const
+    bool hasNoMoreBroadcastedMessages(size_t number) const
     {
         // PRECONDITIONS
         BSLS_ASSERT_OPT(d_cluster_mp->_channels().size() > 0);
@@ -401,7 +401,7 @@ struct Tester {
         for (TestChannelMapCIter citer = d_cluster_mp->_channels().cbegin();
              citer != d_cluster_mp->_channels().cend();
              ++citer) {
-            if (!citer->second->hasNoMoreWriteCalls()) {
+            if (number < citer->second->numWriteCalls()) {
                 return false;
             }
         }
@@ -412,7 +412,7 @@ struct Tester {
     /// Return true if we the follower has sent `number` messages to the
     /// leader, false otherwise.  Behavior is undefined unless the caller is a
     /// follower node.
-    bool hasSentMessagesToLeader(int number) const
+    bool hasSentMessagesToLeader(size_t number) const
     {
         // PRECONDITIONS
         BSLS_ASSERT_OPT(d_cluster_mp->_channels().size() > 0);
@@ -425,21 +425,21 @@ struct Tester {
                 if (!citer->second->waitFor(number)) {
                     return false;  // RETURN
                 }
-                BSLS_ASSERT_OPT(citer->second->writeCalls().size() >=
-                                static_cast<size_t>(number));
+                BMQTST_ASSERT_LE(number, citer->second->numWriteCalls());
             }
             else {
-                BSLS_ASSERT_OPT((!citer->second->waitFor(1)));
-                BSLS_ASSERT_OPT(citer->second->writeCalls().empty());
+                BMQTST_ASSERT(!citer->second->waitFor(1));
+                BMQTST_ASSERT_EQ(citer->second->numWriteCalls(), 0u);
             }
         }
 
         return true;
     }
 
-    /// Return true if we the leader has broadcast `number` messages, false
-    /// otherwise.  Behavior is undefined unless the caller is the leader node.
-    bool hasBroadcastedMessages(int number) const
+    /// Return true if we the leader has at least `number` broadcast messages,
+    /// and false otherwise.
+    /// Behavior is undefined unless the caller is the leader node.
+    bool hasBroadcastedMessages(size_t number) const
     {
         // PRECONDITIONS
         BSLS_ASSERT_OPT(d_cluster_mp->_channels().size() > 0);
@@ -458,8 +458,7 @@ struct Tester {
             if (!citer->second->waitFor(number)) {
                 return false;  // RETURN
             }
-            BSLS_ASSERT_OPT(citer->second->writeCalls().size() >=
-                            static_cast<size_t>(number));
+            BSLS_ASSERT_OPT(number <= citer->second->numWriteCalls());
         }
 
         return true;
@@ -467,12 +466,13 @@ struct Tester {
 
     size_t numCommittedMessages() const { return d_committedMessages.size(); }
 
-    bmqp_ctrlmsg::ControlMessage broadcastedMessage(int index)
+    bmqp_ctrlmsg::ControlMessage broadcastedMessage(size_t index)
     {
         // PRECONDITIONS
         BSLS_ASSERT_OPT(d_cluster_mp->_channels().size() > 0);
 
-        bdlbb::Blob* blob = 0;
+        bool        blobFound = false;
+        bdlbb::Blob blob;
         for (TestChannelMapCIter citer = d_cluster_mp->_channels().cbegin();
              citer != d_cluster_mp->_channels().cend();
              ++citer) {
@@ -483,24 +483,26 @@ struct Tester {
                 continue;  // CONTINUE
             }
 
-            BSLS_ASSERT_OPT(citer->second->waitFor(index + 1, false));
+            BSLS_ASSERT_OPT(citer->second->waitFor(index + 1));
 
-            if (!blob) {
-                blob = &citer->second->writeCalls()[index].d_blob;
+            bmqio::TestChannel::WriteCall writeCall;
+            BMQTST_ASSERT(citer->second->getWriteCall(&writeCall, index));
+
+            if (!blobFound) {
+                blob      = writeCall.d_blob;
+                blobFound = true;
             }
             else {
                 BSLS_ASSERT_OPT(
-                    bdlbb::BlobUtil::compare(
-                        *blob,
-                        citer->second->writeCalls()[index].d_blob) == 0);
+                    bdlbb::BlobUtil::compare(blob, writeCall.d_blob) == 0);
             }
         }
 
-        BSLS_ASSERT_OPT(blob);
+        BSLS_ASSERT_OPT(blobFound);
 
         bdlbb::Blob record(d_cluster_mp->bufferFactory(),
                            bmqtst::TestHelperUtil::allocator());
-        bdlbb::BlobUtil::append(&record, *blob, sizeof(bmqp::EventHeader));
+        bdlbb::BlobUtil::append(&record, blob, sizeof(bmqp::EventHeader));
 
         bmqp_ctrlmsg::ControlMessage  controlMessage;
         bmqp_ctrlmsg::ClusterMessage& clusterMessage =
@@ -563,8 +565,9 @@ static void test1_breathingTest()
 
     BMQTST_ASSERT_EQ(tester.numCommittedMessages(), 0U);
     BMQTST_ASSERT(tester.hasBroadcastedMessages(0));
+
     BMQTST_ASSERT_EQ(obj->close(), 0);
-    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages());
+    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages(0));
 }
 
 static void test2_apply_PartitionPrimaryAdvisory()
@@ -616,8 +619,8 @@ static void test2_apply_PartitionPrimaryAdvisory()
     BMQTST_ASSERT_EQ(tester.committedMessage(0), expected);
     BMQTST_ASSERT(tester.hasBroadcastedMessages(2));
 
-    BSLS_ASSERT_OPT(obj->close() == 0);
-    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages());
+    BMQTST_ASSERT_EQ(obj->close(), 0);
+    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages(2));
 }
 
 static void test3_apply_QueueAssignmentAdvisory()
@@ -673,8 +676,8 @@ static void test3_apply_QueueAssignmentAdvisory()
     BMQTST_ASSERT_EQ(tester.committedMessage(0), expected);
     BMQTST_ASSERT(tester.hasBroadcastedMessages(2));
 
-    BSLS_ASSERT_OPT(obj->close() == 0);
-    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages());
+    BMQTST_ASSERT_EQ(obj->close(), 0);
+    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages(2));
 }
 
 static void test4_apply_QueueUnassignedAdvisory()
@@ -726,8 +729,8 @@ static void test4_apply_QueueUnassignedAdvisory()
     BMQTST_ASSERT_EQ(tester.committedMessage(0), expected);
     BMQTST_ASSERT(tester.hasBroadcastedMessages(2));
 
-    BSLS_ASSERT_OPT(obj->close() == 0);
-    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages());
+    BMQTST_ASSERT_EQ(obj->close(), 0);
+    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages(2));
 }
 
 static void test5_apply_QueueUpdateAdvisory()
@@ -797,7 +800,7 @@ static void test5_apply_QueueUpdateAdvisory()
     BMQTST_ASSERT(tester.hasBroadcastedMessages(2));
 
     BSLS_ASSERT_OPT(obj->close() == 0);
-    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages());
+    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages(2));
 }
 
 static void test6_apply_LeaderAdvisory()
@@ -856,7 +859,7 @@ static void test6_apply_LeaderAdvisory()
     BMQTST_ASSERT(tester.hasBroadcastedMessages(2));
 
     BSLS_ASSERT_OPT(obj->close() == 0);
-    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages());
+    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages(2));
 }
 
 static void test7_apply_ClusterStateRecord()
@@ -1084,7 +1087,7 @@ static void test8_apply_ClusterStateRecordCommit()
     BMQTST_ASSERT_EQ(tester.numCommittedMessages(), 1U);
 
     BSLS_ASSERT_OPT(obj->close() == 0);
-    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages());
+    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages(1));
 }
 
 static void test9_persistanceLeader()
@@ -2086,7 +2089,7 @@ static void test12_quorumChangeCb()
     BMQTST_ASSERT(tester.hasBroadcastedMessages(2));
 
     BSLS_ASSERT_OPT(obj->close() == 0);
-    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages());
+    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages(2));
 }
 
 // ============================================================================
