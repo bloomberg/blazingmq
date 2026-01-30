@@ -2887,6 +2887,13 @@ void StorageManager::do_removeStorage(const EventWithData& event)
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
 
+    BALL_LOG_WARN
+        << d_clusterData_p->identity().description() << " Partition ["
+        << partitionId
+        << "]: " << "self's storage is out of sync with primary and cannot be "
+        << "healed trivially. Removing entire storage and requesting it from "
+           "primary.";
+
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
     BSLS_ASSERT_SAFE(fs);
 
@@ -2897,13 +2904,6 @@ void StorageManager::do_removeStorage(const EventWithData& event)
     else {
         d_recoveryManager_mp->deprecateFileSet(partitionId);
     }
-
-    BALL_LOG_WARN
-        << d_clusterData_p->identity().description() << " Partition ["
-        << partitionId
-        << "]: " << "self's storage is out of sync with primary and cannot be "
-        << "healed trivially. Removing entire storage and request it from "
-           "primary.";
 }
 
 void StorageManager::do_incrementNumRplcaDataRspn(const EventWithData& event)
