@@ -33,13 +33,13 @@
 /// The behaviour of `authenticate()` is configured by `shouldPass`.  Summary:
 ///
 /// ..
-/// Behavior                            Description
-/// --------                            -----------
-/// shouldPass == true                  Return `0` (success).  Populate the
+/// Configuration                       Description
+/// -------------                       -----------
+/// shouldPass = true                   Return `0` (success).  Populate the
 ///                                     specified `result` with the client
-///                                     identity and optional remaining
-///                                     lifetime.
-/// shouldPass == false                 Return a non-zero plugin-specific
+///                                     principal "anonymous" and no lifetime.
+///
+/// shouldPass = false                  Return a non-zero plugin-specific
 ///                                     error code and populate
 ///                                     `errorDescription` with a short
 ///                                     reason for logging.  The `result`
@@ -110,6 +110,7 @@ class AnonAuthenticator : public mqbplug::Authenticator {
     // PUBLIC CLASS DATA
     static const char* k_NAME;
     static const char* k_MECHANISM;
+    static const char* k_PRINCIPAL;
 
   private:
     // CLASS-SCOPE CATEGORY

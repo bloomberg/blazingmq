@@ -33,26 +33,24 @@ PluginLibrary::PluginLibrary(bslma::Allocator* allocator)
     // AnonAuthenticator
     mqbplug::PluginInfo& anonPluginInfo = d_plugins.emplace_back(
         mqbplug::PluginType::e_AUTHENTICATOR,
-        "AnonAuthenticator");  // Keep old name for backwards compatibility
-
+        mqbauthn::AnonAuthenticator::k_NAME);
     anonPluginInfo.setFactory(
         bsl::allocate_shared<AnonAuthenticatorPluginFactory>(allocator));
-    anonPluginInfo.setDescription("Anonymous Authenticator");
+    anonPluginInfo.setDescription("Built-in Anonymous Authenticator");
 
     // BasicAuthenticator
     mqbplug::PluginInfo& basicPluginInfo = d_plugins.emplace_back(
         mqbplug::PluginType::e_AUTHENTICATOR,
         mqbauthn::BasicAuthenticator::k_NAME);
-
     basicPluginInfo.setFactory(
         bsl::allocate_shared<BasicAuthenticatorPluginFactory>(allocator));
-    basicPluginInfo.setDescription("Basic Username/Password Authenticator");
+    basicPluginInfo.setDescription(
+        "Built-in Basic Username/Password Authenticator");
 
     // TestAuthenticator
     mqbplug::PluginInfo& testPluginInfo = d_plugins.emplace_back(
         mqbplug::PluginType::e_AUTHENTICATOR,
         mqbauthn::TestAuthenticator::k_NAME);
-
     testPluginInfo.setFactory(
         bsl::allocate_shared<TestAuthenticatorPluginFactory>(allocator));
     testPluginInfo.setDescription("Test Authenticator");
