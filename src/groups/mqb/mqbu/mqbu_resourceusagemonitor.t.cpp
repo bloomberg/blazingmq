@@ -2492,6 +2492,7 @@ static void test9_print()
 
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
             const Test& test = k_DATA[idx];
+
             bsl::string ascii(bmqtst::TestHelperUtil::allocator());
 
             PVV(test.d_line << ": checking 'RUMStateTransition::toAscii("

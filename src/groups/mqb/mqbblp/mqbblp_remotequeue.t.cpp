@@ -270,6 +270,10 @@ void TestBench::ackPuts(mqbi::Queue* queue, bmqt::AckResult::Enum status)
 
 void TestBench::dropPuts()
 {
+    // Ubsan detects 'applying non-zero offset 1200 to null pointer' error in
+    // swap().
+    // TODO: it seems the problem in PutEvent type, use a temporary workaround,
+    // need to investigate further.
     bsl::queue<PutEvent>().swap(d_puts);
 }
 
