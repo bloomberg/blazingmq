@@ -34,7 +34,7 @@ if [ ! -d "${DIR_THIRDPARTY}/bde" ]; then
     git clone --depth 1 --branch 4.28.0.0 https://github.com/bloomberg/bde.git "${DIR_THIRDPARTY}/bde"
 fi
 if [ ! -d "${DIR_THIRDPARTY}/ntf-core" ]; then
-    git clone --depth 1 --branch 2.4.2 https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"
+    git clone --depth 1 --branch 2.6.6 https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"
 fi
 
 # :: Install required packages ::::::::::::::::::::::::::::::::::::::::::::::::

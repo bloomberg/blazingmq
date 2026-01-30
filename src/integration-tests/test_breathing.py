@@ -21,13 +21,9 @@ types of queues.
 from collections import namedtuple
 
 import blazingmq.dev.it.testconstants as tc
-from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
+from blazingmq.dev.it.fixtures import (
     Cluster,
-    cartesian_product_cluster,
-    cluster,
     order,
-    multi_node,
-    multi_interface,
     start_cluster,
     tweak,
 )
@@ -217,21 +213,33 @@ def test_open_queue(cartesian_product_cluster: Cluster, domain_urls: tc.DomainUr
     assert msgs[0].payload == "foo"
 
 
-def test_verify_priority(cluster: Cluster, domain_urls: tc.DomainUrls):
+# cluster = cluster + tls_cluster
+def test_verify_priority(
+    plain_and_tls_cluster: Cluster,
+    domain_urls: tc.DomainUrls,
+):
     uri_priority = domain_urls.uri_priority
-    proxies = cluster.proxy_cycle()
+    proxies = plain_and_tls_cluster.proxy_cycle()
 
     # 1: Setup producers and consumers
     # Proxy in same datacenter as leader/primary
     proxy1 = next(proxies)
 
-    producer1 = proxy1.create_client("producer1")
+    producer1 = proxy1.create_client(
+        "producer1",
+    )
     assert (
-        producer1.open(uri_priority, flags=["write", "ack"], block=True)
+        producer1.open(
+            uri_priority,
+            flags=["write", "ack"],
+            block=True,
+        )
         == Client.e_SUCCESS
     )
 
-    consumer1 = proxy1.create_client("consumer1")
+    consumer1 = proxy1.create_client(
+        "consumer1",
+    )
     assert (
         consumer1.open(uri_priority, flags=["read"], consumer_priority=2, block=True)
         == Client.e_SUCCESS
