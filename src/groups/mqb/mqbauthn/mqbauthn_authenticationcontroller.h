@@ -81,6 +81,7 @@ class AuthenticationController {
     bslma::ManagedPtr<mqbplug::PluginLibrary> d_builtInPluginLibrary;
 
     /// Used to instantiate external authenticator plugins at start-time.
+    /// Held, not owned.
     mqbplug::PluginManager* d_pluginManager_p;
 
     /// True if this component is started.
