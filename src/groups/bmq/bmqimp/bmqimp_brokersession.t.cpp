@@ -775,6 +775,9 @@ struct TestSession BSLS_CPP11_FINAL {
     /// Set the specified `writeStatus` to the test network channel and
     /// notify the BrokerSession about channel LWM.
     void setChannelLowWaterMark(bmqio::StatusCategory::Enum writeStatus);
+
+    /// Clear write calls stored in the owned TestChannel
+    void clearWriteCalls();
 };
 
 // CLASS DATA
@@ -2035,12 +2038,12 @@ bool TestSession::waitForChannelClose(const bsls::TimeInterval& timeout)
     // Wait for the close to be called on the base channel
     const bsls::TimeInterval expireAfter =
         bsls::SystemTime::nowRealtimeClock() + timeout;
-    while (d_testChannel.closeCallsEmpty() &&
+    while (0 == d_testChannel.numCloseCalls() &&
            bsls::SystemTime::nowRealtimeClock() < expireAfter) {
         bslmt::ThreadUtil::microSleep(k_TIME_SOURCE_STEP.totalMicroseconds());
     }
 
-    if (d_testChannel.closeCallsEmpty()) {
+    if (0 == d_testChannel.numCloseCalls()) {
         return false;  // RETURN
     }
 
@@ -2222,12 +2225,12 @@ bool TestSession::checkNoEvent()
 
 bool TestSession::isChannelEmpty()
 {
-    return !d_testChannel.waitFor(1, true, k_TIME_SOURCE_STEP);
+    return !d_testChannel.waitFor(1, k_TIME_SOURCE_STEP);
 }
 
 void TestSession::getOutboundEvent(bmqp::Event* rawEvent)
 {
-    BMQTST_ASSERT(d_testChannel.waitFor(1, true, bsls::TimeInterval(1)));
+    BMQTST_ASSERT(d_testChannel.waitFor(1, bsls::TimeInterval(1)));
 
     bmqio::TestChannel::WriteCall wc = d_testChannel.popWriteCall();
     bmqp::Event ev(&wc.d_blob, bmqtst::TestHelperUtil::allocator(), true);
@@ -2238,7 +2241,7 @@ void TestSession::getOutboundEvent(bmqp::Event* rawEvent)
 void TestSession::getOutboundControlMessage(
     bmqp_ctrlmsg::ControlMessage* outMsg)
 {
-    BMQTST_ASSERT(d_testChannel.waitFor(1, true, k_EVENT_TIMEOUT));
+    BMQTST_ASSERT(d_testChannel.waitFor(1, k_EVENT_TIMEOUT));
 
     bmqio::TestChannel::WriteCall wc = d_testChannel.popWriteCall();
     bmqp::Event ev(&wc.d_blob, bmqtst::TestHelperUtil::allocator());
@@ -2450,6 +2453,14 @@ void TestSession::setChannelLowWaterMark(
     // Notify BrokerSession
     session().handleChannelWatermark(
         bmqio::ChannelWatermarkType::e_LOW_WATERMARK);
+}
+
+void TestSession::clearWriteCalls()
+{
+    while (d_testChannel.numWriteCalls() > 0) {
+        BSLA_MAYBE_UNUSED bmqio::TestChannel::WriteCall call =
+            d_testChannel.popWriteCall();
+    }
 }
 
 static void test_disconnectRequestErr(bmqio::StatusCategory::Enum category)
@@ -3404,16 +3415,16 @@ static void test8_queueWriterConfigureTest()
 
     // We empty any outbound message now, so that we can then ensure no
     // messages was sent as part of the following configures).
-    obj.channel().writeCalls().clear();
+    obj.clearWriteCalls();
 
     PVV_SAFE("Calling configure queue when channel");
     rc = obj.session().configureQueue(pQueue, pQueue->options(), timeout);
     BMQTST_ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_SUCCESS);
-    BMQTST_ASSERT(obj.channel().writeCalls().empty());
+    BMQTST_ASSERT_EQ(obj.channel().numWriteCalls(), 0u);
 
     rc = obj.session().configureQueueAsync(pQueue, pQueue->options(), timeout);
     BMQTST_ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_SUCCESS);
-    BMQTST_ASSERT(obj.channel().writeCalls().empty());
+    BMQTST_ASSERT_EQ(obj.channel().numWriteCalls(), 0u);
 
     // Async configure should have enqueued a configure result of value success
     BMQTST_ASSERT(obj.verifyOperationResult(
@@ -3897,7 +3908,8 @@ static void test11_disconnect()
         PVV_SAFE("Ensure a disconnectMessage was sent to the broker");
         bmqp_ctrlmsg::ControlMessage disconnectMessage(
             bmqtst::TestHelperUtil::allocator());
-        BMQTST_ASSERT(testChannel.waitFor(1, true, bsls::TimeInterval(5)));
+        BMQTST_ASSERT(testChannel.waitFor(1, bsls::TimeInterval(5)));
+        BMQTST_ASSERT_EQ(testChannel.numWriteCalls(), 1u);
         bmqio::TestChannel::WriteCall wc = testChannel.popWriteCall();
         bmqp::Event ev(&wc.d_blob, bmqtst::TestHelperUtil::allocator());
         BMQTST_ASSERT(ev.isControlEvent());
@@ -4001,7 +4013,8 @@ static void test11_disconnect()
         PVV_SAFE("Ensure a disconnectMessage was sent to the broker");
         bmqp_ctrlmsg::ControlMessage disconnectMessage(
             bmqtst::TestHelperUtil::allocator());
-        BMQTST_ASSERT(testChannel.waitFor(1, true, bsls::TimeInterval(5)));
+        BMQTST_ASSERT(testChannel.waitFor(1, bsls::TimeInterval(5)));
+        BMQTST_ASSERT_EQ(testChannel.numWriteCalls(), 1u);
         bmqio::TestChannel::WriteCall wc = testChannel.popWriteCall();
         bmqp::Event ev(&wc.d_blob, bmqtst::TestHelperUtil::allocator());
         BMQTST_ASSERT(ev.isControlEvent());
@@ -4587,7 +4600,7 @@ static void test21_post_Limit()
     rc = obj.session().post(*builder.blob(), postTimeout);
 
     BMQTST_ASSERT_EQ(rc, bmqt::PostResult::e_BW_LIMIT);
-    BMQTST_ASSERT_EQ(obj.channel().writeCalls().size(), 0u);
+    BMQTST_ASSERT_EQ(obj.channel().numWriteCalls(), 0u);
 
     PVV_SAFE("Step 7. Schedule LWM and post PUT again");
     scheduler.scheduleEvent(
@@ -4613,7 +4626,7 @@ static void test21_post_Limit()
         obj.getOutboundEvent(&rawEvent);
         BMQTST_ASSERT(rawEvent.isPutEvent());
     }
-    BMQTST_ASSERT_EQ(obj.channel().writeCalls().size(), 0u);
+    BMQTST_ASSERT_EQ(obj.channel().numWriteCalls(), 0u);
 
     PVV_SAFE("Step 9. Set the channel to return e_GENERIC_ERROR on write");
     obj.channel().setWriteStatus(bmqio::StatusCategory::e_GENERIC_ERROR);
@@ -4630,7 +4643,7 @@ static void test21_post_Limit()
     rawEvent.clear();
     obj.getOutboundEvent(&rawEvent);
     BMQTST_ASSERT(rawEvent.isPutEvent());
-    BMQTST_ASSERT_EQ(obj.channel().closeCalls().size(), 1u);
+    BMQTST_ASSERT_EQ(obj.channel().numCloseCalls(), 1u);
 
     // Set write status back to e_SUCCESS
     obj.channel().setWriteStatus(bmqio::StatusCategory::e_SUCCESS);
@@ -4709,11 +4722,10 @@ static void test22_confirm_Limit()
 
     // Drain the FSM queue
     BMQTST_ASSERT_EQ(obj.session().start(bsls::TimeInterval(1)), 0);
-
-    BMQTST_ASSERT_EQ(obj.channel().writeCalls().size(), 1u);
+    BMQTST_ASSERT_EQ(obj.channel().numWriteCalls(), 1u);
 
     // Clear test channel write queue
-    obj.channel().writeCalls().clear();
+    obj.clearWriteCalls();
 
     PVV_SAFE("Step 6. Schedule LWM and send confirm again");
 
@@ -4736,10 +4748,10 @@ static void test22_confirm_Limit()
 
     // Expect two write calls in the test channel - one from the first attempt
     // that returned E_LIMIT and the second one after LWM event.
-    BMQTST_ASSERT_EQ(obj.channel().writeCalls().size(), 2u);
+    BMQTST_ASSERT_EQ(obj.channel().numWriteCalls(), 2u);
 
     // Clear test channel write queue
-    obj.channel().writeCalls().clear();
+    obj.clearWriteCalls();
 
     PVV_SAFE("Step 8. Set the channel to return e_GENERIC_ERROR on write");
     obj.channel().setWriteStatus(bmqio::StatusCategory::e_GENERIC_ERROR);
@@ -4752,10 +4764,10 @@ static void test22_confirm_Limit()
     BMQTST_ASSERT_EQ(obj.session().start(bsls::TimeInterval(1)), 0);
 
     BMQTST_ASSERT_EQ(rc, bmqt::GenericResult::e_SUCCESS);
-    BMQTST_ASSERT_EQ(obj.channel().writeCalls().size(), 1u);
+    BMQTST_ASSERT_EQ(obj.channel().numWriteCalls(), 1u);
 
     // Clear test channel write queue
-    obj.channel().writeCalls().clear();
+    obj.clearWriteCalls();
 
     // Set write status back to e_SUCCESS
     obj.channel().setWriteStatus(bmqio::StatusCategory::e_SUCCESS);
@@ -6876,7 +6888,7 @@ static void test35_hostHealthMonitoring()
     obj.openQueue(queue, bsls::TimeInterval(5), true);
     BMQTST_ASSERT(queue->isSuspended());
 
-    size_t before = obj.channel().writeCalls().size();
+    const size_t before = obj.channel().numWriteCalls();
     BMQTST_ASSERT(obj.checkNoEvent());
     queueOptions.setMaxUnconfirmedMessages(321);
     BMQTST_ASSERT_EQ(bmqt::GenericResult::e_SUCCESS,
@@ -6885,7 +6897,7 @@ static void test35_hostHealthMonitoring()
                                                   bsls::TimeInterval(5)));
     BMQTST_ASSERT_EQ(queue->options().maxUnconfirmedMessages(), 321);
     BMQTST_ASSERT(obj.checkNoEvent());
-    BMQTST_ASSERT_EQ(obj.channel().writeCalls().size(), before);
+    BMQTST_ASSERT_EQ(obj.channel().numWriteCalls(), before);
 
     queueOptions.setMaxUnconfirmedMessages(123);
     BMQTST_ASSERT_EQ(bmqt::GenericResult::e_SUCCESS,
@@ -6897,7 +6909,7 @@ static void test35_hostHealthMonitoring()
         bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
     BMQTST_ASSERT_EQ(queue->options().maxUnconfirmedMessages(), 123);
     BMQTST_ASSERT(obj.checkNoEvent());
-    BMQTST_ASSERT_EQ(obj.channel().writeCalls().size(), before);
+    BMQTST_ASSERT_EQ(obj.channel().numWriteCalls(), before);
 
     PVV_SAFE("Step 8. "
              "Verify that queue resumes when the host becomes healthy");
@@ -8813,7 +8825,7 @@ static void test49_controlsBuffering()
 
     // Verify there is only 1 outstanding request
     obj.verifyRequestSent(TestSession::e_REQ_OPEN_QUEUE);
-    BMQTST_ASSERT_EQ(obj.channel().writeCalls().size(), 0u);
+    BMQTST_ASSERT_EQ(obj.channel().numWriteCalls(), 0u);
 
     PVV_SAFE("Step 4. Schedule LWM and check control requests");
 
@@ -8826,7 +8838,7 @@ static void test49_controlsBuffering()
 
     // Only one write attempt happened
     obj.verifyRequestSent(TestSession::e_REQ_OPEN_QUEUE);
-    BMQTST_ASSERT_EQ(obj.channel().writeCalls().size(), 0u);
+    BMQTST_ASSERT_EQ(obj.channel().numWriteCalls(), 0u);
 
     PVV_SAFE("Step 5. Schedule LWM and check all requests proceeded");
 
@@ -8841,7 +8853,7 @@ static void test49_controlsBuffering()
     obj.verifyRequestSent(TestSession::e_REQ_OPEN_QUEUE);
     obj.verifyRequestSent(TestSession::e_REQ_OPEN_QUEUE);
     obj.verifyRequestSent(TestSession::e_REQ_OPEN_QUEUE);
-    BMQTST_ASSERT_EQ(obj.channel().writeCalls().size(), 0u);
+    BMQTST_ASSERT_EQ(obj.channel().numWriteCalls(), 0u);
 
     PV_SAFE("Step 6. Stop the session");
     obj.stopGracefully(false);  // don't wait for DISCONNECTED event
@@ -9969,12 +9981,12 @@ static void test54_distributedTrace()
     dtEvents.clear();
 
     PVV_SAFE("Step 3. Configure a queue");
-    BMQTST_ASSERT(obj.channel().writeCalls().empty());
+    BMQTST_ASSERT_EQ(obj.channel().numWriteCalls(), 0u);
     int rc = obj.session().configureQueueAsync(pQueue,
                                                pQueue->options(),
                                                timeout);
     BMQTST_ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_SUCCESS);
-    BMQTST_ASSERT(obj.channel().waitFor(1, false, bsls::TimeInterval(1)));
+    BMQTST_ASSERT(obj.channel().waitFor(1, bsls::TimeInterval(1)));
 
     localFns::fillEventBufferFn(dtEvents, dtEventsQueue, 1u);
     BMQTST_ASSERT_EQ(dtEvents[0],

@@ -303,7 +303,7 @@ Mes TestContext::createResponseCancel()
 
 Mes TestContext::getNextRequest()
 {
-    BMQTST_ASSERT(d_testChannel.waitFor(1, true, bsls::TimeInterval(1)));
+    BMQTST_ASSERT(d_testChannel.waitFor(1, bsls::TimeInterval(1)));
     bmqio::TestChannel::WriteCall wc = d_testChannel.popWriteCall();
     bmqp::Event                   ev(&wc.d_blob, d_allocator_p);
     BMQTST_ASSERT(ev.isControlEvent());
@@ -613,9 +613,9 @@ static void test4_sendRequestTest()
 
         // checking if RequestManager has really sent all the requests to
         // testChannel
-        BMQTST_ASSERT_EQ(context.channel().writeCalls().size(),
+        BMQTST_ASSERT_EQ(context.channel().numWriteCalls(),
                          requestsWithoutId.size());
-        while (!context.channel().writeCalls().empty()) {
+        while (0 < context.channel().numWriteCalls()) {
             Mes                    controlMes = context.getNextRequest();
             ReqChoice&             choice     = controlMes.choice();
             ReqChoiceSet::iterator it         = requestsWithoutId.find(choice);

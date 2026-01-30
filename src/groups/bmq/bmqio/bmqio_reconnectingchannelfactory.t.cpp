@@ -325,12 +325,11 @@ void Tester::closeChannel()
 
     // Ensure that the object under test registered itself to the as an
     // observer of the channel down.
-    BMQTST_ASSERT_EQ(d_channel.onCloseCalls().size(), 1U);
+    BMQTST_ASSERT_EQ(d_channel.numOnCloseCalls(), 1U);
 
-    TestChannel::OnCloseCall& call = d_channel.onCloseCalls().front();
+    TestChannel::OnCloseCall call = d_channel.popOnCloseCall();
     call.d_closeFn(Status(StatusCategory::e_CONNECTION,
                           bmqtst::TestHelperUtil::allocator()));
-    d_channel.onCloseCalls().pop_front();
 }
 
 void Tester::ensureConnectAndEmitEvent(int                       line,
@@ -766,7 +765,7 @@ BMQTST_TEST_F(Tester, NonReconnecting)
         checkResult(L_, ChannelFactoryEvent::e_CHANNEL_UP);
 
         // Ensure the factory did not register a channel down observer
-        BMQTST_ASSERT(testChannel().onCloseCalls().empty());
+        BMQTST_ASSERT_EQ(testChannel().numOnCloseCalls(), 0u);
 
         // No more events expected
         advanceSchedulerTime(2 * k_RECONNECT_INTERVAL);
@@ -865,7 +864,7 @@ BMQTST_TEST_F(Tester, NonReconnecting)
         checkResult(L_, ChannelFactoryEvent::e_CHANNEL_UP);
 
         // Ensure the factory did not register a channel down observer
-        BMQTST_ASSERT(testChannel().onCloseCalls().empty());
+        BMQTST_ASSERT_EQ(testChannel().numOnCloseCalls(), 0u);
 
         // No more events expected
         advanceSchedulerTime(2 * k_RECONNECT_INTERVAL);

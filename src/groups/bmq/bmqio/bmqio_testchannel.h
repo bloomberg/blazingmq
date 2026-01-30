@@ -92,6 +92,13 @@ class TestChannel : public Channel {
         {
             // NOTHING
         }
+
+        WriteCall()
+        : d_blob()
+        , d_watermark()
+        {
+            // NOTHING
+        }
     };
 
     struct CancelReadCall {
@@ -186,9 +193,7 @@ class TestChannel : public Channel {
     bmqvt::PropertyBag          d_properties;
     bsl::string                 d_peerUri;
     mutable bslmt::Mutex        d_mutex;
-    bslmt::Condition            d_condition;
-    bool                        d_isFinal;
-    bool                        d_hasNoMoreWriteCalls;
+    mutable bslmt::Condition    d_condition;
     bslma::Allocator*           d_allocator_p;
 
     // NOT IMPLEMENTED
@@ -223,31 +228,16 @@ class TestChannel : public Channel {
     /// Set the string returned by `peerUri` to the specified `value`.
     void setPeerUri(const bslstl::StringRef& value);
 
-    bsl::deque<ReadCall>&       readCalls();
-    bsl::deque<WriteCall>&      writeCalls();
-    bsl::deque<CancelReadCall>& cancelReadCalls();
-    bsl::deque<CloseCall>&      closeCalls();
-    bsl::deque<ExecuteCall>&    executeCalls();
-    bsl::deque<OnCloseCall>&    onCloseCalls();
-
-    /// Return a reference providing modifiable access to the deque
-    /// containing the stored calls to the corresponding function.
-    bsl::deque<OnWatermarkCall>& onWatermarkCalls();
-
-    bool waitFor(int                       size     = 1,
-                 bool                      isFinal  = true,
-                 const bsls::TimeInterval& interval = bsls::TimeInterval(0.1));
-
     /// Since writing is now asynchronous, need to synchronize
     bool waitFor(const bdlbb::Blob&        blob,
                  const bsls::TimeInterval& interval,
                  bool                      pop = true);
 
-    /// Pops a write-call from those written to the channel (FIFO ordering).
-    WriteCall popWriteCall();
-
-    /// Pops a close-call from those written to the channel (FIFO ordering).
+    /// Pops the oldest (FIFO) call from those written to the channel.
+    /// The behaviour is undefined if the corresponding call queue is empty.
+    WriteCall   popWriteCall();
     CloseCall popCloseCall();
+    OnCloseCall popOnCloseCall();
 
     CloseSignaler& closeSignaler();
 
@@ -256,12 +246,27 @@ class TestChannel : public Channel {
     WatermarkSignaler& watermarkSignaler();
 
     // ACCESSORS
-    const Status& writeStatus() const;
-    bool          hasNoMoreWriteCalls() const;
 
-    /// Lock mutex and return `true` if d_closeCalls collection is empty,
-    /// `false` otherwise.
-    bool closeCallsEmpty() const;
+    /// @brief Wait for a write call and return it.
+    /// @param call The address to store the output write call.
+    /// @param index Position of the write call in test channel.
+    /// @param interval Max wait interval.
+    /// @return `true` if write call was acquired and returned in time, `false`
+    /// otherwise. Thread-safety: this routine is thread-safe.
+    bool getWriteCall(
+        TestChannel::WriteCall*   call,
+        size_t                    index,
+        const bsls::TimeInterval& interval = bsls::TimeInterval(0.1)) const;
+
+    bool waitFor(
+        size_t                    size     = 1,
+        const bsls::TimeInterval& interval = bsls::TimeInterval(0.1)) const;
+
+    const Status& writeStatus() const;
+
+    size_t numWriteCalls() const;
+    size_t numCloseCalls() const;
+    size_t numOnCloseCalls() const;
 
     // Channel
     void read(Status*                   status,
