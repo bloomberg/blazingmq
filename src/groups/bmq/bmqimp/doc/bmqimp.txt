@@ -31,6 +31,7 @@ dependency.  The list below shows the hierarchical ordering of the components.
      bmqpimp_queue
 
   1. bmqimp_negotiatedchannelfactory
+     bmqimp_authenticatedchannelfactory
      bmqimp_stat
 ..
 
@@ -38,6 +39,9 @@ dependency.  The list below shows the hierarchical ordering of the components.
 /------------------
 : 'bmqimp_application':
 :      Provide the top level object to manipulate a session with bmqbrkr.
+:
+: 'bmqimp_authenticatedchannelfactory':
+:      Provide a 'ChannelFactory' that authenticates upon connecting to peer.
 :
 : 'bmqimp_brokersession':
 :      Provide the implementation of a session with the bmqbrkr.
