@@ -173,6 +173,14 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                 << BMQTSK_ALARMLOG_END;
             errorDesc.reset();
         }
+        else {
+            BALL_LOG_INFO << d_clusterData.identity().description()
+                          << " Partition [" << partitionId
+                          << "]: " << "Truncated journal file ["
+                          << recoveryCtx.d_recoveryFileSet.journalFile()
+                          << "] to position ["
+                          << recoveryCtx.d_journalFilePosition << "].";
+        }
 
         rc = mqbs::FileSystemUtil::flush(
             recoveryCtx.d_mappedJournalFd.mapping(),
@@ -187,6 +195,14 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                 << BMQTSK_ALARMLOG_END;
             errorDesc.reset();
         }
+        else {
+            BALL_LOG_INFO << d_clusterData.identity().description()
+                          << " Partition [" << partitionId
+                          << "]: " << "Flushed journal file ["
+                          << recoveryCtx.d_recoveryFileSet.journalFile()
+                          << "] up to position ["
+                          << recoveryCtx.d_journalFilePosition << "].";
+        }
 
         rc = mqbs::FileSystemUtil::close(&recoveryCtx.d_mappedJournalFd);
         if (rc != 0) {
@@ -195,6 +211,13 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                 << partitionId << "]: " << "Failed to close journal file ["
                 << recoveryCtx.d_recoveryFileSet.journalFile()
                 << "], rc: " << rc << BMQTSK_ALARMLOG_END;
+        }
+        else {
+            BALL_LOG_INFO << d_clusterData.identity().description()
+                          << " Partition [" << partitionId
+                          << "]: " << "Closed journal file ["
+                          << recoveryCtx.d_recoveryFileSet.journalFile()
+                          << "].";
         }
     }
     rc = mqbs::FileSystemUtil::move(
@@ -207,6 +230,14 @@ void RecoveryManager::deprecateFileSet(int partitionId)
             << recoveryCtx.d_recoveryFileSet.journalFile() << "] "
             << "to location [" << d_dataStoreConfig.archiveLocation()
             << "] rc: " << rc << BMQTSK_ALARMLOG_END;
+    }
+    else {
+        BALL_LOG_INFO << d_clusterData.identity().description()
+                      << " Partition [" << partitionId
+                      << "]: " << "Moved journal file ["
+                      << recoveryCtx.d_recoveryFileSet.journalFile()
+                      << "] to location ["
+                      << d_dataStoreConfig.archiveLocation() << "].";
     }
     recoveryCtx.d_journalFilePosition = 0;
 
@@ -222,6 +253,14 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                 << ", error: " << errorDesc.str() << BMQTSK_ALARMLOG_END;
             errorDesc.reset();
         }
+        else {
+            BALL_LOG_INFO << d_clusterData.identity().description()
+                          << " Partition [" << partitionId
+                          << "]: " << "Truncated data file ["
+                          << recoveryCtx.d_recoveryFileSet.dataFile()
+                          << "] to position ["
+                          << recoveryCtx.d_dataFilePosition << "].";
+        }
 
         rc = mqbs::FileSystemUtil::flush(recoveryCtx.d_mappedDataFd.mapping(),
                                          recoveryCtx.d_dataFilePosition,
@@ -234,6 +273,14 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                 << ", error: " << errorDesc.str() << BMQTSK_ALARMLOG_END;
             errorDesc.reset();
         }
+        else {
+            BALL_LOG_INFO << d_clusterData.identity().description()
+                          << " Partition [" << partitionId
+                          << "]: " << "Flushed data file ["
+                          << recoveryCtx.d_recoveryFileSet.dataFile()
+                          << "] up to position ["
+                          << recoveryCtx.d_dataFilePosition << "].";
+        }
 
         rc = mqbs::FileSystemUtil::close(&recoveryCtx.d_mappedDataFd);
         if (rc != 0) {
@@ -242,6 +289,12 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                 << partitionId << "]: " << "Failed to close data file ["
                 << recoveryCtx.d_recoveryFileSet.dataFile() << "], rc: " << rc
                 << BMQTSK_ALARMLOG_END;
+        }
+        else {
+            BALL_LOG_INFO << d_clusterData.identity().description()
+                          << " Partition [" << partitionId
+                          << "]: " << "Closed data file ["
+                          << recoveryCtx.d_recoveryFileSet.dataFile() << "].";
         }
     }
     rc = mqbs::FileSystemUtil::move(recoveryCtx.d_recoveryFileSet.dataFile(),
@@ -253,6 +306,14 @@ void RecoveryManager::deprecateFileSet(int partitionId)
             << recoveryCtx.d_recoveryFileSet.dataFile() << "] "
             << "to location [" << d_dataStoreConfig.archiveLocation()
             << "] rc: " << rc << BMQTSK_ALARMLOG_END;
+    }
+    else {
+        BALL_LOG_INFO << d_clusterData.identity().description()
+                      << " Partition [" << partitionId
+                      << "]: " << "Moved data file ["
+                      << recoveryCtx.d_recoveryFileSet.dataFile()
+                      << "] to location ["
+                      << d_dataStoreConfig.archiveLocation() << "].";
     }
     recoveryCtx.d_dataFilePosition = 0;
 
@@ -268,6 +329,14 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                 << ", error: " << errorDesc.str() << BMQTSK_ALARMLOG_END;
             errorDesc.reset();
         }
+        else {
+            BALL_LOG_INFO << d_clusterData.identity().description()
+                          << " Partition [" << partitionId
+                          << "]: " << "Truncated QList file ["
+                          << recoveryCtx.d_recoveryFileSet.qlistFile()
+                          << "] to position ["
+                          << recoveryCtx.d_qlistFilePosition << "].";
+        }
 
         rc = mqbs::FileSystemUtil::flush(recoveryCtx.d_mappedQlistFd.mapping(),
                                          recoveryCtx.d_qlistFilePosition,
@@ -280,6 +349,14 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                 << ", error: " << errorDesc.str() << BMQTSK_ALARMLOG_END;
             errorDesc.reset();
         }
+        else {
+            BALL_LOG_INFO << d_clusterData.identity().description()
+                          << " Partition [" << partitionId
+                          << "]: " << "Flushed QList file ["
+                          << recoveryCtx.d_recoveryFileSet.qlistFile()
+                          << "] up to position ["
+                          << recoveryCtx.d_qlistFilePosition << "].";
+        }
 
         rc = mqbs::FileSystemUtil::close(&recoveryCtx.d_mappedQlistFd);
         if (rc != 0) {
@@ -288,6 +365,12 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                 << partitionId << "]: " << "Failed to close QList file ["
                 << recoveryCtx.d_recoveryFileSet.qlistFile() << "], rc: " << rc
                 << BMQTSK_ALARMLOG_END;
+        }
+        else {
+            BALL_LOG_INFO << d_clusterData.identity().description()
+                          << " Partition [" << partitionId
+                          << "]: " << "Closed QList file ["
+                          << recoveryCtx.d_recoveryFileSet.qlistFile() << "].";
         }
     }
     rc = mqbs::FileSystemUtil::move(recoveryCtx.d_recoveryFileSet.qlistFile(),
@@ -299,6 +382,14 @@ void RecoveryManager::deprecateFileSet(int partitionId)
             << recoveryCtx.d_recoveryFileSet.qlistFile() << "] "
             << "to location [" << d_dataStoreConfig.archiveLocation()
             << "] rc: " << rc << BMQTSK_ALARMLOG_END;
+    }
+    else {
+        BALL_LOG_INFO << d_clusterData.identity().description()
+                      << " Partition [" << partitionId
+                      << "]: " << "Moved QList file ["
+                      << recoveryCtx.d_recoveryFileSet.qlistFile()
+                      << "] to location ["
+                      << d_dataStoreConfig.archiveLocation() << "].";
     }
     recoveryCtx.d_qlistFilePosition = 0;
 
