@@ -248,16 +248,27 @@ class TestChannel : public Channel {
     // ACCESSORS
 
     /// @brief Wait for a write call and return it.
-    /// @param call The address to store the output write call.
+    /// @param call[out] The address to store the output write call.
     /// @param index Position of the write call in test channel.
     /// @param interval Max wait interval.
     /// @return `true` if write call was acquired and returned in time, `false`
-    /// otherwise. Thread-safety: this routine is thread-safe.
+    /// otherwise.
+    ///
+    /// @remark Thread-safety: this routine is thread-safe.
     bool getWriteCall(
         TestChannel::WriteCall*   call,
         size_t                    index,
         const bsls::TimeInterval& interval = bsls::TimeInterval(0.1)) const;
 
+    /// @brief Ensure this channel has cached at least the specified number of
+    ///        write calls, including the ones that were cached before calling
+    ///        this routine.
+    /// @param size The requested number of write calls to be stored.
+    /// @param interval The time interval to wait for the next update.
+    ///                 If there are no write call updates in this interval,
+    ///                 stop and return `false`.
+    /// @return `true` if the specified number of messages (or more) is cached,
+    ///         `false` otherwise.
     bool waitFor(
         size_t                    size     = 1,
         const bsls::TimeInterval& interval = bsls::TimeInterval(0.1)) const;

@@ -393,6 +393,8 @@ struct Tester {
     }
 
     // ACCESSORS
+    /// Return true if we observe no more than the `number` of write calls
+    /// in each channel, return false otherwise.
     bool hasNoMoreBroadcastedMessages(size_t number) const
     {
         // PRECONDITIONS

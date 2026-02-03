@@ -1018,8 +1018,8 @@ class TestBench {
         d_cs.onDispatcherEvent(*event);
     }
 
-    void verifyPush(size_t                   pushIndex,
-                    bmqp::MessageProperties* properties,
+    void verifyPush(bmqp::MessageProperties* properties,
+                    size_t                   pushIndex,
                     int                      length = k_PAYLOAD_LENGTH)
     {
         d_cs.flush();
@@ -1798,7 +1798,7 @@ static void test7_oldStylePut()
                 postMessages[0].d_appData,
                 bmqt::CompressionAlgorithmType::e_NONE,
                 logic);
-    tb.verifyPush(pushIndex, &out);
+    tb.verifyPush(&out, pushIndex);
 
     verify(out);
 }
@@ -1884,7 +1884,7 @@ static void test8_oldStyleCompressedPut()
                 bmqt::CompressionAlgorithmType::e_NONE,
                 logic);
 
-    tb.verifyPush(pushIndex, &out);
+    tb.verifyPush(&out, pushIndex);
 
     verify(out);
 }
@@ -2000,7 +2000,7 @@ static void test9_newStylePush()
                 postMessages[0].d_appData,
                 bmqt::CompressionAlgorithmType::e_NONE,
                 logic);
-    tb.verifyPush(pushIndex, &out, 99);
+    tb.verifyPush(&out, pushIndex, 99);
 
     verify(out);
 }
@@ -2113,8 +2113,8 @@ static void test10_newStyleCompressedPush()
                 postMessages[0].d_appData,
                 bmqt::CompressionAlgorithmType::e_ZLIB,
                 logic);
-    tb.verifyPush(pushIndex,
-                  &out,
+    tb.verifyPush(&out,
+                  pushIndex,
                   2 * bmqp::Protocol::k_COMPRESSION_MIN_APPDATA_SIZE);
 
     verify(out);

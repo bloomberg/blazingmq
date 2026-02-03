@@ -437,6 +437,7 @@ struct TestHelper {
              ++cit) {
             if (cit->first->nodeId() == primaryNodeId) {
                 BMQTST_ASSERT(cit->second->waitFor(expectedNumDataChunks));
+                // TODO(kaikulimu): uncomment & update UT
                 // BMQTST_ASSERT(!cit->second->waitFor(
                 //                                 expectedNumDataChunks + 1));
                 /*
