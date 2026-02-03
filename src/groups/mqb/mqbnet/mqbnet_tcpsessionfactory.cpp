@@ -362,7 +362,7 @@ void TCPSessionFactory::handleInitialConnection(
     // `handleEvent()`, its lifetime ends when `InitialConnectionCompleteCb`
     // finishes.
 
-    bsl::shared_ptr<InitialConnectionContext> initialConnectionContext =
+    bsl::shared_ptr<InitialConnectionContext> initialConnectionContext_sp =
         bsl::allocate_shared<InitialConnectionContext>(
             d_allocator_p,
             context->d_isIncoming,
@@ -383,19 +383,22 @@ void TCPSessionFactory::handleInitialConnection(
                 context));
 
     // Cache the context.  It will be removed in 'initialConnectionComplete'.
-    d_initialConnectionContextCache[initialConnectionContext.get()] =
-        initialConnectionContext;
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
+        d_initialConnectionContextCache[initialConnectionContext_sp.get()] =
+            initialConnectionContext_sp;
+    }
 
     // Register as observer of the channel to get the 'onClose'
     channel->onClose(
         bdlf::BindUtil::bindS(d_allocator_p,
                               &TCPSessionFactory::onClose,
                               this,
-                              initialConnectionContext.get(),
+                              initialConnectionContext_sp.get(),
                               channel,
                               bdlf::PlaceHolders::_1 /* bmqio::Status */));
 
-    initialConnectionContext->handleInitialConnection();
+    initialConnectionContext_sp->handleInitialConnection();
 }
 
 void TCPSessionFactory::readCallback(const bmqio::Status& status,
@@ -524,6 +527,21 @@ void TCPSessionFactory::initialConnectionComplete(
 {
     // executed by one of the *IO* threads or an *AUTHENTICATION* thread
 
+    // We need to remove this context form the cache, however, we need to keep
+    // a shared pointer to InitialConnectionContext alive in this scope.
+    // In some code paths we call channel->close(), and erasing the last
+    // reference to InitialConnectionContext would remove the last reference
+    // of channel: channel->close() would then cause a segfault.
+    bsl::shared_ptr<InitialConnectionContext> initialConnectionContext_sp;
+    {
+        bslmt::LockGuard<bslmt::Mutex>       guard(&d_mutex);
+        InitialConnectionContextMp::iterator iter =
+            d_initialConnectionContextCache.find(initialConnectionContext_p);
+        BSLS_ASSERT_SAFE(iter != d_initialConnectionContextCache.end());
+        initialConnectionContext_sp = iter->second;
+        d_initialConnectionContextCache.erase(initialConnectionContext_p);
+    }
+
     // Reset any authentication message stored in the authentication context
     if (initialConnectionContext_p->authenticationContext()) {
         initialConnectionContext_p->authenticationContext()
@@ -539,19 +557,6 @@ void TCPSessionFactory::initialConnectionComplete(
                       << "', status: " << statusCode << ", error: '"
                       << errorDescription << "']";
 
-        // Remove from cache before closing channel, but need to keep the
-        // InitialConnectionContext alive until after channel->close(). This is
-        // because if close has been triggered by the peer already, erasing
-        // InitialConnectionContext would lose the last reference of channel.
-        // channel->close() would then cause a segfault.
-        bsl::shared_ptr<InitialConnectionContext> initialConnectionContext_sp;
-        {
-            bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
-            initialConnectionContext_sp = d_initialConnectionContextCache.at(
-                initialConnectionContext_p);
-            d_initialConnectionContextCache.erase(initialConnectionContext_p);
-        }
-
         bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR,
                              "initialconnectionError",
                              statusCode,
@@ -564,11 +569,6 @@ void TCPSessionFactory::initialConnectionComplete(
         logOpenSessionTime(logStream.str(), channel);
         return;  // RETURN
     }
-
-    BSLS_ASSERT_SAFE(
-        d_initialConnectionContextCache.contains(initialConnectionContext_p));
-    bsl::shared_ptr<InitialConnectionContext> initialConnectionContext_sp =
-        d_initialConnectionContextCache.at(initialConnectionContext_p);
 
     // Successful negotiation
     BSLS_ASSERT_SAFE(initialConnectionContext_p->negotiationContext());
@@ -606,9 +606,6 @@ void TCPSessionFactory::initialConnectionComplete(
 
     {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
-
-        // Remove the cached InitialConnectionContext under lock
-        d_initialConnectionContextCache.erase(initialConnectionContext_p);
 
         ++d_nbSessions;
 
@@ -828,9 +825,10 @@ void TCPSessionFactory::onClose(const InitialConnectionContext* context_p,
         // set the 'isClosed' flag under lock to be checked under lock in
         // 'initialConnectionComplete'.
         bsl::shared_ptr<InitialConnectionContext> initialConnectionContext_sp;
-        if (d_initialConnectionContextCache.contains(context_p)) {
-            initialConnectionContext_sp = d_initialConnectionContextCache.at(
-                context_p);
+        InitialConnectionContextMp::iterator      iter =
+            d_initialConnectionContextCache.find(context_p);
+        if (iter != d_initialConnectionContextCache.end()) {
+            initialConnectionContext_sp = iter->second;
             initialConnectionContext_sp->onClose();
         }
 
