@@ -309,6 +309,7 @@ int Application::start(bsl::ostream& errorDescription)
     // Start dispatcher
     d_dispatcher_mp.load(new (*d_allocator_p) Dispatcher(
                              mqbcfg::BrokerConfig::get().dispatcherConfig(),
+                             d_statController_mp->dispatcherStatContext(),
                              d_scheduler_p,
                              d_allocators.get("Dispatcher")),
                          d_allocator_p);

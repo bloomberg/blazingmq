@@ -955,6 +955,9 @@ class DispatcherEvent : public DispatcherDispatcherEvent,
     /// processing it.
     bmqu::ManagedCallback d_finalizeCallback;
 
+    /// Enqueue time.
+    bsls::Types::Int64 d_enqueueTime;
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(DispatcherEvent, bslma::UsesBslmaAllocator)
@@ -1059,6 +1062,9 @@ class DispatcherEvent : public DispatcherDispatcherEvent,
 
     DispatcherEvent& setState(const bsl::shared_ptr<bmqu::AtomicState>& state);
 
+    /// Set the enqueue time.
+    DispatcherEvent& setEnqueueTime(bsls::Types::Int64 time);
+
     /// Reset all members of this `DispatcherEvent` to a default value.
     void reset();
 
@@ -1074,6 +1080,9 @@ class DispatcherEvent : public DispatcherDispatcherEvent,
     /// Return the DispatcherClient destination target (`consumer`) of this
     /// event.
     DispatcherClient* destination() const;
+
+    /// Return the enqueue time.
+    bsls::Types::Int64 enqueueTime() const;
 
     const DispatcherDispatcherEvent*     asDispatcherEvent() const;
     const DispatcherControlMessageEvent* asControlMessageEvent() const;
@@ -1593,6 +1602,13 @@ DispatcherEvent::setState(const bsl::shared_ptr<bmqu::AtomicState>& state)
     return *this;
 }
 
+inline DispatcherEvent&
+DispatcherEvent::setEnqueueTime(bsls::Types::Int64 time)
+{
+    d_enqueueTime = time;
+    return *this;
+}
+
 inline DispatcherEventType::Enum DispatcherEvent::type() const
 {
     return d_type;
@@ -1606,6 +1622,11 @@ inline DispatcherClient* DispatcherEvent::source() const
 inline DispatcherClient* DispatcherEvent::destination() const
 {
     return d_destination_p;
+}
+
+inline bsls::Types::Int64 DispatcherEvent::enqueueTime() const
+{
+    return d_enqueueTime;
 }
 
 inline const DispatcherDispatcherEvent*
