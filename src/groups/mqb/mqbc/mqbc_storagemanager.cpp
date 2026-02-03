@@ -333,10 +333,13 @@ void StorageManager::setPrimaryStatusForPartitionDispatched(
 
     PartitionInfo& pinfo = d_partitionInfoVec[partitionId];
     if (!pinfo.primary()) {
-        BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << " Partition [" << partitionId
-                       << "]: Failed to set primary status to " << value
-                       << " because primary is perceived as ** NULL **";
+        if (!d_cluster_p->isStopping()) {
+            BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                           << " Partition [" << partitionId
+                           << "]: " << "Failed to set primary status to "
+                           << value
+                           << " because primary is perceived as ** NULL **";
+        }
 
         return;  // RETURN
     }
