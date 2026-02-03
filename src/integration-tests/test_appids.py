@@ -131,10 +131,10 @@ def test_open_alarm_authorize_post(cluster: Cluster, domain_urls: tc.DomainUrls)
     for app_id in DEFAULT_APP_IDS:
         test_logger.info(f"Check if {app_id} has seen 2 messages")
         assert wait_until(
-            lambda: len(
-                consumers[app_id].list(f"{du.uri_fanout}?id={app_id}", block=True)
-            )
-            == 2,
+            lambda: (
+                len(consumers[app_id].list(f"{du.uri_fanout}?id={app_id}", block=True))
+                == 2
+            ),
             3,
         )
 
@@ -597,10 +597,10 @@ def test_open_authorize_restart_from_non_FSM_to_FSM(
     for app_id in all_app_ids:
         test_logger.info(f"Check if {app_id} has seen 2 messages")
         assert wait_until(
-            lambda: len(
-                consumers[app_id].list(f"{du.uri_fanout}?id={app_id}", block=True)
-            )
-            == 2,
+            lambda: (
+                len(consumers[app_id].list(f"{du.uri_fanout}?id={app_id}", block=True))
+                == 2
+            ),
             3,
         )
 
@@ -638,16 +638,17 @@ def test_open_authorize_restart_from_non_FSM_to_FSM(
     for app_id in DEFAULT_APP_IDS:
         test_logger.info(f"Check if {app_id} has seen 2 messages")
         assert wait_until(
-            lambda: len(
-                consumers[app_id].list(f"{du.uri_fanout}?id={app_id}", block=True)
-            )
-            == 2,
+            lambda: (
+                len(consumers[app_id].list(f"{du.uri_fanout}?id={app_id}", block=True))
+                == 2
+            ),
             3,
         )
 
     assert wait_until(
-        lambda: len(consumers["quux"].list(f"{du.uri_fanout}?id=quux", block=True))
-        == 1,
+        lambda: (
+            len(consumers["quux"].list(f"{du.uri_fanout}?id=quux", block=True)) == 1
+        ),
         3,
     )
 
