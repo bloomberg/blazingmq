@@ -17,11 +17,29 @@
 #include <mqbc_partitionfsm.h>
 
 #include <mqbscm_version.h>
+
 // BDE
+#include <ball_logthrottle.h>
+#include <bdlt_timeunitratio.h>
 #include <bsla_annotations.h>
 
 namespace BloombergLP {
 namespace mqbc {
+
+namespace {
+
+const int k_MAX_INSTANT_MESSAGES = 10;
+// Maximum messages logged with throttling in a short period of time.
+
+const bsls::Types::Int64 k_NS_PER_MESSAGE =
+    bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND / k_MAX_INSTANT_MESSAGES;
+// Time interval between messages logged with throttling.
+
+#define BMQ_LOGTHROTTLE_INFO                                                  \
+    BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)           \
+        << "[THROTTLED] "
+
+}  // close unnamed namespace
 
 // ==================
 // class PartitionFSM
@@ -42,8 +60,14 @@ void PartitionFSM::processEvent(const EventWithData& event)
     // Transition state
     d_state = static_cast<State::Enum>(transition.first);
 
-    if (event.first != PartitionStateTableEvent::e_RECOVERY_DATA &&
-        event.first != PartitionStateTableEvent::e_LIVE_DATA) {
+    if (event.first == PartitionStateTableEvent::e_RECOVERY_DATA ||
+        event.first == PartitionStateTableEvent::e_LIVE_DATA) {
+        BMQ_LOGTHROTTLE_INFO << "Partition FSM for Partition [" << partitionId
+                             << "] on Event '" << event.first
+                             << "', transition: State '" << oldState
+                             << "' =>  State '" << d_state << "'";
+    }
+    else {
         BALL_LOG_INFO << "Partition FSM for Partition [" << partitionId
                       << "] on Event '" << event.first
                       << "', transition: State '" << oldState
