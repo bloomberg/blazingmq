@@ -43,6 +43,11 @@ namespace bmqio {
 /// Utility namespace for channel manipulation.
 struct ChannelUtil {
   public:
+    typedef const bsl::function<
+        void(const bdlbb::Blob& source, int offset, int length)>
+        Reader;
+
+  public:
     // CLASS METHODS
 
     /// Handle a `BlobBasedReadCallback` call from a `btemt_AsyncChannel`
@@ -62,9 +67,8 @@ struct ChannelUtil {
     /// possible and load them into the specified `outPackets`.  Return `0`
     /// on success or `-1` if a fatal error occurred and the channel is in
     /// an unrecoverable state and should be closed.
-    static int handleRead(bsl::vector<bdlbb::Blob>* outPackets,
-                          int*                      numNeeded,
-                          bdlbb::Blob*              inBlob);
+    static int
+    handleRead(const Reader& reader, int* numNeeded, bdlbb::Blob* inBlob);
 
     /// Return true if the specified `host` corresponds to this host,
     /// whether because the hostname is `localhost`, or its resolved IP

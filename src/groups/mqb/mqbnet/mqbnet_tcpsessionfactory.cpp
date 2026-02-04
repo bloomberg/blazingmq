@@ -59,6 +59,7 @@
 #include <ball_log.h>
 #include <bdlb_scopeexit.h>
 #include <bdlb_string.h>
+#include <bdlbb_blobutil.h>
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
 #include <bdlma_localsequentialallocator.h>
@@ -107,6 +108,8 @@ const int k_SESSION_DESTROY_WAIT = 20;
 const int k_CLIENT_CLOSE_WAIT = 20;
 // Time to wait incrementally (in seconds) for all clients and
 // proxies to be destroyed during stop sequence.
+
+const int k_BLOB_POOL_GROWTH_STRATEGY = 1024;
 
 int calculateInitialMissedHbCounter(const mqbcfg::TcpInterfaceConfig& config)
 {
@@ -433,14 +436,15 @@ void TCPSessionFactory::readCallback(const bmqio::Status& status,
         return;  // RETURN
     }
 
-    bdlma::LocalSequentialAllocator<32 * sizeof(bdlbb::Blob) +
-                                    sizeof(bsl::vector<bdlbb::Blob>)>
-        lsa(d_allocator_p);
-
-    bsl::vector<bdlbb::Blob> readBlobs(&lsa);
-    readBlobs.reserve(32);
-
-    const int rc = bmqio::ChannelUtil::handleRead(&readBlobs, numNeeded, blob);
+    const int rc = bmqio::ChannelUtil::handleRead(
+        bdlf::BindUtil::bind(&TCPSessionFactory::read,
+                             this,
+                             channelInfo,
+                             bdlf::PlaceHolders::_1,
+                             bdlf::PlaceHolders::_2,
+                             bdlf::PlaceHolders::_3),
+        numNeeded,
+        blob);
     // NOTE: The blobs in readBlobs will be created using the vector's
     //       allocator, which is LSA, but that is ok because the blobs at the
     //       end are passed as pointer (through bmqp::Event) to the
@@ -459,42 +463,43 @@ void TCPSessionFactory::readCallback(const bmqio::Status& status,
         channelInfo->d_channel_sp->close();
         return;  // RETURN
     }
+}
+
+void TCPSessionFactory::read(ChannelInfo*       channelInfo,
+                             const bdlbb::Blob& source,
+                             int                offset,
+                             int                length)
+{
+    // executed by one of the *IO* threads
+
+    const bsl::shared_ptr<bdlbb::Blob> readBlob = d_blobSpPool.getObject();
+
+    bdlbb::BlobUtil::append(readBlob.get(), source, offset, length);
+
+    BALL_LOG_TRACE << channelInfo->d_session_sp->description()
+                   << ": ReadCallback got a blob\n"
+                   << bmqu::BlobStartHexDumper(readBlob.get());
 
     // Not updating d_heartbeatMonitor until there is a valid event
 
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(readBlobs.empty())) {
+    bmqp::Event event(readBlob, d_allocator_p);
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!event.isValid())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        // Don't yet have a full blob
+
+        BALL_LOG_ERROR << "#TCP_INVALID_PACKET "
+                       << channelInfo->d_session_sp->description()
+                       << ": Received an invalid packet:\n"
+                       << bmqu::BlobStartHexDumper(readBlob.get());
         return;  // RETURN
     }
 
-    for (size_t i = 0; i < readBlobs.size(); ++i) {
-        const bdlbb::Blob& readBlob = readBlobs[i];
-
-        BALL_LOG_TRACE << channelInfo->d_session_sp->description()
-                       << ": ReadCallback got a blob\n"
-                       << bmqu::BlobStartHexDumper(&readBlob);
-
-        bmqp::Event event(&readBlob, d_allocator_p);
-        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!event.isValid())) {
-            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-
-            BALL_LOG_ERROR << "#TCP_INVALID_PACKET "
-                           << channelInfo->d_session_sp->description()
-                           << ": Received an invalid packet:\n"
-                           << bmqu::BlobStartHexDumper(&readBlob);
-            continue;  // CONTINUE
-        }
-
-        if (channelInfo->d_monitor.checkData(channelInfo->d_channel_sp.get(),
-                                             event)) {
-            channelInfo->d_eventProcessor_p->processEvent(
-                event,
-                channelInfo->d_session_sp->clusterNode());
-        }
+    if (channelInfo->d_monitor.checkData(channelInfo->d_channel_sp.get(),
+                                         event)) {
+        channelInfo->d_eventProcessor_p->processEvent(
+            event,
+            channelInfo->d_session_sp->clusterNode());
     }
 }
-
 void TCPSessionFactory::negotiationComplete(
     int                                      statusCode,
     const bsl::string&                       errorDescription,
@@ -947,6 +952,7 @@ TCPSessionFactory::TCPSessionFactory(
 , d_config(config, allocator)
 , d_scheduler_p(scheduler)
 , d_blobBufferFactory_p(blobBufferFactory)
+, d_blobSpPool(k_BLOB_POOL_GROWTH_STRATEGY, allocator)
 , d_initialConnectionHandler_p(initialConnectionHandler)
 , d_statController_p(statController)
 , d_tcpChannelFactory_mp()

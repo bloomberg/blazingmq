@@ -6174,7 +6174,7 @@ void FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
         return;  // RETURN
     }
 
-    bmqp::Event                  rawEvent(blob.get(), d_allocator_p);
+    bmqp::Event                  rawEvent(blob, d_allocator_p);
     bmqp::StorageMessageIterator iter;
 
     rawEvent.loadStorageMessageIterator(&iter);
@@ -6337,7 +6337,7 @@ int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
         rc_WRITE_FAILURE            = -5
     };
 
-    bmqp::Event                  rawEvent(blob.get(), d_allocator_p);
+    bmqp::Event                  rawEvent(blob, d_allocator_p);
     bmqp::StorageMessageIterator iter;
 
     rawEvent.loadStorageMessageIterator(&iter);

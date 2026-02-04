@@ -1809,7 +1809,7 @@ void ClusterStateManager::processClusterStateEvent(
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
     mqbnet::ClusterNode* source = event.clusterNode();
-    bmqp::Event          rawEvent(event.blob().get(), d_allocator_p);
+    bmqp::Event          rawEvent(event.blob(), d_allocator_p);
     BSLS_ASSERT_SAFE(rawEvent.isClusterStateEvent());
 
     const int rc = d_clusterStateLedger_mp->apply(*rawEvent.blob(), source);

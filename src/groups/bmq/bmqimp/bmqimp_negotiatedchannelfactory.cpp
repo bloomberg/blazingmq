@@ -200,8 +200,10 @@ void NegotiatedChannelFactory::readPacketsCb(
         return;  // RETURN
     }
 
-    bdlbb::Blob packet;
-    const int   rc = bmqio::ChannelUtil::handleRead(&packet, numNeeded, blob);
+    bsl::shared_ptr<bdlbb::Blob> packet = d_config.d_blobSpPool_p->getObject();
+    const int rc = bmqio::ChannelUtil::handleRead(packet.get(),
+                                                  numNeeded,
+                                                  blob);
     if (rc != 0) {
         BALL_LOG_ERROR << "Broker negotiation read callback failed [peer: "
                        << channel->peerUri() << ", rc: " << rc << "]";
@@ -214,26 +216,26 @@ void NegotiatedChannelFactory::readPacketsCb(
         return;  // RETURN
     }
 
-    if (packet.length() == 0) {
+    if (packet->length() == 0) {
         // Don't yet have a full packet
         return;  // RETURN
     }
 
     // We have the whole message.
     *numNeeded = 0;  // No more packets are expected
-    BALL_LOG_TRACE << "Read blob:\n" << bmqu::BlobStartHexDumper(&packet);
+    BALL_LOG_TRACE << "Read blob:\n" << bmqu::BlobStartHexDumper(packet.get());
     onBrokerNegotiationResponse(packet, cb, channel);
 }
 
 void NegotiatedChannelFactory::onBrokerNegotiationResponse(
-    const bdlbb::Blob&                     packet,
-    const ResultCallback&                  cb,
-    const bsl::shared_ptr<bmqio::Channel>& channel) const
+    const bsl::shared_ptr<const bdlbb::Blob>& packet,
+    const ResultCallback&                     cb,
+    const bsl::shared_ptr<bmqio::Channel>&    channel) const
 {
     BALL_LOG_TRACE << "Received a packet:\n"
-                   << bmqu::BlobStartHexDumper(&packet);
+                   << bmqu::BlobStartHexDumper(packet.get());
 
-    bmqp::Event event(&packet, d_config.d_allocator_p);
+    bmqp::Event event(packet, d_config.d_allocator_p);
     if (!event.isValid()) {
         BALL_LOG_ERROR << "Invalid response from broker [reason: 'packet is "
                        << "not a valid BlazingMQ event']: " << event;

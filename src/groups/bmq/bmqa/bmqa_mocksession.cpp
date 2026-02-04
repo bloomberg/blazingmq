@@ -275,13 +275,14 @@ Event MockSessionUtil::createQueueSessionEvent(
     return event;
 }
 
-Event MockSessionUtil::createAckEvent(const bsl::vector<AckParams>& acks,
-                                      bdlbb::BlobBufferFactory* bufferFactory,
-                                      bslma::Allocator*         allocator)
+Event MockSessionUtil::createAckEvent(
+    const bsl::vector<AckParams>&   acks,
+    bmqp::BlobPoolUtil::BlobSpPool* blobSpPool,
+    bslma::Allocator*               allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!acks.empty());
-    BSLS_ASSERT_SAFE(bufferFactory);
+    BSLS_ASSERT_SAFE(blobSpPool);
 
     bslma::Allocator* alloc = bslma::Default::allocator(allocator);
 
@@ -291,12 +292,7 @@ Event MockSessionUtil::createAckEvent(const bsl::vector<AckParams>& acks,
     implPtr = EventImplSp(new (*alloc) bmqimp::Event(g_bufferFactory_p, alloc),
                           alloc);
 
-    // TODO: deprecate `createAckEvent` with bufferFactory arg and introduce
-    // another function with BlobSpPool arg.
-    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
-        bmqp::BlobPoolUtil::createBlobPool(bufferFactory, allocator));
-
-    bmqp::AckEventBuilder ackBuilder(blobSpPool.get(), alloc);
+    bmqp::AckEventBuilder ackBuilder(blobSpPool, alloc);
     for (size_t i = 0; i != acks.size(); ++i) {
         const AckParams&   params   = acks[i];
         const QueueImplSp& impQueue = reinterpret_cast<const QueueImplSp&>(
@@ -310,8 +306,7 @@ Event MockSessionUtil::createAckEvent(const bsl::vector<AckParams>& acks,
         implPtr->insertQueue(impQueue);
     }
 
-    implPtr->configureAsMessageEvent(
-        bmqp::Event(ackBuilder.blob().get(), alloc, true));
+    implPtr->configureAsMessageEvent(bmqp::Event(ackBuilder.blob(), alloc));
     for (size_t i = 0; i != acks.size(); ++i) {
         implPtr->addContext(acks[i].d_correlationId);
     }
@@ -321,6 +316,7 @@ Event MockSessionUtil::createAckEvent(const bsl::vector<AckParams>& acks,
 
 Event MockSessionUtil::createPushEvent(
     const bsl::vector<PushMessageParams>& pushEventParams,
+    bmqp::BlobPoolUtil::BlobSpPool*       blobSpPool,
     bdlbb::BlobBufferFactory*             bufferFactory,
     bslma::Allocator*                     allocator)
 {
@@ -334,12 +330,7 @@ Event MockSessionUtil::createPushEvent(
     implPtr = EventImplSp(new (*alloc) bmqimp::Event(g_bufferFactory_p, alloc),
                           alloc);
 
-    // TODO: deprecate `createPushEvent` with bufferFactory arg and introduce
-    // another function with BlobSpPool arg.
-    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
-        bmqp::BlobPoolUtil::createBlobPool(bufferFactory, allocator));
-
-    bmqp::PushEventBuilder pushBuilder(blobSpPool.get(), alloc);
+    bmqp::PushEventBuilder pushBuilder(blobSpPool, alloc);
 
     for (size_t i = 0; i != pushEventParams.size(); ++i) {
         const QueueImplSp& queueImplPtr = reinterpret_cast<const QueueImplSp&>(
@@ -372,7 +363,7 @@ Event MockSessionUtil::createPushEvent(
         implPtr->addContext(bmqt::CorrelationId());
     }
 
-    bmqp::Event bmqpEvent(pushBuilder.blob().get(), alloc, true);
+    bmqp::Event bmqpEvent(pushBuilder.blob(), alloc);
     implPtr->configureAsMessageEvent(bmqpEvent);
 
     return event;
@@ -2116,7 +2107,7 @@ int MockSession::confirmMessages(ConfirmEventBuilder* builder)
     // No need to compare pointer of confirmEventBuilder.
     BMQA_RETURN_ON_RC();
 
-    bmqp::Event                  bmqpEvent(&builder->blob(), d_allocator_p);
+    bmqp::Event bmqpEvent(builder->sharedBlob(), d_allocator_p);
     bmqp::ConfirmMessageIterator cIter;
 
     bmqpEvent.loadConfirmMessageIterator(&cIter);

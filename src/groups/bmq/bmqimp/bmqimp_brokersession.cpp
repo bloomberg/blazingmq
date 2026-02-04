@@ -3024,7 +3024,8 @@ BrokerSession::sendRequest(const RequestManagerType::RequestSp& context,
     return rc;
 }
 
-void BrokerSession::sendConfirm(const bdlbb::Blob& blob, const int msgCount)
+void BrokerSession::sendConfirm(const bsl::shared_ptr<const bdlbb::Blob>& blob,
+                                const int msgCount)
 {
     // executed by the FSM thread
 
@@ -3035,7 +3036,7 @@ void BrokerSession::sendConfirm(const bdlbb::Blob& blob, const int msgCount)
             d_messageDumper
                 .isEventDumpEnabled<bmqp::EventType::e_CONFIRM>())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        const bmqp::Event event(&blob, d_allocator_p);
+        const bmqp::Event event(blob, d_allocator_p);
         BALL_LOG_INFO_BLOCK
         {
             d_messageDumper.dumpConfirmEvent(BALL_LOG_OUTPUT_STREAM, event);
@@ -3043,7 +3044,7 @@ void BrokerSession::sendConfirm(const bdlbb::Blob& blob, const int msgCount)
     }
 
     bmqt::GenericResult::Enum res =
-        writeOrBuffer(blob, d_sessionOptions.channelHighWatermark());
+        writeOrBuffer(*blob, d_sessionOptions.channelHighWatermark());
 
     // If write failed due to HWM, the event is in the extention buffer and
     // will be resent, so update the statistics as it was sent successfully.
@@ -3059,7 +3060,7 @@ void BrokerSession::sendConfirm(const bdlbb::Blob& blob, const int msgCount)
 
     // Update stats
     d_eventsStats.onEvent(EventsStatsEventType::e_CONFIRM,
-                          blob.length(),
+                          blob->length(),
                           msgCount);
 }
 
@@ -3311,7 +3312,7 @@ void BrokerSession::processControlEvent(const bmqp::Event& event)
                        << "Received invalid control message from broker "
                        << "[reason: 'failed to decode', rc: " << rc << "]"
                        << "\n"
-                       << bmqu::BlobStartHexDumper(event.blob());
+                       << bmqu::BlobStartHexDumper(event.sharedBlob().get());
         return;  // RETURN
     }
 
@@ -3472,7 +3473,7 @@ void BrokerSession::processConfirmEvent(const bmqp::Event& event)
     }
 
     // Send the CONFIRM batch
-    sendConfirm(*event.blob(), msgCount);
+    sendConfirm(event.sharedBlob(), msgCount);
 }
 
 void BrokerSession::processPushEvent(const bmqp::Event& event)
@@ -3533,11 +3534,11 @@ void BrokerSession::processPushEvent(const bmqp::Event& event)
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
             BALL_LOG_ERROR << id() << "Unable to flatten PUSH event"
                            << " [rc: " << rc
-                           << ", length: " << event.blob()->length()
+                           << ", length: " << event.sharedBlob()->length()
                            << ", eventMessageCount: " << eventMessageCount
                            << "]" << bsl::endl
                            << bmqu::BlobStartHexDumper(
-                                  event.blob(),
+                                  event.sharedBlob().get(),
                                   e_NUM_BYTES_IN_BLOB_TO_DUMP);
             return;  // RETURN
         }
@@ -3553,9 +3554,7 @@ void BrokerSession::processPushEvent(const bmqp::Event& event)
 
         if (hasMessageWithMultipleSubQueueIds) {
             queueEvent = createEvent();
-            const bmqp::Event rawEvent(&currEventInfo.d_blob,
-                                       d_allocator_p,
-                                       true);
+            const bmqp::Event rawEvent(currEventInfo.d_blob, d_allocator_p);
             queueEvent->configureAsMessageEvent(rawEvent);
         }
         else if (i == 0) {
@@ -4397,7 +4396,7 @@ void BrokerSession::transferAckEvent(bmqp::AckEventBuilder*  ackBuilder,
     // Our event is full at this point so send this ack event to the user and
     // reset the builder to append the ack that was rejected.
 
-    bmqp::Event event(ackBuilder->blob().get(), d_allocator_p, true);
+    bmqp::Event event(ackBuilder->blob(), d_allocator_p);
     // clone = true
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
             d_messageDumper.isEventDumpEnabled<bmqp::EventType::e_ACK>())) {
@@ -5721,13 +5720,13 @@ void BrokerSession::initializeStats(
 }
 
 bmqt::GenericResult::Enum
-BrokerSession::processPacket(const bdlbb::Blob& packet)
+BrokerSession::processPacket(const bsl::shared_ptr<const bdlbb::Blob>& packet)
 {
     // executed by the *IO* thread
     // or *APPLICATION* thread
 
     // Create a raw event with a cloned blob
-    bmqp::Event event(&packet, d_allocator_p, true);
+    bmqp::Event event(packet, d_allocator_p);
 
     return processPacket(event);
 }
@@ -5744,7 +5743,7 @@ BrokerSession::processPacket(const bmqp::Event& event)
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         BALL_LOG_ERROR << id() << "Received an invalid packet: "
                        << bmqu::BlobStartHexDumper(
-                              event.blob(),
+                              event.sharedBlob().get(),
                               e_NUM_BYTES_IN_BLOB_TO_DUMP);
         return bmqt::GenericResult::e_INVALID_ARGUMENT;  // RETURN
     }
@@ -6982,8 +6981,9 @@ BrokerSession::lookupQueue(const bmqp::QueueId& queueId) const
     return d_queueManager.lookupQueue(queueId);
 }
 
-bool BrokerSession::acceptUserEvent(const bdlbb::Blob&        eventBlob,
-                                    const bsls::TimeInterval& timeout)
+bool BrokerSession::acceptUserEvent(
+    const bsl::shared_ptr<const bdlbb::Blob>& eventBlob,
+    const bsls::TimeInterval&                 timeout)
 {
     // executed by the APPLICATION thread
 
@@ -7069,18 +7069,18 @@ BrokerSession::createDTSpan(bsl::string_view              operation,
     return result;
 }
 
-int BrokerSession::post(const bdlbb::Blob&        eventBlob,
-                        const bsls::TimeInterval& timeout)
+int BrokerSession::post(const bsl::shared_ptr<const bdlbb::Blob>& eventBlob,
+                        const bsls::TimeInterval&                 timeout)
 {
     // Prevent send of an empty/invalid blob: when using the
     // MessageEventBuilder, if no messages were added (i.e., 'PackMessage()'
     // was not called), it returns a blob composed only of an EventHeader; no
     // need to send those.
-    if (eventBlob.length() <= static_cast<int>(sizeof(bmqp::EventHeader))) {
+    if (eventBlob->length() <= static_cast<int>(sizeof(bmqp::EventHeader))) {
         return bmqt::PostResult::e_INVALID_ARGUMENT;  // RETURN
     }
 
-    bmqp::Event event(&eventBlob, d_allocator_p);
+    bmqp::Event event(eventBlob, d_allocator_p);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!event.isPutEvent())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         BALL_LOG_ERROR << id()
@@ -7215,7 +7215,7 @@ int BrokerSession::confirmMessage(const bsl::shared_ptr<bmqimp::Queue>& queue,
                        << rc;
         return rc;  // RETURN
     }
-    bool isAccepted = acceptUserEvent(*builder.blob(), timeout);
+    bool isAccepted = acceptUserEvent(builder.blob(), timeout);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!isAccepted)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
@@ -7227,10 +7227,11 @@ int BrokerSession::confirmMessage(const bsl::shared_ptr<bmqimp::Queue>& queue,
     return bmqt::GenericResult::e_SUCCESS;
 }
 
-int BrokerSession::confirmMessages(const bdlbb::Blob&        blob,
-                                   const bsls::TimeInterval& timeout)
+int BrokerSession::confirmMessages(
+    const bsl::shared_ptr<const bdlbb::Blob>& blob,
+    const bsls::TimeInterval&                 timeout)
 {
-    if (blob.length() <= static_cast<int>(sizeof(bmqp::EventHeader))) {
+    if (blob->length() <= static_cast<int>(sizeof(bmqp::EventHeader))) {
         return bmqt::GenericResult::e_INVALID_ARGUMENT;  // RETURN
     }
 
@@ -7243,7 +7244,7 @@ int BrokerSession::confirmMessages(const bdlbb::Blob&        blob,
         return bmqt::GenericResult::e_NOT_CONNECTED;  // RETURN
     }
 
-    bmqp::Event event(&blob, d_allocator_p);
+    bmqp::Event event(blob, d_allocator_p);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!event.isConfirmEvent())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         BALL_LOG_ERROR << id()

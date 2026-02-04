@@ -51,85 +51,31 @@ static void test1_breathingTest()
     // "Un-cloned" event
     bmqp::Event event1(&blob, bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT_EQ(event1.isValid(), false);
-    BMQTST_ASSERT_EQ(event1.isCloned(), false);
     BMQTST_ASSERT_EQ(event1.blob(), &blob);
-
-    // Cloned event
-    bmqp::Event event2(&blob,
-                       bmqtst::TestHelperUtil::allocator(),
-                       true /* clone == true */);
-    BMQTST_ASSERT_EQ(event2.isValid(), false);
-    BMQTST_ASSERT_EQ(event2.isCloned(), true);
-    BMQTST_ASSERT_EQ(&blob == event2.blob(), false);
 
     // Initialize from "un-cloned" event
     bmqp::Event event3(event1, bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT_EQ(event3.isValid(), false);
-    BMQTST_ASSERT_EQ(event3.isCloned(), false);
     BMQTST_ASSERT_EQ(event3.blob(), &blob);
-
-    // Initialize from cloned event
-    bmqp::Event event4(event2, bmqtst::TestHelperUtil::allocator());
-    BMQTST_ASSERT_EQ(event4.isValid(), false);
-    BMQTST_ASSERT_EQ(event4.isCloned(), true);
-    BMQTST_ASSERT_EQ(&blob == event4.blob(), false);
-
-    // Create an "un-cloned" event and assign an "un-cloned" event
-    bmqp::Event event5(event1, bmqtst::TestHelperUtil::allocator());
-    event5 = event3;
-    BMQTST_ASSERT_EQ(event5.isValid(), false);
-    BMQTST_ASSERT_EQ(event5.isCloned(), false);
-    BMQTST_ASSERT_EQ(event5.blob(), &blob);
-
-    // Assign a cloned event to an "un-cloned" event
-    event5 = event2;
-    BMQTST_ASSERT_EQ(event5.isValid(), false);
-    BMQTST_ASSERT_EQ(event5.isCloned(), true);
-    BMQTST_ASSERT_EQ(&blob == event5.blob(), false);
 
     // Default ctor
     bmqp::Event event6(bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT_EQ(event6.isValid(), false);
-    BMQTST_ASSERT_EQ(event6.isCloned(), false);
     BMQTST_ASSERT_EQ(event6.blob(), static_cast<bdlbb::Blob*>(0));
-
-    // Clone
-    bmqp::Event event7 = event3.clone(bmqtst::TestHelperUtil::allocator());
-    BMQTST_ASSERT_EQ(event7.isValid(), false);
-    BMQTST_ASSERT_EQ(event7.isCloned(), true);
-    BMQTST_ASSERT_EQ(event7.blob() == &blob, false);
 
     // Reset
     event6.reset(&blob);
     BMQTST_ASSERT_EQ(event6.isValid(), false);
-    BMQTST_ASSERT_EQ(event6.isCloned(), false);
     BMQTST_ASSERT_EQ(event6.blob(), &blob);
-
-    event6.reset(&blob, true /* clone == true */);
-    BMQTST_ASSERT_EQ(event6.isValid(), false);
-    BMQTST_ASSERT_EQ(event6.isCloned(), true);
-    BMQTST_ASSERT_EQ(&blob == event6.blob(), false);
 
     // Clear
     event1.clear();
     BMQTST_ASSERT_EQ(event1.isValid(), false);
-    BMQTST_ASSERT_EQ(event1.isCloned(), false);
-    BMQTST_ASSERT_EQ(event1.blob(), static_cast<bdlbb::Blob*>(0));
-
-    // Clear
-    event2.clear();
-    BMQTST_ASSERT_EQ(event2.isValid(), false);
-    BMQTST_ASSERT_EQ(event2.isCloned(), false);
     BMQTST_ASSERT_EQ(event1.blob(), static_cast<bdlbb::Blob*>(0));
 
     // Make sure events derived from event1 and event2 are not changed.
     BMQTST_ASSERT_EQ(event3.isValid(), false);
-    BMQTST_ASSERT_EQ(event3.isCloned(), false);
     BMQTST_ASSERT_EQ(event3.blob(), &blob);
-
-    BMQTST_ASSERT_EQ(event4.isValid(), false);
-    BMQTST_ASSERT_EQ(event4.isCloned(), true);
-    BMQTST_ASSERT_EQ(&blob == event4.blob(), false);
 }
 
 static void test2_isValid()
@@ -146,7 +92,7 @@ static void test2_isValid()
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
         bdlbb::BlobUtil::append(&blob, "a", 0, 1);
 
-        bmqp::Event event(&blob, bmqtst::TestHelperUtil::allocator(), false);
+        bmqp::Event event(&blob, bmqtst::TestHelperUtil::allocator());
 
         BMQTST_ASSERT_EQ(event.isValid(), false);
     }
@@ -169,7 +115,7 @@ static void test2_isValid()
                          eh.headerWords() * bmqp::Protocol::k_WORD_SIZE);
 
         // isValid() should fail
-        bmqp::Event event(&blob, bmqtst::TestHelperUtil::allocator(), false);
+        bmqp::Event event(&blob, bmqtst::TestHelperUtil::allocator());
         BMQTST_ASSERT_EQ(false, event.isValid());
     }
 }
@@ -451,7 +397,7 @@ static void test3_eventTypes()
                                 reinterpret_cast<const char*>(&eh),
                                 sizeof(eh));
 
-        bmqp::Event event(&blob, bmqtst::TestHelperUtil::allocator(), false);
+        bmqp::Event event(&blob, bmqtst::TestHelperUtil::allocator());
 
         BMQTST_ASSERT_EQ(event.isValid(), test.d_isValid);
 
@@ -701,7 +647,7 @@ static void test5_iteratorLoading()
                                 reinterpret_cast<const char*>(&eh),
                                 sizeof(eh));
 
-        bmqp::Event event(&blob, bmqtst::TestHelperUtil::allocator(), false);
+        bmqp::Event event(&blob, bmqtst::TestHelperUtil::allocator());
 
         BMQTST_ASSERT_EQ(event.isValid(),
                          (test.d_type != bmqp::EventType::e_UNDEFINED));
@@ -838,7 +784,7 @@ static void test6_printing()
                                 reinterpret_cast<const char*>(&eh),
                                 sizeof(eh));
 
-        bmqp::Event obj(&blob, bmqtst::TestHelperUtil::allocator(), false);
+        bmqp::Event obj(&blob, bmqtst::TestHelperUtil::allocator());
 
         if (test.d_type == bmqp::EventType::e_UNDEFINED) {
             BMQTST_ASSERT_SAFE_FAIL(obj.print(out, 0, -1));
