@@ -918,7 +918,8 @@ class BrokerSession BSLS_CPP11_FINAL {
     /// Send the specified `blob`, representing a `Confirm` packet over the
     /// channel and containing the specified `msgCount` message confirmation
     /// in it (count used for statistics).
-    void sendConfirm(const bdlbb::Blob& blob, const int msgCount);
+    void sendConfirm(const bsl::shared_ptr<const bdlbb::Blob>& blob,
+                     const int                                 msgCount);
 
     /// Dequeue and handle events from the FSM queue.  This method runs in
     /// FSM thread until the thread is stopped.
@@ -1460,8 +1461,8 @@ class BrokerSession BSLS_CPP11_FINAL {
     bmqt::GenericResult::Enum writeOrBuffer(const bdlbb::Blob& eventBlob,
                                             bsls::Types::Int64 highWaterMark);
 
-    bool acceptUserEvent(const bdlbb::Blob&        eventBlob,
-                         const bsls::TimeInterval& timeout);
+    bool acceptUserEvent(const bsl::shared_ptr<const bdlbb::Blob>& eventBlob,
+                         const bsls::TimeInterval&                 timeout);
 
     void setupPutExpirationTimer(const bsls::TimeInterval& timeout);
 
@@ -1525,7 +1526,8 @@ class BrokerSession BSLS_CPP11_FINAL {
     /// then acts as a dispatcher to decipher and process the `packet`.
     /// Return error status in case the packet cannot be handled by any
     /// reason.
-    bmqt::GenericResult::Enum processPacket(const bdlbb::Blob& packet);
+    bmqt::GenericResult::Enum
+    processPacket(const bsl::shared_ptr<const bdlbb::Blob>& packet);
     bmqt::GenericResult::Enum processPacket(const bmqp::Event& event);
 
     /// Set the specified `channel` to use for communication with the
@@ -1604,14 +1606,15 @@ class BrokerSession BSLS_CPP11_FINAL {
                         bsls::TimeInterval            timeout,
                         const EventCallback& eventCallback = EventCallback());
 
-    int post(const bdlbb::Blob& eventBlob, const bsls::TimeInterval& timeout);
+    int post(const bsl::shared_ptr<const bdlbb::Blob>& eventBlob,
+             const bsls::TimeInterval&                 timeout);
 
     int confirmMessage(const bsl::shared_ptr<bmqimp::Queue>& queue,
                        const bmqt::MessageGUID&              messageId,
                        const bsls::TimeInterval&             timeout);
 
-    int confirmMessages(const bdlbb::Blob&        blob,
-                        const bsls::TimeInterval& timeout);
+    int confirmMessages(const bsl::shared_ptr<const bdlbb::Blob>& blob,
+                        const bsls::TimeInterval&                 timeout);
 
     void postToFsm(const bsl::function<void()>& f);
 

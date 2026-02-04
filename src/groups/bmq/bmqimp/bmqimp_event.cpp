@@ -103,23 +103,12 @@ Event::Event(const Event& other, bslma::Allocator* allocator)
         return;  // RETURN
     }
 
-    if (other.d_rawEvent.isCloned()) {
-        // Other raw (bmqp) events coming from IO thread are cloned before
-        // they are enqueued to event queue.  This case handles that.
-        d_rawEvent    = other.d_rawEvent;
-        d_pushMsgIter = other.d_pushMsgIter;
-        d_ackMsgIter  = other.d_ackMsgIter;
-        d_putMsgIter  = other.d_putMsgIter;
-    }
-    else {
-        // A raw (bmqp) event may not be cloned created (indirectly) via
-        // bmqa.Session.loadMessageEventBuilder.  In this case, clone it, and
-        // preserve state of iterators.
-        d_rawEvent = other.d_rawEvent.clone(d_allocator_p);
-        d_pushMsgIter.reset(d_rawEvent.blob(), other.d_pushMsgIter);
-        d_ackMsgIter.reset(d_rawEvent.blob(), other.d_ackMsgIter);
-        d_putMsgIter.reset(d_rawEvent.blob(), other.d_putMsgIter);
-    }
+    // Other raw (bmqp) events coming from IO thread are cloned before
+    // they are enqueued to event queue.  This case handles that.
+    d_rawEvent    = other.d_rawEvent;
+    d_pushMsgIter = other.d_pushMsgIter;
+    d_ackMsgIter  = other.d_ackMsgIter;
+    d_putMsgIter  = other.d_putMsgIter;
 
     // NOTE that PutEventBuilder will never be constructed (from
     // d_putEventBuilderBuffer).  This is per contract of this copy
@@ -166,23 +155,12 @@ Event& Event::operator=(const Event& rhs)
         return *this;  // RETURN
     }
 
-    if (rhs.d_rawEvent.isCloned()) {
-        // Other raw (bmqp) events coming from IO thread are cloned before
-        // they are enqueued to event queue.  This case handles that.
-        d_rawEvent    = rhs.d_rawEvent;
-        d_pushMsgIter = rhs.d_pushMsgIter;
-        d_ackMsgIter  = rhs.d_ackMsgIter;
-        d_putMsgIter  = rhs.d_putMsgIter;
-    }
-    else {
-        // A raw (bmqp) event may not be cloned created (indirectly) via
-        // bmqa.Session.loadMessageEventBuilder.  In this case, clone it, and
-        // preserve state of iterators.
-        d_rawEvent = rhs.d_rawEvent.clone(d_allocator_p);
-        d_pushMsgIter.reset(d_rawEvent.blob(), rhs.d_pushMsgIter);
-        d_ackMsgIter.reset(d_rawEvent.blob(), rhs.d_ackMsgIter);
-        d_putMsgIter.reset(d_rawEvent.blob(), rhs.d_putMsgIter);
-    }
+    // Other raw (bmqp) events coming from IO thread are cloned before
+    // they are enqueued to event queue.  This case handles that.
+    d_rawEvent    = rhs.d_rawEvent;
+    d_pushMsgIter = rhs.d_pushMsgIter;
+    d_ackMsgIter  = rhs.d_ackMsgIter;
+    d_putMsgIter  = rhs.d_putMsgIter;
 
     // d_putEventBuilderBuffer is left in cleared state per contract.
 
@@ -242,7 +220,6 @@ Event& Event::configureAsRawEvent(const bmqp::Event& rawEvent)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(type() == EventType::e_UNINITIALIZED);
-    BSLS_ASSERT_SAFE(rawEvent.isCloned());
 
     d_type     = EventType::e_RAW;
     d_rawEvent = rawEvent;
@@ -322,7 +299,7 @@ Event& Event::downgradeMessageEventModeToRead()
 
     d_msgEventMode = MessageEventMode::e_READ;
 
-    d_rawEvent.reset(d_putEventBuilderBuffer.object().blob().get());
+    d_rawEvent.reset(d_putEventBuilderBuffer.object().blob());
 
     BSLS_ASSERT(d_rawEvent.isPutEvent());
     // Only PUT events can be built via SDK

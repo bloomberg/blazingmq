@@ -286,10 +286,7 @@ static void test1_breathingTest()
     obj.clear();
     BMQTST_ASSERT_EQ(obj.type(), bmqimp::Event::EventType::e_UNINITIALIZED);
 
-    // Fails to configure as raw event with not cloned underlying event
-    BMQTST_ASSERT_OPT_FAIL(obj.configureAsRawEvent(event));
-
-    obj.configureAsRawEvent(event.clone(bmqtst::TestHelperUtil::allocator()));
+    obj.configureAsRawEvent(event);
 
     BMQTST_ASSERT_EQ(obj.type(), bmqimp::Event::EventType::e_RAW);
 
@@ -834,8 +831,8 @@ static void test6_comparisonOperatorTest()
     bmqp::Event   event(&eventBlob, bmqtst::TestHelperUtil::allocator());
     bmqimp::Event obj5(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqimp::Event obj6(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-    obj5.configureAsRawEvent(event.clone(bmqtst::TestHelperUtil::allocator()));
-    obj6.configureAsRawEvent(event.clone(bmqtst::TestHelperUtil::allocator()));
+    obj5.configureAsRawEvent(event);
+    obj6.configureAsRawEvent(event);
 
     // NOTE: Raw event can not be equal
     BMQTST_ASSERT(obj5 != obj6);
@@ -993,8 +990,7 @@ static void test7_printing()
                                        data.d_rawEventType);
             bmqp::Event rawEvent(&eventBlob,
                                  bmqtst::TestHelperUtil::allocator());
-            obj.configureAsRawEvent(
-                rawEvent.clone(bmqtst::TestHelperUtil::allocator()));
+            obj.configureAsRawEvent(rawEvent);
             break;
         }
         case bmqimp::Event::EventType::e_REQUEST:
@@ -1355,8 +1351,7 @@ static void test9_copyTest()
 
     // The same steps for cloned event
     bmqimp::Event obj3(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-    obj3.configureAsMessageEvent(
-        event.clone(bmqtst::TestHelperUtil::allocator()));
+    obj3.configureAsMessageEvent(event);
     bmqimp::Event obj4(obj3, bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT_EQ(obj4.rawEvent().type(), bmqp::EventType::e_ACK);
     BMQTST_ASSERT_EQ(obj4.rawEvent().isAckEvent(), true);
@@ -1378,7 +1373,7 @@ static void test9_copyTest()
 
     PV("Configure as RawEvent");
     obj.reset();
-    obj.configureAsRawEvent(event.clone(bmqtst::TestHelperUtil::allocator()));
+    obj.configureAsRawEvent(event);
 
     bmqimp::Event obj6(obj, bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT_EQ(obj6.type(), bmqimp::Event::EventType::e_RAW);
@@ -1447,8 +1442,7 @@ static void test10_assignmentTest()
 
     PV("ASSIGNMENT OPERATOR - Assign cloned event to the empty event");
     bmqimp::Event obj3(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-    obj3.configureAsMessageEvent(
-        event.clone(bmqtst::TestHelperUtil::allocator()));
+    obj3.configureAsMessageEvent(event);
     bmqimp::Event obj4(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     obj4 = obj3;
     BMQTST_ASSERT_EQ(obj4.type(), bmqimp::Event::EventType::e_MESSAGE);
@@ -1476,7 +1470,7 @@ static void test10_assignmentTest()
 
     PV("ASSIGNMENT OPERATOR - Configure as RawEvent");
     obj.reset();
-    obj.configureAsRawEvent(event.clone(bmqtst::TestHelperUtil::allocator()));
+    obj.configureAsRawEvent(event);
 
     bmqimp::Event obj6(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 

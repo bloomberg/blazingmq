@@ -218,9 +218,7 @@ static void test2_validPushMessagePrint()
     BMQTST_ASSERT_LT(payload.length(), peb.eventSize());
     BMQTST_ASSERT_EQ(1, peb.messageCount());
 
-    bmqp::Event bmqpEvent(peb.blob().get(),
-                          bmqtst::TestHelperUtil::allocator(),
-                          true);
+    bmqp::Event bmqpEvent(peb.blob(), bmqtst::TestHelperUtil::allocator());
     implPtr->configureAsMessageEvent(bmqpEvent);
 
     implPtr->addContext(bmqt::CorrelationId());
@@ -321,9 +319,7 @@ static void test3_messageProperties()
     queue->setId(queueId);
     implPtr->insertQueue(subQueueId, queue);
 
-    bmqp::Event bmqpEvent(peb.blob().get(),
-                          bmqtst::TestHelperUtil::allocator(),
-                          true);
+    bmqp::Event bmqpEvent(peb.blob(), bmqtst::TestHelperUtil::allocator());
 
     implPtr->configureAsMessageEvent(bmqpEvent);
     implPtr->addContext(bmqt::CorrelationId());
@@ -483,9 +479,7 @@ static void test4_subscriptionHandle()
         BMQTST_ASSERT_LT(payload.length(), peb.eventSize());
         BMQTST_ASSERT_EQ(1, peb.messageCount());
 
-        bmqp::Event bmqpEvent(peb.blob().get(),
-                              bmqtst::TestHelperUtil::allocator(),
-                              true);
+        bmqp::Event bmqpEvent(peb.blob(), bmqtst::TestHelperUtil::allocator());
         implPtr->configureAsMessageEvent(bmqpEvent);
 
         implPtr->insertQueue(sId, queueSp);
@@ -537,9 +531,7 @@ static void test4_subscriptionHandle()
         BMQTST_ASSERT_LT(payload.length(), peb.eventSize());
         BMQTST_ASSERT_EQ(1, peb.messageCount());
 
-        bmqp::Event bmqpEvent(peb.blob().get(),
-                              bmqtst::TestHelperUtil::allocator(),
-                              true);
+        bmqp::Event bmqpEvent(peb.blob(), bmqtst::TestHelperUtil::allocator());
         implPtr->configureAsMessageEvent(bmqpEvent);
 
         implPtr->insertQueue(defaultSubscriptionId, queueSp);

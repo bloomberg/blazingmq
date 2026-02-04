@@ -1511,7 +1511,7 @@ int Session::post(const MessageEvent& event)
     BSLS_ASSERT_SAFE(0 != eventSpRef.get());
 
     return d_impl.d_application_mp->brokerSession().post(
-        *(eventSpRef->rawEvent().blob()),
+        eventSpRef->rawEvent().sharedBlob(),
         bsls::TimeInterval(k_CHANNEL_WRITE_TIMEOUT));
 }
 
@@ -1556,7 +1556,7 @@ int Session::confirmMessages(ConfirmEventBuilder* builder)
     }
 
     const int rc = d_impl.d_application_mp->brokerSession().confirmMessages(
-        *(&builder->blob()),
+        builder->sharedBlob(),
         bsls::TimeInterval(k_CHANNEL_WRITE_TIMEOUT));
 
     if (bmqt::GenericResult::e_SUCCESS == rc) {

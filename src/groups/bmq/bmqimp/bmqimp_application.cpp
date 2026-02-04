@@ -191,9 +191,11 @@ void Application::readCb(
         return;  // RETURN
     }
 
-    bdlbb::Blob readBlob;
+    const bsl::shared_ptr<bdlbb::Blob> readBlob = d_blobSpPool_sp->getObject();
 
-    const int rc = bmqio::ChannelUtil::handleRead(&readBlob, numNeeded, blob);
+    const int rc = bmqio::ChannelUtil::handleRead(readBlob.get(),
+                                                  numNeeded,
+                                                  blob);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         BALL_LOG_ERROR << id() << "#TCP_READ_ERROR " << channel->peerUri()
@@ -205,18 +207,18 @@ void Application::readCb(
         return;  // RETURN
     }
 
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(readBlob.length() == 0)) {
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(readBlob->length() == 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         // Don't yet have a full blob
         return;  // RETURN
     }
 
     // Create a raw event with a cloned blob
-    bmqp::Event event(&readBlob, &d_allocator, true);
+    bmqp::Event event(readBlob, &d_allocator);
 
     if (monitor->checkData(channel.get(), event)) {
         BALL_LOG_TRACE << channel->peerUri() << ": ReadCallback got a blob\n"
-                       << bmqu::BlobStartHexDumper(&readBlob);
+                       << bmqu::BlobStartHexDumper(readBlob.get());
 
         d_brokerSession.processPacket(event);
     }

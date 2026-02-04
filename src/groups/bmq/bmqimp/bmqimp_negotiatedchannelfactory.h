@@ -155,9 +155,9 @@ class NegotiatedChannelFactory : public bmqio::ChannelFactory {
                        bdlbb::Blob*                           blob) const;
 
     void onBrokerNegotiationResponse(
-        const bdlbb::Blob&                     packet,
-        const ResultCallback&                  cb,
-        const bsl::shared_ptr<bmqio::Channel>& channel) const;
+        const bsl::shared_ptr<const bdlbb::Blob>& packet,
+        const ResultCallback&                     cb,
+        const bsl::shared_ptr<bmqio::Channel>&    channel) const;
 
   public:
     // CREATORS
