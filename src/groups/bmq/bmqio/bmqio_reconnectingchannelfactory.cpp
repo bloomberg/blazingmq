@@ -473,6 +473,10 @@ ReconnectingChannelFactory::~ReconnectingChannelFactory()
 
 int ReconnectingChannelFactory::start()
 {
+    int rc = d_config.d_base_p->start();
+    if (rc != 0) {
+        return rc;
+    }
     d_validator.reset();  // Support multiple 'start'
     return 0;
 }
@@ -495,6 +499,8 @@ void ReconnectingChannelFactory::stop()
          ++iter) {
         iter->second->cancel();
     }
+
+    d_config.d_base_p->stop();
 }
 
 void ReconnectingChannelFactory::listen(Status*                      status,

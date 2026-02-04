@@ -123,12 +123,14 @@
 ///     operations (e.g., Queue-Open, Queue-Configure, Queue-Close).
 
 // BMQ
+#include <bmqt_tlsprotocolversion.h>
 
 // BDE
 #include <bdlt_timeunitratio.h>
 #include <bsl_iosfwd.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
+#include <bsl_unordered_set.h>
 #include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
@@ -173,6 +175,9 @@ class SessionOptions {
     static const int k_QUEUE_OPERATION_DEFAULT_TIMEOUT =
         5 * bdlt::TimeUnitRatio::k_SECONDS_PER_MINUTE;
 
+    /// Default supported TLS versions in this client.
+    static const char k_DEFAULT_TLS_PROTOCOL_VERSIONS[];
+
   private:
     // DATA
 
@@ -215,6 +220,11 @@ class SessionOptions {
     /// DEPRECATED: This parameter is no longer relevant and will be removed in
     /// future release of libbmq.
     int d_eventQueueSize;
+
+    bsl::string d_certificateAuthority;
+
+    /// Supported TLS versions
+    bsl::unordered_set<TlsProtocolVersion::Value> d_protocolVersions;
 
     bsl::shared_ptr<bmqpi::HostHealthMonitor> d_hostHealthMonitor_sp;
 
@@ -303,6 +313,20 @@ class SessionOptions {
     /// The behavior is undefined unless `lowWatermark < highWatermark`.
     SessionOptions& configureEventQueue(int lowWatermark, int highWatermark);
 
+    /// Set the TLS certificate authority to the specified
+    /// 'certificateAuthority'. Set the TLS protocol versions to the specified
+    /// 'versions'. Return this SessionOptions object reference.
+    ///
+    /// @pre The `versions` string must contain at least one TLS version.
+    SessionOptions& configureTls(bsl::string_view certificateAuthority,
+                                 bsl::string_view versions);
+
+    /// Set the TLS certificate authority to the specified
+    /// 'certificateAuthority'. Set the supported TLS protocol versions to the
+    /// default supported TLS versions. Return this SessionOptions object
+    /// reference.
+    SessionOptions& configureTls(bsl::string_view certificateAuthority);
+
     // ACCESSORS
 
     /// Get the broker URI.
@@ -348,6 +372,16 @@ class SessionOptions {
 
     int eventQueueLowWatermark() const;
     int eventQueueHighWatermark() const;
+
+    /// @brief Get the configured certificate authority file path.
+    const bsl::string& certificateAuthority() const;
+
+    /// @brief Get the configured supported TLS protocol versions.
+    const bsl::unordered_set<TlsProtocolVersion::Value>&
+    protocolVersions() const;
+
+    /// @brief Return true if this session will be configured for TLS.
+    bool isTlsSession() const;
 
     /// DEPRECATED: This parameter is no longer relevant and will be removed
     /// in future release of libbmq.
@@ -601,6 +635,22 @@ inline int SessionOptions::eventQueueHighWatermark() const
     return d_eventQueueHighWatermark;
 }
 
+inline const bsl::string& SessionOptions::certificateAuthority() const
+{
+    return d_certificateAuthority;
+}
+
+inline const bsl::unordered_set<TlsProtocolVersion::Value>&
+SessionOptions::protocolVersions() const
+{
+    return d_protocolVersions;
+}
+
+inline bool SessionOptions::isTlsSession() const
+{
+    return !protocolVersions().empty();
+}
+
 inline int SessionOptions::eventQueueSize() const
 {
     return d_eventQueueSize;
@@ -628,7 +678,9 @@ inline bool bmqt::operator==(const bmqt::SessionOptions& lhs,
            lhs.eventQueueHighWatermark() == rhs.eventQueueHighWatermark() &&
            lhs.hostHealthMonitor() == rhs.hostHealthMonitor() &&
            lhs.traceContext() == rhs.traceContext() &&
-           lhs.tracer() == rhs.tracer();
+           lhs.tracer() == rhs.tracer() &&
+           lhs.certificateAuthority() == rhs.certificateAuthority() &&
+           lhs.protocolVersions() == rhs.protocolVersions();
 }
 
 inline bool bmqt::operator!=(const bmqt::SessionOptions& lhs,
@@ -647,7 +699,9 @@ inline bool bmqt::operator!=(const bmqt::SessionOptions& lhs,
            lhs.eventQueueHighWatermark() != rhs.eventQueueHighWatermark() ||
            lhs.hostHealthMonitor() != rhs.hostHealthMonitor() ||
            lhs.traceContext() != rhs.traceContext() ||
-           lhs.tracer() != rhs.tracer();
+           lhs.tracer() != rhs.tracer() ||
+           lhs.certificateAuthority() != rhs.certificateAuthority() ||
+           lhs.protocolVersions() != rhs.protocolVersions();
 }
 
 inline bsl::ostream& bmqt::operator<<(bsl::ostream&               stream,

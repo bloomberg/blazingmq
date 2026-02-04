@@ -3,7 +3,7 @@
 #
 # This script is not able to be run by non-Bloomberg developers as it relies on internal tooling.
 
-COPYRIGHT="// Copyright 2025 Bloomberg Finance L.P.
+readonly COPYRIGHT="// Copyright 2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the \"License\");
@@ -18,6 +18,7 @@ COPYRIGHT="// Copyright 2025 Bloomberg Finance L.P.
 // See the License for the specific language governing permissions and
 // limitations under the License.
 "
+readonly CODEGEN="${CODEGEN:-}"
 
 codegen() {
   local dir=$1
@@ -52,7 +53,7 @@ codegen() {
 main() {
   set -eux
 
-  if [[ -z "${CODEGEN+}" ]]; then
+  if [[ -z "${CODEGEN}" ]]; then
     echo "This script is not able to be run by non-Bloomberg developers as it relies on \
 internal tooling. Please open an issue if you are an open-source contributor \
 in need of code generation. If you are a Bloomberg developer, please rerun this \

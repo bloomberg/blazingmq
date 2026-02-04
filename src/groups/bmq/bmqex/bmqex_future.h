@@ -148,12 +148,16 @@
 #include <bsls_timeinterval.h>
 
 #if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+// clang-format off
 // Include version that can be compiled with C++03
-// Generated on Wed Jun 18 14:44:15 2025
+// Generated on Wed Nov  5 23:22:12 2025
 // Command line: sim_cpp11_features.pl bmqex_future.h
-#define COMPILING_BMQEX_FUTURE_H
-#include <bmqex_future_cpp03.h>
-#undef COMPILING_BMQEX_FUTURE_H
+
+# define COMPILING_BMQEX_FUTURE_H
+# include <bmqex_future_cpp03.h>
+# undef COMPILING_BMQEX_FUTURE_H
+
+// clang-format on
 #else
 
 namespace BloombergLP {
@@ -1903,6 +1907,7 @@ inline void bmqex::swap(FutureResult<R>& lhs,
 }  // close enterprise namespace
 
 #endif  // End C++11 code
+
 #include <bsl_type_traits.h>
 
 #endif
