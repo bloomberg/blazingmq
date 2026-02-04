@@ -1938,7 +1938,12 @@ void TestSession::getOutboundEvent(bmqp::Event* rawEvent)
     BMQTST_ASSERT(d_testChannel.waitFor(1, bsls::TimeInterval(1)));
 
     bmqio::TestChannel::WriteCall wc = d_testChannel.popWriteCall();
-    bmqp::Event ev(&wc.d_blob, bmqtst::TestHelperUtil::allocator(), true);
+
+    bsl::shared_ptr<const bdlbb::Blob> blob_sp;
+
+    blob_sp.createInplace(d_allocator_p, wc.d_blob, d_allocator_p);
+
+    bmqp::Event ev(blob_sp, bmqtst::TestHelperUtil::allocator());
 
     *rawEvent = ev;
 }
@@ -1966,10 +1971,8 @@ void TestSession::sendControlMessage(
     int rc = builder.setMessage(message, bmqp::EventType::e_CONTROL);
     BMQTST_ASSERT_EQ(0, rc);
 
-    const bdlbb::Blob& packet = *builder.blob();
-
     PVVV_SAFE("Send control message");
-    d_brokerSession.processPacket(packet);
+    d_brokerSession.processPacket(builder.blob());
 }
 
 void TestSession::sendResponse(const bmqp_ctrlmsg::ControlMessage& request)
@@ -3636,7 +3639,7 @@ static void test11_disconnect()
                                 bmqp::EventType::e_CONTROL);
         BMQTST_ASSERT_EQ(rc, 0);
 
-        obj.processPacket(*builder.blob());
+        obj.processPacket(builder.blob());
 
         // Reset the channel
         obj.setChannel(bsl::shared_ptr<bmqio::Channel>());
@@ -3741,7 +3744,7 @@ static void test11_disconnect()
                                 bmqp::EventType::e_CONTROL);
         BMQTST_ASSERT_EQ(rc, 0);
 
-        obj.processPacket(*builder.blob());
+        obj.processPacket(builder.blob());
 
         // Reset the channel
         obj.setChannel(bsl::shared_ptr<bmqio::Channel>());
@@ -4287,7 +4290,7 @@ static void test21_post_Limit()
     BMQTST_ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS,
                      builder.packMessage(pQueue->id()));
 
-    int rc = obj.session().post(*builder.blob());
+    int rc = obj.session().post(builder.blob());
 
     PVV_SAFE("Step 5. Ensure the PUT message is accepted");
     BMQTST_ASSERT_EQ(rc, bmqt::PostResult::e_SUCCESS);
@@ -4302,7 +4305,7 @@ static void test21_post_Limit()
     BMQTST_ASSERT(rawEvent.isPutEvent());
 
     PVV_SAFE("Step 6. Ensure e_BW_LIMIT is returned for the second post");
-    rc = obj.session().post(*builder.blob());
+    rc = obj.session().post(builder.blob());
 
     BMQTST_ASSERT_EQ(rc, bmqt::PostResult::e_BW_LIMIT);
     BMQTST_ASSERT_EQ(obj.channel().numWriteCalls(), 0u);
@@ -4321,7 +4324,7 @@ static void test21_post_Limit()
 
     // Call post with a bigger timeout so that LWM event arrives before it
     // expires.
-    rc = obj.session().post(*builder.blob());
+    rc = obj.session().post(builder.blob());
 
     PVV_SAFE("Step 8. Ensure e_SUCCESS is returned");
     BMQTST_ASSERT_EQ(rc, bmqt::PostResult::e_SUCCESS);
@@ -4341,7 +4344,7 @@ static void test21_post_Limit()
     PVV_SAFE("Step 9. Set the channel to return e_GENERIC_ERROR on write");
     obj.channel().setWriteStatus(bmqio::StatusCategory::e_GENERIC_ERROR);
 
-    rc = obj.session().post(*builder.blob());
+    rc = obj.session().post(builder.blob());
 
     PVV_SAFE("Step 10. Ensure e_SUCCESS is returned");
     BMQTST_ASSERT_EQ(rc, bmqt::PostResult::e_SUCCESS);
@@ -4426,7 +4429,7 @@ static void test22_confirm_Limit()
                                    bmqt::MessageGUID());
     BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
-    rc = obj.session().confirmMessages(*builder.blob());
+    rc = obj.session().confirmMessages(builder.blob());
 
     PVV_SAFE("Step 5. Ensure e_SUCCESS is returned");
     BMQTST_ASSERT_EQ(rc, bmqt::GenericResult::e_SUCCESS);
@@ -4453,7 +4456,7 @@ static void test22_confirm_Limit()
     BMQTST_ASSERT_EQ(lwmEvent->sessionEventType(),
                      bmqt::SessionEventType::e_CHANNEL_LOW_WATERMARK);
 
-    rc = obj.session().confirmMessages(*builder.blob());
+    rc = obj.session().confirmMessages(builder.blob());
 
     PVV_SAFE("Step 7. Ensure e_SUCCESS is returned");
     BMQTST_ASSERT_EQ(rc, bmqt::GenericResult::e_SUCCESS);
@@ -4471,7 +4474,7 @@ static void test22_confirm_Limit()
     PVV_SAFE("Step 8. Set the channel to return e_GENERIC_ERROR on write");
     obj.channel().setWriteStatus(bmqio::StatusCategory::e_GENERIC_ERROR);
 
-    rc = obj.session().confirmMessages(*builder.blob());
+    rc = obj.session().confirmMessages(builder.blob());
 
     PVV_SAFE("Step 9. Ensure e_SUCCESS");
 
@@ -6077,7 +6080,7 @@ static void test33_queueNackTest()
     BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
     // Post the event using just event blob
-    int res = obj.session().post(*eventBuilder.blob());
+    int res = obj.session().post(eventBuilder.blob());
 
     BMQTST_ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
 
@@ -8517,7 +8520,7 @@ static void test50_putRetransmittingTest()
     BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
     // Post the event using event blob
-    int res = obj.session().post(*putEventBuilder.blob());
+    int res = obj.session().post(putEventBuilder.blob());
 
     BMQTST_ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
 
@@ -8532,7 +8535,7 @@ static void test50_putRetransmittingTest()
                                   guidFirst,
                                   pQueue->id());
 
-    obj.session().processPacket(*ackEventBuilder.blob());
+    obj.session().processPacket(ackEventBuilder.blob());
 
     bsl::shared_ptr<bmqimp::Event> ackEvent = obj.waitAckEvent();
 
@@ -8563,7 +8566,7 @@ static void test50_putRetransmittingTest()
     BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
     // Post the event using event blob
-    res = obj.session().post(*putEventBuilder.blob());
+    res = obj.session().post(putEventBuilder.blob());
 
     BMQTST_ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
 
@@ -8636,7 +8639,7 @@ static void test50_putRetransmittingTest()
     BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
     // Post the event using event blob
-    res = obj.session().post(*putEventBuilder.blob());
+    res = obj.session().post(putEventBuilder.blob());
 
     BMQTST_ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
 
@@ -8801,7 +8804,7 @@ static void test51_putRetransmittingNoAckTest()
     BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
     // Post the event using event blob
-    int res = obj.session().post(*putEventBuilder.blob());
+    int res = obj.session().post(putEventBuilder.blob());
 
     BMQTST_ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
 
@@ -8826,7 +8829,7 @@ static void test51_putRetransmittingNoAckTest()
     BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
     // Post the event using event blob
-    res = obj.session().post(*putEventBuilder.blob());
+    res = obj.session().post(putEventBuilder.blob());
 
     BMQTST_ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
 

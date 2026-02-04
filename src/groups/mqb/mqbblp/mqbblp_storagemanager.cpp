@@ -482,7 +482,7 @@ void StorageManager::setPrimaryForPartitionDispatched(
     unsigned int         primaryLeaseId,
     const ClusterNodes&  peers)
 {
-    // executed by *DISPATCHER* thread
+    // executed by *QUEUE DISPATCHER* thread
 
     BSLS_ASSERT_SAFE(0 <= partitionId);
     BSLS_ASSERT_SAFE(d_fileStores.size() >
