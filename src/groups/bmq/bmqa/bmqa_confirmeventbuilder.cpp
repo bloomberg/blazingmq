@@ -103,5 +103,13 @@ const bdlbb::Blob& ConfirmEventBuilder::blob() const
     return *d_impl.d_builder_p->blob();
 }
 
+const bsl::shared_ptr<bdlbb::Blob>& ConfirmEventBuilder::sharedBlob() const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT(d_impl.d_builder_p);
+
+    return d_impl.d_builder_p->blob();
+}
+
 }  // close package namespace
 }  // close enterprise namespace

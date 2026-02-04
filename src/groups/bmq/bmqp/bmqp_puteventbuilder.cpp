@@ -32,7 +32,6 @@
 #include <bdlbb_blobutil.h>
 #include <bdlf_bind.h>
 #include <bsl_cstring.h>
-#include <bsl_memory.h>
 #include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>

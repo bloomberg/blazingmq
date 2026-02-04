@@ -124,9 +124,10 @@ class ClusterOrchestrator {
 
       public:
         // CREATORS
-        explicit OnElectorEventFunctor(ClusterOrchestrator* orchestrator,
-                                       bslmf::MovableRef<bmqp::Event> event,
-                                       mqbnet::ClusterNode* source_p);
+        explicit OnElectorEventFunctor(
+            ClusterOrchestrator*                 orchestrator,
+            bslmf::MovableRef<const bmqp::Event> event,
+            mqbnet::ClusterNode*                 source_p);
 
         ~OnElectorEventFunctor() BSLS_KEYWORD_OVERRIDE;
 

@@ -37,7 +37,6 @@
 
 // BDE
 #include <bdlbb_blob.h>
-#include <bdlcc_sharedobjectpool.h>
 #include <bsl_unordered_set.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
@@ -84,7 +83,7 @@ struct EventUtilEventInfo {
     typedef bsl::vector<EventUtilQueueInfo> Ids;
 
     // PUBLIC DATA
-    const bdlbb::Blob d_blob;
+    const bsl::shared_ptr<bdlbb::Blob> d_blob;
 
     Ids d_ids;
 
@@ -101,9 +100,9 @@ struct EventUtilEventInfo {
     /// Create a `bmqp::EventUtil_EventInfo` object using the specified
     /// `blob` and `queueIds`.  All memory allocations will be done using
     /// the specified `allocator`.
-    EventUtilEventInfo(const bdlbb::Blob& blob,
-                       const Ids&         queueIds,
-                       bslma::Allocator*  allocator);
+    EventUtilEventInfo(const bsl::shared_ptr<bdlbb::Blob>& blob,
+                       const Ids&                          queueIds,
+                       bslma::Allocator*                   allocator);
 
     /// Copy constructor from the specified `original` using the specified
     /// `allocator`.
@@ -169,16 +168,17 @@ inline EventUtilQueueInfo::EventUtilQueueInfo(
 
 // CREATORS
 inline EventUtilEventInfo::EventUtilEventInfo(bslma::Allocator* allocator)
-: d_blob(allocator)
+: d_blob()
 , d_ids(allocator)
 {
     // NOTHING
 }
 
-inline EventUtilEventInfo::EventUtilEventInfo(const bdlbb::Blob& blob,
-                                              const Ids&         ids,
-                                              bslma::Allocator*  allocator)
-: d_blob(blob, allocator)
+inline EventUtilEventInfo::EventUtilEventInfo(
+    const bsl::shared_ptr<bdlbb::Blob>& blob,
+    const Ids&                          ids,
+    bslma::Allocator*                   allocator)
+: d_blob(blob)
 , d_ids(ids, allocator)
 {
     // NOTHING
@@ -187,7 +187,7 @@ inline EventUtilEventInfo::EventUtilEventInfo(const bdlbb::Blob& blob,
 inline EventUtilEventInfo::EventUtilEventInfo(
     const EventUtilEventInfo& original,
     bslma::Allocator*         allocator)
-: d_blob(original.d_blob, allocator)
+: d_blob(original.d_blob)
 , d_ids(original.d_ids, allocator)
 {
     // NOTHING

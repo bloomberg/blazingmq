@@ -1508,7 +1508,7 @@ int Session::post(const MessageEvent& event)
     BSLS_ASSERT_SAFE(0 != eventSpRef.get());
 
     return d_impl.d_application_mp->brokerSession().post(
-        *(eventSpRef->rawEvent().blob()));
+        eventSpRef->rawEvent().sharedBlob());
 }
 
 int Session::confirmMessage(const MessageConfirmationCookie& cookie)
@@ -1551,7 +1551,7 @@ int Session::confirmMessages(ConfirmEventBuilder* builder)
     }
 
     const int rc = d_impl.d_application_mp->brokerSession().confirmMessages(
-        *(&builder->blob()));
+        builder->sharedBlob());
 
     if (bmqt::GenericResult::e_SUCCESS == rc) {
         builder->reset();
