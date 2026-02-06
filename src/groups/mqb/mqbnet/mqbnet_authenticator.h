@@ -66,27 +66,31 @@ class Authenticator {
     virtual void stop() = 0;
 
     /// Authenticate the connection based on the type of AuthenticationMessage
-    /// in the specified `context`.
+    /// in the specified `context_p`.
     /// Return 0 on success, or a non-zero error code and populate the
     /// specified `errorDescription` with a description of the error otherwise.
     virtual int handleAuthentication(
         bsl::ostream&                              errorDescription,
-        InitialConnectionContext*                  context,
+        InitialConnectionContext*                  context_p,
         const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg) = 0;
 
+    /// Authenticate the connection based on the type of AuthenticationMessage
+    /// in the specified `context_sp`.
+    /// Return 0 on success, or a non-zero error code and populate the
+    /// specified `errorDescription` with a description of the error otherwise.
     virtual int handleReauthentication(
         bsl::ostream&                                 errorDescription,
-        const bsl::shared_ptr<AuthenticationContext>& context,
+        const bsl::shared_ptr<AuthenticationContext>& context_sp,
         const bsl::shared_ptr<bmqio::Channel>&        channel) = 0;
 
     /// Produce and send outbound authentication message with the specified
-    /// `context`.  Return 0 on success, or a non-zero error code and populate
-    /// the specified `errorDescription` with a description of the error
-    /// otherwise.
+    /// `context_sp`.  Return 0 on success, or a non-zero error code and
+    /// populate the specified `errorDescription` with a description of the
+    /// error otherwise.
     /// TODO: Rethink the need for this method in the interface.
     virtual int authenticationOutbound(
         bsl::ostream&                                 errorDescription,
-        const bsl::shared_ptr<AuthenticationContext>& context) = 0;
+        const bsl::shared_ptr<AuthenticationContext>& context_sp) = 0;
 
     // ACCESSORS
 
