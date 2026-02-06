@@ -754,7 +754,7 @@ void InitialConnectionContext::complete(
 {
     BSLS_ASSERT_SAFE(d_initialConnectionCompleteCb);
 
-    d_initialConnectionCompleteCb(rc, error, session, channel(), this);
+    d_initialConnectionCompleteCb(rc, error, session, channel());
 }
 
 bool InitialConnectionContext::isClosed() const

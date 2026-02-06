@@ -208,12 +208,10 @@ class InitialConnectionContext {
 
   public:
     // TYPES
-    typedef bsl::function<void(
-        int                                    status,
-        const bsl::string&                     errorDescription,
-        const bsl::shared_ptr<Session>&        session,
-        const bsl::shared_ptr<bmqio::Channel>& channel,
-        const InitialConnectionContext*        initialConnectionContext)>
+    typedef bsl::function<void(int                status,
+                               const bsl::string& errorDescription,
+                               const bsl::shared_ptr<Session>&        session,
+                               const bsl::shared_ptr<bmqio::Channel>& channel)>
         InitialConnectionCompleteCb;
 
   private:
