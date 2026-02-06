@@ -1403,13 +1403,10 @@ void RootQueueEngine::afterNewMessage()
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
-
     mqbi::Queue* queue = d_queueState_p->queue();
     BSLS_ASSERT_SAFE(queue);
 
-    mqbi::Dispatcher* dispatcher = queue->dispatcher();
-    BSLS_ASSERT_SAFE(dispatcher);
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     mqbi::StorageIterator* storageIt = d_storageIter_mp.get();
     bsls::TimeInterval     now       = bsls::SystemTime::now(
@@ -1417,9 +1414,11 @@ void RootQueueEngine::afterNewMessage()
     updateFlowControl(now.totalMilliseconds());
 
     if (d_flowController.isFull()) {
-        BMQ_LOGTHROTTLE_INFO << "Local queue: " << d_queueState_p->uri()
-                             << " throttling delivery; the timer was "
-                             << (d_flowControlEventHandle ? "On." : "Off.");
+        BMQ_LOGTHROTTLE_INFO
+            << "Local queue: " << d_queueState_p->uri()
+            << " throttling delivery "
+            << (d_flowControlEventHandle ? "; has already started the timer."
+                                         : "and starting the timer.");
 
         if (!d_flowControlEventHandle) {
             const bsls::TimeInterval timeout(1.0);
@@ -1481,19 +1480,20 @@ void RootQueueEngine::afterNewMessage()
         }
         d_appsDeliveryContext.deliverMessage();
 
-        mqbu::FlowController::Watermark result = d_flowController.add(numHits);
+        mqbu::FlowController::Watermark::Enum result = d_flowController.add(
+            numHits);
 
-        if (result == mqbu::FlowController::e_Strict) {
+        if (result == mqbu::FlowController::Watermark::e_STRICT) {
             BMQ_LOGTHROTTLE_INFO << "Local queue: " << d_queueState_p->uri()
-                                 << " throttling delivery; the overhead was "
-                                 << numHits;
+                                 << " throttling delivery after overhead of "
+                                 << numHits << " subscription operations.";
 
             d_appsDeliveryContext.reset(0);
 
             // break the loop and go to the cleaning at the end.
             storageIt = 0;
         }
-        else if (result > mqbu::FlowController::e_Zero) {
+        else if (result > mqbu::FlowController::Watermark::e_ZERO) {
             BSLS_ASSERT_SAFE(batch > 0);
 
             if (--batch == 0) {
@@ -2069,18 +2069,20 @@ void RootQueueEngine::updateFlowControl(bsls::Types::Int64 nowMs)
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
+    mqbi::Queue* queue = d_queueState_p->queue();
+    BSLS_ASSERT_SAFE(queue);
+
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     if (d_flowController.isIdle()) {
         return;
     }
 
-    mqbi::Queue* queue = d_queueState_p->queue();
-    BSLS_ASSERT_SAFE(queue);
     // Provide time to the bucket algorithm.
+    mqbi::Dispatcher* dispatcher = queue->dispatcher();
+    BSLS_ASSERT_SAFE(dispatcher);
 
-    bsls::Types::Int64 numEvents = queue->dispatcher()->numProcessorEvents(
-        queue);
+    bsls::Types::Int64 numEvents = dispatcher->numProcessorEvents(queue);
 
     d_flowController.update(nowMs, numEvents);
 

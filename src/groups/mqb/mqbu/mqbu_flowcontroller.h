@@ -20,13 +20,13 @@
 //@PURPOSE: Provide a mechanism to limit data rate
 //
 //@CLASSES:
-//  mqbu::FlowController: mechanism to monitor/ manage a rate of actions.
+//  mqbu::FlowController: mechanism to monitor/manage a rate of actions.
 //
 //@DESCRIPTION:
 //
 /// Thread-safety
 ///-------------
-// This object is *thread* *safe*.
+// This object is *not* thread safe.
 //
 /// Usage
 ///-----
@@ -40,7 +40,6 @@
 #include <bdlt_timeunitratio.h>
 #include <bsl_ostream.h>
 #include <bslma_allocator.h>
-#include <bsls_atomic.h>
 
 namespace BloombergLP {
 
@@ -52,29 +51,31 @@ class FlowController {
   public:
     // PUBLIC DATA
 
-    enum Policy {
-        e_None = 0  // Just calculate the moving (5 min) average
-        ,
-        e_Limit = 1  // Enforce rate limit
+    struct Policy {
+        enum Enum {
+            e_NONE = 0  // Just calculate the moving (5 min) average
+            ,
+            e_LIMIT = 1  // Enforce rate limit
+        };
     };
 
-    struct Config {
+    class Config {
         // VST for 'leaky bucket' parameters
 
       private:
         // PRIVATE DATA
-        Policy d_policy;
+        Policy::Enum d_policy;
 
         /// Leaky bucket drain rate.
-        bsls::Types::Int64 d_ratePerMs;
+        int d_ratePerMs;
 
         /// Leaky bucket size.
-        bsls::Types::Int64 d_burst;
+        int d_burst;
 
       public:
         // CREATORS
         Config();
-        Config(Policy policy, int rate, int burst);
+        explicit Config(Policy::Enum policy, int rate, int burst);
 
         // PUBLIC MANIPULATORS
 
@@ -82,7 +83,7 @@ class FlowController {
         void scale(int weight, int total);
 
         // PUBLIC ACCESSORS
-        Policy             policy() const;
+        Policy::Enum       policy() const;
         bsls::Types::Int64 ratePerMs() const;
         bsls::Types::Int64 burst() const;
 
@@ -90,14 +91,16 @@ class FlowController {
         print(bsl::ostream& stream, int level, int spacesPerLevel) const;
     };
 
-    enum Watermark {
-        e_Zero = 0  // No data
-        ,
-        e_Low = 1  // No overload
-        ,
-        e_High = 2  // Resource(s) is(are) at the first high wm
-        ,
-        e_Strict = 3  // Drop the data
+    struct Watermark {
+        enum Enum {
+            e_ZERO = 0  // No data
+            ,
+            e_LOW = 1  // No overload
+            ,
+            e_HIGH = 2  // Resource(s) is(are) at the first high wm
+            ,
+            e_STRICT = 3  // Drop the data
+        };
     };
 
   private:
@@ -121,12 +124,11 @@ class FlowController {
     /// History records
     bsls::Types::Int64 d_history[k_HISTORY_SIZE];
 
+    bsls::Types::Int64 d_currentAverageWatermark;
+    bsls::Types::Int64 d_previousAverageWatermark;
+
     /// Index of the current record
     int d_currentRecord;
-
-    int d_historySize;
-
-    bool d_isHistoryFull;
 
     /// Number of hits since the last history update
     bsls::Types::Int64 d_currentSecondCount;
@@ -141,12 +143,12 @@ class FlowController {
     /// and max burst.  Once the number is greater than the window size, save
     /// the current value as `previous` and then reset it.  The result is then
     /// a function (avg or max) of two values: the previous and the current.
-    int                d_currentHits;
-    bsls::Types::Int64 d_currentAverageWatermark;
-    bsls::Types::Int64 d_previousAverageWatermark;
+    int d_currentHits;
 
     int d_currentMaxBurst;
     int d_previousMaxBurst;
+
+    bool d_isHistoryFull;
 
   public:
     // CREATORS
@@ -159,7 +161,7 @@ class FlowController {
     /// Add to the buck.  Return either `e_Low` if the bucket is not full,
     /// `e_High` - if the bucket is full but the current policy does not limit,
     /// `e_Strict` - if the bucket is full but the current policy does limit.
-    Watermark add(int howMany);
+    Watermark::Enum add(int howMany);
 
     /// Compare the current watermark with the specified `lowThreshold`.  If
     /// above, enforce limiting policy with 0.75 of either current rate and
@@ -178,7 +180,7 @@ class FlowController {
     // ACCESSORS
 
     /// Return policy.  Return rate, and burst from the recorded history.
-    Config survey(Policy policy) const;
+    Config survey(Policy::Enum policy) const;
 
     /// Return current policy, rate, and burst
     const Config& config() const;
@@ -195,7 +197,7 @@ class FlowController {
 
     /// Return `true` if the bucket is full and the policy does limit.
     /// Return `false` otherwise.
-    inline bool isFull() const;
+    bool isFull() const;
 
     bsl::ostream&
     print(bsl::ostream& stream, int level, int spacesPerLevel) const;
@@ -205,19 +207,19 @@ class FlowController {
 //                             INLINE DEFINITIONS
 // ============================================================================
 
-// --------------------------
-// class FlowController::Rate
-// --------------------------
+// ----------------------------
+// class FlowController::Config
+// ----------------------------
 
 inline FlowController::Config::Config()
-: d_policy(e_None)
+: d_policy(Policy::e_NONE)
 , d_ratePerMs(0)
 , d_burst(0)
 {
     // NOTHING
 }
 
-inline FlowController::Config::Config(Policy policy, int rate, int burst)
+inline FlowController::Config::Config(Policy::Enum policy, int rate, int burst)
 : d_policy(policy)
 , d_ratePerMs(rate)
 , d_burst(burst)
@@ -225,7 +227,7 @@ inline FlowController::Config::Config(Policy policy, int rate, int burst)
     // NOTHING
 }
 
-inline FlowController::Policy FlowController::Config::policy() const
+inline FlowController::Policy::Enum FlowController::Config::policy() const
 {
     return d_policy;
 }
@@ -250,7 +252,7 @@ inline bsl::ostream& FlowController::Config::print(bsl::ostream& stream,
 
     bdlb::Print::indent(stream, level, spacesPerLevel);
 
-    stream << "policy: " << (policy() == e_None ? "Off" : "On")
+    stream << "policy: " << (policy() == Policy::e_NONE ? "Off" : "On")
            << ", ratePerMs: " << ratePerMs() << ", burst: " << burst();
 
     if (spacesPerLevel >= 0) {
@@ -295,12 +297,13 @@ inline int FlowController::maxBurst() const
 inline bool FlowController::isIdle() const
 {
     return d_count == 0 && d_totalCount == 0 &&
-           config().policy() == Policy::e_None;
+           config().policy() == Policy::e_NONE;
 }
 
 inline bool FlowController::isFull() const
 {
-    return (d_count > config().burst() && config().policy() == e_Limit);
+    return (d_count > config().burst() &&
+            config().policy() == Policy::e_LIMIT);
 }
 
 // FREE OPERATORS

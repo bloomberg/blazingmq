@@ -43,21 +43,23 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    mqbu::FlowController            fc;
-    mqbu::FlowController::Watermark result;
-    bsls::Types::Int64              time = 0;
-    mqbu::FlowController::Config    config;
+    mqbu::FlowController                  fc;
+    mqbu::FlowController::Watermark::Enum result;
+    bsls::Types::Int64                    time = 0;
+    mqbu::FlowController::Config          config;
+
+    config = fc.survey(mqbu::FlowController::Policy::e_NONE);
 
     // 500 at 0.5 sec
     result = fc.add(500);
-    BMQTST_ASSERT_EQ(result, mqbu::FlowController::Watermark::e_High);
+    BMQTST_ASSERT_EQ(result, mqbu::FlowController::Watermark::e_HIGH);
     fc.update(time += 500, 100);
 
     BMQTST_ASSERT_EQ(fc.averageWatermark(), 100);
 
     // 500 at 0.5 sec
     result = fc.add(500);
-    BMQTST_ASSERT_EQ(result, mqbu::FlowController::Watermark::e_High);
+    BMQTST_ASSERT_EQ(result, mqbu::FlowController::Watermark::e_HIGH);
     fc.update(time += 500, 900);
 
     BMQTST_ASSERT_EQ(fc.averageWatermark(), 900);
@@ -65,16 +67,16 @@ static void test1_breathingTest()
     // 2000 at 2 sec
     fc.update(time += 2000, 100);
     result = fc.add(2000);
-    BMQTST_ASSERT_EQ(result, mqbu::FlowController::Watermark::e_High);
+    BMQTST_ASSERT_EQ(result, mqbu::FlowController::Watermark::e_HIGH);
 
     // Make full 5 secs (0.5 + 0.5 + 2 + 2)
     // 2000 at 2 sec
     result = fc.add(2000);
-    BMQTST_ASSERT_EQ(result, mqbu::FlowController::Watermark::e_High);
+    BMQTST_ASSERT_EQ(result, mqbu::FlowController::Watermark::e_HIGH);
     fc.update(time += 2000, 100);
 
-    config = fc.survey(mqbu::FlowController::Policy::e_Limit);
-    BMQTST_ASSERT_EQ(config.policy(), mqbu::FlowController::Policy::e_Limit);
+    config = fc.survey(mqbu::FlowController::Policy::e_LIMIT);
+    BMQTST_ASSERT_EQ(config.policy(), mqbu::FlowController::Policy::e_LIMIT);
     BMQTST_ASSERT_EQ(config.ratePerMs(), 1000);
     // Lost the burst after 2 sec, use rate * 4
     BMQTST_ASSERT_EQ(config.burst(), 2000);
@@ -82,10 +84,10 @@ static void test1_breathingTest()
     // An additional 6th sec
     fc.update(time += 1000, 100);
     result = fc.add(1000);
-    BMQTST_ASSERT_EQ(result, mqbu::FlowController::Watermark::e_High);
+    BMQTST_ASSERT_EQ(result, mqbu::FlowController::Watermark::e_HIGH);
 
-    config = fc.survey(mqbu::FlowController::Policy::e_Limit);
-    BMQTST_ASSERT_EQ(config.policy(), mqbu::FlowController::Policy::e_Limit);
+    config = fc.survey(mqbu::FlowController::Policy::e_LIMIT);
+    BMQTST_ASSERT_EQ(config.policy(), mqbu::FlowController::Policy::e_LIMIT);
     BMQTST_ASSERT_EQ(config.ratePerMs(), 1000);
     BMQTST_ASSERT_EQ(config.burst(), 1000);
 
@@ -96,18 +98,18 @@ static void test1_breathingTest()
 
     // fill the burst
     result = fc.add(1000);
-    BMQTST_ASSERT_EQ(result, mqbu::FlowController::Watermark::e_Low);
+    BMQTST_ASSERT_EQ(result, mqbu::FlowController::Watermark::e_LOW);
 
     // over the burst
     result = fc.add(1);
-    BMQTST_ASSERT_EQ(result, mqbu::FlowController::Watermark::e_Strict);
+    BMQTST_ASSERT_EQ(result, mqbu::FlowController::Watermark::e_STRICT);
 
     fc.update(time += 1, 100);
     result = fc.add(1);
-    BMQTST_ASSERT_EQ(result, mqbu::FlowController::Watermark::e_Low);
+    BMQTST_ASSERT_EQ(result, mqbu::FlowController::Watermark::e_LOW);
 
     config.scale(75, 100);
-    BMQTST_ASSERT_EQ(config.policy(), mqbu::FlowController::Policy::e_Limit);
+    BMQTST_ASSERT_EQ(config.policy(), mqbu::FlowController::Policy::e_LIMIT);
     BMQTST_ASSERT_EQ(config.ratePerMs(), 750);
     BMQTST_ASSERT_EQ(config.burst(), 750);
 }

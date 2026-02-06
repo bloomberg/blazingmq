@@ -27,32 +27,31 @@ FlowController::FlowController()
 : d_count(0)
 , d_lastUpdateMs(0)
 , d_config()
+, d_currentAverageWatermark(0)
+, d_previousAverageWatermark(0)
 , d_currentRecord(0)
-, d_historySize(0)
-, d_isHistoryFull()
 , d_currentSecondCount(0)
 , d_currentSecondMs(0)
 , d_totalCount(0)
 , d_currentHits(0)
-, d_currentAverageWatermark(0)
-, d_previousAverageWatermark(0)
 , d_currentMaxBurst(0)
 , d_previousMaxBurst(0)
+, d_isHistoryFull()
 {
     for (int i = 0; i < k_HISTORY_SIZE; i++) {
         d_history[i] = 0;
     }
 }
 
-FlowController::FlowController::~FlowController()
+FlowController::~FlowController()
 {
     // NOTHING
 }
 
-FlowController::Watermark FlowController::add(int howMany)
+FlowController::Watermark::Enum FlowController::add(int howMany)
 {
     if (howMany == 0) {
-        return e_Zero;
+        return Watermark::e_ZERO;  // RETURN
     }
     d_count += howMany;
     d_currentSecondCount += howMany;
@@ -61,39 +60,36 @@ FlowController::Watermark FlowController::add(int howMany)
         d_currentMaxBurst = howMany;
     }
 
-    Watermark result = e_Low;
-
-    if (d_count > config().burst()) {
-        // Over the bucket
-        // Need to know what is the current policy and the strict threshold
-
-        if (config().policy() == e_Limit) {
-            result = e_Strict;
-            // Possibly could Undo by d_count.subtract(howMany);
-        }
-        else {
-            result = e_High;
-        }
+    if (d_count <= config().burst()) {
+        return Watermark::e_LOW;  // RETURN
     }
 
-    return result;
+    // Over the bucket
+    // Need to know what is the current policy and the strict threshold
+
+    if (config().policy() == Policy::e_LIMIT) {
+        return Watermark::e_STRICT;  // RETURN
+        // Possibly could Undo by d_count.subtract(howMany);
+    }
+    else {
+        return Watermark::e_HIGH;  // RETURN
+    }
 }
 
 void FlowController::checkWatermark(bsls::Types::Int64 lowThreshold,
                                     bsls::Types::Int64 maxRateLimit)
 {
-    const FlowController::Policy policy    = d_config.policy();
-    bsls::Types::Int64           watermark = averageWatermark();
+    const FlowController::Policy::Enum policy    = d_config.policy();
+    bsls::Types::Int64                 watermark = averageWatermark();
 
     if (watermark < lowThreshold) {
-        if (policy == mqbu::FlowController::e_Limit) {
+        if (policy == Policy::e_LIMIT) {
             if (d_config.ratePerMs() < maxRateLimit) {
                 // scale up, by 100
 
-                mqbu::FlowController::Config config(
-                    mqbu::FlowController::e_Limit,
-                    d_config.ratePerMs() + 100,
-                    d_config.burst() + 100);
+                mqbu::FlowController::Config config(Policy::e_LIMIT,
+                                                    d_config.ratePerMs() + 100,
+                                                    d_config.burst() + 100);
 
                 configure(config);
             }
@@ -103,10 +99,9 @@ void FlowController::checkWatermark(bsls::Types::Int64 lowThreshold,
         }
     }
     else {
-        mqbu::FlowController::Config config =
-            (policy == mqbu::FlowController::e_Limit
-                 ? d_config
-                 : survey(mqbu::FlowController::e_Limit));
+        mqbu::FlowController::Config config = (policy == Policy::e_LIMIT
+                                                   ? d_config
+                                                   : survey(Policy::e_LIMIT));
 
         // scale down, 75% (alternatively, lowThreshold / watermark)
 
@@ -127,7 +122,7 @@ void FlowController::update(bsls::Types::Int64 ms,
 
     const Config& config = d_config;
 
-    if (config.policy() > e_None) {
+    if (config.policy() > Policy::e_NONE) {
         bsls::Types::Int64 rate = config.ratePerMs() * deltaMs;
 
         if (rate > d_count) {
@@ -146,6 +141,11 @@ void FlowController::update(bsls::Types::Int64 ms,
     // Accumulate count per each min within approximately 5 min
     bsls::Types::Int64 elapsedSinceLastSecondMs = d_currentSecondMs + deltaMs;
 
+    if (elapsedSinceLastSecondMs > k_RECORD_MS * k_HISTORY_SIZE) {
+        // it has been more than 5 sec since the last update.
+        // reset the entire history.
+        elapsedSinceLastSecondMs = k_RECORD_MS * k_HISTORY_SIZE + 1;
+    }
     while (elapsedSinceLastSecondMs > k_RECORD_MS) {
         // Accumulate the count at the last minute leaving previous whole
         // minutes blank.
@@ -187,12 +187,16 @@ void FlowController::update(bsls::Types::Int64 ms,
                                  d_currentHits;
 }
 
-FlowController::Config FlowController::survey(Policy policy) const
+FlowController::Config FlowController::survey(Policy::Enum policy) const
 {
     bsls::Types::Int64 sum = d_currentSecondCount + d_totalCount;
     const int numRecords  = d_isHistoryFull ? k_HISTORY_SIZE : d_currentRecord;
     bsls::Types::Int64 ms = d_currentSecondMs + k_RECORD_MS * numRecords;
 
+    if (ms == 0) {
+        // no time updates yet.
+        ms = 1;
+    }
     // Calculate moving average within approximately 5 min
     // Use 'd_currentMaxBurst' as the burst size
 

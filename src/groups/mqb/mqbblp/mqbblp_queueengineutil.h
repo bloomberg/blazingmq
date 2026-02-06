@@ -31,7 +31,6 @@
 #include <mqbconfm_messages.h>
 #include <mqbi_queue.h>
 #include <mqbi_storage.h>
-#include <mqbu_flowcontroller.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
