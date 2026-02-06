@@ -278,6 +278,7 @@ class QueueConsumptionMonitor {
     /// Cancel all idle events (for all substreams) if they were scheduled.
     /// If the specified `resetStates` is true, reset substreams states.
     void cancelIdleEvents(bool resetStates);
+    void cancelIdleEvents(SubStreamInfo* info);
 
   protected:
     /// Alarm event dispatcher, executed in queue dispatcher thread.
