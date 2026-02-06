@@ -269,7 +269,7 @@ class TCPSessionFactory {
 
     typedef bslma::ManagedPtr<bmqio::StatChannelFactory> StatChannelFactoryMp;
 
-    typedef bsl::unordered_map<const InitialConnectionContext*,
+    typedef bsl::unordered_map<const bmqio::Channel*,
                                bsl::shared_ptr<InitialConnectionContext> >
         InitialConnectionContextMp;
 
@@ -433,19 +433,16 @@ class TCPSessionFactory {
     /// struct created during the listen or connect call that is responsible
     /// for this negotiation (and hence, in the case of `listen`, is common for
     /// all sessions negotiated); while the specified
-    /// `initialConnectionContext_p` corresponds to the unique context created
-    /// during `handleInitialConnection` method for that `channel`.  If the
-    /// specified `statusCode` is 0, the initial connection was a success and
-    /// the specified `session` contains the negotiated session.  If `status`
-    /// is non-zero, the initial connection was a failure and `session` will be
-    /// null, with the specified `errorDescription` containing a description of
-    /// the error.
+    /// If the specified `statusCode` is 0, the initial connection was a
+    /// success and the specified `session` contains the negotiated session.
+    /// If `status`  is non-zero, the initial connection was a failure and
+    /// `session` will be null, with the specified `errorDescription`
+    /// containing a description of the error.
     void initialConnectionComplete(
         int                                      statusCode,
         const bsl::string&                       errorDescription,
         const bsl::shared_ptr<Session>&          session,
         const bsl::shared_ptr<bmqio::Channel>&   channel,
-        const InitialConnectionContext*          initialConnectionContext_p,
         const bsl::shared_ptr<OperationContext>& operationContext);
 
     /// Custom deleter of the session's shared_ptr for the specified
@@ -473,10 +470,8 @@ class TCPSessionFactory {
 
     /// Method invoked by the channel factory to notify that the specified
     /// `channel` went down, with the specified `status` corresponding to
-    /// the channel's status. The specified `context_p` is used to track
-    /// whether the channel is closed.
-    void onClose(const InitialConnectionContext*        context_p,
-                 const bsl::shared_ptr<bmqio::Channel>& channel,
+    /// the channel's status.
+    void onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
                  const bmqio::Status&                   status);
 
     /// Reccuring scheduler event to check for all `heartbeat-enabled`

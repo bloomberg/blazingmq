@@ -379,13 +379,12 @@ void TCPSessionFactory::handleInitialConnection(
                 bdlf::PlaceHolders::_2,  // errorDescription
                 bdlf::PlaceHolders::_3,  // session
                 bdlf::PlaceHolders::_4,  // channel
-                bdlf::PlaceHolders::_5,  // initialConnectionContext
                 context));
 
     // Cache the context.  It will be removed in 'initialConnectionComplete'.
     {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
-        d_initialConnectionContextCache[initialConnectionContext_sp.get()] =
+        d_initialConnectionContextCache[channel.get()] =
             initialConnectionContext_sp;
     }
 
@@ -394,7 +393,6 @@ void TCPSessionFactory::handleInitialConnection(
         bdlf::BindUtil::bindS(d_allocator_p,
                               &TCPSessionFactory::onClose,
                               this,
-                              initialConnectionContext_sp.get(),
                               channel,
                               bdlf::PlaceHolders::_1 /* bmqio::Status */));
 
@@ -522,7 +520,6 @@ void TCPSessionFactory::initialConnectionComplete(
     const bsl::string&                       errorDescription,
     const bsl::shared_ptr<Session>&          session,
     const bsl::shared_ptr<bmqio::Channel>&   channel,
-    const InitialConnectionContext*          initialConnectionContext_p,
     const bsl::shared_ptr<OperationContext>& operationContext)
 {
     // executed by one of the *IO* threads or an *AUTHENTICATION* thread
@@ -536,15 +533,15 @@ void TCPSessionFactory::initialConnectionComplete(
     {
         bslmt::LockGuard<bslmt::Mutex>       guard(&d_mutex);
         InitialConnectionContextMp::iterator iter =
-            d_initialConnectionContextCache.find(initialConnectionContext_p);
+            d_initialConnectionContextCache.find(channel.get());
         BSLS_ASSERT_SAFE(iter != d_initialConnectionContextCache.end());
         initialConnectionContext_sp = iter->second;
-        d_initialConnectionContextCache.erase(initialConnectionContext_p);
+        d_initialConnectionContextCache.erase(channel.get());
     }
 
     // Reset any authentication message stored in the authentication context
-    if (initialConnectionContext_p->authenticationContext()) {
-        initialConnectionContext_p->authenticationContext()
+    if (initialConnectionContext_sp->authenticationContext()) {
+        initialConnectionContext_sp->authenticationContext()
             ->resetAuthenticationMessage();
     }
 
@@ -571,14 +568,14 @@ void TCPSessionFactory::initialConnectionComplete(
     }
 
     // Successful negotiation
-    BSLS_ASSERT_SAFE(initialConnectionContext_p->negotiationContext());
+    BSLS_ASSERT_SAFE(initialConnectionContext_sp->negotiationContext());
 
     BALL_LOG_INFO
         << "TCPSessionFactory '" << d_config.name()
         << "' successfully authenticated and negotiated a session [session: '"
         << session->description() << "', channel: '" << channel.get()
         << "', maxMissedHeartbeat: "
-        << initialConnectionContext_p->negotiationContext()
+        << initialConnectionContext_sp->negotiationContext()
                ->maxMissedHeartbeats()
         << "]";
 
@@ -615,7 +612,7 @@ void TCPSessionFactory::initialConnectionComplete(
 
         // check if the channel is not closed (we can be in authentication
         // thread while the channel is closed in IO thread)
-        if (initialConnectionContext_p->isClosed()) {
+        if (initialConnectionContext_sp->isClosed()) {
             BALL_LOG_WARN
                 << "#TCP_UNEXPECTED_STATE TCPSessionFactory '"
                 << d_config.name()
@@ -629,10 +626,11 @@ void TCPSessionFactory::initialConnectionComplete(
         info.createInplace(
             d_allocator_p,
             channel,
-            initialConnectionContext_p->authenticationContext(),
+            initialConnectionContext_sp->authenticationContext(),
             monitoredSession,
-            initialConnectionContext_p->negotiationContext()->eventProcessor(),
-            initialConnectionContext_p->negotiationContext()
+            initialConnectionContext_sp->negotiationContext()
+                ->eventProcessor(),
+            initialConnectionContext_sp->negotiationContext()
                 ->maxMissedHeartbeats(),
             d_initialMissedHeartbeatCounter);
         // See comments in 'calculateInitialMissedHbCounter'.
@@ -662,8 +660,8 @@ void TCPSessionFactory::initialConnectionComplete(
         bmqio::ChannelFactoryEvent::e_CHANNEL_UP,
         bmqio::Status(),
         monitoredSession,
-        initialConnectionContext_p->negotiationContext()->cluster(),
-        initialConnectionContext_p->resultState(),
+        initialConnectionContext_sp->negotiationContext()->cluster(),
+        initialConnectionContext_sp->resultState(),
         bdlf::BindUtil::bind(&TCPSessionFactory::readCallback,
                              this,
                              bdlf::PlaceHolders::_1,  // status
@@ -800,8 +798,7 @@ void TCPSessionFactory::channelStateCallback(
     }
 }
 
-void TCPSessionFactory::onClose(const InitialConnectionContext* context_p,
-                                const bsl::shared_ptr<bmqio::Channel>& channel,
+void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
                                 const bmqio::Status&                   status)
 {
     // Executed by *ANY* thread
@@ -826,7 +823,7 @@ void TCPSessionFactory::onClose(const InitialConnectionContext* context_p,
         // 'initialConnectionComplete'.
         bsl::shared_ptr<InitialConnectionContext> initialConnectionContext_sp;
         InitialConnectionContextMp::iterator      iter =
-            d_initialConnectionContextCache.find(context_p);
+            d_initialConnectionContextCache.find(channel.get());
         if (iter != d_initialConnectionContextCache.end()) {
             initialConnectionContext_sp = iter->second;
             initialConnectionContext_sp->onClose();
