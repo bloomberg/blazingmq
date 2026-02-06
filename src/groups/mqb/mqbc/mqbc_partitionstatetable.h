@@ -502,6 +502,10 @@ class PartitionStateTable
             REPLICA_STATE_RSPN,
             storeReplicaSeq_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks,
             PRIMARY_HEALING_STG2);
+        PST_CFG(PRIMARY_HEALING_STG2,
+                FAIL_REPLICA_STATE_RSPN,
+                logFailureReplicaStateResponse,
+                PRIMARY_HEALING_STG2);
         PST_CFG(
             PRIMARY_HEALING_STG2,
             PRIMARY_STATE_RQST,
@@ -627,6 +631,10 @@ class PartitionStateTable
                 replicaStateResponse,
                 REPLICA_HEALED);
         PST_CFG(REPLICA_HEALED,
+                FAIL_PRIMARY_STATE_RSPN,
+                logFailurePrimaryStateResponse,
+                REPLICA_HEALED);
+        PST_CFG(REPLICA_HEALED,
                 REPLICA_DATA_RQST_PUSH,
                 replicaDataResponsePush,
                 REPLICA_HEALED);
@@ -646,6 +654,10 @@ class PartitionStateTable
             REPLICA_STATE_RSPN,
             storeSelfSeq_storeReplicaSeq_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks,
             PRIMARY_HEALED);
+        PST_CFG(PRIMARY_HEALED,
+                FAIL_REPLICA_STATE_RSPN,
+                logFailureReplicaStateResponse,
+                PRIMARY_HEALED);
         PST_CFG(
             PRIMARY_HEALED,
             PRIMARY_STATE_RQST,
