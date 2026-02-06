@@ -51,6 +51,8 @@ class ClusterAttributes:
     to-be-deprecated QLIST file when FSM workflow is
     enabled.  If above 'isFSMWorkflow' flag is false,
     this flag is ignored.
+    partitionStateMessageDedupIntervalMs:
+    deduplication interval, in milliseconds, for PrimaryStateRequest/ReplicaStateResponse messages received from the same replica node.  This is because at startup primary sends a ReplicaStateRequest to all replicas, while each replicas sends a PrimaryStateRequest to the primary.  This guarantees at least one request/response is exchanged if a node starts late, but can also lead to duplicate if both nodes start at the same time.
     """
 
     is_cslmode_enabled: bool = field(
@@ -75,6 +77,15 @@ class ClusterAttributes:
         default=True,
         metadata={
             "name": "doesFSMwriteQLIST",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    partition_state_message_dedup_interval_ms: int = field(
+        default=1000,
+        metadata={
+            "name": "partitionStateMessageDedupIntervalMs",
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
@@ -1103,12 +1114,22 @@ class TcpInterfaceListener:
 
     name.................:
     A name to associate this listener to.
+    address..............:
+    The IPv4 address this listener will accept connections on.
     port.................:
     The port this listener will accept connections on.
     """
 
     name: Optional[str] = field(
         default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    address: str = field(
+        default="0.0.0.0",
         metadata={
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
