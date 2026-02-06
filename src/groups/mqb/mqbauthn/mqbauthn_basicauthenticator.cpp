@@ -96,6 +96,7 @@ BasicAuthenticator::BasicAuthenticator(
         if (!it->value().isStringValValue()) {
             BALL_LOG_WARN << "Expected string for credential, got type id = "
                           << it->value().selectionId();
+            continue;
         }
         d_credentials[it->key()] = it->value().stringVal();
     }
@@ -214,6 +215,11 @@ BasicAuthenticatorPluginFactory::create(bslma::Allocator* allocator)
     const mqbcfg::AuthenticatorPluginConfig* config =
         mqbplug::AuthenticatorUtil::findAuthenticatorConfig(
             BasicAuthenticator::k_NAME);
+
+    // Return null if no config found - this authenticator is not configured
+    if (!config) {
+        return bslma::ManagedPtr<mqbplug::Authenticator>();
+    }
 
     allocator = bslma::Default::allocator(allocator);
 

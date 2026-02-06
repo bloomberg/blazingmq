@@ -1866,6 +1866,10 @@ class AuthenticatorConfig:
     uses the provided credential with a matching plugin from `authenticators`.
     When omitted, the broker defaults to AnonAuthenticator and always passes for
     anonymous authentication.
+    minThreads..............:
+    Minimum number of threads in the authentication thread pool.
+    maxThreads..............:
+    Maximum number of threads in the authentication thread pool.
     """
 
     authenticators: List[AuthenticatorPluginConfig] = field(
@@ -1881,6 +1885,24 @@ class AuthenticatorConfig:
             "name": "anonymousCredential",
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
+        },
+    )
+    min_threads: int = field(
+        default=1,
+        metadata={
+            "name": "minThreads",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    max_threads: int = field(
+        default=3,
+        metadata={
+            "name": "maxThreads",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
         },
     )
 
