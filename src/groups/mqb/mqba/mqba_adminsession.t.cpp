@@ -261,16 +261,18 @@ static void test1_watermark()
     // Send the sample admin event multiple times to the admin session
     for (size_t i = 0; i < numMessages; i++) {
         tb.d_as.processEvent(adminEvent);
-        BSLS_ASSERT(tb.d_channel->waitFor(1, false));
+        BSLS_ASSERT(tb.d_channel->waitFor(i + 1));
     }
 
-    // Check if callback loop delivered admin commands execution results back
-    // to the admin session and it writes the needed number of responses to the
-    // test channel
-    BMQTST_ASSERT_EQ(tb.d_channel->writeCalls().size(), numMessages);
+    // Check that we have the needed number of write calls after all admin
+    // commands were sent.
+    BMQTST_ASSERT(tb.d_channel->waitFor(numMessages));
+
+    bmqio::TestChannel::WriteCall writeCall;
+    BMQTST_ASSERT(tb.d_channel->getWriteCall(&writeCall, 0));
 
     // Sanity check for the first admin response
-    bmqp::Event adminResponseEvent(&tb.d_channel->writeCalls().at(0).d_blob,
+    bmqp::Event adminResponseEvent(&writeCall.d_blob,
                                    bmqtst::TestHelperUtil::allocator());
     BSLS_ASSERT(adminResponseEvent.isValid());
     BSLS_ASSERT(adminResponseEvent.isControlEvent());

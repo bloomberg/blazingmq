@@ -231,12 +231,13 @@ struct TestHelper {
              cit != d_cluster_mp->_channels().cend();
              ++cit) {
             if (cit->first->nodeId() != selfNodeId) {
-                BMQTST_ASSERT(cit->second->waitFor(1, false));
+                bmqio::TestChannel::WriteCall writeCall;
+                BMQTST_ASSERT(cit->second->getWriteCall(&writeCall, 0));
 
                 bmqp_ctrlmsg::ControlMessage message;
                 mqbc::ClusterUtil::extractMessage(
                     &message,
-                    cit->second->writeCalls()[0].d_blob,
+                    writeCall.d_blob,
                     bmqtst::TestHelperUtil::allocator());
                 BMQTST_ASSERT(message.choice()
                                   .clusterMessage()
@@ -254,7 +255,7 @@ struct TestHelper {
             else {
                 // Make sure that primary node does not end up receiving
                 // replicaStateRequest.
-                BMQTST_ASSERT(!cit->second->waitFor(1, false));
+                BMQTST_ASSERT(!cit->second->waitFor(1));
             }
         }
     }
@@ -281,7 +282,7 @@ struct TestHelper {
                 if (replicaCit->second.sequenceNumber() ==
                     selfSeqNum.sequenceNumber()) {
                     // No data chunk was sent
-                    BMQTST_ASSERT(cit->second->waitFor(1, false));
+                    BMQTST_ASSERT(cit->second->waitFor(1));
 
                     continue;  // CONTINUE
                 }
@@ -289,7 +290,9 @@ struct TestHelper {
                 // Data chunks were sent
                 BMQTST_ASSERT_LT(replicaCit->second.sequenceNumber(),
                                  selfSeqNum.sequenceNumber());
-                BMQTST_ASSERT(cit->second->waitFor(2, false));
+
+                bmqio::TestChannel::WriteCall writeCall;
+                BMQTST_ASSERT(cit->second->getWriteCall(&writeCall, 1));
 
                 // Verify data chunks
                 //
@@ -302,12 +305,11 @@ struct TestHelper {
                 bsl::shared_ptr<bdlbb::Blob> blob_sp;
                 blob_sp.createInplace(bmqtst::TestHelperUtil::allocator(),
                                       bmqtst::TestHelperUtil::allocator());
-                bdlbb::BlobUtil::append(
-                    blob_sp.get(),
-                    cit->second->writeCalls()[1].d_blob,
-                    0,
-                    cit->second->writeCalls()[1].d_blob.length(),
-                    bmqtst::TestHelperUtil::allocator());
+                bdlbb::BlobUtil::append(blob_sp.get(),
+                                        writeCall.d_blob,
+                                        0,
+                                        writeCall.d_blob.length(),
+                                        bmqtst::TestHelperUtil::allocator());
 
                 bmqp::Event event(blob_sp.get(),
                                   bmqtst::TestHelperUtil::allocator());
@@ -394,7 +396,7 @@ struct TestHelper {
             else {
                 // Make sure that primary node does not end up receiving
                 // data chunks or send it to upto date replicas.
-                BMQTST_ASSERT(!cit->second->waitFor(1, false));
+                BMQTST_ASSERT(!cit->second->waitFor(1));
             }
         }
     }
@@ -434,11 +436,10 @@ struct TestHelper {
              cit != d_cluster_mp->_channels().cend();
              ++cit) {
             if (cit->first->nodeId() == primaryNodeId) {
-                BMQTST_ASSERT(
-                    cit->second->waitFor(expectedNumDataChunks, false));
-                // BMQTST_ASSERT(!cit->second->waitFor(expectedNumDataChunks +
-                // 1,
-                //       false));
+                BMQTST_ASSERT(cit->second->waitFor(expectedNumDataChunks));
+                // TODO(kaikulimu): uncomment & update UT
+                // BMQTST_ASSERT(!cit->second->waitFor(
+                //                                 expectedNumDataChunks + 1));
                 /*
                 // Verify data chunks
                 const bdlbb::Blob blob = cit->second->writeCalls()[0].d_blob;
@@ -474,7 +475,7 @@ struct TestHelper {
             else {
                 // Make sure that replica node does not send chunks to anyone
                 // except primary.
-                BMQTST_ASSERT(!cit->second->waitFor(1, false));
+                BMQTST_ASSERT(!cit->second->waitFor(1));
             }
         }
     }
@@ -503,12 +504,13 @@ struct TestHelper {
              cit != d_cluster_mp->_channels().cend();
              ++cit) {
             if (cit->first->nodeId() == highestSeqNumNodeId) {
-                BMQTST_ASSERT(cit->second->waitFor(1, false));
+                bmqio::TestChannel::WriteCall writeCall;
+                BMQTST_ASSERT(cit->second->getWriteCall(&writeCall, 0));
 
                 bmqp_ctrlmsg::ControlMessage message;
                 mqbc::ClusterUtil::extractMessage(
                     &message,
-                    cit->second->writeCalls()[0].d_blob,
+                    writeCall.d_blob,
                     bmqtst::TestHelperUtil::allocator());
                 BMQTST_ASSERT_EQ(message.choice().clusterMessage(),
                                  expectedMessage);
@@ -516,7 +518,7 @@ struct TestHelper {
             else {
                 // Make sure that no other node except highestSeqNumNodeId
                 // receives replicaDataRequest of type PULL.
-                BMQTST_ASSERT(!cit->second->waitFor(1, false));
+                BMQTST_ASSERT(!cit->second->waitFor(1));
             }
         }
     }
@@ -543,12 +545,13 @@ struct TestHelper {
              ++cit) {
             if (destinationReplicas.find(cit->first->nodeId()) !=
                 destinationReplicas.end()) {
-                BMQTST_ASSERT(cit->second->waitFor(1, false));
+                bmqio::TestChannel::WriteCall writeCall;
+                BMQTST_ASSERT(cit->second->getWriteCall(&writeCall, 0));
 
                 bmqp_ctrlmsg::ControlMessage message;
                 mqbc::ClusterUtil::extractMessage(
                     &message,
-                    cit->second->writeCalls()[0].d_blob,
+                    writeCall.d_blob,
                     bmqtst::TestHelperUtil::allocator());
                 replicaDataRequest.beginSequenceNumber() =
                     destinationReplicas.at(cit->first->nodeId());
@@ -558,7 +561,7 @@ struct TestHelper {
             else {
                 // Make sure that primary node does not end up receiving
                 // data chunks or send it to upto date replicas.
-                BMQTST_ASSERT(!cit->second->waitFor(1, false));
+                BMQTST_ASSERT(!cit->second->waitFor(1));
             }
         }
     }
@@ -579,19 +582,20 @@ struct TestHelper {
              cit != d_cluster_mp->_channels().cend();
              ++cit) {
             if (cit->first->nodeId() == rogueNodeId) {
-                BMQTST_ASSERT(cit->second->waitFor(1, false));
+                bmqio::TestChannel::WriteCall writeCall;
+                BMQTST_ASSERT(cit->second->getWriteCall(&writeCall, 0));
 
                 bmqp_ctrlmsg::ControlMessage message;
                 mqbc::ClusterUtil::extractMessage(
                     &message,
-                    cit->second->writeCalls()[0].d_blob,
+                    writeCall.d_blob,
                     bmqtst::TestHelperUtil::allocator());
                 BMQTST_ASSERT_EQ(message, failureMessage);
             }
             else {
                 // Make sure that no other node except the rogue node ends up
                 // receiving failure replicaStateResponse.
-                BMQTST_ASSERT(!cit->second->waitFor(1, false));
+                BMQTST_ASSERT(!cit->second->waitFor(1));
             }
         }
     }
@@ -612,19 +616,20 @@ struct TestHelper {
              cit != d_cluster_mp->_channels().cend();
              ++cit) {
             if (cit->first->nodeId() == rogueNodeId) {
-                BMQTST_ASSERT(cit->second->waitFor(1, false));
+                bmqio::TestChannel::WriteCall writeCall;
+                BMQTST_ASSERT(cit->second->getWriteCall(&writeCall, 0));
 
                 bmqp_ctrlmsg::ControlMessage message;
                 mqbc::ClusterUtil::extractMessage(
                     &message,
-                    cit->second->writeCalls()[0].d_blob,
+                    writeCall.d_blob,
                     bmqtst::TestHelperUtil::allocator());
                 BMQTST_ASSERT_EQ(message, failureMessage);
             }
             else {
                 // Make sure that no other node except the rogue node ends up
                 // receiving failure primaryStateResponse.
-                BMQTST_ASSERT(!cit->second->waitFor(1, false));
+                BMQTST_ASSERT(!cit->second->waitFor(1));
             }
         }
     }
@@ -638,12 +643,13 @@ struct TestHelper {
              cit != d_cluster_mp->_channels().cend();
              ++cit) {
             if (cit->first->nodeId() == primaryNodeId) {
-                BMQTST_ASSERT(cit->second->waitFor(1, false));
+                bmqio::TestChannel::WriteCall writeCall;
+                BMQTST_ASSERT(cit->second->getWriteCall(&writeCall, 0));
 
                 bmqp_ctrlmsg::ControlMessage message;
                 mqbc::ClusterUtil::extractMessage(
                     &message,
-                    cit->second->writeCalls()[0].d_blob,
+                    writeCall.d_blob,
                     bmqtst::TestHelperUtil::allocator());
                 BMQTST_ASSERT(message.choice()
                                   .clusterMessage()
@@ -655,7 +661,7 @@ struct TestHelper {
             else {
                 // Make sure that other replica nodes dont receive
                 // primaryStateRequest.
-                BMQTST_ASSERT(!cit->second->waitFor(1, false));
+                BMQTST_ASSERT(!cit->second->waitFor(1));
             }
         }
     }
@@ -680,12 +686,13 @@ struct TestHelper {
              cit != d_cluster_mp->_channels().cend();
              ++cit) {
             if (cit->first->nodeId() == primaryNodeId) {
-                BMQTST_ASSERT(cit->second->waitFor(1, false));
+                bmqio::TestChannel::WriteCall writeCall;
+                BMQTST_ASSERT(cit->second->getWriteCall(&writeCall, 0));
 
                 bmqp_ctrlmsg::ControlMessage message;
                 mqbc::ClusterUtil::extractMessage(
                     &message,
-                    cit->second->writeCalls()[0].d_blob,
+                    writeCall.d_blob,
                     bmqtst::TestHelperUtil::allocator());
                 BMQTST_ASSERT_EQ(message.choice().clusterMessage(),
                                  expectedMessage);
@@ -693,7 +700,7 @@ struct TestHelper {
             else {
                 // Make sure that other replica nodes dont receive
                 // primaryStateRequest.
-                BMQTST_ASSERT(!cit->second->waitFor(1, false));
+                BMQTST_ASSERT(!cit->second->waitFor(1));
             }
         }
     }

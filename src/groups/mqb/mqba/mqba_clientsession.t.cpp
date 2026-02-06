@@ -643,8 +643,7 @@ T assertFail()
 class TestBench {
   private:
     // PRIVATE TYPES
-    typedef mqbmock::Dispatcher::EventGuard     EventGuard;
-    typedef const bmqio::TestChannel::WriteCall ConstWriteCall;
+    typedef mqbmock::Dispatcher::EventGuard EventGuard;
 
   public:
     // DATA
@@ -942,8 +941,9 @@ class TestBench {
     /// Asserts that the first event written is an Open Queue Control Event.
     void assertOpenQueueResponse()
     {
-        BMQTST_ASSERT(d_channel->waitFor(1, false));  // isFinal = false
-        ConstWriteCall& openQueueCall = d_channel->writeCalls()[0];
+        bmqio::TestChannel::WriteCall openQueueCall;
+        BMQTST_ASSERT(d_channel->getWriteCall(&openQueueCall, 0));
+
         bmqp::Event     openQueueEvent(&openQueueCall.d_blob,
                                    bmqtst::TestHelperUtil::allocator());
         PVV("Event 1: " << openQueueEvent);
@@ -955,17 +955,17 @@ class TestBench {
     /// is sent downstream in the event specified by `eventIndex`.  Also
     /// check that the event is final or not.
     void assertAckIsSentIfExpected(const AckResult&         ackResult,
-                                   const int                queueId,
+                                   int                      queueId,
                                    const bmqt::MessageGUID& msgGUID,
-                                   const int                correlationId,
-                                   const int                eventIndex = 1,
-                                   const bool               isFinal    = true)
+                                   int                      correlationId,
+                                   size_t                   eventIndex = 1,
+                                   bool                     isFinal    = true)
     {
         if (ackResult == e_AckResultNone) {
             // If no ack expected we shouldn't have more events than
             // 'eventIndex'.
             BMQTST_ASSERT(d_channel->waitFor(eventIndex));
-            BMQTST_ASSERT(d_channel->hasNoMoreWriteCalls());
+            BMQTST_ASSERT_EQ(d_channel->numWriteCalls(), eventIndex);
 
             return;  // RETURN
         }
@@ -978,9 +978,9 @@ class TestBench {
 
         // If we expect acks, then the event with corresponding number
         // should exist and be of type Ack.
-        BMQTST_ASSERT(d_channel->waitFor(eventIndex + 1, isFinal));
+        bmqio::TestChannel::WriteCall ackCall;
+        BMQTST_ASSERT(d_channel->getWriteCall(&ackCall, eventIndex));
 
-        ConstWriteCall& ackCall = d_channel->writeCalls()[eventIndex];
         bmqp::Event     ackEvent(&ackCall.d_blob,
                              bmqtst::TestHelperUtil::allocator());
         PVV("Event " << eventIndex + 1 << ": " << ackEvent);
@@ -1005,7 +1005,7 @@ class TestBench {
         BMQTST_ASSERT(!iter.isValid());
 
         if (isFinal) {
-            BMQTST_ASSERT(d_channel->hasNoMoreWriteCalls());
+            BMQTST_ASSERT_EQ(d_channel->numWriteCalls(), eventIndex + 1);
         }
     }
 
@@ -1019,14 +1019,15 @@ class TestBench {
     }
 
     void verifyPush(bmqp::MessageProperties* properties,
+                    size_t                   pushIndex,
                     int                      length = k_PAYLOAD_LENGTH)
     {
-        int last = d_channel->writeCalls().size();
         d_cs.flush();
 
-        BMQTST_ASSERT(d_channel->waitFor(last + 1, false));
+        bmqio::TestChannel::WriteCall writeCall;
+        BMQTST_ASSERT(d_channel->getWriteCall(&writeCall, pushIndex));
 
-        bmqp::Event pushEvent(&d_channel->writeCalls()[last].d_blob,
+        bmqp::Event pushEvent(&writeCall.d_blob,
                               bmqtst::TestHelperUtil::allocator());
 
         BMQTST_ASSERT(pushEvent.isPushEvent());
@@ -1789,13 +1790,15 @@ static void test7_oldStylePut()
     BMQTST_ASSERT(
         tb.validateData(*postMessages[0].d_appData, msgPropsAreaSize));
 
+    const size_t pushIndex = tb.d_channel->numWriteCalls();
+
     // Turn around and send PUSH
     tb.sendPush(queueId,
                 guid,
                 postMessages[0].d_appData,
                 bmqt::CompressionAlgorithmType::e_NONE,
                 logic);
-    tb.verifyPush(&out);
+    tb.verifyPush(&out, pushIndex);
 
     verify(out);
 }
@@ -1872,6 +1875,8 @@ static void test8_oldStyleCompressedPut()
     BMQTST_ASSERT(
         tb.validateData(*postMessages[0].d_appData, msgPropsAreaSize));
 
+    const size_t pushIndex = tb.d_channel->numWriteCalls();
+
     // Turn around and send PUSH
     tb.sendPush(queueId,
                 guid,
@@ -1879,7 +1884,7 @@ static void test8_oldStyleCompressedPut()
                 bmqt::CompressionAlgorithmType::e_NONE,
                 logic);
 
-    tb.verifyPush(&out);
+    tb.verifyPush(&out, pushIndex);
 
     verify(out);
 }
@@ -1987,13 +1992,15 @@ static void test9_newStylePush()
     BMQTST_ASSERT(
         tb.validateData(*postMessages[0].d_appData, msgPropsAreaSize, 99));
 
+    const size_t pushIndex = tb.d_channel->numWriteCalls();
+
     // Turn around and send PUSH
     tb.sendPush(queueId,
                 guid,
                 postMessages[0].d_appData,
                 bmqt::CompressionAlgorithmType::e_NONE,
                 logic);
-    tb.verifyPush(&out, 99);
+    tb.verifyPush(&out, pushIndex, 99);
 
     verify(out);
 }
@@ -2098,13 +2105,17 @@ static void test10_newStyleCompressedPush()
 
     // No payload validation, it is compressed.
 
+    const size_t pushIndex = tb.d_channel->numWriteCalls();
+
     // Turn around and send PUSH
     tb.sendPush(queueId,
                 guid,
                 postMessages[0].d_appData,
                 bmqt::CompressionAlgorithmType::e_ZLIB,
                 logic);
-    tb.verifyPush(&out, 2 * bmqp::Protocol::k_COMPRESSION_MIN_APPDATA_SIZE);
+    tb.verifyPush(&out,
+                  pushIndex,
+                  2 * bmqp::Protocol::k_COMPRESSION_MIN_APPDATA_SIZE);
 
     verify(out);
 }
