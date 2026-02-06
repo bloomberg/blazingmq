@@ -48,9 +48,6 @@
 #include <ball_log.h>
 #include <bdlb_scopeexit.h>
 #include <bdlf_bind.h>
-#include <bdlma_sequentialallocator.h>
-#include <bdlmt_eventscheduler.h>
-#include <bdlmt_threadpool.h>
 #include <bsl_memory.h>
 #include <bsl_optional.h>
 #include <bsl_ostream.h>
@@ -68,48 +65,50 @@ namespace mqba {
 
 int Authenticator::onAuthenticationRequest(
     bsl::ostream&                              errorDescription,
-    const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg,
-    mqbnet::InitialConnectionContext*          context)
+    mqbnet::InitialConnectionContext*          context_p,
+    const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg)
 {
     // executed by one of the *IO* threads
 
     // PRECONDITIONS
+    BSLS_ASSERT_SAFE(context_p);
+    BSLS_ASSERT_SAFE(context_p->isIncoming());
     BSLS_ASSERT_SAFE(authenticationMsg.isAuthenticationRequestValue());
-    BSLS_ASSERT_SAFE(context->isIncoming());
 
     BALL_LOG_DEBUG << "Received authentication message from '"
-                   << context->channel()->peerUri();
+                   << context_p->channel()->peerUri() << "'";
 
     // Create an AuthenticationContext for that connection
     bsl::shared_ptr<mqbnet::AuthenticationContext> authenticationContext =
         bsl::allocate_shared<mqbnet::AuthenticationContext>(
             d_allocator_p,
-            context,  // initialConnectionContext
+            context_p,  // initialConnectionContext
             authenticationMsg.authenticationRequest()
                 .mechanism(),   // mechanism
             authenticationMsg,  // authenticationMessage
-            context
+            context_p
                 ->authenticationEncodingType(),  // authenticationEncodingType
             mqbnet::AuthenticationState::e_AUTHENTICATING  // state
         );
 
-    context->setAuthenticationContext(authenticationContext);
+    context_p->setAuthenticationContext(authenticationContext);
 
     // Authenticate
     int rc = authenticateAsync(
         errorDescription,
         authenticationContext,
-        context->channel(),
-        context->state() == InitialConnectionState::e_ANON_AUTHENTICATING,
+        context_p->channel(),
+        context_p->state() == InitialConnectionState::e_ANON_AUTHENTICATING,
         false);
 
     return rc;
 }
 
 int Authenticator::onAuthenticationResponse(
-    BSLA_UNUSED bsl::ostream& errorDescription,
-    BSLA_UNUSED const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg,
-    BSLA_UNUSED mqbnet::InitialConnectionContext* context)
+    BSLA_MAYBE_UNUSED bsl::ostream& errorDescription,
+    BSLA_MAYBE_UNUSED mqbnet::InitialConnectionContext* context_p,
+    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::AuthenticationMessage&
+                            authenticationMsg)
 {
     // executed by one of the *IO* threads
 
@@ -151,10 +150,9 @@ int Authenticator::sendAuthenticationResponse(
     }
 
     // Send authentication response message
-    bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
-    bmqp::SchemaEventBuilder              builder(d_blobSpPool_p,
+    bmqp::SchemaEventBuilder builder(d_blobSpPool_p,
                                      authenticationEncodingType,
-                                     &localAllocator);
+                                     d_allocator_p);
 
     int rc = builder.setMessage(message, bmqp::EventType::e_AUTHENTICATION);
     if (rc != 0) {
@@ -178,7 +176,7 @@ int Authenticator::sendAuthenticationResponse(
 
 int Authenticator::authenticateAsync(
     bsl::ostream&                          errorDescription,
-    const AuthenticationContextSp&         context,
+    const AuthenticationContextSp&         context_sp,
     const bsl::shared_ptr<bmqio::Channel>& channel,
     bool                                   isDefaultAuthn,
     bool                                   isReauthn)
@@ -189,7 +187,7 @@ int Authenticator::authenticateAsync(
         bdlf::BindUtil::bindS(d_allocator_p,
                               &Authenticator::authenticate,
                               this,
-                              context,
+                              context_sp,
                               channel,
                               isDefaultAuthn,
                               isReauthn));
@@ -203,7 +201,7 @@ int Authenticator::authenticateAsync(
 }
 
 void Authenticator::authenticate(
-    const AuthenticationContextSp&         context,
+    const AuthenticationContextSp&         context_sp,
     const bsl::shared_ptr<bmqio::Channel>& channel,
     bool                                   isDefaultAuthn,
     bool                                   isReauthn)
@@ -211,7 +209,7 @@ void Authenticator::authenticate(
     // executed by an *AUTHENTICATION* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT(context);
+    BSLS_ASSERT(context_sp);
 
     enum RcEnum {
         // Value for the various RC error categories
@@ -232,7 +230,7 @@ void Authenticator::authenticate(
         // For reauthentication: set up error guard to handle failures
         scopeGuard.emplace(bdlf::BindUtil::bind(
             &mqbnet::AuthenticationContext::onReauthenticateErrorOrTimeout,
-            context.get(),
+            context_sp.get(),
             bsl::ref(rc),
             "reauthenticationError",
             bsl::ref(error),
@@ -243,15 +241,15 @@ void Authenticator::authenticate(
         event.emplace(InitialConnectionEvent::e_ERROR);
         scopeGuard.emplace(bdlf::BindUtil::bind(
             &mqbnet::InitialConnectionContext::handleEvent,
-            context->initialConnectionContext(),
+            context_sp->initialConnectionContext(),
             bsl::ref(error),
             bsl::ref(event.value()),
             bsl::monostate()));
     }
 
     const bmqp_ctrlmsg::AuthenticationRequest& authenticationRequest =
-        context->authenticationMessage().authenticationRequest();
-    bmqp::EncodingType::Enum encodingType = context->encodingType();
+        context_sp->authenticationMessage().authenticationRequest();
+    bmqp::EncodingType::Enum encodingType = context_sp->encodingType();
 
     BALL_LOG_INFO << (isReauthn ? "Reauthenticating" : "Authenticating")
                   << " connection '" << channel->peerUri()
@@ -305,9 +303,9 @@ void Authenticator::authenticate(
     // For reauthentication, the principal has to match the principal generated
     // after the initial authentication.
     if (isReauthn) {
-        if (context->authenticationResult() &&
+        if (context_sp->authenticationResult() &&
             result->principal() !=
-                context->authenticationResult()->principal()) {
+                context_sp->authenticationResult()->principal()) {
             rc    = rc_AUTHENTICATION_FAILED;
             error = "Principal cannot change during reauthentication";
 
@@ -322,10 +320,10 @@ void Authenticator::authenticate(
     }
 
     // Set authentication result, state and schedule reauthentication timer
-    context->setAuthenticationResult(result);
+    context_sp->setAuthenticationResult(result);
 
     bmqu::MemOutStream scheduleErrStream;
-    const int scheduleRc = context->setAuthenticatedAndScheduleReauthn(
+    const int scheduleRc = context_sp->setAuthenticatedAndScheduleReauthn(
         scheduleErrStream,
         d_scheduler_p,
         result->lifetimeMs(),
@@ -433,10 +431,14 @@ void Authenticator::stop()
 
 int Authenticator::handleAuthentication(
     bsl::ostream&                              errorDescription,
-    mqbnet::InitialConnectionContext*          context,
+    mqbnet::InitialConnectionContext*          context_p,
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg)
 {
     // executed by one of the *IO* threads
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(context_p);
+    BSLS_ASSERT_SAFE(!context_p->authenticationContext());
 
     enum RcEnum {
         // Value for the various RC error categories
@@ -447,20 +449,18 @@ int Authenticator::handleAuthentication(
 
     int rc = rc_SUCCESS;
 
-    BSLS_ASSERT_SAFE(!context->authenticationContext());
-
     switch (authenticationMsg.selectionId()) {
     case bmqp_ctrlmsg::AuthenticationMessage::
         SELECTION_ID_AUTHENTICATION_REQUEST: {
         rc = onAuthenticationRequest(errorDescription,
-                                     authenticationMsg,
-                                     context);
+                                     context_p,
+                                     authenticationMsg);
     } break;  // BREAK
     case bmqp_ctrlmsg::AuthenticationMessage::
         SELECTION_ID_AUTHENTICATION_RESPONSE: {
         rc = onAuthenticationResponse(errorDescription,
-                                      authenticationMsg,
-                                      context);
+                                      context_p,
+                                      authenticationMsg);
     } break;  // BREAK
     default: {
         errorDescription

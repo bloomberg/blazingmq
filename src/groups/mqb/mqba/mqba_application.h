@@ -27,7 +27,6 @@
 
 // MQB
 #include <mqba_commandrouter.h>
-#include <mqbauthn_authenticationcontroller.h>
 #include <mqbcmd_messages.h>
 #include <mqbconfm_messages.h>
 #include <mqbi_cluster.h>
@@ -59,6 +58,9 @@ namespace BloombergLP {
 // FORWARD DECLARATION
 namespace bdlmt {
 class EventScheduler;
+}
+namespace mqbauthn {
+class AuthenticationController;
 }
 namespace mqbblp {
 class ClusterCatalog;

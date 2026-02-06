@@ -1897,7 +1897,7 @@ class AuthenticatorConfig:
         },
     )
     max_threads: int = field(
-        default=3,
+        default=8,
         metadata={
             "name": "maxThreads",
             "type": "Element",

@@ -115,35 +115,38 @@ class Authenticator : public mqbnet::Authenticator {
     // NOT IMPLEMENTED
 
     /// Copy constructor and assignment operator not implemented.
-    Authenticator(const Authenticator&);             // = delete
-    Authenticator& operator=(const Authenticator&);  // = delete
+    Authenticator(const Authenticator&) BSLS_KEYWORD_DELETED;
+    Authenticator& operator=(const Authenticator&) BSLS_KEYWORD_DELETED;
 
   private:
     // PRIVATE MANIPULATORS
 
-    /// Handle an incoming AuthenticationRequest message by authenticating
-    /// using the specified `authenticationMsg` and `context`.  On success,
-    /// create an AuthenticationContext and stores it in `context`.  The
-    /// behavior of this function is undefined unless `authenticationMsg` is an
-    /// `AuthenticationRequest` and this is an incoming connection.
-    /// Return 0 on success; otherwise, return a non-zero error code and
-    /// populate `errorDescription` with details of the failure.
+    /// @brief Handle an incoming AuthenticationRequest message.
+    /// @param[out] errorDescription Populated with details on failure.
+    /// @param[out] context_p The initial connection context.  On success, an
+    ///                       AuthenticationContext is created and stored here.
+    ///                       The behaviour is undefined if it is NULL.
+    /// @param authenticationMsg The authentication message.  The behavior is
+    ///                          undefined unless this is an
+    ///                          `AuthenticationRequest` and this is an
+    ///                          incoming connection.
+    /// @return 0 on success, a non-zero error code otherwise.
     int onAuthenticationRequest(
         bsl::ostream&                              errorDescription,
-        const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg,
-        mqbnet::InitialConnectionContext*          context);
+        mqbnet::InitialConnectionContext*          context_p,
+        const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg);
 
     /// Handle an incoming AuthenticationResponse message by authenticating
-    /// using the specified `authenticationMsg` and `context`.  On success,
-    /// create an AuthenticationContext and stores it in `context`. The
+    /// using the specified `authenticationMsg` and `context_p`.  On success,
+    /// create an AuthenticationContext and stores it in `context_p`. The
     /// behavior of this function is undefined unless `authenticationMsg` is an
     /// `AuthenticationResponse`.  Return 0 on success; otherwise, return a
     /// non-zero error code and populate `errorDescription` with details of the
     /// failure.
     int onAuthenticationResponse(
         bsl::ostream&                              errorDescription,
-        const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg,
-        mqbnet::InitialConnectionContext*          context);
+        mqbnet::InitialConnectionContext*          context_p,
+        const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg);
 
     /// Send an authentication response message with the specified `authnRc`,
     /// `errorMsg`, and `lifetimeMs` via the specified `channel`, using the
@@ -176,7 +179,7 @@ class Authenticator : public mqbnet::Authenticator {
     // reauthentication, otherwise this is for initial authentication.  On
     // completion, trigger the initial connection state machine with either
     // success or error event.
-    void authenticate(const AuthenticationContextSp&         context,
+    void authenticate(const AuthenticationContextSp&         context_sp,
                       const bsl::shared_ptr<bmqio::Channel>& channel,
                       bool                                   isDefaultAuthn,
                       bool                                   isReauthn);
@@ -212,13 +215,16 @@ class Authenticator : public mqbnet::Authenticator {
     /// is stopped.
     void stop() BSLS_KEYWORD_OVERRIDE;
 
-    /// Authenticate the connection based on the type of AuthenticationMessage
-    /// `authenticationMsg`.  Create an AuthenticationContext and store into
-    /// `context`.  Return 0 on success, or a non-zero error code and populate
-    /// the specified `errorDescription` with a description of the error
-    /// otherwise.
+    /// @brief Authenticate the connection based on the AuthenticationMessage
+    ///        type.
+    /// @param[out] errorDescription Populated with details on failure.
+    /// @param[out] context_p The initial connection context.  On success, an
+    ///                       AuthenticationContext is created and stored here.
+    ///                       The behaviour is undefined if it is NULL.
+    /// @param authenticationMsg The authentication message.
+    /// @return 0 on success, a non-zero error code otherwise.
     int handleAuthentication(bsl::ostream& errorDescription,
-                             mqbnet::InitialConnectionContext* context,
+                             mqbnet::InitialConnectionContext* context_p,
                              const bmqp_ctrlmsg::AuthenticationMessage&
                                  authenticationMsg) BSLS_KEYWORD_OVERRIDE;
 
@@ -227,7 +233,7 @@ class Authenticator : public mqbnet::Authenticator {
     /// populate the specified `errorDescription` with a description of the
     /// error otherwise.
     int handleReauthentication(bsl::ostream&                  errorDescription,
-                               const AuthenticationContextSp& context,
+                               const AuthenticationContextSp& context_sp,
                                const bsl::shared_ptr<bmqio::Channel>& channel)
         BSLS_KEYWORD_OVERRIDE;
 
@@ -236,7 +242,7 @@ class Authenticator : public mqbnet::Authenticator {
     /// the specified `errorDescription` with a description of the error
     /// otherwise.
     int authenticationOutbound(bsl::ostream&                  errorDescription,
-                               const AuthenticationContextSp& context)
+                               const AuthenticationContextSp& context_sp)
         BSLS_KEYWORD_OVERRIDE;
 
     /// ACCESSORS
