@@ -45,9 +45,14 @@
 /// be executed in-place.  A call to `dispatch` from outside of the executor's
 /// associated processor thread is equivalent to a call to `post`.
 
+// BMQ
+#include <bmqst_statcontext.h>
+#include <bmqsys_time.h>
+
 // MQB
 #include <mqbcfg_messages.h>
 #include <mqbi_dispatcher.h>
+#include <mqbstat_dispatcherstats.h>
 #include <mqbu_loadbalancer.h>
 
 #include <bmqc_multiqueuethreadpool.h>
@@ -103,6 +108,8 @@ class Dispatcher_Executor {
     bmqc::MultiQueueThreadPool<mqbi::DispatcherEvent>* d_processorPool_p;
 
     mqbi::Dispatcher::ProcessorHandle d_processorHandle;
+
+    bmqst::StatContext* d_statContext_p;
 
   public:
     // CREATORS
@@ -266,6 +273,12 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
         bsl::vector<bsl::shared_ptr<mqbi::DispatcherEventSource> >
             d_eventSources;
 
+        /// Pointer to stat context for client
+        bslma::ManagedPtr<bmqst::StatContext> d_clientStatContext_mp;
+
+        /// Vector of stat contexts pointers, one per client's processor.
+        bsl::vector<bslma::ManagedPtr<bmqst::StatContext> > d_statContexts;
+
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(DispatcherContext,
                                        bslma::UsesBslmaAllocator)
@@ -302,6 +315,9 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
 
     /// The various contexts, one for each `ClientType`.
     bsl::vector<DispatcherContextSp> d_contexts;
+
+    /// Top-level stat context for all dispatcher client types
+    bmqst::StatContext* d_statContext_p;
 
     /// The event source that can be used by any routine that is not called
     /// from a dispatcher thread.
@@ -360,10 +376,11 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
 
     // CREATORS
 
-    /// Create a dispatcher using the specified `config` and `scheduler`.
-    /// All memory allocation will be performed using the specified
-    /// `allocator`.
+    /// Create a dispatcher using the specified `config`, `statContext` and
+    /// `scheduler`. All memory allocation will be performed using the
+    /// specified `allocator`.
     Dispatcher(const mqbcfg::DispatcherConfig& config,
+               bmqst::StatContext*             statContext,
                bdlmt::EventScheduler*          scheduler,
                bslma::Allocator*               allocator);
 
@@ -559,9 +576,19 @@ Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
     case mqbi::DispatcherClientType::e_SESSION:
     case mqbi::DispatcherClientType::e_QUEUE:
     case mqbi::DispatcherClientType::e_CLUSTER: {
-        d_contexts[type]->d_processorPool_mp->enqueueEvent(
+        DispatcherContext* dispatcherContext = d_contexts[type].get();
+
+        bslmf::MovableRefUtil::access(event)->setEnqueueTime(
+            bmqsys::Time::highResolutionTimer());
+
+        dispatcherContext->d_processorPool_mp->enqueueEvent(
             bslmf::MovableRefUtil::move(event),
             handle);
+
+        // Update stats
+        mqbstat::DispatcherStats::onEnqueue(
+            dispatcherContext->d_statContexts[handle].get());
+
     } break;
     case mqbi::DispatcherClientType::e_UNDEFINED:
     default: {

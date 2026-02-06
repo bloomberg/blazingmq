@@ -21,6 +21,7 @@
 // MQB
 #include <mqbstat_brokerstats.h>
 #include <mqbstat_clusterstats.h>
+#include <mqbstat_dispatcherstats.h>
 #include <mqbstat_domainstats.h>
 #include <mqbstat_queuestats.h>
 
@@ -132,6 +133,18 @@ class Tagger {
         return *this;
     }
 
+    Tagger& setClient(bsl::string_view value)
+    {
+        labels["Client"] = bsl::string(value);
+        return *this;
+    }
+
+    Tagger& setProcessorId(int value)
+    {
+        labels["ProcessorId"] = bsl::to_string(value);
+        return *this;
+    }
+
     // ACCESSORS
     ::prometheus::Labels& getLabels() { return labels; }
 };
@@ -182,6 +195,7 @@ PrometheusStatConsumer::PrometheusStatConsumer(
     d_domainQueuesStatContext_p = getStatContext("domainQueues");
     d_clientStatContext_p       = getStatContext("clients");
     d_channelsStatContext_p     = getStatContext("channels");
+    d_dispatcherStatContext_p   = getStatContext("dispatcher");
 }
 
 int PrometheusStatConsumer::start(BSLA_UNUSED bsl::ostream& errorDescription)
@@ -259,6 +273,7 @@ void PrometheusStatConsumer::onSnapshot()
     captureClusterPartitionsStats();
     captureDomainStats(leaders);
     captureQueueStats();
+    captureDispatcherStats();
 
     d_prometheusStatExporter_p->onData();
 }
@@ -819,6 +834,166 @@ void PrometheusStatConsumer::captureDomainStats(const LeaderSet& leaders)
                 static_cast<Stat::Enum>(dpIt->d_stat));
 
             updateMetric(dpIt->d_name, tagger.getLabels(), value);
+        }
+    }
+}
+
+void PrometheusStatConsumer::captureDispatcherStats()
+{
+    // Lookup the 'dispatcher' stat context
+    // This is guaranteed to work because it was asserted in the ctor.
+    const bmqst::StatContext& dispatcherStatContext =
+        *d_dispatcherStatContext_p;
+
+    typedef mqbstat::DispatcherStats::Stat Stat;  // Shortcut
+
+    for (bmqst::StatContextIterator clientIt =
+             dispatcherStatContext.subcontextIterator();
+         clientIt;
+         ++clientIt) {
+        for (bmqst::StatContextIterator queueIt =
+                 clientIt->subcontextIterator();
+             queueIt;
+             ++queueIt) {
+            bslma::ManagedPtr<bdld::ManagedDatum> mdSp = queueIt->datum();
+            bdld::DatumMapRef                     map = mdSp->datum().theMap();
+
+            Tagger tagger;
+            tagger
+                .setInstance(mqbcfg::BrokerConfig::get().brokerInstanceName())
+                .setClient(map.find("client")->theString())
+                .setProcessorId(map.find("processorId")->theInteger())
+                .setDataType("host-data");
+
+            const auto labels = tagger.getLabels();
+
+            // Dispatcher queue metrics
+            static const DatapointDef defs[] = {
+                {"dispatcher_queue_enqueued_delta", Stat::e_ENQUEUE_DELTA},
+                {"dispatcher_queue_dequeued_delta", Stat::e_DEQUEUE_DELTA},
+                {"dispatcher_queue_size", Stat::e_QUEUE_SIZE},
+                {"dispatcher_queue_size_max", Stat::e_QUEUE_SIZE_MAX},
+                {"dispatcher_queue_size_abs_max", Stat::e_QUEUE_SIZE_ABS_MAX},
+                {"dispatcher_queue_time_min", Stat::e_QUEUE_TIME_MIN},
+                {"dispatcher_queue_time_avg", Stat::e_QUEUE_TIME_AVG},
+                {"dispatcher_queue_time_max", Stat::e_QUEUE_TIME_MAX},
+                {"dispatcher_queue_time_abs_max", Stat::e_QUEUE_TIME_ABS_MAX},
+                {"dispatcher_processing_time_undefined_max",
+                 Stat::e_PROCESSING_TIME_UNDEFINED_MAX},
+                {"dispatcher_processing_time_undefined_avg",
+                 Stat::e_PROCESSING_TIME_UNDEFINED_AVG},
+                {"dispatcher_processing_time_undefined_sum",
+                 Stat::e_PROCESSING_TIME_UNDEFINED_SUM},
+                {"dispatcher_processed_count_undefined",
+                 Stat::e_PROCESSED_COUNT_UNDEFINED},
+                {"dispatcher_processing_time_dispatcher_max",
+                 Stat::e_PROCESSING_TIME_DISPATCHER_MAX},
+                {"dispatcher_processing_time_dispatcher_avg",
+                 Stat::e_PROCESSING_TIME_DISPATCHER_AVG},
+                {"dispatcher_processing_time_dispatcher_sum",
+                 Stat::e_PROCESSING_TIME_DISPATCHER_SUM},
+                {"dispatcher_processed_count_dispatcher",
+                 Stat::e_PROCESSED_COUNT_DISPATCHER},
+                {"dispatcher_processing_time_callback_max",
+                 Stat::e_PROCESSING_TIME_CALLBACK_MAX},
+                {"dispatcher_processing_time_callback_avg",
+                 Stat::e_PROCESSING_TIME_CALLBACK_AVG},
+                {"dispatcher_processing_time_callback_sum",
+                 Stat::e_PROCESSING_TIME_CALLBACK_SUM},
+                {"dispatcher_processed_count_callback",
+                 Stat::e_PROCESSED_COUNT_CALLBACK},
+                {"dispatcher_processing_time_control_msg_max",
+                 Stat::e_PROCESSING_TIME_CONTROL_MSG_MAX},
+                {"dispatcher_processing_time_control_msg_avg",
+                 Stat::e_PROCESSING_TIME_CONTROL_MSG_AVG},
+                {"dispatcher_processing_time_control_msg_sum",
+                 Stat::e_PROCESSING_TIME_CONTROL_MSG_SUM},
+                {"dispatcher_processed_count_control_msg",
+                 Stat::e_PROCESSED_COUNT_CONTROL_MSG},
+                {"dispatcher_processing_time_confirm_max",
+                 Stat::e_PROCESSING_TIME_CONFIRM_MAX},
+                {"dispatcher_processing_time_confirm_avg",
+                 Stat::e_PROCESSING_TIME_CONFIRM_AVG},
+                {"dispatcher_processing_time_confirm_sum",
+                 Stat::e_PROCESSING_TIME_CONFIRM_SUM},
+                {"dispatcher_processed_count_confirm",
+                 Stat::e_PROCESSED_COUNT_CONFIRM},
+                {"dispatcher_processing_time_reject_max",
+                 Stat::e_PROCESSING_TIME_REJECT_MAX},
+                {"dispatcher_processing_time_reject_avg",
+                 Stat::e_PROCESSING_TIME_REJECT_AVG},
+                {"dispatcher_processing_time_reject_sum",
+                 Stat::e_PROCESSING_TIME_REJECT_SUM},
+                {"dispatcher_processed_count_reject",
+                 Stat::e_PROCESSED_COUNT_REJECT},
+                {"dispatcher_processing_time_push_max",
+                 Stat::e_PROCESSING_TIME_PUSH_MAX},
+                {"dispatcher_processing_time_push_avg",
+                 Stat::e_PROCESSING_TIME_PUSH_AVG},
+                {"dispatcher_processing_time_push_sum",
+                 Stat::e_PROCESSING_TIME_PUSH_SUM},
+                {"dispatcher_processed_count_push",
+                 Stat::e_PROCESSED_COUNT_PUSH},
+                {"dispatcher_processing_time_put_max",
+                 Stat::e_PROCESSING_TIME_PUT_MAX},
+                {"dispatcher_processing_time_put_avg",
+                 Stat::e_PROCESSING_TIME_PUT_AVG},
+                {"dispatcher_processing_time_put_sum",
+                 Stat::e_PROCESSING_TIME_PUT_SUM},
+                {"dispatcher_processed_count_put",
+                 Stat::e_PROCESSED_COUNT_PUT},
+                {"dispatcher_processing_time_ack_max",
+                 Stat::e_PROCESSING_TIME_ACK_MAX},
+                {"dispatcher_processing_time_ack_avg",
+                 Stat::e_PROCESSING_TIME_ACK_AVG},
+                {"dispatcher_processing_time_ack_sum",
+                 Stat::e_PROCESSING_TIME_ACK_SUM},
+                {"dispatcher_processed_count_ack",
+                 Stat::e_PROCESSED_COUNT_ACK},
+                {"dispatcher_processing_time_cluster_state_max",
+                 Stat::e_PROCESSING_TIME_CLUSTER_STATE_MAX},
+                {"dispatcher_processing_time_cluster_state_avg",
+                 Stat::e_PROCESSING_TIME_CLUSTER_STATE_AVG},
+                {"dispatcher_processing_time_cluster_state_sum",
+                 Stat::e_PROCESSING_TIME_CLUSTER_STATE_SUM},
+                {"dispatcher_processed_count_cluster_state",
+                 Stat::e_PROCESSED_COUNT_CLUSTER_STATE},
+                {"dispatcher_processing_time_storage_max",
+                 Stat::e_PROCESSING_TIME_STORAGE_MAX},
+                {"dispatcher_processing_time_storage_avg",
+                 Stat::e_PROCESSING_TIME_STORAGE_AVG},
+                {"dispatcher_processing_time_storage_sum",
+                 Stat::e_PROCESSING_TIME_STORAGE_SUM},
+                {"dispatcher_processed_count_storage",
+                 Stat::e_PROCESSED_COUNT_STORAGE},
+                {"dispatcher_processing_time_recovery_max",
+                 Stat::e_PROCESSING_TIME_RECOVERY_MAX},
+                {"dispatcher_processing_time_recovery_avg",
+                 Stat::e_PROCESSING_TIME_RECOVERY_AVG},
+                {"dispatcher_processing_time_recovery_sum",
+                 Stat::e_PROCESSING_TIME_RECOVERY_SUM},
+                {"dispatcher_processed_count_recovery",
+                 Stat::e_PROCESSED_COUNT_RECOVERY},
+                {"dispatcher_processing_time_replication_receipt_max",
+                 Stat::e_PROCESSING_TIME_REPLICATION_RECEIPT_MAX},
+                {"dispatcher_processing_time_replication_receipt_avg",
+                 Stat::e_PROCESSING_TIME_REPLICATION_RECEIPT_AVG},
+                {"dispatcher_processing_time_replication_receipt_sum",
+                 Stat::e_PROCESSING_TIME_REPLICATION_RECEIPT_SUM},
+                {"dispatcher_processed_count_replication_receipt",
+                 Stat::e_PROCESSED_COUNT_REPLICATION_RECEIPT},
+            };
+
+            for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
+                 dpIt != bdlb::ArrayUtil::end(defs);
+                 ++dpIt) {
+                const bsls::Types::Int64 value =
+                    mqbstat::DispatcherStats::getValue(
+                        *queueIt,
+                        d_snapshotId,
+                        static_cast<Stat::Enum>(dpIt->d_stat));
+                updateMetric(dpIt->d_name, labels, value);
+            }
         }
     }
 }
