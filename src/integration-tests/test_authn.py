@@ -139,9 +139,7 @@ def test_authenticate_concurrent(
     def auth_worker(idx):
         client = RawClient()
         client.open_channel(*single_node.admin_endpoint)
-        auth_resp = client.authenticate(
-            "Basic", f"user{idx}:password{idx}"
-        )
+        auth_resp = client.authenticate("Basic", f"user{idx}:password{idx}")
         results[idx] = auth_resp["authenticationResponse"]["status"]["code"]
         client.negotiate()
         client.stop()
