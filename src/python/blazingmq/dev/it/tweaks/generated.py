@@ -613,6 +613,11 @@ class TweakFactory:
 
                         name = Name()
 
+                        class Address(metaclass=TweakMetaclass):
+                            def __call__(self, value: str) -> Callable: ...
+
+                        address = Address()
+
                         class Port(metaclass=TweakMetaclass):
                             def __call__(
                                 self, value: typing.Union[int, NoneType]
@@ -1451,6 +1456,13 @@ class TweakFactory:
                 def __call__(self, value: bool) -> Callable: ...
 
             does_fsmwrite_qlist = DoesFsmwriteQlist()
+
+            class PartitionStateMessageDedupIntervalMs(metaclass=TweakMetaclass):
+                def __call__(self, value: int) -> Callable: ...
+
+            partition_state_message_dedup_interval_ms = (
+                PartitionStateMessageDedupIntervalMs()
+            )
 
             def __call__(
                 self,
