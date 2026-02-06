@@ -65,10 +65,14 @@ class Authenticator {
     /// Stop the authenticator.
     virtual void stop() = 0;
 
-    /// Authenticate the connection based on the type of AuthenticationMessage
-    /// in the specified `context_p`.
-    /// Return 0 on success, or a non-zero error code and populate the
-    /// specified `errorDescription` with a description of the error otherwise.
+    /// @brief Authenticate the connection based on the AuthenticationMessage
+    ///        type.
+    /// @param[out] errorDescription Populated with details on failure.
+    /// @param[out] context_p The initial connection context.  On success, an
+    ///                       AuthenticationContext is created and stored here.
+    ///                       The behaviour is undefined if it is NULL.
+    /// @param authenticationMsg The authentication message.
+    /// @return 0 on success, a non-zero error code otherwise.
     virtual int handleAuthentication(
         bsl::ostream&                              errorDescription,
         InitialConnectionContext*                  context_p,

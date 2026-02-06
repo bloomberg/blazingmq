@@ -65,15 +65,15 @@ namespace mqba {
 
 int Authenticator::onAuthenticationRequest(
     bsl::ostream&                              errorDescription,
-    const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg,
-    mqbnet::InitialConnectionContext*          context_p)
+    mqbnet::InitialConnectionContext*          context_p,
+    const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg)
 {
     // executed by one of the *IO* threads
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(authenticationMsg.isAuthenticationRequestValue());
     BSLS_ASSERT_SAFE(context_p);
     BSLS_ASSERT_SAFE(context_p->isIncoming());
+    BSLS_ASSERT_SAFE(authenticationMsg.isAuthenticationRequestValue());
 
     BALL_LOG_DEBUG << "Received authentication message from '"
                    << context_p->channel()->peerUri() << "'";
@@ -106,9 +106,9 @@ int Authenticator::onAuthenticationRequest(
 
 int Authenticator::onAuthenticationResponse(
     BSLA_MAYBE_UNUSED bsl::ostream& errorDescription,
-    BSLA_MAYBE_UNUSED const         bmqp_ctrlmsg::AuthenticationMessage&
-                                    authenticationMsg,
-    BSLA_MAYBE_UNUSED mqbnet::InitialConnectionContext* context_p)
+    BSLA_MAYBE_UNUSED mqbnet::InitialConnectionContext* context_p,
+    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::AuthenticationMessage&
+                            authenticationMsg)
 {
     // executed by one of the *IO* threads
 
@@ -453,14 +453,14 @@ int Authenticator::handleAuthentication(
     case bmqp_ctrlmsg::AuthenticationMessage::
         SELECTION_ID_AUTHENTICATION_REQUEST: {
         rc = onAuthenticationRequest(errorDescription,
-                                     authenticationMsg,
-                                     context_p);
+                                     context_p,
+                                     authenticationMsg);
     } break;  // BREAK
     case bmqp_ctrlmsg::AuthenticationMessage::
         SELECTION_ID_AUTHENTICATION_RESPONSE: {
         rc = onAuthenticationResponse(errorDescription,
-                                      authenticationMsg,
-                                      context_p);
+                                      context_p,
+                                      authenticationMsg);
     } break;  // BREAK
     default: {
         errorDescription
