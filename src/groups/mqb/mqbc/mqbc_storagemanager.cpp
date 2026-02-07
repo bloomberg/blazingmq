@@ -16,6 +16,7 @@
 // mqbc_storagemanager.cpp                                            -*-C++-*-
 #include <ball_log.h>
 #include <bsls_assert.h>
+#include <bsls_timeinterval.h>
 #include <mqbc_storagemanager.h>
 
 #include <mqbscm_version.h>
@@ -43,6 +44,7 @@
 #include <bdlf_bind.h>
 #include <bdlf_memfn.h>
 #include <bdlf_placeholder.h>
+#include <bdlt_currenttime.h>
 #include <bsl_algorithm.h>
 #include <bsl_queue.h>
 #include <bsla_annotations.h>
@@ -333,10 +335,13 @@ void StorageManager::setPrimaryStatusForPartitionDispatched(
 
     PartitionInfo& pinfo = d_partitionInfoVec[partitionId];
     if (!pinfo.primary()) {
-        BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << " Partition [" << partitionId
-                       << "]: " << "Failed to set primary status to " << value
-                       << "because primary is perceived as ** NULL **";
+        if (!d_cluster_p->isStopping()) {
+            BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                           << " Partition [" << partitionId
+                           << "]: " << "Failed to set primary status to "
+                           << value
+                           << " because primary is perceived as ** NULL **";
+        }
 
         return;  // RETURN
     }
@@ -623,6 +628,55 @@ void StorageManager::processReplicaDataRequestDrop(
                              eventDataVec);
 }
 
+void StorageManager::processPrimaryStateRequestDispatched(
+    const bmqp_ctrlmsg::ControlMessage& message,
+    mqbnet::ClusterNode*                source)
+{
+    // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
+
+    const bmqp_ctrlmsg::PrimaryStateRequest& primaryStateRequest =
+        message.choice()
+            .clusterMessage()
+            .choice()
+            .partitionMessage()
+            .choice()
+            .primaryStateRequest();
+
+    const int partitionId = primaryStateRequest.partitionId();
+
+    NodeToSeqNumCtxMapCIter cit = d_nodeToSeqNumCtxMapVec[partitionId].find(
+        source);
+    if (cit != d_nodeToSeqNumCtxMapVec[partitionId].end()) {
+        const bsls::TimeInterval timeDiff = bdlt::CurrentTime::now() -
+                                            cit->second.d_timestamp;
+        if (timeDiff < d_clusterConfig.clusterAttributes()
+                           .partitionStateMessageDedupIntervalMs()) {
+            BALL_LOG_INFO
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId << "]: "
+                << "Ignoring likely duplicate "
+                << "PrimaryStateRequest/ReplicaStateResponse from replica "
+                << source->nodeDescription()
+                << " because the previous request/response from the same "
+                   "replica was received only "
+                << timeDiff.totalMilliseconds() << " ms ago.";
+            return;  // RETURN
+        }
+    }
+
+    EventData eventDataVec;
+    eventDataVec.emplace_back(
+        source,
+        message.rId().isNull() ? -1 : message.rId().value(),
+        partitionId,
+        1,
+        primaryStateRequest.latestSequenceNumber(),
+        primaryStateRequest.firstSyncPointAfterRolloverSequenceNumber());
+
+    dispatchEventToPartition(PartitionFSM::Event::e_PRIMARY_STATE_RQST,
+                             eventDataVec);
+}
+
 void StorageManager::processPrimaryStateResponseDispatched(
     const RequestManagerType::RequestSp& context,
     mqbnet::ClusterNode*                 responder)
@@ -745,46 +799,32 @@ void StorageManager::processPrimaryStateResponse(
 void StorageManager::processReplicaStateResponseDispatched(
     const RequestContextSp& requestContext)
 {
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-
-    const NodeResponsePairs& pairs = requestContext->response();
-    if (d_clusterData_p->cluster().isLocal()) {
-        BSLS_ASSERT_SAFE(pairs.empty());
-        return;  // RETURN
-    }
-    BSLS_ASSERT_SAFE(!pairs.empty());
+    // executed by the *QUEUE DISPATCHER* thread associated with the
+    // partitionId contained in 'requestContext'
 
     // Fetch partitionId from request
-    const int requestPartitionId = requestContext->request()
-                                       .choice()
-                                       .clusterMessage()
-                                       .choice()
-                                       .partitionMessage()
-                                       .choice()
-                                       .replicaStateRequest()
-                                       .partitionId();
-
-    if (d_cluster_p->isStopping()) {
-        BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << " Partition [" << requestPartitionId << "]: "
-                      << "Cluster is stopping; skipping processing of "
-                      << "ReplicaStateResponse(s).";
-        return;  // RETURN
-    }
+    const int partitionId = requestContext->request()
+                                .choice()
+                                .clusterMessage()
+                                .choice()
+                                .partitionMessage()
+                                .choice()
+                                .replicaStateRequest()
+                                .partitionId();
+    BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
 
     EventData eventDataVec(d_allocator_p);
     EventData failedEventDataVec(d_allocator_p);
 
+    const NodeResponsePairs& pairs = requestContext->response();
+    BSLS_ASSERT_SAFE(!pairs.empty());
     for (NodeResponsePairsCIter cit = pairs.cbegin(); cit != pairs.cend();
          ++cit) {
         BSLS_ASSERT_SAFE(cit->first);
 
         if (cit->second.choice().isStatusValue()) {
             BALL_LOG_WARN << d_clusterData_p->identity().description()
-                          << " Partition [" << requestPartitionId
+                          << " Partition [" << partitionId
                           << "]: " << "Received failed ReplicaStateResponse "
                           << cit->second.choice().status() << " from "
                           << cit->first->nodeDescription()
@@ -792,7 +832,7 @@ void StorageManager::processReplicaStateResponseDispatched(
             failedEventDataVec.emplace_back(
                 cit->first,
                 cit->second.rId().isNull() ? -1 : cit->second.rId().value(),
-                requestPartitionId,
+                partitionId,
                 1);
             continue;  // CONTINUE
         }
@@ -822,7 +862,7 @@ void StorageManager::processReplicaStateResponseDispatched(
                 .replicaStateResponse();
 
         BALL_LOG_INFO << d_clusterData_p->identity().description()
-                      << " Partition [" << requestPartitionId
+                      << " Partition [" << partitionId
                       << "]: " << "Received ReplicaStateResponse "
                       << cit->second << " from "
                       << cit->first->nodeDescription();
@@ -831,6 +871,26 @@ void StorageManager::processReplicaStateResponseDispatched(
                              .at(response.partitionId())
                              .primaryNodeId() ==
                          d_clusterData_p->membership().selfNode()->nodeId());
+
+        NodeToSeqNumCtxMapCIter mapCit =
+            d_nodeToSeqNumCtxMapVec[partitionId].find(cit->first);
+        if (mapCit != d_nodeToSeqNumCtxMapVec[partitionId].end()) {
+            const bsls::TimeInterval timeDiff = bdlt::CurrentTime::now() -
+                                                mapCit->second.d_timestamp;
+            if (timeDiff < d_clusterConfig.clusterAttributes()
+                               .partitionStateMessageDedupIntervalMs()) {
+                BALL_LOG_INFO
+                    << d_clusterData_p->identity().description()
+                    << " Partition [" << partitionId << "]: "
+                    << "Ignoring likely duplicate "
+                    << "PrimaryStateRequest/ReplicaStateResponse from replica "
+                    << cit->first->nodeDescription()
+                    << " because the previous request/response from the same "
+                       "replica was received only "
+                    << timeDiff.totalMilliseconds() << " ms ago.";
+                continue;  // CONTINUE
+            }
+        }
 
         const unsigned int primaryLeaseId = d_clusterState_p->partitionsInfo()
                                                 .at(response.partitionId())
@@ -846,7 +906,7 @@ void StorageManager::processReplicaStateResponseDispatched(
             response.latestSequenceNumber(),
             response.firstSyncPointAfterRolloverSequenceNumber());
 
-        BSLS_ASSERT_SAFE(requestPartitionId == response.partitionId());
+        BSLS_ASSERT_SAFE(partitionId == response.partitionId());
     }
 
     if (eventDataVec.size() > 0) {
@@ -866,13 +926,40 @@ void StorageManager::processReplicaStateResponse(
     const RequestContextSp& requestContext)
 {
     // executed by *any* thread
-    // dispatch to the CLUSTER DISPATCHER
-    d_dispatcher_p->execute(
-        bdlf::BindUtil::bind(
-            &StorageManager::processReplicaStateResponseDispatched,
-            this,
-            requestContext),
-        d_cluster_p);
+    // dispatch to the *QUEUE DISPATCHER* thread associated with the
+    // partitionId contained in 'requestContext'
+
+    const NodeResponsePairs& pairs = requestContext->response();
+    if (d_clusterData_p->cluster().isLocal()) {
+        BSLS_ASSERT_SAFE(pairs.empty());
+        return;  // RETURN
+    }
+    BSLS_ASSERT_SAFE(!pairs.empty());
+
+    // Fetch partitionId from request
+    const int partitionId = requestContext->request()
+                                .choice()
+                                .clusterMessage()
+                                .choice()
+                                .partitionMessage()
+                                .choice()
+                                .replicaStateRequest()
+                                .partitionId();
+
+    if (d_cluster_p->isStopping()) {
+        BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId << "]: "
+                      << "Cluster is stopping; skipping processing of "
+                      << "ReplicaStateResponse(s).";
+        return;  // RETURN
+    }
+
+    mqbs::FileStore* fs = d_fileStores[partitionId].get();
+    BSLS_ASSERT_SAFE(fs);
+    fs->execute(bdlf::BindUtil::bind(
+        &StorageManager::processReplicaStateResponseDispatched,
+        this,
+        requestContext));
 }
 
 void StorageManager::processReplicaDataResponseDispatched(
@@ -1051,7 +1138,8 @@ void StorageManager::bufferPrimaryStatusAdvisoryDispatched(
     const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
     mqbnet::ClusterNode*                       source)
 {
-    // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
+    // executed by *QUEUE_DISPATCHER* thread with the specified
+    // 'partitionId'
 
     // PRECONDITIONS
     const int pid = advisory.partitionId();
@@ -1070,7 +1158,8 @@ void StorageManager::bufferPrimaryStatusAdvisoryDispatched(
 
 void StorageManager::processShutdownEventDispatched(int partitionId)
 {
-    // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
+    // executed by *QUEUE_DISPATCHER* thread with the specified
+    // 'partitionId'
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 <= partitionId &&
@@ -1221,8 +1310,8 @@ void StorageManager::do_closeRecoveryFileSet(const EventWithData& event)
     if (rc != 0) {
         BMQTSK_ALARMLOG_ALARM("FILE_IO")
             << d_clusterData_p->identity().description() << " Partition ["
-            << partitionId
-            << "]: " << "Failure while closing recovery file set, rc: " << rc
+            << partitionId << "]: "
+            << "Failure while closing recovery file set, rc: " << rc
             << BMQTSK_ALARMLOG_END;
 
         mqbu::ExitUtil::terminate(mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
@@ -1266,7 +1355,7 @@ void StorageManager::do_storeSelfSeq(const EventWithData& event)
     }
     nodeSeqNumCtx.d_firstSyncPointAfterRolloverSeqNum =
         getSelfFirstSyncPointAfterRolloverSequenceNumber(partitionId);
-    nodeSeqNumCtx.d_isRecoveryDataSent = false;
+    nodeSeqNumCtx.d_timestamp = bdlt::CurrentTime::now();
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << ": In Partition [" << partitionId << "]'s FSM, "
@@ -1297,8 +1386,8 @@ void StorageManager::do_storePrimarySeq(const EventWithData& event)
     BSLS_ASSERT_SAFE(partitionInfo.primary() == eventData.source());
     BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfReplica());
 
-    // Information from 'ReplicaStateRequest' or 'PrimaryStateResponse' could
-    // be stale; ignore if so.
+    // Information from 'ReplicaStateRequest' or 'PrimaryStateResponse'
+    // could be stale; ignore if so.
     bool                   hasNew = false;
     NodeToSeqNumCtxMapIter it     = d_nodeToSeqNumCtxMapVec[partitionId].find(
         eventData.source());
@@ -1306,17 +1395,19 @@ void StorageManager::do_storePrimarySeq(const EventWithData& event)
         NodeSeqNumContext nodeSeqNumContext(
             seqNum,
             eventData.firstSyncPointAfterRolloverSequenceNumber(),
-            false);
+            bdlt::CurrentTime::now());
         d_nodeToSeqNumCtxMapVec[partitionId].insert(
             bsl::make_pair(eventData.source(), nodeSeqNumContext));
         hasNew = true;
     }
-    else if (seqNum > it->second.d_seqNum) {
-        it->second.d_seqNum = seqNum;
-        it->second.d_firstSyncPointAfterRolloverSeqNum =
-            eventData.firstSyncPointAfterRolloverSequenceNumber();
-        it->second.d_isRecoveryDataSent = false;
-        hasNew                          = true;
+    else {
+        if (seqNum > it->second.d_seqNum) {
+            it->second.d_seqNum = seqNum;
+            it->second.d_firstSyncPointAfterRolloverSeqNum =
+                eventData.firstSyncPointAfterRolloverSequenceNumber();
+            hasNew = true;
+        }
+        it->second.d_timestamp = bdlt::CurrentTime::now();
     }
 
     if (hasNew) {
@@ -1360,18 +1451,20 @@ void StorageManager::do_storeReplicaSeq(const EventWithData& event)
             NodeSeqNumContext nodeSeqNumContext(
                 seqNum,
                 cit->firstSyncPointAfterRolloverSequenceNumber(),
-                false);
+                bdlt::CurrentTime::now());
             d_nodeToSeqNumCtxMapVec[partitionId].insert(
                 bsl::make_pair(cit->source(), nodeSeqNumContext));
             hasNew = true;
         }
-        else if (seqNum > it->second.d_seqNum ||
-                 event.first == PartitionFSM::Event::e_PRIMARY_STATE_RQST) {
-            it->second.d_seqNum = seqNum;
-            it->second.d_firstSyncPointAfterRolloverSeqNum =
-                cit->firstSyncPointAfterRolloverSequenceNumber();
-            it->second.d_isRecoveryDataSent = false;
-            hasNew                          = true;
+        else {
+            if (seqNum > it->second.d_seqNum ||
+                event.first == PartitionFSM::Event::e_PRIMARY_STATE_RQST) {
+                it->second.d_seqNum = seqNum;
+                it->second.d_firstSyncPointAfterRolloverSeqNum =
+                    cit->firstSyncPointAfterRolloverSequenceNumber();
+                hasNew = true;
+            }
+            it->second.d_timestamp = bdlt::CurrentTime::now();
         }
 
         if (hasNew) {
@@ -1725,12 +1818,12 @@ void StorageManager::do_replicaDataRequestPush(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
+    const PartitionFSM::Event::Enum eventType    = event.first;
+    const EventData&                eventDataVec = event.second;
     BSLS_ASSERT_SAFE(eventDataVec.size() >= 1);
 
     const PartitionFSMEventData& eventData   = eventDataVec[0];
     const int                    partitionId = eventData.partitionId();
-
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(d_partitionFSMVec.at(partitionId)->isSelfPrimary());
@@ -1738,23 +1831,21 @@ void StorageManager::do_replicaDataRequestPush(const EventWithData& event)
     if (d_recoveryManager_mp->expectedDataChunks(partitionId)) {
         BALL_LOG_INFO
             << d_clusterData_p->identity().description() << " Partition ["
-            << partitionId
-            << "]: " << "Not sending ReplicaDataRequestPush to replicas yet "
+            << partitionId << "]: "
+            << "Not sending ReplicaDataRequestPush to replicas yet "
             << "because self primary is still expecting recovery data "
             << "chunks from the up-to-date replica.";
 
         return;  // RETURN
     }
-    // If self is not expecting data chunks, then self must be ready to serve
-    // data, hence the file store must be open.
+    // If self is not expecting data chunks, then self must be ready to
+    // serve data, hence the file store must be open.
     BSLS_ASSERT_SAFE(fileStore(partitionId).isOpen());
 
-    // Self primary is sending request to all outdated and up-to-date replicas
-
-    mqbnet::ClusterNode* selfNode = d_clusterData_p->membership().selfNode();
-
-    NodeToSeqNumCtxMap& nodeToSeqNumCtxMap =
+    const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap =
         d_nodeToSeqNumCtxMapVec[partitionId];
+    mqbnet::ClusterNode* const selfNode =
+        d_clusterData_p->membership().selfNode();
     BSLS_ASSERT_SAFE(nodeToSeqNumCtxMap.find(selfNode) !=
                      nodeToSeqNumCtxMap.end());
     const bmqp_ctrlmsg::PartitionSequenceNumber& selfSeqNum =
@@ -1764,35 +1855,84 @@ void StorageManager::do_replicaDataRequestPush(const EventWithData& event)
             nodeToSeqNumCtxMap.at(selfNode)
                 .d_firstSyncPointAfterRolloverSeqNum;
 
-    // Determine the outdated and up-to-date replicas
-    ClusterNodeVec outdatedReplicas;
-    for (NodeToSeqNumCtxMapCIter cit = nodeToSeqNumCtxMap.cbegin();
-         cit != nodeToSeqNumCtxMap.cend();
-         cit++) {
-        if (cit->first->nodeId() == selfNode->nodeId()) {
-            continue;  // CONTINUE
-        }
+    // Determine destination replicas
+    ClusterNodeVec destinationReplicas;
+    if (eventType == PartitionFSM::Event::e_REPLICA_STATE_RSPN ||
+        eventType == PartitionFSM::Event::e_PRIMARY_STATE_RQST) {
+        // Such events can contain a vector of responses
+        for (EventDataCIter eit = eventDataVec.cbegin();
+             eit != eventDataVec.cend();
+             eit++) {
+            // A replica must have triggered this event by sending us a
+            // `ReplicaStateResponse` or `PrimaryStateRequest`.  Hence,
+            // only check whether we need to send `ReplicaDataRequestPush`
+            // to that replica.
+            mqbnet::ClusterNode* const source = eit->source();
+            BSLS_ASSERT_SAFE(source);
+            BSLS_ASSERT_SAFE(source->nodeId() != selfNode->nodeId());
 
-        // Skip node with non-empty storage and different first sync point
-        // after rollover, it needs to drop its storage.
-        if (cit->second.d_seqNum != bmqp_ctrlmsg::PartitionSequenceNumber() &&
-            cit->second.d_firstSyncPointAfterRolloverSeqNum !=
-                selfFirstSyncAfterRolloverSeqNum) {
-            continue;  // CONTINUE
-        }
+            NodeToSeqNumCtxMapCIter cit = nodeToSeqNumCtxMap.find(source);
+            if (cit == nodeToSeqNumCtxMap.end()) {
+                BALL_LOG_ERROR
+                    << d_clusterData_p->identity().description()
+                    << " Partition [" << partitionId << "]: " << "Replica "
+                    << source->nodeDescription()
+                    << " not found in nodeToSeqNumCtxMap, skipping.";
+                continue;  // CONTINUE
+            }
 
-        if (cit->second.d_seqNum <= selfSeqNum &&
-            !cit->second.d_isRecoveryDataSent) {
-            outdatedReplicas.emplace_back(cit->first);
+            // Skip node with non-empty storage and different first sync
+            // point after rollover, it needs to drop its storage.
+            if (cit->second.d_seqNum !=
+                    bmqp_ctrlmsg::PartitionSequenceNumber() &&
+                cit->second.d_firstSyncPointAfterRolloverSeqNum !=
+                    selfFirstSyncAfterRolloverSeqNum) {
+                continue;  // CONTINUE
+            }
+
+            if (cit->second.d_seqNum <= selfSeqNum) {
+                destinationReplicas.emplace_back(source);
+            }
+        }
+    }
+    else {
+        // Either self primary has certified itself as
+        // highest-sequence-number node, or has received a
+        // `ReplicaDataResponsePull` from the up-to-date replica.
+        BSLS_ASSERT_SAFE(
+            eventType == PartitionFSM::Event::e_SELF_HIGHEST_SEQ ||
+            eventType == PartitionFSM::Event::e_REPLICA_DATA_RSPN_PULL);
+
+        // We need to send `ReplicaDataRequestPush` to all outdated and
+        // up-to-date replicas.  It is important to inform up-to-date
+        // replicas such that they know they can transition to healed
+        // replica.
+        for (NodeToSeqNumCtxMapCIter cit = nodeToSeqNumCtxMap.cbegin();
+             cit != nodeToSeqNumCtxMap.cend();
+             cit++) {
+            if (cit->first->nodeId() == selfNode->nodeId()) {
+                continue;  // CONTINUE
+            }
+
+            // Skip node with non-empty storage and different first sync
+            // point after rollover, it needs to drop its storage.
+            if (cit->second.d_seqNum !=
+                    bmqp_ctrlmsg::PartitionSequenceNumber() &&
+                cit->second.d_firstSyncPointAfterRolloverSeqNum !=
+                    selfFirstSyncAfterRolloverSeqNum) {
+                continue;  // CONTINUE
+            }
+
+            if (cit->second.d_seqNum <= selfSeqNum) {
+                destinationReplicas.emplace_back(cit->first);
+            }
         }
     }
 
-    // Send ReplicaDataRequestPush to outdated and up-to-date replicas.  It is
-    // important to inform up-to-date replicas such that they know they can
-    // transition to healed replica.
+    // Send ReplicaDataRequestPush to destination replicas
     EventData failedEventDataVec;
-    for (ClusterNodeVecCIter cit = outdatedReplicas.cbegin();
-         cit != outdatedReplicas.cend();
+    for (ClusterNodeVecCIter cit = destinationReplicas.cbegin();
+         cit != destinationReplicas.cend();
          ++cit) {
         mqbnet::ClusterNode* destNode = *cit;
         BSLS_ASSERT_SAFE(destNode->nodeId() != selfNode->nodeId());
@@ -1909,12 +2049,12 @@ void StorageManager::do_replicaDataRequestDrop(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
+    const PartitionFSM::Event::Enum eventType    = event.first;
+    const EventData&                eventDataVec = event.second;
     BSLS_ASSERT_SAFE(eventDataVec.size() >= 1);
 
     const PartitionFSMEventData& eventData   = eventDataVec[0];
     const int                    partitionId = eventData.partitionId();
-
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(d_partitionFSMVec.at(partitionId)->isSelfPrimary());
@@ -1928,15 +2068,14 @@ void StorageManager::do_replicaDataRequestDrop(const EventWithData& event)
 
         return;  // RETURN
     }
-    // If self is not expecting data chunks, then self must be ready to serve
-    // data, hence the file store must be open.
+    // If self is not expecting data chunks, then self must be ready to
+    // serve data, hence the file store must be open.
     BSLS_ASSERT_SAFE(fileStore(partitionId).isOpen());
 
+    const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap =
+        d_nodeToSeqNumCtxMapVec[partitionId];
     mqbnet::ClusterNode* const selfNode =
         d_clusterData_p->membership().selfNode();
-
-    NodeToSeqNumCtxMap& nodeToSeqNumCtxMap =
-        d_nodeToSeqNumCtxMapVec[partitionId];
     BSLS_ASSERT_SAFE(nodeToSeqNumCtxMap.find(selfNode) !=
                      nodeToSeqNumCtxMap.end());
     const bmqp_ctrlmsg::PartitionSequenceNumber& selfSeqNum =
@@ -1948,23 +2087,67 @@ void StorageManager::do_replicaDataRequestDrop(const EventWithData& event)
 
     // Determine the replicas with obsolete data to be dropped
     ClusterNodeVec obsoleteDataReplicas;
-    for (NodeToSeqNumCtxMapCIter cit = nodeToSeqNumCtxMap.cbegin();
-         cit != nodeToSeqNumCtxMap.cend();
-         cit++) {
-        if (cit->first->nodeId() == selfNode->nodeId()) {
-            continue;  // CONTINUE
+    if (eventType == PartitionFSM::Event::e_REPLICA_STATE_RSPN ||
+        eventType == PartitionFSM::Event::e_PRIMARY_STATE_RQST) {
+        // Such events can contain a vector of responses
+        for (EventDataCIter eit = eventDataVec.cbegin();
+             eit != eventDataVec.cend();
+             eit++) {
+            // A replica must have triggered this event by sending us a
+            // `ReplicaStateResponse` or `PrimaryStateRequest`.  Hence,
+            // only check whether we need to send `ReplicaDataRequestDrop`
+            // to that replica.
+            mqbnet::ClusterNode* const source = eit->source();
+            BSLS_ASSERT_SAFE(source);
+            BSLS_ASSERT_SAFE(source->nodeId() != selfNode->nodeId());
+
+            NodeToSeqNumCtxMapCIter cit = nodeToSeqNumCtxMap.find(source);
+            if (cit == nodeToSeqNumCtxMap.end()) {
+                BALL_LOG_ERROR
+                    << d_clusterData_p->identity().description()
+                    << " Partition [" << partitionId << "]: " << "Replica "
+                    << source->nodeDescription()
+                    << " not found in nodeToSeqNumCtxMap, skipping.";
+                continue;  // CONTINUE
+            }
+
+            if (cit->second.d_seqNum > selfSeqNum) {
+                obsoleteDataReplicas.emplace_back(source);
+            }
+            else if (cit->second.d_seqNum !=
+                         bmqp_ctrlmsg::PartitionSequenceNumber() &&
+                     cit->second.d_firstSyncPointAfterRolloverSeqNum !=
+                         selfFirstSyncAfterRolloverSeqNum) {
+                // Node with non-empty storage and different first sync
+                // point after rollover is obsolete.
+                obsoleteDataReplicas.emplace_back(source);
+            }
         }
-        if (cit->second.d_seqNum > selfSeqNum &&
-            !cit->second.d_isRecoveryDataSent) {
-            obsoleteDataReplicas.emplace_back(cit->first);
-        }
-        else if (cit->second.d_seqNum !=
-                     bmqp_ctrlmsg::PartitionSequenceNumber() &&
-                 cit->second.d_firstSyncPointAfterRolloverSeqNum !=
-                     selfFirstSyncAfterRolloverSeqNum) {
-            // Node with non-empty storage and different first sync point after
-            // rollover is obsolete.
-            obsoleteDataReplicas.emplace_back(cit->first);
+    }
+    else {
+        // Self primary must have triggered this event, **only possible**
+        // by receiving a ReplicaDataResponsePull from the up-to-date
+        // replica.
+        BSLS_ASSERT_SAFE(eventType ==
+                         PartitionFSM::Event::e_REPLICA_DATA_RSPN_PULL);
+
+        for (NodeToSeqNumCtxMapCIter cit = nodeToSeqNumCtxMap.cbegin();
+             cit != nodeToSeqNumCtxMap.cend();
+             cit++) {
+            if (cit->first->nodeId() == selfNode->nodeId()) {
+                continue;  // CONTINUE
+            }
+            if (cit->second.d_seqNum > selfSeqNum) {
+                obsoleteDataReplicas.emplace_back(cit->first);
+            }
+            else if (cit->second.d_seqNum !=
+                         bmqp_ctrlmsg::PartitionSequenceNumber() &&
+                     cit->second.d_firstSyncPointAfterRolloverSeqNum !=
+                         selfFirstSyncAfterRolloverSeqNum) {
+                // Node with non-empty storage and different first sync
+                // point after rollover is obsolete.
+                obsoleteDataReplicas.emplace_back(cit->first);
+            }
         }
     }
 
@@ -2012,9 +2195,6 @@ void StorageManager::do_replicaDataRequestDrop(const EventWithData& event)
                                             -1,  // placeholder responseId
                                             partitionId,
                                             1);
-        }
-        else {
-            nodeToSeqNumCtxMap.at(destNode).d_isRecoveryDataSent = true;
         }
     }
 
@@ -2296,8 +2476,8 @@ void StorageManager::do_processBufferedLiveData(const EventWithData& event)
     BSLS_ASSERT_SAFE(fs);
     if (!fs->isOpen()) {
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << " Partition [" << partitionId
-                       << "]: " << "Cannot process buffered live data because "
+                       << " Partition [" << partitionId << "]: "
+                       << "Cannot process buffered live data because "
                        << "FileStore is not opened.";
 
         return;  // RETURN
@@ -2355,10 +2535,10 @@ void StorageManager::do_clearBufferedLiveData(const EventWithData& event)
     const PartitionFSMEventData& eventData   = eventDataVec[0];
     const int                    partitionId = eventData.partitionId();
 
-    // NOTE: As a healing replica, upon e_REPLICA_DATA_RQST_PUSH FSM event, we
-    // *must* clear buffered live data because it is possible that the buffered
-    // data contains duplicate records as the recovery data primary is about to
-    // send us.
+    // NOTE: As a healing replica, upon e_REPLICA_DATA_RQST_PUSH FSM event,
+    // we *must* clear buffered live data because it is possible that the
+    // buffered data contains duplicate records as the recovery data
+    // primary is about to send us.
 
     d_recoveryManager_mp->clearBufferedStorageEvent(partitionId);
 }
@@ -2425,10 +2605,10 @@ void StorageManager::do_processBufferedPrimaryStatusAdvisories(
                 pinfo.primary(),
                 pinfo.primaryLeaseId());
 
-            // Note: We don't check if all partitions are fully healed and have
-            // an active active primary here, because we will do the check soon
-            // after when we transition the replica to healed (see
-            // `onPartitionRecovery()` method).
+            // Note: We don't check if all partitions are fully healed and
+            // have an active active primary here, because we will do the
+            // check soon after when we transition the replica to healed
+            // (see `onPartitionRecovery()` method).
         }
     }
 
@@ -2512,7 +2692,8 @@ void StorageManager::do_startSendDataChunks(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
+    const PartitionFSM::Event::Enum eventType    = event.first;
+    const EventData&                eventDataVec = event.second;
     BSLS_ASSERT_SAFE(eventDataVec.size() >= 1);
 
     const PartitionFSMEventData& eventData   = eventDataVec[0];
@@ -2536,13 +2717,13 @@ void StorageManager::do_startSendDataChunks(const EventWithData& event)
         BSLS_ASSERT_SAFE(
             !d_recoveryManager_mp->expectedDataChunks(partitionId));
     }
-    // If self is not expecting data chunks, then self must be ready to serve
-    // data, hence the file store must be open.
+    // If self is not expecting data chunks, then self must be ready to
+    // serve data, hence the file store must be open.
     const mqbs::FileStore& fs = fileStore(partitionId);
     BSLS_ASSERT_SAFE(fs.isOpen());
 
-    // Note that 'eventData.partitionSeqNumDataRange()' is only used when this
-    // action is performed by the replica.  If self is primary, we use
+    // Note that 'eventData.partitionSeqNumDataRange()' is only used when
+    // this action is performed by the replica.  If self is primary, we use
     // `d_nodeToSeqNumCtxMapVec` to determine data range for each replica
     // instead.
     bsl::function<void(int, mqbnet::ClusterNode*, int)> f =
@@ -2555,105 +2736,141 @@ void StorageManager::do_startSendDataChunks(const EventWithData& event)
                              bdlf::PlaceHolders::_3);  // status
 
     mqbnet::ClusterNode* selfNode = d_clusterData_p->membership().selfNode();
-    if (event.first == PartitionFSM::Event::e_REPLICA_DATA_RQST_PULL) {
+    if (eventType == PartitionFSM::Event::e_REPLICA_DATA_RQST_PULL) {
         // Self Replica is sending data to Destination Primary.
+        BSLS_ASSERT_SAFE(d_partitionFSMVec.at(partitionId)->isSelfReplica());
 
-        mqbnet::ClusterNode* destNode = eventData.source();
+        mqbnet::ClusterNode* const destNode = eventData.source();
         BSLS_ASSERT_SAFE(destNode->nodeId() != selfNode->nodeId());
         BSLS_ASSERT_SAFE(destNode->nodeId() ==
                          d_partitionInfoVec[partitionId].primary()->nodeId());
 
-        bmqp_ctrlmsg::PartitionSequenceNumber beginSeqNum =
+        const bmqp_ctrlmsg::PartitionSequenceNumber beginSeqNum =
             eventData.partitionSeqNumDataRange().first;
-        bmqp_ctrlmsg::PartitionSequenceNumber endSeqNum =
+        const bmqp_ctrlmsg::PartitionSequenceNumber endSeqNum =
             eventData.partitionSeqNumDataRange().second;
         BSLS_ASSERT_SAFE(
             endSeqNum ==
             d_nodeToSeqNumCtxMapVec[partitionId][selfNode].d_seqNum);
 
-        // No need to check rc here.  A failure will trigger a Partition FSM
-        // event of type e_ERROR_SENDING_DATA_CHUNKS.
+        // No need to check rc here.  A failure will trigger a Partition
+        // FSM event of type e_ERROR_SENDING_DATA_CHUNKS.
         d_recoveryManager_mp->processSendDataChunks(partitionId,
                                                     destNode,
                                                     beginSeqNum,
                                                     endSeqNum,
                                                     fs,
                                                     f);
+        return;  // RETURN
+    }
+
+    // Self Primary is sending recovery data to outdated replicas.
+    BSLS_ASSERT_SAFE(d_partitionFSMVec.at(partitionId)->isSelfPrimary());
+
+    NodeToSeqNumCtxMap& nodeToSeqNumCtxMap =
+        d_nodeToSeqNumCtxMapVec[partitionId];
+
+    // End Sequence number is primary's latest sequence number.
+    const bmqp_ctrlmsg::PartitionSequenceNumber& endSeqNum =
+        nodeToSeqNumCtxMap[selfNode].d_seqNum;
+    const bmqp_ctrlmsg::PartitionSequenceNumber&
+        selfFirstSyncAfterRolloverSeqNum =
+            nodeToSeqNumCtxMap[selfNode].d_firstSyncPointAfterRolloverSeqNum;
+
+    // Determine which nodes to check for sending data chunks
+    bsl::vector<NodeToSeqNumCtxMapCIter> nodesToCheck;
+    if (eventType == PartitionFSM::Event::e_REPLICA_STATE_RSPN ||
+        eventType == PartitionFSM::Event::e_PRIMARY_STATE_RQST) {
+        // Such events can contain a vector of responses
+        for (EventDataCIter eit = eventDataVec.cbegin();
+             eit != eventDataVec.cend();
+             ++eit) {
+            // A replica must have triggered this event by sending us a
+            // `ReplicaStateResponse` or `PrimaryStateRequest`.  Hence,
+            // only check whether we need to send data chunks to that
+            // replica.
+            mqbnet::ClusterNode* const source = eit->source();
+            BSLS_ASSERT_SAFE(source);
+            BSLS_ASSERT_SAFE(source->nodeId() != selfNode->nodeId());
+
+            NodeToSeqNumCtxMapCIter cit = nodeToSeqNumCtxMap.find(source);
+            if (cit == nodeToSeqNumCtxMap.end()) {
+                BALL_LOG_ERROR
+                    << d_clusterData_p->identity().description()
+                    << " Partition [" << partitionId << "]: " << "Replica "
+                    << source->nodeDescription()
+                    << " not found in nodeToSeqNumCtxMap, skipping.";
+                continue;  // CONTINUE
+            }
+
+            nodesToCheck.push_back(cit);
+        }
     }
     else {
-        // Self Primary is sending recovery data to outdated replicas.
-        BSLS_ASSERT_SAFE(d_partitionInfoVec[partitionId].primary()->nodeId() ==
-                         selfNode->nodeId());
-
-        NodeToSeqNumCtxMap& nodeToSeqNumCtxMap =
-            d_nodeToSeqNumCtxMapVec[partitionId];
-
-        // End Sequence number is primary's latest sequence number.
-        const bmqp_ctrlmsg::PartitionSequenceNumber& endSeqNum =
-            nodeToSeqNumCtxMap[selfNode].d_seqNum;
-
-        const bmqp_ctrlmsg::PartitionSequenceNumber&
-            selfFirstSyncAfterRolloverSeqNum =
-                nodeToSeqNumCtxMap[selfNode]
-                    .d_firstSyncPointAfterRolloverSeqNum;
+        // Either self primary has certified itself as
+        // highest-sequence-number node, or has received a
+        // `ReplicaDataResponsePull` from the up-to-date replica.
+        BSLS_ASSERT_SAFE(
+            eventType == PartitionFSM::Event::e_SELF_HIGHEST_SEQ ||
+            eventType == PartitionFSM::Event::e_REPLICA_DATA_RSPN_PULL);
 
         for (NodeToSeqNumCtxMapCIter cit = nodeToSeqNumCtxMap.cbegin();
              cit != nodeToSeqNumCtxMap.cend();
-             cit++) {
-            if (cit->first->nodeId() == selfNode->nodeId() ||
-                cit->second.d_isRecoveryDataSent) {
-                continue;
-            }
-            mqbnet::ClusterNode*                         destNode = cit->first;
-            const bmqp_ctrlmsg::PartitionSequenceNumber& beginSeqNum =
-                cit->second.d_seqNum;
-
-            if (beginSeqNum > endSeqNum) {
-                // Replica is ahead: we already sent ReplicaDataRequestDrop
+             ++cit) {
+            if (cit->first->nodeId() == selfNode->nodeId()) {
                 continue;  // CONTINUE
             }
-            else if (beginSeqNum == endSeqNum) {
-                // Replica in-sync with primary: no need to send data chunks
-                nodeToSeqNumCtxMap.at(destNode).d_isRecoveryDataSent = true;
-                continue;  // CONTINUE
-            }
-            else if (cit->second.d_seqNum !=
-                         bmqp_ctrlmsg::PartitionSequenceNumber() &&
-                     cit->second.d_firstSyncPointAfterRolloverSeqNum !=
-                         selfFirstSyncAfterRolloverSeqNum) {
-                // Skip node with non empty storage and different first sync
-                // point after rollover, we already sent
-                // ReplicaDataRequestDrop.
-                continue;  // CONTINUE
-            }
+            nodesToCheck.push_back(cit);
+        }
+    }
 
-            const int rc = d_recoveryManager_mp->processSendDataChunks(
-                partitionId,
-                destNode,
-                beginSeqNum,
-                endSeqNum,
-                fs,
-                f);
-            if (rc != 0) {
-                BALL_LOG_ERROR
-                    << d_clusterData_p->identity().description()
-                    << " Partition [" << partitionId
-                    << "]: " << "Failure while sending data chunks to "
-                    << destNode->nodeDescription()
-                    << ", beginSeqNum = " << beginSeqNum
-                    << ", endSeqNum = " << endSeqNum << ", rc = " << rc;
+    // Now, for each node, check if we need to send data chunks
+    for (bsl::vector<NodeToSeqNumCtxMapCIter>::const_iterator cit =
+             nodesToCheck.begin();
+         cit != nodesToCheck.end();
+         ++cit) {
+        mqbnet::ClusterNode*                         destNode = (*cit)->first;
+        const bmqp_ctrlmsg::PartitionSequenceNumber& beginSeqNum =
+            (*cit)->second.d_seqNum;
+        if (beginSeqNum > endSeqNum) {
+            // Replica is ahead: we already sent ReplicaDataRequestDrop
+            continue;  // CONTINUE
+        }
+        else if (beginSeqNum == endSeqNum) {
+            // Replica in-sync with primary: no need to send data chunks
+            continue;  // CONTINUE
+        }
+        else if ((*cit)->second.d_seqNum !=
+                     bmqp_ctrlmsg::PartitionSequenceNumber() &&
+                 (*cit)->second.d_firstSyncPointAfterRolloverSeqNum !=
+                     selfFirstSyncAfterRolloverSeqNum) {
+            // Skip node with non empty storage and different first sync
+            // point after rollover, we already sent
+            // ReplicaDataRequestDrop.
+            continue;  // CONTINUE
+        }
 
-                // The failure rc will trigger a Partition FSM event of type
-                // e_ERROR_SENDING_DATA_CHUNKS.  However, today we do nothing
-                // upon that event, and instead rely on watchdog firing on the
-                // replica to trigger alarm and retry.  If we fail to send data
-                // to enough replicas such that quorum of ReplicaDataResponses
-                // is no longer possible, self primary's watchdog will also
-                // fire.
-            }
-            else {
-                nodeToSeqNumCtxMap.at(destNode).d_isRecoveryDataSent = true;
-            }
+        const int rc = d_recoveryManager_mp->processSendDataChunks(partitionId,
+                                                                   destNode,
+                                                                   beginSeqNum,
+                                                                   endSeqNum,
+                                                                   fs,
+                                                                   f);
+        if (rc != 0) {
+            BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                           << " Partition [" << partitionId
+                           << "]: " << "Failure while sending data chunks to "
+                           << destNode->nodeDescription()
+                           << ", beginSeqNum = " << beginSeqNum
+                           << ", endSeqNum = " << endSeqNum << ", rc = " << rc;
+
+            // The failure rc will trigger a Partition FSM event of
+            // type e_ERROR_SENDING_DATA_CHUNKS.  However, today we do
+            // nothing upon that event, and instead rely on watchdog
+            // firing on the replica to trigger alarm and retry.  If we
+            // fail to send data to enough replicas such that quorum of
+            // ReplicaDataResponses is no longer possible, self
+            // primary's watchdog will also fire.
         }
     }
 }
@@ -2692,8 +2909,8 @@ void StorageManager::do_setExpectedDataChunkRange(const EventWithData& event)
 
         if (eventData.partitionSeqNumDataRange().first ==
             eventData.partitionSeqNumDataRange().second) {
-            // Self Replica is up-to-date with the primary, thus not expecting
-            // data chunks.
+            // Self Replica is up-to-date with the primary, thus not
+            // expecting data chunks.
 
             EventData eventDataVecOut;
             eventDataVecOut.emplace_back(highestSeqNumNode,
@@ -2830,7 +3047,8 @@ void StorageManager::do_updateStorage(const EventWithData& event)
     BSLS_ASSERT_SAFE(d_fileStores.size() >
                      static_cast<unsigned int>(partitionId));
 
-    // Get first sync point after rollover sequence number from source node.
+    // Get first sync point after rollover sequence number from source
+    // node.
     NodeToSeqNumCtxMapIter it = d_nodeToSeqNumCtxMapVec[partitionId].find(
         source);
     BSLS_ASSERT_SAFE(it != d_nodeToSeqNumCtxMapVec[partitionId].end());
@@ -2889,9 +3107,10 @@ void StorageManager::do_removeStorage(const EventWithData& event)
 
     BALL_LOG_WARN
         << d_clusterData_p->identity().description() << " Partition ["
-        << partitionId
-        << "]: " << "self's storage is out of sync with primary and cannot be "
-        << "healed trivially. Removing entire storage and requesting it from "
+        << partitionId << "]: "
+        << "self's storage is out of sync with primary and cannot be "
+        << "healed trivially. Removing entire storage and requesting it "
+           "from "
            "primary.";
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
@@ -3202,7 +3421,8 @@ void StorageManager::do_unsupportedPrimaryDowngrade(const EventWithData& event)
     BMQTSK_ALARMLOG_ALARM("CLUSTER")
         << d_clusterData_p->identity().description() << " Partition ["
         << partitionId << "]: "
-        << "Downgrade from primary to replica is **UNSUPPORTED**. Terminating "
+        << "Downgrade from primary to replica is **UNSUPPORTED**. "
+           "Terminating "
         << "broker." << BMQTSK_ALARMLOG_END;
     mqbu::ExitUtil::terminate(mqbu::ExitCode::e_UNSUPPORTED_SCENARIO);  // EXIT
 }
@@ -3979,7 +4199,7 @@ void StorageManager::processPrimaryStateRequest(
             .choice()
             .primaryStateRequest();
 
-    int partitionId = primaryStateRequest.partitionId();
+    const int partitionId = primaryStateRequest.partitionId();
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
 
@@ -3996,17 +4216,14 @@ void StorageManager::processPrimaryStateRequest(
         return;  // RETURN
     }
 
-    EventData eventDataVec;
-    eventDataVec.emplace_back(
-        source,
-        message.rId().isNull() ? -1 : message.rId().value(),
-        partitionId,
-        1,
-        primaryStateRequest.latestSequenceNumber(),
-        primaryStateRequest.firstSyncPointAfterRolloverSequenceNumber());
+    mqbs::FileStore* fs = d_fileStores[partitionId].get();
+    BSLS_ASSERT_SAFE(fs);
 
-    dispatchEventToPartition(PartitionFSM::Event::e_PRIMARY_STATE_RQST,
-                             eventDataVec);
+    fs->execute(bdlf::BindUtil::bind(
+        &StorageManager::processPrimaryStateRequestDispatched,
+        this,
+        message,
+        source));
 }
 
 void StorageManager::processReplicaStateRequest(
