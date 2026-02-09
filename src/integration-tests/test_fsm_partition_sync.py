@@ -421,3 +421,196 @@ def test_sync_if_leader_missed_records(
 
     # Check that `next_leader` and replica journal files are equal
     _compare_journal_files(next_leader.name, replica.name, cluster)
+
+
+def test_sync_after_replicas_missed_various_records(
+    fsm_multi_cluster: Cluster,
+    domain_urls: tc.DomainUrls,
+) -> None:
+    """
+    Test replicas journal file synchronization with cluster after each of them missed a different number of records.
+    - start cluster
+    - put 2 messages
+    - stop Replica 1
+    - put 2 more messages
+    - stop Replica 2
+    - put 2 more messages
+    - stop Replica 3
+    - put 2 more messages
+    - stop primary
+    - restart the cluster.  Make sure old primary gets reelected as the new primary
+    - check that all replicas are synchronized with primary (primary and replicas' journal files content are equal)
+    """
+    cluster: Cluster = fsm_multi_cluster
+    uri_priority = domain_urls.uri_priority
+
+    leader = cluster.last_known_leader
+    proxy = next(cluster.proxy_cycle())
+
+    # Create producer and consumer
+    producer = proxy.create_client("producer")
+    producer.open(uri_priority, flags=["write,ack"], succeed=True)
+
+    consumer = proxy.create_client("consumer")
+    consumer.open(uri_priority, flags=["read"], succeed=True)
+
+    replica1, replica2, replica3 = cluster.nodes(exclude=leader)[:3]
+
+    # Put 2 messages
+    for i in range(1, 3):
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+
+    # Stop replica1
+    replica1.stop()
+    cluster.make_sure_node_stopped(replica1)
+    replica1.drain()
+
+    # Put 2 more messages
+    for i in range(3, 5):
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+
+    # Stop replica2
+    replica2.stop()
+    cluster.make_sure_node_stopped(replica2)
+    replica2.drain()
+
+    # Put 2 more messages
+    for i in range(5, 7):
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+
+    # Stop replica3
+    replica3.stop()
+    cluster.make_sure_node_stopped(replica3)
+    replica3.drain()
+
+    # Put 2 more messages
+    for i in range(7, 9):
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+
+    # Stop primary
+    leader.stop()
+    cluster.make_sure_node_stopped(leader)
+    leader.drain()
+
+    # Restart the cluster.  Make sure old primary gets reelected as the new primary
+    for node in cluster.nodes():
+        node.start()
+        node.wait_until_started()
+        quorum = 3 if node == leader else 5
+        node.set_quorum(quorum)
+
+    # Wait until replicas synchronize with cluster
+    cluster.wait_leader()
+    for replica in (replica1, replica2, replica3):
+        assert replica.outputs_substr("Cluster (itCluster) is available", 10), (
+            f"Replica {replica} did not output 'Cluster (itCluster) is available' within 10s"
+        )
+
+    assert leader == cluster.last_known_leader, (
+        f"Leader {leader} is not cluster.last_known_leader {cluster.last_known_leader}"
+    )
+
+    # Check that leader and replicas' journal files are equal
+    for replica in (replica1, replica2, replica3):
+        _compare_journal_files(leader.name, replica.name, cluster)
+
+
+def test_sync_after_replicas_missed_or_extra_records(
+    fsm_multi_cluster: Cluster,
+    domain_urls: tc.DomainUrls,
+) -> None:
+    """
+    Test replicas journal file synchronization with cluster after some of them missed records while some had extra records.
+    - start cluster
+    - put 2 messages
+    - stop Replica 1
+    - put 2 more messages
+    - stop Replica 2
+    - put 2 more messages
+    - stop Replica 3
+    - put 2 more messages
+    - stop primary
+    - restart the cluster except the old primary.  Force Replica 3 to be the new primary.
+    - start old primary.  Hence, old primary would be considered as having 2 extra messages and would be told to drop them
+    - check that all replicas are synchronized with new primary (primary and replicas' journal files content are equal)
+    """
+    cluster: Cluster = fsm_multi_cluster
+    uri_priority = domain_urls.uri_priority
+
+    leader = cluster.last_known_leader
+    proxy = next(cluster.proxy_cycle())
+
+    # Create producer and consumer
+    producer = proxy.create_client("producer")
+    producer.open(uri_priority, flags=["write,ack"], succeed=True)
+
+    consumer = proxy.create_client("consumer")
+    consumer.open(uri_priority, flags=["read"], succeed=True)
+
+    replica1, replica2, replica3 = cluster.nodes(exclude=leader)[:3]
+
+    # Put 2 messages
+    for i in range(1, 3):
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+
+    # Stop replica1
+    replica1.stop()
+    cluster.make_sure_node_stopped(replica1)
+    replica1.drain()
+
+    # Put 2 more messages
+    for i in range(3, 5):
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+
+    # Stop replica2
+    replica2.stop()
+    cluster.make_sure_node_stopped(replica2)
+    replica2.drain()
+
+    # Put 2 more messages
+    for i in range(5, 7):
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+
+    # Stop replica3
+    replica3.stop()
+    cluster.make_sure_node_stopped(replica3)
+    replica3.drain()
+
+    # Put 2 more messages
+    for i in range(7, 9):
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+
+    # Stop primary
+    leader.stop()
+    cluster.make_sure_node_stopped(leader)
+    leader.drain()
+
+    # Restart the cluster except the old primary.  Force Replica 3 to be the new primary.
+    for node in cluster.nodes(exclude=leader):
+        node.start()
+        node.wait_until_started()
+        quorum = 3 if node == replica3 else 5
+        node.set_quorum(quorum)
+
+    # Wait until current replicas synchronize with cluster
+    cluster.wait_leader()
+    assert replica3 == cluster.last_known_leader, (
+        f"replica3 {replica3} is not cluster.last_known_leader {cluster.last_known_leader}"
+    )
+    for replica in (replica1, replica2):
+        assert replica.outputs_substr("Cluster (itCluster) is available", 10), (
+            f"Replica {replica} did not output 'Cluster (itCluster) is available' within 10s"
+        )
+
+    # TODO The remaining code will fail.  For example, old primary could have messages (1,0) through (1,24), while new primay has messages (1,0) through (1,18) and (2,0) through (2,9).  New primary should tell old primary to drop, but it won't because it cannot see the unhealable gap of (1,19) through (1,24).  A follow-up PR will fix this, but I don't want to put those commits here, else this PR will be too large.
+
+    # # Start old primary.  Hence, old primary would be considered as having 2 extra messages and would be told to drop them
+    # leader.start()
+    # leader.wait_until_started()
+    # assert leader.outputs_substr("Cluster (itCluster) is available", 10), (
+    #     f"Leader {leader} did not output 'Cluster (itCluster) is available' within 10s"
+    # )
+
+    # # Check that new primary and replicas' journal files are equal
+    # for replica in (replica1, replica2, leader):
+    #     _compare_journal_files(replica3.name, replica.name, cluster)
