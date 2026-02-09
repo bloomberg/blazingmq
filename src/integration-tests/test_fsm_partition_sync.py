@@ -617,15 +617,14 @@ def test_sync_after_replicas_missed_or_extra_records(
             f"Replica {replica} did not output 'Cluster (itCluster) is available' within 10s"
         )
 
-    # TODO The remaining code will fail.  For example, old primary could have messages (1,0) through (1,24), while new primay has messages (1,0) through (1,18) and (2,0) through (2,9).  New primary should tell old primary to drop, but it won't because it cannot see the unhealable gap of (1,19) through (1,24).  A follow-up PR will fix this, but I don't want to put those commits here, else this PR will be too large.
+    # Start old primary.  Hence, old primary would be considered as having 2 extra messages and would be told to drop them
+    leader.start()
+    leader.wait_until_started()
+    assert leader.outputs_substr("Cluster (itCluster) is available", 10), (
+        f"Leader {leader} did not output 'Cluster (itCluster) is available' within 10s"
+    )
 
-    # # Start old primary.  Hence, old primary would be considered as having 2 extra messages and would be told to drop them
-    # leader.start()
-    # leader.wait_until_started()
-    # assert leader.outputs_substr("Cluster (itCluster) is available", 10), (
-    #     f"Leader {leader} did not output 'Cluster (itCluster) is available' within 10s"
-    # )
+    # Check that new primary and replicas' journal files are equal
+    for replica in (replica1, replica2, leader):
+        _stop_cluster_and_compare_journal_files(replica3.name, replica.name, cluster)
 
-    # # Check that new primary and replicas' journal files are equal
-    # for replica in (replica1, replica2, leader):
-    #     _stop_cluster_and_compare_journal_files(replica3.name, replica.name, cluster)
