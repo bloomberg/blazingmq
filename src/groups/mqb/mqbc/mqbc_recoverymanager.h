@@ -240,7 +240,7 @@ class RecoveryManager {
     /// i.e. peer to which current node is sending data for the specified
     /// `partitionId`. The status is as per the specified `status`.
     typedef bsl::function<
-        void(int partitionId, mqbnet::ClusterNode* destination, int status)>
+        void(int partitionId, mqbnet::ClusterNode* destination, int* status)>
         PartitionDoneSendDataChunksCb;
 
     /// Vector per partition of `RecoveryContext`.
@@ -248,7 +248,7 @@ class RecoveryManager {
 
     // This callback is only used when the self node is a replica.
     bsl::function<
-        void(int partitionId, mqbnet::ClusterNode* destination, int status)>
+        void(int partitionId, mqbnet::ClusterNode* destination, int* status)>
         PartitionDoneRcvDataChunksCb;
 
   private:
