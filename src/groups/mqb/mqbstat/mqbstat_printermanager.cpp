@@ -148,9 +148,14 @@ int PrinterManager::printTableStats(bsl::ostream&         stream,
 int PrinterManager::printJsonStats(bsl::ostream&         stream,
                                    bool                  compact,
                                    int                   statsId,
-                                   const bdlt::Datetime& datetime)
+                                   const bdlt::Datetime& datetime,
+                                   const bsl::string     delimiter)
 {
-    return d_jsonPrinter_mp->printStats(stream, compact, statsId, datetime);
+    return d_jsonPrinter_mp->printStats(stream,
+                                        compact,
+                                        statsId,
+                                        datetime,
+                                        delimiter);
 }
 
 void PrinterManager::logStats()

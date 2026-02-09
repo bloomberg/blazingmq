@@ -62,15 +62,20 @@ class JsonPrettyPrinter {
     /// Options for printing a compact JSON
     const bdljsn::WriteOptions& opts;
 
+    /// Delimiter in multi-object output
+    const bsl::string delimiter;
+
   public:
     // CREATORS
 
     /// Create a new `JsonPrinterImpl` object, using the specified
     /// stream and the specified write options.
     explicit JsonPrettyPrinter(bsl::ostream&               os,
-                               const bdljsn::WriteOptions& opts)
+                               const bdljsn::WriteOptions& opts,
+                               const bsl::string           delimiter)
     : os(os)
     , opts(opts)
+    , delimiter(delimiter)
     {
     }
 
@@ -81,7 +86,7 @@ class JsonPrettyPrinter {
     {
         const int rc = bdljsn::JsonUtil::write(os, json, opts);
         BSLS_ASSERT_SAFE(0 == rc);
-        os << bsl::endl;
+        os << delimiter;
     }
 };
 struct DomainsStatsConversionUtils {
@@ -656,7 +661,8 @@ class JsonPrinter::JsonPrinterImpl {
     int printStats(bsl::ostream&         os,
                    bool                  compact,
                    int                   statId,
-                   const bdlt::Datetime& now) const;
+                   const bdlt::Datetime& now,
+                   const bsl::string     delimiter) const;
 };
 
 inline JsonPrinter::JsonPrinterImpl::JsonPrinterImpl(
@@ -684,11 +690,12 @@ inline int
 JsonPrinter::JsonPrinterImpl::printStats(bsl::ostream&         os,
                                          bool                  compact,
                                          int                   statsId,
-                                         const bdlt::Datetime& datetime) const
+                                         const bdlt::Datetime& datetime,
+                                         const bsl::string     delimiter) const
 {
     // executed by *StatController scheduler* thread
 
-    JsonPrettyPrinter jpp(os, compact ? d_opsCompact : d_opsPretty);
+    JsonPrettyPrinter jpp(os, compact ? d_opsCompact : d_opsPretty, delimiter);
 
     bdljsn::Json json(d_allocator_p);
     json.makeObject();
@@ -764,14 +771,15 @@ JsonPrinter::JsonPrinter(const mqbcfg::StatsConfig& config,
 int JsonPrinter::printStats(bsl::ostream&         os,
                             bool                  compact,
                             int                   statsId,
-                            const bdlt::Datetime& datetime) const
+                            const bdlt::Datetime& datetime,
+                            const bsl::string     delimiter)
 {
     // executed by *StatController scheduler* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_impl_mp);
 
-    return d_impl_mp->printStats(os, compact, statsId, datetime);
+    return d_impl_mp->printStats(os, compact, statsId, datetime, delimiter);
 }
 
 void JsonPrinter::logStats(int lastStatId)

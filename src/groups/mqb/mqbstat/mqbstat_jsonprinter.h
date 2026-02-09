@@ -122,7 +122,8 @@ class JsonPrinter {
     int printStats(bsl::ostream&         os,
                    bool                  compact,
                    int                   statsId,
-                   const bdlt::Datetime& datetime) const;
+                   const bdlt::Datetime& datetime,
+                   const bsl::string     delimiter = "\n");
 
     /// Dump the stats to the stat log file.
     void logStats(int lastStatId);

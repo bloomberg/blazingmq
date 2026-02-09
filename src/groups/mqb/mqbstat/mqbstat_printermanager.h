@@ -141,7 +141,8 @@ class PrinterManager {
     int printJsonStats(bsl::ostream&         stream,
                        bool                  compact,
                        int                   statsId,
-                       const bdlt::Datetime& datetime);
+                       const bdlt::Datetime& datetime,
+                       const bsl::string     delimiter);
 
     /// Dump the stats to the stat log file.
     void logStats();

@@ -53,6 +53,7 @@
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
 #include <bdlmt_eventscheduler.h>
+#include <bdlt_currenttime.h>
 #include <bdlt_timeunitratio.h>
 #include <bsl_algorithm.h>
 #include <bsl_ctime.h>
@@ -254,10 +255,12 @@ void StatController::captureStatsAndSemaphorePost(
         d_allocatorsStatContext_p->snapshot();
     }
 
+    bdlt::Datetime now = bdlt::CurrentTime::local();
+
     switch (encoding) {
     case mqbcmd::EncodingFormat::TEXT: {
         bmqu::MemOutStream os;
-        d_printerManager_mp->printTableStats(os, 0, bdlt::Datetime());
+        d_printerManager_mp->printTableStats(os, 0, now);
         result->makeStats() = os.str();
     } break;  // BREAK
 
@@ -273,11 +276,11 @@ void StatController::captureStatsAndSemaphorePost(
             const bool         compact = (encoding ==
                                   mqbcmd::EncodingFormat::JSON_COMPACT);
             bmqu::MemOutStream os;
-            const int          rc = d_printerManager_mp->printJsonStats(
-                os,
-                compact,
-                0,
-                bdlt::Datetime());
+            os << "[";
+
+            const int rc =
+                d_printerManager_mp->printJsonStats(os, compact, 0, now, ",");
+            os << "]";
             result->makeStats() = os.str();
 
             if (0 != rc) {
