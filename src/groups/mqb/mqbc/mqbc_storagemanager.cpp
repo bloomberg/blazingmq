@@ -659,8 +659,8 @@ void StorageManager::processPrimaryStateRequestDispatched(
                                  .partitionStateMessageDedupIntervalMs()) {
                 BALL_LOG_INFO
                     << d_clusterData_p->identity().description()
-                    << " Partition [" << partitionId << "]: "
-                    << "Ignoring likely duplicate "
+                    << " Partition [" << partitionId
+                    << "]: " << "Ignoring likely duplicate "
                     << "PrimaryStateRequest/ReplicaStateResponse from replica "
                     << source->nodeDescription()
                     << " because the previous request/response from the same "
@@ -892,8 +892,8 @@ void StorageManager::processReplicaStateResponseDispatched(
                                      .partitionStateMessageDedupIntervalMs()) {
                     BALL_LOG_INFO
                         << d_clusterData_p->identity().description()
-                        << " Partition [" << partitionId << "]: "
-                        << "Ignoring likely duplicate "
+                        << " Partition [" << partitionId
+                        << "]: " << "Ignoring likely duplicate "
                         << "PrimaryStateRequest/ReplicaStateResponse"
                         << " from replica " << cit->first->nodeDescription()
                         << " because the previous request/response "
@@ -1323,8 +1323,8 @@ void StorageManager::do_closeRecoveryFileSet(const EventWithData& event)
     if (rc != 0) {
         BMQTSK_ALARMLOG_ALARM("FILE_IO")
             << d_clusterData_p->identity().description() << " Partition ["
-            << partitionId << "]: "
-            << "Failure while closing recovery file set, rc: " << rc
+            << partitionId
+            << "]: " << "Failure while closing recovery file set, rc: " << rc
             << BMQTSK_ALARMLOG_END;
 
         mqbu::ExitUtil::terminate(mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
@@ -1844,8 +1844,8 @@ void StorageManager::do_replicaDataRequestPush(const EventWithData& event)
     if (d_recoveryManager_mp->expectedDataChunks(partitionId)) {
         BALL_LOG_INFO
             << d_clusterData_p->identity().description() << " Partition ["
-            << partitionId << "]: "
-            << "Not sending ReplicaDataRequestPush to replicas yet "
+            << partitionId
+            << "]: " << "Not sending ReplicaDataRequestPush to replicas yet "
             << "because self primary is still expecting recovery data "
             << "chunks from the up-to-date replica.";
 
@@ -2489,8 +2489,8 @@ void StorageManager::do_processBufferedLiveData(const EventWithData& event)
     BSLS_ASSERT_SAFE(fs);
     if (!fs->isOpen()) {
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << " Partition [" << partitionId << "]: "
-                       << "Cannot process buffered live data because "
+                       << " Partition [" << partitionId
+                       << "]: " << "Cannot process buffered live data because "
                        << "FileStore is not opened.";
 
         return;  // RETURN
@@ -3120,8 +3120,8 @@ void StorageManager::do_removeStorage(const EventWithData& event)
 
     BALL_LOG_WARN
         << d_clusterData_p->identity().description() << " Partition ["
-        << partitionId << "]: "
-        << "self's storage is out of sync with primary and cannot be "
+        << partitionId
+        << "]: " << "self's storage is out of sync with primary and cannot be "
         << "healed trivially. Removing entire storage and requesting it "
            "from "
            "primary.";
