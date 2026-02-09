@@ -6027,7 +6027,7 @@ const char AuthenticatorConfig::CLASS_NAME[] = "AuthenticatorConfig";
 
 const int AuthenticatorConfig::DEFAULT_INITIALIZER_MIN_THREADS = 1;
 
-const int AuthenticatorConfig::DEFAULT_INITIALIZER_MAX_THREADS = 3;
+const int AuthenticatorConfig::DEFAULT_INITIALIZER_MAX_THREADS = 8;
 
 const bdlat_AttributeInfo AuthenticatorConfig::ATTRIBUTE_INFO_ARRAY[] = {
     {ATTRIBUTE_ID_AUTHENTICATORS,

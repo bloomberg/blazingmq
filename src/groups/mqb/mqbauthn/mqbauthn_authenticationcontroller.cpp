@@ -483,19 +483,20 @@ int AuthenticationController::authenticate(
     const bsls::Types::Int64 elapsed = bmqsys::Time::highResolutionTimer() -
                                        start;
 
-    bmqu::MemOutStream logStream(d_allocator_p);
-    logStream << "Authentication successful: mechanism [ " << normMech
-              << " ], principal [ " << (*result)->principal()
-              << " ], lifetimeMs [ ";
-    if ((*result)->lifetimeMs().has_value()) {
-        logStream << (*result)->lifetimeMs().value();
-    }
-    else {
-        logStream << "none";
-    }
-    logStream << " ], took: " << bmqu::PrintUtil::prettyTimeInterval(elapsed)
-              << " (" << elapsed << " nanoseconds)";
-    BALL_LOG_INFO << logStream.str();
+    BALL_LOG_INFO_BLOCK
+    {
+        BALL_LOG_OUTPUT_STREAM << "Authentication successful: mechanism [ "
+                               << normMech << " ],  lifetimeMs [ ";
+        if ((*result)->lifetimeMs().has_value()) {
+            BALL_LOG_OUTPUT_STREAM << (*result)->lifetimeMs().value();
+        }
+        else {
+            BALL_LOG_OUTPUT_STREAM << "none";
+        }
+        BALL_LOG_OUTPUT_STREAM
+            << " ], took: " << bmqu::PrintUtil::prettyTimeInterval(elapsed)
+            << " (" << elapsed << " nanoseconds)";
+    };
 
     return rc_SUCCESS;
 }

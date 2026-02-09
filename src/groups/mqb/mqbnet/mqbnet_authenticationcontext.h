@@ -111,7 +111,7 @@ struct AuthenticationState {
 bsl::ostream& operator<<(bsl::ostream&             stream,
                          AuthenticationState::Enum value);
 
-/// VST for the context associated with an connection being authenticated.
+/// VST for the context associated with a connection being authenticated.
 class AuthenticationContext {
   private:
     // CLASS-SCOPE CATEGORY
