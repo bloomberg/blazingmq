@@ -501,10 +501,13 @@ int RecoveryManager::processSendDataChunks(
         rc_INCOMPLETE_REPLAY        = -6
     };
 
-    int rc = rc_SUCCESS;
+    int rcFinal = rc_SUCCESS;
 
     bdlb::ScopeExitAny guardDoneDataChunks(
-        bdlf::BindUtil::bind(doneDataChunksCb, partitionId, destination, rc));
+        bdlf::BindUtil::bind(doneDataChunksCb,
+                             partitionId,
+                             destination,
+                             &rcFinal));
 
     if (beginSeqNum == endSeqNum) {
         return rc_SUCCESS;  // RETURN
@@ -527,13 +530,14 @@ int RecoveryManager::processSendDataChunks(
     bsl::shared_ptr<mqbs::MappedFileDescriptor> mappedQlistFd =
         bsl::make_shared<mqbs::MappedFileDescriptor>();
 
-    rc = RecoveryUtil::loadFileDescriptors(mappedJournalFd.get(),
-                                           mappedDataFd.get(),
-                                           fileSet,
-                                           d_qListAware ? mappedQlistFd.get()
-                                                        : 0);
+    int rc = RecoveryUtil::loadFileDescriptors(
+        mappedJournalFd.get(),
+        mappedDataFd.get(),
+        fileSet,
+        d_qListAware ? mappedQlistFd.get() : 0);
     if (rc != 0) {
-        return rc * 10 + rc_LOAD_FD_FAILURE;  // RETURN
+        rcFinal = rc * 10 + rc_LOAD_FD_FAILURE;
+        return rcFinal;  // RETURN
     }
 
     bsl::shared_ptr<bsls::AtomicInt> journalChunkDeleterCounter =
@@ -563,13 +567,15 @@ int RecoveryManager::processSendDataChunks(
         mappedJournalFd.get(),
         mqbs::FileStoreProtocolUtil::bmqHeader(*mappedJournalFd.get()));
     if (0 != rc) {
-        return rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
+        rcFinal = rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;
+        return rcFinal;  // RETURN
     }
 
     // Make initial 'journalIt.nextRecord()' call
     rc = journalIt.nextRecord();
     if (rc != 1) {
-        return rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
+        rcFinal = rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;
+        return rcFinal;  // RETURN
     }
 
     bmqp_ctrlmsg::PartitionSequenceNumber currentSeqNum;
@@ -577,7 +583,8 @@ int RecoveryManager::processSendDataChunks(
                                               journalIt,
                                               beginSeqNum);
     if (rc != 0) {
-        return rc * 10 + rc_INVALID_SEQUENCE_NUMBER;  // RETURN
+        rcFinal = rc * 10 + rc_INVALID_SEQUENCE_NUMBER;
+        return rcFinal;  // RETURN
     }
 
     BALL_LOG_INFO << d_clusterData.identity().description() << " Partition ["
@@ -663,8 +670,8 @@ int RecoveryManager::processSendDataChunks(
         }
 
         if (bmqt::EventBuilderResult::e_SUCCESS != builderRc) {
-            return rc_BUILDER_FAILURE + 10 * static_cast<int>(builderRc);
-            // RETURN
+            rcFinal = rc_BUILDER_FAILURE + 10 * static_cast<int>(builderRc);
+            return rcFinal;  // RETURN
         }
 
         if (d_clusterConfig.partitionConfig()
@@ -675,8 +682,8 @@ int RecoveryManager::processSendDataChunks(
                 bmqp::EventType::e_PARTITION_SYNC);
 
             if (bmqt::GenericResult::e_SUCCESS != writeRc) {
-                return static_cast<int>(writeRc) * 10 + rc_WRITE_FAILURE;
-                // RETURN
+                rcFinal = static_cast<int>(writeRc) * 10 + rc_WRITE_FAILURE;
+                return rcFinal;  // RETURN
             }
 
             builder.reset();
@@ -698,7 +705,8 @@ int RecoveryManager::processSendDataChunks(
                       << "of last record sent: " << currentSeqNum
                       << ", was supposed to send up to: " << endSeqNum
                       << ". Peer: " << destination->nodeDescription() << ".";
-        return rc_INCOMPLETE_REPLAY;  // RETURN
+        rcFinal = rc_INCOMPLETE_REPLAY;
+        return rcFinal;  // RETURN
     }
 
     if (0 < builder.messageCount()) {
@@ -707,8 +715,8 @@ int RecoveryManager::processSendDataChunks(
             bmqp::EventType::e_PARTITION_SYNC);
 
         if (bmqt::GenericResult::e_SUCCESS != writeRc) {
-            return static_cast<int>(writeRc) * 10 +
-                   rc_WRITE_FAILURE;  // RETURN
+            rcFinal = static_cast<int>(writeRc) * 10 + rc_WRITE_FAILURE;
+            return rcFinal;  // RETURN
         }
     }
 
@@ -717,6 +725,7 @@ int RecoveryManager::processSendDataChunks(
                   << beginSeqNum << " to " << endSeqNum
                   << " to node: " << destination->nodeDescription() << ".";
 
+    BSLS_ASSERT_SAFE(rcFinal == rc_SUCCESS);
     return rc_SUCCESS;
 }
 

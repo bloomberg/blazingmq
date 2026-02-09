@@ -209,7 +209,7 @@ void StorageManager::onPartitionDoneSendDataChunksCb(
     int                             requestId,
     const PartitionSeqNumDataRange& range,
     mqbnet::ClusterNode*            destination,
-    int                             status)
+    int*                            status)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
@@ -219,7 +219,7 @@ void StorageManager::onPartitionDoneSendDataChunksCb(
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId
-                  << "]: " << "Received status " << status
+                  << "]: " << "Received status " << *status
                   << " for sending data chunks from Recovery Manager.";
 
     EventData eventDataVec;
@@ -229,7 +229,7 @@ void StorageManager::onPartitionDoneSendDataChunksCb(
     // primary.  As replica, we will send either success or failure
     // ReplicaDataResponsePull depending on 'status'.  In the future, it might
     // no longer be no-op for primary.
-    if (status != 0) {
+    if (*status != 0) {
         dispatchEventToPartition(
             PartitionFSM::Event::e_ERROR_SENDING_DATA_CHUNKS,
             eventDataVec);
@@ -2714,7 +2714,7 @@ void StorageManager::do_startSendDataChunks(const EventWithData& event)
     // action is performed by the replica.  If self is primary, we use
     // `d_nodeToSeqNumCtxMapVec` to determine data range for each replica
     // instead.
-    bsl::function<void(int, mqbnet::ClusterNode*, int)> f =
+    bsl::function<void(int, mqbnet::ClusterNode*, int*)> f =
         bdlf::BindUtil::bind(&StorageManager::onPartitionDoneSendDataChunksCb,
                              this,
                              bdlf::PlaceHolders::_1,  // partitionId

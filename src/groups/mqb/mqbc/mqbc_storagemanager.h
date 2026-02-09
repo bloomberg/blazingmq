@@ -444,7 +444,7 @@ class StorageManager BSLS_KEYWORD_FINAL
                                          int requestId,
                                          const PartitionSeqNumDataRange& range,
                                          mqbnet::ClusterNode* destination,
-                                         int                  status);
+                                         int*                 status);
 
     /// Callback invoked when the recovery for the specified `paritionId` is
     /// complete.
