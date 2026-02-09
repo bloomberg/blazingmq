@@ -67,8 +67,12 @@ def _compare_journal_files(
 
     # Check that number of journal files equal to partitions number
     num_partitions = cluster.config.definition.partition_config.num_partitions
-    assert len(leader_journal_files) == num_partitions
-    assert len(replica_journal_files) == num_partitions
+    assert len(leader_journal_files) == num_partitions, (
+        f"Expected {num_partitions} leader journal files, got {len(leader_journal_files)}"
+    )
+    assert len(replica_journal_files) == num_partitions, (
+        f"Expected {num_partitions} replica journal files, got {len(replica_journal_files)}"
+    )
 
     # Check that content of leader and replica journal files is equal
     for leader_file, replica_file in zip(
@@ -77,25 +81,37 @@ def _compare_journal_files(
     ):
         # Run storage tool on leader journal file in "detail" mode to check record order and content
         leader_res = _run_storage_tool(leader_file, "details")
-        assert leader_res.returncode == 0
+        assert leader_res.returncode == 0, (
+            f"Leader storage tool failed on {leader_file} with rc {leader_res.returncode}"
+        )
 
         # Run storage tool on replica journal file in "detail" mode to check record order and content
         replica_res = _run_storage_tool(replica_file, "details")
-        assert replica_res.returncode == 0
+        assert replica_res.returncode == 0, (
+            f"Replica storage tool failed on {replica_file} with rc {replica_res.returncode}"
+        )
 
         # Check that content of leader and replica journal files is equal
-        assert leader_res.stdout == replica_res.stdout
+        assert leader_res.stdout == replica_res.stdout, (
+            f"Leader and replica journal file contents differ for {leader_file} and {replica_file}"
+        )
 
         # Run storage tool on leader journal file in "summary" mode to check journal file headers
         leader_res = _run_storage_tool(leader_file, "summary")
-        assert leader_res.returncode == 0
+        assert leader_res.returncode == 0, (
+            f"Leader storage tool (summary) failed on {leader_file} with rc {leader_res.returncode}"
+        )
 
         # Run storage tool on replica journal file in "summary" mode to check journal file headers
         replica_res = _run_storage_tool(replica_file, "summary")
-        assert replica_res.returncode == 0
+        assert replica_res.returncode == 0, (
+            f"Replica storage tool (summary) failed on {replica_file} with rc {replica_res.returncode}"
+        )
 
         # Check that content of leader and replica journal files is equal
-        assert leader_res.stdout == replica_res.stdout
+        assert leader_res.stdout == replica_res.stdout, (
+            f"Leader and replica journal file summary differ for {leader_file} and {replica_file}"
+        )
 
 
 @tweak.cluster.partition_config.max_journal_file_size(MAX_JOURNAL_FILE_SIZE)
@@ -143,21 +159,27 @@ def test_sync_after_missed_rollover(
     # Put more messages w/o confirm to initiate the rollover
     i = 3
     while not leader.outputs_substr("Initiating rollover", 0.01):
-        assert i < 8, "Rollover was not initiated"
+        assert i < 8, f"Rollover was not initiated after {i - 1} messages"
         producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
         i += 1
 
     # Wait until rollover completed
-    assert leader.outputs_substr("ROLLOVER COMPLETE", 10)
+    assert leader.outputs_substr("ROLLOVER COMPLETE", 10), (
+        f"Leader {leader} did not output 'ROLLOVER COMPLETE' within 10s"
+    )
 
     # Restart the stopped replica which missed rollover
     replica.start()
     replica.wait_until_started()
 
     # Wait until replica synchronizes with cluster
-    assert replica.outputs_substr("Cluster (itCluster) is available", 10)
+    assert replica.outputs_substr("Cluster (itCluster) is available", 10), (
+        f"Replica {replica} did not output 'Cluster (itCluster) is available' within 10s"
+    )
 
-    assert leader == cluster.last_known_leader
+    assert leader == cluster.last_known_leader, (
+        f"Leader {leader} is not cluster.last_known_leader {cluster.last_known_leader}"
+    )
 
     # Check that leader and replica journal files are equal
     _compare_journal_files(leader.name, replica.name, cluster)
@@ -194,7 +216,9 @@ def test_sync_after_missed_rollover_after_restart(
     west2.set_quorum(5)
 
     east1.wait_status(wait_leader=True, wait_ready=True)
-    assert east1 == east1.last_known_leader
+    assert east1 == east1.last_known_leader, (
+        f"east1 {east1} is not last_known_leader {east1.last_known_leader}"
+    )
 
     # Create producer and consumer
     producer = east1.create_client("producer")
@@ -218,14 +242,20 @@ def test_sync_after_missed_rollover_after_restart(
     # Put more messages w/o confirm to initiate the rollover
     i = 3
     while not east1.outputs_substr("Initiating rollover", 0.01):
-        assert i < 8, "Rollover was not initiated"
+        assert i < 8, f"Rollover was not initiated after {i - 1} messages"
         producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
         i += 1
 
     # Wait until rollover completed on all running nodes
-    assert east1.outputs_substr("ROLLOVER COMPLETE", 10)
-    assert west1.outputs_substr("ROLLOVER COMPLETE", 10)
-    assert west2.outputs_substr("ROLLOVER COMPLETE", 10)
+    assert east1.outputs_substr("ROLLOVER COMPLETE", 10), (
+        "east1 did not output 'ROLLOVER COMPLETE' within 10s"
+    )
+    assert west1.outputs_substr("ROLLOVER COMPLETE", 10), (
+        "west1 did not output 'ROLLOVER COMPLETE' within 10s"
+    )
+    assert west2.outputs_substr("ROLLOVER COMPLETE", 10), (
+        "west2 did not output 'ROLLOVER COMPLETE' within 10s"
+    )
 
     #  Stop all running nodes
     for node in (east1, west1, west2):
@@ -246,10 +276,14 @@ def test_sync_after_missed_rollover_after_restart(
 
     # Wait until leader `east1` is ready
     east1.wait_status(wait_leader=True, wait_ready=True)
-    assert east1 == east1.last_known_leader
+    assert east1 == east1.last_known_leader, (
+        f"east1 is not last_known_leader {east1.last_known_leader}"
+    )
 
     # Wait until replica `east2` synchronizes with leader `east1`
-    assert east2.outputs_substr("Cluster (itCluster) is available", 10)
+    assert east2.outputs_substr("Cluster (itCluster) is available", 10), (
+        "east2 did not output 'Cluster (itCluster) is available' within 10s"
+    )
 
     # Check that leader `east1` and replica `east2` (which is missed rollover) journal files are equal
     _compare_journal_files(east1.name, east2.name, cluster)
@@ -301,9 +335,13 @@ def test_sync_after_missed_records(
     replica.wait_until_started()
 
     # Wait until replica synchronizes with cluster
-    assert replica.outputs_substr("Cluster (itCluster) is available", 10)
+    assert replica.outputs_substr("Cluster (itCluster) is available", 10), (
+        f"Replica {replica} did not output 'Cluster (itCluster) is available' within 10s"
+    )
 
-    assert leader == cluster.last_known_leader
+    assert leader == cluster.last_known_leader, (
+        f"Leader {leader} is not cluster.last_known_leader {cluster.last_known_leader}"
+    )
 
     # Check that leader and replica journal files are equal
     _compare_journal_files(leader.name, replica.name, cluster)
@@ -374,7 +412,9 @@ def test_sync_if_leader_missed_records(
 
     # Wait until cluster is ready
     next_leader.wait_status(wait_leader=True, wait_ready=True)
-    assert next_leader.last_known_leader == next_leader
+    assert next_leader.last_known_leader == next_leader, (
+        f"next_leader {next_leader} is not last_known_leader {next_leader.last_known_leader}"
+    )
 
     # Select replica
     replica = cluster.nodes(exclude=next_leader)[0]
