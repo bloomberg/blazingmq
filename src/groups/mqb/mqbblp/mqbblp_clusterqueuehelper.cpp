@@ -2374,8 +2374,16 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
         // fail.
     }
 
+    // Must check 'd_cluster_p->isRemote()' first
+    const bool canDetachFromPartition = d_cluster_p->isRemote()
+                                            ? true
+                                            : context.d_domain_p->config()
+                                                  .storage()
+                                                  .config()
+                                                  .isInMemoryValue();
+
     // Register this queue to the dispatcher.
-    if (d_cluster_p->isRemote()) {
+    if (canDetachFromPartition) {
         d_cluster_p->dispatcher()->registerClient(
             queueSp.get(),
             mqbi::DispatcherClientType::e_QUEUE);
