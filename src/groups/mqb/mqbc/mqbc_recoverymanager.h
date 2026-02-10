@@ -315,11 +315,11 @@ class RecoveryManager {
 
     /// Deprecate the active file set of the specified `partitionId`, called
     /// when self's storage is out of sync with primary and cannot be healed
-    /// trivially.
+    /// trivially.  Return 0 on success and non-zero rc on failure.
     ///
     /// THREAD: Executed by the queue dispatcher thread associated with the
     /// specified `partitionId`.
-    void deprecateFileSet(int partitionId);
+    int deprecateFileSet(int partitionId);
 
     /// Set the expected receive data chunk range for the specified
     /// 'partitionId' to be from the specified 'source' from the specified
