@@ -2193,58 +2193,6 @@ void StorageManager::do_replicaDataRequestDrop(const EventWithData& event)
     }
 }
 
-void StorageManager::do_replicaDataResponseDrop(const EventWithData& event)
-{
-    // executed by the *QUEUE DISPATCHER* thread associated with the
-    // paritionId contained in 'event'
-
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
-
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
-    mqbnet::ClusterNode*         destNode    = eventData.source();
-
-    BSLS_ASSERT_SAFE(0 <= partitionId &&
-                     partitionId < static_cast<int>(d_fileStores.size()));
-    BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfReplica());
-
-    BSLS_ASSERT_SAFE(destNode);
-    BSLS_ASSERT_SAFE(destNode->nodeId() ==
-                     d_partitionInfoVec[partitionId].primary()->nodeId());
-
-    bmqp_ctrlmsg::ControlMessage controlMsg;
-
-    BSLS_ASSERT_SAFE(eventData.requestId() >= 0);
-
-    // Responding immediately to a ReplicaDataRequestDrop
-
-    controlMsg.rId() = eventData.requestId();
-
-    bmqp_ctrlmsg::ReplicaDataResponse& response =
-        controlMsg.choice()
-            .makeClusterMessage()
-            .choice()
-            .makePartitionMessage()
-            .choice()
-            .makeReplicaDataResponse();
-
-    response.replicaDataType() = bmqp_ctrlmsg::ReplicaDataType::E_DROP;
-    response.partitionId()     = partitionId;
-    response.beginSequenceNumber() =
-        eventData.partitionSeqNumDataRange().first;
-    response.endSequenceNumber() = eventData.partitionSeqNumDataRange().second;
-
-    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
-                                                          eventData.source());
-
-    BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: " << "Sent response "
-                  << controlMsg
-                  << " to ReplicaDataRequestDrop from primary node "
-                  << destNode->nodeDescription() << ".";
-}
-
 void StorageManager::do_replicaDataRequestPull(const EventWithData& event)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with the
@@ -3078,7 +3026,8 @@ void StorageManager::do_updateStorage(const EventWithData& event)
     // more is coming, and there is no need to trigger FSM event.
 }
 
-void StorageManager::do_removeStorage(const EventWithData& event)
+void StorageManager::do_removeStorageAndSendReplicaDataDropResponse(
+    const EventWithData& event)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
@@ -3086,27 +3035,74 @@ void StorageManager::do_removeStorage(const EventWithData& event)
     const EventData& eventDataVec = event.second;
     BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
 
-    const int partitionId = eventDataVec[0].partitionId();
+    const PartitionFSMEventData& eventData   = eventDataVec[0];
+    const int                    partitionId = eventData.partitionId();
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfReplica());
+    mqbnet::ClusterNode* destNode = eventData.source();
+    BSLS_ASSERT_SAFE(destNode);
+    BSLS_ASSERT_SAFE(destNode->nodeId() ==
+                     d_partitionInfoVec[partitionId].primary()->nodeId());
 
     BALL_LOG_WARN
         << d_clusterData_p->identity().description() << " Partition ["
         << partitionId
         << "]: " << "self's storage is out of sync with primary and cannot be "
         << "healed trivially. Removing entire storage and requesting it from "
-           "primary.";
+        << "primary.";
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
     BSLS_ASSERT_SAFE(fs);
 
+    bool deprecateSuccess = false;
     if (fs->isOpen()) {
         fs->close(false);  // flush
-        fs->deprecateFileSet();
+        if (0 == fs->deprecateFileSet()) {
+            deprecateSuccess = true;
+        }
     }
     else {
-        d_recoveryManager_mp->deprecateFileSet(partitionId);
+        if (0 == d_recoveryManager_mp->deprecateFileSet(partitionId)) {
+            deprecateSuccess = true;
+        }
     }
+
+    bmqp_ctrlmsg::ControlMessage controlMsg;
+    BSLS_ASSERT_SAFE(eventData.requestId() >= 0);
+    controlMsg.rId() = eventData.requestId();
+
+    if (deprecateSuccess) {
+        bmqp_ctrlmsg::ReplicaDataResponse& response =
+            controlMsg.choice()
+                .makeClusterMessage()
+                .choice()
+                .makePartitionMessage()
+                .choice()
+                .makeReplicaDataResponse();
+
+        response.replicaDataType() = bmqp_ctrlmsg::ReplicaDataType::E_DROP;
+        response.partitionId()     = partitionId;
+        response.beginSequenceNumber() =
+            eventData.partitionSeqNumDataRange().first;
+        response.endSequenceNumber() =
+            eventData.partitionSeqNumDataRange().second;
+    }
+    else {
+        bmqp_ctrlmsg::Status& response = controlMsg.choice().makeStatus();
+        response.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+        response.code()     = mqbi::ClusterErrorCode::e_STORAGE_FAILURE;
+        response.message()  = "Failed to remove storage";
+    }
+
+    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
+                                                          eventData.source());
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << " Partition [" << partitionId << "]: " << "Sent response "
+                  << controlMsg
+                  << " to ReplicaDataRequestDrop from primary node "
+                  << destNode->nodeDescription() << ".";
 }
 
 void StorageManager::do_incrementNumRplcaDataRspn(const EventWithData& event)

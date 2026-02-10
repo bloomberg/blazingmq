@@ -618,9 +618,6 @@ class StorageManager BSLS_KEYWORD_FINAL
     void do_replicaDataRequestDrop(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_replicaDataResponseDrop(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
-
     void do_replicaDataRequestPull(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
 
@@ -662,7 +659,8 @@ class StorageManager BSLS_KEYWORD_FINAL
 
     void do_updateStorage(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
-    void do_removeStorage(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+    void do_removeStorageAndSendReplicaDataDropResponse(
+        const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
     void do_incrementNumRplcaDataRspn(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
