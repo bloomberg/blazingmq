@@ -149,13 +149,13 @@ int PrinterManager::printJsonStats(bsl::ostream&         stream,
                                    bool                  compact,
                                    int                   statsId,
                                    const bdlt::Datetime& datetime,
-                                   const bsl::string     delimiter)
+                                   bool                  needValidJson)
 {
     return d_jsonPrinter_mp->printStats(stream,
                                         compact,
                                         statsId,
                                         datetime,
-                                        delimiter);
+                                        needValidJson);
 }
 
 void PrinterManager::logStats()

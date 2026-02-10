@@ -276,11 +276,10 @@ void StatController::captureStatsAndSemaphorePost(
             const bool         compact = (encoding ==
                                   mqbcmd::EncodingFormat::JSON_COMPACT);
             bmqu::MemOutStream os;
-            os << "[";
 
             const int rc =
-                d_printerManager_mp->printJsonStats(os, compact, 0, now, ",");
-            os << "]";
+                d_printerManager_mp->printJsonStats(os, compact, 0, now, true);
+
             result->makeStats() = os.str();
 
             if (0 != rc) {

@@ -142,7 +142,7 @@ class PrinterManager {
                        bool                  compact,
                        int                   statsId,
                        const bdlt::Datetime& datetime,
-                       const bsl::string     delimiter);
+                       bool                  needValidJson);
 
     /// Dump the stats to the stat log file.
     void logStats();

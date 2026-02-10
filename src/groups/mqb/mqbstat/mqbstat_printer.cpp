@@ -275,8 +275,7 @@ void TablePrinter::logStats(int lastStatId)
 
     // Dump stats into bmqbrkr.stats.log
     attributes.clearMessage();
-    bsl::ostream os(&attributes.messageStreamBuf());
-    printStats(os, lastStatId, now);
+    printStats(attributes.messageStream(), lastStatId, now);
 
     d_statsLogFile.publish(
         record,

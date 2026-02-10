@@ -62,21 +62,39 @@ class JsonPrettyPrinter {
     /// Options for printing a compact JSON
     const bdljsn::WriteOptions& opts;
 
-    /// Delimiter in multi-object output
-    const bsl::string delimiter;
+    mutable int linesWritten;
+
+    const bool needValidJson;
+
+  private:
+    // NOT IMPLEMENTED
+    JsonPrettyPrinter(const JsonPrettyPrinter& other) BSLS_CPP11_DELETED;
+    JsonPrettyPrinter&
+    operator=(const JsonPrettyPrinter& other) BSLS_CPP11_DELETED;
 
   public:
     // CREATORS
 
     /// Create a new `JsonPrinterImpl` object, using the specified
     /// stream and the specified write options.
-    explicit JsonPrettyPrinter(bsl::ostream&               os,
-                               const bdljsn::WriteOptions& opts,
-                               const bsl::string           delimiter)
+    JsonPrettyPrinter(bsl::ostream&               os,
+                      const bdljsn::WriteOptions& opts,
+                      const bool                  needValidJson)
     : os(os)
     , opts(opts)
-    , delimiter(delimiter)
+    , needValidJson(needValidJson)
+    , linesWritten(0)
     {
+        if (needValidJson) {
+            os << "[";
+        }
+    }
+
+    ~JsonPrettyPrinter()
+    {
+        if (needValidJson) {
+            os << "]";
+        }
     }
 
     // ACCESSORS
@@ -84,9 +102,19 @@ class JsonPrettyPrinter {
     /// Print the specified `json` to the output stream.
     inline void printJson(const bdljsn::Json& json) const
     {
+        if (linesWritten > 0) {
+            if (needValidJson) {
+                os << ",";
+            }
+            else {
+                os << std::endl;
+            }
+        }
+
+        linesWritten++;
+
         const int rc = bdljsn::JsonUtil::write(os, json, opts);
         BSLS_ASSERT_SAFE(0 == rc);
-        os << delimiter;
     }
 };
 struct DomainsStatsConversionUtils {
@@ -662,7 +690,7 @@ class JsonPrinter::JsonPrinterImpl {
                    bool                  compact,
                    int                   statId,
                    const bdlt::Datetime& now,
-                   const bsl::string     delimiter) const;
+                   bool                  needValidJson) const;
 };
 
 inline JsonPrinter::JsonPrinterImpl::JsonPrinterImpl(
@@ -691,11 +719,13 @@ JsonPrinter::JsonPrinterImpl::printStats(bsl::ostream&         os,
                                          bool                  compact,
                                          int                   statsId,
                                          const bdlt::Datetime& datetime,
-                                         const bsl::string     delimiter) const
+                                         bool needValidJson) const
 {
     // executed by *StatController scheduler* thread
 
-    JsonPrettyPrinter jpp(os, compact ? d_opsCompact : d_opsPretty, delimiter);
+    JsonPrettyPrinter jpp(os,
+                          compact ? d_opsCompact : d_opsPretty,
+                          needValidJson);
 
     bdljsn::Json json(d_allocator_p);
     json.makeObject();
@@ -772,14 +802,18 @@ int JsonPrinter::printStats(bsl::ostream&         os,
                             bool                  compact,
                             int                   statsId,
                             const bdlt::Datetime& datetime,
-                            const bsl::string     delimiter)
+                            bool                  needValidJson)
 {
     // executed by *StatController scheduler* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_impl_mp);
 
-    return d_impl_mp->printStats(os, compact, statsId, datetime, delimiter);
+    return d_impl_mp->printStats(os,
+                                 compact,
+                                 statsId,
+                                 datetime,
+                                 needValidJson);
 }
 
 void JsonPrinter::logStats(int lastStatId)
@@ -800,9 +834,9 @@ void JsonPrinter::logStats(int lastStatId)
 
     // Dump stats into bmqbrkr.stats.log
     attributes.clearMessage();
-    bsl::ostream os(&attributes.messageStreamBuf());
-    const bool   isCompact = false;
-    printStats(os, isCompact, lastStatId, now);
+
+    const bool isCompact = false;
+    printStats(attributes.messageStream(), isCompact, lastStatId, now);
 
     d_statsLogFile.publish(
         record,
