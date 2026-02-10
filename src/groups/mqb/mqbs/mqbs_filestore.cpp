@@ -376,8 +376,9 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
         rc_INVALID_SYNC_PT                     = -6,
         rc_CONFIGURATION_ERROR                 = -7,
         rc_PARTITION_FULL                      = -8,
-        rc_OPEN_FAILURE                        = -9,
-        rc_SYNC_POINT_FAILURE                  = -10
+        rc_CLOSE_FAILURE                       = -9,
+        rc_OPEN_FAILURE                        = -10,
+        rc_SYNC_POINT_FAILURE                  = -11
     };
 
     MappedFileDescriptor journalFd;
@@ -961,7 +962,12 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
     }
 
     // Close file set as it is in read mode.
-    close(*fileSetSp, false);  // flush
+    rc = close(*fileSetSp, false);  // flush
+    if (0 != rc) {
+        BALL_LOG_ERROR << partitionDesc() << "Failed to close file set in read"
+                       << " mode during recovery, rc: " << rc;
+        return rc * 100 + rc_CLOSE_FAILURE;  // RETURN
+    }
 
     // Re-open in write mode, grow & map (do not delete on failure).
     bmqu::MemOutStream errorDesc;
@@ -981,7 +987,8 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
 
     if (0 != rc) {
         BALL_LOG_ERROR << partitionDesc() << "Failed to open file set in write"
-                       << " mode during recovery. Reason: " << errorDesc.str();
+                       << " mode during recovery, rc: " << rc
+                       << ". Reason: " << errorDesc.str();
         return rc * 100 + rc_OPEN_FAILURE;  // RETURN
     }
 
@@ -3329,14 +3336,23 @@ void FileStore::truncate(FileSet* fileSet)
     }
 }
 
-void FileStore::close(FileSet& fileSetRef, bool flush)
+int FileStore::close(FileSet& fileSetRef, bool flush)
 {
+    enum RcEnum {
+        rc_SUCCESS                  = 0,
+        rc_FLUSH_FAILURE            = -1,
+        rc_CLOSE_FAILURE            = -2,
+        rc_FLUSH_AND_CLOSE_FAILURES = -3
+    };
+
     BALL_LOG_INFO_BLOCK
     {
         BALL_LOG_OUTPUT_STREAM << partitionDesc()
                                << "Closing file store with config: \n";
         d_config.print(BALL_LOG_OUTPUT_STREAM);
     }
+
+    int rcFinal = rc_SUCCESS;
 
     if (flush) {
         BALL_LOG_INFO << partitionDesc() << "Flushing partition to disk.";
@@ -3351,6 +3367,7 @@ void FileStore::close(FileSet& fileSetRef, bool flush)
                 << fileSetRef.d_dataFileName << "], error: " << errorDesc.str()
                 << BMQTSK_ALARMLOG_END;
             errorDesc.reset();
+            rcFinal = rc_FLUSH_FAILURE;
         }
 
         rc = FileSystemUtil::flush(fileSetRef.d_journalFile.mapping(),
@@ -3362,6 +3379,7 @@ void FileStore::close(FileSet& fileSetRef, bool flush)
                 << fileSetRef.d_journalFileName
                 << "], error: " << errorDesc.str() << BMQTSK_ALARMLOG_END;
             errorDesc.reset();
+            rcFinal = rc_FLUSH_FAILURE;
         }
 
         if (d_qListAware) {
@@ -3374,6 +3392,7 @@ void FileStore::close(FileSet& fileSetRef, bool flush)
                     << fileSetRef.d_qlistFileName
                     << "], error: " << errorDesc.str() << BMQTSK_ALARMLOG_END;
                 errorDesc.reset();
+                rcFinal = rc_FLUSH_FAILURE;
             }
         }
 
@@ -3386,6 +3405,8 @@ void FileStore::close(FileSet& fileSetRef, bool flush)
             << partitionDesc() << "Failed to close data file ["
             << fileSetRef.d_dataFileName << "], rc: " << rc
             << BMQTSK_ALARMLOG_END;
+        rcFinal = (rcFinal == rc_FLUSH_FAILURE) ? rc_FLUSH_AND_CLOSE_FAILURES
+                                                : rc_CLOSE_FAILURE;
     }
 
     rc = FileSystemUtil::close(&fileSetRef.d_journalFile);
@@ -3394,6 +3415,8 @@ void FileStore::close(FileSet& fileSetRef, bool flush)
             << partitionDesc() << "Failed to close journal file ["
             << fileSetRef.d_journalFileName << "], rc: " << rc
             << BMQTSK_ALARMLOG_END;
+        rcFinal = (rcFinal == rc_FLUSH_FAILURE) ? rc_FLUSH_AND_CLOSE_FAILURES
+                                                : rc_CLOSE_FAILURE;
     }
 
     if (d_qListAware) {
@@ -3403,12 +3426,21 @@ void FileStore::close(FileSet& fileSetRef, bool flush)
                 << partitionDesc() << "Failed to close qlist file ["
                 << fileSetRef.d_qlistFileName << "], rc: " << rc
                 << BMQTSK_ALARMLOG_END;
+            rcFinal = (rcFinal == rc_FLUSH_FAILURE)
+                          ? rc_FLUSH_AND_CLOSE_FAILURES
+                          : rc_CLOSE_FAILURE;
         }
     }
+
+    return rcFinal;
 }
 
-void FileStore::archive(FileSet* fileSet)
+int FileStore::archive(FileSet* fileSet)
 {
+    enum rcEnum { rc_SUCCESS = 0, rc_FILE_MOVE_FAILURE = -1 };
+
+    int rcFinal = rc_SUCCESS;
+
     int rc = FileSystemUtil::move(fileSet->d_dataFileName,
                                   d_config.archiveLocation());
     if (0 != rc) {
@@ -3417,6 +3449,7 @@ void FileStore::archive(FileSet* fileSet)
             << fileSet->d_dataFileName << "] " << "to location ["
             << d_config.archiveLocation() << "] rc: " << rc
             << BMQTSK_ALARMLOG_END;
+        rcFinal = rc_FILE_MOVE_FAILURE;
     }
     else {
         BALL_LOG_INFO << partitionDesc() << "Moved data file ["
@@ -3432,6 +3465,7 @@ void FileStore::archive(FileSet* fileSet)
             << fileSet->d_journalFileName << "] " << "to location ["
             << d_config.archiveLocation() << "] rc: " << rc
             << BMQTSK_ALARMLOG_END;
+        rcFinal = rc_FILE_MOVE_FAILURE;
     }
     else {
         BALL_LOG_INFO << partitionDesc() << "Moved journal file ["
@@ -3448,6 +3482,7 @@ void FileStore::archive(FileSet* fileSet)
                 << fileSet->d_qlistFileName << "] " << "to location ["
                 << d_config.archiveLocation() << "] rc: " << rc
                 << BMQTSK_ALARMLOG_END;
+            rcFinal = rc_FILE_MOVE_FAILURE;
         }
         else {
             BALL_LOG_INFO << partitionDesc() << "Moved qlist file ["
@@ -3455,6 +3490,8 @@ void FileStore::archive(FileSet* fileSet)
                           << d_config.archiveLocation() << "].";
         }
     }
+
+    return rcFinal;
 }
 
 void FileStore::gc(FileSet* fileSet)
@@ -3500,6 +3537,7 @@ void FileStore::gcDispatched(BSLA_MAYBE_UNUSED int partitionId,
             BALL_LOG_OUTPUT_STREAM << ".";
         }
 
+        // TBD Revisit: handle non-zero rc from close()
         close(*fileSet, d_flushWhenClosing);
         d_fileSets.erase(d_fileSets.begin());
 
@@ -3556,16 +3594,30 @@ void FileStore::gcWorkerDispatched(const bsl::shared_ptr<FileSet>& fileSet)
 
     bsls::Types::Int64 startTime = bmqsys::Time::highResolutionTimer();
 
-    close(*fileSet, false);
+    int                rc        = close(*fileSet, false);
     bsls::Types::Int64 closeTime = bmqsys::Time::highResolutionTimer();
-    BALL_LOG_INFO << partitionDesc() << "File set closed. Time taken: "
+    if (rc != 0) {
+        BALL_LOG_ERROR << partitionDesc()
+                       << "Failed to closed file set. Time taken: "
+                       << bmqu::PrintUtil::prettyTimeInterval(closeTime -
+                                                              startTime);
+        return;  // RETURN
+    }
+    BALL_LOG_INFO << partitionDesc() << "Closed file set. Time taken: "
                   << bmqu::PrintUtil::prettyTimeInterval(closeTime -
                                                          startTime);
 
     bsls::Types::Int64 archiveStartTime = bmqsys::Time::highResolutionTimer();
-    archive(fileSet.get());
-    bsls::Types::Int64 archiveEndTime = bmqsys::Time::highResolutionTimer();
-    BALL_LOG_INFO << partitionDesc() << "File set archived. Time taken: "
+    rc                                  = archive(fileSet.get());
+    bsls::Types::Int64 archiveEndTime   = bmqsys::Time::highResolutionTimer();
+    if (rc != 0) {
+        BALL_LOG_ERROR << partitionDesc()
+                       << "Failed to archive file set. Time taken: "
+                       << bmqu::PrintUtil::prettyTimeInterval(
+                              archiveEndTime - archiveStartTime);
+        return;  // RETURN
+    }
+    BALL_LOG_INFO << partitionDesc() << "Archived file set. Time taken: "
                   << bmqu::PrintUtil::prettyTimeInterval(archiveEndTime -
                                                          archiveStartTime);
 }
@@ -5355,6 +5407,7 @@ void FileStore::close(bool flush)
             BALL_LOG_OUTPUT_STREAM << ".";
         }
 
+        // TBD Revisit: handle non-zero rc from close()
         close(*activeFileSet, flush);
         d_fileSets.erase(d_fileSets.begin());
     }
@@ -7084,17 +7137,23 @@ void FileStore::applyForEachQueue(const QueueFunctor& functor) const
     }
 }
 
-void FileStore::deprecateFileSet()
+int FileStore::deprecateFileSet()
 {
+    enum rcEnum { rc_SUCCESS = 0, rc_ARHIVE_FAILURE = -1 };
+
     if (d_isOpen) {
         BALL_LOG_ERROR << partitionDesc()
                        << "Cannot deprecate the active file set as this "
                        << "FileStore is still open.";
 
-        return;  // RETURN
+        return rc_SUCCESS;  // RETURN
     }
 
-    archive(d_fileSets[0].get());
+    const int rc = archive(d_fileSets[0].get());
+    if (rc != 0) {
+        return rc * 10 + rc_ARHIVE_FAILURE;  // RETURN
+    }
+    return rc_SUCCESS;
 }
 
 void FileStore::registerStorage(ReplicatedStorage* storage)
