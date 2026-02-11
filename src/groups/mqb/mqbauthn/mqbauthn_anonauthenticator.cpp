@@ -138,8 +138,9 @@ int AnonAuthenticator::authenticate(
     BSLS_ASSERT_SAFE(result);
 
     if (d_shouldPass) {
-        BALL_LOG_INFO << "Authentication passed for mechanism '" << mechanism()
-                      << "' unconditionally (shouldPass = true).";
+        BALL_LOG_DEBUG << "Authentication passed for mechanism '"
+                       << mechanism()
+                       << "' unconditionally (shouldPass = true).";
 
         // No `lifetime` is returned since we don't expect a user to
         // reauthenticate if they don't know how to authenticate in the first
@@ -150,8 +151,9 @@ int AnonAuthenticator::authenticate(
         return 0;  // RETURN
     }
     else {
-        BALL_LOG_INFO << "Authentication failed for mechanism '" << mechanism()
-                      << "' unconditionally (shouldPass = false).";
+        BALL_LOG_DEBUG << "Authentication failed for mechanism '"
+                       << mechanism()
+                       << "' unconditionally (shouldPass = false).";
 
         errorDescription << "Authentication rejected by AnonAuthenticator";
 

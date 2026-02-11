@@ -135,7 +135,8 @@ int BasicAuthenticator::authenticate(
     bsl::shared_ptr<mqbplug::AuthenticationResult>* result,
     const mqbplug::AuthenticationData&              input) const
 {
-    BALL_LOG_INFO << "Authentication using mechanism '" << mechanism() << "'.";
+    BALL_LOG_DEBUG << "Authentication using mechanism '" << mechanism()
+                   << "'.";
 
     const bsl::vector<char>& payload = input.authnPayload();
     bsl::string_view payloadView(reinterpret_cast<const char*>(payload.data()),
@@ -158,8 +159,9 @@ int BasicAuthenticator::authenticate(
         return -1;  // RETURN
     }
 
-    BALL_LOG_INFO << "BasicAuthenticator: "
-                  << "authentication successful for user '" << username << "'";
+    BALL_LOG_DEBUG << "BasicAuthenticator: "
+                   << "authentication successful for user '" << username
+                   << "'";
 
     *result = bsl::allocate_shared<BasicAuthenticationResult>(
         d_allocator_p,
