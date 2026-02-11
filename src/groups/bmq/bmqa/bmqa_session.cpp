@@ -86,9 +86,6 @@ BSLMF_ASSERT(false == bsl::is_polymorphic<SessionEvent>::value);
 
 BSLMF_ASSERT(false == bsl::is_polymorphic<MessageProperties>::value);
 
-// CONSTANTS
-const int k_CHANNEL_WRITE_TIMEOUT = 5;  // sec
-
 // LOG CONFIGURATION
 BALL_LOG_SET_NAMESPACE_CATEGORY("BMQA.SESSION");
 
@@ -1511,8 +1508,7 @@ int Session::post(const MessageEvent& event)
     BSLS_ASSERT_SAFE(0 != eventSpRef.get());
 
     return d_impl.d_application_mp->brokerSession().post(
-        *(eventSpRef->rawEvent().blob()),
-        bsls::TimeInterval(k_CHANNEL_WRITE_TIMEOUT));
+        *(eventSpRef->rawEvent().blob()));
 }
 
 int Session::confirmMessage(const MessageConfirmationCookie& cookie)
@@ -1534,8 +1530,7 @@ int Session::confirmMessage(const MessageConfirmationCookie& cookie)
 
     return d_impl.d_application_mp->brokerSession().confirmMessage(
         queue,
-        cookie.messageGUID(),
-        bsls::TimeInterval(k_CHANNEL_WRITE_TIMEOUT));
+        cookie.messageGUID());
 }
 
 int Session::confirmMessages(ConfirmEventBuilder* builder)
@@ -1556,8 +1551,7 @@ int Session::confirmMessages(ConfirmEventBuilder* builder)
     }
 
     const int rc = d_impl.d_application_mp->brokerSession().confirmMessages(
-        *(&builder->blob()),
-        bsls::TimeInterval(k_CHANNEL_WRITE_TIMEOUT));
+        *(&builder->blob()));
 
     if (bmqt::GenericResult::e_SUCCESS == rc) {
         builder->reset();
