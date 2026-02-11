@@ -285,6 +285,8 @@ def test_priority_reconfigure_max_idle_time(
 
 
 @tweak.domain.max_idle_time(1)
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_priority_alarms_subscription_mismatch(
     cluster: Cluster, domain_urls: tc.DomainUrls
 ):
@@ -435,6 +437,8 @@ def test_fanout_transition_active_alarm_active(
 
 
 @tweak.domain.max_idle_time(1)
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_fanout_alarms_subscription_mismatch(
     cluster: Cluster, domain_urls: tc.DomainUrls
 ):
@@ -490,6 +494,8 @@ def test_fanout_alarms_subscription_mismatch(
 
 
 @tweak.domain.storage.queue_limits.messages(2)
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_capacity_alarm_subscription_mismatch(
     cluster: Cluster, domain_urls: tc.DomainUrls
 ):

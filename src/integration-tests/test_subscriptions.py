@@ -119,7 +119,7 @@ class DeliveryOptimizationMonitor:
         assert leader is not None
 
         early_exit_message = r"appId = \'(\w+)\' does not have any subscription capacity; early exits delivery"
-        capture_timeout = 2
+        capture_timeout = 5
 
         while True:
             match = leader.capture(early_exit_message, timeout=capture_timeout)
@@ -464,6 +464,8 @@ class Consumer:
         return res
 
 
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_second_configure(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: a simple scenario where a crash might occur.
@@ -496,6 +498,8 @@ def test_second_configure(cluster: Cluster, domain_urls: tc.DomainUrls):
     consumer.configure(uri, block=True)
 
 
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_open(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: open queue with the specified subscription.
@@ -519,6 +523,8 @@ def test_open(cluster: Cluster, domain_urls: tc.DomainUrls):
     consumer.expect_messages(["x: 0", "x: 1"], confirm=True)
 
 
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_non_blocking(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: messages that must not be received by the given consumer do not
@@ -562,6 +568,8 @@ def test_non_blocking(cluster: Cluster, domain_urls: tc.DomainUrls):
     consumer2.expect_messages(["x: 0"], confirm=True)
 
 
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_configure_subscription(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: configure queue with the specified subscription.
@@ -588,6 +596,8 @@ def test_configure_subscription(cluster: Cluster, domain_urls: tc.DomainUrls):
     consumer.expect_messages(["x: 0", "x: 1"], confirm=True)
 
 
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_reconfigure_subscription(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: reconfigure queue with the specified subscription.
@@ -638,6 +648,8 @@ def test_reconfigure_subscription(cluster: Cluster, domain_urls: tc.DomainUrls):
     consumer.expect_messages(["x: 0", "x: 1"], confirm=True)
 
 
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_non_overlapping(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: several non-overlapping subscriptions to the same queue.
@@ -670,6 +682,8 @@ def test_non_overlapping(cluster: Cluster, domain_urls: tc.DomainUrls):
     consumer3.expect_messages(expected3, confirm=True)
 
 
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_priorities(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: several subscriptions to the same queue with different priorities.
@@ -708,6 +722,8 @@ def test_priorities(cluster: Cluster, domain_urls: tc.DomainUrls):
     consumer2.expect_messages(expected, confirm=True)
 
 
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_fanout(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: subscriptions work in fanout mode.
@@ -740,6 +756,8 @@ def test_fanout(cluster: Cluster, domain_urls: tc.DomainUrls):
         consumer.expect_messages(expected, confirm=True)
 
 
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_broadcast(
     cluster: Cluster,
     domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
@@ -778,6 +796,8 @@ def test_broadcast(
     consumer_gteq_100.expect_messages(expected_gteq_100, confirm=False)
 
 
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_round_robin(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: round-robin routing of messages with subscriptions.
@@ -826,6 +846,8 @@ def test_round_robin(cluster: Cluster, domain_urls: tc.DomainUrls):
         consumer.expect_messages(expected, confirm=True)
 
 
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_redelivery(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: message redelivery when the consumer exits without confirmation.
@@ -862,6 +884,8 @@ def test_redelivery(cluster: Cluster, domain_urls: tc.DomainUrls):
     consumer.expect_messages(expected, confirm=True)
 
 
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_max_unconfirmed(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: routing of messages between several subscriptions with the same
@@ -970,6 +994,8 @@ def test_max_unconfirmed(cluster: Cluster, domain_urls: tc.DomainUrls):
     consumer2.expect_empty()
 
 
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_max_unconfirmed_low_priority_spillover(
     cluster: Cluster, domain_urls: tc.DomainUrls
 ):
@@ -1038,6 +1064,8 @@ def test_max_unconfirmed_low_priority_spillover(
     consumer2.expect_empty()
 
 
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_many_subscriptions(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: open multiple subscriptions at once.
@@ -1066,6 +1094,8 @@ def test_many_subscriptions(cluster: Cluster, domain_urls: tc.DomainUrls):
     consumer.expect_messages(expected, confirm=True)
 
 
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_complex_expressions(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: complex subscription expressions with several properties.
@@ -1096,6 +1126,8 @@ def test_complex_expressions(cluster: Cluster, domain_urls: tc.DomainUrls):
     consumer.expect_messages(expected, confirm=True)
 
 
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_incorrect_expressions(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: incorrect expressions.
@@ -1151,6 +1183,8 @@ def test_incorrect_expressions(cluster: Cluster, domain_urls: tc.DomainUrls):
         consumer.configure(["x < 0"])
 
 
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_non_bool_expressions(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: expressions that are not evaluated as booleans.
@@ -1186,6 +1220,8 @@ def test_non_bool_expressions(cluster: Cluster, domain_urls: tc.DomainUrls):
         consumer.expect_messages(expected, confirm=True)
 
 
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_numeric_limits(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: pass huge values in subscription expressions.
@@ -1261,6 +1297,8 @@ def test_numeric_limits(cluster: Cluster, domain_urls: tc.DomainUrls):
             consumer.expect_messages(expected, confirm=True)
 
 
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_empty_subscription(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: empty subscription works for backward compatibility.
@@ -1301,6 +1339,8 @@ def test_empty_subscription(cluster: Cluster, domain_urls: tc.DomainUrls):
     consumer.expect_messages(expected, confirm=True)
 
 
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_empty_expression(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: subscription with specific empty string "" expression rejected.
@@ -1358,6 +1398,8 @@ def test_empty_expression(cluster: Cluster, domain_urls: tc.DomainUrls):
     consumer.expect_messages(expected, confirm=True)
 
 
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_non_existent_property(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: expressions are evaluated even if some properties are missing.
@@ -1390,6 +1432,8 @@ def test_non_existent_property(cluster: Cluster, domain_urls: tc.DomainUrls):
     consumer2.expect_messages(expected2, confirm=True)
 
 
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_date_time(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: expressions with date/time passed as string work.
@@ -1453,6 +1497,8 @@ def test_date_time(cluster: Cluster, domain_urls: tc.DomainUrls):
             consumer.expect_messages(remaining, confirm=True)
 
 
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_consumer_multiple_priorities(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: messages are routed correctly with overlapping subscriptions with
@@ -1492,6 +1538,8 @@ def test_consumer_multiple_priorities(cluster: Cluster, domain_urls: tc.DomainUr
     consumer2.expect_messages(expected, confirm=True)
 
 
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_no_capacity_all_optimization(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: delivery optimization works during routing when all subscriptions
@@ -1596,6 +1644,8 @@ def test_no_capacity_all_optimization(cluster: Cluster, domain_urls: tc.DomainUr
     assert not optimization_monitor.has_new_message()
 
 
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_no_capacity_all_fanout(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: delivery optimization encountered with one app does not affect
@@ -1682,6 +1732,8 @@ def test_no_capacity_all_fanout(cluster: Cluster, domain_urls: tc.DomainUrls):
     assert optimization_monitor.has_new_message("baz")
 
 
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_primary_node_crash(multi_node: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: configured subscriptions work after primary node crash.
@@ -1743,6 +1795,8 @@ def test_primary_node_crash(multi_node: Cluster, domain_urls: tc.DomainUrls):
     consumer3.expect_messages(expected3, confirm=True)
 
 
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_redelivery_on_primary_node_crash(
     multi_node: Cluster, domain_urls: tc.DomainUrls
 ):
@@ -1810,6 +1864,8 @@ def test_redelivery_on_primary_node_crash(
     consumer_low2.expect_messages(expected2, confirm=True)
 
 
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_reconfigure_on_primary_node_crash(
     multi_node: Cluster, domain_urls: tc.DomainUrls
 ):
@@ -1891,6 +1947,8 @@ def test_reconfigure_on_primary_node_crash(
         low_interval=5000000,
     )
 )
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_poison(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: poison messages detection works for subscriptions.

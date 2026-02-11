@@ -214,6 +214,8 @@ class TestAppSubscriptions:
             {"appId": "bar", "expression": {"version": "E_VERSION_1", "text": "x > 2"}},
         ]
     )
+    @tweak.broker.app_config.configure_stream(True)
+    @tweak.broker.app_config.advertise_subscriptions(True)
     def test_app_subscription_with_consumer_subscription(
         self, cluster: Cluster, domain_urls: tc.DomainUrls
     ):
