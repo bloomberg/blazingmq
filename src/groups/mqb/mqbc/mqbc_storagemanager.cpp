@@ -1266,6 +1266,13 @@ void StorageManager::do_storeSelfSeq(const EventWithData& event)
     NodeSeqNumContext&   nodeSeqNumCtx =
         d_nodeToSeqNumCtxMapVec[partitionId][selfNode];
     if (dataRange.second > bmqp_ctrlmsg::PartitionSequenceNumber()) {
+        // NOTE: `dataRange` is set *if and only if* the input event is
+        //       `e_REPLICA_DATA_RSPN_PULL`.  In that case, we need to update
+        //       self sequence number based on the received data range, which
+        //       is more up-to-date than what is persisted in storage or what
+        //       is reported by primary/replica state response.
+        BSLS_ASSERT_SAFE(event.first ==
+                         PartitionFSM::Event::e_REPLICA_DATA_RSPN_PULL);
         nodeSeqNumCtx.d_seqNum = dataRange.second;
     }
     else {
@@ -1276,8 +1283,31 @@ void StorageManager::do_storeSelfSeq(const EventWithData& event)
             nodeSeqNumCtx.d_seqNum.sequenceNumber() = fs->sequenceNumber();
         }
         else {
-            d_recoveryManager_mp->recoverSeqNum(&nodeSeqNumCtx.d_seqNum,
-                                                partitionId);
+            int rc = d_recoveryManager_mp->initHistoricHighestSeqNums(
+                partitionId);
+            if (rc != 0) {
+                BMQTSK_ALARMLOG_ALARM("FILE_IO")
+                    << d_clusterData_p->identity().description()
+                    << " Partition [" << partitionId
+                    << "]: " << "Error while initializing historic highest "
+                    << "sequence numbers, rc: " << rc << BMQTSK_ALARMLOG_END;
+
+                mqbu::ExitUtil::terminate(
+                    mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
+            }
+
+            rc = d_recoveryManager_mp->recoverSeqNum(&nodeSeqNumCtx.d_seqNum,
+                                                     partitionId);
+            if (rc != 0) {
+                BMQTSK_ALARMLOG_ALARM("FILE_IO")
+                    << d_clusterData_p->identity().description()
+                    << " Partition [" << partitionId << "]: "
+                    << "Error while recovering sequence number, rc: " << rc
+                    << BMQTSK_ALARMLOG_END;
+
+                mqbu::ExitUtil::terminate(
+                    mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
+            }
         }
     }
     nodeSeqNumCtx.d_firstSyncPointAfterRolloverSeqNum =
