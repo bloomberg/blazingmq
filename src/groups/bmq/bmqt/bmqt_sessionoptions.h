@@ -182,7 +182,7 @@ class SessionOptions {
     static const int k_QUEUE_OPERATION_DEFAULT_TIMEOUT =
         5 * bdlt::TimeUnitRatio::k_SECONDS_PER_MINUTE;
 
-    static const unsigned int k_CHANNEL_WRITE_DEFAULT_TIMEOUT_MS = 5000;
+    static const unsigned int k_CHANNEL_WRITE_DEFAULT_TIMEOUT_SEC = 5;
 
   private:
     // DATA
@@ -240,7 +240,7 @@ class SessionOptions {
     /// When the session channel is at high watermark, block `post` calls for
     /// up to this value until the channel returns to low watermark and drains
     /// buffered data.
-    unsigned int d_channelWriteTimeoutMs;
+    bsls::TimeInterval d_channelWriteTimeoutMs;
 
   public:
     // TRAITS
@@ -334,9 +334,9 @@ class SessionOptions {
     /// characters and `value.size() < 128`.
     SessionOptions& setUserAgentPrefix(bsl::string_view value);
 
-    /// Set the timeout in ms to block `post` when at high watermark.
+    /// Set the timeout to block `post` when at high watermark.
     /// Zero means no blocking.
-    SessionOptions& setChannelWriteTimeoutMs(unsigned int ms);
+    SessionOptions& setChannelWriteTimeout(const bsls::TimeInterval& value);
 
     // ACCESSORS
 
@@ -391,8 +391,8 @@ class SessionOptions {
     /// Get the user agent prefix.
     const bsl::string& userAgentPrefix() const;
 
-    /// Get the timeout in ms to block `post` when at high watermark.
-    unsigned int channelWriteTimeoutMs() const;
+    /// Get the timeout to block `post` when at high watermark.
+    const bsls::TimeInterval& channelWriteTimeout() const;
 
     /// Format this object to the specified output `stream` at the (absolute
     /// value of) the optionally specified indentation `level` and return a
@@ -571,9 +571,9 @@ SessionOptions::setUserAgentPrefix(bsl::string_view value)
 }
 
 inline SessionOptions&
-SessionOptions::setChannelWriteTimeoutMs(unsigned int ms)
+SessionOptions::setChannelWriteTimeout(const bsls::TimeInterval& value)
 {
-    d_channelWriteTimeoutMs = ms;
+    d_channelWriteTimeoutMs = value;
 
     return *this;
 }
@@ -671,7 +671,7 @@ inline const bsl::string& SessionOptions::userAgentPrefix() const
     return d_userAgentPrefix;
 }
 
-inline unsigned int SessionOptions::channelWriteTimeoutMs() const
+inline const bsls::TimeInterval& SessionOptions::channelWriteTimeout() const
 {
     return d_channelWriteTimeoutMs;
 }

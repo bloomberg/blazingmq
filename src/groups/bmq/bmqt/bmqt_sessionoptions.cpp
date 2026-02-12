@@ -49,7 +49,7 @@ SessionOptions::SessionOptions(bslma::Allocator* allocator)
 , d_dtContext_sp(NULL)
 , d_dtTracer_sp(NULL)
 , d_userAgentPrefix(allocator)
-, d_channelWriteTimeoutMs(k_CHANNEL_WRITE_DEFAULT_TIMEOUT_MS)
+, d_channelWriteTimeoutMs(k_CHANNEL_WRITE_DEFAULT_TIMEOUT_SEC)
 {
     // NOTHING
 }

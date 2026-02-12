@@ -6989,14 +6989,15 @@ bool BrokerSession::acceptUserEvent(const bdlbb::Blob& eventBlob)
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!d_extensionBufferEmpty)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        const unsigned int timeout = d_sessionOptions.channelWriteTimeoutMs();
+        const bsls::TimeInterval& timeout =
+            d_sessionOptions.channelWriteTimeout();
 
-        if (timeout == 0) {
+        if (timeout.totalMilliseconds() == 0) {
             return false;  // RETURN
         }
 
         const bsls::TimeInterval expireAfter =
-            bmqsys::Time::nowMonotonicClock().addMilliseconds(timeout);
+            bmqsys::Time::nowMonotonicClock() + timeout;
 
         bslmt::LockGuard<bslmt::Mutex> guard(&d_extensionBufferLock);
         // LOCK

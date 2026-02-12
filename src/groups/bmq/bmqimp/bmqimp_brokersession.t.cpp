@@ -4552,8 +4552,7 @@ static void test21_post_Limit()
                                     bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
-    sessionOptions.setChannelWriteTimeoutMs(lwmTimeout.totalMilliseconds() +
-                                            1);
+    sessionOptions.setChannelWriteTimeout(lwmTimeout + 0.001);
     // Create test session with the system time source
     TestSession obj(sessionOptions,
                     scheduler,
@@ -4691,8 +4690,7 @@ static void test22_confirm_Limit()
                                     bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
-    sessionOptions.setChannelWriteTimeoutMs(lwmTimeout.totalMilliseconds() +
-                                            1);
+    sessionOptions.setChannelWriteTimeout(lwmTimeout + 0.001);
 
     TestSession obj(sessionOptions,
                     scheduler,
@@ -6530,7 +6528,7 @@ static void test33_queueNackTest()
                                     bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
-    sessionOptions.setChannelWriteTimeoutMs(timeout.totalMilliseconds());
+    sessionOptions.setChannelWriteTimeout(timeout);
 
     TestSession obj(sessionOptions,
                     scheduler,
@@ -8954,7 +8952,7 @@ static void test50_putRetransmittingTest()
     bmqt::MessageGUID guidFourth = bmqp::MessageGUIDGenerator::testGUID();
 
     sessionOptions.setNumProcessingThreads(1);
-    sessionOptions.setChannelWriteTimeoutMs(timeout.totalMilliseconds());
+    sessionOptions.setChannelWriteTimeout(timeout);
 
     TestSession obj(sessionOptions,
                     testClock,
@@ -9240,7 +9238,7 @@ static void test51_putRetransmittingNoAckTest()
     bmqt::MessageGUID         guid3 = bmqp::MessageGUIDGenerator::testGUID();
 
     sessionOptions.setNumProcessingThreads(1);
-    sessionOptions.setChannelWriteTimeoutMs(timeout.totalMilliseconds());
+    sessionOptions.setChannelWriteTimeout(timeout);
 
     TestSession obj(sessionOptions,
                     scheduler,
