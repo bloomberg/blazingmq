@@ -23,7 +23,6 @@
 //@CLASSES:
 //  bmqc::MultiQueueThreadPool: Queues processed by a thread pool
 //  bmqc::MultiQueueThreadPoolConfig: Configuration for a MQTP
-//  bmqc::MultiQueueThreadPool_QueueCreatorRet: MQTP queueCreator args
 //
 //@DESCRIPTION: This component defines a mechanism,
 // 'bmqc::MultiQueueThreadPool', which encapsulates the common pattern of
@@ -54,34 +53,25 @@
 //
 // Now we can start by defining two functions: the queue creator, and the
 // event handler.  The queue creator is responsible for constructing one of
-// the queues used by the MQTP, as well as a context for the queue, and to
-// perform any other necessary initialization for the queue.
+// the queues used by the MQTP and to perform any other necessary
+// initialization for the queue.
 //..
-//  MQTP::Queue* queueCreator(MQTP::QueueCreatorRet *ret,
-//                            int                     queueId,
+//  MQTP::Queue* queueCreator(int                     queueId,
 //                            bslma::Allocator       *allocator)
 //  {
-//      ret->context().load(&queueContextMap[queueId],
-//                          0,
-//                          &bslma::ManagedPtrUtil::noOpDeleter);
-//
 //      return new (*allocator) MQTP::Queue(10, allocator);
 //  }
 //..
-// This function creates our queue, and assigns a 'bsl::vector<int>' as its
-// context.  The context is passed to the event handler with every event it
-// receives.
 //
 // Now, our event handler can simply push the integers it receives into its
 // context vector.
 //..
-//  void eventCb(int queueId, void *context, const MQTP::EventSp &event)
+//  void eventCb(int queueId, const MQTP::EventSp &event)
 //  {
 //      if (event) {
 //          // Non-empty `event` means user event
-//          bsl::vector<int> *vec = reinterpret_cast<bsl::vector<int> *>(
-//                                                                    context);
-//          vec->push_back(event->object());
+//          // Do some work with `event`:
+//          bsl::cout << event->object() << bsl::endl;
 //      } else {
 //          // Empty `event` means empty queue event
 //      }
@@ -104,8 +94,8 @@
 //  using namespace bdlf::PlaceHolders;
 //  MQTP mfqtp(MQTP::Config(
 //                        3,    // number of queues,
-//                        bdlf::BindUtil::bind(&eventCb, _1, _2, _3),
-//                        bdlf::BindUtil::bind(&queueCreator, _1, _2, _3))
+//                        bdlf::BindUtil::bind(&eventCb, _1, _2),
+//                        bdlf::BindUtil::bind(&queueCreator, _1, _2))
 //                                                     .threadPool(&threadPool)
 //                                                     .exclusive(true));
 //  mfqtp.start();
@@ -179,52 +169,6 @@
 namespace BloombergLP {
 namespace bmqc {
 
-// ==========================================
-// class MultiQueueThreadPool_QueueCreatorRet
-// ==========================================
-
-/// Additional output arguments of a
-/// MultiQueueThreadPool::QueueCreatorFn
-class MultiQueueThreadPool_QueueCreatorRet {
-  private:
-    // DATA
-    bslma::ManagedPtr<void> d_context_mp;
-    // User context associated with the
-    // returned queue
-
-    bsl::string d_name;
-    // Optional name of this queue
-
-  private:
-    // NOT IMPLEMENTED
-    MultiQueueThreadPool_QueueCreatorRet(
-        const MultiQueueThreadPool_QueueCreatorRet&) BSLS_KEYWORD_DELETED;
-    MultiQueueThreadPool_QueueCreatorRet& operator=(
-        const MultiQueueThreadPool_QueueCreatorRet&) BSLS_KEYWORD_DELETED;
-
-  public:
-    // CREATORS
-
-    /// Create a new `bmqc::MultiQueueThreadPool_QueueCreatorRet` object
-    /// using the optionally specified `basicAllocator`.
-    explicit MultiQueueThreadPool_QueueCreatorRet(
-        bslma::Allocator* basicAllocator = 0);
-
-    // MANIPULATORS
-
-    /// Return a refernce offering modifiable access to the user context to
-    /// associate with the returned Queue.  This context will be provided to
-    /// the event callback whenever an event from this queue is being
-    /// executed.
-    bslma::ManagedPtr<void>& context();
-
-    // ACCESSORS
-
-    /// Return a reference offering non-modifiable access to the optional
-    /// name of this queue.
-    const bsl::string& name();
-};
-
 // ================================
 // class MultiQueueThreadPoolConfig
 // ================================
@@ -239,21 +183,14 @@ class MultiQueueThreadPoolConfig {
 
     typedef MonitoredQueue<bdlcc::SingleConsumerQueue<EventSp> > Queue;
 
-    typedef MultiQueueThreadPool_QueueCreatorRet QueueCreatorRet;
-
     /// Create the queue for the specified `queueId` using the specified
-    /// `allocator`.  Populate the specified `ret` with additional options
-    /// associated with the returned queue.
-    typedef bsl::function<
-        Queue*(QueueCreatorRet* ret, int queueId, bslma::Allocator* allocator)>
+    /// `allocator`.
+    typedef bsl::function<Queue*(int queueId, bslma::Allocator* allocator)>
         QueueCreatorFn;
 
     /// Callback invoked when processing the specified `event` popped from
-    /// the queue having the specified `queueId` and created with the
-    /// specified `queueContext`.
-    typedef bsl::function<
-        void(int queueId, void* queueContext, const EventSp& event)>
-        EventFn;
+    /// the queue having the specified `queueId`.
+    typedef bsl::function<void(int queueId, const EventSp& event)> EventFn;
 
     // FRIENDS
     template <typename T>
@@ -347,7 +284,6 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
     typedef TYPE                             Event;
     typedef bsl::shared_ptr<Event>           EventSp;
     typedef typename Config::Queue           Queue;
-    typedef typename Config::QueueCreatorRet QueueCreatorRet;
     typedef typename Config::QueueCreatorFn  QueueCreatorFn;
     typedef typename Config::EventFn         EventFn;
 
@@ -370,9 +306,6 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
         // PUBLIC DATA
         /// Pointer to the queue
         Queue* d_queue_p;
-
-        /// Pointer to context passed at time of the queue creation
-        bsl::shared_ptr<void> d_context_p;
 
         /// Name of the queue
         bsl::string d_name;
@@ -405,7 +338,6 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
         // CREATORS
         explicit QueueInfo(bslma::Allocator* basicAllocator = 0)
         : d_queue_p(0)
-        , d_context_p()
         , d_name(basicAllocator)
         , d_monitorState(e_MONITOR_PROCESSED)
         , d_processQueueRefCount(1)
@@ -421,7 +353,6 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
         explicit QueueInfo(const QueueInfo&  other,
                            bslma::Allocator* basicAllocator = 0)
         : d_queue_p(other.d_queue_p)
-        , d_context_p(other.d_context_p)
         , d_name(other.d_name, basicAllocator)
         , d_monitorState(static_cast<int>(other.d_monitorState))
         , d_processQueueRefCount(
@@ -435,8 +366,7 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
         // MANIPULATORS
         void reset()
         {
-            d_queue_p = 0;
-            d_context_p.reset();
+            d_queue_p               = 0;
             d_monitorState          = e_MONITOR_PROCESSED;
             d_threadId              = 0;
         }
@@ -698,9 +628,7 @@ inline void MultiQueueThreadPool<TYPE>::processQueue(int queue)
         const int popRet = info.d_queue_p->tryPopFront(&event);
         if (popRet != 0) {
             // Queue is empty
-            d_config.d_eventCallbackFn(queue,
-                                       info.d_context_p.get(),
-                                       d_queueEmptyEvent_sp);
+            d_config.d_eventCallbackFn(queue, d_queueEmptyEvent_sp);
 
             info.d_queue_p->popFront(&event);
         }
@@ -731,7 +659,7 @@ inline void MultiQueueThreadPool<TYPE>::processQueue(int queue)
             continue;  // CONTINUE
         }
 
-        d_config.d_eventCallbackFn(queue, info.d_context_p.get(), event);
+        d_config.d_eventCallbackFn(queue, event);
     }
 }
 
@@ -784,26 +712,18 @@ inline int MultiQueueThreadPool<TYPE>::start()
 
     // Create the queues
     for (size_t i = 0; i < d_queues.size(); ++i) {
-        QueueCreatorRet ret;
-        d_queues[i].d_queue_p   = d_config.d_queueCreatorFn(&ret,
-                                                          static_cast<int>(i),
+        d_queues[i].d_queue_p = d_config.d_queueCreatorFn(static_cast<int>(i),
                                                           d_allocator_p);
-        d_queues[i].d_context_p = ret.context();
-        if (ret.name().empty()) {
-            // Generate a name for the queue
-            bsl::string name(d_allocator_p);
-            if (!d_config.d_name.empty()) {
-                name += d_config.d_name;
-                name += " ";
-            }
-            name += "Queue ";
-            name += bsl::to_string(i);
+        // Generate a name for the queue
+        bsl::string name(d_allocator_p);
+        if (!d_config.d_name.empty()) {
+            name += d_config.d_name;
+            name += " ";
+        }
+        name += "Queue ";
+        name += bsl::to_string(i);
 
-            d_queues[i].d_name = name;
-        }
-        else {
-            d_queues[i].d_name = ret.name();
-        }
+        d_queues[i].d_name = name;
     }
 
     BSLS_ASSERT_SAFE(d_config.d_threadPool_p->enabled());
