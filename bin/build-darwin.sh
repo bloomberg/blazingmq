@@ -140,14 +140,8 @@ if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
     touch "${DIR_BUILD}/ntf/.complete"
 fi
 
-# Determine paths based on Intel vs Apple Silicon CPU
-if [ "$(uname -p)" == 'arm' ]; then
-    BREW_PKG_CONFIG_PATH="/opt/homebrew/lib/pkgconfig:/opt/homebrew/opt/zlib/lib/pkgconfig:/opt/homebrew/opt/googletest/lib/pkgconfig"
-    FLEX_ROOT="/opt/homebrew/opt/flex"
-else
-    BREW_PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/zlib/lib/pkgconfig:/usr/local/opt/googletest/lib/pkgconfig"
-    FLEX_ROOT="/usr/local/opt/flex"
-fi
+BREW_PKG_CONFIG_PATH="/opt/homebrew/lib/pkgconfig:/opt/homebrew/opt/zlib/lib/pkgconfig:/opt/homebrew/opt/googletest/lib/pkgconfig"
+FLEX_ROOT="/opt/homebrew/opt/flex"
 
 
 # :: Build the BlazingMQ repo :::::::::::::::::::::::::::::::::::::::::::::::::
