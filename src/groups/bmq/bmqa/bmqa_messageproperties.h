@@ -29,7 +29,7 @@
 /// types) should be negotiated by producers and consumers.  Message properties
 /// can be used for routing, pipelining or filtering messages within the
 /// application.  It can be efficient to specify such message attributes in the
-/// properties instead of the message payload, because application does not
+/// properties instead of the message payload, because the application does not
 /// have to decode entire payload to retrieve these attributes.
 /// @bbref{bmqa::MessagePropertiesIterator} provides a mechanism to iterate
 /// over all the properties of a @bbref{bmqa::MessageProperties} object.
@@ -99,7 +99,7 @@ class MessageProperties {
     // PRIVATE CONSTANTS
 
     /// Constant representing the maximum size of a
-    /// `bmqp::MessageProperties` object, so that the below AlignedBuffer
+    /// @bbref{bmqp::MessageProperties} object, so that the below AlignedBuffer
     /// is big enough.
     static const int k_MAX_SIZEOF_BMQP_MESSAGEPROPERTIES = 184;
 
@@ -111,7 +111,7 @@ class MessageProperties {
     // DATA
 
     /// Pointer to the implementation object in `d_buffer`, providing a
-    /// shortcut type safe cast to that object. This variable *must* *be* the
+    /// shortcut type-safe cast to that object. This variable *must* *be* the
     /// first member of this class, as other components in bmqa package may
     /// reinterpret_cast to that variable.
     mutable bmqp::MessageProperties* d_impl_p;
@@ -119,12 +119,14 @@ class MessageProperties {
     /// Buffer containing the implementation object, maximally aligned.
     ImplBuffer d_buffer;
 
+    /// Allocator to use.
     bslma::Allocator* d_allocator_p;
 
   public:
     // PUBLIC CONSTANTS
 
-    /// Maximum number of properties that can appear in a `bmqa::Message`.
+    /// Maximum number of properties that can appear in a
+    /// @bbref{bmqa::Message}.
     static const int k_MAX_NUM_PROPERTIES = 255;
 
     /// Maximum length of all the properties (including their names, values
@@ -135,12 +137,11 @@ class MessageProperties {
     /// Maximum length of a property name.
     static const int k_MAX_PROPERTY_NAME_LENGTH = 4095;
 
-    /// ~64 MB
     /// Maximum length of a property value.  Note that this value is just under
     /// 64 MB.  Also note that this value is calculated assuming that there is
     /// only one property and property's name has maximum allowable length, and
     /// also takes into consideration the protocol overhead.
-    static const int k_MAX_PROPERTY_VALUE_LENGTH = 67104745;
+    static const int k_MAX_PROPERTY_VALUE_LENGTH = 67104745;  // ~64 MB
 
   public:
     // TRAITS
@@ -245,7 +246,7 @@ class MessageProperties {
     bool hasProperty(const bsl::string&        name,
                      bmqt::PropertyType::Enum* type = 0) const;
 
-    /// Return the type of property having the specified `name`.  Behavior
+    /// Return the type of the property having the specified `name`.  Behavior
     /// is undefined unless `hasProperty` returns true for the property
     /// `name`.
     bmqt::PropertyType::Enum propertyType(const bsl::string& name) const;
@@ -343,7 +344,7 @@ class MessageProperties {
     /// `spacesPerLevel`, the number of spaces per indentation level for
     /// this and all of its nested objects.  If `level` is negative,
     /// suppress indentation of the first line.  If `spacesPerLevel` is
-    /// negative format the entire output on one line, suppressing all but
+    /// negative, format the entire output on one line, suppressing all but
     /// the initial indentation (as governed by `level`).  If `stream` is
     /// not valid on entry, this operation has no effect.
     bsl::ostream&
@@ -361,11 +362,11 @@ bsl::ostream& operator<<(bsl::ostream& stream, const MessageProperties& rhs);
 // ===============================
 
 /// Provide a mechanism to iterate over all the properties in an instance of
-/// `bmqa::MessageProperties`.  The order of the iteration is implementation
-/// defined.  An iterator is *valid* if it is associated with a property;
-/// otherwise it is *invalid*.  Behavior is undefined if the underlying
-/// instance of `bmqa::MessageProperties` is modified during the lifetime of
-/// this iterator.
+/// @bbref{bmqa::MessageProperties}.  The order of the iteration is
+/// implementation defined.  An iterator is *valid* if it is associated with a
+/// property; otherwise it is *invalid*.  Behavior is undefined if the
+/// underlying instance of `bmqa::MessageProperties` is modified during the
+/// lifetime of this iterator.
 class MessagePropertiesIterator {
   private:
     // PRIVATE CONSTANTS
@@ -418,8 +419,8 @@ class MessagePropertiesIterator {
 
     /// Advance this iterator to refer to the next property of the
     /// associated `MessageProperties` instance, if there is one and return
-    /// true, return false otherwise.  Behavior is undefined unless this
-    /// method is being invoked for the first time on this object or
+    /// true; return false otherwise.  Behavior is undefined unless this
+    /// method is being invoked for the first time on this object or the
     /// previous call to `hasNext` returned true.  Note that the order of
     /// the iteration is not specified.
     bool hasNext();
@@ -427,12 +428,12 @@ class MessagePropertiesIterator {
     // ACCESSORS
 
     /// Return a reference offering non-modifiable access to the name of the
-    /// property being pointed by the iterator.  Behavior is undefined
-    /// unless last call to `hasNext` returned true.
+    /// property pointed to by the iterator.  Behavior is undefined
+    /// unless the last call to `hasNext` returned true.
     const bsl::string& name() const;
 
-    /// Return the data type of property being pointed by the iterator.
-    /// Behavior is undefined unless last call to `hasNext` returned true;
+    /// Return the data type of the property pointed to by the iterator.
+    /// Behavior is undefined unless the last call to `hasNext` returned true.
     bmqt::PropertyType::Enum type() const;
 
     /// Return the value of the boolean property that this iterator instance is
