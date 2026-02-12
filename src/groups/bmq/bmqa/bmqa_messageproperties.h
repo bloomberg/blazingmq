@@ -92,23 +92,30 @@ namespace bmqa {
 
 /// Provide a VST representing message properties.
 class MessageProperties {
-    // FRIENDS
     friend class MessagePropertiesIterator;
 
   private:
-    // PRIVATE CONSTANTS
+    /// @name Constants
+    ///@{
 
     /// Constant representing the maximum size of a
     /// @bbref{bmqp::MessageProperties} object, so that the below AlignedBuffer
     /// is big enough.
     static const int k_MAX_SIZEOF_BMQP_MESSAGEPROPERTIES = 184;
 
-    // PRIVATE TYPES
+    ///@}
+
+    /// @name Types
+    ///@{
+
     typedef bsls::AlignedBuffer<k_MAX_SIZEOF_BMQP_MESSAGEPROPERTIES>
         ImplBuffer;
 
+    ///@}
+
   private:
-    // DATA
+    /// @name Data
+    ///@{
 
     /// Pointer to the implementation object in `d_buffer`, providing a
     /// shortcut type-safe cast to that object. This variable *must* *be* the
@@ -122,8 +129,11 @@ class MessageProperties {
     /// Allocator to use.
     bslma::Allocator* d_allocator_p;
 
+    ///@}
+
   public:
-    // PUBLIC CONSTANTS
+    /// @name Constants
+    ///@{
 
     /// Maximum number of properties that can appear in a
     /// @bbref{bmqa::Message}.
@@ -143,12 +153,14 @@ class MessageProperties {
     /// also takes into consideration the protocol overhead.
     static const int k_MAX_PROPERTY_VALUE_LENGTH = 67104745;  // ~64 MB
 
+    ///@}
+
   public:
-    // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(MessageProperties,
                                    bslma::UsesBslmaAllocator)
 
-    // CREATORS
+    /// @name Creators
+    ///@{
 
     /// Create an empty instance of `MessageProperties`.  Optionally
     /// specify a `basicAllocator` used to supply memory.  Note that it is
@@ -166,7 +178,10 @@ class MessageProperties {
     /// Destroy this object.
     ~MessageProperties();
 
-    // MANIPULATORS
+    ///@}
+
+    /// @name Manipulators
+    ///@{
 
     /// Assign to this object the value of the specified `rhs` object.
     MessageProperties& operator=(const MessageProperties& rhs);
@@ -230,7 +245,10 @@ class MessageProperties {
     /// and a non-zero value otherwise.
     int streamIn(const bdlbb::Blob& blob);
 
-    // ACCESSORS
+    ///@}
+
+    /// @name Accessors
+    ///@{
 
     /// Return the total number of properties set in this instance.
     int numProperties() const;
@@ -349,6 +367,8 @@ class MessageProperties {
     /// not valid on entry, this operation has no effect.
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+
+    ///@}
 };
 
 // FREE OPERATORS
@@ -369,19 +389,28 @@ bsl::ostream& operator<<(bsl::ostream& stream, const MessageProperties& rhs);
 /// lifetime of this iterator.
 class MessagePropertiesIterator {
   private:
-    // PRIVATE CONSTANTS
+    /// @name Private Constants
+    ///@{
 
     // Constant representing the maximum size of a
     // `bmqp::MessagePropertiesIterator` object, so that the below
     // AlignedBuffer is big enough.
     static const int k_MAX_SIZEOF_BMQP_MESSAGEPROPERTIESITER = 64;
 
-    // PRIVATE TYPES
+    ///@}
+
+    /// @name Private Types
+    ///@{
+
     typedef bsls::AlignedBuffer<k_MAX_SIZEOF_BMQP_MESSAGEPROPERTIESITER>
         ImplBuffer;
 
+    ///@}
+
   private:
-    // DATA
+    /// @name Data
+    ///@{
+
     mutable bmqp::MessagePropertiesIterator* d_impl_p;
     // Pointer to the implementation object
     // in 'd_buffer'.  This variable *must*
@@ -394,8 +423,11 @@ class MessagePropertiesIterator {
     // Buffer containing the implementation
     // object
 
+    ///@}
+
   public:
-    // CREATORS
+    /// @name Creators
+    ///@{
 
     /// Create an empty iterator instance.  The only valid operations that
     /// can be invoked on an empty instance are copying, assignment and
@@ -412,7 +444,10 @@ class MessagePropertiesIterator {
     /// Destroy this iterator.
     ~MessagePropertiesIterator();
 
-    // MANIPULATORS
+    ///@}
+
+    /// @name Manipulators
+    ///@{
 
     /// Assignment operator from the specified `rhs`.
     MessagePropertiesIterator& operator=(const MessagePropertiesIterator& rhs);
@@ -425,7 +460,10 @@ class MessagePropertiesIterator {
     /// the iteration is not specified.
     bool hasNext();
 
-    // ACCESSORS
+    ///@}
+
+    /// @name Accessors
+    ///@{
 
     /// Return a reference offering non-modifiable access to the name of the
     /// property pointed to by the iterator.  Behavior is undefined
@@ -471,6 +509,8 @@ class MessagePropertiesIterator {
     /// call to `hasNext` returned true and the property this instance is
     /// currently pointing to has a bytestring type.
     const bsl::vector<char>& getAsBinary() const;
+
+    ///@}
 };
 
 }  // close package namespace
