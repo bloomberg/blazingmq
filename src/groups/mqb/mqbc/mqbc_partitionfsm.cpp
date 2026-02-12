@@ -45,6 +45,8 @@ const bsls::Types::Int64 k_NS_PER_MESSAGE =
 // class PartitionFSM
 // ==================
 
+const char* PartitionFSM::k_PFSM_DEFECT_LOG_TAG = "[PFSM_DEFECT]";
+
 // PRIVATE MANIPULATORS
 void PartitionFSM::processEvent(const EventWithData& event)
 {
