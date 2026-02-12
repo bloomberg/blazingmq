@@ -356,10 +356,10 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
         BALL_LOG_TRACE << "Dispatching Event to queue " << processorId
                        << " of " << type << " dispatcher: " << *event;
 
-        const bsls::Types::Int64 queuedTime =
-            bmqsys::Time::highResolutionTimer() - event->enqueueTime();
         const bsls::Types::Int64 processingTimeStart =
             bmqsys::Time::highResolutionTimer();
+        const bsls::Types::Int64 queuedTime =
+            processingTimeStart - event->enqueueTime();
 
         DispatcherContext& dispatcherContext = *(d_contexts[type]);
 
