@@ -64,6 +64,8 @@ function(bmq_setup_doxygen)
   set(DOXYGEN_PROJECT_BRIEF
     "C++ SDK for BlazingMQ clients and plugins"
   )
+  set(DOXYGEN_REFERENCED_BY_RELATION YES)
+  set(DOXYGEN_REFERENCES_RELATION    YES)
   set(DOXYGEN_ALPHABETICAL_INDEX     NO)
   set(DOXYGEN_FULL_SIDEBAR           YES)
   set(DOXYGEN_GENERATE_TREEVIEW      YES)
