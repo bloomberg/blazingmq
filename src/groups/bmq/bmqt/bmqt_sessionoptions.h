@@ -182,6 +182,8 @@ class SessionOptions {
     static const int k_QUEUE_OPERATION_DEFAULT_TIMEOUT =
         5 * bdlt::TimeUnitRatio::k_SECONDS_PER_MINUTE;
 
+    static const unsigned int k_CHANNEL_WRITE_DEFAULT_TIMEOUT_SEC = 5;
+
   private:
     // DATA
 
@@ -234,6 +236,11 @@ class SessionOptions {
     /// telemetry.  This is intended for libraries that wrap `libbmq` to
     /// identify themselves with.
     bsl::string d_userAgentPrefix;
+
+    /// When the session channel is at high watermark, block `post` calls for
+    /// up to this value until the channel returns to low watermark and drains
+    /// buffered data.
+    bsls::TimeInterval d_channelWriteTimeout;
 
   public:
     // TRAITS
@@ -327,6 +334,10 @@ class SessionOptions {
     /// characters and `value.size() < 128`.
     SessionOptions& setUserAgentPrefix(bsl::string_view value);
 
+    /// Set the timeout to block `post` when at high watermark.
+    /// Zero means no blocking.
+    SessionOptions& setChannelWriteTimeout(const bsls::TimeInterval& value);
+
     // ACCESSORS
 
     /// Get the broker URI.
@@ -379,6 +390,9 @@ class SessionOptions {
 
     /// Get the user agent prefix.
     const bsl::string& userAgentPrefix() const;
+
+    /// Get the timeout to block `post` when at high watermark.
+    const bsls::TimeInterval& channelWriteTimeout() const;
 
     /// Format this object to the specified output `stream` at the (absolute
     /// value of) the optionally specified indentation `level` and return a
@@ -556,6 +570,14 @@ SessionOptions::setUserAgentPrefix(bsl::string_view value)
     return *this;
 }
 
+inline SessionOptions&
+SessionOptions::setChannelWriteTimeout(const bsls::TimeInterval& value)
+{
+    d_channelWriteTimeout = value;
+
+    return *this;
+}
+
 // ACCESSORS
 inline const bsl::string& SessionOptions::brokerUri() const
 {
@@ -647,6 +669,11 @@ inline int SessionOptions::eventQueueSize() const
 inline const bsl::string& SessionOptions::userAgentPrefix() const
 {
     return d_userAgentPrefix;
+}
+
+inline const bsls::TimeInterval& SessionOptions::channelWriteTimeout() const
+{
+    return d_channelWriteTimeout;
 }
 
 }  // close package namespace

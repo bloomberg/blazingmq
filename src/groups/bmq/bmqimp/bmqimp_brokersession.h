@@ -1460,8 +1460,7 @@ class BrokerSession BSLS_CPP11_FINAL {
     bmqt::GenericResult::Enum writeOrBuffer(const bdlbb::Blob& eventBlob,
                                             bsls::Types::Int64 highWaterMark);
 
-    bool acceptUserEvent(const bdlbb::Blob&        eventBlob,
-                         const bsls::TimeInterval& timeout);
+    bool acceptUserEvent(const bdlbb::Blob& eventBlob);
 
     void setupPutExpirationTimer(const bsls::TimeInterval& timeout);
 
@@ -1604,14 +1603,12 @@ class BrokerSession BSLS_CPP11_FINAL {
                         bsls::TimeInterval            timeout,
                         const EventCallback& eventCallback = EventCallback());
 
-    int post(const bdlbb::Blob& eventBlob, const bsls::TimeInterval& timeout);
+    int post(const bdlbb::Blob& eventBlob);
 
     int confirmMessage(const bsl::shared_ptr<bmqimp::Queue>& queue,
-                       const bmqt::MessageGUID&              messageId,
-                       const bsls::TimeInterval&             timeout);
+                       const bmqt::MessageGUID&              messageId);
 
-    int confirmMessages(const bdlbb::Blob&        blob,
-                        const bsls::TimeInterval& timeout);
+    int confirmMessages(const bdlbb::Blob& blob);
 
     void postToFsm(const bsl::function<void()>& f);
 
