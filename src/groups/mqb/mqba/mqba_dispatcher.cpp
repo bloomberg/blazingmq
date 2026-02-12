@@ -173,39 +173,6 @@ Dispatcher::DispatcherContext::DispatcherContext(
     }
 }
 
-// ------------------------------------
-// class Dispatcher::OnNewClientFunctor
-// ------------------------------------
-
-Dispatcher::OnNewClientFunctor::OnNewClientFunctor(
-    Dispatcher*                      owner_p,
-    mqbi::DispatcherClientType::Enum type,
-    int                              processorId)
-: d_owner_p(owner_p)
-, d_type(type)
-, d_processorId(processorId)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_owner_p);
-}
-
-// ACCESSORS
-void Dispatcher::OnNewClientFunctor::operator()() const
-{
-    // executed by the *DISPATCHER* thread
-
-    // Resize the 'd_flushList' vector for that specified 'processorId', if
-    // needed, to ensure it has enough space to hold all clients associated to
-    // that processorId.
-    DispatcherContext& context = *(d_owner_p->d_contexts[d_type]);
-
-    int count = context.d_loadBalancer.clientsCountForProcessor(d_processorId);
-    if (static_cast<int>(context.d_flushList[d_processorId].capacity()) <
-        count) {
-        context.d_flushList[d_processorId].reserve(count);
-    }
-}
-
 // ----------------
 // class Dispatcher
 // ----------------
@@ -534,26 +501,6 @@ Dispatcher::registerClient(mqbi::DispatcherClient*           client,
                        << ", type: " << type << ", processor: " << processor
                        << "]";
 
-        // Enqueue an event to resize (if needed) the flush vector to
-        // accommodate for a new client.  This has to execute on the processor
-        // thread, because the vector is not thread safe; and this must be done
-        // before any event is being dispatched to this client (since that
-        // would cause it to be added to the flush list).
-        bsl::shared_ptr<mqbi::DispatcherEvent> event =
-            d_defaultEventSource_sp->getEvent();
-        (*event)
-            .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-            .setDestination(client);  // TODO: not needed?
-
-        // Build callback functor in-place.
-        // The destructor for functor is called in `reset`.
-        event->callback().createInplace<OnNewClientFunctor>(this,
-                                                            type,
-                                                            processor);
-
-        context.d_processorPool_mp->enqueueEvent(
-            bslmf::MovableRefUtil::move(event),
-            processor);
         return processor;  // RETURN
     }  // break;
     case mqbi::DispatcherClientType::e_UNDEFINED:
