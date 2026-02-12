@@ -448,6 +448,11 @@ class Dispatcher {
     /// after the specified `client` has been unregistered from this
     /// dispatcher.
     virtual bmqex::Executor executor(const DispatcherClient* client) const = 0;
+
+    /// Return current number of events enqueued for the processor in charge of
+    /// the specified `client`.
+    virtual bsls::Types::Int64
+    numProcessorEvents(const mqbi::DispatcherClient* client) const = 0;
 };
 
 // ===============================
