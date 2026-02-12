@@ -11,6 +11,7 @@ CMakeUserPresets.json
 /install/
 /lib/
 **/.idea
+CLAUDE.md
 
 # Eclipse IDE
 .project
