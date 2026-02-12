@@ -362,12 +362,11 @@ class RecoveryManager {
     /// `destination` starting from specified `beginSeqNum` upto specified
     /// `endSeqNum` using data from specified `fs`. Send the status of this
     /// operation back to the caller using the specified `doneDataChunksCb`.
-    /// Note, we mmap the files for every call to this function. Return 0 on
-    /// success and non-zero otherwise.
+    /// Note, we mmap the files for every call to this function.
     ///
     /// THREAD: Executed in the dispatcher thread associated with the
     /// specified `partitionId`.
-    int processSendDataChunks(
+    void processSendDataChunks(
         int                                          partitionId,
         mqbnet::ClusterNode*                         destination,
         const bmqp_ctrlmsg::PartitionSequenceNumber& beginSeqNum,
