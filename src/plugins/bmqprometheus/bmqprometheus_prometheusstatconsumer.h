@@ -128,6 +128,9 @@ class PrometheusStatConsumer : public mqbplug::StatConsumer {
     const bmqst::StatContext* d_channelsStatContext_p;
     // The channels stat context
 
+    const bmqst::StatContext* d_dispatcherStatContext_p;
+    // The dispatcher stat context
+
     StatContextsMap d_contextsMap;
     // Map of stat contexts
 
@@ -197,6 +200,10 @@ class PrometheusStatConsumer : public mqbplug::StatConsumer {
     /// Capture all queue related data points, and store them in Prometheus
     /// Registry for further publishing to Prometheus.
     void captureDomainStats(const LeaderSet& leaders);
+
+    /// Capture all dispatcher related data points, and store them in
+    /// Prometheus Registry for further publishing to Prometheus.
+    void captureDispatcherStats();
 
     /// Set internal action counter based on Prometheus publish interval.
     void setActionCounter();
