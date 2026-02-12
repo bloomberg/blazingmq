@@ -240,7 +240,7 @@ class SessionOptions {
     /// When the session channel is at high watermark, block `post` calls for
     /// up to this value until the channel returns to low watermark and drains
     /// buffered data.
-    bsls::TimeInterval d_channelWriteTimeoutMs;
+    bsls::TimeInterval d_channelWriteTimeout;
 
   public:
     // TRAITS
@@ -573,7 +573,7 @@ SessionOptions::setUserAgentPrefix(bsl::string_view value)
 inline SessionOptions&
 SessionOptions::setChannelWriteTimeout(const bsls::TimeInterval& value)
 {
-    d_channelWriteTimeoutMs = value;
+    d_channelWriteTimeout = value;
 
     return *this;
 }
@@ -673,7 +673,7 @@ inline const bsl::string& SessionOptions::userAgentPrefix() const
 
 inline const bsls::TimeInterval& SessionOptions::channelWriteTimeout() const
 {
-    return d_channelWriteTimeoutMs;
+    return d_channelWriteTimeout;
 }
 
 }  // close package namespace

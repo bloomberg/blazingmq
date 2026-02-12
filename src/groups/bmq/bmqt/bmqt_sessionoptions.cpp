@@ -49,7 +49,7 @@ SessionOptions::SessionOptions(bslma::Allocator* allocator)
 , d_dtContext_sp(NULL)
 , d_dtTracer_sp(NULL)
 , d_userAgentPrefix(allocator)
-, d_channelWriteTimeoutMs(k_CHANNEL_WRITE_DEFAULT_TIMEOUT_SEC)
+, d_channelWriteTimeout(k_CHANNEL_WRITE_DEFAULT_TIMEOUT_SEC)
 {
     // NOTHING
 }
@@ -74,7 +74,7 @@ SessionOptions::SessionOptions(const SessionOptions& other,
 , d_dtContext_sp(other.traceContext())
 , d_dtTracer_sp(other.tracer())
 , d_userAgentPrefix(other.userAgentPrefix(), allocator)
-, d_channelWriteTimeoutMs(other.d_channelWriteTimeoutMs)
+, d_channelWriteTimeout(other.d_channelWriteTimeout)
 {
     // NOTHING
 }
