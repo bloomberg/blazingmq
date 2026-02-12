@@ -50,8 +50,10 @@
 #include <mqbi_dispatcher.h>
 #include <mqbu_loadbalancer.h>
 
+// BMQ
 #include <bmqc_multiqueuethreadpool.h>
 #include <bmqex_executor.h>
+#include <bmqu_atomicgate.h>
 
 // BDE
 #include <ball_log.h>
@@ -290,6 +292,9 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
     /// The mutex for thread-safe access to `d_customEventSources`.
     bslmt::Mutex d_customEventSources_mtx;
 
+    /// @brief Mechanism controlling enabling/disabling of client flushing.
+    bmqu::GateKeeper d_flushClientsGate;
+
     // FRIENDS
     friend class Dispatcher_Executor;
 
@@ -351,6 +356,9 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
     /// populating the specified `errorDescription` with the reason of the
     /// error.
     int start(bsl::ostream& errorDescription);
+
+    /// @brief Stop calling `flush` on idle dispatcher clients.
+    void disableFlushClients();
 
     /// Stop the `Dispatcher`.
     void stop();
