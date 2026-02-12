@@ -180,19 +180,47 @@ class MessageProperties {
     /// will return zero after invoking this method.
     void clear();
 
+    /// Set a property with the specified `name` having the specified boolean
+    /// `value`.  Return zero on success, and a non-zero value in case of
+    /// failure.  Note that if a property with `name` and the same type exists,
+    /// it will be updated with the provided `value`, however if the data type
+    /// of the existing property differs, an error will be returned.
     int setPropertyAsBool(const bsl::string& name, bool value);
+    /// Set a property with the specified `name` having the specified `char`
+    /// `value`.  Return zero on success, and a non-zero value in case of
+    /// failure.  Note that if a property with `name` and the same type exists,
+    /// it will be updated with the provided `value`, however if the data type
+    /// of the existing property differs, an error will be returned.
     int setPropertyAsChar(const bsl::string& name, char value);
+    /// Set a property with the specified `name` having the specified `short`
+    /// `value`.  Return zero on success, and a non-zero value in case of
+    /// failure.  Note that if a property with `name` and the same type exists,
+    /// it will be updated with the provided `value`, however if the data type
+    /// of the existing property differs, an error will be returned.
     int setPropertyAsShort(const bsl::string& name, short value);
+    /// Set a property with the specified `name` having the specified 32-bit
+    /// integral `value`.  Return zero on success, and a non-zero value in case
+    /// of failure.  Note that if a property with `name` and the same type
+    /// exists, it will be updated with the provided `value`, however if the
+    /// data type of the existing property differs, an error will be returned.
     int setPropertyAsInt32(const bsl::string& name, bsl::int32_t value);
+    /// Set a property with the specified `name` having the specified 64-bit
+    /// integral `value`.  Return zero on success, and a non-zero value in case
+    /// of failure.  Note that if a property with `name` and the same type
+    /// exists, it will be updated with the provided `value`, however if the
+    /// data type of the existing property differs, an error will be returned.
     int setPropertyAsInt64(const bsl::string& name, bsls::Types::Int64 value);
+    /// Set a property with the specified `name` having the specified string
+    /// `value`.  Return zero on success, and a non-zero value in case of
+    /// failure.  Note that if a property with `name` and the same type exists,
+    /// it will be updated with the provided `value`, however if the data type
+    /// of the existing property differs, an error will be returned.
     int setPropertyAsString(const bsl::string& name, const bsl::string& value);
-
     /// Set a property with the specified `name` having the specified
-    /// `value` with the corresponding data type.  Return zero on success,
-    /// and a non-zero value in case of failure.  Note that if a property
-    /// with `name` and the same type exists, it will be updated with the
-    /// provided `value`, however if the data type of the existing property
-    /// differs, an error will be returned.
+    /// bytestring `value`.  Return zero on success, and a non-zero value in
+    /// case of failure.  Note that if a property with `name` and the same type
+    /// exists, it will be updated with the provided `value`, however if the
+    /// data type of the existing property differs, an error will be returned.
     int setPropertyAsBinary(const bsl::string&       name,
                             const bsl::vector<char>& value);
 
@@ -222,31 +250,80 @@ class MessageProperties {
     /// `name`.
     bmqt::PropertyType::Enum propertyType(const bsl::string& name) const;
 
-    bool               getPropertyAsBool(const bsl::string& name) const;
-    char               getPropertyAsChar(const bsl::string& name) const;
-    short              getPropertyAsShort(const bsl::string& name) const;
-    bsl::int32_t       getPropertyAsInt32(const bsl::string& name) const;
+    /// Return the value of the boolean property of the specified `name`.  The
+    /// behavior is undefined unless this instance has a property of the
+    /// specified `name` with a boolean type.
+    bool getPropertyAsBool(const bsl::string& name) const;
+    /// Return the value of the `char` property of the specified `name`.  The
+    /// behavior is undefined unless this instance has a property of the
+    /// specified `name` with a `char` type.
+    char getPropertyAsChar(const bsl::string& name) const;
+    /// Return the value of the `short` property of the specified `name`.  The
+    /// behavior is undefined unless this instance has a property of the
+    /// specified `name` with a `short` type.
+    short getPropertyAsShort(const bsl::string& name) const;
+    /// Return the value of the 32-bit integral property of the specified
+    /// `name`.  The behavior is undefined unless this instance has a property
+    /// of the specified `name` with a 32-bit integral type.
+    bsl::int32_t getPropertyAsInt32(const bsl::string& name) const;
+    /// Return the value of the 64-bit integral property of the specified
+    /// `name`.  The behavior is undefined unless this instance has a property
+    /// of the specified `name` with a 64-bit integral type.
     bsls::Types::Int64 getPropertyAsInt64(const bsl::string& name) const;
+    /// Return the value of the string property of the specified `name`.  The
+    /// behavior is undefined unless this instance has a property of the
+    /// specified `name` with a string type.
     const bsl::string& getPropertyAsString(const bsl::string& name) const;
-
-    /// Return the property having the corresponding type and the specified
-    /// `name`.  Behavior is undefined unless property with `name` exists.
+    /// Return the value of the bytestring property of the specified `name`.
+    /// The behavior is undefined unless this instance has a property of the
+    /// specified `name` with a bytestring type.
     const bsl::vector<char>&
     getPropertyAsBinary(const bsl::string& name) const;
 
-    bool  getPropertyAsBoolOr(const bsl::string& name, bool value) const;
-    char  getPropertyAsCharOr(const bsl::string& name, char value) const;
+    /// Return the boolean property having the specified `name` if such a
+    /// property exists.  Return the specified `value` if this instance does
+    /// not have a property with the specified `name`.  The behavior is
+    /// undefined unless the property with the specified `name` has a boolean
+    /// type or does not exist.
+    bool getPropertyAsBoolOr(const bsl::string& name, bool value) const;
+    /// Return the `char` property having the specified `name` if such a
+    /// property exists.  Return the specified `value` if this instance does
+    /// not have a property with the specified `name`.  The behavior is
+    /// undefined unless the property with the specified `name` has a `char`
+    /// type or does not exist.
+    char getPropertyAsCharOr(const bsl::string& name, char value) const;
+    /// Return the `short` property having the specified `name` if such a
+    /// property exists.  Return the specified `value` if this instance does
+    /// not have a property with the specified `name`.  The behavior is
+    /// undefined unless the property with the specified `name` has a `short`
+    /// type or does not exist.
     short getPropertyAsShortOr(const bsl::string& name, short value) const;
-    bsl::int32_t       getPropertyAsInt32Or(const bsl::string& name,
-                                            bsl::int32_t       value) const;
+    /// Return the 32-bit integral property having the specified `name` if such
+    /// a property exists.  Return the specified `value` if this instance does
+    /// not have a property with the specified `name`.  The behavior is
+    /// undefined unless the property with the specified `name` has a 32-bit
+    /// integral type or does not exist.
+    bsl::int32_t getPropertyAsInt32Or(const bsl::string& name,
+                                      bsl::int32_t       value) const;
+    /// Return the 64-bit integral property having the specified `name` if such
+    /// a property exists.  Return the specified `value` if this instance does
+    /// not have a property with the specified `name`.  The behavior is
+    /// undefined unless the property with the specified `name` has a 64-bit
+    /// integral type or does not exist.
     bsls::Types::Int64 getPropertyAsInt64Or(const bsl::string& name,
                                             bsls::Types::Int64 value) const;
+    /// Return the string property having the specified `name` if such a
+    /// property exists.  Return the specified `value` if this instance does
+    /// not have a property with the specified `name`.  The behavior is
+    /// undefined unless the property with the specified `name` has a string
+    /// type or does not exist.
     const bsl::string& getPropertyAsStringOr(const bsl::string& name,
                                              const bsl::string& value) const;
-
-    /// Return the property having the corresponding type and the specified
-    /// `name` if property with such a name exists.  Return the specified
-    /// `value` if property with `name` does not exist.
+    /// Return the bytestring property having the specified `name` if such a
+    /// property exists.  Return the specified `value` if this instance does
+    /// not have a property with the specified `name`.  The behavior is
+    /// undefined unless the property with the specified `name` has a
+    /// bytestring type or does not exist.
     const bsl::vector<char>&
     getPropertyAsBinaryOr(const bsl::string&       name,
                           const bsl::vector<char>& value) const;
@@ -283,12 +360,12 @@ bsl::ostream& operator<<(bsl::ostream& stream, const MessageProperties& rhs);
 // class MessagePropertiesIterator
 // ===============================
 
-/// Provide a mechanism to iterator over all the properties in an instance
-/// of `bmqa::MessageProperties`.  The order of the iteration is
-/// implementation defined.  An iterator is *valid* if it is associated with
-/// a property , otherwise it is *invalid*.  Behavior is undefined if the
-/// underlying instance of `bmqa::MessageProperties` is modified during the
-/// lifetime of this iterator.
+/// Provide a mechanism to iterate over all the properties in an instance of
+/// `bmqa::MessageProperties`.  The order of the iteration is implementation
+/// defined.  An iterator is *valid* if it is associated with a property;
+/// otherwise it is *invalid*.  Behavior is undefined if the underlying
+/// instance of `bmqa::MessageProperties` is modified during the lifetime of
+/// this iterator.
 class MessagePropertiesIterator {
   private:
     // PRIVATE CONSTANTS
@@ -358,17 +435,40 @@ class MessagePropertiesIterator {
     /// Behavior is undefined unless last call to `hasNext` returned true;
     bmqt::PropertyType::Enum type() const;
 
-    bool               getAsBool() const;
-    char               getAsChar() const;
-    short              getAsShort() const;
-    bsl::int32_t       getAsInt32() const;
+    /// Return the value of the boolean property that this iterator instance is
+    /// currently pointing to.  The behavior is undefined unless the last call
+    /// to `hasNext` returned true and the property this instance is currently
+    /// pointing to has a boolean type.
+    bool getAsBool() const;
+    /// Return the value of the `char` property that this iterator instance is
+    /// currently pointing to.  The behavior is undefined unless the last call
+    /// to `hasNext` returned true and the property this instance is currently
+    /// pointing to has a `char` type.
+    char getAsChar() const;
+    /// Return the value of the `short` property that this iterator instance is
+    /// currently pointing to.  The behavior is undefined unless the last call
+    /// to `hasNext` returned true and the property this instance is currently
+    /// pointing to has a `short` type.
+    short getAsShort() const;
+    /// Return the value of the 32-bit integral property that this iterator
+    /// instance is currently pointing to.  The behavior is undefined unless
+    /// the last call to `hasNext` returned true and the property this instance
+    /// is currently pointing to has a 32-bit integral type.
+    bsl::int32_t getAsInt32() const;
+    /// Return the value of the 64-bit integral property that this iterator
+    /// instance is currently pointing to.  The behavior is undefined unless
+    /// the last call to `hasNext` returned true and the property this instance
+    /// is currently pointing to has a 64-bit integral type.
     bsls::Types::Int64 getAsInt64() const;
+    /// Return the value of the string property that this iterator instance is
+    /// currently pointing to.  The behavior is undefined unless the last call
+    /// to `hasNext` returned true and the property this instance is currently
+    /// pointing to has a string type.
     const bsl::string& getAsString() const;
-
-    /// Return property value having the corresponding type being currently
-    /// being pointed by this iterator instance.  Behavior is undefined
-    /// unless last call to `hasNext` returned true.  Behavior is also
-    /// undefined unless property's data type matches the requested type.
+    /// Return the value of the bytestring property that this iterator instance
+    /// is currently pointing to.  The behavior is undefined unless the last
+    /// call to `hasNext` returned true and the property this instance is
+    /// currently pointing to has a bytestring type.
     const bsl::vector<char>& getAsBinary() const;
 };
 
