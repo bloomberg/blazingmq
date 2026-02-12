@@ -204,11 +204,6 @@ void StorageManager::onPartitionDoneSendDataChunksCb(
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
 
-    BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId
-                  << "]: " << "Received status " << *status
-                  << " for sending data chunks from Recovery Manager.";
-
     EventData eventDataVec;
     eventDataVec.emplace_back(destination, requestId, partitionId, 1, range);
 
@@ -217,11 +212,25 @@ void StorageManager::onPartitionDoneSendDataChunksCb(
     // ReplicaDataResponsePull depending on 'status'.  In the future, it might
     // no longer be no-op for primary.
     if (*status != 0) {
+        BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                       << " Partition [" << partitionId
+                       << "]: " << "Failure while sending data chunks "
+                       << ", beginSeqNum = " << range.first
+                       << ", endSeqNum = " << range.second
+                       << ", rc = " << *status;
+
         dispatchEventToPartition(
             PartitionFSM::Event::e_ERROR_SENDING_DATA_CHUNKS,
             eventDataVec);
     }
     else {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId
+                      << "]: " << "Finished sending data chunks "
+                      << ", beginSeqNum = " << range.first
+                      << ", endSeqNum = " << range.second
+                      << ", rc = " << *status;
+
         dispatchEventToPartition(
             PartitionFSM::Event::e_DONE_SENDING_DATA_CHUNKS,
             eventDataVec);
@@ -2716,19 +2725,6 @@ void StorageManager::do_startSendDataChunks(const EventWithData& event)
     const mqbs::FileStore& fs = fileStore(partitionId);
     BSLS_ASSERT_SAFE(fs.isOpen());
 
-    // Note that 'eventData.partitionSeqNumDataRange()' is only used when
-    // this action is performed by the replica.  If self is primary, we use
-    // `d_nodeToSeqNumCtxMapVec` to determine data range for each replica
-    // instead.
-    bsl::function<void(int, mqbnet::ClusterNode*, int*)> f =
-        bdlf::BindUtil::bind(&StorageManager::onPartitionDoneSendDataChunksCb,
-                             this,
-                             bdlf::PlaceHolders::_1,  // partitionId
-                             eventData.requestId(),
-                             eventData.partitionSeqNumDataRange(),
-                             bdlf::PlaceHolders::_2,   // source
-                             bdlf::PlaceHolders::_3);  // status
-
     mqbnet::ClusterNode* selfNode = d_clusterData_p->membership().selfNode();
     if (eventType == PartitionFSM::Event::e_REPLICA_DATA_RQST_PULL) {
         // Self Replica is sending data to Destination Primary.
@@ -2739,6 +2735,11 @@ void StorageManager::do_startSendDataChunks(const EventWithData& event)
         BSLS_ASSERT_SAFE(destNode->nodeId() ==
                          d_partitionInfoVec[partitionId].primary()->nodeId());
 
+        // NOTE: 'eventData.partitionSeqNumDataRange()' is only used when
+        // this action is performed by the replica, where a
+        // ReplicaDataRequestPull has been sent by the primary.  If self is
+        // primary, we use `d_nodeToSeqNumCtxMapVec` to determine data range
+        // for each replica instead.
         const bmqp_ctrlmsg::PartitionSequenceNumber beginSeqNum =
             eventData.partitionSeqNumDataRange().first;
         const bmqp_ctrlmsg::PartitionSequenceNumber endSeqNum =
@@ -2747,8 +2748,15 @@ void StorageManager::do_startSendDataChunks(const EventWithData& event)
             endSeqNum ==
             d_nodeToSeqNumCtxMapVec[partitionId][selfNode].d_seqNum);
 
-        // No need to check rc here.  A failure will trigger a Partition FSM
-        // event of type e_ERROR_SENDING_DATA_CHUNKS.
+        bsl::function<void(int, mqbnet::ClusterNode*, int*)> f =
+            bdlf::BindUtil::bind(
+                &StorageManager::onPartitionDoneSendDataChunksCb,
+                this,
+                bdlf::PlaceHolders::_1,  // partitionId
+                eventData.requestId(),
+                eventData.partitionSeqNumDataRange(),
+                bdlf::PlaceHolders::_2,   // destination
+                bdlf::PlaceHolders::_3);  // status
         d_recoveryManager_mp->processSendDataChunks(partitionId,
                                                     destNode,
                                                     beginSeqNum,
@@ -2781,28 +2789,22 @@ void StorageManager::do_startSendDataChunks(const EventWithData& event)
         }
         BSLS_ASSERT_SAFE(beginSeqNum < endSeqNum);
 
-        const int rc = d_recoveryManager_mp->processSendDataChunks(partitionId,
-                                                                   destNode,
-                                                                   beginSeqNum,
-                                                                   endSeqNum,
-                                                                   fs,
-                                                                   f);
-        if (rc != 0) {
-            BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                           << " Partition [" << partitionId
-                           << "]: " << "Failure while sending data chunks to "
-                           << destNode->nodeDescription()
-                           << ", beginSeqNum = " << beginSeqNum
-                           << ", endSeqNum = " << endSeqNum << ", rc = " << rc;
-
-            // The failure rc will trigger a Partition FSM event of
-            // type e_ERROR_SENDING_DATA_CHUNKS.  However, today we do
-            // nothing upon that event, and instead rely on watchdog
-            // firing on the replica to trigger alarm and retry.  If we
-            // fail to send data to enough replicas such that quorum of
-            // ReplicaDataResponses is no longer possible, self
-            // primary's watchdog will also fire.
-        }
+        PartitionSeqNumDataRange dataRange(beginSeqNum, endSeqNum);
+        bsl::function<void(int, mqbnet::ClusterNode*, int*)> f =
+            bdlf::BindUtil::bind(
+                &StorageManager::onPartitionDoneSendDataChunksCb,
+                this,
+                bdlf::PlaceHolders::_1,  // partitionId
+                eventData.requestId(),
+                dataRange,
+                bdlf::PlaceHolders::_2,   // destination
+                bdlf::PlaceHolders::_3);  // status
+        d_recoveryManager_mp->processSendDataChunks(partitionId,
+                                                    destNode,
+                                                    beginSeqNum,
+                                                    endSeqNum,
+                                                    fs,
+                                                    f);
     }
 }
 
