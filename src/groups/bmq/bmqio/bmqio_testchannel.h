@@ -248,7 +248,7 @@ class TestChannel : public Channel {
     // ACCESSORS
 
     /// @brief Wait for a write call and return it.
-    /// @param call[out] The address to store the output write call.
+    /// @param[out] call The address to store the output write call.
     /// @param index Position of the write call in test channel.
     /// @param interval Max wait interval.
     /// @return `true` if write call was acquired and returned in time, `false`
