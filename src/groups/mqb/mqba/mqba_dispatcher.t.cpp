@@ -19,6 +19,7 @@
 // MQB
 #include <mqbcfg_messages.h>
 #include <mqbmock_dispatcher.h>
+#include <mqbstat_dispatcherstats.h>
 
 #include <bmqex_bindutil.h>
 #include <bmqex_executionpolicy.h>

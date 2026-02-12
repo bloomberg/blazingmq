@@ -871,13 +871,13 @@ void PrometheusStatConsumer::captureDispatcherStats()
             static const DatapointDef defs[] = {
                 {"dispatcher_queue_enqueued_delta", Stat::e_ENQUEUE_DELTA},
                 {"dispatcher_queue_dequeued_delta", Stat::e_DEQUEUE_DELTA},
-                {"dispatcher_queue_size", Stat::e_SIZE},
-                {"dispatcher_queue_size_max", Stat::e_SIZE_MAX},
-                {"dispatcher_queue_size_abs_max", Stat::e_SIZE_ABS_MAX},
-                {"dispatcher_queue_time_min", Stat::e_TIME_MIN},
-                {"dispatcher_queue_time_avg", Stat::e_TIME_AVG},
-                {"dispatcher_queue_time_max", Stat::e_TIME_MAX},
-                {"dispatcher_queue_time_abs_max", Stat::e_TIME_ABS_MAX}};
+                {"dispatcher_queue_size", Stat::e_QUEUE_SIZE},
+                {"dispatcher_queue_size_max", Stat::e_QUEUE_SIZE_MAX},
+                {"dispatcher_queue_size_abs_max", Stat::e_QUEUE_SIZE_ABS_MAX},
+                {"dispatcher_queue_time_min", Stat::e_QUEUE_TIME_MIN},
+                {"dispatcher_queue_time_avg", Stat::e_QUEUE_TIME_AVG},
+                {"dispatcher_queue_time_max", Stat::e_QUEUE_TIME_MAX},
+                {"dispatcher_queue_time_abs_max", Stat::e_QUEUE_TIME_ABS_MAX}};
 
             for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
                  dpIt != bdlb::ArrayUtil::end(defs);

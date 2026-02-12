@@ -47,12 +47,10 @@
 
 // BMQ
 #include <bmqst_statcontext.h>
-#include <bmqsys_time.h>
 
 // MQB
 #include <mqbcfg_messages.h>
 #include <mqbi_dispatcher.h>
-#include <mqbstat_dispatcherstats.h>
 #include <mqbu_loadbalancer.h>
 
 #include <bmqc_multiqueuethreadpool.h>
@@ -276,8 +274,9 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
         /// Pointer to stat context for client
         bslma::ManagedPtr<bmqst::StatContext> d_clientStatContext_mp;
 
-        /// Vector of stat contexts pointers, one per client's processor.
-        bsl::vector<bslma::ManagedPtr<bmqst::StatContext> > d_statContexts;
+        /// Vector of stat contexts shared pointers, one per client's
+        /// processor.
+        bsl::vector<bsl::shared_ptr<bmqst::StatContext> > d_statContexts;
 
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(DispatcherContext,
@@ -545,90 +544,6 @@ inline const bsl::shared_ptr<mqbi::DispatcherEventSource>&
 Dispatcher::getDefaultEventSource()
 {
     return d_defaultEventSource_sp;
-}
-
-inline void
-Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
-                          mqbi::DispatcherClient*                destination)
-{
-    BALL_LOG_TRACE << "Enqueuing Event to '" << destination->description()
-                   << "': " << *bslmf::MovableRefUtil::access(event);
-
-    bslmf::MovableRefUtil::access(event)->setDestination(destination);
-
-    dispatchEvent(bslmf::MovableRefUtil::move(event),
-                  destination->dispatcherClientData().clientType(),
-                  destination->dispatcherClientData().processorHandle());
-}
-
-inline void
-Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
-                          mqbi::DispatcherClientType::Enum       type,
-                          mqbi::Dispatcher::ProcessorHandle      handle)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(handle != mqbi::Dispatcher::k_INVALID_PROCESSOR_HANDLE);
-
-    BALL_LOG_TRACE << "Enqueuing Event to processor " << handle << " of "
-                   << type << ": " << *bslmf::MovableRefUtil::access(event);
-
-    switch (type) {
-    case mqbi::DispatcherClientType::e_SESSION:
-    case mqbi::DispatcherClientType::e_QUEUE:
-    case mqbi::DispatcherClientType::e_CLUSTER: {
-        DispatcherContext* dispatcherContext = d_contexts[type].get();
-
-        event->setEnqueueTime(bmqsys::Time::highResolutionTimer());
-
-        dispatcherContext->d_processorPool_mp->enqueueEvent(
-            bslmf::MovableRefUtil::move(event),
-            handle);
-
-        // Update stats
-        mqbstat::DispatcherStats::onEnqueue(
-            dispatcherContext->d_statContexts[handle].get());
-
-    } break;
-    case mqbi::DispatcherClientType::e_UNDEFINED:
-    default: {
-        BSLS_ASSERT_OPT(false && "Invalid destination type");
-    }
-    }
-}
-
-inline void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
-                                mqbi::DispatcherClient*              client,
-                                mqbi::DispatcherEventType::Enum      type)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(client);
-    BSLS_ASSERT_SAFE(type == mqbi::DispatcherEventType::e_CALLBACK ||
-                     type == mqbi::DispatcherEventType::e_DISPATCHER);
-    BSLS_ASSERT_SAFE(functor);
-
-    bsl::shared_ptr<mqbi::DispatcherEvent> event =
-        d_defaultEventSource_sp->getEvent();
-    (*event).setType(type).callback().set(functor);
-
-    dispatchEvent(bslmf::MovableRefUtil::move(event), client);
-}
-
-inline void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
-                                const mqbi::DispatcherClientData&    client)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(functor);
-
-    bsl::shared_ptr<mqbi::DispatcherEvent> event =
-        d_defaultEventSource_sp->getEvent();
-    (*event)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .callback()
-        .set(functor);
-
-    dispatchEvent(bslmf::MovableRefUtil::move(event),
-                  client.clientType(),
-                  client.processorHandle());
 }
 
 // ACCESSORS

@@ -19,6 +19,7 @@
 #include <mqbscm_version.h>
 // BMQ
 #include <bmqsys_threadutil.h>
+#include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
 
 // MQB
@@ -27,7 +28,6 @@
 // BDE
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
-#include <bdlma_localsequentialallocator.h>
 #include <bdlmt_eventscheduler.h>
 #include <bsl_cstddef.h>
 #include <bsl_functional.h>
@@ -652,6 +652,54 @@ void Dispatcher::unregisterClient(mqbi::DispatcherClient* client)
         mqbi::Dispatcher::k_INVALID_PROCESSOR_HANDLE);
 }
 
+void Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
+                               mqbi::DispatcherClient* destination)
+{
+    BALL_LOG_TRACE << "Enqueuing Event to '" << destination->description()
+                   << "': " << *bslmf::MovableRefUtil::access(event);
+
+    bslmf::MovableRefUtil::access(event)->setDestination(destination);
+
+    dispatchEvent(bslmf::MovableRefUtil::move(event),
+                  destination->dispatcherClientData().clientType(),
+                  destination->dispatcherClientData().processorHandle());
+}
+
+void Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
+                               mqbi::DispatcherClientType::Enum       type,
+                               mqbi::Dispatcher::ProcessorHandle      handle)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(handle != mqbi::Dispatcher::k_INVALID_PROCESSOR_HANDLE);
+
+    BALL_LOG_TRACE << "Enqueuing Event to processor " << handle << " of "
+                   << type << ": " << *bslmf::MovableRefUtil::access(event);
+
+    switch (type) {
+    case mqbi::DispatcherClientType::e_SESSION:
+    case mqbi::DispatcherClientType::e_QUEUE:
+    case mqbi::DispatcherClientType::e_CLUSTER: {
+        DispatcherContext* dispatcherContext = d_contexts[type].get();
+
+        bslmf::MovableRefUtil::access(event)->setEnqueueTime(
+            bmqsys::Time::highResolutionTimer());
+
+        dispatcherContext->d_processorPool_mp->enqueueEvent(
+            bslmf::MovableRefUtil::move(event),
+            handle);
+
+        // Update stats
+        mqbstat::DispatcherStats::onEnqueue(
+            dispatcherContext->d_statContexts[handle].get());
+
+    } break;
+    case mqbi::DispatcherClientType::e_UNDEFINED:
+    default: {
+        BSLS_ASSERT_OPT(false && "Invalid destination type");
+    }
+    }
+}
+
 void Dispatcher::executeOnAllQueues(
     const mqbi::Dispatcher::VoidFunctor& functor,
     mqbi::DispatcherClientType::Enum     type,
@@ -684,6 +732,46 @@ void Dispatcher::executeOnAllQueues(
         mqbstat::DispatcherStats::onEnqueue(
             context_p->d_statContexts[i].get());
     }
+}
+
+void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
+                         mqbi::DispatcherClient*              client,
+                         mqbi::DispatcherEventType::Enum      type)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(client);
+    BSLS_ASSERT_SAFE(type == mqbi::DispatcherEventType::e_CALLBACK ||
+                     type == mqbi::DispatcherEventType::e_DISPATCHER);
+    BSLS_ASSERT_SAFE(functor);
+
+    bsl::shared_ptr<mqbi::DispatcherEvent> event =
+        d_defaultEventSource_sp->getEvent();
+    (*event)
+        .setType(type)
+        .setEnqueueTime(bmqsys::Time::highResolutionTimer())
+        .callback()
+        .set(functor);
+
+    dispatchEvent(bslmf::MovableRefUtil::move(event), client);
+}
+
+void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
+                         const mqbi::DispatcherClientData&    client)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(functor);
+
+    bsl::shared_ptr<mqbi::DispatcherEvent> event =
+        d_defaultEventSource_sp->getEvent();
+    (*event)
+        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
+        .setEnqueueTime(bmqsys::Time::highResolutionTimer())
+        .callback()
+        .set(functor);
+
+    dispatchEvent(bslmf::MovableRefUtil::move(event),
+                  client.clientType(),
+                  client.processorHandle());
 }
 
 void Dispatcher::synchronize(mqbi::DispatcherClient* client)

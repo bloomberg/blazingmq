@@ -34,7 +34,7 @@
 #include <bsl_memory.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
-#include <bsls_cpp11.h>
+#include <bsls_keyword.h>
 #include <bsls_types.h>
 
 namespace BloombergLP {
@@ -54,15 +54,15 @@ class DispatcherStats {
     struct Stat {
         // TYPES
         enum Enum {
-            e_ENQUEUE_DELTA = 0,
-            e_DEQUEUE_DELTA = 1,
-            e_SIZE          = 2,
-            e_SIZE_MAX      = 3,
-            e_SIZE_ABS_MAX  = 4,
-            e_TIME_MIN      = 5,
-            e_TIME_AVG      = 6,
-            e_TIME_MAX      = 7,
-            e_TIME_ABS_MAX  = 8
+            e_ENQUEUE_DELTA      = 0,
+            e_DEQUEUE_DELTA      = 1,
+            e_QUEUE_SIZE         = 2,
+            e_QUEUE_SIZE_MAX     = 3,
+            e_QUEUE_SIZE_ABS_MAX = 4,
+            e_QUEUE_TIME_MIN     = 5,
+            e_QUEUE_TIME_AVG     = 6,
+            e_QUEUE_TIME_MAX     = 7,
+            e_QUEUE_TIME_ABS_MAX = 8
         };
     };
 
@@ -77,7 +77,7 @@ class DispatcherStats {
     /// THREAD: This method can only be invoked from the `snapshot` thread.
     static bsls::Types::Int64 getValue(const bmqst::StatContext& context,
                                        int                       snapshotId,
-                                       const Stat::Enum&         stat);
+                                       Stat::Enum                stat);
 
     /// Update the `queued_count` field of the specified `queueStatContext`.
     static void onEnqueue(bmqst::StatContext* queueStatContext);
@@ -127,21 +127,21 @@ struct DispatcherStatsUtil {
     /// level statistics.  Use the specified `allocator` for all
     /// stat context and stat values.
     static bslma::ManagedPtr<bmqst::StatContext>
-    initializeClientStatContext(bmqst::StatContext*      parent,
-                                const bslstl::StringRef& name,
-                                bslma::Allocator*        allocator);
+    initializeClientStatContext(bmqst::StatContext* parent,
+                                bsl::string_view    name,
+                                bslma::Allocator*   allocator);
 
     /// Initialize the statistics for the dispatcher queue stat context,
     /// with the specified `parent` context `name`, `client`, and
     /// `processorId`. Return the created stat context to use for all
     /// dispatcher queue level statistics.  Use the specified `allocator` for
     /// all stat context and stat values.
-    static bslma::ManagedPtr<bmqst::StatContext>
-    initializeQueueStatContext(bmqst::StatContext*      parent,
-                               const bslstl::StringRef& name,
-                               const bslstl::StringRef& client,
-                               unsigned int             processorId,
-                               bslma::Allocator*        allocator);
+    static bsl::shared_ptr<bmqst::StatContext>
+    initializeQueueStatContext(bmqst::StatContext* parent,
+                               bsl::string_view    name,
+                               bsl::string_view    client,
+                               unsigned int        processorId,
+                               bslma::Allocator*   allocator);
 };
 
 // ============================================================================
