@@ -3,3 +3,4 @@ mqbauthn_anonauthenticator
 mqbauthn_authenticationcontroller
 mqbauthn_basicauthenticator
 mqbauthn_pluginlibrary
+mqbauthn_testauthenticator

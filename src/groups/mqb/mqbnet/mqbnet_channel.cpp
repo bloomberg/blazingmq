@@ -458,6 +458,7 @@ Channel::writeBufferedItem(bool*                                  isConsumed,
     case bmqp::EventType::e_HEARTBEAT_REQ:
     case bmqp::EventType::e_HEARTBEAT_RSP:
     case bmqp::EventType::e_REPLICATION_RECEIPT:
+    case bmqp::EventType::e_AUTHENTICATION:
     default: {
         ControlArgs x(item);
         rc = writeImmediate(isConsumed,

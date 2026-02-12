@@ -480,8 +480,9 @@ class TestPutsRetransmission:
         # generate BACKLOG_MESSAGES
         if after > 0:
             assert wait_until(
-                lambda: self.capture_number_of_produced_messages(self.producer)
-                >= after,
+                lambda: (
+                    self.capture_number_of_produced_messages(self.producer) >= after
+                ),
                 40,
             )
 
@@ -489,8 +490,9 @@ class TestPutsRetransmission:
         # generate BACKLOG_MESSAGES
         if after > 0:
             assert wait_until(
-                lambda: self.capture_number_of_produced_messages(self.producer)
-                >= after,
+                lambda: (
+                    self.capture_number_of_produced_messages(self.producer) >= after
+                ),
                 20,
             )
 

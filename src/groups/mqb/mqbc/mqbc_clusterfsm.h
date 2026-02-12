@@ -196,8 +196,9 @@ class ClusterFSMEventMetadata {
     /// Create a new instance of @bbref{mqbc::ClusterFSMEventMetadata} with the
     /// specified `modifiedPartitions`, using the optionally specified
     /// `allocator`.
-    explicit ClusterFSMEventMetadata(bsl::vector<int>  modifiedPartitions,
-                                     bslma::Allocator* allocator = 0);
+    explicit ClusterFSMEventMetadata(
+        const bsl::vector<int>& modifiedPartitions,
+        bslma::Allocator*       allocator = 0);
 
     /// Create a new instance copying from the specified `rhs`.  Use the
     /// optionally specified `allocator` for memory allocations.
@@ -416,8 +417,8 @@ inline ClusterFSMEventMetadata::ClusterFSMEventMetadata(
 }
 
 inline ClusterFSMEventMetadata::ClusterFSMEventMetadata(
-    bsl::vector<int>  modifiedPartitions,
-    bslma::Allocator* allocator)
+    const bsl::vector<int>& modifiedPartitions,
+    bslma::Allocator*       allocator)
 : d_messages(allocator)
 , d_highestLSNNode(0)
 , d_crashedFollowerNode(0)
