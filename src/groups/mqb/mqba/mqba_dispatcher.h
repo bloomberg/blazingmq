@@ -209,31 +209,6 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
 
     typedef bsl::vector<mqbi::DispatcherClient*> DispatcherClientPtrVector;
 
-    /// The purpose is to avoid memory allocation by bdlf::BindUtil::bind
-    /// when dispatching CONFIRM from Cluster to Queue.
-    class OnNewClientFunctor : public bmqu::ManagedCallback::CallbackFunctor {
-      private:
-        // PRIVATE DATA
-        Dispatcher*                      d_owner_p;
-        mqbi::DispatcherClientType::Enum d_type;
-        int                              d_processorId;
-
-      public:
-        // CREATORS
-        /// This functor is invoked when a new client with the specified `type`
-        /// is registered to the dispatcher, from the thread associated to that
-        /// new client that is mapped to the specified `processorId`.  The
-        /// specified `owner_p` holds pointer to the parent Dispatcher object.
-        explicit OnNewClientFunctor(Dispatcher*                      owner_p,
-                                    mqbi::DispatcherClientType::Enum type,
-                                    int processorId);
-
-        // ACCESSORS
-        /// Updated the data associated with the new client from the
-        /// appropriate thread, using fields stored in this functor.
-        void operator()() const BSLS_KEYWORD_OVERRIDE;
-    };
-
     /// Context for a dispatcher, with threads and pools
     struct DispatcherContext {
       private:
