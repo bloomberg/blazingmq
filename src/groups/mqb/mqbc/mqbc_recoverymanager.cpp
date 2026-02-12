@@ -15,6 +15,7 @@
 
 #include <ball_log.h>
 #include <bsls_assert.h>
+#include <mqbc_partitionfsm.h>
 #include <mqbc_recoverymanager.h>
 #include <mqbs_qlistfileiterator.h>
 
@@ -434,8 +435,9 @@ void RecoveryManager::setExpectedDataChunkRange(
     ReceiveDataContext& receiveDataCtx = recoveryCtx.d_receiveDataContext;
     if (receiveDataCtx.d_expectChunks) {
         BALL_LOG_ERROR << d_clusterData.identity().description()
-                       << " Partition [" << partitionId << "]: "
-                       << "Got notification to expect chunks when self is "
+                       << " Partition [" << partitionId
+                       << "]: " << PartitionFSM::k_PFSM_DEFECT_LOG_TAG
+                       << " Got notification to expect chunks when self is "
                        << "already expecting chunks.  Self's view: "
                        << "recovery requestId = "
                        << receiveDataCtx.d_recoveryRequestId
