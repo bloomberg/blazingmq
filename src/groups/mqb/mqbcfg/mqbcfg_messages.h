@@ -1,4 +1,4 @@
-// Copyright 2025-2026 Bloomberg Finance L.P.
+// Copyright 2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -406,6 +406,8 @@ class BmqconfConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::BmqconfConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::BmqconfConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -421,16 +423,8 @@ class ClusterAttributes {
     // doesFSMwriteQLIST: indicates whether the broker still writes to the
     // to-be-deprecated QLIST file when FSM workflow is enabled.  If above
     // 'isFSMWorkflow' flag is false, this flag is ignored.
-    // partitionStateMessageDedupIntervalMs: deduplication interval, in
-    // milliseconds, for PrimaryStateRequest/ReplicaStateResponse messages
-    // received from the same replica node.  This is because at startup primary
-    // sends a ReplicaStateRequest to all replicas, while each replicas sends a
-    // PrimaryStateRequest to the primary.  This guarantees at least one
-    // request/response is exchanged if a node starts late, but can also lead
-    // to duplicate if both nodes start at the same time.
 
     // INSTANCE DATA
-    int  d_partitionStateMessageDedupIntervalMs;
     bool d_isCSLModeEnabled;
     bool d_isFSMWorkflow;
     bool d_doesFSMwriteQLIST;
@@ -439,24 +433,20 @@ class ClusterAttributes {
     template <typename t_HASH_ALGORITHM>
     void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
 
-    bool isEqualTo(const ClusterAttributes& rhs) const;
-
   public:
     // TYPES
     enum {
-        ATTRIBUTE_ID_IS_C_S_L_MODE_ENABLED                     = 0,
-        ATTRIBUTE_ID_IS_F_S_M_WORKFLOW                         = 1,
-        ATTRIBUTE_ID_DOES_F_S_MWRITE_Q_L_I_S_T                 = 2,
-        ATTRIBUTE_ID_PARTITION_STATE_MESSAGE_DEDUP_INTERVAL_MS = 3
+        ATTRIBUTE_ID_IS_C_S_L_MODE_ENABLED     = 0,
+        ATTRIBUTE_ID_IS_F_S_M_WORKFLOW         = 1,
+        ATTRIBUTE_ID_DOES_F_S_MWRITE_Q_L_I_S_T = 2
     };
 
-    enum { NUM_ATTRIBUTES = 4 };
+    enum { NUM_ATTRIBUTES = 3 };
 
     enum {
-        ATTRIBUTE_INDEX_IS_C_S_L_MODE_ENABLED                     = 0,
-        ATTRIBUTE_INDEX_IS_F_S_M_WORKFLOW                         = 1,
-        ATTRIBUTE_INDEX_DOES_F_S_MWRITE_Q_L_I_S_T                 = 2,
-        ATTRIBUTE_INDEX_PARTITION_STATE_MESSAGE_DEDUP_INTERVAL_MS = 3
+        ATTRIBUTE_INDEX_IS_C_S_L_MODE_ENABLED     = 0,
+        ATTRIBUTE_INDEX_IS_F_S_M_WORKFLOW         = 1,
+        ATTRIBUTE_INDEX_DOES_F_S_MWRITE_Q_L_I_S_T = 2
     };
 
     // CONSTANTS
@@ -467,9 +457,6 @@ class ClusterAttributes {
     static const bool DEFAULT_INITIALIZER_IS_F_S_M_WORKFLOW;
 
     static const bool DEFAULT_INITIALIZER_DOES_F_S_MWRITE_Q_L_I_S_T;
-
-    static const int
-        DEFAULT_INITIALIZER_PARTITION_STATE_MESSAGE_DEDUP_INTERVAL_MS;
 
     static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
@@ -536,10 +523,6 @@ class ClusterAttributes {
     // Return a reference to the modifiable "DoesFSMwriteQLIST" attribute
     // of this object.
 
-    int& partitionStateMessageDedupIntervalMs();
-    // Return a reference to the modifiable
-    // "PartitionStateMessageDedupIntervalMs" attribute of this object.
-
     // ACCESSORS
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
@@ -593,10 +576,6 @@ class ClusterAttributes {
     // Return the value of the "DoesFSMwriteQLIST" attribute of this
     // object.
 
-    int partitionStateMessageDedupIntervalMs() const;
-    // Return the value of the "PartitionStateMessageDedupIntervalMs"
-    // attribute of this object.
-
     // HIDDEN FRIENDS
     friend bool operator==(const ClusterAttributes& lhs,
                            const ClusterAttributes& rhs)
@@ -604,7 +583,9 @@ class ClusterAttributes {
     // have the same value, and 'false' otherwise.  Two attribute objects
     // have the same value if each respective attribute has the same value.
     {
-        return lhs.isEqualTo(rhs);
+        return lhs.isCSLModeEnabled() == rhs.isCSLModeEnabled() &&
+               lhs.isFSMWorkflow() == rhs.isFSMWorkflow() &&
+               lhs.doesFSMwriteQLIST() == rhs.doesFSMwriteQLIST();
     }
 
     friend bool operator!=(const ClusterAttributes& lhs,
@@ -639,6 +620,9 @@ class ClusterAttributes {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ClusterAttributes)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterAttributes> : bsl::true_type {
+};
 
 namespace mqbcfg {
 
@@ -925,6 +909,9 @@ class ClusterMonitorConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ClusterMonitorConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterMonitorConfig>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -1145,6 +1132,8 @@ class Credential {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::Credential)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::Credential> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -1294,6 +1283,8 @@ class Disallow {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::Disallow)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::Disallow> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -1494,6 +1485,9 @@ class DispatcherProcessorParameters {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     mqbcfg::DispatcherProcessorParameters)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::DispatcherProcessorParameters>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -1801,6 +1795,8 @@ class ElectorConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ElectorConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ElectorConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -2085,6 +2081,8 @@ class Heartbeat {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::Heartbeat)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::Heartbeat> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -2328,6 +2326,8 @@ class LogDumpConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::LogDumpConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::LogDumpConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -2605,6 +2605,9 @@ class MessagePropertiesV2 {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::MessagePropertiesV2)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::MessagePropertiesV2>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -2830,6 +2833,9 @@ class MessageThrottleConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::MessageThrottleConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::MessageThrottleConfig>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -3359,6 +3365,8 @@ class Plugins {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::Plugins)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::Plugins> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -3718,6 +3726,9 @@ class QueueOperationsConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::QueueOperationsConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::QueueOperationsConfig>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -3947,6 +3958,8 @@ class ResolvedDomain {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::ResolvedDomain)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ResolvedDomain> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -4212,6 +4225,9 @@ class StatsPrinterConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::StatsPrinterConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::StatsPrinterConfig>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -4545,6 +4561,9 @@ class StorageSyncConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::StorageSyncConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::StorageSyncConfig> : bsl::true_type {
+};
 
 namespace mqbcfg {
 
@@ -4794,6 +4813,8 @@ class SyslogConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::SyslogConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::SyslogConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -5008,6 +5029,9 @@ class TcpClusterNodeConnection {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::TcpClusterNodeConnection)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::TcpClusterNodeConnection>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -5019,7 +5043,7 @@ class TcpInterfaceListener {
     // This type describes the information needed for the broker to open a TCP
     // listener.
     // name.................: A name to associate this listener to.
-    // address..............: The IPv4 address this listener will accept
+    // address..............: The IP address this listener will accept
     // connections on.  port.................: The port this listener will
     // accept connections on.
 
@@ -5256,6 +5280,9 @@ class TcpInterfaceListener {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::TcpInterfaceListener)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::TcpInterfaceListener>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -5482,6 +5509,9 @@ class VirtualClusterInformation {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::VirtualClusterInformation)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::VirtualClusterInformation>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -6146,6 +6176,9 @@ class DispatcherProcessorConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     mqbcfg::DispatcherProcessorConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::DispatcherProcessorConfig>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -6472,6 +6505,8 @@ class LogController {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::LogController)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::LogController> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -6830,6 +6865,8 @@ class PartitionConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::PartitionConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::PartitionConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -7052,6 +7089,9 @@ class PluginSettingKeyValue {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::PluginSettingKeyValue)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::PluginSettingKeyValue>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -7298,6 +7338,9 @@ class StatPluginConfigPrometheus {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::StatPluginConfigPrometheus)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::StatPluginConfigPrometheus>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -7630,6 +7673,9 @@ class TcpInterfaceConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::TcpInterfaceConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::TcpInterfaceConfig>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -7855,6 +7901,9 @@ class AuthenticatorPluginConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::AuthenticatorPluginConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::AuthenticatorPluginConfig>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -8106,6 +8155,8 @@ class ClusterNode {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::ClusterNode)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterNode> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -8306,6 +8357,9 @@ class DispatcherConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::DispatcherConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::DispatcherConfig> : bsl::true_type {
+};
 
 namespace mqbcfg {
 
@@ -8527,6 +8581,9 @@ class NetworkInterfaces {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::NetworkInterfaces)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::NetworkInterfaces> : bsl::true_type {
+};
 
 namespace mqbcfg {
 
@@ -8847,6 +8904,9 @@ class StatPluginConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::StatPluginConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::StatPluginConfig> : bsl::true_type {
+};
 
 namespace mqbcfg {
 
@@ -9080,6 +9140,8 @@ class TaskConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::TaskConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::TaskConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -9347,6 +9409,9 @@ class AuthenticatorConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::AuthenticatorConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::AuthenticatorConfig>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -9664,6 +9729,9 @@ class ClusterDefinition {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::ClusterDefinition)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterDefinition> : bsl::true_type {
+};
 
 namespace mqbcfg {
 
@@ -9935,6 +10003,9 @@ class ClusterProxyDefinition {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::ClusterProxyDefinition)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterProxyDefinition>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -10172,6 +10243,8 @@ class StatsConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::StatsConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::StatsConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -10607,6 +10680,8 @@ class AppConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::AppConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::AppConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -10855,6 +10930,9 @@ class ClustersDefinition {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::ClustersDefinition)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ClustersDefinition>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -11073,6 +11151,8 @@ class Configuration {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::Configuration)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::Configuration> : bsl::true_type {};
 
 // ============================================================================
 //                          INLINE DEFINITIONS
@@ -11218,16 +11298,6 @@ void ClusterAttributes::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     hashAppend(hashAlgorithm, this->isCSLModeEnabled());
     hashAppend(hashAlgorithm, this->isFSMWorkflow());
     hashAppend(hashAlgorithm, this->doesFSMwriteQLIST());
-    hashAppend(hashAlgorithm, this->partitionStateMessageDedupIntervalMs());
-}
-
-inline bool ClusterAttributes::isEqualTo(const ClusterAttributes& rhs) const
-{
-    return this->isCSLModeEnabled() == rhs.isCSLModeEnabled() &&
-           this->isFSMWorkflow() == rhs.isFSMWorkflow() &&
-           this->doesFSMwriteQLIST() == rhs.doesFSMwriteQLIST() &&
-           this->partitionStateMessageDedupIntervalMs() ==
-               rhs.partitionStateMessageDedupIntervalMs();
 }
 
 // CLASS METHODS
@@ -11257,14 +11327,6 @@ int ClusterAttributes::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
-    ret = manipulator(
-        &d_partitionStateMessageDedupIntervalMs,
-        ATTRIBUTE_INFO_ARRAY
-            [ATTRIBUTE_INDEX_PARTITION_STATE_MESSAGE_DEDUP_INTERVAL_MS]);
-    if (ret) {
-        return ret;
-    }
-
     return 0;
 }
 
@@ -11288,12 +11350,6 @@ int ClusterAttributes::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
         return manipulator(
             &d_doesFSMwriteQLIST,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DOES_F_S_MWRITE_Q_L_I_S_T]);
-    }
-    case ATTRIBUTE_ID_PARTITION_STATE_MESSAGE_DEDUP_INTERVAL_MS: {
-        return manipulator(
-            &d_partitionStateMessageDedupIntervalMs,
-            ATTRIBUTE_INFO_ARRAY
-                [ATTRIBUTE_INDEX_PARTITION_STATE_MESSAGE_DEDUP_INTERVAL_MS]);
     }
     default: return NOT_FOUND;
     }
@@ -11330,11 +11386,6 @@ inline bool& ClusterAttributes::doesFSMwriteQLIST()
     return d_doesFSMwriteQLIST;
 }
 
-inline int& ClusterAttributes::partitionStateMessageDedupIntervalMs()
-{
-    return d_partitionStateMessageDedupIntervalMs;
-}
-
 // ACCESSORS
 template <typename t_ACCESSOR>
 int ClusterAttributes::accessAttributes(t_ACCESSOR& accessor) const
@@ -11357,14 +11408,6 @@ int ClusterAttributes::accessAttributes(t_ACCESSOR& accessor) const
     ret = accessor(
         d_doesFSMwriteQLIST,
         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DOES_F_S_MWRITE_Q_L_I_S_T]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(
-        d_partitionStateMessageDedupIntervalMs,
-        ATTRIBUTE_INFO_ARRAY
-            [ATTRIBUTE_INDEX_PARTITION_STATE_MESSAGE_DEDUP_INTERVAL_MS]);
     if (ret) {
         return ret;
     }
@@ -11392,12 +11435,6 @@ int ClusterAttributes::accessAttribute(t_ACCESSOR& accessor, int id) const
         return accessor(
             d_doesFSMwriteQLIST,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DOES_F_S_MWRITE_Q_L_I_S_T]);
-    }
-    case ATTRIBUTE_ID_PARTITION_STATE_MESSAGE_DEDUP_INTERVAL_MS: {
-        return accessor(
-            d_partitionStateMessageDedupIntervalMs,
-            ATTRIBUTE_INFO_ARRAY
-                [ATTRIBUTE_INDEX_PARTITION_STATE_MESSAGE_DEDUP_INTERVAL_MS]);
     }
     default: return NOT_FOUND;
     }
@@ -11432,11 +11469,6 @@ inline bool ClusterAttributes::isFSMWorkflow() const
 inline bool ClusterAttributes::doesFSMwriteQLIST() const
 {
     return d_doesFSMwriteQLIST;
-}
-
-inline int ClusterAttributes::partitionStateMessageDedupIntervalMs() const
-{
-    return d_partitionStateMessageDedupIntervalMs;
 }
 
 // --------------------------
