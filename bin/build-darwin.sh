@@ -115,11 +115,16 @@ PATH="${DIR_THIRDPARTY}/bde-tools/bin:$PATH"
 
 if [ ! -e "${DIR_BUILD}/bde/.complete" ]; then
     pushd "${DIR_THIRDPARTY}/bde"
+    # Suppress warnings from BDE build
+    export CXXFLAGS="-w"
+    export CFLAGS="-w"
     eval "$(bbs_build_env -p clang -u opt_64_cpp17 -b "${DIR_BUILD}/bde" -i "${DIR_INSTALL}")"
     bbs_build configure --prefix="${DIR_INSTALL}"
     bbs_build build --prefix="${DIR_INSTALL}"
     bbs_build install --install_dir="/" --prefix="${DIR_INSTALL}"
     eval "$(bbs_build_env unset)"
+    unset CXXFLAGS
+    unset CFLAGS
     popd
     touch "${DIR_BUILD}/bde/.complete"
 fi
@@ -127,6 +132,9 @@ fi
 if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
     # Build and install NTF
     pushd "${DIR_THIRDPARTY}/ntf-core"
+    # Suppress warnings from NTF build
+    export CXXFLAGS="-w"
+    export CFLAGS="-w"
     ./configure --prefix "${DIR_INSTALL}" \
                 --output "${DIR_BUILD}/ntf" \
                 --toolchain "${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem/toolchains/darwin/clang-default.cmake" \
@@ -136,6 +144,8 @@ if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
                 --ufid opt_64_cpp17
     make -j 16
     make install
+    unset CXXFLAGS
+    unset CFLAGS
     popd
     touch "${DIR_BUILD}/ntf/.complete"
 fi
