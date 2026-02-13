@@ -1313,7 +1313,7 @@ void QueueHandle::onAckMessage(const bmqp::AckMessage& ackMessage)
             .setAckMessage(ackMessage);
 
         // Override with correct downstream queueId
-        const mqbi::DispatcherAckEvent* ackEvent = event->asAckEvent();
+        const mqbevt::AckEvent* ackEvent = event->asAckEvent();
 
         bmqp::AckMessage& ackMsg = const_cast<bmqp::AckMessage&>(
             ackEvent->ackMessage());

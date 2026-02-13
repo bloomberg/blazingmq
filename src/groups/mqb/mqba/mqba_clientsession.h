@@ -486,19 +486,19 @@ class ClientSession : public mqbnet::Session,
         const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger);
 
     /// Process the specified ack `event`.
-    void onAckEvent(const mqbi::DispatcherAckEvent& event);
+    void onAckEvent(const mqbevt::AckEvent& event);
 
     /// Process the specified confirm `event`.
-    void onConfirmEvent(const mqbi::DispatcherConfirmEvent& event);
+    void onConfirmEvent(const mqbevt::ConfirmEvent& event);
 
     /// Process the specified reject `event`.
-    void onRejectEvent(const mqbi::DispatcherRejectEvent& event);
+    void onRejectEvent(const mqbevt::RejectEvent& event);
 
     /// Process the specified push `event` received from the dispatcher.
-    void onPushEvent(const mqbi::DispatcherPushEvent& event);
+    void onPushEvent(const mqbevt::PushEvent& event);
 
     /// Process the specified put `event`.
-    void onPutEvent(const mqbi::DispatcherPutEvent& event);
+    void onPutEvent(const mqbevt::PutEvent& event);
 
     /// Validate a message of the specified `eventType` using the specified
     /// `queueId`. Return true if the message is valid and false otherwise.

@@ -1245,7 +1245,7 @@ void ClusterStateManager::processRegistrationRequest(
 }
 
 void ClusterStateManager::processClusterStateEvent(
-    const mqbi::DispatcherClusterStateEvent& event)
+    const mqbevt::ClusterStateEvent& event)
 {
     // executed by *CLUSTER DISPATCHER* thread
 

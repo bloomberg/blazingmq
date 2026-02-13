@@ -293,7 +293,7 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
         BALL_LOG_TRACE << "Dispatching Event to queue " << processorId
                        << " of " << type << " dispatcher: " << *event;
         if (event->type() == mqbi::DispatcherEventType::e_DISPATCHER) {
-            const mqbi::DispatcherDispatcherEvent* realEvent =
+            const mqbevt::DispatcherEvent* realEvent =
                 event->asDispatcherEvent();
 
             // We must flush now (and irrespective of a callback actually being

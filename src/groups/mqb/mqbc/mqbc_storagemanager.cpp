@@ -4339,8 +4339,7 @@ int StorageManager::configureStorage(
                                          storageDef);
 }
 
-void StorageManager::processStorageEvent(
-    const mqbi::DispatcherStorageEvent& event)
+void StorageManager::processStorageEvent(const mqbevt::StorageEvent& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -4434,7 +4433,7 @@ void StorageManager::processPartitionSyncDataRequestStatus(
 }
 
 void StorageManager::processRecoveryEvent(
-    BSLA_MAYBE_UNUSED const mqbi::DispatcherRecoveryEvent& event)
+    BSLA_MAYBE_UNUSED const mqbevt::RecoveryEvent& event)
 {
     BSLS_ASSERT_SAFE(false &&
                      "This method can only be invoked in non-CSL mode");

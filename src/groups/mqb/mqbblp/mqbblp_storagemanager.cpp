@@ -669,7 +669,7 @@ void StorageManager::processStorageEventDispatched(
 }
 
 void StorageManager::processPartitionSyncEvent(
-    const mqbi::DispatcherStorageEvent& event)
+    const mqbevt::StorageEvent& event)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
@@ -1608,8 +1608,7 @@ int StorageManager::configureStorage(
                                                storageDef);
 }
 
-void StorageManager::processStorageEvent(
-    const mqbi::DispatcherStorageEvent& event)
+void StorageManager::processStorageEvent(const mqbevt::StorageEvent& event)
 {
     // executed by *CLUSTER DISPATCHER* thread
 
@@ -1852,8 +1851,7 @@ void StorageManager::processPartitionSyncDataRequestStatus(
         source));
 }
 
-void StorageManager::processRecoveryEvent(
-    const mqbi::DispatcherRecoveryEvent& event)
+void StorageManager::processRecoveryEvent(const mqbevt::RecoveryEvent& event)
 {
     // executed by *CLUSTER DISPATCHER* thread
 

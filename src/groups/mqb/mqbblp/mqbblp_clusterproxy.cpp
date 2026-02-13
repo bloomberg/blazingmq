@@ -382,7 +382,7 @@ void ClusterProxy::onActiveNodeDown(const mqbnet::ClusterNode* node)
 
 // PRIVATE MANIPULATORS
 //   (Event processing)
-void ClusterProxy::onPushEvent(const mqbi::DispatcherPushEvent& event)
+void ClusterProxy::onPushEvent(const mqbevt::PushEvent& event)
 {
     // executed by the *DISPATCHER* thread
 
@@ -433,7 +433,7 @@ void ClusterProxy::onPushEvent(const mqbi::DispatcherPushEvent& event)
     }
 }
 
-void ClusterProxy::onAckEvent(const mqbi::DispatcherAckEvent& event)
+void ClusterProxy::onAckEvent(const mqbevt::AckEvent& event)
 {
     // executed by the *DISPATCHER* thread
 
@@ -476,7 +476,7 @@ void ClusterProxy::onAckEvent(const mqbi::DispatcherAckEvent& event)
     }
 }
 
-void ClusterProxy::onRelayRejectEvent(const mqbi::DispatcherRejectEvent& event)
+void ClusterProxy::onRelayRejectEvent(const mqbevt::RejectEvent& event)
 {
     // executed by the *DISPATCHER* thread
 
@@ -1248,7 +1248,7 @@ void ClusterProxy::onDispatcherEvent(const mqbi::DispatcherEvent& event)
         BALL_LOG_ERROR << "#UNEXPECTED_EVENT (CONFIRM)" << description();
     } break;
     case mqbi::DispatcherEventType::e_REJECT: {
-        const mqbi::DispatcherRejectEvent* realEvent = event.asRejectEvent();
+        const mqbevt::RejectEvent* realEvent = event.asRejectEvent();
         if (realEvent->isRelay()) {
             onRelayRejectEvent(*realEvent);
         }
@@ -1258,8 +1258,7 @@ void ClusterProxy::onDispatcherEvent(const mqbi::DispatcherEvent& event)
         }
     } break;
     case mqbi::DispatcherEventType::e_CALLBACK: {
-        const mqbi::DispatcherCallbackEvent* realEvent =
-            event.asCallbackEvent();
+        const mqbevt::CallbackEvent* realEvent = event.asCallbackEvent();
         BSLS_ASSERT_SAFE(!realEvent->callback().empty());
         realEvent->callback()();
     } break;
