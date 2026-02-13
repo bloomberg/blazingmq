@@ -48,8 +48,7 @@ static void test1_toAscii()
                   {L_, 4, "XML"},
                   {L_, 5, "JSON"},
                   {L_, 6, "TEXT"},
-                  {L_, 7, "MULTIPARTS"},
-                  {L_, -1, "(* UNKNOWN *)"}};
+                  {L_, 7, "MULTIPARTS"}};
 
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
@@ -148,14 +147,13 @@ static void test4_printTest()
                   {bmqt::EncodingType::e_XML, "XML"},
                   {bmqt::EncodingType::e_JSON, "JSON"},
                   {bmqt::EncodingType::e_TEXT, "TEXT"},
-                  {bmqt::EncodingType::e_MULTIPARTS, "MULTIPARTS"},
-                  {static_cast<bmqt::EncodingType::Enum>(-1),
-                   "(* UNKNOWN *)"}};
+                  {bmqt::EncodingType::e_MULTIPARTS, "MULTIPARTS"}};
 
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
-        const Test&        test = k_DATA[idx];
+        const Test& test = k_DATA[idx];
+
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         bmqu::MemOutStream expected(bmqtst::TestHelperUtil::allocator());
 

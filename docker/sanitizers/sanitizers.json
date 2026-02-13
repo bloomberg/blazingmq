@@ -40,7 +40,8 @@
             "UBSAN_OPTIONS": {
                 "external_symbolizer_path": "/usr/bin/llvm-symbolizer",
                 "suppressions": "%%SRC%%/etc/ubsansup.txt",
-                "print_stacktrace": "1"
+                "print_stacktrace": "1",
+                "halt_on_error": 1
             }
         }
     }

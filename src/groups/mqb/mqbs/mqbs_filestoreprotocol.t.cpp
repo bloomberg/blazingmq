@@ -505,8 +505,8 @@ static void test2_manipulators()
          k_UNSIGNED_CHAR_MIN,
          k_UNSIGNED_CHAR_MIN,
          k_UNSIGNED_CHAR_MIN,
-         k_INT_MAX,
-         127,
+         FileType::e_QLIST,
+         FileType::e_QLIST,
          k_INT_MAX,
          k_INT_MAX},
     };

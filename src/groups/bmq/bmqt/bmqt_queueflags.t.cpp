@@ -182,13 +182,13 @@ static void test3_printTest()
     } k_DATA[] = {{bmqt::QueueFlags::e_ADMIN, "ADMIN"},
                   {bmqt::QueueFlags::e_READ, "READ"},
                   {bmqt::QueueFlags::e_WRITE, "WRITE"},
-                  {bmqt::QueueFlags::e_ACK, "ACK"},
-                  {static_cast<bmqt::QueueFlags::Enum>(-1), "(* UNKNOWN *)"}};
+                  {bmqt::QueueFlags::e_ACK, "ACK"}};
 
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
-        const Test&        test = k_DATA[idx];
+        const Test& test = k_DATA[idx];
+
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         bmqu::MemOutStream expected(bmqtst::TestHelperUtil::allocator());
 

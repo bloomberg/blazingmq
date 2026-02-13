@@ -444,9 +444,9 @@ void test1_breathingTest()
         // Populate blob, 0 options
         bsl::vector<bmqp::SubQueueInfo> subQueueInfos(
             bmqtst::TestHelperUtil::allocator());
-        size_t                          numSubQueueIds = 0;
+        size_t             numSubQueueIds = 0;
         NullableMsgGroupId msgGroupId(bmqtst::TestHelperUtil::allocator());
-        bool                            hasMsgGroupId = false;
+        bool               hasMsgGroupId = false;
 
         populateBlob(&blob,
                      &optionsAreaPosition,
@@ -514,9 +514,9 @@ void test1_breathingTest()
         // Populate blob, 1 option header and 1 sub-queue id
         bsl::vector<bmqp::SubQueueInfo> subQueueInfos(
             bmqtst::TestHelperUtil::allocator());
-        size_t                          numSubQueueIds = 1;
+        size_t             numSubQueueIds = 1;
         NullableMsgGroupId msgGroupId(bmqtst::TestHelperUtil::allocator());
-        bool                            hasMsgGroupId = false;
+        bool               hasMsgGroupId = false;
 
         populateBlob(&blob,
                      &optionsAreaPosition,
@@ -581,9 +581,9 @@ void test1_breathingTest()
         // Populate blob, 1 option header, multiple sub-queue ids)
         bsl::vector<bmqp::SubQueueInfo> subQueueInfos(
             bmqtst::TestHelperUtil::allocator());
-        size_t                          numSubQueueIds = 3;
+        size_t             numSubQueueIds = 3;
         NullableMsgGroupId msgGroupId(bmqtst::TestHelperUtil::allocator());
-        bool                            hasMsgGroupId = false;
+        bool               hasMsgGroupId = false;
 
         populateBlob(&blob,
                      &optionsAreaPosition,
@@ -638,9 +638,9 @@ void test1_breathingTest()
         // Populate blob, 1 option header, multiple sub-queue ids)
         bsl::vector<bmqp::SubQueueInfo> subQueueInfos(
             bmqtst::TestHelperUtil::allocator());
-        size_t                          numSubQueueIds = 3;
+        size_t             numSubQueueIds = 3;
         NullableMsgGroupId msgGroupId(bmqtst::TestHelperUtil::allocator());
-        bool                            hasMsgGroupId = true;
+        bool               hasMsgGroupId = true;
 
         populateBlob(&blob,
                      &optionsAreaPosition,
@@ -742,9 +742,9 @@ void test2_subQueueIdsOld()
     // Populate blob, 1 option header, multiple old sub-queue ids)
     bsl::vector<bdlb::BigEndianUint32> subQueueIdsOld(
         bmqtst::TestHelperUtil::allocator());
-    size_t                             numSubQueueIds = 3;
+    size_t             numSubQueueIds = 3;
     NullableMsgGroupId msgGroupId(bmqtst::TestHelperUtil::allocator());
-    bool                               hasMsgGroupId = false;
+    bool               hasMsgGroupId = false;
 
     populateBlob(&blob,
                  &optionsAreaPosition,
@@ -999,70 +999,66 @@ void test4_invalidOptionsArea()
         BMQTST_ASSERT_EQ(false, view.isValid());
     }
 
-    {
-        // [4]
-        PV("OPTION HEADER WITH UNSUPPORTED TYPES");
+    // [4]
+    PV("OPTION HEADER WITH UNSUPPORTED TYPES");
 
-        // #1: An OptionHeader with an unsupported type
-        bdlbb::Blob              optionsBlob(&bufferFactory,
-                                bmqtst::TestHelperUtil::allocator());
-        const bmqu::BlobPosition optionsAreaPosition;  // start of blob
-        const int                numSubQueueInfos = 2;
+    // #1: An OptionHeader with an unsupported type
+    bdlbb::Blob              optionsBlob(&bufferFactory,
+                            bmqtst::TestHelperUtil::allocator());
+    const bmqu::BlobPosition optionsAreaPosition;  // start of blob
+    const int                numSubQueueInfos = 2;
 
-        const int optionPayloadSize = numSubQueueInfos *
-                                      sizeof(bmqp::SubQueueInfo);
-        const int optionsAreaSize = sizeof(bmqp::OptionHeader) +
-                                    optionPayloadSize;
+    const int optionPayloadSize = numSubQueueInfos *
+                                  sizeof(bmqp::SubQueueInfo);
+    const int optionsAreaSize = sizeof(bmqp::OptionHeader) + optionPayloadSize;
 
-        bmqp::OptionHeader     oh;
-        bmqp::OptionType::Enum optionType =
-            static_cast<bmqp::OptionType::Enum>(
-                bmqp::OptionType::k_LOWEST_SUPPORTED_TYPE - 1);
-        oh.setType(optionType);
-        oh.setWords(optionsAreaSize / bmqp::Protocol::k_WORD_SIZE);
+    bmqp::OptionHeader     oh;
+    bmqp::OptionType::Enum optionType = static_cast<bmqp::OptionType::Enum>(
+        bmqp::OptionType::k_LOWEST_SUPPORTED_TYPE - 1);
+    oh.setType(optionType);
+    oh.setWords(optionsAreaSize / bmqp::Protocol::k_WORD_SIZE);
 
-        // Write OptionHeader
-        bdlbb::BlobUtil::append(&optionsBlob,
-                                reinterpret_cast<const char*>(&oh),
-                                sizeof(bmqp::OptionHeader));
+    // Write OptionHeader
+    bdlbb::BlobUtil::append(&optionsBlob,
+                            reinterpret_cast<const char*>(&oh),
+                            sizeof(bmqp::OptionHeader));
 
-        // Write option payload
-        bsl::vector<bmqp::SubQueueInfo> subQueueInfos(
-            bmqtst::TestHelperUtil::allocator());
-        generateSubQueueInfos(&subQueueInfos, numSubQueueInfos);
+    // Write option payload
+    bsl::vector<bmqp::SubQueueInfo> subQueueInfos(
+        bmqtst::TestHelperUtil::allocator());
+    generateSubQueueInfos(&subQueueInfos, numSubQueueInfos);
 
-        bdlbb::BlobUtil::append(
-            &optionsBlob,
-            reinterpret_cast<const char*>(subQueueInfos.data()),
-            optionPayloadSize);
+    bdlbb::BlobUtil::append(
+        &optionsBlob,
+        reinterpret_cast<const char*>(subQueueInfos.data()),
+        optionPayloadSize);
 
-        // Construct invalid view with an invalid type in an OptionHeader
-        bmqp::OptionsView view1(&optionsBlob,
-                                optionsAreaPosition,
-                                optionsAreaSize,
-                                bmqtst::TestHelperUtil::allocator());
+    // Construct invalid view with an invalid type in an OptionHeader
+    bmqp::OptionsView view1(&optionsBlob,
+                            optionsAreaPosition,
+                            optionsAreaSize,
+                            bmqtst::TestHelperUtil::allocator());
 
-        BMQTST_ASSERT_EQ(false, view1.isValid());
+    BMQTST_ASSERT_EQ(false, view1.isValid());
 
-        // #2: An OptionHeader with an unsupported type
-        optionType = static_cast<bmqp::OptionType::Enum>(
-            bmqp::OptionType::k_HIGHEST_SUPPORTED_TYPE + 1);
-        oh.setType(optionType);
+    // #2: An OptionHeader with an unsupported type
+    optionType = static_cast<bmqp::OptionType::Enum>(
+        bmqp::OptionType::k_HIGHEST_SUPPORTED_TYPE + 1);
+    oh.setType(optionType);
 
-        // Overwrite OptionHeader
-        bmqu::BlobUtil::writeBytes(&optionsBlob,
-                                   optionsAreaPosition,
-                                   reinterpret_cast<const char*>(&oh),
-                                   sizeof(bmqp::OptionHeader));
+    // Overwrite OptionHeader
+    bmqu::BlobUtil::writeBytes(&optionsBlob,
+                               optionsAreaPosition,
+                               reinterpret_cast<const char*>(&oh),
+                               sizeof(bmqp::OptionHeader));
 
-        // Construct invalid view with an invalid type in an OptionHeader
-        bmqp::OptionsView view2(&optionsBlob,
-                                optionsAreaPosition,
-                                optionsAreaSize,
-                                bmqtst::TestHelperUtil::allocator());
+    // Construct invalid view with an invalid type in an OptionHeader
+    bmqp::OptionsView view2(&optionsBlob,
+                            optionsAreaPosition,
+                            optionsAreaSize,
+                            bmqtst::TestHelperUtil::allocator());
 
-        BMQTST_ASSERT_EQ(false, view2.isValid());
-    }
+    BMQTST_ASSERT_EQ(false, view2.isValid());
 
     {
         // [5]
@@ -1228,9 +1224,9 @@ void test5_iteratorTest()
     // Populate blob, 1 option header, multiple sub-queue ids
     bsl::vector<bmqp::SubQueueInfo> subQueueIds(
         bmqtst::TestHelperUtil::allocator());
-    size_t                          numSubQueueIds = 3;
+    size_t             numSubQueueIds = 3;
     NullableMsgGroupId msgGroupId(bmqtst::TestHelperUtil::allocator());
-    bool                            hasMsgGroupId = true;
+    bool               hasMsgGroupId = true;
 
     populateBlob(&blob,
                  &optionsAreaPosition,
@@ -1308,9 +1304,9 @@ void test6_iteratorTestSubQueueIdsOld()
     // Populate blob, 1 option header, multiple sub-queue ids
     bsl::vector<bdlb::BigEndianUint32> subQueueIdsOld(
         bmqtst::TestHelperUtil::allocator());
-    size_t                             numSubQueueIds = 3;
+    size_t             numSubQueueIds = 3;
     NullableMsgGroupId msgGroupId(bmqtst::TestHelperUtil::allocator());
-    bool                               hasMsgGroupId = true;
+    bool               hasMsgGroupId = true;
 
     populateBlob(&blob,
                  &optionsAreaPosition,
@@ -1388,9 +1384,9 @@ void test7_dumpBlob()
     // Populate blob, 1 option header, multiple sub-queue ids)
     bsl::vector<bmqp::SubQueueInfo> subQueueIds(
         bmqtst::TestHelperUtil::allocator());
-    size_t                          numSubQueueIds = 3;
+    size_t             numSubQueueIds = 3;
     NullableMsgGroupId msgGroupId(bmqtst::TestHelperUtil::allocator());
-    bool                            hasMsgGroupId = true;
+    bool               hasMsgGroupId = true;
 
     populateBlob(&blob,
                  &optionsAreaPosition,
@@ -1478,9 +1474,9 @@ void test8_dumpBlobSubQueueIdsOld()
     // Populate blob, 1 option header, multiple sub-queue ids)
     bsl::vector<bdlb::BigEndianUint32> subQueueIdsOld(
         bmqtst::TestHelperUtil::allocator());
-    size_t                             numSubQueueIds = 3;
+    size_t             numSubQueueIds = 3;
     NullableMsgGroupId msgGroupId(bmqtst::TestHelperUtil::allocator());
-    bool                               hasMsgGroupId = true;
+    bool               hasMsgGroupId = true;
 
     populateBlob(&blob,
                  &optionsAreaPosition,
