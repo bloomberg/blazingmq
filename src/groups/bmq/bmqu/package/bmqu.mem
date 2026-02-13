@@ -1,4 +1,5 @@
 bmqu_alignedprinter
+bmqu_atomicgate
 bmqu_atomicstate
 bmqu_atomicvalidator
 bmqu_blob

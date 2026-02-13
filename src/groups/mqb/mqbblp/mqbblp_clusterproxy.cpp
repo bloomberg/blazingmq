@@ -1159,7 +1159,7 @@ ClusterProxy::sendConfirmInline(BSLA_UNUSED int             partitionId,
     // This event is invoked as a result of RemoteQueue asking cluster proxy to
     // relay CONFIRM message to cluster on it's behalf.
 
-    mqbc::GateKeeper::Status primaryStatus(d_gateActiveNode);
+    bmqu::GateKeeper::Status primaryStatus(d_gateActiveNode);
 
     if (!primaryStatus.isOpen()) {
         return mqbi::InlineResult::e_INVALID_PRIMARY;  // RETURN
@@ -1199,7 +1199,7 @@ mqbi::InlineResult::Enum ClusterProxy::sendPutInline(
     // This event is invoked as a result of RemoteQueue asking cluster proxy to
     // relay CONFIRM message to cluster on it's behalf.
 
-    mqbc::GateKeeper::Status primaryStatus(d_gateActiveNode);
+    bmqu::GateKeeper::Status primaryStatus(d_gateActiveNode);
 
     if (!primaryStatus.isOpen()) {
         return mqbi::InlineResult::e_INVALID_PRIMARY;  // RETURN

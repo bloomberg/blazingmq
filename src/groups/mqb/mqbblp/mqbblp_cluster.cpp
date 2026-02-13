@@ -1285,7 +1285,7 @@ Cluster::sendConfirmInline(int                         partitionId,
         return mqbi::InlineResult::e_INVALID_PARTITION;  // RETURN
     }
 
-    mqbc::GateKeeper::Status primaryStatus(d_state.gatePrimary(partitionId));
+    bmqu::GateKeeper::Status primaryStatus(d_state.gatePrimary(partitionId));
 
     if (!primaryStatus.isOpen()) {
         return mqbi::InlineResult::e_INVALID_PRIMARY;  // RETURN
@@ -1297,7 +1297,7 @@ Cluster::sendConfirmInline(int                         partitionId,
     mqbc::ClusterNodeSession*        ns    = pinfo.primaryNodeSession();
     BSLS_ASSERT_SAFE(ns);
 
-    mqbc::GateKeeper::Status nodeStatus(ns->gateConfirm());
+    bmqu::GateKeeper::Status nodeStatus(ns->gateConfirm());
 
     if (!nodeStatus.isOpen()) {
         return mqbi::InlineResult::e_UNAVAILABLE;  // RETURN
@@ -1349,7 +1349,7 @@ Cluster::sendPutInline(int                                 partitionId,
         return mqbi::InlineResult::e_INVALID_PARTITION;  // RETURN
     }
 
-    mqbc::GateKeeper::Status primaryStatus(d_state.gatePrimary(partitionId));
+    bmqu::GateKeeper::Status primaryStatus(d_state.gatePrimary(partitionId));
 
     if (!primaryStatus.isOpen()) {
         return mqbi::InlineResult::e_INVALID_PRIMARY;  // RETURN
@@ -1373,7 +1373,7 @@ Cluster::sendPutInline(int                                 partitionId,
 
     BSLS_ASSERT_SAFE(primaryNodeSession);
 
-    mqbc::GateKeeper::Status nodeStatus(primaryNodeSession->gatePut());
+    bmqu::GateKeeper::Status nodeStatus(primaryNodeSession->gatePut());
 
     if (!nodeStatus.isOpen()) {
         // This checks both self status and the destination status
