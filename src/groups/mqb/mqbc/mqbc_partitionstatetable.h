@@ -439,6 +439,10 @@ class PartitionStateTable
             DETECT_SELF_REPLICA,
             startWatchDog_openRecoveryFileSet_storeSelfSeq_primaryStateRequest,
             REPLICA_HEALING);
+        PST_CFG(UNKNOWN,
+                PRIMARY_STATE_RQST,
+                failurePrimaryStateResponse,
+                UNKNOWN);
         PST_CFG(UNKNOWN, STOP_NODE, none, STOPPED);
         PST_CFG(PRIMARY_HEALING_STG1,
                 DETECT_SELF_REPLICA,

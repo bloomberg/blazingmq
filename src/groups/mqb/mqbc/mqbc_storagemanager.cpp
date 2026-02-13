@@ -1690,14 +1690,13 @@ void StorageManager::do_failurePrimaryStateResponse(const EventWithData& event)
     const PartitionFSMEventData& eventData   = eventDataVec[0];
     const int                    partitionId = eventData.partitionId();
     BSLS_ASSERT_SAFE(eventData.source());
-
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
 
-    BSLS_ASSERT_SAFE(d_clusterData_p->membership().selfNode()->nodeId() !=
-                     d_partitionInfoVec[partitionId].primary()->nodeId());
+    // NOTE: Self could be the upcoming primary but Partition FSM hasn't been
+    // notified yet.  It's okay because self will fail this request for now,
+    // and follow up with a `ReplicaStateRequest` later.
     BSLS_ASSERT_SAFE(!d_partitionFSMVec[partitionId]->isSelfPrimary());
-    // Primary should never send an explicit failure PrimaryStateResponse.
 
     bmqp_ctrlmsg::ControlMessage controlMsg;
     controlMsg.rId() = eventData.requestId();
