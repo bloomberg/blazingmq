@@ -222,15 +222,13 @@ int Dispatcher::startContext(bsl::ostream&                    errorDescription,
                              this,
                              type,
                              bdlf::PlaceHolders::_1,   // processorId
-                             bdlf::PlaceHolders::_2,   // context*
-                             bdlf::PlaceHolders::_3),  // event*
+                             bdlf::PlaceHolders::_2),  // event*
         bdlf::BindUtil::bind(&Dispatcher::queueCreator,
                              this,
                              type,
                              config.processorConfig(),
-                             bdlf::PlaceHolders::_1,   // qCreatorRet*
-                             bdlf::PlaceHolders::_2,   // processorId
-                             bdlf::PlaceHolders::_3),  // allocator*
+                             bdlf::PlaceHolders::_1,   // processorId
+                             bdlf::PlaceHolders::_2),  // allocator*
         d_allocator_p);
 
     processorPoolConfig.setName(mqbi::DispatcherClientType::toAscii(type))
@@ -262,7 +260,6 @@ int Dispatcher::startContext(bsl::ostream&                    errorDescription,
 Dispatcher::ProcessorPool::Queue*
 Dispatcher::queueCreator(mqbi::DispatcherClientType::Enum             type,
                          const mqbcfg::DispatcherProcessorParameters& config,
-                         BSLA_UNUSED ProcessorPool::QueueCreatorRet* ret,
                          int               processorId,
                          bslma::Allocator* allocator)
 {
@@ -290,7 +287,6 @@ Dispatcher::queueCreator(mqbi::DispatcherClientType::Enum             type,
 
 void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
                               int                              processorId,
-                              BSLA_UNUSED void*                context,
                               const ProcessorPool::EventSp&    event)
 {
     if (event) {

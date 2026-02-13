@@ -79,32 +79,35 @@ struct TestItem {
 typedef bmqc::MultiQueueThreadPool<TestItem> MQTP;
 
 static MQTP::Queue*
-queueCreator(MQTP::QueueCreatorRet*            ret,
-             int                               queueId,
+queueCreator(int                               queueId,
              bslma::Allocator*                 allocator,
              int                               fixedQueueSize,
              bsl::map<int, bsl::vector<int> >* queueContextMap)
 {
     PV("Creating queue [queueId: " << queueId << "]\n");
 
-    ret->context().load(&(*queueContextMap)[queueId],
-                        0,
-                        &bslma::ManagedPtrUtil::noOpDeleter);
+    queueContextMap->insert(
+        bsl::make_pair(queueId, bsl::vector<int>(allocator)));
 
     return new (*allocator) MQTP::Queue(fixedQueueSize, allocator);
 }
 
-static void
-eventCb(BSLA_UNUSED int queueId, void* context, const MQTP::EventSp& event)
+static void eventCb(bsl::map<int, bsl::vector<int> >* queueContextMap,
+                    int                               queueId,
+                    const MQTP::EventSp&              event)
 {
     if (event) {
         // Non-empty event pointer means user event
-        bsl::vector<int>* vec = reinterpret_cast<bsl::vector<int>*>(context);
-        vec->push_back(event->value());
+
+        bsl::map<int, bsl::vector<int> >::iterator iter =
+            queueContextMap->find(queueId);
+        BSLS_ASSERT_OPT(iter != queueContextMap->end());
+        iter->second.push_back(event->value());
     }
 }
 
-static MQTP::Queue* performanceTestQueueCreator(bslma::Allocator* allocator,
+static MQTP::Queue* performanceTestQueueCreator(BSLA_MAYBE_UNUSED int queueId,
+                                                bslma::Allocator* allocator,
                                                 int fixedQueueSize)
 {
     return new (*allocator) MQTP::Queue(fixedQueueSize, allocator);
@@ -193,14 +196,13 @@ static void test1_breathingTest()
         &threadPool,
         bdlf::BindUtil::bindS(allocator,
                               &eventCb,
+                              &queueContextMap,
                               bdlf::PlaceHolders::_1,   // queueId
-                              bdlf::PlaceHolders::_2,   // context
-                              bdlf::PlaceHolders::_3),  // event
+                              bdlf::PlaceHolders::_2),  // event
         bdlf::BindUtil::bindS(allocator,
                               &queueCreator,
-                              bdlf::PlaceHolders::_1,  // ret
-                              bdlf::PlaceHolders::_2,  // queueId
-                              bdlf::PlaceHolders::_3,  // allocator
+                              bdlf::PlaceHolders::_1,  // queueId
+                              bdlf::PlaceHolders::_2,  // allocator
                               k_FIXED_QUEUE_SIZE,
                               &queueContextMap),
         allocator);
@@ -301,7 +303,8 @@ static void testN1_performance()
                               &performanceTestEventCb),
         bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
                               &performanceTestQueueCreator,
-                              bdlf::PlaceHolders::_3,
+                              bdlf::PlaceHolders::_1,  // queueId
+                              bdlf::PlaceHolders::_2,  // allocator
                               k_FIXED_QUEUE_SIZE),
         bmqtst::TestHelperUtil::allocator());
 
@@ -448,7 +451,8 @@ static void testN1_performance_GoogleBenchmark(benchmark::State& state)
                               &performanceTestEventCb),
         bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
                               &performanceTestQueueCreator,
-                              bdlf::PlaceHolders::_3,
+                              bdlf::PlaceHolders::_1,  // queueId
+                              bdlf::PlaceHolders::_2,  // allocator
                               k_FIXED_QUEUE_SIZE),
         bmqtst::TestHelperUtil::allocator());
 

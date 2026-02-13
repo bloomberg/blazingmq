@@ -312,22 +312,18 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
     /// Create a queue for the multi-fixed queue thread pool in charge of
     /// dispatcher client of the specified `type` and using the specified
     /// `config`.  This queue corresponds to the specified `processorId` and
-    /// the specified `allocator` should be used to create it.  The
-    /// specified `ret` can be used to set a context for the queue.
+    /// the specified `allocator` should be used to create it.
     ProcessorPool::Queue*
     queueCreator(mqbi::DispatcherClientType::Enum             type,
                  const mqbcfg::DispatcherProcessorParameters& config,
-                 ProcessorPool::QueueCreatorRet*              ret,
                  int                                          processorId,
                  bslma::Allocator*                            allocator);
 
-    /// Callback when a new object in the specified `event` and having the
-    /// specified associated `context` is dispatched for the queue in charge of
-    /// dispatcher client of the specified `type`, having the specified
-    /// `processorId`.
+    /// Callback when a new object in the specified `event` is dispatched
+    /// for the queue in charge of dispatcher client of the specified `type`,
+    /// having the specified `processorId`.
     void queueEventCb(mqbi::DispatcherClientType::Enum type,
                       int                              processorId,
-                      void*                            context,
                       const ProcessorPool::EventSp&    event);
 
     /// Flush clients of the specified `type` for the specified
