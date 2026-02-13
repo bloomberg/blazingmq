@@ -2504,46 +2504,41 @@ void StorageUtil::registerQueueAsPrimary(const mqbi::Cluster*    cluster,
 
             dispatcher->dispatchEvent(bslmf::MovableRefUtil::move(queueEvent),
                                       fs);
-
-            // Wait for 'updateQueuePrimaryDispatched' operation to complete.
-            // We need to wait because 'updateQueuePrimaryDispatched' creates
-            // virtual storages corresponding to 'addedAppInfos' (if any),
-            // and the caller of 'registerQueue' expects these virtual storages
-            // to be created this routine or its caller returns.  Before
-            // waiting, release the 'storagesLock' guard and unlock it to avoid
-            // any deadlock b/w cluster and partition dispatcher threads.
-
-            guard.release()->unlock();
-
-            dispatcher->synchronize(fs);
         }
+    }
+    else {
+        // We are here means that StorageMgr is not aware of the queue.  Create
+        // an appropriate storage and insert it in 'storageMap'.
 
-        return;  // RETURN
+        // Dispatch the registration of storage with the partition in
+        // appropriate thread.
+
+        mqbi::Dispatcher::DispatcherEventSp queueEvent = cluster->getEvent();
+
+        (*queueEvent)
+            .setType(mqbi::DispatcherEventType::e_DISPATCHER)
+            .setCallback(bdlf::BindUtil::bind(&createQueueStorageAsPrimary,
+                                              storageMap,
+                                              storagesLock,
+                                              fs,
+                                              uri,
+                                              queueKey,
+                                              appIdKeyPairs,
+                                              domain));
+
+        fs->dispatchEvent(bslmf::MovableRefUtil::move(queueEvent));
+
+        // Not checking the result.  If not successful, storage is not in the
+        // 'storageMap'.  Subsequent queue configure will then fail.
     }
 
-    // We are here means that StorageMgr is not aware of the queue.  Create an
-    // appropriate storage and insert it in 'storageMap'.
+    // Wait for create / update operation to complete.
+    // Before waiting, release the 'storagesLock' guard and unlock it to avoid
+    // any deadlock b/w cluster and partition dispatcher threads.
 
-    // Dispatch the registration of storage with the partition in appropriate
-    // thread.
+    guard.release()->unlock();
 
-    mqbi::Dispatcher::DispatcherEventSp queueEvent = cluster->getEvent();
-
-    (*queueEvent)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .setCallback(bdlf::BindUtil::bind(&createQueueStorageAsPrimary,
-                                          storageMap,
-                                          storagesLock,
-                                          fs,
-                                          uri,
-                                          queueKey,
-                                          appIdKeyPairs,
-                                          domain));
-
-    fs->dispatchEvent(bslmf::MovableRefUtil::move(queueEvent));
-
-    // Not checking the result.  If not successful, storage is not in the
-    // 'storageMap'.  Subsequent queue configure will then fail.
+    dispatcher->synchronize(fs);
 }
 
 void StorageUtil::createQueueStorageAsPrimary(StorageSpMap*    storageMap,

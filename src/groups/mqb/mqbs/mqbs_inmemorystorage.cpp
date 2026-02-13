@@ -48,8 +48,7 @@ const int k_GC_HISTORY_BATCH_SIZE = 1000;
 // ---------------------
 
 // CREATORS
-InMemoryStorage::InMemoryStorage(DataStore*              dataStore_p,
-                                 const bmqt::Uri&        uri,
+InMemoryStorage::InMemoryStorage(const bmqt::Uri&        uri,
                                  const mqbu::StorageKey& queueKey,
                                  mqbi::Domain*           domain,
                                  int                     partitionId,
@@ -58,7 +57,6 @@ InMemoryStorage::InMemoryStorage(DataStore*              dataStore_p,
                                  bslma::Allocator*       allocator,
                                  bmqma::CountingAllocatorStore* allocatorStore)
 : d_allocator_p(allocator)
-, d_store_p(dataStore_p)
 , d_key(queueKey)
 , d_uri(uri, d_allocator_p)
 , d_partitionId(partitionId)
@@ -498,20 +496,21 @@ int InMemoryStorage::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc,
             ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
                 d_items.historySize());
 
-        BALL_LOG_INFO
-            << (d_store_p ? d_store_p->description() : "Partition [Unknown]: ")
-            << "For storage for queue [" << queueUri() << "] and queueKey ["
-            << queueKey() << "] configured with TTL value of [" << d_ttlSeconds
-            << "] seconds, garbage-collected [" << numMsgsDeleted
-            << "] messages due to TTL expiration. "
-            << "Timestamp (UTC) of the latest encountered message: "
-            << bdlt::EpochUtil::convertFromTimeT64(latestMsgTimestampEpoch)
-            << " (Epoch: " << latestMsgTimestampEpoch
-            << "). Current time (UTC): " << currentTimeUtc
-            << " (Epoch: " << secondsFromEpoch << ")."
-            << " Num messages remaining in the storage: "
-            << numMessages(mqbu::StorageKey::k_NULL_KEY) << ". Storage type: "
-            << (isPersistent() ? "persistent." : "in-memory.");
+        BALL_LOG_INFO << "For storage for queue [" << queueUri()
+                      << "] and queueKey [" << queueKey()
+                      << "] configured with TTL value of [" << d_ttlSeconds
+                      << "] seconds, garbage-collected [" << numMsgsDeleted
+                      << "] messages due to TTL expiration. "
+                      << "Timestamp (UTC) of the latest encountered message: "
+                      << bdlt::EpochUtil::convertFromTimeT64(
+                             latestMsgTimestampEpoch)
+                      << " (Epoch: " << latestMsgTimestampEpoch
+                      << "). Current time (UTC): " << currentTimeUtc
+                      << " (Epoch: " << secondsFromEpoch << ")."
+                      << " Num messages remaining in the storage: "
+                      << numMessages(mqbu::StorageKey::k_NULL_KEY)
+                      << ". Storage type: "
+                      << (isPersistent() ? "persistent." : "in-memory.");
     }
 
     if (d_items.empty()) {
