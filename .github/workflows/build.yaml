@@ -303,17 +303,9 @@ jobs:
         env:
           PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
         run: |
-          cmake -S . -B build/blazingmq -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DBDE_BUILD_TARGET_SAFE=ON \
-            -DBDE_BUILD_TARGET_64=ON \
-            -DBDE_BUILD_TARGET_CPP17=ON \
-            -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
-            -DCMAKE_INSTALL_LIBDIR=lib64 \
-            -DINSTALL_TARGETS="prometheus;bmqbrkr;bmqtool"
+          cmake --preset gh-prometheus-ubuntu-latest-cpp17 -S .
           echo "::add-matcher::.github/workflows/problem-matchers/cpp.json"
-          cmake --build build/blazingmq --parallel 8 --target bmqbrkr bmqtool bmqprometheus
+          cmake --build --preset gh-prometheus-ubuntu-latest-cpp17
           echo "::remove-matcher owner=cpp"
 
       - name: Create prometheus dir
