@@ -359,8 +359,7 @@ class ClusterOrchestrator {
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    void
-    processClusterStateEvent(const mqbi::DispatcherClusterStateEvent& event);
+    void processClusterStateEvent(const mqbevt::ClusterStateEvent& event);
 
     /// Process the queue assignment in the specified `request`, received
     /// from the specified `requester`.
