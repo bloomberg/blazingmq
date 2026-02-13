@@ -4545,14 +4545,14 @@ static void test21_post_Limit()
     bmqtst::TestHelper::printTestName("POST CHANNEL LIMIT TEST");
 
     const bsls::TimeInterval timeout     = bsls::TimeInterval(15);
-    const bsls::TimeInterval postTimeout = bsls::TimeInterval(0.1);
+    const bsls::TimeInterval lwmTimeout  = bsls::TimeInterval(0.1);
     bmqt::SessionOptions     sessionOptions;
     bmqt::QueueOptions       queueOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
                                     bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
-
+    sessionOptions.setChannelWriteTimeout(lwmTimeout + 0.001);
     // Create test session with the system time source
     TestSession obj(sessionOptions,
                     scheduler,
@@ -4582,7 +4582,7 @@ static void test21_post_Limit()
     BMQTST_ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS,
                      builder.packMessage(pQueue->id()));
 
-    int rc = obj.session().post(*builder.blob(), postTimeout);
+    int rc = obj.session().post(*builder.blob());
 
     PVV_SAFE("Step 5. Ensure the PUT message is accepted");
     BMQTST_ASSERT_EQ(rc, bmqt::PostResult::e_SUCCESS);
@@ -4597,21 +4597,21 @@ static void test21_post_Limit()
     BMQTST_ASSERT(rawEvent.isPutEvent());
 
     PVV_SAFE("Step 6. Ensure e_BW_LIMIT is returned for the second post");
-    rc = obj.session().post(*builder.blob(), postTimeout);
+    rc = obj.session().post(*builder.blob());
 
     BMQTST_ASSERT_EQ(rc, bmqt::PostResult::e_BW_LIMIT);
     BMQTST_ASSERT_EQ(obj.channel().numWriteCalls(), 0u);
 
     PVV_SAFE("Step 7. Schedule LWM and post PUT again");
     scheduler.scheduleEvent(
-        bmqsys::Time::nowMonotonicClock() + postTimeout,
+        bmqsys::Time::nowMonotonicClock() + lwmTimeout,
         bdlf::BindUtil::bind(&TestSession::setChannelLowWaterMark,
                              &obj,
                              bmqio::StatusCategory::e_SUCCESS));
 
     // Call post with a bigger timeout so that LWM event arrives before it
     // expires.
-    rc = obj.session().post(*builder.blob(), timeout);
+    rc = obj.session().post(*builder.blob());
 
     PVV_SAFE("Step 8. Ensure e_SUCCESS is returned");
     BMQTST_ASSERT_EQ(rc, bmqt::PostResult::e_SUCCESS);
@@ -4631,7 +4631,7 @@ static void test21_post_Limit()
     PVV_SAFE("Step 9. Set the channel to return e_GENERIC_ERROR on write");
     obj.channel().setWriteStatus(bmqio::StatusCategory::e_GENERIC_ERROR);
 
-    rc = obj.session().post(*builder.blob(), postTimeout);
+    rc = obj.session().post(*builder.blob());
 
     PVV_SAFE("Step 10. Ensure e_SUCCESS is returned");
     BMQTST_ASSERT_EQ(rc, bmqt::PostResult::e_SUCCESS);
@@ -4682,14 +4682,15 @@ static void test22_confirm_Limit()
 {
     bmqtst::TestHelper::printTestName("CONFIRM MESSAGES CHANNEL LIMIT TEST");
 
-    const bsls::TimeInterval timeout        = bsls::TimeInterval(15);
-    const bsls::TimeInterval confirmTimeout = bsls::TimeInterval(0.1);
+    const bsls::TimeInterval timeout    = bsls::TimeInterval(15);
+    const bsls::TimeInterval lwmTimeout = bsls::TimeInterval(0.1);
     bmqt::SessionOptions     sessionOptions;
     bmqt::QueueOptions       queueOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
                                     bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
+    sessionOptions.setChannelWriteTimeout(lwmTimeout + 0.001);
 
     TestSession obj(sessionOptions,
                     scheduler,
@@ -4715,7 +4716,7 @@ static void test22_confirm_Limit()
                                    bmqt::MessageGUID());
     BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
-    rc = obj.session().confirmMessages(*builder.blob(), confirmTimeout);
+    rc = obj.session().confirmMessages(*builder.blob());
 
     PVV_SAFE("Step 5. Ensure e_SUCCESS is returned");
     BMQTST_ASSERT_EQ(rc, bmqt::GenericResult::e_SUCCESS);
@@ -4730,15 +4731,14 @@ static void test22_confirm_Limit()
     PVV_SAFE("Step 6. Schedule LWM and send confirm again");
 
     // LWM handler will set write status to e_SUCCESS
+    // LWM event arrives before channelWriteTimeoutMs.
     scheduler.scheduleEvent(
-        bmqsys::Time::nowMonotonicClock() + confirmTimeout,
+        bmqsys::Time::nowMonotonicClock() + lwmTimeout,
         bdlf::BindUtil::bind(&TestSession::setChannelLowWaterMark,
                              &obj,
                              bmqio::StatusCategory::e_SUCCESS));
 
-    // Call confirm with a bigger timeout so that LWM event arrives before it
-    // expires.
-    rc = obj.session().confirmMessages(*builder.blob(), timeout);
+    rc = obj.session().confirmMessages(*builder.blob());
 
     PVV_SAFE("Step 7. Ensure e_SUCCESS is returned");
     BMQTST_ASSERT_EQ(rc, bmqt::GenericResult::e_SUCCESS);
@@ -4756,7 +4756,7 @@ static void test22_confirm_Limit()
     PVV_SAFE("Step 8. Set the channel to return e_GENERIC_ERROR on write");
     obj.channel().setWriteStatus(bmqio::StatusCategory::e_GENERIC_ERROR);
 
-    rc = obj.session().confirmMessages(*builder.blob(), confirmTimeout);
+    rc = obj.session().confirmMessages(*builder.blob());
 
     PVV_SAFE("Step 9. Ensure e_SUCCESS");
 
@@ -6528,6 +6528,7 @@ static void test33_queueNackTest()
                                     bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
+    sessionOptions.setChannelWriteTimeout(timeout);
 
     TestSession obj(sessionOptions,
                     scheduler,
@@ -6569,7 +6570,7 @@ static void test33_queueNackTest()
     BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
     // Post the event using just event blob
-    int res = obj.session().post(*eventBuilder.blob(), timeout);
+    int res = obj.session().post(*eventBuilder.blob());
 
     BMQTST_ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
 
@@ -8951,6 +8952,7 @@ static void test50_putRetransmittingTest()
     bmqt::MessageGUID guidFourth = bmqp::MessageGUIDGenerator::testGUID();
 
     sessionOptions.setNumProcessingThreads(1);
+    sessionOptions.setChannelWriteTimeout(timeout);
 
     TestSession obj(sessionOptions,
                     testClock,
@@ -9003,7 +9005,7 @@ static void test50_putRetransmittingTest()
     BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
     // Post the event using event blob
-    int res = obj.session().post(*putEventBuilder.blob(), timeout);
+    int res = obj.session().post(*putEventBuilder.blob());
 
     BMQTST_ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
 
@@ -9049,7 +9051,7 @@ static void test50_putRetransmittingTest()
     BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
     // Post the event using event blob
-    res = obj.session().post(*putEventBuilder.blob(), timeout);
+    res = obj.session().post(*putEventBuilder.blob());
 
     BMQTST_ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
 
@@ -9122,7 +9124,7 @@ static void test50_putRetransmittingTest()
     BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
     // Post the event using event blob
-    res = obj.session().post(*putEventBuilder.blob(), timeout);
+    res = obj.session().post(*putEventBuilder.blob());
 
     BMQTST_ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
 
@@ -9236,6 +9238,7 @@ static void test51_putRetransmittingNoAckTest()
     bmqt::MessageGUID         guid3 = bmqp::MessageGUIDGenerator::testGUID();
 
     sessionOptions.setNumProcessingThreads(1);
+    sessionOptions.setChannelWriteTimeout(timeout);
 
     TestSession obj(sessionOptions,
                     scheduler,
@@ -9286,7 +9289,7 @@ static void test51_putRetransmittingNoAckTest()
     BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
     // Post the event using event blob
-    int res = obj.session().post(*putEventBuilder.blob(), timeout);
+    int res = obj.session().post(*putEventBuilder.blob());
 
     BMQTST_ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
 
@@ -9311,7 +9314,7 @@ static void test51_putRetransmittingNoAckTest()
     BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
     // Post the event using event blob
-    res = obj.session().post(*putEventBuilder.blob(), timeout);
+    res = obj.session().post(*putEventBuilder.blob());
 
     BMQTST_ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
 

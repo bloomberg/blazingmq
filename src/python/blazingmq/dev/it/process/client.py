@@ -597,7 +597,7 @@ class Client(BMQProcess):
             extra_matches = matches[1:]
 
             error_code = self._parse_command_result(
-                command, result, succeed, no_except, timeout
+                command, result, succeed, no_except, timeout or blocktimeout
             )
             self._logger.info("%s -> %s", command, error_code)
 

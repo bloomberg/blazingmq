@@ -34,6 +34,7 @@ namespace mqbauthn {
 
 const char* AnonAuthenticator::k_NAME      = "AnonAuthenticator";
 const char* AnonAuthenticator::k_MECHANISM = "ANONYMOUS";
+const char* AnonAuthenticator::k_PRINCIPAL = "anonymous";
 
 // ------------------------------
 // class AnonAuthenticationResult
@@ -137,22 +138,22 @@ int AnonAuthenticator::authenticate(
     BSLS_ASSERT_SAFE(result);
 
     if (d_shouldPass) {
-        BALL_LOG_INFO << "AnonAuthenticator: "
-                      << "authentication passed for mechanism '" << mechanism()
-                      << "' unconditionally (shouldPass = true).";
+        BALL_LOG_DEBUG << "Authentication passed for mechanism '"
+                       << mechanism()
+                       << "' unconditionally (shouldPass = true).";
 
         // No `lifetime` is returned since we don't expect a user to
         // reauthenticate if they don't know how to authenticate in the first
         // place.
         *result = bsl::allocate_shared<AnonAuthenticationResult>(d_allocator_p,
-                                                                 "",
+                                                                 k_PRINCIPAL,
                                                                  bsl::nullopt);
         return 0;  // RETURN
     }
     else {
-        BALL_LOG_INFO << "AnonAuthenticator: "
-                      << "authentication failed for mechanism '" << mechanism()
-                      << "' unconditionally (shouldPass = false).";
+        BALL_LOG_DEBUG << "Authentication failed for mechanism '"
+                       << mechanism()
+                       << "' unconditionally (shouldPass = false).";
 
         errorDescription << "Authentication rejected by AnonAuthenticator";
 
