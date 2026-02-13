@@ -114,29 +114,38 @@ fi
 PATH="${DIR_THIRDPARTY}/bde-tools/bin:$PATH"
 
 if [ ! -e "${DIR_BUILD}/bde/.complete" ]; then
-    pushd "${DIR_THIRDPARTY}/bde"
-    eval "$(bbs_build_env -p clang -u opt_64_cpp17 -b "${DIR_BUILD}/bde" -i "${DIR_INSTALL}")"
-    bbs_build configure --prefix="${DIR_INSTALL}"
-    bbs_build build --prefix="${DIR_INSTALL}"
-    bbs_build install --install_dir="/" --prefix="${DIR_INSTALL}"
-    eval "$(bbs_build_env unset)"
-    popd
+    # Build and install BDE
+    (
+        # Suppress warnings from BDE build (scoped to this subshell)
+        # shellcheck disable=SC2030
+        export CXXFLAGS="-w" CFLAGS="-w"
+        cd "${DIR_THIRDPARTY}/bde"
+        eval "$(bbs_build_env -p clang -u opt_64_cpp17 -b "${DIR_BUILD}/bde" -i "${DIR_INSTALL}")"
+        bbs_build configure --prefix="${DIR_INSTALL}"
+        bbs_build build --prefix="${DIR_INSTALL}"
+        bbs_build install --install_dir="/" --prefix="${DIR_INSTALL}"
+        eval "$(bbs_build_env unset)"
+    )
     touch "${DIR_BUILD}/bde/.complete"
 fi
 
 if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
     # Build and install NTF
-    pushd "${DIR_THIRDPARTY}/ntf-core"
-    ./configure --prefix "${DIR_INSTALL}" \
-                --output "${DIR_BUILD}/ntf" \
-                --toolchain "${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem/toolchains/darwin/clang-default.cmake" \
-                --without-warnings-as-errors \
-                --without-usage-examples \
-                --without-applications \
-                --ufid opt_64_cpp17
-    make -j 16
-    make install
-    popd
+    (
+        # Suppress warnings from NTF build (scoped to this subshell)
+        # shellcheck disable=SC2031
+        export CXXFLAGS="-w" CFLAGS="-w"
+        cd "${DIR_THIRDPARTY}/ntf-core"
+        ./configure --prefix "${DIR_INSTALL}" \
+                    --output "${DIR_BUILD}/ntf" \
+                    --toolchain "${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem/toolchains/darwin/clang-default.cmake" \
+                    --without-warnings-as-errors \
+                    --without-usage-examples \
+                    --without-applications \
+                    --ufid opt_64_cpp17
+        make -j 16
+        make install
+    )
     touch "${DIR_BUILD}/ntf/.complete"
 fi
 
