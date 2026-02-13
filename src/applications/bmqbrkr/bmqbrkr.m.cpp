@@ -90,7 +90,7 @@ struct TaskEnvironment {
     // otherwise)
 
     bsl::string d_bmqPrefix;
-    // BMQ_PREFIX directory path
+    // Directory path to store PID, HIST, and CTL files under.
 
     bsl::string d_configJson;
     // JSON content ouput of the generated
@@ -414,7 +414,7 @@ static int initializeTask(bsl::ostream&    errorDescription,
                              bdlf::PlaceHolders::_1,    // prefix
                              bdlf::PlaceHolders::_2));  // istream
 
-    // Save the PID of the process in the '${BMQ_PREFIX}/bmqbrkr.pid' file
+    // Save the PID of the process in the '{prefix}/bmqbrkr.pid' file
     const bsl::string pidFile = taskEnv->d_bmqPrefix + "/bmqbrkr.pid";
     bsl::ofstream     pidFd(pidFile.c_str());
     if (!pidFd) {
@@ -498,9 +498,9 @@ static void shutdownApplication(TaskEnvironment* taskEnv)
     app.mqba::Application::~Application();
 }
 
-/// Update the `bmqbrkr.hist` file (in the BMQ_PREFIX directory) using the
+/// Update the `bmqbrkr.hist` file (in the prefix directory) using the
 /// specified `taskEnv`.  This file contains information about the last `n`
-/// successfull start of the broker, in reverse time order.
+/// successful starts of the broker, in reverse time order.
 /// Each line entry has the following format:
 ///    <currentTime_UTC>|<brokerVersion>|<configVersion>|<brokerId>
 ///
@@ -597,6 +597,7 @@ int main(int argc, const char* argv[])
 {
     // Parse command line parameters
     bsl::string configDir;
+    bsl::string prefixDir;
     bsl::string instanceId = "default";
     bsl::string hostName;
     bsl::string hostTags;
@@ -609,6 +610,11 @@ int main(int argc, const char* argv[])
          "config",
          "Path to the configuration directory",
          balcl::TypeInfo(&configDir),
+         balcl::OccurrenceInfo::e_REQUIRED},
+        {"",
+         "prefixDir",
+         "Path to the prefix directory (where PID, HIST, and CTL files live)",
+         balcl::TypeInfo(&prefixDir),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"i|instanceId",
          "instanceId",
@@ -657,12 +663,6 @@ int main(int argc, const char* argv[])
         return 0;
     }
 
-    if (configDir.empty()) {
-        bsl::cerr << "Error: No value supplied for the non-option argument "
-                     "\"config\".\n";
-        return mqbu::ExitCode::e_COMMAND_LINE;  // RETURN
-    }
-
     printStartStopTrace("STARTING");
 
     ignoreSigpipe();
@@ -692,8 +692,11 @@ int main(int argc, const char* argv[])
     TaskEnvironment taskEnv;
     s_taskEnv_p = &taskEnv;
 
-    const char* prefixEnvVar = bsl::getenv("BMQ_PREFIX");
-    taskEnv.d_bmqPrefix      = (prefixEnvVar != 0 ? prefixEnvVar : "./");
+    // Default prefix directory to `BMQ_PREFIX` or ./
+    if (prefixDir.empty()) {
+        prefixDir = bsl::getenv("BMQ_PREFIX");
+    }
+    taskEnv.d_bmqPrefix      = (!prefixDir.empty() ? prefixDir : "./");
     taskEnv.d_instanceId     = instanceId;
 
     bmqu::MemOutStream errorDescription;
