@@ -59,6 +59,9 @@ class ClusterState;
 namespace mqbnet {
 class ClusterNode;
 }
+namespace mqbevt {
+class ClusterStateEvent;
+}
 
 namespace mqbi {
 

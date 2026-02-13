@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2026 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,10 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbevt_callbackevent.cpp -*-C++-*-
+// mqbevt_callbackevent.cpp                                           -*-C++-*-
 #include <mqbevt_callbackevent.h>
 
 #include <mqbscm_version.h>
+
+// BDE
+#include <bslim_printer.h>
 
 namespace BloombergLP {
 namespace mqbevt {
@@ -25,10 +28,45 @@ namespace mqbevt {
 // class CallbackEvent
 // -------------------
 
-// CREATORS
+CallbackEvent::CallbackEvent(bslma::Allocator* allocator)
+: mqbi::DispatcherEvent(allocator)
+, d_callback(allocator)
+{
+    // NOTHING
+}
+
 CallbackEvent::~CallbackEvent()
 {
     // NOTHING
+}
+
+void CallbackEvent::reset()
+{
+    d_callback.reset();
+    mqbi::DispatcherEvent::reset();
+}
+
+bsl::ostream&
+CallbackEvent::print(bsl::ostream& stream, int level, int spacesPerLevel) const
+{
+    if (stream.bad()) {
+        return stream;
+    }
+
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+
+    printer.printAttribute("type", type());
+    if (source()) {
+        printer.printAttribute("source", source()->description());
+    }
+    if (destination()) {
+        printer.printAttribute("destination", destination()->description());
+    }
+
+    printer.end();
+
+    return stream;
 }
 
 }  // close package namespace

@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2026 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,17 +13,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbevt_ackevent.h -*-C++-*-
+// mqbevt_ackevent.h                                                  -*-C++-*-
 #ifndef INCLUDED_MQBEVT_ACKEVENT
 #define INCLUDED_MQBEVT_ACKEVENT
 
-//@PURPOSE: Provide a DispatcherEvent interface view for 'e_ACK' events.
+//@PURPOSE: Provide a concrete DispatcherEvent for 'e_ACK' events.
 //
 //@CLASSES:
-//  mqbevt::AckEvent: Interface view for 'e_ACK' events
+//  mqbevt::AckEvent: Concrete event for 'e_ACK' events
 //
-//@DESCRIPTION: 'mqbevt::AckEvent' provides a DispatcherEvent interface
-// view of an event of type 'e_ACK'.
+//@DESCRIPTION: 'mqbevt::AckEvent' provides a concrete implementation
+// of a dispatcher event of type 'e_ACK'.
+
+// MQB
+#include <mqbi_dispatcher.h>
 
 // BMQ
 #include <bmqp_protocol.h>
@@ -31,6 +34,8 @@
 // BDE
 #include <bdlbb_blob.h>
 #include <bsl_memory.h>
+#include <bslma_usesbslmaallocator.h>
+#include <bslmf_nestedtraitdeclaration.h>
 
 namespace BloombergLP {
 
@@ -45,39 +50,163 @@ namespace mqbevt {
 // class AckEvent
 // ==============
 
-/// DispatcherEvent interface view of an event of type `e_ACK`.
-class AckEvent {
+/// Concrete dispatcher event for 'e_ACK' type events.
+class AckEvent : public mqbi::DispatcherEvent {
   public:
+    // CLASS DATA
+
+    /// The event type constant for this event class.
+    static const mqbi::DispatcherEventType::Enum k_TYPE =
+        mqbi::DispatcherEventType::e_ACK;
+
+  private:
+    // DATA
+
+    /// Ack message associated to this event.
+    bmqp::AckMessage d_ackMessage;
+
+    /// Blob associated to this event.
+    bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
+
+    /// Options blob associated to this event.
+    bsl::shared_ptr<bdlbb::Blob> d_options_sp;
+
+    /// Cluster node this event originates from.
+    mqbnet::ClusterNode* d_clusterNode_p;
+
+    /// Whether this event is a relay event.
+    bool d_isRelay;
+
+  public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(AckEvent, bslma::UsesBslmaAllocator)
+
     // CREATORS
 
+    /// Constructor using the specified `allocator`.
+    explicit AckEvent(bslma::Allocator* allocator);
+
     /// Destructor.
-    virtual ~AckEvent();
+    ~AckEvent() BSLS_KEYWORD_OVERRIDE;
+
+    // MANIPULATORS
+
+    /// Set the ack message to the specified `value` and return a reference
+    /// offering modifiable access to this object.
+    AckEvent& setAckMessage(const bmqp::AckMessage& value);
+
+    /// Set the blob to the specified `value` and return a reference
+    /// offering modifiable access to this object.
+    AckEvent& setBlob(const bsl::shared_ptr<bdlbb::Blob>& value);
+
+    /// Set the options blob to the specified `value` and return a reference
+    /// offering modifiable access to this object.
+    AckEvent& setOptions(const bsl::shared_ptr<bdlbb::Blob>& value);
+
+    /// Set the cluster node to the specified `value` and return a reference
+    /// offering modifiable access to this object.
+    AckEvent& setClusterNode(mqbnet::ClusterNode* value);
+
+    /// Set the isRelay flag to the specified `value` and return a reference
+    /// offering modifiable access to this object.
+    AckEvent& setIsRelay(bool value);
+
+    /// Reset all members of this event to default values.
+    void reset() BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
 
     /// Return a reference not offering modifiable access to the ack message
-    /// associated to this event.  This protocol struct is only valid when
-    /// `isRelay() == true`.
-    virtual const bmqp::AckMessage& ackMessage() const = 0;
+    /// associated to this event.
+    const bmqp::AckMessage& ackMessage() const;
 
     /// Return a reference not offering modifiable access to the blob
-    /// associated to this event.  The blob represents the raw content of
-    /// the `bmqp::Event` this ackEvent originates from.  The `blob` is
-    /// only valid when `isRelay() == false`.  Typically, `blob` is used
-    /// when there may be multiple push messages; while `ackMessage` is used
-    /// when only one is present.
-    virtual const bsl::shared_ptr<bdlbb::Blob>& blob() const = 0;
+    /// associated to this event.
+    const bsl::shared_ptr<bdlbb::Blob>& blob() const;
 
-    virtual const bsl::shared_ptr<bdlbb::Blob>& options() const = 0;
+    /// Return a reference not offering modifiable access to the options
+    /// blob associated to this event.
+    const bsl::shared_ptr<bdlbb::Blob>& options() const;
 
-    /// Return a pointer to the cluster node this event originate from, or
-    /// null if it doesn't come from a cluster node.  This is mainly useful
-    /// for logging purposes.
-    virtual mqbnet::ClusterNode* clusterNode() const = 0;
+    /// Return a pointer to the cluster node this event originates from.
+    mqbnet::ClusterNode* clusterNode() const;
 
-    /// Return whether this event is a relay event or not.
-    virtual bool isRelay() const = 0;
+    /// Return whether this event is a relay event.
+    bool isRelay() const;
+
+    /// Return the type of this event.
+    mqbi::DispatcherEventType::Enum type() const BSLS_KEYWORD_OVERRIDE;
+
+    /// Format this object to the specified output `stream`.
+    bsl::ostream& print(bsl::ostream& stream,
+                        int           level = 0,
+                        int spacesPerLevel  = 4) const BSLS_KEYWORD_OVERRIDE;
 };
+
+// ============================================================================
+//                             INLINE DEFINITIONS
+// ============================================================================
+
+inline const bmqp::AckMessage& AckEvent::ackMessage() const
+{
+    return d_ackMessage;
+}
+
+inline const bsl::shared_ptr<bdlbb::Blob>& AckEvent::blob() const
+{
+    return d_blob_sp;
+}
+
+inline const bsl::shared_ptr<bdlbb::Blob>& AckEvent::options() const
+{
+    return d_options_sp;
+}
+
+inline mqbnet::ClusterNode* AckEvent::clusterNode() const
+{
+    return d_clusterNode_p;
+}
+
+inline bool AckEvent::isRelay() const
+{
+    return d_isRelay;
+}
+
+inline mqbi::DispatcherEventType::Enum AckEvent::type() const
+{
+    return k_TYPE;
+}
+
+inline AckEvent& AckEvent::setAckMessage(const bmqp::AckMessage& value)
+{
+    d_ackMessage = value;
+    return *this;
+}
+
+inline AckEvent& AckEvent::setBlob(const bsl::shared_ptr<bdlbb::Blob>& value)
+{
+    d_blob_sp = value;
+    return *this;
+}
+
+inline AckEvent&
+AckEvent::setOptions(const bsl::shared_ptr<bdlbb::Blob>& value)
+{
+    d_options_sp = value;
+    return *this;
+}
+
+inline AckEvent& AckEvent::setClusterNode(mqbnet::ClusterNode* value)
+{
+    d_clusterNode_p = value;
+    return *this;
+}
+
+inline AckEvent& AckEvent::setIsRelay(bool value)
+{
+    d_isRelay = value;
+    return *this;
+}
 
 }  // close package namespace
 }  // close enterprise namespace

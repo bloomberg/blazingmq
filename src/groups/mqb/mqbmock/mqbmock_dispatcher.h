@@ -56,36 +56,6 @@
 namespace BloombergLP {
 namespace mqbmock {
 
-// ============================
-// class Dispatcher_EventSource
-// ============================
-
-class Dispatcher_EventSource BSLS_KEYWORD_FINAL
-: public mqbi::DispatcherEventSource {
-  private:
-    // DATA
-    bslma::Allocator* d_allocator_p;
-
-  public:
-    // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(Dispatcher_EventSource,
-                                   bslma::UsesBslmaAllocator)
-
-    // CREATORS
-    explicit Dispatcher_EventSource(bslma::Allocator* allocator = 0);
-    ~Dispatcher_EventSource() BSLS_KEYWORD_OVERRIDE;
-
-    // MANIPULATORS
-
-    /// @brief Get an event for mqbi::Dispatcher.
-    /// @return A shared pointer to event.
-    /// The behaviour is undefined unless all the shared pointers to events
-    /// acquired with `getEvent` are destructed before destructor is called
-    /// for this event source.
-    mqbi::DispatcherEventSource::DispatcherEventSp
-    getEvent() BSLS_KEYWORD_OVERRIDE;
-};
-
 // ================
 // class Dispatcher
 // ================

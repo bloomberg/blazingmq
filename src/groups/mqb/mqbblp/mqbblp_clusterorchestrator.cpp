@@ -25,6 +25,8 @@
 #include <mqbc_clusterutil.h>
 #include <mqbc_incoreclusterstateledger.h>
 #include <mqbcmd_messages.h>
+#include <mqbevt_callbackevent.h>
+#include <mqbevt_clusterstateevent.h>
 #include <mqbi_queueengine.h>
 #include <mqbi_storagemanager.h>
 #include <mqbnet_cluster.h>
@@ -1281,18 +1283,16 @@ void ClusterOrchestrator::processElectorEvent(const bmqp::Event&   event,
     // certain events "out of order" (some cases were found out while testing).
 
     // TODO(678098): revisit, make per-IO thread contexts
-    mqbi::Dispatcher::DispatcherEventSp clusterEvent =
-        dispatcher()->getDefaultEventSource()->getEvent();
-    (*clusterEvent).setType(mqbi::DispatcherEventType::e_CALLBACK);
-
+    bsl::shared_ptr<mqbevt::CallbackEvent> event_sp =
+        dispatcher()->getDefaultEventSource()->get<mqbevt::CallbackEvent>();
     bmqp::Event clonedEvent = event.clone(d_allocator_p);
-    clusterEvent->callback()
+    event_sp->callback()
         .createInplace<ClusterOrchestrator::OnElectorEventFunctor>(
             this,
             bslmf::MovableRefUtil::move(clonedEvent),
             source);
 
-    dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(clusterEvent),
+    dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(event_sp),
                                 d_cluster_p);
 }
 

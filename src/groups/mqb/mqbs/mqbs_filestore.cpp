@@ -21,6 +21,7 @@
 // MQB
 #include <mqbcmd_humanprinter.h>
 #include <mqbcmd_messages.h>
+#include <mqbevt_callbackevent.h>
 #include <mqbi_domain.h>
 #include <mqbi_queue.h>
 #include <mqbi_queueengine.h>
@@ -7186,7 +7187,8 @@ void FileStore::onDispatcherEvent(const mqbi::DispatcherEvent& event)
 
     switch (event.type()) {
     case mqbi::DispatcherEventType::e_CALLBACK: {
-        const mqbevt::CallbackEvent* realEvent = event.asCallbackEvent();
+        const mqbevt::CallbackEvent* const realEvent =
+            event.get<mqbevt::CallbackEvent>();
         BSLS_ASSERT_SAFE(!realEvent->callback().empty());
         realEvent->callback()();
     } break;  // BREAK

@@ -22,6 +22,11 @@
 #include <mqbblp_storagemanager.h>
 #include <mqbcmd_messages.h>
 #include <mqbconfm_messages.h>
+#include <mqbevt_ackevent.h>
+#include <mqbevt_callbackevent.h>
+#include <mqbevt_pushevent.h>
+#include <mqbevt_putevent.h>
+#include <mqbevt_rejectevent.h>
 #include <mqbi_cluster.h>
 #include <mqbi_dispatcher.h>
 #include <mqbi_domain.h>
@@ -790,12 +795,14 @@ void RemoteQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
                        << "CONTROL_MSG event not yet implemented";
     } break;
     case mqbi::DispatcherEventType::e_CALLBACK: {
-        const mqbevt::CallbackEvent* realEvent = event.asCallbackEvent();
+        const mqbevt::CallbackEvent* const realEvent =
+            event.get<mqbevt::CallbackEvent>();
         BSLS_ASSERT_SAFE(!realEvent->callback().empty());
         realEvent->callback()();
     } break;
     case mqbi::DispatcherEventType::e_PUSH: {
-        const mqbevt::PushEvent* realEvent = event.asPushEvent();
+        const mqbevt::PushEvent* const realEvent =
+            event.get<mqbevt::PushEvent>();
         pushMessage(realEvent->guid(),
                     realEvent->blob(),
                     realEvent->options(),
@@ -804,14 +811,15 @@ void RemoteQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
                     realEvent->isOutOfOrderPush());
     } break;
     case mqbi::DispatcherEventType::e_PUT: {
-        const mqbevt::PutEvent* realEvent = event.asPutEvent();
+        const mqbevt::PutEvent* const realEvent =
+            event.get<mqbevt::PutEvent>();
         postMessage(realEvent->putHeader(),
                     realEvent->blob(),
                     realEvent->options(),
                     realEvent->queueHandle());
     } break;
     case mqbi::DispatcherEventType::e_ACK: {
-        onAckMessageDispatched(*(event.asAckEvent()));
+        onAckMessageDispatched(*(event.get<mqbevt::AckEvent>()));
     } break;
     case mqbi::DispatcherEventType::e_CONFIRM: {
         BSLS_ASSERT_OPT(false && "'CONFIRM' type dispatcher event unexpected");
@@ -1180,16 +1188,16 @@ int RemoteQueue::rejectMessage(const bmqt::MessageGUID& msgGUID,
             .setMessageGUID(msgGUID);
 
         mqbi::Dispatcher*      dispatcher = queue->dispatcher();
-        mqbi::Dispatcher::DispatcherEventSp dispEvent =
-            d_state_p->queue()->getEvent();
-        (*dispEvent)
-            .setType(mqbi::DispatcherEventType::e_REJECT)
-            .setSource(queue)
+        bsl::shared_ptr<mqbevt::RejectEvent> event_sp =
+            d_state_p->queue()->getEvent<mqbevt::RejectEvent>();
+        // Relay message
+        // partitionId is needed only by replica
+        (*event_sp)
             .setRejectMessage(rejectMessage)
             .setPartitionId(d_state_p->partitionId())
-            .setIsRelay(true);  // Relay message
-                                // partitionId is needed only by replica
-        dispatcher->dispatchEvent(bslmf::MovableRefUtil::move(dispEvent),
+            .setIsRelay(true)
+            .setSource(queue);
+        dispatcher->dispatchEvent(bslmf::MovableRefUtil::move(event_sp),
                                   cluster);
     } break;
     default: {

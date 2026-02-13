@@ -22,6 +22,8 @@
 #include <mqbblp_rootqueueengine.h>
 #include <mqbblp_storagemanager.h>
 #include <mqbcmd_messages.h>
+#include <mqbevt_callbackevent.h>
+#include <mqbevt_putevent.h>
 #include <mqbi_domain.h>
 #include <mqbi_queueengine.h>
 #include <mqbi_storage.h>
@@ -325,7 +327,8 @@ void LocalQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
 
     switch (event.type()) {
     case mqbi::DispatcherEventType::e_PUT: {
-        const mqbevt::PutEvent* realEvent = event.asPutEvent();
+        const mqbevt::PutEvent* const realEvent =
+            event.get<mqbevt::PutEvent>();
 
         postMessage(realEvent->putHeader(),
                     realEvent->blob(),
@@ -333,7 +336,8 @@ void LocalQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
                     realEvent->queueHandle());
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_CALLBACK: {
-        const mqbevt::CallbackEvent* realEvent = event.asCallbackEvent();
+        const mqbevt::CallbackEvent* realEvent =
+            event.get<mqbevt::CallbackEvent>();
         BSLS_ASSERT_SAFE(!realEvent->callback().empty());
         realEvent->callback()();
     } break;  // BREAK

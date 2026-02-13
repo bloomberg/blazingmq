@@ -50,6 +50,10 @@
 #include <mqbi_dispatcher.h>
 #include <mqbu_loadbalancer.h>
 
+// TODO(678098): move to cpp file and remove include from header
+#include <mqbevt_callbackevent.h>
+#include <mqbevt_dispatcherevent.h>
+
 // BMQ
 #include <bmqc_multiqueuethreadpool.h>
 #include <bmqex_executor.h>
@@ -135,59 +139,6 @@ class Dispatcher_Executor {
     /// in-place as if by `f()`.  Otherwise, submit the function object for
     /// execution as if by `post(f)`.
     void dispatch(const bsl::function<void()>& f) const;
-};
-
-// ============================
-// class Dispatcher_EventSource
-// ============================
-
-class Dispatcher_EventSource BSLS_KEYWORD_FINAL
-: public mqbi::DispatcherEventSource {
-  public:
-    // PUBLIC TYPES
-    typedef bsl::shared_ptr<mqbi::DispatcherEvent> DispatcherEventSp;
-    typedef bslmf::MovableRef<DispatcherEventSp>   DispatcherEventRvRef;
-
-  private:
-    // TYPES
-
-    /// `CreatorFn` is an alias for a functor creating an object
-    /// in the specified `arena` using the specified `allocator`.
-    typedef bsl::function<void(void* arena, bslma::Allocator* allocator)>
-        CreatorFn;
-
-    typedef bdlcc::SharedObjectPool<
-        mqbi::DispatcherEvent,
-        CreatorFn,
-        bdlcc::ObjectPoolFunctors::Reset<mqbi::DispatcherEvent> >
-        EventPool;
-
-    // DATA
-    EventPool d_pool;
-
-    // PRIVATE CLASS METHODS
-
-    /// Creator function passed to `d_pool` to create an event in the
-    /// specified `arena` using the specified `allocator`.
-    static void eventCreator(void* arena, bslma::Allocator* allocator);
-
-  public:
-    // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(Dispatcher_EventSource,
-                                   bslma::UsesBslmaAllocator)
-
-    // CREATORS
-    explicit Dispatcher_EventSource(bslma::Allocator* allocator = 0);
-    ~Dispatcher_EventSource() BSLS_KEYWORD_OVERRIDE;
-
-    // MANIPULATORS
-
-    /// @brief Get an event for mqbi::Dispatcher.
-    /// @return A shared pointer to event.
-    /// The behaviour is undefined unless all the shared pointers to events
-    /// acquired with `getEvent` are destructed before destructor is called
-    /// for this event source.
-    DispatcherEventSp getEvent() BSLS_KEYWORD_OVERRIDE;
 };
 
 // ================
@@ -481,28 +432,6 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
 //                             INLINE DEFINITIONS
 // ============================================================================
 
-// ----------------------------
-// class Dispatcher_EventSource
-// ----------------------------
-
-inline void Dispatcher_EventSource::eventCreator(void*             arena,
-                                                 bslma::Allocator* allocator)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT(arena);
-    BSLS_ASSERT(allocator);
-
-    bslalg::ScalarPrimitives::construct(
-        reinterpret_cast<mqbi::DispatcherEvent*>(arena),
-        allocator);
-}
-
-inline Dispatcher_EventSource::DispatcherEventSp
-Dispatcher_EventSource::getEvent()
-{
-    return d_pool.getObject();
-}
-
 // ----------------
 // class Dispatcher
 // ----------------
@@ -564,11 +493,20 @@ inline void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
                      type == mqbi::DispatcherEventType::e_DISPATCHER);
     BSLS_ASSERT_SAFE(functor);
 
-    bsl::shared_ptr<mqbi::DispatcherEvent> event =
-        d_defaultEventSource_sp->getEvent();
-    (*event).setType(type).callback().set(functor);
-
-    dispatchEvent(bslmf::MovableRefUtil::move(event), client);
+    // TODO(678098): refactor, do not provide `type` arg?
+    // TODO(678098): move to cpp file and remove include from header
+    if (type == mqbi::DispatcherEventType::e_CALLBACK) {
+        bsl::shared_ptr<mqbevt::CallbackEvent> event_sp =
+            d_defaultEventSource_sp->get<mqbevt::CallbackEvent>();
+        event_sp->callback().set(functor);
+        dispatchEvent(bslmf::MovableRefUtil::move(event_sp), client);
+    }
+    else {
+        bsl::shared_ptr<mqbevt::DispatcherEvent> event_sp =
+            d_defaultEventSource_sp->get<mqbevt::DispatcherEvent>();
+        event_sp->callback().set(functor);
+        dispatchEvent(bslmf::MovableRefUtil::move(event_sp), client);
+    }
 }
 
 inline void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
@@ -577,14 +515,12 @@ inline void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(functor);
 
-    bsl::shared_ptr<mqbi::DispatcherEvent> event =
-        d_defaultEventSource_sp->getEvent();
-    (*event)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .callback()
-        .set(functor);
+    // TODO(678098): move to cpp file and remove include from header
+    bsl::shared_ptr<mqbevt::DispatcherEvent> event_sp =
+        d_defaultEventSource_sp->get<mqbevt::DispatcherEvent>();
+    event_sp->callback().set(functor);
 
-    dispatchEvent(bslmf::MovableRefUtil::move(event),
+    dispatchEvent(bslmf::MovableRefUtil::move(event_sp),
                   client.clientType(),
                   client.processorHandle());
 }

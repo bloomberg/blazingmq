@@ -107,6 +107,9 @@ class ReplicatedStorage;
 namespace mqbs {
 class VirtualStorage;
 }
+namespace mqbevt {
+class ClusterStateEvent;
+}
 
 namespace mqbblp {
 

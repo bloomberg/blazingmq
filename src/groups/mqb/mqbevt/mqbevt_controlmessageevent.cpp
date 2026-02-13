@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2026 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,10 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbevt_controlmessageevent.cpp -*-C++-*-
+// mqbevt_controlmessageevent.cpp                                     -*-C++-*-
 #include <mqbevt_controlmessageevent.h>
 
 #include <mqbscm_version.h>
+
+// BDE
+#include <bslim_printer.h>
 
 namespace BloombergLP {
 namespace mqbevt {
@@ -25,10 +28,47 @@ namespace mqbevt {
 // class ControlMessageEvent
 // -------------------------
 
-// CREATORS
+ControlMessageEvent::ControlMessageEvent(bslma::Allocator* allocator)
+: mqbi::DispatcherEvent(allocator)
+, d_controlMessage(allocator)
+{
+    // NOTHING
+}
+
 ControlMessageEvent::~ControlMessageEvent()
 {
     // NOTHING
+}
+
+void ControlMessageEvent::reset()
+{
+    d_controlMessage.reset();
+    mqbi::DispatcherEvent::reset();
+}
+
+bsl::ostream& ControlMessageEvent::print(bsl::ostream& stream,
+                                         int           level,
+                                         int           spacesPerLevel) const
+{
+    if (stream.bad()) {
+        return stream;
+    }
+
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+
+    printer.printAttribute("type", type());
+    if (source()) {
+        printer.printAttribute("source", source()->description());
+    }
+    if (destination()) {
+        printer.printAttribute("destination", destination()->description());
+    }
+    printer.printAttribute("controlMessage", d_controlMessage);
+
+    printer.end();
+
+    return stream;
 }
 
 }  // close package namespace

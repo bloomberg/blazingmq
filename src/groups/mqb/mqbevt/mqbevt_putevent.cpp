@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2026 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,10 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbevt_putevent.cpp -*-C++-*-
+// mqbevt_putevent.cpp                                                -*-C++-*-
 #include <mqbevt_putevent.h>
 
 #include <mqbscm_version.h>
+
+// BDE
+#include <bslim_printer.h>
 
 namespace BloombergLP {
 namespace mqbevt {
@@ -25,10 +28,61 @@ namespace mqbevt {
 // class PutEvent
 // --------------
 
-// CREATORS
+PutEvent::PutEvent(bslma::Allocator* allocator)
+: mqbi::DispatcherEvent(allocator)
+, d_blob_sp()
+, d_options_sp()
+, d_clusterNode_p(0)
+, d_isRelay(false)
+, d_putHeader()
+, d_queueHandle_p(0)
+, d_genCount(0)
+, d_state_sp()
+{
+    // NOTHING
+}
+
 PutEvent::~PutEvent()
 {
     // NOTHING
+}
+
+void PutEvent::reset()
+{
+    d_blob_sp.reset();
+    d_options_sp.reset();
+    d_clusterNode_p = 0;
+    d_isRelay       = false;
+    d_putHeader     = bmqp::PutHeader();
+    d_queueHandle_p = 0;
+    d_genCount      = 0;
+    d_state_sp.reset();
+    mqbi::DispatcherEvent::reset();
+}
+
+bsl::ostream&
+PutEvent::print(bsl::ostream& stream, int level, int spacesPerLevel) const
+{
+    if (stream.bad()) {
+        return stream;
+    }
+
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+
+    printer.printAttribute("type", type());
+    if (source()) {
+        printer.printAttribute("source", source()->description());
+    }
+    if (destination()) {
+        printer.printAttribute("destination", destination()->description());
+    }
+    printer.printAttribute("isRelay", d_isRelay);
+    printer.printAttribute("genCount", d_genCount);
+
+    printer.end();
+
+    return stream;
 }
 
 }  // close package namespace

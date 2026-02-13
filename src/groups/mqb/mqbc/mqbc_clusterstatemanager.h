@@ -70,6 +70,9 @@ class StorageManager;
 namespace mqbnet {
 class ClusterNode;
 }
+namespace mqbevt {
+class ClusterStateEvent;
+}
 
 namespace mqbc {
 

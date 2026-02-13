@@ -2,6 +2,7 @@ mqbmock_cluster
 mqbmock_clusterstateledger
 mqbmock_clusterstateledgeriterator
 mqbmock_dispatcher
+mqbmock_dispatchereventsource
 mqbmock_domain
 mqbmock_logidgenerator
 mqbmock_queue

@@ -19,6 +19,10 @@
 #include <mqbscm_version.h>
 // MQB
 #include <mqbcmd_messages.h>
+#include <mqbevt_ackevent.h>
+#include <mqbevt_callbackevent.h>
+#include <mqbevt_pushevent.h>
+#include <mqbevt_putevent.h>
 #include <mqbi_dispatcher.h>
 #include <mqbi_domain.h>
 #include <mqbi_queueengine.h>
@@ -554,10 +558,9 @@ void QueueHandle::deliverMessageImpl(
     if (d_clientContext_sp->inlineClient() == 0) {
         // Create an event to dispatch delivery of the message to the client
         mqbi::DispatcherClient* client = d_clientContext_sp->client();
-        mqbi::Dispatcher::DispatcherEventSp event = d_queue_sp->getEvent();
-        (*event)
-            .setType(mqbi::DispatcherEventType::e_PUSH)
-            .setSource(d_queue_sp.get())
+        bsl::shared_ptr<mqbevt::PushEvent> event_sp =
+            d_queue_sp->getEvent<mqbevt::PushEvent>();
+        (*event_sp)
             .setGuid(msgGUID)
             .setQueueId(id())
             .setMessagePropertiesInfo(d_queue_sp->schemaLearner().demultiplex(
@@ -565,14 +568,16 @@ void QueueHandle::deliverMessageImpl(
                 attributes.messagePropertiesInfo()))
             .setSubQueueInfos(subscriptions)
             .setCompressionAlgorithmType(attributes.compressionAlgorithmType())
-            .setOutOfOrderPush(isOutOfOrder);
+            .setOutOfOrderPush(isOutOfOrder)
+            .setSource(d_queue_sp.get());
 
         if (message) {
-            event->setBlob(message);
+            event_sp->setBlob(message);
         }
 
-        client->dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(event),
-                                            client);
+        client->dispatcher()->dispatchEvent(
+            bslmf::MovableRefUtil::move(event_sp),
+            client);
         return;  // RETURN
     }
 
@@ -894,9 +899,8 @@ void QueueHandle::confirmMessage(mqbi::DispatcherEventSource* eventSource_p,
     // A more generic approach would be to maintain a queue of CONFIRMs per
     // queue (outside of the dispatcher) and process it separately (on idle?).
 
-    mqbi::DispatcherEventSource::DispatcherEventSp event_sp =
-        eventSource_p->getEvent();
-    event_sp->setType(mqbi::DispatcherEventType::e_CALLBACK);
+    bsl::shared_ptr<mqbevt::CallbackEvent> event_sp =
+        eventSource_p->get<mqbevt::CallbackEvent>();
     event_sp->callback().createInplace<QueueHandle::ConfirmFunctor>(
         this,
         msgGUID,
@@ -1065,18 +1069,18 @@ void QueueHandle::postMessage(const bmqp::PutHeader&              putHeader,
 
     // cannot check 'd_subscriptions' unless in the QUEUE dispatcher thread
 
-    mqbi::Dispatcher::DispatcherEventSp event =
-        d_clientContext_sp->client()->getEvent();
-    (*event)
-        .setType(mqbi::DispatcherEventType::e_PUT)
-        .setSource(d_clientContext_sp->client())
+    bsl::shared_ptr<mqbevt::PutEvent> event_sp =
+        d_clientContext_sp->client()->getEvent<mqbevt::PutEvent>();
+    (*event_sp)
         .setBlob(appData)
         .setOptions(options)
         .setPutHeader(putHeader)
-        .setQueueHandle(this);
+        .setQueueHandle(this)
+        .setSource(d_clientContext_sp->client());
 
-    d_queue_sp->dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(event),
-                                            d_queue_sp.get());
+    d_queue_sp->dispatcher()->dispatchEvent(
+        bslmf::MovableRefUtil::move(event_sp),
+        d_queue_sp.get());
 }
 
 void QueueHandle::configure(
@@ -1306,21 +1310,18 @@ void QueueHandle::onAckMessage(const bmqp::AckMessage& ackMessage)
 
     if (inlineClient == 0) {
         mqbi::DispatcherClient* client = d_clientContext_sp->client();
-        mqbi::Dispatcher::DispatcherEventSp event = d_queue_sp->getEvent();
-        (*event)
-            .setType(mqbi::DispatcherEventType::e_ACK)
-            .setSource(d_queue_sp.get())
-            .setAckMessage(ackMessage);
+        bsl::shared_ptr<mqbevt::AckEvent> event_sp =
+            d_queue_sp->getEvent<mqbevt::AckEvent>();
+        (*event_sp).setAckMessage(ackMessage).setSource(d_queue_sp.get());
 
         // Override with correct downstream queueId
-        const mqbevt::AckEvent* ackEvent = event->asAckEvent();
-
         bmqp::AckMessage& ackMsg = const_cast<bmqp::AckMessage&>(
-            ackEvent->ackMessage());
+            event_sp->ackMessage());
         ackMsg.setQueueId(id());
 
-        client->dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(event),
-                                            client);
+        client->dispatcher()->dispatchEvent(
+            bslmf::MovableRefUtil::move(event_sp),
+            client);
         return;  // RETURN
     }
 

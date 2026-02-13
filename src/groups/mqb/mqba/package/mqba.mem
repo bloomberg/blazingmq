@@ -5,6 +5,7 @@ mqba_clientsession
 mqba_commandrouter
 mqba_configprovider
 mqba_dispatcher
+mqba_dispatchereventsource
 mqba_domainmanager
 mqba_domainresolver
 mqba_sessionnegotiator

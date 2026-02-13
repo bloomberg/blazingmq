@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2026 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,10 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbevt_ackevent.cpp -*-C++-*-
+// mqbevt_ackevent.cpp                                                -*-C++-*-
 #include <mqbevt_ackevent.h>
 
 #include <mqbscm_version.h>
+
+// BDE
+#include <bslim_printer.h>
 
 namespace BloombergLP {
 namespace mqbevt {
@@ -25,10 +28,60 @@ namespace mqbevt {
 // class AckEvent
 // --------------
 
-// CREATORS
+AckEvent::AckEvent(bslma::Allocator* allocator)
+: mqbi::DispatcherEvent(allocator)
+, d_ackMessage()
+, d_blob_sp()
+, d_options_sp()
+, d_clusterNode_p(0)
+, d_isRelay(false)
+{
+    // NOTHING
+}
+
 AckEvent::~AckEvent()
 {
     // NOTHING
+}
+
+void AckEvent::reset()
+{
+    d_ackMessage = bmqp::AckMessage();
+    d_blob_sp.reset();
+    d_options_sp.reset();
+    d_clusterNode_p = 0;
+    d_isRelay       = false;
+    mqbi::DispatcherEvent::reset();
+}
+
+bsl::ostream&
+AckEvent::print(bsl::ostream& stream, int level, int spacesPerLevel) const
+{
+    if (stream.bad()) {
+        return stream;
+    }
+
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+
+    printer.printAttribute("type", type());
+    if (source()) {
+        printer.printAttribute("source", source()->description());
+    }
+    if (destination()) {
+        printer.printAttribute("destination", destination()->description());
+    }
+    printer.printAttribute("isRelay", d_isRelay);
+    printer.printAttribute("ackMessage.status", d_ackMessage.status());
+    printer.printAttribute("ackMessage.correlationId",
+                           d_ackMessage.correlationId());
+    printer.printAttribute("ackMessage.messageGUID",
+                           d_ackMessage.messageGUID());
+    printer.printAttribute("ackMessage.queueId", d_ackMessage.queueId());
+
+    printer.end();
+
+    return stream;
 }
 
 }  // close package namespace
