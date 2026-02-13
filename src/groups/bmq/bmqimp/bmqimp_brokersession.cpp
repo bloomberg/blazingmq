@@ -4186,6 +4186,9 @@ void BrokerSession::doHandleChannelWatermark(
     // handle HWM here
     if (type == bmqio::ChannelWatermarkType::e_HIGH_WATERMARK) {
         BALL_LOG_INFO << id() << "HWM: Channel is not writable";
+
+        enqueueSessionEvent(bmqt::SessionEventType::e_CHANNEL_HIGH_WATERMARK);
+
         return;  // RETURN
     }
 
@@ -4212,11 +4215,16 @@ void BrokerSession::doHandleChannelWatermark(
         d_extensionBlobBuffer.pop_front();
     }
     if (d_extensionBlobBuffer.empty()) {
-        bslmt::LockGuard<bslmt::Mutex> guard(&d_extensionBufferLock);  // LOCK
-        d_extensionBufferEmpty = true;
+        {
+            bslmt::LockGuard<bslmt::Mutex> guard(&d_extensionBufferLock);
+            d_extensionBufferEmpty = true;
 
-        BALL_LOG_INFO << id() << "LWM: Channel is ready for user messages";
-        d_extensionBufferCondition.broadcast();
+            BALL_LOG_INFO << id() << "LWM: Channel is ready for user messages";
+            d_extensionBufferCondition.broadcast();
+        }
+        // any 'post' or 'confirm' call will succeed until write fails in the
+        // same FSM thread .
+        enqueueSessionEvent(bmqt::SessionEventType::e_CHANNEL_LOW_WATERMARK);
     }
 }
 
