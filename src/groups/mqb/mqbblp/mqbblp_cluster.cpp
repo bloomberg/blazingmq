@@ -697,7 +697,7 @@ void Cluster::continueShutdownDispatched(
     d_clusterOrchestrator.queueHelper().processShutdownEvent();
 }
 
-void Cluster::onPutEvent(const mqbi::DispatcherPutEvent& event)
+void Cluster::onPutEvent(const mqbevt::PutEvent& event)
 {
     // executed by the *DISPATCHER* thread
 
@@ -911,7 +911,7 @@ void Cluster::onPutEvent(const mqbi::DispatcherPutEvent& event)
     }
 }
 
-void Cluster::onRelayAckEvent(const mqbi::DispatcherAckEvent& event)
+void Cluster::onRelayAckEvent(const mqbevt::AckEvent& event)
 {
     // executed by the *DISPATCHER* thread
 
@@ -974,7 +974,7 @@ void Cluster::onRelayAckEvent(const mqbi::DispatcherAckEvent& event)
     }
 }
 
-void Cluster::onConfirmEvent(const mqbi::DispatcherConfirmEvent& event)
+void Cluster::onConfirmEvent(const mqbevt::ConfirmEvent& event)
 {
     // executed by the *DISPATCHER* thread
 
@@ -1075,7 +1075,7 @@ void Cluster::onConfirmEvent(const mqbi::DispatcherConfirmEvent& event)
     }
 }
 
-void Cluster::onRejectEvent(const mqbi::DispatcherRejectEvent& event)
+void Cluster::onRejectEvent(const mqbevt::RejectEvent& event)
 {
     // executed by the *DISPATCHER* thread
 
@@ -1209,7 +1209,7 @@ Cluster::validateMessage(mqbi::QueueHandle**             queueHandle,
     return ValidationResult::k_SUCCESS;
 }
 
-void Cluster::onRelayRejectEvent(const mqbi::DispatcherRejectEvent& event)
+void Cluster::onRelayRejectEvent(const mqbevt::RejectEvent& event)
 {
     // executed by the *DISPATCHER* thread
 
@@ -1462,7 +1462,7 @@ bool Cluster::validateRelayMessage(mqbc::ClusterNodeSession** ns,
     return true;
 }
 
-void Cluster::onRelayPushEvent(const mqbi::DispatcherPushEvent& event)
+void Cluster::onRelayPushEvent(const mqbevt::PushEvent& event)
 {
     // executed by the *DISPATCHER* thread
 
@@ -2831,19 +2831,18 @@ void Cluster::onDispatcherEvent(const mqbi::DispatcherEvent& event)
 
     switch (event.type()) {
     case mqbi::DispatcherEventType::e_CALLBACK: {
-        const mqbi::DispatcherCallbackEvent& realEvent =
-            *event.asCallbackEvent();
+        const mqbevt::CallbackEvent& realEvent = *event.asCallbackEvent();
         BSLS_ASSERT_SAFE(!realEvent.callback().empty());
         realEvent.callback()();
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_PUT: {
-        const mqbi::DispatcherPutEvent& realEvent = *event.asPutEvent();
+        const mqbevt::PutEvent& realEvent = *event.asPutEvent();
         BSLS_ASSERT_SAFE(!realEvent.isRelay());
 
         onPutEvent(realEvent);
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_ACK: {
-        const mqbi::DispatcherAckEvent& realEvent = *event.asAckEvent();
+        const mqbevt::AckEvent& realEvent = *event.asAckEvent();
         if (realEvent.isRelay()) {
             onRelayAckEvent(realEvent);
         }
@@ -2852,13 +2851,12 @@ void Cluster::onDispatcherEvent(const mqbi::DispatcherEvent& event)
         }
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_CONFIRM: {
-        const mqbi::DispatcherConfirmEvent& realEvent =
-            *event.asConfirmEvent();
+        const mqbevt::ConfirmEvent& realEvent = *event.asConfirmEvent();
         BSLS_ASSERT_SAFE(!realEvent.isRelay());
         onConfirmEvent(realEvent);
     } break;
     case mqbi::DispatcherEventType::e_REJECT: {
-        const mqbi::DispatcherRejectEvent& realEvent = *event.asRejectEvent();
+        const mqbevt::RejectEvent& realEvent = *event.asRejectEvent();
         if (realEvent.isRelay()) {
             onRelayRejectEvent(realEvent);
         }
@@ -2867,22 +2865,20 @@ void Cluster::onDispatcherEvent(const mqbi::DispatcherEvent& event)
         }
     } break;
     case mqbi::DispatcherEventType::e_CLUSTER_STATE: {
-        const mqbi::DispatcherClusterStateEvent& clusterStateEvt =
+        const mqbevt::ClusterStateEvent& clusterStateEvt =
             *event.asClusterStateEvent();
         d_clusterOrchestrator.processClusterStateEvent(clusterStateEvt);
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_STORAGE: {
-        const mqbi::DispatcherStorageEvent& storageEvt =
-            *event.asStorageEvent();
+        const mqbevt::StorageEvent& storageEvt = *event.asStorageEvent();
         d_storageManager_mp->processStorageEvent(storageEvt);
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_RECOVERY: {
-        const mqbi::DispatcherRecoveryEvent& recoveryEvt =
-            *event.asRecoveryEvent();
+        const mqbevt::RecoveryEvent& recoveryEvt = *event.asRecoveryEvent();
         d_storageManager_mp->processRecoveryEvent(recoveryEvt);
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_PUSH: {
-        const mqbi::DispatcherPushEvent& realEvent = *event.asPushEvent();
+        const mqbevt::PushEvent& realEvent = *event.asPushEvent();
         if (realEvent.isRelay()) {
             onRelayPushEvent(realEvent);
         }

@@ -358,7 +358,7 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
                                   mqbnet::ClusterNode*                source);
 
     /// Executed in cluster dispatcher thread.
-    void processPartitionSyncEvent(const mqbi::DispatcherStorageEvent& event);
+    void processPartitionSyncEvent(const mqbevt::StorageEvent& event);
 
     /// Executed by queue/file-store dispatcher thread.
     void processPartitionSyncEventDispatched(
@@ -578,7 +578,7 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
         BSLS_KEYWORD_OVERRIDE;
 
     /// Executed in cluster dispatcher thread.
-    void processStorageEvent(const mqbi::DispatcherStorageEvent& event)
+    void processStorageEvent(const mqbevt::StorageEvent& event)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Executed by any thread.
@@ -602,7 +602,7 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
         mqbnet::ClusterNode*                source) BSLS_KEYWORD_OVERRIDE;
 
     /// Executed in cluster dispatcher thread.
-    void processRecoveryEvent(const mqbi::DispatcherRecoveryEvent& event)
+    void processRecoveryEvent(const mqbevt::RecoveryEvent& event)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Executed in IO thread.

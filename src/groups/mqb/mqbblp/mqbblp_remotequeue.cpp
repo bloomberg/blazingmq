@@ -790,13 +790,12 @@ void RemoteQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
                        << "CONTROL_MSG event not yet implemented";
     } break;
     case mqbi::DispatcherEventType::e_CALLBACK: {
-        const mqbi::DispatcherCallbackEvent* realEvent =
-            event.asCallbackEvent();
+        const mqbevt::CallbackEvent* realEvent = event.asCallbackEvent();
         BSLS_ASSERT_SAFE(!realEvent->callback().empty());
         realEvent->callback()();
     } break;
     case mqbi::DispatcherEventType::e_PUSH: {
-        const mqbi::DispatcherPushEvent* realEvent = event.asPushEvent();
+        const mqbevt::PushEvent* realEvent = event.asPushEvent();
         pushMessage(realEvent->guid(),
                     realEvent->blob(),
                     realEvent->options(),
@@ -805,7 +804,7 @@ void RemoteQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
                     realEvent->isOutOfOrderPush());
     } break;
     case mqbi::DispatcherEventType::e_PUT: {
-        const mqbi::DispatcherPutEvent* realEvent = event.asPutEvent();
+        const mqbevt::PutEvent* realEvent = event.asPutEvent();
         postMessage(realEvent->putHeader(),
                     realEvent->blob(),
                     realEvent->options(),
@@ -1239,7 +1238,7 @@ void RemoteQueue::sendConfirmMessage(const bmqt::MessageGUID& msgGUID,
     }
 }
 
-void RemoteQueue::onAckMessageDispatched(const mqbi::DispatcherAckEvent& event)
+void RemoteQueue::onAckMessageDispatched(const mqbevt::AckEvent& event)
 {
     // executed by the *DISPATCHER* thread
 

@@ -369,17 +369,17 @@ class Cluster : public mqbi::Cluster,
     processClusterControlMessage(const bmqp_ctrlmsg::ControlMessage& message,
                                  mqbnet::ClusterNode*                source);
 
-    void onPutEvent(const mqbi::DispatcherPutEvent& event);
+    void onPutEvent(const mqbevt::PutEvent& event);
 
-    void onRelayAckEvent(const mqbi::DispatcherAckEvent& event);
+    void onRelayAckEvent(const mqbevt::AckEvent& event);
 
-    void onConfirmEvent(const mqbi::DispatcherConfirmEvent& event);
+    void onConfirmEvent(const mqbevt::ConfirmEvent& event);
 
-    void onRejectEvent(const mqbi::DispatcherRejectEvent& event);
+    void onRejectEvent(const mqbevt::RejectEvent& event);
 
-    void onRelayRejectEvent(const mqbi::DispatcherRejectEvent& event);
+    void onRelayRejectEvent(const mqbevt::RejectEvent& event);
 
-    void onRelayPushEvent(const mqbi::DispatcherPushEvent& event);
+    void onRelayPushEvent(const mqbevt::PushEvent& event);
 
     /// Validate a message of the specified `eventType` using the specified
     /// `queueId` and `ns`. Return one of `ValidationResult` values. Populate

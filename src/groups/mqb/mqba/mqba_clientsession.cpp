@@ -1376,7 +1376,7 @@ void ClientSession::processConfigureStream(
             opLogger));
 }
 
-void ClientSession::onAckEvent(const mqbi::DispatcherAckEvent& event)
+void ClientSession::onAckEvent(const mqbevt::AckEvent& event)
 {
     // executed by the *CLIENT* dispatcher thread
 
@@ -1472,7 +1472,7 @@ void ClientSession::onAckEvent(const mqbi::DispatcherAckEvent& event)
             "onAckEvent");
 }
 
-void ClientSession::onConfirmEvent(const mqbi::DispatcherConfirmEvent& event)
+void ClientSession::onConfirmEvent(const mqbevt::ConfirmEvent& event)
 {
     // executed by the *CLIENT* dispatcher thread
 
@@ -1556,7 +1556,7 @@ void ClientSession::onConfirmEvent(const mqbi::DispatcherConfirmEvent& event)
     }
 }
 
-void ClientSession::onRejectEvent(const mqbi::DispatcherRejectEvent& event)
+void ClientSession::onRejectEvent(const mqbevt::RejectEvent& event)
 {
     // executed by the *CLIENT* dispatcher thread
 
@@ -1720,7 +1720,7 @@ bool ClientSession::validateMessage(mqbi::QueueHandle**   queueHandle,
     return true;
 }
 
-void ClientSession::onPushEvent(const mqbi::DispatcherPushEvent& event)
+void ClientSession::onPushEvent(const mqbevt::PushEvent& event)
 {
     // executed by the *CLIENT* dispatcher thread
 
@@ -1917,7 +1917,7 @@ void ClientSession::onPushEvent(const mqbi::DispatcherPushEvent& event)
     }
 }
 
-void ClientSession::onPutEvent(const mqbi::DispatcherPutEvent& event)
+void ClientSession::onPutEvent(const mqbevt::PutEvent& event)
 {
     // executed by the *CLIENT* dispatcher thread
 
@@ -2839,8 +2839,7 @@ void ClientSession::onDispatcherEvent(const mqbi::DispatcherEvent& event)
         onAckEvent(*(event.asAckEvent()));
     } break;
     case mqbi::DispatcherEventType::e_CALLBACK: {
-        const mqbi::DispatcherCallbackEvent* realEvent =
-            event.asCallbackEvent();
+        const mqbevt::CallbackEvent* realEvent = event.asCallbackEvent();
 
         BSLS_ASSERT_SAFE(!realEvent->callback().empty());
         flush();  // Flush any pending messages to guarantee ordering of events
