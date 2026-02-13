@@ -258,7 +258,9 @@ jobs:
         env:
           CXXFLAGS: "-Wno-poison-system-directories"
         run: |
+          echo "::add-matcher::.github/workflows/problem-matchers/cpp.json"
           bin/build-darwin.sh
+          echo "::remove-matcher owner=cpp"
 
   build_and_test_bmqprometheus_plugin:
     name: "Build Prometheus plugin [ubuntu]"
