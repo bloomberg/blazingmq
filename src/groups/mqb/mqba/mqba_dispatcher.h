@@ -45,6 +45,9 @@
 /// be executed in-place.  A call to `dispatch` from outside of the executor's
 /// associated processor thread is equivalent to a call to `post`.
 
+// BMQ
+#include <bmqst_statcontext.h>
+
 // MQB
 #include <mqbcfg_messages.h>
 #include <mqbi_dispatcher.h>
@@ -103,6 +106,8 @@ class Dispatcher_Executor {
     bmqc::MultiQueueThreadPool<mqbi::DispatcherEvent>* d_processorPool_p;
 
     mqbi::Dispatcher::ProcessorHandle d_processorHandle;
+
+    bmqst::StatContext* d_statContext_p;
 
   public:
     // CREATORS
@@ -241,6 +246,13 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
         bsl::vector<bsl::shared_ptr<mqbi::DispatcherEventSource> >
             d_eventSources;
 
+        /// Pointer to stat context for client
+        bslma::ManagedPtr<bmqst::StatContext> d_clientStatContext_mp;
+
+        /// Vector of stat contexts shared pointers, one per client's
+        /// processor.
+        bsl::vector<bsl::shared_ptr<bmqst::StatContext> > d_statContexts;
+
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(DispatcherContext,
                                        bslma::UsesBslmaAllocator)
@@ -277,6 +289,9 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
 
     /// The various contexts, one for each `ClientType`.
     bsl::vector<DispatcherContextSp> d_contexts;
+
+    /// Top-level stat context for all dispatcher client types
+    bmqst::StatContext* d_statContext_p;
 
     /// The event source that can be used by any routine that is not called
     /// from a dispatcher thread.
@@ -335,10 +350,11 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
 
     // CREATORS
 
-    /// Create a dispatcher using the specified `config` and `scheduler`.
-    /// All memory allocation will be performed using the specified
-    /// `allocator`.
+    /// Create a dispatcher using the specified `config`, `statContext` and
+    /// `scheduler`. All memory allocation will be performed using the
+    /// specified `allocator`.
     Dispatcher(const mqbcfg::DispatcherConfig& config,
+               bmqst::StatContext*             statContext,
                bdlmt::EventScheduler*          scheduler,
                bslma::Allocator*               allocator);
 
@@ -503,81 +519,6 @@ inline const bsl::shared_ptr<mqbi::DispatcherEventSource>&
 Dispatcher::getDefaultEventSource()
 {
     return d_defaultEventSource_sp;
-}
-
-inline void
-Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
-                          mqbi::DispatcherClient*                destination)
-{
-    BALL_LOG_TRACE << "Enqueuing Event to '" << destination->description()
-                   << "': " << *bslmf::MovableRefUtil::access(event);
-
-    bslmf::MovableRefUtil::access(event)->setDestination(destination);
-
-    dispatchEvent(bslmf::MovableRefUtil::move(event),
-                  destination->dispatcherClientData().clientType(),
-                  destination->dispatcherClientData().processorHandle());
-}
-
-inline void
-Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
-                          mqbi::DispatcherClientType::Enum       type,
-                          mqbi::Dispatcher::ProcessorHandle      handle)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(handle != mqbi::Dispatcher::k_INVALID_PROCESSOR_HANDLE);
-
-    BALL_LOG_TRACE << "Enqueuing Event to processor " << handle << " of "
-                   << type << ": " << *bslmf::MovableRefUtil::access(event);
-
-    switch (type) {
-    case mqbi::DispatcherClientType::e_SESSION:
-    case mqbi::DispatcherClientType::e_QUEUE:
-    case mqbi::DispatcherClientType::e_CLUSTER: {
-        d_contexts[type]->d_processorPool_mp->enqueueEvent(
-            bslmf::MovableRefUtil::move(event),
-            handle);
-    } break;
-    case mqbi::DispatcherClientType::e_UNDEFINED:
-    default: {
-        BSLS_ASSERT_OPT(false && "Invalid destination type");
-    }
-    }
-}
-
-inline void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
-                                mqbi::DispatcherClient*              client,
-                                mqbi::DispatcherEventType::Enum      type)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(client);
-    BSLS_ASSERT_SAFE(type == mqbi::DispatcherEventType::e_CALLBACK ||
-                     type == mqbi::DispatcherEventType::e_DISPATCHER);
-    BSLS_ASSERT_SAFE(functor);
-
-    bsl::shared_ptr<mqbi::DispatcherEvent> event =
-        d_defaultEventSource_sp->getEvent();
-    (*event).setType(type).callback().set(functor);
-
-    dispatchEvent(bslmf::MovableRefUtil::move(event), client);
-}
-
-inline void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
-                                const mqbi::DispatcherClientData&    client)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(functor);
-
-    bsl::shared_ptr<mqbi::DispatcherEvent> event =
-        d_defaultEventSource_sp->getEvent();
-    (*event)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .callback()
-        .set(functor);
-
-    dispatchEvent(bslmf::MovableRefUtil::move(event),
-                  client.clientType(),
-                  client.processorHandle());
 }
 
 // ACCESSORS

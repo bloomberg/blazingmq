@@ -312,6 +312,7 @@ DispatcherEvent::DispatcherEvent(bslma::Allocator* allocator)
 , d_genCount(0)
 , d_callback(allocator)
 , d_finalizeCallback(allocator)
+, d_enqueueTime(0)
 {
     // NOTHING
 }
