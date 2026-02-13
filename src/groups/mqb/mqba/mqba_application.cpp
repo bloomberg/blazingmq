@@ -523,6 +523,11 @@ void Application::stop()
 
     // STOP everything.
 
+    // Dispatcher is running while some other components are being stopped
+    // and destructed, make sure that Dispatcher will not call `flush` for
+    // any DispatcherClient that might be in the middle of its destruction.
+    d_dispatcher_mp->disableFlushClients();
+
     // Note that clusterCatalog must be stopped before transport manager
     // because transportManager.stop() blocks until all sessions have been
     // destroyed, and above code proactively closes only the clientOrProxy

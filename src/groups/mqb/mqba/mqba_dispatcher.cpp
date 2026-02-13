@@ -338,15 +338,19 @@ void Dispatcher::flushClients(mqbi::DispatcherClientType::Enum type,
                               int                              processorId)
 {
     // executed by the *DISPATCHER* thread
+    bmqu::GateKeeper::Status status(d_flushClientsGate);
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!status.isOpen())) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return;  // RETURN
+    }
 
     DispatcherContext& context = *(d_contexts[type]);
-    for (size_t i = 0; i < context.d_flushList[processorId].size(); ++i) {
-        context.d_flushList[processorId][i]->flush();
-        context.d_flushList[processorId][i]
-            ->dispatcherClientData()
-            .setAddedToFlushList(false);
+    DispatcherClientPtrVector& flushList = context.d_flushList[processorId];
+    for (size_t i = 0; i < flushList.size(); ++i) {
+        flushList[i]->flush();
+        flushList[i]->dispatcherClientData().setAddedToFlushList(false);
     }
-    context.d_flushList[processorId].clear();
+    flushList.clear();
 }
 
 Dispatcher::Dispatcher(const mqbcfg::DispatcherConfig& config,
@@ -361,10 +365,13 @@ Dispatcher::Dispatcher(const mqbcfg::DispatcherConfig& config,
       bsl::allocate_shared<mqba::Dispatcher_EventSource>(allocator))
 , d_customEventSources(allocator)
 , d_customEventSources_mtx()
+, d_flushClientsGate()
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(scheduler->clockType() ==
                      bsls::SystemClockType::e_MONOTONIC);
+
+    d_flushClientsGate.open();
 }
 
 Dispatcher::~Dispatcher()
@@ -426,6 +433,11 @@ int Dispatcher::start(bsl::ostream& errorDescription)
     d_isStarted = true;
 
     return 0;
+}
+
+void Dispatcher::disableFlushClients()
+{
+    d_flushClientsGate.close();
 }
 
 void Dispatcher::stop()
