@@ -84,6 +84,14 @@ ln -sf /usr/bin/llvm-symbolizer-${LLVM_VERSION} /usr/bin/llvm-symbolizer
 # Set some initial constants
 PARALLELISM=8
 
+# Helper function to print disk usage
+print_disk_usage() {
+    local component="${1:-unknown}"
+    echo "=== Disk usage after building ${component} ==="
+    df -h /
+    echo "================================================"
+}
+
 DIR_ROOT="${PWD}"
 DIR_SCRIPTS="${DIR_ROOT}/docker/sanitizers"
 DIR_EXTERNAL="${DIR_ROOT}/deps"
@@ -179,6 +187,13 @@ if [ "${FUZZER}" == "off" ]; then
     cmake --build "${LIBCXX_BUILD_PATH}" -j${PARALLELISM} --target cxx cxxabi unwind generate-cxx-headers
 
     export LIBCXX_BUILD_PATH="${LIBCXX_BUILD_PATH}"
+
+    # Cleanup LLVM sources not needed after libc++ build (keep only runtimes with build artifacts)
+    for dir in "${DIR_SRCS_EXT}/llvm-project"/*; do
+        [[ "$(basename "$dir")" == "runtimes" ]] && continue
+        rm -rf "$dir"
+    done
+    print_disk_usage "libc++"
 fi
 
 # Variables read by our custom CMake toolchain used to build everything else.
@@ -203,6 +218,9 @@ bbs_build configure --toolchain "${TOOLCHAIN_PATH}"
 bbs_build build -j${PARALLELISM}
 bbs_build --install=/opt/bb --prefix=/ install
 popd
+# Cleanup BDE build artifacts (keep source for headers if needed by later builds)
+rm -rf "${DIR_BUILD_EXT}/bde"
+print_disk_usage "BDE"
 
 pushd "${DIR_SRCS_EXT}/ntf-core"
 # TODO The deprecated flag "-fcoroutines-ts" has been removed in clang
@@ -221,6 +239,12 @@ sed -i 's/fcoroutines-ts/fcoroutines/g' 'repository.cmake'
 make -j${PARALLELISM}
 make install
 popd
+# Cleanup NTF build artifacts and source
+rm -rf "${DIR_BUILD_EXT}/ntf"
+rm -rf "${DIR_SRCS_EXT}/ntf-core"
+# Also cleanup BDE source now that NTF is built (keep bde-tools for PATH)
+rm -rf "${DIR_SRCS_EXT}/bde"
+print_disk_usage "NTF"
 
 # Note: Hack to circumvent faulty behavior in "nts-targets.cmake"
 ln -sf "/opt/bb/include" "/opt/include"
@@ -240,6 +264,9 @@ cmake -B "${DIR_SRCS_EXT}/googletest/cmake.bld" \
       -DCMAKE_INSTALL_PREFIX=/opt/bb
 cmake --build "${DIR_SRCS_EXT}/googletest/cmake.bld" -j${PARALLELISM}
 cmake --install "${DIR_SRCS_EXT}/googletest/cmake.bld" --prefix "/opt/bb"
+# Cleanup GoogleTest source and build artifacts
+rm -rf "${DIR_SRCS_EXT}/googletest"
+print_disk_usage "GoogleTest"
 
 # Build Google Benchmark
 cmake -B "${DIR_SRCS_EXT}/google-benchmark/cmake.bld" \
@@ -251,6 +278,9 @@ cmake -B "${DIR_SRCS_EXT}/google-benchmark/cmake.bld" \
         -DBENCHMARK_ENABLE_TESTING="OFF"
 cmake --build "${DIR_SRCS_EXT}/google-benchmark/cmake.bld" -j${PARALLELISM}
 cmake --install "${DIR_SRCS_EXT}/google-benchmark/cmake.bld" --prefix "/opt/bb"
+# Cleanup Google Benchmark source and build artifacts
+rm -rf "${DIR_SRCS_EXT}/google-benchmark"
+print_disk_usage "Google Benchmark"
 
 # Build zlib
 # Note: zlib has completely broken CMake install rules, so we must
@@ -267,8 +297,11 @@ cmake -B "${DIR_SRCS_EXT}/zlib/cmake.bld" -S "${DIR_SRCS_EXT}/zlib" \
 # Make and install zlib.
 cmake --build "${DIR_SRCS_EXT}/zlib/cmake.bld" -j${PARALLELISM}
 cmake --install "${DIR_SRCS_EXT}/zlib/cmake.bld"
+# Cleanup zlib source and build artifacts
+rm -rf "${DIR_SRCS_EXT}/zlib"
+print_disk_usage "zlib"
 
-# Remove un-needed folders
+# Remove any remaining un-needed folders (safety net)
 rm -rf "${DIR_BUILD_EXT}"
 for dir in "${DIR_SRCS_EXT}"/*; do
     [[ "$dir" == "${DIR_SRCS_EXT}/bde-tools" || "$dir" == "${DIR_SRCS_EXT}/llvm-project" ]] && continue
@@ -292,6 +325,7 @@ cmake --preset fuzz-tests -B "${DIR_BUILD_BMQ}" -S "${DIR_SRC_BMQ}" -G Ninja \
     "${CMAKE_OPTIONS[@]}"
 cmake --build "${DIR_BUILD_BMQ}" -j${PARALLELISM} \
       --target ${TARGETS} -v --clean-first
+print_disk_usage "BlazingMQ"
 
 if [ "${FUZZER}" == "on" ]; then
 # In fuzzers case we only need to build the tests
