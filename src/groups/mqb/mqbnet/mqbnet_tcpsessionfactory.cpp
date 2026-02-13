@@ -1717,7 +1717,7 @@ TCPSessionFactory::PortManager::addChannelContext(bmqst::StatContext* parent,
         bmqst::StatContextConfiguration portConfig(
             static_cast<bsls::Types::Int64>(port),
             &localAllocator);
-        bsl::shared_ptr<bmqst::StatContext> portStatContext =
+        bslma::ManagedPtr<bmqst::StatContext> portStatContext =
             parent->addSubcontext(
                 portConfig.storeExpiredSubcontextValues(true));
         channelStatContext      = portStatContext->addSubcontext(statConfig);
