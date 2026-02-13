@@ -255,7 +255,8 @@ jobs:
             zlib
 
       - name: Build BlazingMQ
-
+        env:
+          CXXFLAGS: "-Wno-poison-system-directories"
         run: |
           bin/build-darwin.sh
 
