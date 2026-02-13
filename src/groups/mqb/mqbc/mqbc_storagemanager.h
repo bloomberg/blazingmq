@@ -164,7 +164,7 @@ class StorageManager BSLS_KEYWORD_FINAL
         PrimaryStatusAdvisoryInfosVec;
 
     /// VST representing node's sequence number, first sync point after
-    /// rollover sequence number, and timestamp when they were reported.
+    /// rollover sequence number.
     class NodeSeqNumContext {
       public:
         // DATA
@@ -176,17 +176,13 @@ class StorageManager BSLS_KEYWORD_FINAL
         bmqp_ctrlmsg::PartitionSequenceNumber
             d_firstSyncPointAfterRolloverSeqNum;
 
-        /// Timestamp when the node reported the sequence numbers
-        bsls::TimeInterval d_timestamp;
-
         // CREATORS
         NodeSeqNumContext();
 
         explicit NodeSeqNumContext(
-            const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum,
-            const bmqp_ctrlmsg::PartitionSequenceNumber&
-                                      firstSyncPointAfterRolloverSeqNum,
-            const bsls::TimeInterval& timestamp);
+            const bmqp_ctrlmsg::PartitionSequenceNumber d_seqNum,
+            const bmqp_ctrlmsg::PartitionSequenceNumber
+                d_firstSyncPointAfterRolloverSeqNum);
     };
 
   public:
@@ -502,15 +498,6 @@ class StorageManager BSLS_KEYWORD_FINAL
     processReplicaDataRequestDrop(const bmqp_ctrlmsg::ControlMessage& message,
                                   mqbnet::ClusterNode*                source);
 
-    /// Process primary state request received from the specified `source`
-    /// with the specified `message`.
-    ///
-    /// THREAD: Executed by the dispatcher thread for the partitionId contained
-    ///         in `message`.
-    void processPrimaryStateRequestDispatched(
-        const bmqp_ctrlmsg::ControlMessage& message,
-        mqbnet::ClusterNode*                source);
-
     /// Process the PrimaryStateResponse contained in the specified
     /// `context` from the specified `responder`.
     ///
@@ -532,8 +519,8 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// Process the ReplicaStateResponse contained in the specified
     /// `requestContext`.
     ///
-    /// THREAD: Executed by the dispatcher thread for the partitionId contained
-    ///         in 'requestContext'.
+    /// THREAD: This method is invoked in the associated cluster's
+    ///         dispatcher thread.
     void processReplicaStateResponseDispatched(
         const RequestContextSp& requestContext);
 
@@ -893,24 +880,18 @@ class StorageManager BSLS_KEYWORD_FINAL
 
     /// Process primary state request received from the specified `source`
     /// with the specified `message`.
-    ///
-    /// THREAD: Executed in cluster dispatcher thread.
     void processPrimaryStateRequest(
         const bmqp_ctrlmsg::ControlMessage& message,
         mqbnet::ClusterNode*                source) BSLS_KEYWORD_OVERRIDE;
 
     /// Process replica state request received from the specified `source`
     /// with the specified `message`.
-    ///
-    /// THREAD: Executed in cluster dispatcher thread.
     void processReplicaStateRequest(
         const bmqp_ctrlmsg::ControlMessage& message,
         mqbnet::ClusterNode*                source) BSLS_KEYWORD_OVERRIDE;
 
     /// Process replica data request received from the specified `source`
     /// with the specified `message`.
-    ///
-    /// THREAD: Executed in cluster dispatcher thread.
     void processReplicaDataRequest(const bmqp_ctrlmsg::ControlMessage& message,
                                    mqbnet::ClusterNode*                source)
         BSLS_KEYWORD_OVERRIDE;
@@ -1229,19 +1210,16 @@ inline unsigned int StorageManager::getSeqNumQuorum() const
 inline StorageManager::NodeSeqNumContext::NodeSeqNumContext()
 : d_seqNum()
 , d_firstSyncPointAfterRolloverSeqNum()
-, d_timestamp()
 {
     // NOTHING
 }
 
 inline StorageManager::NodeSeqNumContext::NodeSeqNumContext(
-    const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum,
-    const bmqp_ctrlmsg::PartitionSequenceNumber&
-                              firstSyncPointAfterRolloverSeqNum,
-    const bsls::TimeInterval& timestamp)
+    const bmqp_ctrlmsg::PartitionSequenceNumber seqNum,
+    const bmqp_ctrlmsg::PartitionSequenceNumber
+        firstSyncPointAfterRolloverSeqNum)
 : d_seqNum(seqNum)
 , d_firstSyncPointAfterRolloverSeqNum(firstSyncPointAfterRolloverSeqNum)
-, d_timestamp(timestamp)
 {
     // NOTHING
 }
