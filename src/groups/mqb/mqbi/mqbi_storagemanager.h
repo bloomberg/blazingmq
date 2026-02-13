@@ -76,6 +76,10 @@ class FileStore;
 namespace mqbs {
 class ReplicatedStorage;
 }
+namespace mqbevt {
+class RecoveryEvent;
+class StorageEvent;
+}
 
 namespace mqbi {
 

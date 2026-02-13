@@ -18,6 +18,9 @@
 
 #include <mqbscm_version.h>
 
+// BDE
+#include <bslim_printer.h>
+
 namespace BloombergLP {
 namespace mqbevt {
 
@@ -25,10 +28,47 @@ namespace mqbevt {
 // class ReceiptEvent
 // ------------------
 
-// CREATORS
+ReceiptEvent::ReceiptEvent(bslma::Allocator* allocator)
+: mqbi::DispatcherEvent(allocator)
+, d_blob_sp()
+, d_clusterNode_p(0)
+{
+    // NOTHING
+}
+
 ReceiptEvent::~ReceiptEvent()
 {
     // NOTHING
+}
+
+void ReceiptEvent::reset()
+{
+    d_blob_sp.reset();
+    d_clusterNode_p = 0;
+    mqbi::DispatcherEvent::reset();
+}
+
+bsl::ostream&
+ReceiptEvent::print(bsl::ostream& stream, int level, int spacesPerLevel) const
+{
+    if (stream.bad()) {
+        return stream;
+    }
+
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+
+    printer.printAttribute("type", type());
+    if (source()) {
+        printer.printAttribute("source", source()->description());
+    }
+    if (destination()) {
+        printer.printAttribute("destination", destination()->description());
+    }
+
+    printer.end();
+
+    return stream;
 }
 
 }  // close package namespace

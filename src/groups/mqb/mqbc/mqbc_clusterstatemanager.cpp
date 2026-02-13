@@ -21,6 +21,7 @@
 // MQB
 #include <mqbc_clusterstateledgeriterator.h>
 #include <mqbc_clusterutil.h>
+#include <mqbevt_clusterstateevent.h>
 #include <mqbi_cluster.h>
 #include <mqbi_storagemanager.h>
 #include <mqbnet_cluster.h>

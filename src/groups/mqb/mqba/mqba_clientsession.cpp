@@ -151,6 +151,12 @@
 #include <mqbblp_clustercatalog.h>
 #include <mqbblp_queueengineutil.h>
 #include <mqbcfg_brokerconfig.h>
+#include <mqbevt_ackevent.h>
+#include <mqbevt_callbackevent.h>
+#include <mqbevt_confirmevent.h>
+#include <mqbevt_pushevent.h>
+#include <mqbevt_putevent.h>
+#include <mqbevt_rejectevent.h>
 #include <mqbi_cluster.h>
 #include <mqbi_queue.h>
 #include <mqbnet_tcpsessionfactory.h>
@@ -2641,33 +2647,42 @@ void ClientSession::processEvent(const bmqp::Event& event,
         }
 
         // Not a control or leader message, it's either a put or a confirm ..
-        mqbi::DispatcherEventType::Enum eventType;
 
+        bsl::shared_ptr<bdlbb::Blob> blobSp =
+            d_state.d_blobSpPool_p->getObject();
+        *blobSp = *(event.blob());
+
+        // Dispatch the event
         if (event.isPutEvent()) {
-            eventType = mqbi::DispatcherEventType::e_PUT;
+            bsl::shared_ptr<mqbevt::PutEvent> event_sp =
+                dispatcher()->getDefaultEventSource()->get<mqbevt::PutEvent>();
+            event_sp->setBlob(blobSp).setSource(this);
+            dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(event_sp),
+                                        this);
         }
         else if (event.isConfirmEvent()) {
-            eventType = mqbi::DispatcherEventType::e_CONFIRM;
+            bsl::shared_ptr<mqbevt::ConfirmEvent> event_sp =
+                dispatcher()
+                    ->getDefaultEventSource()
+                    ->get<mqbevt::ConfirmEvent>();
+            event_sp->setBlob(blobSp).setSource(this);
+            dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(event_sp),
+                                        this);
         }
         else if (event.isRejectEvent()) {
-            eventType = mqbi::DispatcherEventType::e_REJECT;
+            bsl::shared_ptr<mqbevt::RejectEvent> event_sp =
+                dispatcher()
+                    ->getDefaultEventSource()
+                    ->get<mqbevt::RejectEvent>();
+            event_sp->setBlob(blobSp).setSource(this);
+            dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(event_sp),
+                                        this);
         }
         else {
             BALL_LOG_ERROR << "#CLIENT_UNEXPECTED_EVENT " << description()
                            << ": Unexpected event type: " << event;
             return;  // RETURN
         }
-
-        // Dispatch the event
-        // TODO(678098): revisit, use per-IO thread event source
-        mqbi::Dispatcher::DispatcherEventSp dispEvent =
-            dispatcher()->getDefaultEventSource()->getEvent();
-        bsl::shared_ptr<bdlbb::Blob> blobSp =
-            d_state.d_blobSpPool_p->getObject();
-        *blobSp = *(event.blob());
-        (*dispEvent).setType(eventType).setSource(this).setBlob(blobSp);
-        dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(dispEvent),
-                                    this);
     }
 }
 
@@ -2824,22 +2839,23 @@ void ClientSession::onDispatcherEvent(const mqbi::DispatcherEvent& event)
 
     switch (event.type()) {
     case mqbi::DispatcherEventType::e_CONFIRM: {
-        onConfirmEvent(*(event.asConfirmEvent()));
+        onConfirmEvent(*(event.get<mqbevt::ConfirmEvent>()));
     } break;
     case mqbi::DispatcherEventType::e_REJECT: {
-        onRejectEvent(*(event.asRejectEvent()));
+        onRejectEvent(*(event.get<mqbevt::RejectEvent>()));
     } break;
     case mqbi::DispatcherEventType::e_PUSH: {
-        onPushEvent(*(event.asPushEvent()));
+        onPushEvent(*(event.get<mqbevt::PushEvent>()));
     } break;
     case mqbi::DispatcherEventType::e_PUT: {
-        onPutEvent(*(event.asPutEvent()));
+        onPutEvent(*(event.get<mqbevt::PutEvent>()));
     } break;
     case mqbi::DispatcherEventType::e_ACK: {
-        onAckEvent(*(event.asAckEvent()));
+        onAckEvent(*(event.get<mqbevt::AckEvent>()));
     } break;
     case mqbi::DispatcherEventType::e_CALLBACK: {
-        const mqbevt::CallbackEvent* realEvent = event.asCallbackEvent();
+        const mqbevt::CallbackEvent* const realEvent =
+            event.get<mqbevt::CallbackEvent>();
 
         BSLS_ASSERT_SAFE(!realEvent->callback().empty());
         flush();  // Flush any pending messages to guarantee ordering of events

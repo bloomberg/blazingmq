@@ -13,10 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbevt_dispatcherevent.cpp                                         -*-C++-*-
+// mqbevt_dispatcherevent.cpp -*-C++-*-
 #include <mqbevt_dispatcherevent.h>
 
 #include <mqbscm_version.h>
+
+// BDE
+#include <bslim_printer.h>
 
 namespace BloombergLP {
 namespace mqbevt {
@@ -26,9 +29,57 @@ namespace mqbevt {
 // ---------------------
 
 // CREATORS
+DispatcherEvent::DispatcherEvent(bslma::Allocator* allocator)
+: mqbi::DispatcherEvent(allocator)
+, d_callback(allocator)
+, d_finalizeCallback(allocator)
+{
+    // NOTHING
+}
+
 DispatcherEvent::~DispatcherEvent()
 {
     // NOTHING
+}
+
+// MANIPULATORS
+void DispatcherEvent::reset()
+{
+    if (!d_finalizeCallback.empty()) {
+        d_finalizeCallback();
+    }
+
+    d_callback.reset();
+    d_finalizeCallback.reset();
+
+    mqbi::DispatcherEvent::reset();
+}
+
+// ACCESSORS
+bsl::ostream& DispatcherEvent::print(bsl::ostream& stream,
+                                     int           level,
+                                     int           spacesPerLevel) const
+{
+    if (stream.bad()) {
+        return stream;
+    }
+
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+
+    printer.printAttribute("type", type());
+    if (source()) {
+        printer.printAttribute("source", source()->description());
+    }
+    if (destination()) {
+        printer.printAttribute("destination", destination()->description());
+    }
+    printer.printAttribute("hasFinalizeCallback",
+                           (d_finalizeCallback.empty() ? "no" : "yes"));
+
+    printer.end();
+
+    return stream;
 }
 
 }  // close package namespace

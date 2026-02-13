@@ -92,6 +92,13 @@ class ClusterCatalog;
 namespace bmqst {
 class StatContext;
 }
+namespace mqbevt {
+class AckEvent;
+class ConfirmEvent;
+class PushEvent;
+class PutEvent;
+class RejectEvent;
+}
 
 namespace mqba {
 

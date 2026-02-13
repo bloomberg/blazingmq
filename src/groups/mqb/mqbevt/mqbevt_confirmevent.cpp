@@ -18,6 +18,9 @@
 
 #include <mqbscm_version.h>
 
+// BDE
+#include <bslim_printer.h>
+
 namespace BloombergLP {
 namespace mqbevt {
 
@@ -25,10 +28,58 @@ namespace mqbevt {
 // class ConfirmEvent
 // ------------------
 
-// CREATORS
+ConfirmEvent::ConfirmEvent(bslma::Allocator* allocator)
+: mqbi::DispatcherEvent(allocator)
+, d_blob_sp()
+, d_clusterNode_p(0)
+, d_confirmMessage()
+, d_isRelay(false)
+{
+    // NOTHING
+}
+
 ConfirmEvent::~ConfirmEvent()
 {
     // NOTHING
+}
+
+void ConfirmEvent::reset()
+{
+    d_blob_sp.reset();
+    d_clusterNode_p  = 0;
+    d_confirmMessage = bmqp::ConfirmMessage();
+    d_isRelay        = false;
+    mqbi::DispatcherEvent::reset();
+}
+
+bsl::ostream&
+ConfirmEvent::print(bsl::ostream& stream, int level, int spacesPerLevel) const
+{
+    if (stream.bad()) {
+        return stream;
+    }
+
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+
+    printer.printAttribute("type", type());
+    if (source()) {
+        printer.printAttribute("source", source()->description());
+    }
+    if (destination()) {
+        printer.printAttribute("destination", destination()->description());
+    }
+    printer.printAttribute("isRelay", d_isRelay);
+    printer.printAttribute("confirmMessage.queueId",
+                           d_confirmMessage.queueId());
+    printer.printAttribute("confirmMessage.messageGUID",
+                           d_confirmMessage.messageGUID());
+    printer.printAttribute("confirmMessage.subQueueId",
+                           d_confirmMessage.subQueueId());
+
+    printer.end();
+
+    return stream;
 }
 
 }  // close package namespace
