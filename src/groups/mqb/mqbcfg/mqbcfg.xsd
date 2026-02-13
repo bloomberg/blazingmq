@@ -786,15 +786,12 @@
                            to-be-deprecated QLIST file when FSM workflow is
                            enabled.  If above 'isFSMWorkflow' flag is false,
                            this flag is ignored.
-        partitionStateMessageDedupIntervalMs:
-                           deduplication interval, in milliseconds, for PrimaryStateRequest/ReplicaStateResponse messages received from the same replica node.  This is because at startup primary sends a ReplicaStateRequest to all replicas, while each replicas sends a PrimaryStateRequest to the primary.  This guarantees at least one request/response is exchanged if a node starts late, but can also lead to duplicate if both nodes start at the same time.
       </documentation>
     </annotation>
     <sequence>
       <element name='isCSLModeEnabled'  type ='boolean' default='false'/>
       <element name='isFSMWorkflow'     type ='boolean' default='false'/>
       <element name='doesFSMwriteQLIST' type ='boolean' default='true'/>
-      <element name='partitionStateMessageDedupIntervalMs' type ='int' default='1000'/> <!-- 1 second -->
     </sequence>
   </complexType>
 
