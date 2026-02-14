@@ -4609,6 +4609,11 @@ static void test21_post_Limit()
                              &obj,
                              bmqio::StatusCategory::e_SUCCESS));
 
+    bsl::shared_ptr<bmqimp::Event> lwmEvent = obj.getInboundEvent();
+
+    BMQTST_ASSERT_EQ(lwmEvent->sessionEventType(),
+                     bmqt::SessionEventType::e_CHANNEL_LOW_WATERMARK);
+
     // Call post with a bigger timeout so that LWM event arrives before it
     // expires.
     rc = obj.session().post(*builder.blob());

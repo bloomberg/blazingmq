@@ -152,6 +152,10 @@ struct SessionEventType {
         e_QUEUE_SUSPENDED = 15  // Queue has suspended operation
         ,
         e_QUEUE_RESUMED = 16  // Queue has resumed operation
+        ,
+        e_CHANNEL_LOW_WATERMARK = 17  // Channel is at the low watermark
+        ,
+        e_CHANNEL_HIGH_WATERMARK = 18  // Channel is at the high watermark
     };
 
     // CLASS METHODS
