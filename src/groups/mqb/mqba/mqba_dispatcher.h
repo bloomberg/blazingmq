@@ -470,6 +470,11 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
     /// dispatcher.
     bmqex::Executor
     executor(const mqbi::DispatcherClient* client) const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return current number of events enqueued for the processor in charge of
+    /// the specified `client`.
+    bsls::Types::Int64 numProcessorEvents(
+        const mqbi::DispatcherClient* client) const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ============================================================================
@@ -606,6 +611,18 @@ Dispatcher::numProcessors(mqbi::DispatcherClientType::Enum type) const
     }
 
     return 0;
+}
+
+inline bsls::Types::Int64
+Dispatcher::numProcessorEvents(const mqbi::DispatcherClient* client) const
+{
+    BSLS_ASSERT_SAFE(client);
+
+    const mqbi::DispatcherClientData& data    = client->dispatcherClientData();
+    mqbi::DispatcherClientType::Enum  type    = data.clientType();
+    int                               queueId = data.processorHandle();
+
+    return d_contexts[type]->d_processorPool_mp->numElements(queueId);
 }
 
 }  // close package namespace
