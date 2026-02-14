@@ -188,6 +188,11 @@ class MessageProperties {
         rc_DUPLICATE_PROPERTY_NAME          = -14
     };
 
+    template <typename TYPE>
+    struct Storage {
+        typedef TYPE Type;
+    };
+
   public:
     // PUBLIC TYPES
     typedef MessageProperties_Schema      Schema;
@@ -321,7 +326,7 @@ class MessageProperties {
                                int          offset,
                                int          index) const;
     template <class TYPE>
-    bool isCCompatible(const PropertyVariant& value) const;
+    bool isCompatible(const PropertyVariant& value) const;
 
   public:
     // PUBLIC CONSTANTS
@@ -390,7 +395,8 @@ class MessageProperties {
     int setPropertyAsShort(const bsl::string& name, short value);
     int setPropertyAsInt32(const bsl::string& name, int value);
     int setPropertyAsInt64(const bsl::string& name, bsls::Types::Int64 value);
-    int setPropertyAsString(const bsl::string& name, const bsl::string& value);
+    int setPropertyAsString(const bsl::string&      name,
+                            const bsl::string_view& value);
 
     /// Set a property with the specified `name` having the specified
     /// `value` with the corresponding data type.  Return zero on success,
@@ -593,6 +599,12 @@ class MessagePropertiesIterator {
     const bsl::vector<char>& getAsBinary() const;
 };
 
+/// The storage type for `bsl::string_view` is `bsl::string`
+template <>
+struct MessageProperties::Storage<bsl::string_view> {
+    typedef bsl::string Type;
+};
+
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
@@ -658,7 +670,8 @@ MessageProperties::setProperty(const bsl::string& name, const TYPE& value)
         const Property&        existing = it->second;
         const PropertyVariant& v        = getPropertyValue(existing);
 
-        if (!isCCompatible<TYPE>(v)) {
+        // The 'existing' can be 'string_view' when 'd_blob' holds the data.
+        if (!isCompatible<typename Storage<TYPE>::Type>(v)) {
             return bmqt::GenericResult::e_INVALID_ARGUMENT;  // RETURN
         }
 
@@ -695,7 +708,7 @@ MessageProperties::setProperty(const bsl::string& name, const TYPE& value)
     Property& p = insertRc.first->second;
 
     p.d_length  = newPropValueLen;
-    p.d_value   = value;
+    p.d_value.assignTo<typename Storage<TYPE>::Type>(value);
     // This cannot have `bsl::string_view` type.
     p.d_type    = static_cast<bmqt::PropertyType::Enum>(p.d_value.typeIndex());
     p.d_isValid = true;
@@ -725,6 +738,15 @@ MessageProperties::getPropertyValueSize(BSLA_UNUSED const bool& value) const
 template <>
 inline int
 MessageProperties::getPropertyValueSize(const bsl::string& value) const
+{
+    // Partial specialization for type 'bsl::string'.
+
+    return static_cast<int>(value.length());
+}
+
+template <>
+inline int
+MessageProperties::getPropertyValueSize(const bsl::string_view& value) const
 {
     // Partial specialization for type 'bsl::string'.
 
@@ -875,8 +897,9 @@ inline int MessageProperties::setPropertyAsInt64(const bsl::string& name,
     return setProperty(name, value);
 }
 
-inline int MessageProperties::setPropertyAsString(const bsl::string& name,
-                                                  const bsl::string& value)
+inline int
+MessageProperties::setPropertyAsString(const bsl::string&      name,
+                                       const bsl::string_view& value)
 {
     return setProperty(name, value);
 }
@@ -896,14 +919,13 @@ inline void MessageProperties::setDeepCopy(bool value)
 // ACCESSORS
 
 template <class TYPE>
-inline bool
-MessageProperties::isCCompatible(const PropertyVariant& value) const
+inline bool MessageProperties::isCompatible(const PropertyVariant& value) const
 {
     return value.is<TYPE>();
 }
 
 template <>
-inline bool MessageProperties::isCCompatible<bsl::string>(
+inline bool MessageProperties::isCompatible<bsl::string>(
     const PropertyVariant& value) const
 {
     return value.is<bsl::string>() || value.is<bsl::string_view>();
