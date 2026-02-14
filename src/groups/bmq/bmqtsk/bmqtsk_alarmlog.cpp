@@ -88,7 +88,7 @@ void AlarmLog::publish(const ball::Record& record,
         // string.
         const bslstl::StringRef categoryStr(alarmType.c_str() + 4,
                                             alarmType.length() - 4);
-        generateAlarm(categoryStr, record.fixedFields().message());
+        generateAlarm(categoryStr, record.fixedFields().messageRef());
         return;  // RETURN
     }
 
@@ -105,7 +105,7 @@ void AlarmLog::publish(const ball::Record& record,
         ((now - last) >=
          k_ALARM_INTERVAL * bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND)) {
         last = now;  // Update alarm last time
-        generateAlarm(alarmType, record.fixedFields().message());
+        generateAlarm(alarmType, record.fixedFields().messageRef());
     }
 }
 
