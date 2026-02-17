@@ -48,6 +48,7 @@
 #include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bsl_vector.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bsls_assert.h>
@@ -1605,6 +1606,7 @@ static void test10_persistanceFollower()
     BMQTST_ASSERT(!cslIter->isValid());
 }
 
+BSLA_MAYBE_UNUSED
 static void test11_persistanceAcrossRolloverLeader()
 // ------------------------------------------------------------------------
 // PERSISTENCE ACROSS ROLLOVER LEADER
@@ -2107,12 +2109,12 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
-        // @TODO RENABLE AND FIX THIS TEST
-        //
-        // The following test consistently fails in CI.  It should be fixed,
-        // but until then we want to avoid the noise.
-        //    case 11: test11_persistanceAcrossRolloverLeader(); break;
     case 12: test12_quorumChangeCb(); break;
+    // @TODO RENABLE AND FIX THIS TEST
+    //
+    // The following test consistently fails in CI.  It should be fixed,
+    // but until then we want to avoid the noise.
+    //    case 11: test11_persistanceAcrossRolloverLeader(); break;
     case 10: test10_persistanceFollower(); break;
     case 9: test9_persistanceLeader(); break;
     case 8: test8_apply_ClusterStateRecordCommit(); break;
