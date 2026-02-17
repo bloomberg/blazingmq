@@ -55,7 +55,7 @@ void DummySession::tearDown(BSLA_UNUSED const bsl::shared_ptr<void>& handle,
     // NOTHING
 }
 
-void DummySession::initiateShutdown(const ShutdownCb& callback)
+void DummySession::initiateShutdown(BSLA_UNUSED const ShutdownCb& callback)
 {
     // NOTHING
 }
