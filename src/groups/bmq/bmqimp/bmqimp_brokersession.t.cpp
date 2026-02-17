@@ -473,14 +473,6 @@ struct TestSession BSLS_CPP11_FINAL {
                    const bsls::TimeInterval& timeout = bsls::TimeInterval(5),
                    const bool                skipReaderCfgs = false);
 
-    /// Execute open queue procedure and reproduce requested error type
-    /// at corresponding stage (open queue or open configure queue).
-    /// Assert in case of any error or expired timeout
-    void openQueueWithError(bsl::shared_ptr<bmqimp::Queue> queue,
-                            const RequestType              requestType,
-                            const ErrorResult              errorResult,
-                            const bsls::TimeInterval&      timeout);
-
     /// Process the specified `queue` reopening by injecting open and
     /// configure queue responses and wait for
     /// `SessionEventType::e_QUEUE_REOPEN_RESULT` event.  Assert in case of
@@ -495,15 +487,6 @@ struct TestSession BSLS_CPP11_FINAL {
     void closeQueue(bsl::shared_ptr<bmqimp::Queue> queue,
                     const bsls::TimeInterval& timeout = bsls::TimeInterval(5),
                     bool                      isFinal = true);
-
-    /// Execute close queue procedure and reproduce requested error type
-    /// at corresponding stage (close configure queue and close queue).
-    /// Assert in case of any error or expired timeout
-    void closeQueueWithError(bsl::shared_ptr<bmqimp::Queue> queue,
-                             const RequestType              requestType,
-                             const ErrorResult              errorResult,
-                             bool                           isFinal,
-                             const bsls::TimeInterval&      timeout);
 
     /// Close the specified `queue` by injecting close queueresponses and
     /// wait for `SessionEventType::e_QUEUE_CLOSE_RESULT` event.  Assert in
@@ -1006,150 +989,6 @@ void TestSession::openQueue(bsl::shared_ptr<bmqimp::Queue> queue,
     arriveAtStep(queue, e_OPEN_OPENED, timeout, skipReaderCfgs);
 }
 
-void TestSession::openQueueWithError(bsl::shared_ptr<bmqimp::Queue> queue,
-                                     const RequestType         requestType,
-                                     const ErrorResult         errorResult,
-                                     const bsls::TimeInterval& timeout)
-{
-    BMQTST_ASSERT(queue);
-    BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSED);
-    BMQTST_ASSERT_EQ(queue->isValid(), false);
-
-    bmqp_ctrlmsg::ControlMessage currentRequest(
-        bmqtst::TestHelperUtil::allocator());
-
-    // open queue request is not sent
-    if (requestType == e_REQ_OPEN_QUEUE && errorResult == e_ERR_NOT_SENT) {
-        bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR);
-        PVVV_SAFE("Set channel write status to "
-                  << status << " to reject open queue request");
-        d_testChannel.setWriteStatus(status);
-    }
-
-    PVVV_SAFE("Open the queue async");
-    int rc = d_brokerSession.openQueueAsync(queue, timeout);
-    BMQTST_ASSERT_EQ(rc, bmqt::OpenQueueResult::e_SUCCESS);
-
-    // Verify open request (TODO: check handle queue parameters)
-    PVVV_SAFE("Ensure open queue request has been sent");
-    currentRequest = getNextOutboundRequest(TestSession::e_REQ_OPEN_QUEUE);
-
-    // open queue request should fail to send but should be buffered
-    if (requestType == e_REQ_OPEN_QUEUE && errorResult == e_ERR_NOT_SENT) {
-        PVVV_SAFE("Open queue request should fail to send but should be "
-                  "buffered");
-
-        // Emulate request timeout.
-        advanceTime(timeout);
-
-        verifyOpenQueueErrorResult(bmqp_ctrlmsg::StatusCategory::E_TIMEOUT,
-                                   queue,
-                                   bmqimp::QueueState::e_CLOSED);
-
-        // reset channel write status
-        PVVV_SAFE("Reset channel write status");
-        d_testChannel.setWriteStatus(bmqio::Status());
-
-        return;  // RETURN
-    }
-
-    BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENING_OPN);
-    BMQTST_ASSERT_EQ(queue->isValid(), false);
-
-    // bad open queue response
-    if (requestType == e_REQ_OPEN_QUEUE && errorResult == e_ERR_BAD_RESPONSE) {
-        PVVV_SAFE("Send back bad open queue response");
-        sendStatus(currentRequest);
-
-        verifyOpenQueueErrorResult(bmqp_ctrlmsg::StatusCategory::E_UNKNOWN,
-                                   queue,
-                                   bmqimp::QueueState::e_CLOSED);
-
-        return;  // RETURN
-    }
-
-    // late open queue response
-    if (requestType == e_REQ_OPEN_QUEUE &&
-        errorResult == e_ERR_LATE_RESPONSE) {
-        // Emulate request timeout.
-        advanceTime(timeout);
-
-        PVVV_SAFE("Open queue request should expire");
-        verifyOpenQueueErrorResult(bmqp_ctrlmsg::StatusCategory::E_TIMEOUT,
-                                   queue,
-                                   bmqimp::QueueState::e_CLOSED);
-
-        PVVV_SAFE("Send back late open queue response");
-        sendResponse(currentRequest);
-
-        return;  // RETURN
-    }
-
-    // configure request is not sent
-    if (requestType == e_REQ_CONFIG_QUEUE && errorResult == e_ERR_NOT_SENT) {
-        bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR);
-        PVVV_SAFE("Set channel write status to "
-                  << status << " to reject open configure request");
-        d_testChannel.setWriteStatus(status);
-    }
-
-    // valid open queue response
-    PVVV_SAFE("Send back open queue response");
-    sendResponse(currentRequest);
-
-    // Verify configure request (todo: check stream parameters and qid)
-    PVVV_SAFE("Ensure configure request has been sent");
-    currentRequest = getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
-
-    // configure request should fail to send but should be buffered
-    if (requestType == e_REQ_CONFIG_QUEUE && errorResult == e_ERR_NOT_SENT) {
-        PVVV_SAFE("Configure request should fail to send but should be "
-                  "buffered");
-
-        // Emulate request timeout.
-        advanceTime(timeout);
-        verifyOpenQueueErrorResult(bmqp_ctrlmsg::StatusCategory::E_TIMEOUT,
-                                   queue,
-                                   bmqimp::QueueState::e_CLOSED);
-
-        // reset channel write status
-        PVVV_SAFE("Reset channel write status");
-        d_testChannel.setWriteStatus(bmqio::Status());
-
-        return;  // RETURN
-    }
-
-    // bad configure response
-    if (requestType == e_REQ_CONFIG_QUEUE &&
-        errorResult == e_ERR_BAD_RESPONSE) {
-        PVVV_SAFE("Send back bad configure response");
-        sendStatus(currentRequest);
-
-        verifyOpenQueueErrorResult(bmqp_ctrlmsg::StatusCategory::E_UNKNOWN,
-                                   queue,
-                                   bmqimp::QueueState::e_CLOSING_CLS);
-
-        return;  // RETURN
-    }
-
-    // late configure response
-    if (requestType == e_REQ_CONFIG_QUEUE &&
-        errorResult == e_ERR_LATE_RESPONSE) {
-        // Emulate request timeout.
-        advanceTime(timeout);
-
-        PVVV_SAFE("Configure request should expire");
-        verifyOpenQueueErrorResult(bmqp_ctrlmsg::StatusCategory::E_TIMEOUT,
-                                   queue,
-                                   bmqimp::QueueState::e_CLOSED);
-
-        PVVV_SAFE("Send back late configure response");
-        sendResponse(currentRequest);
-
-        return;  // RETURN
-    }
-}
-
 void TestSession::reopenQueue(bsl::shared_ptr<bmqimp::Queue> queue,
                               BSLA_UNUSED const bsls::TimeInterval& timeout)
 {
@@ -1216,143 +1055,6 @@ void TestSession::closeQueue(bsl::shared_ptr<bmqimp::Queue> queue,
 
     PVVV_SAFE("Closing: Wait close queue result");
     verifyCloseQueueResult(bmqp_ctrlmsg::StatusCategory::E_SUCCESS, queue);
-}
-
-void TestSession::closeQueueWithError(bsl::shared_ptr<bmqimp::Queue> queue,
-                                      const RequestType         requestType,
-                                      const ErrorResult         errorResult,
-                                      bool                      isFinal,
-                                      const bsls::TimeInterval& timeout)
-{
-    BMQTST_ASSERT(queue);
-    BMQTST_ASSERT(queue->isValid());
-    BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
-
-    bmqp_ctrlmsg::ControlMessage currentRequest(
-        bmqtst::TestHelperUtil::allocator());
-
-    // configure queue request is not sent
-    if (requestType == e_REQ_CONFIG_QUEUE && errorResult == e_ERR_NOT_SENT) {
-        bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR);
-        PVVV_SAFE(L_ << " Set channel write status to " << status
-                     << " to reject configure queue request");
-        d_testChannel.setWriteStatus(status);
-    }
-
-    PVVV_SAFE(L_ << " Close the queue async");
-    int rc = d_brokerSession.closeQueueAsync(queue, timeout);
-    BMQTST_ASSERT_EQ(rc, bmqt::CloseQueueResult::e_SUCCESS);
-
-    // Verify configure request (todo: check stream parameters and qid)
-    PVVV_SAFE(L_ << " Ensure configure queue request has been sent");
-    currentRequest = getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
-
-    // configure queue request should fail to send
-    if (requestType == e_REQ_CONFIG_QUEUE && errorResult == e_ERR_NOT_SENT) {
-        PVVV_SAFE(L_ << " Configure queue request should fail to send");
-        verifyCloseQueueResult(bmqp_ctrlmsg::StatusCategory::E_NOT_CONNECTED,
-                               queue,
-                               bmqimp::QueueState::e_CLOSED);
-
-        // reset channel write status
-        PVVV_SAFE(L_ << " Reset channel write status");
-        d_testChannel.setWriteStatus(bmqio::Status());
-
-        PVVV_SAFE(L_ << " Verify there is no close queue request");
-        BMQTST_ASSERT(isChannelEmpty());
-
-        return;  // RETURN
-    }
-
-    // bad configure response
-    if (requestType == e_REQ_CONFIG_QUEUE &&
-        errorResult == e_ERR_BAD_RESPONSE) {
-        PVVV_SAFE(L_ << " Send back bad configure response");
-        sendStatus(currentRequest);
-
-        // Bad configure response results in closed queue.
-        BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSING_CLS);
-        BMQTST_ASSERT_EQ(queue->isValid(), false);
-
-        return;  // RETURN
-    }
-
-    // late configure response
-    if (requestType == e_REQ_CONFIG_QUEUE &&
-        errorResult == e_ERR_LATE_RESPONSE) {
-        // Emulate request timeout.
-        advanceTime(timeout);
-
-        PVVV_SAFE(L_ << " Configure request should expire");
-        verifyCloseQueueResult(bmqp_ctrlmsg::StatusCategory::E_TIMEOUT,
-                               queue,
-                               bmqimp::QueueState::e_CLOSED);
-
-        PVVV_SAFE(L_ << " Verify close queue request is not sent");
-        BMQTST_ASSERT(isChannelEmpty());
-
-        return;  // RETURN
-    }
-
-    // close request is not sent
-    if (requestType == e_REQ_CLOSE_QUEUE && errorResult == e_ERR_NOT_SENT) {
-        bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR);
-        PVVV_SAFE(L_ << " Set channel write status to " << status
-                     << " to reject close request");
-        d_testChannel.setWriteStatus(status);
-    }
-
-    // valid configure queue response
-    PVVV_SAFE(L_ << " Send back configure queue response");
-    sendResponse(currentRequest);
-
-    // Verify close request
-    PVVV_SAFE(L_ << " Verify close request");
-    currentRequest = verifyCloseRequestSent(isFinal);
-
-    // close request should fail to send
-    if (requestType == e_REQ_CLOSE_QUEUE && errorResult == e_ERR_NOT_SENT) {
-        PVVV_SAFE(L_ << " Close request should fail to send");
-        verifyCloseQueueResult(bmqp_ctrlmsg::StatusCategory::E_NOT_CONNECTED,
-                               queue,
-                               bmqimp::QueueState::e_CLOSED);
-
-        // reset channel write status
-        PVVV_SAFE(L_ << " Reset channel write status");
-        d_testChannel.setWriteStatus(bmqio::Status());
-
-        return;  // RETURN
-    }
-
-    // bad close queue response
-    if (requestType == e_REQ_CLOSE_QUEUE &&
-        errorResult == e_ERR_BAD_RESPONSE) {
-        PVVV_SAFE(L_ << " Send back bad close queue response");
-        sendStatus(currentRequest);
-
-        verifyCloseQueueResult(bmqp_ctrlmsg::StatusCategory::E_UNKNOWN,
-                               queue,
-                               bmqimp::QueueState::e_CLOSED);
-
-        return;  // RETURN
-    }
-
-    // late close response
-    if (requestType == e_REQ_CLOSE_QUEUE &&
-        errorResult == e_ERR_LATE_RESPONSE) {
-        // Emulate request timeout.
-        advanceTime(timeout);
-
-        PVVV_SAFE(L_ << " Close request should expire");
-        verifyCloseQueueResult(bmqp_ctrlmsg::StatusCategory::E_TIMEOUT,
-                               queue,
-                               bmqimp::QueueState::e_CLOSED);
-
-        PVVV_SAFE(L_ << " Send back late close queue response");
-        sendResponse(currentRequest);
-
-        return;  // RETURN
-    }
 }
 
 void TestSession::closeDeconfiguredQueue(bsl::shared_ptr<bmqimp::Queue> queue,
@@ -5914,214 +5616,6 @@ static void test26_openCloseMultipleSubqueues()
     obj.stopGracefully();
 }
 
-static void test27_openCloseMultipleSubqueuesWithErrors()
-// ------------------------------------------------------------------------
-// OPEN CLOSE MULTIPLE SUBQUEUES TEST WITH ERRORS
-//
-// Concerns:
-//   1. Check that close queue request contains proper isFinal flag value
-//      when opening and closing subqueues with errors
-//
-// Plan:
-//   1. Create bmqimp::BrokerSession test wrapper object
-//      and start the session with a test network channel.
-//   2. Open the queues
-//   3. Close the queues
-//   4. Stop the session
-//
-// Testing manipulators:
-//   - start
-//   - setChannel
-//   - openQueueAsync
-//   - closeQueueAsync
-//   - stop
-//   ----------------------------------------------------------------------
-{
-    bmqtst::TestHelper::printTestName(
-        "OPEN CLOSE MULTIPLE SUBQUEUES WITH ERRORS TEST");
-
-    const bsls::TimeInterval timeout = bsls::TimeInterval(15);
-    bmqt::SessionOptions     sessionOptions;
-    bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    bmqtst::TestHelperUtil::allocator());
-    TestClock                testClock(scheduler);
-
-    sessionOptions.setNumProcessingThreads(1);
-
-    TestSession obj(sessionOptions,
-                    testClock,
-                    bmqtst::TestHelperUtil::allocator());
-
-    bsl::shared_ptr<bmqimp::Queue> queueValid = obj.createQueue(
-        "bmq://ts.trades.myapp/my.queue?id=valid",
-        bmqt::QueueFlags::e_READ);
-
-    bsl::shared_ptr<bmqimp::Queue> queueFailedOpen = obj.createQueue(
-        "bmq://ts.trades.myapp/my.queue?id=failedopen",
-        bmqt::QueueFlags::e_READ);
-
-    bsl::shared_ptr<bmqimp::Queue> queueBadOpen = obj.createQueue(
-        "bmq://ts.trades.myapp/my.queue?id=badopen",
-        bmqt::QueueFlags::e_READ);
-
-    bsl::shared_ptr<bmqimp::Queue> queueLateOpen = obj.createQueue(
-        "bmq://ts.trades.myapp/my.queue?id=lateopen",
-        bmqt::QueueFlags::e_READ);
-
-    bsl::shared_ptr<bmqimp::Queue> queueFailedOpenConfig = obj.createQueue(
-        "bmq://ts.trades.myapp/my.queue?id=failedopenconfig",
-        bmqt::QueueFlags::e_READ);
-
-    bsl::shared_ptr<bmqimp::Queue> queueBadOpenConfig = obj.createQueue(
-        "bmq://ts.trades.myapp/my.queue?id=badopenconfig",
-        bmqt::QueueFlags::e_READ);
-
-    bsl::shared_ptr<bmqimp::Queue> queueLateOpenConfig = obj.createQueue(
-        "bmq://ts.trades.myapp/my.queue?id=lateopenconfig",
-        bmqt::QueueFlags::e_READ);
-
-    bsl::shared_ptr<bmqimp::Queue> queueFailedCloseConfig = obj.createQueue(
-        "bmq://ts.trades.myapp/my.queue?id=failedcloseconfig",
-        bmqt::QueueFlags::e_READ);
-
-    bsl::shared_ptr<bmqimp::Queue> queueBadCloseConfig = obj.createQueue(
-        "bmq://ts.trades.myapp/my.queue?id=badcloseconfig",
-        bmqt::QueueFlags::e_READ);
-
-    bsl::shared_ptr<bmqimp::Queue> queueLateCloseConfig = obj.createQueue(
-        "bmq://ts.trades.myapp/my.queue?id=latecloseconfig",
-        bmqt::QueueFlags::e_READ);
-
-    bsl::shared_ptr<bmqimp::Queue> queueFailedClose = obj.createQueue(
-        "bmq://ts.trades.myapp/my.queue?id=failedclose",
-        bmqt::QueueFlags::e_READ);
-
-    bsl::shared_ptr<bmqimp::Queue> queueBadClose = obj.createQueue(
-        "bmq://ts.trades.myapp/my.queue?id=badclose",
-        bmqt::QueueFlags::e_READ);
-
-    bsl::shared_ptr<bmqimp::Queue> queueLateClose = obj.createQueue(
-        "bmq://ts.trades.myapp/my.queue?id=lateclose",
-        bmqt::QueueFlags::e_READ);
-
-    PVV_SAFE(L_ << " Step 1. Start the session");
-    obj.startAndConnect();
-
-    PVV_SAFE(L_ << " Step 2. Open the queues");
-
-    PVVV_SAFE(L_ << " Open valid queue");
-    obj.openQueue(queueValid);
-
-    PVVV_SAFE(L_ << " Open the queue with rejected open queue request");
-    obj.openQueueWithError(queueFailedOpen,
-                           TestSession::e_REQ_OPEN_QUEUE,
-                           TestSession::e_ERR_NOT_SENT,
-                           timeout);
-
-    PVVV_SAFE(L_ << " Open the queue with bad open queue response");
-    obj.openQueueWithError(queueBadOpen,
-                           TestSession::e_REQ_OPEN_QUEUE,
-                           TestSession::e_ERR_BAD_RESPONSE,
-                           timeout);
-
-    PVVV_SAFE(L_ << " Open the queue with late open queue response");
-    obj.openQueueWithError(queueLateOpen,
-                           TestSession::e_REQ_OPEN_QUEUE,
-                           TestSession::e_ERR_LATE_RESPONSE,
-                           timeout);
-
-    PVVV_SAFE(L_ << " Open the queue with rejected open configure request");
-    obj.openQueueWithError(queueFailedOpenConfig,
-                           TestSession::e_REQ_CONFIG_QUEUE,
-                           TestSession::e_ERR_NOT_SENT,
-                           timeout);
-
-    PVVV_SAFE(L_ << " Open the queue with bad open configure response");
-    obj.openQueueWithError(queueBadOpenConfig,
-                           TestSession::e_REQ_CONFIG_QUEUE,
-                           TestSession::e_ERR_BAD_RESPONSE,
-                           timeout);
-    obj.verifyCloseRequestSent(false);
-
-    PVVV_SAFE(L_ << " Open the queue with late open configure response");
-    obj.openQueueWithError(queueLateOpenConfig,
-                           TestSession::e_REQ_CONFIG_QUEUE,
-                           TestSession::e_ERR_LATE_RESPONSE,
-                           timeout);
-
-    PVVV_SAFE(L_ << " Open the queue with rejected close configure request");
-    obj.openQueue(queueFailedCloseConfig, timeout);
-
-    PVVV_SAFE(L_ << " Open the queue with bad close configure request");
-    obj.openQueue(queueBadCloseConfig, timeout);
-
-    PVVV_SAFE(L_ << " Open the queue with late close configure request");
-    obj.openQueue(queueLateCloseConfig, timeout);
-
-    PVVV_SAFE(L_ << " Open the queue with rejected close request");
-    obj.openQueue(queueFailedClose, timeout);
-
-    PVVV_SAFE(L_ << " Open the queue with bad close response");
-    obj.openQueue(queueBadClose, timeout);
-
-    PVVV_SAFE(L_ << " Open the queue with late close response");
-    obj.openQueue(queueLateClose, timeout);
-
-    PVV_SAFE(L_ << " Step 3. Close the queues");
-
-    PVVV_SAFE(L_ << " Close the queue with rejected close configure request");
-    obj.closeQueueWithError(queueFailedCloseConfig,
-                            TestSession::e_REQ_CONFIG_QUEUE,
-                            TestSession::e_ERR_NOT_SENT,
-                            false,
-                            timeout);
-
-    PVVV_SAFE(L_ << " Close the queue with bad close configure response");
-    obj.closeQueueWithError(queueBadCloseConfig,
-                            TestSession::e_REQ_CONFIG_QUEUE,
-                            TestSession::e_ERR_BAD_RESPONSE,
-                            false,  // Ignored, close request is not sent
-                            timeout);
-
-    PVVV_SAFE(L_ << " Close the queue with late close configure response");
-    obj.closeQueueWithError(queueLateCloseConfig,
-                            TestSession::e_REQ_CONFIG_QUEUE,
-                            TestSession::e_ERR_LATE_RESPONSE,
-                            false,
-                            timeout);
-
-    PVVV_SAFE(L_ << " Close the queue with rejected close request");
-    obj.closeQueueWithError(queueFailedClose,
-                            TestSession::e_REQ_CLOSE_QUEUE,
-                            TestSession::e_ERR_NOT_SENT,
-                            false,
-                            timeout);
-
-    PVVV_SAFE(L_ << " Close the queue with bad close response");
-    obj.closeQueueWithError(queueBadClose,
-                            TestSession::e_REQ_CLOSE_QUEUE,
-                            TestSession::e_ERR_BAD_RESPONSE,
-                            false,
-                            timeout);
-
-    PVVV_SAFE(L_ << " Close the queue with late close response");
-    obj.closeQueueWithError(queueLateClose,
-                            TestSession::e_REQ_CLOSE_QUEUE,
-                            TestSession::e_ERR_LATE_RESPONSE,
-                            false,
-                            timeout);
-
-    PVVV_SAFE(L_ << " Close valid queue");
-    // Since the queues above are not in e_CLOSED state,
-    // the valid queue close request isFinal flag will not be
-    // set to true
-    PV_SAFE(L_ << " [BUG] isFinal parameter should be true");
-    obj.closeQueue(queueValid, timeout, false);  // TODO: false -> true
-
-    PVV_SAFE(L_ << " Step 4. Stop the session");
-    obj.stopGracefully();
-}
-
 static void
 queueLateAsyncCanceled(int                               testId,
                        bsls::Types::Uint64               queueFlags,
@@ -10132,28 +9626,6 @@ static void test60_queueLateAsyncCanceledReader3()
                            bmqimp::QueueState::e_PENDING);
 }
 
-static void test61_queueLateAsyncCanceledReader4()
-{
-    bmqtst::TestHelper::printTestName(
-        "QUEUE LATE ASYNC CANCELED READER TEST 4");
-
-    queueLateAsyncCanceled(L_,
-                           bmqt::QueueFlags::e_READ,
-                           TestSession::e_LATE_CLOSE_CONFIGURING,
-                           bmqimp::QueueState::e_CLOSED);
-}
-
-static void test62_queueLateAsyncCanceledReader5()
-{
-    bmqtst::TestHelper::printTestName(
-        "QUEUE LATE ASYNC CANCELED READER TEST 5");
-
-    queueLateAsyncCanceled(L_,
-                           bmqt::QueueFlags::e_READ,
-                           TestSession::e_LATE_CLOSE_CLOSING,
-                           bmqimp::QueueState::e_CLOSED);
-}
-
 static void test64_queueLateAsyncCanceledWriter3()
 {
     bmqtst::TestHelper::printTestName(
@@ -10176,17 +9648,6 @@ static void test65_queueLateAsyncCanceledWriter4()
                            bmqimp::QueueState::e_PENDING);
 }
 
-static void test66_queueLateAsyncCanceledWriter5()
-{
-    bmqtst::TestHelper::printTestName(
-        "QUEUE LATE ASYNC CANCELED WRITER TEST 5");
-
-    queueLateAsyncCanceled(L_,
-                           bmqt::QueueFlags::e_WRITE,
-                           TestSession::e_LATE_CLOSE_CLOSING,
-                           bmqimp::QueueState::e_CLOSED);
-}
-
 static void test68_queueLateAsyncCanceledHybrid3()
 {
     bmqtst::TestHelper::printTestName(
@@ -10202,36 +9663,6 @@ static void test68_queueLateAsyncCanceledHybrid3()
                            bmqimp::QueueState::e_PENDING);
 }
 
-static void test69_queueLateAsyncCanceledHybrid4()
-{
-    bmqtst::TestHelper::printTestName(
-        "QUEUE LATE ASYNC CANCELED HYBRID TEST 4");
-
-    bsls::Types::Uint64 flags = 0;
-    bmqt::QueueFlagsUtil::setReader(&flags);
-    bmqt::QueueFlagsUtil::setWriter(&flags);
-
-    queueLateAsyncCanceled(L_,
-                           flags,
-                           TestSession::e_LATE_CLOSE_CONFIGURING,
-                           bmqimp::QueueState::e_CLOSED);
-}
-
-static void test70_queueLateAsyncCanceledHybrid5()
-{
-    bmqtst::TestHelper::printTestName(
-        "QUEUE LATE ASYNC CANCELED HYBRID TEST 5");
-
-    bsls::Types::Uint64 flags = 0;
-    bmqt::QueueFlagsUtil::setReader(&flags);
-    bmqt::QueueFlagsUtil::setWriter(&flags);
-
-    queueLateAsyncCanceled(L_,
-                           flags,
-                           TestSession::e_LATE_CLOSE_CLOSING,
-                           bmqimp::QueueState::e_CLOSED);
-}
-
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -10245,18 +9676,18 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
-    case 70: break;
-    case 69: break;
+    case 70: /* removed test */ break;
+    case 69: /* removed test */ break;
     case 68: test68_queueLateAsyncCanceledHybrid3(); break;
-    case 67: break;
-    case 66: break;
+    case 67: /* removed test */ break;
+    case 66: /* removed test */ break;
     case 65: test65_queueLateAsyncCanceledWriter4(); break;
     case 64: test64_queueLateAsyncCanceledWriter3(); break;
-    case 63: break;
-    case 62: break;
-    case 61: break;
+    case 63: /* removed test */ break;
+    case 62: /* removed test */ break;
+    case 61: /* removed test */ break;
     case 60: test60_queueLateAsyncCanceledReader3(); break;
-    case 59: break;
+    case 59: /* removed test */ break;
     case 58: test58_queueAsyncCanceled5(); break;
     case 57: test57_queueAsyncCanceled4(); break;
     case 56: test56_queueAsyncCanceled3(); break;
@@ -10288,7 +9719,7 @@ int main(int argc, char* argv[])
     case 30: test30_queueLateAsyncCanceledHybrid1(); break;
     case 29: test29_queueLateAsyncCanceledWriter1(); break;
     case 28: test28_queueLateAsyncCanceledReader1(); break;
-    case 27: break;
+    case 27: /* removed test */ break;
     case 26: test26_openCloseMultipleSubqueues(); break;
     case 25: test25_sessionFsmTable(); break;
     case 24: test24_queueAsyncCanceled1(); break;
