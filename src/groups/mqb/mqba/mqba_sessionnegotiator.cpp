@@ -396,7 +396,6 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
     const int clientVersion = clientIdentity.sdkVersion();
     const bmqp_ctrlmsg::ClientLanguage::Value& sdkLanguage =
         clientIdentity.sdkLanguage();
-    const bsl::string&       userAgent = clientIdentity.userAgent();
     const mqbcfg::AppConfig& appConfig = mqbcfg::BrokerConfig::get();
 
     if (checkIsUnsupportedSdkVersion(*negotiationContext)) {
