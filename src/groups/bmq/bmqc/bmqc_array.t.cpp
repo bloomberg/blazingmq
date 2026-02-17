@@ -897,7 +897,8 @@ static void VectorFindLarge_GoogleBenchmark(benchmark::State& state)
     vec.resize(state.range(0), 42);
 
     for (auto _ : state) {
-        bsl::find(vec.begin(), vec.end(), 22);
+        // Do work to benchmark, ignore result
+        static_cast<void>(bsl::find(vec.begin(), vec.end(), 22));
     }
 }
 
