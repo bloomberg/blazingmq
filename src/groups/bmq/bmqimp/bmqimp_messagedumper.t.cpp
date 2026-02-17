@@ -607,6 +607,7 @@ bool Tester::isEventDumpEnabled(const bmqp::EventType::Enum& type) const
         CASE(bmqp::EventType::e_HEARTBEAT_REQ)
         CASE(bmqp::EventType::e_HEARTBEAT_RSP)
         CASE(bmqp::EventType::e_REPLICATION_RECEIPT)
+        CASE(bmqp::EventType::e_AUTHENTICATION)
         CASE(bmqp::EventType::e_UNDEFINED)
     default: {
         result =
