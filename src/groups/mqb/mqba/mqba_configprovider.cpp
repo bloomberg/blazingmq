@@ -91,8 +91,7 @@ void ConfigProvider::cacheAdd(bsl::string_view key, const bsl::string& config)
 }
 
 ConfigProvider::ConfigProvider(bslma::Allocator* allocator)
-: d_mode(Mode::e_NORMAL)
-, d_cache(allocator)
+: d_cache(allocator)
 , d_allocator_p(allocator)
 {
     // NOTHING
