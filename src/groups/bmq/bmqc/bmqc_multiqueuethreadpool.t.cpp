@@ -71,8 +71,6 @@ struct TestItem {
     }
 
     // MANIPULATORS
-    void reset() { d_value = 0; }
-
     int& value() { return d_value; }
 };
 
