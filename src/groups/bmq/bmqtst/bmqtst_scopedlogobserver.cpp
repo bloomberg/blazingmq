@@ -151,7 +151,7 @@ bool ScopedLogObserverUtil::recordMessageMatch(const ball::Record& record,
     BSLS_ASSERT(rc == 0);
     BSLS_ASSERT(regex.isPrepared() == true);
 
-    const bslstl::StringRef& msg = record.fixedFields().message();
+    const bslstl::StringRef msg = record.fixedFields().messageRef();
 
     rc = regex.match(msg.data(), msg.length());
 
