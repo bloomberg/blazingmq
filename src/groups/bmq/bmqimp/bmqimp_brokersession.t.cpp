@@ -4609,6 +4609,11 @@ static void test21_post_Limit()
                              &obj,
                              bmqio::StatusCategory::e_SUCCESS));
 
+    bsl::shared_ptr<bmqimp::Event> lwmEvent = obj.getInboundEvent();
+
+    BMQTST_ASSERT_EQ(lwmEvent->sessionEventType(),
+                     bmqt::SessionEventType::e_CHANNEL_LOW_WATERMARK);
+
     // Call post with a bigger timeout so that LWM event arrives before it
     // expires.
     rc = obj.session().post(*builder.blob());
@@ -4737,6 +4742,11 @@ static void test22_confirm_Limit()
         bdlf::BindUtil::bind(&TestSession::setChannelLowWaterMark,
                              &obj,
                              bmqio::StatusCategory::e_SUCCESS));
+
+    bsl::shared_ptr<bmqimp::Event> lwmEvent = obj.getInboundEvent();
+
+    BMQTST_ASSERT_EQ(lwmEvent->sessionEventType(),
+                     bmqt::SessionEventType::e_CHANNEL_LOW_WATERMARK);
 
     rc = obj.session().confirmMessages(*builder.blob());
 
@@ -8849,6 +8859,11 @@ static void test49_controlsBuffering()
         bdlf::BindUtil::bind(&TestSession::setChannelLowWaterMark,
                              &obj,
                              bmqio::StatusCategory::e_SUCCESS));
+
+    bsl::shared_ptr<bmqimp::Event> lwmEvent = obj.getInboundEvent();
+
+    BMQTST_ASSERT_EQ(lwmEvent->sessionEventType(),
+                     bmqt::SessionEventType::e_CHANNEL_LOW_WATERMARK);
 
     // All buffered control messages should be written
     obj.verifyRequestSent(TestSession::e_REQ_OPEN_QUEUE);
