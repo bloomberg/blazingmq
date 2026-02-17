@@ -1726,108 +1726,6 @@ static void testN10_hashCollisionsComparison()
 // Begin Benchmarking Tests
 
 #ifdef BMQTST_BENCHMARK_ENABLED
-static void testN1_decode_GoogleBenchmark(benchmark::State& state)
-// ------------------------------------------------------------------------
-// DECODE
-//
-// Concerns: Expose a way to decode a GUID from its hex representation for
-//   quick troubleshooting.  Optionally, support resolving the timer tick
-//   field if the 'currentTimerTick' and 'secondsFromEpoch' are provided
-//   (printed from the 'bmqp_messageguidutil::initialize()' method at
-//   startup).
-//
-// Plan:
-//   - Build a GUID from reading its hex representation from stdin, and
-//     use the MessageGUIDGenerator::print to decode and print it's various
-//     parts.
-//
-// Testing:
-//   -
-// ------------------------------------------------------------------------
-{
-    for (auto _ : state) {
-        state.PauseTiming();
-        bmqtst::TestHelperUtil::ignoreCheckDefAlloc() =
-            true;  // istringstream allocates
-
-        bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK DECODE");
-
-        cout << "Please enter the hex representation of a GUID, followed by\n"
-             << "<enter> when done (optionally, specify the "
-                "nanoSecondsFromEpoch\n"
-             << "to resolve the time):\n"
-             << "  hexGUID [nanoSecondsFromEpoch]" << endl
-             << endl;
-
-        // Read from stdin
-        char buffer[256];
-        bsl::cin.getline(buffer, 256, '\n');
-
-        bsl::istringstream is(buffer);
-
-        bsl::string        hexGuid(bmqtst::TestHelperUtil::allocator());
-        bsls::Types::Int64 nanoSecondsFromEpoch = 0;
-
-        is >> hexGuid;
-
-        // Ensure valid input
-        if (!bmqt::MessageGUID::isValidHexRepresentation(hexGuid.c_str())) {
-            cout << "The input '" << buffer << "' is not a valid hex GUID"
-                 << endl;
-            return;  // RETURN
-        }
-
-        // Read optional nanoSecondsFromEpoch
-        if (!is.eof()) {
-            is >> nanoSecondsFromEpoch;
-            if (is.fail()) {
-                cout << "The input '" << buffer
-                     << "' is not properly formatted "
-                     << "[hexGuid nanoSecondsFromEpoch]" << endl;
-                return;  // RETURN
-            }
-        }
-        state.ResumeTiming();
-        // Make a GUID out of it
-        bmqt::MessageGUID guid;
-        guid.fromHex(hexGuid.c_str());
-        BMQTST_ASSERT_EQ(guid.isUnset(), false);
-
-        // Print it
-        cout << "--------------------------------" << endl;
-        bmqp::MessageGUIDGenerator::print(cout, guid);
-        cout << endl;
-
-        if (nanoSecondsFromEpoch != 0) {
-            int                version;
-            unsigned int       counter;
-            bsls::Types::Int64 timerTick;
-            bsl::string        clientId;
-
-            int rc = bmqp::MessageGUIDGenerator::extractFields(&version,
-                                                               &counter,
-                                                               &timerTick,
-                                                               &clientId,
-                                                               guid);
-
-            if (rc == 0) {
-                bsls::TimeInterval interval;
-                interval.setTotalNanoseconds(nanoSecondsFromEpoch + timerTick);
-
-                const bdlt::Datetime timestamp =
-                    bdlt::EpochUtil::convertFromTimeInterval(interval);
-
-                bsl::cout << "Converted timestamp (UTC): " << timestamp
-                          << bsl::endl;
-            }
-            else {
-                bsl::cout << "GUID field extraction failed (rc: " << rc << ")"
-                          << bsl::endl;
-            }
-        }
-    }
-}
-
 static void testN2_bmqtPerformance_GoogleBenchmark(benchmark::State& state)
 // ------------------------------------------------------------------------
 // PERFORMANCE
@@ -2154,6 +2052,8 @@ int main(int argc, char* argv[])
     case 3: test3_multithreadUseIP(); break;
     case 2: test2_extract(); break;
     case 1: test1_breathingTest(); break;
+    // Test -1 is not a benchmark, but rather a debug utility that asks for a
+    // MessageGUID on stdin and parses it.
     case -1: testN1_decode(); break;
     case -2:
         // Todo: split test case

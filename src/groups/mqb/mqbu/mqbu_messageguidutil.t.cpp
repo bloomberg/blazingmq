@@ -939,114 +939,6 @@ BSLA_MAYBE_UNUSED static void testN8_orderedMapWithCustomHashBenchmark()
 }
 
 #ifdef BMQTST_BENCHMARK_ENABLED
-static void testN1_decode_GoogleBenchmark(benchmark::State& state)
-// ------------------------------------------------------------------------
-// DECODE
-//
-// Concerns: Expose a way to decode a GUID from its hex representation for
-//   quick troubleshooting.  Optionally, support resolving the timer tick
-//   field if the 'currentTimerTick' and 'secondsFromEpoch' are provided
-//   (printed from the 'mqbu_messageguidutil::initialize()' method at
-//   startup).
-//
-// Plan:
-//   - Build a GUID from reading it's hex representation from stdin, and
-//     use the MessageGUIDUtil::print to decode and print it's various
-//     parts.
-//
-// Testing:
-//   -
-// ------------------------------------------------------------------------
-{
-    for (auto _ : state) {
-        state.PauseTiming();
-        bmqtst::TestHelperUtil::ignoreCheckDefAlloc() =
-            true;  // istringstream allocates
-
-        bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK DECODE");
-
-        cout << "Please enter the hex representation of a GUID, followed by\n"
-             << "<enter> when done (optionally, specify the currentTimerTick "
-                "as\n"
-             << "well as secondsFromEpoch to resolve the time):\n"
-             << "  hexGUID [currentTimerTick secondsFromEpoch]" << endl
-             << endl;
-
-        // Read from stdin
-        char buffer[256];
-        bsl::cin.getline(buffer, 256, '\n');
-
-        bsl::istringstream is(buffer);
-
-        bsl::string        hexGuid(bmqtst::TestHelperUtil::allocator());
-        bsls::Types::Int64 startTimerTick        = 0;
-        bsls::Types::Int64 startSecondsFromEpoch = 0;
-
-        is >> hexGuid;
-
-        // Ensure valid input
-        if (!bmqt::MessageGUID::isValidHexRepresentation(hexGuid.c_str())) {
-            cout << "The input '" << buffer << "' is not a valid hex GUID"
-                 << endl;
-            return;  // RETURN
-        }
-
-        // Read optional startTimerTick and startSecondsFromEpoch
-        if (!is.eof()) {
-            // start  timer tick
-            is >> startTimerTick;
-            if (is.fail()) {
-                cout << "The input '" << buffer
-                     << "' is not properly formatted "
-                     << "[hexGuid currentTimerTick secondsFromEpoch]" << endl;
-                return;  // RETURN
-            }
-
-            // seconds from epoch
-            is >> startSecondsFromEpoch;
-            if (is.fail()) {
-                cout << "The input '" << buffer
-                     << "' is not properly formatted "
-                     << "[hexGuid currentTimerTick secondsFromEpoch]" << endl;
-                return;  // RETURN
-            }
-        }
-        state.ResumeTiming();
-        // Make a GUID out of it
-        bmqt::MessageGUID guid;
-        guid.fromHex(hexGuid.c_str());
-        BMQTST_ASSERT_EQ(guid.isUnset(), false);
-
-        // Print it
-        cout << "--------------------------------" << endl;
-        mqbu::MessageGUIDUtil::print(cout, guid);
-        cout << endl;
-
-        if (startTimerTick != 0) {
-            int                version;
-            unsigned int       counter;
-            bsls::Types::Int64 guidTimerTick;
-            bsl::string        brokerId;
-
-            mqbu::MessageGUIDUtil::extractFields(&version,
-                                                 &counter,
-                                                 &guidTimerTick,
-                                                 &brokerId,
-                                                 guid);
-
-            bdlt::Datetime timestamp = bdlt::EpochUtil::convertFromTimeT(
-                startSecondsFromEpoch);
-
-            timestamp.addMicroseconds(
-                (guidTimerTick - startTimerTick) /
-                bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MICROSECOND);
-
-            bsl::cout << "Converted timestamp (UTC): " << timestamp
-                      << bsl::endl;
-        }
-    }
-}
-
 static void testN2_mqbuPerformance_GoogleBenchmark(benchmark::State& state)
 // ------------------------------------------------------------------------
 // PERFORMANCE
@@ -1337,6 +1229,8 @@ int main(int argc, char* argv[])
     case 3: test3_print(); break;
     case 2: test2_multithread(); break;
     case 1: test1_breathingTest(); break;
+    // Test -1 is not a benchmark, but rather a debug utility that asks for a
+    // MessageGUID on stdin and parses it.
     case -1: testN1_decode(); break;
     case -2:
         BMQTST_BENCHMARK_WITH_ARGS(testN2_bdlbPerformance,
