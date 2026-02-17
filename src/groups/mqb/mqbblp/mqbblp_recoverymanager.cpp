@@ -1576,13 +1576,9 @@ int RecoveryManager::sendFile(RequestContext*                   context,
         mfd = &fti.journalFd();
         break;  // BREAK
 
-    case bmqp::RecoveryFileChunkType::e_UNDEFINED:
-        BSLS_ASSERT_SAFE(false && "Unreachable by design.");
-        break;  // BREAK
-
+    case bmqp::RecoveryFileChunkType::e_UNDEFINED: BSLA_FALLTHROUGH;
     default:
         BSLS_ASSERT_SAFE(false && "Unreachable by design.");
-        BSLA_UNREACHABLE;
         break;  // BREAK
     }
 
