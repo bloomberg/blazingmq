@@ -22,6 +22,7 @@ import dataclasses
 import json
 import time
 from typing import Dict, Optional, Union
+from collections import Counter
 
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
@@ -37,6 +38,8 @@ from blazingmq.dev.it.process.broker import Broker
 from blazingmq.dev.it.process.client import Client
 
 pytestmark = order(1)
+
+STAT_SHOW_CMD = "encoding json_pretty stat show"
 
 
 @dataclasses.dataclass
@@ -90,6 +93,50 @@ def extract_stats(admin_response: str) -> dict:
     return d2
 
 
+def expect_same_list_of_flat_objects(
+    entry: list[dict],
+    expected: list[dict],
+    path: str = "",
+    skip_objects_with_type=["allocator"],
+    skip_keys=[
+        "timestamp",
+        "client_name",
+        "channel_name",
+        "port_id",
+        "queue_confirm_time_avg",
+        "queue_confirm_time_max",
+    ],
+) -> None:
+    """
+    Check if the specified 'entry' has the same structure as the specified 'expected'.
+    First sort and filter lists as objects in listed may have different order
+    and objects maybe incomparable (e.g. have differnet timestamps, ids or timings)
+    """
+
+    def normalize_object(obj, skip_keys):
+        # Remove skipped keys
+        filtered = {k: v for k, v in obj.items() if k not in skip_keys}
+        # Convert to hashable canonical form
+        return tuple(sorted(filtered.items()))
+
+    def preprocess_array(arr, skip_keys):
+        return [
+            normalize_object(obj, skip_keys)
+            for obj in arr
+            if not obj.get("type") in skip_objects_with_type
+        ]
+
+    def compare_json_arrays(arr1, arr2):
+        processed1 = preprocess_array(arr1, skip_keys)
+        processed2 = preprocess_array(arr2, skip_keys)
+
+        return Counter(processed1) == Counter(processed2)
+
+    assert compare_json_arrays(entry, expected), (
+        f"Path {path}: entry does not match expected"
+    )
+
+
 def expect_same_structure(
     entry: Union[dict, list, str, int],
     expected: Union[dict, list, str, int, dt.ValueConstraint],
@@ -103,7 +150,7 @@ def expect_same_structure(
     """
 
     if isinstance(expected, dict):
-        assert isinstance(entry, dict)
+        assert isinstance(entry, dict), f"{path}: expected dict, got {type(entry)}"
         assert expected.keys() == entry.keys(), (
             path,
             "Extra expected keys:",
@@ -114,15 +161,15 @@ def expect_same_structure(
         for key in expected:
             expect_same_structure(entry[key], expected[key], path + "." + key)
     elif isinstance(expected, list):
-        assert isinstance(entry, list)
+        assert isinstance(entry, list), f"{path}: expected list, got {type(entry)}"
         assert len(expected) == len(entry), path
         for obj2, expected2 in zip(entry, expected):
             expect_same_structure(obj2, expected2, path)
     elif isinstance(expected, str):
-        assert isinstance(entry, str)
+        assert isinstance(entry, str), f"{path}: expected str, got {type(entry)}"
         assert expected == entry, path
     else:
-        assert isinstance(entry, int)
+        assert isinstance(entry, int), f"{path}: expected int, got {type(entry)}"
         if isinstance(expected, dt.ValueConstraint):
             assert expected.check(entry), path
         else:
@@ -170,6 +217,22 @@ def test_breathing(
 
     # Stop the admin session
     admin.stop()
+
+
+def check_admin_response(admin, expected: dict, path: str) -> None:
+    admin_response = admin.send_admin(STAT_SHOW_CMD)
+
+    stats = extract_stats(admin_response)
+
+    expect_same_list_of_flat_objects(stats, expected, path)
+
+
+def check_admin_response_too_often(admin):
+    for _ in range(5):
+        admin.send_admin(STAT_SHOW_CMD)
+    resp = admin.send_admin(STAT_SHOW_CMD)
+    obj = json.loads(resp)
+    expect_same_structure(obj, dt.TEST_QUEUE_STATS_TOO_OFTEN_SNAPSHOTS, "too-often")
 
 
 def test_queue_stats(single_node: Cluster, domain_urls: tc.DomainUrls) -> None:
@@ -222,10 +285,11 @@ def test_queue_stats(single_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     task = PostRecord(domain_fanout, "test_stats", num=32)
     post_n_msgs(producer, task)
 
-    stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
-    queue_stats = stats["domainQueues"]["domains"][domain_fanout][task.uri]
-
-    expect_same_structure(queue_stats, dt.TEST_QUEUE_STATS_AFTER_POST, "after-post")
+    check_admin_response(
+        admin,
+        dt.TEST_QUEUE_STATS_AFTER_POST,
+        "after-post",
+    )
 
     # Stage 2: check stats after confirming messages
     consumer_foo: Client = proxy.create_client("consumer_foo")
@@ -240,11 +304,10 @@ def test_queue_stats(single_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     consumer_baz.open(f"{task.uri}?id=baz", flags=["read"], succeed=True)
     consumer_baz.confirm(f"{task.uri}?id=baz", "+11", succeed=True)
 
-    stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
-    queue_stats = stats["domainQueues"]["domains"][domain_fanout][task.uri]
-
-    expect_same_structure(
-        queue_stats, dt.TEST_QUEUE_STATS_AFTER_CONFIRM_SINGLE_NODE, "after-confirm"
+    check_admin_response(
+        admin,
+        dt.TEST_QUEUE_STATS_AFTER_CONFIRM_SINGLE_NODE,
+        "after-confirm",
     )
 
     # Stage 3: check stats after purging an appId
@@ -253,11 +316,10 @@ def test_queue_stats(single_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     )
     assert f"Purged 21 message(s)" in res
 
-    stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
-    queue_stats = stats["domainQueues"]["domains"][domain_fanout][task.uri]
-
-    expect_same_structure(
-        queue_stats, dt.TEST_QUEUE_STATS_AFTER_PURGE_SINGLE_NODE, "after-purge"
+    check_admin_response(
+        admin,
+        dt.TEST_QUEUE_STATS_AFTER_PURGE_SINGLE_NODE,
+        "after-purge",
     )
 
     consumer_foo.close(f"{task.uri}?id=foo")
@@ -265,12 +327,7 @@ def test_queue_stats(single_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     consumer_baz.close(f"{task.uri}?id=baz")
 
     # Stage 4: check too-often stats safeguard
-    for _ in range(5):
-        admin.send_admin("encoding json_pretty stat show")
-    res = admin.send_admin("encoding json_pretty stat show")
-    obj = json.loads(res)
-
-    expect_same_structure(obj, dt.TEST_QUEUE_STATS_TOO_OFTEN_SNAPSHOTS, "too-often")
+    check_admin_response_too_often(admin)
 
     admin.stop()
 
@@ -354,10 +411,11 @@ def test_app_id_stats(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     task = PostRecord(domain_fanout, "test_stats", num=32)
     post_n_msgs(producer, task)
 
-    stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
-    queue_stats = stats["domainQueues"]["domains"][domain_fanout][task.uri]
-
-    expect_same_structure(queue_stats, dt.TEST_QUEUE_STATS_AFTER_POST, "after-post")
+    check_admin_response(
+        admin,
+        dt.TEST_QUEUE_STATS_AFTER_POST,
+        "after-post",
+    )
 
     # Stage 2: check stats after confirming messages
     consumer_foo: Client = proxy.create_client("consumer_foo")
@@ -381,11 +439,10 @@ def test_app_id_stats(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
 
     admin.connect(*cluster.admin_endpoint)
 
-    stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
-    queue_stats = stats["domainQueues"]["domains"][domain_fanout][task.uri]
-
-    expect_same_structure(
-        queue_stats, dt.TEST_QUEUE_STATS_AFTER_CONFIRM_MULTI_NODE, "after-confirm"
+    check_admin_response(
+        admin,
+        dt.TEST_QUEUE_STATS_AFTER_CONFIRM_MULTI_NODE,
+        "after-confirm",
     )
 
     # Stage 3: check stats after purging an appId
@@ -394,11 +451,10 @@ def test_app_id_stats(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     )
     assert "Purged 21 message(s)" in res
 
-    stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
-    queue_stats = stats["domainQueues"]["domains"][domain_fanout][task.uri]
-
-    expect_same_structure(
-        queue_stats, dt.TEST_QUEUE_STATS_AFTER_PURGE_MULTI_NODE, "after-purge"
+    check_admin_response(
+        admin,
+        dt.TEST_QUEUE_STATS_AFTER_PURGE_MULTI_NODE,
+        "after-purge",
     )
 
     consumer_foo.close(f"{task.uri}?id=foo")
@@ -406,12 +462,7 @@ def test_app_id_stats(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     consumer_baz.close(f"{task.uri}?id=baz")
 
     # Stage 4: check too-often stats safeguard
-    for i in range(5):
-        admin.send_admin("encoding json_pretty stat show")
-    res = admin.send_admin("encoding json_pretty stat show")
-    obj = json.loads(res)
-
-    expect_same_structure(obj, dt.TEST_QUEUE_STATS_TOO_OFTEN_SNAPSHOTS, "too-often")
+    check_admin_response_too_often(admin)
 
     admin.stop()
 
