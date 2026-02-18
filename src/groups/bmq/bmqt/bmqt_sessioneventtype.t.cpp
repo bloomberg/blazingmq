@@ -99,6 +99,10 @@ static void test2_printTest()
         {bmqt::SessionEventType::e_ERROR, "ERROR"},
         {bmqt::SessionEventType::e_TIMEOUT, "TIMEOUT"},
         {bmqt::SessionEventType::e_CANCELED, "CANCELED"},
+        {bmqt::SessionEventType::e_CHANNEL_LOW_WATERMARK,
+         "CHANNEL_LOW_WATERMARK"},
+        {bmqt::SessionEventType::e_CHANNEL_HIGH_WATERMARK,
+         "CHANNEL_HIGH_WATERMARK"},
         {static_cast<bmqt::SessionEventType::Enum>(-1234), "(* UNKNOWN *)"},
     };
 
