@@ -900,7 +900,7 @@ void QueueHandle::confirmMessage(mqbi::DispatcherEventSource* eventSource_p,
     // queue (outside of the dispatcher) and process it separately (on idle?).
 
     bsl::shared_ptr<mqbevt::CallbackEvent> event_sp =
-        eventSource_p->get<mqbevt::CallbackEvent>();
+        eventSource_p->getEvent<mqbevt::CallbackEvent>();
     event_sp->callback().createInplace<QueueHandle::ConfirmFunctor>(
         this,
         msgGUID,

@@ -447,7 +447,7 @@ void AdminSession::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     switch (event.type()) {
     case mqbi::DispatcherEventType::e_CALLBACK: {
         const mqbevt::CallbackEvent* const realEvent =
-            event.get<mqbevt::CallbackEvent>();
+            event.castTo<mqbevt::CallbackEvent>();
 
         BSLS_ASSERT_SAFE(!realEvent->callback().empty());
         realEvent->callback()();

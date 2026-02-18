@@ -2655,7 +2655,9 @@ void ClientSession::processEvent(const bmqp::Event& event,
         // Dispatch the event
         if (event.isPutEvent()) {
             bsl::shared_ptr<mqbevt::PutEvent> event_sp =
-                dispatcher()->getDefaultEventSource()->get<mqbevt::PutEvent>();
+                dispatcher()
+                    ->getDefaultEventSource()
+                    ->getEvent<mqbevt::PutEvent>();
             event_sp->setBlob(blobSp).setSource(this);
             dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(event_sp),
                                         this);
@@ -2664,7 +2666,7 @@ void ClientSession::processEvent(const bmqp::Event& event,
             bsl::shared_ptr<mqbevt::ConfirmEvent> event_sp =
                 dispatcher()
                     ->getDefaultEventSource()
-                    ->get<mqbevt::ConfirmEvent>();
+                    ->getEvent<mqbevt::ConfirmEvent>();
             event_sp->setBlob(blobSp).setSource(this);
             dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(event_sp),
                                         this);
@@ -2673,7 +2675,7 @@ void ClientSession::processEvent(const bmqp::Event& event,
             bsl::shared_ptr<mqbevt::RejectEvent> event_sp =
                 dispatcher()
                     ->getDefaultEventSource()
-                    ->get<mqbevt::RejectEvent>();
+                    ->getEvent<mqbevt::RejectEvent>();
             event_sp->setBlob(blobSp).setSource(this);
             dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(event_sp),
                                         this);
@@ -2839,23 +2841,23 @@ void ClientSession::onDispatcherEvent(const mqbi::DispatcherEvent& event)
 
     switch (event.type()) {
     case mqbi::DispatcherEventType::e_CONFIRM: {
-        onConfirmEvent(*(event.get<mqbevt::ConfirmEvent>()));
+        onConfirmEvent(*(event.castTo<mqbevt::ConfirmEvent>()));
     } break;
     case mqbi::DispatcherEventType::e_REJECT: {
-        onRejectEvent(*(event.get<mqbevt::RejectEvent>()));
+        onRejectEvent(*(event.castTo<mqbevt::RejectEvent>()));
     } break;
     case mqbi::DispatcherEventType::e_PUSH: {
-        onPushEvent(*(event.get<mqbevt::PushEvent>()));
+        onPushEvent(*(event.castTo<mqbevt::PushEvent>()));
     } break;
     case mqbi::DispatcherEventType::e_PUT: {
-        onPutEvent(*(event.get<mqbevt::PutEvent>()));
+        onPutEvent(*(event.castTo<mqbevt::PutEvent>()));
     } break;
     case mqbi::DispatcherEventType::e_ACK: {
-        onAckEvent(*(event.get<mqbevt::AckEvent>()));
+        onAckEvent(*(event.castTo<mqbevt::AckEvent>()));
     } break;
     case mqbi::DispatcherEventType::e_CALLBACK: {
         const mqbevt::CallbackEvent* const realEvent =
-            event.get<mqbevt::CallbackEvent>();
+            event.castTo<mqbevt::CallbackEvent>();
 
         BSLS_ASSERT_SAFE(!realEvent->callback().empty());
         flush();  // Flush any pending messages to guarantee ordering of events

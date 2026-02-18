@@ -88,7 +88,7 @@ class DispatcherEventSource {
 
     /// Return a shared pointer to an event of the specified `EVENT_TYPE`.
     template <class EVENT_TYPE>
-    bsl::shared_ptr<EVENT_TYPE> get();
+    bsl::shared_ptr<EVENT_TYPE> getEvent();
 };
 
 // ============================================================================
@@ -101,84 +101,84 @@ class DispatcherEventSource {
 
 template <>
 inline bsl::shared_ptr<mqbevt::AckEvent>
-DispatcherEventSource::get<mqbevt::AckEvent>()
+DispatcherEventSource::getEvent<mqbevt::AckEvent>()
 {
     return getAckEvent();
 }
 
 template <>
 inline bsl::shared_ptr<mqbevt::CallbackEvent>
-DispatcherEventSource::get<mqbevt::CallbackEvent>()
+DispatcherEventSource::getEvent<mqbevt::CallbackEvent>()
 {
     return getCallbackEvent();
 }
 
 template <>
 inline bsl::shared_ptr<mqbevt::ClusterStateEvent>
-DispatcherEventSource::get<mqbevt::ClusterStateEvent>()
+DispatcherEventSource::getEvent<mqbevt::ClusterStateEvent>()
 {
     return getClusterStateEvent();
 }
 
 template <>
 inline bsl::shared_ptr<mqbevt::ConfirmEvent>
-DispatcherEventSource::get<mqbevt::ConfirmEvent>()
+DispatcherEventSource::getEvent<mqbevt::ConfirmEvent>()
 {
     return getConfirmEvent();
 }
 
 template <>
 inline bsl::shared_ptr<mqbevt::ControlMessageEvent>
-DispatcherEventSource::get<mqbevt::ControlMessageEvent>()
+DispatcherEventSource::getEvent<mqbevt::ControlMessageEvent>()
 {
     return getControlMessageEvent();
 }
 
 template <>
 inline bsl::shared_ptr<mqbevt::DispatcherEvent>
-DispatcherEventSource::get<mqbevt::DispatcherEvent>()
+DispatcherEventSource::getEvent<mqbevt::DispatcherEvent>()
 {
     return getDispatcherEvent();
 }
 
 template <>
 inline bsl::shared_ptr<mqbevt::PushEvent>
-DispatcherEventSource::get<mqbevt::PushEvent>()
+DispatcherEventSource::getEvent<mqbevt::PushEvent>()
 {
     return getPushEvent();
 }
 
 template <>
 inline bsl::shared_ptr<mqbevt::PutEvent>
-DispatcherEventSource::get<mqbevt::PutEvent>()
+DispatcherEventSource::getEvent<mqbevt::PutEvent>()
 {
     return getPutEvent();
 }
 
 template <>
 inline bsl::shared_ptr<mqbevt::ReceiptEvent>
-DispatcherEventSource::get<mqbevt::ReceiptEvent>()
+DispatcherEventSource::getEvent<mqbevt::ReceiptEvent>()
 {
     return getReceiptEvent();
 }
 
 template <>
 inline bsl::shared_ptr<mqbevt::RecoveryEvent>
-DispatcherEventSource::get<mqbevt::RecoveryEvent>()
+DispatcherEventSource::getEvent<mqbevt::RecoveryEvent>()
 {
     return getRecoveryEvent();
 }
 
 template <>
 inline bsl::shared_ptr<mqbevt::RejectEvent>
-DispatcherEventSource::get<mqbevt::RejectEvent>()
+DispatcherEventSource::getEvent<mqbevt::RejectEvent>()
 {
     return getRejectEvent();
 }
 
 template <>
 inline bsl::shared_ptr<mqbevt::StorageEvent>
-DispatcherEventSource::get<mqbevt::StorageEvent>()
+DispatcherEventSource::getEvent<mqbevt::StorageEvent>()
 {
     return getStorageEvent();
 }

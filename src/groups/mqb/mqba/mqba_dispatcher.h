@@ -497,13 +497,13 @@ inline void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
     // TODO(678098): move to cpp file and remove include from header
     if (type == mqbi::DispatcherEventType::e_CALLBACK) {
         bsl::shared_ptr<mqbevt::CallbackEvent> event_sp =
-            d_defaultEventSource_sp->get<mqbevt::CallbackEvent>();
+            d_defaultEventSource_sp->getEvent<mqbevt::CallbackEvent>();
         event_sp->callback().set(functor);
         dispatchEvent(bslmf::MovableRefUtil::move(event_sp), client);
     }
     else {
         bsl::shared_ptr<mqbevt::DispatcherEvent> event_sp =
-            d_defaultEventSource_sp->get<mqbevt::DispatcherEvent>();
+            d_defaultEventSource_sp->getEvent<mqbevt::DispatcherEvent>();
         event_sp->callback().set(functor);
         dispatchEvent(bslmf::MovableRefUtil::move(event_sp), client);
     }
@@ -517,7 +517,7 @@ inline void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
 
     // TODO(678098): move to cpp file and remove include from header
     bsl::shared_ptr<mqbevt::DispatcherEvent> event_sp =
-        d_defaultEventSource_sp->get<mqbevt::DispatcherEvent>();
+        d_defaultEventSource_sp->getEvent<mqbevt::DispatcherEvent>();
     event_sp->callback().set(functor);
 
     dispatchEvent(bslmf::MovableRefUtil::move(event_sp),

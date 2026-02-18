@@ -600,7 +600,9 @@ void ClusterProxy::processEvent(const bmqp::Event&   event,
     case bmqp::EventType::e_PUSH: {
         // TODO(678098): revisit, use per-IO thread event source
         bsl::shared_ptr<mqbevt::PushEvent> event_sp =
-            dispatcher()->getDefaultEventSource()->get<mqbevt::PushEvent>();
+            dispatcher()
+                ->getDefaultEventSource()
+                ->getEvent<mqbevt::PushEvent>();
         bsl::shared_ptr<bdlbb::Blob> blobSp =
             d_clusterData.blobSpPool().getObject();
         *blobSp = *(event.blob());
@@ -611,7 +613,9 @@ void ClusterProxy::processEvent(const bmqp::Event&   event,
     case bmqp::EventType::e_ACK: {
         // TODO(678098): revisit, use per-IO thread event source
         bsl::shared_ptr<mqbevt::AckEvent> event_sp =
-            dispatcher()->getDefaultEventSource()->get<mqbevt::AckEvent>();
+            dispatcher()
+                ->getDefaultEventSource()
+                ->getEvent<mqbevt::AckEvent>();
         bsl::shared_ptr<bdlbb::Blob> blobSp =
             d_clusterData.blobSpPool().getObject();
         *blobSp = *(event.blob());
@@ -1247,7 +1251,7 @@ void ClusterProxy::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     } break;
     case mqbi::DispatcherEventType::e_REJECT: {
         const mqbevt::RejectEvent* realEvent =
-            event.get<mqbevt::RejectEvent>();
+            event.castTo<mqbevt::RejectEvent>();
         if (realEvent->isRelay()) {
             onRelayRejectEvent(*realEvent);
         }
@@ -1258,15 +1262,15 @@ void ClusterProxy::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     } break;
     case mqbi::DispatcherEventType::e_CALLBACK: {
         const mqbevt::CallbackEvent* realEvent =
-            event.get<mqbevt::CallbackEvent>();
+            event.castTo<mqbevt::CallbackEvent>();
         BSLS_ASSERT_SAFE(!realEvent->callback().empty());
         realEvent->callback()();
     } break;
     case mqbi::DispatcherEventType::e_PUSH: {
-        onPushEvent(*(event.get<mqbevt::PushEvent>()));
+        onPushEvent(*(event.castTo<mqbevt::PushEvent>()));
     } break;
     case mqbi::DispatcherEventType::e_ACK: {
-        onAckEvent(*(event.get<mqbevt::AckEvent>()));
+        onAckEvent(*(event.castTo<mqbevt::AckEvent>()));
     } break;
     case mqbi::DispatcherEventType::e_CONTROL_MSG: {
         BALL_LOG_ERROR << "#UNEXPECTED_EVENT " << description()

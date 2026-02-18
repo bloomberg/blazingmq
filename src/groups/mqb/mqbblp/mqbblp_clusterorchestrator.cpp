@@ -1284,7 +1284,9 @@ void ClusterOrchestrator::processElectorEvent(const bmqp::Event&   event,
 
     // TODO(678098): revisit, make per-IO thread contexts
     bsl::shared_ptr<mqbevt::CallbackEvent> event_sp =
-        dispatcher()->getDefaultEventSource()->get<mqbevt::CallbackEvent>();
+        dispatcher()
+            ->getDefaultEventSource()
+            ->getEvent<mqbevt::CallbackEvent>();
     bmqp::Event clonedEvent = event.clone(d_allocator_p);
     event_sp->callback()
         .createInplace<ClusterOrchestrator::OnElectorEventFunctor>(

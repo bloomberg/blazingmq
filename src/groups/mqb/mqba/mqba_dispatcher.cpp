@@ -94,7 +94,7 @@ void Dispatcher_Executor::post(const bsl::function<void()>& f) const
 
     // create an event containing the function to be invoked on the processor
     bsl::shared_ptr<mqbevt::DispatcherEvent> event_sp =
-        d_eventSource_sp->get<mqbevt::DispatcherEvent>();
+        d_eventSource_sp->getEvent<mqbevt::DispatcherEvent>();
     (*event_sp).callback().set(f);
 
     // submit the event
@@ -273,7 +273,7 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
                        << " of " << type << " dispatcher: " << *event;
         if (event->type() == mqbi::DispatcherEventType::e_DISPATCHER) {
             const mqbevt::DispatcherEvent* realEvent =
-                event->get<mqbevt::DispatcherEvent>();
+                event->castTo<mqbevt::DispatcherEvent>();
 
             // We must flush now (and irrespective of a callback actually being
             // set on the event) to ensure the flushList is empty before
@@ -551,7 +551,7 @@ void Dispatcher::executeOnAllQueues(
                    << (doneCallback ? "yes" : "no") << "]";
 
     bsl::shared_ptr<mqbevt::DispatcherEvent> event_sp =
-        d_defaultEventSource_sp->get<mqbevt::DispatcherEvent>();
+        d_defaultEventSource_sp->getEvent<mqbevt::DispatcherEvent>();
     event_sp->callback().set(functor);
     event_sp->finalizeCallback().set(doneCallback);
     processorPool->enqueueEventOnAllQueues(
@@ -576,7 +576,7 @@ void Dispatcher::synchronize(mqbi::DispatcherClientType::Enum  type,
 
     bslmt::Semaphore       semaphore;
     bsl::shared_ptr<mqbevt::DispatcherEvent> event_sp =
-        d_defaultEventSource_sp->get<mqbevt::DispatcherEvent>();
+        d_defaultEventSource_sp->getEvent<mqbevt::DispatcherEvent>();
     (*event_sp).setCallback(
         bdlf::BindUtil::bind(static_cast<PostFn>(&bslmt::Semaphore::post),
                              &semaphore));

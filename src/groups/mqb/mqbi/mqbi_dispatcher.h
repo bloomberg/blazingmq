@@ -511,7 +511,7 @@ class DispatcherEvent {
     DispatcherClient* destination() const;
 
     template <class EVENT_TYPE>
-    EVENT_TYPE* get()
+    EVENT_TYPE* castTo()
     {
         // PRECONDITIONS
         BSLS_ASSERT_OPT(EVENT_TYPE::k_TYPE == type());
@@ -519,7 +519,7 @@ class DispatcherEvent {
     }
 
     template <class EVENT_TYPE>
-    const EVENT_TYPE* const get() const
+    const EVENT_TYPE* const castTo() const
     {
         // PRECONDITIONS
         BSLS_ASSERT_OPT(EVENT_TYPE::k_TYPE == type());
@@ -710,7 +710,7 @@ class DispatcherClient {
     {
         // PRECONDITIONS
         BSLS_ASSERT(d_eventSource_sp);
-        return d_eventSource_sp->get<EVENT_TYPE>();
+        return d_eventSource_sp->getEvent<EVENT_TYPE>();
     }
 
     inline const bsl::shared_ptr<mqbi::DispatcherEventSource>&
