@@ -34,7 +34,7 @@ def is_core(path: str) -> bool:
 
 
 def is_bmqtool(core_path: Path) -> bool:
-    bmqtool_thread_prefixes = ["bmqEventQueue"]
+    bmqtool_thread_prefixes = ["bmqEventQueue", "bmqScheduler"]
     for prefix in bmqtool_thread_prefixes:
         if prefix in core_path:
             return True
