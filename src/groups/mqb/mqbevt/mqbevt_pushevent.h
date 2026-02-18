@@ -77,9 +77,6 @@ class PushEvent : public mqbi::DispatcherEvent {
     /// GUID associated to this event.
     bmqt::MessageGUID d_guid;
 
-    /// Whether this event is a relay event.
-    bool d_isRelay;
-
     /// Queue ID associated to this event.
     int d_queueId;
 
@@ -176,9 +173,6 @@ class PushEvent : public mqbi::DispatcherEvent {
     /// associated to this event.
     const bmqt::MessageGUID& guid() const;
 
-    /// Return whether this event is a relay event.
-    bool isRelay() const;
-
     /// Return the queue ID associated to this event.
     int queueId() const;
 
@@ -228,11 +222,6 @@ inline mqbnet::ClusterNode* PushEvent::clusterNode() const
 inline const bmqt::MessageGUID& PushEvent::guid() const
 {
     return d_guid;
-}
-
-inline bool PushEvent::isRelay() const
-{
-    return d_isRelay;
 }
 
 inline int PushEvent::queueId() const
@@ -295,12 +284,6 @@ inline PushEvent& PushEvent::setClusterNode(mqbnet::ClusterNode* value)
 inline PushEvent& PushEvent::setGuid(const bmqt::MessageGUID& value)
 {
     d_guid = value;
-    return *this;
-}
-
-inline PushEvent& PushEvent::setIsRelay(bool value)
-{
-    d_isRelay = value;
     return *this;
 }
 

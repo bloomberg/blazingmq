@@ -888,7 +888,6 @@ class TestBench {
         bsl::shared_ptr<mqbevt::PutEvent> event_sp =
             bsl::allocate_shared<mqbevt::PutEvent>(d_allocator_p);
         (*event_sp)
-            .setIsRelay(true)  // Relay message
             .setPutHeader(putHeader)
             .setBlob(eventBlob)  // const bsl::shared_ptr<bdlbb::Blob>& value
             .setSource(&d_cs);   // DispatcherClient *value
@@ -1954,7 +1953,6 @@ static void test9_newStylePush()
         bsl::allocate_shared<mqbevt::PutEvent>(
             bmqtst::TestHelperUtil::allocator());
     (*event_sp)
-        .setIsRelay(true)  // Relay message
         .setPutHeader(putIt.header())
         .setBlob(peb.blob())   // const bsl::shared_ptr<bdlbb::Blob>& value
         .setSource(&tb.d_cs);  // DispatcherClient *value
@@ -2070,7 +2068,6 @@ static void test10_newStyleCompressedPush()
         bsl::allocate_shared<mqbevt::PutEvent>(
             bmqtst::TestHelperUtil::allocator());
     (*event_sp)
-        .setIsRelay(true)  // Relay message
         .setPutHeader(putIt.header())
         .setBlob(peb.blob())   // const bsl::shared_ptr<bdlbb::Blob>& value
         .setSource(&tb.d_cs);  // DispatcherClient *value

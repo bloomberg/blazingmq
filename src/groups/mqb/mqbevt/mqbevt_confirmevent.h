@@ -71,9 +71,6 @@ class ConfirmEvent : public mqbi::DispatcherEvent {
     /// Confirm message associated to this event.
     bmqp::ConfirmMessage d_confirmMessage;
 
-    /// Whether this event is a relay event.
-    bool d_isRelay;
-
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(ConfirmEvent, bslma::UsesBslmaAllocator)
@@ -100,10 +97,6 @@ class ConfirmEvent : public mqbi::DispatcherEvent {
     /// reference offering modifiable access to this object.
     ConfirmEvent& setConfirmMessage(const bmqp::ConfirmMessage& value);
 
-    /// Set the isRelay flag to the specified `value` and return a reference
-    /// offering modifiable access to this object.
-    ConfirmEvent& setIsRelay(bool value);
-
     /// Reset all members of this event to default values.
     void reset() BSLS_KEYWORD_OVERRIDE;
 
@@ -119,9 +112,6 @@ class ConfirmEvent : public mqbi::DispatcherEvent {
     /// Return a reference not offering modifiable access to the confirm
     /// message associated to this event.
     const bmqp::ConfirmMessage& confirmMessage() const;
-
-    /// Return whether this event is a relay event.
-    bool isRelay() const;
 
     /// Return the type of this event.
     mqbi::DispatcherEventType::Enum type() const BSLS_KEYWORD_OVERRIDE;
@@ -151,11 +141,6 @@ inline const bmqp::ConfirmMessage& ConfirmEvent::confirmMessage() const
     return d_confirmMessage;
 }
 
-inline bool ConfirmEvent::isRelay() const
-{
-    return d_isRelay;
-}
-
 inline mqbi::DispatcherEventType::Enum ConfirmEvent::type() const
 {
     return k_TYPE;
@@ -178,12 +163,6 @@ inline ConfirmEvent&
 ConfirmEvent::setConfirmMessage(const bmqp::ConfirmMessage& value)
 {
     d_confirmMessage = value;
-    return *this;
-}
-
-inline ConfirmEvent& ConfirmEvent::setIsRelay(bool value)
-{
-    d_isRelay = value;
     return *this;
 }
 

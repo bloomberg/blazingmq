@@ -1609,7 +1609,6 @@ void StorageManager::processStorageEvent(const mqbevt::StorageEvent& event)
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-    BSLS_ASSERT_SAFE(event.isRelay() == false);
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!d_isStarted)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -1853,7 +1852,6 @@ void StorageManager::processRecoveryEvent(const mqbevt::RecoveryEvent& event)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(event.blob());
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-    BSLS_ASSERT_SAFE(event.isRelay() == false);
 
     mqbnet::ClusterNode* source = event.clusterNode();
     bmqp::Event          rawEvent(event.blob().get(), d_allocator_p);

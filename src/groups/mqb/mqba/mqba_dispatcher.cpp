@@ -47,7 +47,6 @@ namespace mqba {
 
 namespace {
 const double k_QUEUE_STUCK_INTERVAL = 3 * 60.0;
-const int    k_POOL_GROW_BY         = 1024;
 }  // close unnamed namespace
 
 // -------------------------

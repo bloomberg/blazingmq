@@ -65,11 +65,6 @@ class ClusterStateEvent : public mqbi::DispatcherEvent {
     /// Cluster node this event originates from.
     mqbnet::ClusterNode* d_clusterNode_p;
 
-    /// Whether this event is a relay event.
-    /// TODO: this is possibly not used, for some reason it was assigned in
-    /// mqbblp_cluster macro
-    bool d_isRelay;
-
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(ClusterStateEvent,
@@ -93,10 +88,6 @@ class ClusterStateEvent : public mqbi::DispatcherEvent {
     /// offering modifiable access to this object.
     ClusterStateEvent& setClusterNode(mqbnet::ClusterNode* value);
 
-    /// Set the isRelay flag to the specified `value` and return a reference
-    /// offering modifiable access to this object.
-    ClusterStateEvent& setIsRelay(bool value);
-
     /// Reset all members of this event to default values.
     void reset() BSLS_KEYWORD_OVERRIDE;
 
@@ -108,9 +99,6 @@ class ClusterStateEvent : public mqbi::DispatcherEvent {
 
     /// Return a pointer to the cluster node this event originates from.
     mqbnet::ClusterNode* clusterNode() const;
-
-    /// Return whether this event is a relay event.
-    bool isRelay() const;
 
     /// Return the type of this event.
     mqbi::DispatcherEventType::Enum type() const BSLS_KEYWORD_OVERRIDE;
@@ -135,11 +123,6 @@ inline mqbnet::ClusterNode* ClusterStateEvent::clusterNode() const
     return d_clusterNode_p;
 }
 
-inline bool ClusterStateEvent::isRelay() const
-{
-    return d_isRelay;
-}
-
 inline mqbi::DispatcherEventType::Enum ClusterStateEvent::type() const
 {
     return k_TYPE;
@@ -156,12 +139,6 @@ inline ClusterStateEvent&
 ClusterStateEvent::setClusterNode(mqbnet::ClusterNode* value)
 {
     d_clusterNode_p = value;
-    return *this;
-}
-
-inline ClusterStateEvent& ClusterStateEvent::setIsRelay(bool value)
-{
-    d_isRelay = value;
     return *this;
 }
 

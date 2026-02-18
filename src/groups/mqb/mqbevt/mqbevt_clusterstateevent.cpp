@@ -32,7 +32,6 @@ ClusterStateEvent::ClusterStateEvent(bslma::Allocator* allocator)
 : mqbi::DispatcherEvent(allocator)
 , d_blob_sp()
 , d_clusterNode_p(0)
-, d_isRelay(false)
 {
     // NOTHING
 }
@@ -46,7 +45,6 @@ void ClusterStateEvent::reset()
 {
     d_blob_sp.reset();
     d_clusterNode_p = 0;
-    d_isRelay       = false;
     mqbi::DispatcherEvent::reset();
 }
 

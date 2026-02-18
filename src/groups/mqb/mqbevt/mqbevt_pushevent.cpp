@@ -34,7 +34,6 @@ PushEvent::PushEvent(bslma::Allocator* allocator)
 , d_options_sp()
 , d_clusterNode_p(0)
 , d_guid()
-, d_isRelay(false)
 , d_queueId(-1)
 , d_subQueueInfos(allocator)
 , d_messagePropertiesInfo()
@@ -55,7 +54,6 @@ void PushEvent::reset()
     d_options_sp.reset();
     d_clusterNode_p = 0;
     d_guid          = bmqt::MessageGUID();
-    d_isRelay       = false;
     d_queueId       = -1;
     d_subQueueInfos.clear();
     d_messagePropertiesInfo    = bmqp::MessagePropertiesInfo();
@@ -81,7 +79,6 @@ PushEvent::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     if (destination()) {
         printer.printAttribute("destination", destination()->description());
     }
-    printer.printAttribute("isRelay", d_isRelay);
     printer.printAttribute("guid", d_guid);
     printer.printAttribute("queueId", d_queueId);
     printer.printAttribute("compressionAlgorithmType",

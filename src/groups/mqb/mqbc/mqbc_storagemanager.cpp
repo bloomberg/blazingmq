@@ -4343,7 +4343,6 @@ void StorageManager::processStorageEvent(const mqbevt::StorageEvent& event)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
     BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
-    BSLS_ASSERT_SAFE(event.isRelay() == false);
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!d_isStarted)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;

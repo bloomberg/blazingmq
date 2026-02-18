@@ -65,9 +65,6 @@ class StorageEvent : public mqbi::DispatcherEvent {
     /// Cluster node this event originates from.
     mqbnet::ClusterNode* d_clusterNode_p;
 
-    /// Whether this event is a relay event.
-    bool d_isRelay;
-
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(StorageEvent, bslma::UsesBslmaAllocator)
@@ -90,10 +87,6 @@ class StorageEvent : public mqbi::DispatcherEvent {
     /// offering modifiable access to this object.
     StorageEvent& setClusterNode(mqbnet::ClusterNode* value);
 
-    /// Set the isRelay flag to the specified `value` and return a reference
-    /// offering modifiable access to this object.
-    StorageEvent& setIsRelay(bool value);
-
     /// Reset all members of this event to default values.
     void reset() BSLS_KEYWORD_OVERRIDE;
 
@@ -105,9 +98,6 @@ class StorageEvent : public mqbi::DispatcherEvent {
 
     /// Return a pointer to the cluster node this event originates from.
     mqbnet::ClusterNode* clusterNode() const;
-
-    /// Return whether this event is a relay event.
-    bool isRelay() const;
 
     /// Return the type of this event.
     mqbi::DispatcherEventType::Enum type() const BSLS_KEYWORD_OVERRIDE;
@@ -132,11 +122,6 @@ inline mqbnet::ClusterNode* StorageEvent::clusterNode() const
     return d_clusterNode_p;
 }
 
-inline bool StorageEvent::isRelay() const
-{
-    return d_isRelay;
-}
-
 inline mqbi::DispatcherEventType::Enum StorageEvent::type() const
 {
     return k_TYPE;
@@ -152,12 +137,6 @@ StorageEvent::setBlob(const bsl::shared_ptr<bdlbb::Blob>& value)
 inline StorageEvent& StorageEvent::setClusterNode(mqbnet::ClusterNode* value)
 {
     d_clusterNode_p = value;
-    return *this;
-}
-
-inline StorageEvent& StorageEvent::setIsRelay(bool value)
-{
-    d_isRelay = value;
     return *this;
 }
 

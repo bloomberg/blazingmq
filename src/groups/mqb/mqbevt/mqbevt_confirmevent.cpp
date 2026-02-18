@@ -33,7 +33,6 @@ ConfirmEvent::ConfirmEvent(bslma::Allocator* allocator)
 , d_blob_sp()
 , d_clusterNode_p(0)
 , d_confirmMessage()
-, d_isRelay(false)
 {
     // NOTHING
 }
@@ -48,7 +47,6 @@ void ConfirmEvent::reset()
     d_blob_sp.reset();
     d_clusterNode_p  = 0;
     d_confirmMessage = bmqp::ConfirmMessage();
-    d_isRelay        = false;
     mqbi::DispatcherEvent::reset();
 }
 
@@ -69,7 +67,6 @@ ConfirmEvent::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     if (destination()) {
         printer.printAttribute("destination", destination()->description());
     }
-    printer.printAttribute("isRelay", d_isRelay);
     printer.printAttribute("confirmMessage.queueId",
                            d_confirmMessage.queueId());
     printer.printAttribute("confirmMessage.messageGUID",

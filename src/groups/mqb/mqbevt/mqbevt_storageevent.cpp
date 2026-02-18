@@ -32,7 +32,6 @@ StorageEvent::StorageEvent(bslma::Allocator* allocator)
 : mqbi::DispatcherEvent(allocator)
 , d_blob_sp()
 , d_clusterNode_p(0)
-, d_isRelay(false)
 {
     // NOTHING
 }
@@ -46,7 +45,6 @@ void StorageEvent::reset()
 {
     d_blob_sp.reset();
     d_clusterNode_p = 0;
-    d_isRelay       = false;
     mqbi::DispatcherEvent::reset();
 }
 
@@ -67,7 +65,6 @@ StorageEvent::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     if (destination()) {
         printer.printAttribute("destination", destination()->description());
     }
-    printer.printAttribute("isRelay", d_isRelay);
 
     printer.end();
 

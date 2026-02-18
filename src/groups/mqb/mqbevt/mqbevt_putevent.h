@@ -77,9 +77,6 @@ class PutEvent : public mqbi::DispatcherEvent {
     /// Cluster node this event originates from.
     mqbnet::ClusterNode* d_clusterNode_p;
 
-    /// Whether this event is a relay event.
-    bool d_isRelay;
-
     /// Put header associated to this event.
     bmqp::PutHeader d_putHeader;
 
@@ -118,10 +115,6 @@ class PutEvent : public mqbi::DispatcherEvent {
     /// offering modifiable access to this object.
     PutEvent& setClusterNode(mqbnet::ClusterNode* value);
 
-    /// Set the isRelay flag to the specified `value` and return a reference
-    /// offering modifiable access to this object.
-    PutEvent& setIsRelay(bool value);
-
     /// Set the put header to the specified `value` and return a reference
     /// offering modifiable access to this object.
     PutEvent& setPutHeader(const bmqp::PutHeader& value);
@@ -153,9 +146,6 @@ class PutEvent : public mqbi::DispatcherEvent {
 
     /// Return a pointer to the cluster node this event originates from.
     mqbnet::ClusterNode* clusterNode() const;
-
-    /// Return whether this event is a relay event.
-    bool isRelay() const;
 
     /// Return a reference not offering modifiable access to the put header
     /// associated to this event.
@@ -199,11 +189,6 @@ inline mqbnet::ClusterNode* PutEvent::clusterNode() const
     return d_clusterNode_p;
 }
 
-inline bool PutEvent::isRelay() const
-{
-    return d_isRelay;
-}
-
 inline const bmqp::PutHeader& PutEvent::putHeader() const
 {
     return d_putHeader;
@@ -245,12 +230,6 @@ PutEvent::setOptions(const bsl::shared_ptr<bdlbb::Blob>& value)
 inline PutEvent& PutEvent::setClusterNode(mqbnet::ClusterNode* value)
 {
     d_clusterNode_p = value;
-    return *this;
-}
-
-inline PutEvent& PutEvent::setIsRelay(bool value)
-{
-    d_isRelay = value;
     return *this;
 }
 

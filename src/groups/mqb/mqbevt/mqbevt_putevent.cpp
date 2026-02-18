@@ -33,7 +33,6 @@ PutEvent::PutEvent(bslma::Allocator* allocator)
 , d_blob_sp()
 , d_options_sp()
 , d_clusterNode_p(0)
-, d_isRelay(false)
 , d_putHeader()
 , d_queueHandle_p(0)
 , d_genCount(0)
@@ -52,7 +51,6 @@ void PutEvent::reset()
     d_blob_sp.reset();
     d_options_sp.reset();
     d_clusterNode_p = 0;
-    d_isRelay       = false;
     d_putHeader     = bmqp::PutHeader();
     d_queueHandle_p = 0;
     d_genCount      = 0;
@@ -77,7 +75,6 @@ PutEvent::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     if (destination()) {
         printer.printAttribute("destination", destination()->description());
     }
-    printer.printAttribute("isRelay", d_isRelay);
     printer.printAttribute("genCount", d_genCount);
 
     printer.end();
