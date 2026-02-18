@@ -1,6 +1,7 @@
 boofuzz
 crc32c
 docker
+mypy
 psutil
 pytest
 pytest-cov
