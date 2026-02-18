@@ -136,7 +136,7 @@ jobs:
 
           python3 ${{ github.workspace }}/.github/workflows/ext/print_cores.py \
           --cores-dir=${{ github.workspace }}/src/integration-tests/failure-logs \
-          --bin-path=${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk
+          --build-dir=${{ github.workspace }}/build/blazingmq
 
       - name: Upload failure-logs as artifacts
         if: failure()
@@ -204,7 +204,7 @@ jobs:
 
           python3 ${{ github.workspace }}/.github/workflows/ext/print_cores.py \
           --cores-dir=/cores \
-          --bin-path=${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk
+          --build-dir=${{ github.workspace }}/build/blazingmq
 
   sanitize_ubuntu:
     name: Sanitize
