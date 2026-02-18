@@ -1493,33 +1493,49 @@ void StorageManager::do_failureReplicaStateResponse(const EventWithData& event)
 
     const PartitionFSMEventData& eventData   = eventDataVec[0];
     const int                    partitionId = eventData.partitionId();
-
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
-
     BSLS_ASSERT_SAFE(eventData.source());
-    BSLS_ASSERT_SAFE(eventData.source()->nodeId() !=
-                     d_partitionInfoVec[partitionId].primary()->nodeId());
-    BSLS_ASSERT_SAFE(!d_partitionFSMVec[partitionId]->isSelfReplica());
-    // Replicas should never send an explicit failure ReplicaStateResponse.
 
     bmqp_ctrlmsg::ControlMessage controlMsg;
-    controlMsg.rId() = eventData.requestId();
-
+    controlMsg.rId()               = eventData.requestId();
     bmqp_ctrlmsg::Status& response = controlMsg.choice().makeStatus();
-    response.category()            = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
-    response.code()                = mqbi::ClusterErrorCode::e_NOT_REPLICA;
-    response.message()             = "Not a replica";
+
+    if (!d_partitionFSMVec[partitionId]->isSelfReplica()) {
+        response.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+        response.code()     = mqbi::ClusterErrorCode::e_NOT_REPLICA;
+        response.message()  = "Not a replica";
+
+        BALL_LOG_INFO
+            << d_clusterData_p->identity().description() << " Partition ["
+            << partitionId
+            << "]: " << "Self not replica! Sent failure response "
+            << controlMsg
+            << " to ReplicaStateRequest from node claiming to be primary "
+            << eventData.source()->nodeDescription() << ".";
+    }
+    else {
+        BSLS_ASSERT_SAFE(partitionHealthState(partitionId) ==
+                         PartitionFSM::State::e_REPLICA_WAITING);
+        BSLS_ASSERT_SAFE(eventData.source()->nodeId() ==
+                         d_partitionInfoVec[partitionId].primary()->nodeId());
+
+        response.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+        response.code()     = mqbi::ClusterErrorCode::e_REPLICA_WAITING;
+        response.message()  = "Self replica waiting for PrimaryStateResponse";
+
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId << "]: "
+                      << "Self is waiting for PrimaryStateResponse, and "
+                      << "**must** reject the ReplicaStateRequest to prevent "
+                      << "primary from healing us twice in a row, leading to "
+                      << "duplicate work.  Sent failure response "
+                      << controlMsg << " to ReplicaStateRequest from primary"
+                      << eventData.source()->nodeDescription() << ".";
+    }
 
     d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
                                                           eventData.source());
-
-    BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId
-                  << "]: " << "Self not replica! Sent failure response "
-                  << controlMsg
-                  << " to ReplicaStateRequest from node claiming to be primary"
-                  << eventData.source()->nodeDescription() << ".";
 }
 
 void StorageManager::do_logFailureReplicaStateResponse(
@@ -1568,6 +1584,61 @@ void StorageManager::do_logFailurePrimaryStateResponse(
                   << (sourceNode ? sourceNode->nodeDescription()
                                  : "** NULL **")
                   << ".";
+}
+
+void StorageManager::do_logUnexpectedPrimaryStateResponse(
+    const EventWithData& event)
+{
+    // executed by the *QUEUE DISPATCHER* thread associated with the
+    // paritionId contained in 'event'
+
+    const EventData& eventDataVec = event.second;
+    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+
+    int                        partitionId = eventDataVec[0].partitionId();
+    const mqbnet::ClusterNode* sourceNode  = eventDataVec[0].source();
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+
+    BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->state() !=
+                     PartitionFSM::State::e_REPLICA_WAITING);
+
+    BALL_LOG_WARN << d_clusterData_p->identity().description()
+                  << " Partition [" << partitionId << "]: "
+                  << "Received unexpected PrimaryStateResponse from node "
+                  << (sourceNode ? sourceNode->nodeDescription()
+                                 : "** NULL **")
+                  << ", while self is in "
+                  << d_partitionFSMVec[partitionId]->state()
+                  << " state.  Self should only receive PrimaryStateResponse "
+                  << "when in REPLICA_WAITING state.";
+}
+
+void StorageManager::do_logUnexpectedFailurePrimaryStateResponse(
+    const EventWithData& event)
+{
+    // executed by the *QUEUE DISPATCHER* thread associated with the
+    // paritionId contained in 'event'
+
+    const EventData& eventDataVec = event.second;
+    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+
+    int                        partitionId = eventDataVec[0].partitionId();
+    const mqbnet::ClusterNode* sourceNode  = eventDataVec[0].source();
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+
+    BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->state() !=
+                     PartitionFSM::State::e_REPLICA_WAITING);
+
+    BALL_LOG_WARN
+        << d_clusterData_p->identity().description() << " Partition ["
+        << partitionId << "]: "
+        << "Received unexpected failure PrimaryStateResponse from node "
+        << (sourceNode ? sourceNode->nodeDescription() : "** NULL **")
+        << ", while self is in " << d_partitionFSMVec[partitionId]->state()
+        << " state.  Self should only receive failure PrimaryStateResponse "
+        << "when in REPLICA_WAITING state.";
 }
 
 void StorageManager::do_primaryStateRequest(const EventWithData& event)

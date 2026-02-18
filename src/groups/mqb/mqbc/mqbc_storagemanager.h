@@ -594,6 +594,12 @@ class StorageManager BSLS_KEYWORD_FINAL
     void do_logFailurePrimaryStateResponse(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
 
+    void do_logUnexpectedPrimaryStateResponse(const EventWithData& event)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_logUnexpectedFailurePrimaryStateResponse(
+        const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
     void
     do_primaryStateRequest(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
