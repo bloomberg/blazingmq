@@ -54,6 +54,9 @@ class CallbackEvent : public mqbi::DispatcherEvent {
   private:
     // DATA
 
+    /// Source client of this event.
+    mqbi::DispatcherClient* d_source_p;
+
     /// Callback in this event.
     bmqu::ManagedCallback d_callback;
 
@@ -80,10 +83,17 @@ class CallbackEvent : public mqbi::DispatcherEvent {
     CallbackEvent&
     setCallback(bslmf::MovableRef<mqbi::Dispatcher::VoidFunctor> value);
 
+    /// Set the source client to the specified `value` and return a
+    /// reference offering modifiable access to this object.
+    CallbackEvent& setSource(mqbi::DispatcherClient* value);
+
     /// Reset all members of this event to default values.
     void reset() BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
+
+    /// Return the source client of this event.
+    mqbi::DispatcherClient* source() const;
 
     /// Return a reference not offering modifiable access to the callback.
     const bmqu::ManagedCallback& callback() const;
@@ -100,6 +110,11 @@ class CallbackEvent : public mqbi::DispatcherEvent {
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
+
+inline mqbi::DispatcherClient* CallbackEvent::source() const
+{
+    return d_source_p;
+}
 
 inline bmqu::ManagedCallback& CallbackEvent::callback()
 {
@@ -127,6 +142,12 @@ inline CallbackEvent& CallbackEvent::setCallback(
     bslmf::MovableRef<mqbi::Dispatcher::VoidFunctor> value)
 {
     d_callback.set(value);
+    return *this;
+}
+
+inline CallbackEvent& CallbackEvent::setSource(mqbi::DispatcherClient* value)
+{
+    d_source_p = value;
     return *this;
 }
 

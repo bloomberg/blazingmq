@@ -181,8 +181,7 @@ Dispatcher::~Dispatcher()
 // ---------------------
 
 DispatcherEvent::DispatcherEvent(bslma::Allocator* /* allocator */)
-: d_source_p(0)
-, d_destination_p(0)
+: d_destination_p(0)
 {
     // NOTHING
 }
@@ -190,37 +189,6 @@ DispatcherEvent::DispatcherEvent(bslma::Allocator* /* allocator */)
 DispatcherEvent::~DispatcherEvent()
 {
     // NOTHING
-}
-
-void DispatcherEvent::reset()
-{
-    d_source_p      = 0;
-    d_destination_p = 0;
-}
-
-bsl::ostream& DispatcherEvent::print(bsl::ostream& stream,
-                                     int           level,
-                                     int           spacesPerLevel) const
-{
-    if (stream.bad()) {
-        return stream;  // RETURN
-    }
-
-    bslim::Printer printer(&stream, level, spacesPerLevel);
-    printer.start();
-
-    // Print the type, source and destination (if any)
-    printer.printAttribute("type", type());
-    if (source()) {
-        printer.printAttribute("source", source()->description());
-    }
-    if (destination()) {
-        printer.printAttribute("destination", destination()->description());
-    }
-
-    printer.end();
-
-    return stream;
 }
 
 // --------------------------

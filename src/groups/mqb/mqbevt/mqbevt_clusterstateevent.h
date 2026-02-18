@@ -59,6 +59,9 @@ class ClusterStateEvent : public mqbi::DispatcherEvent {
   private:
     // DATA
 
+    /// Source client of this event.
+    mqbi::DispatcherClient* d_source_p;
+
     /// Blob associated to this event.
     bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
 
@@ -88,10 +91,17 @@ class ClusterStateEvent : public mqbi::DispatcherEvent {
     /// offering modifiable access to this object.
     ClusterStateEvent& setClusterNode(mqbnet::ClusterNode* value);
 
+    /// Set the source client to the specified `value` and return a
+    /// reference offering modifiable access to this object.
+    ClusterStateEvent& setSource(mqbi::DispatcherClient* value);
+
     /// Reset all members of this event to default values.
     void reset() BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
+
+    /// Return the source client of this event.
+    mqbi::DispatcherClient* source() const;
 
     /// Return a reference not offering modifiable access to the blob
     /// associated to this event.
@@ -112,6 +122,11 @@ class ClusterStateEvent : public mqbi::DispatcherEvent {
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
+
+inline mqbi::DispatcherClient* ClusterStateEvent::source() const
+{
+    return d_source_p;
+}
 
 inline const bsl::shared_ptr<bdlbb::Blob>& ClusterStateEvent::blob() const
 {
@@ -139,6 +154,13 @@ inline ClusterStateEvent&
 ClusterStateEvent::setClusterNode(mqbnet::ClusterNode* value)
 {
     d_clusterNode_p = value;
+    return *this;
+}
+
+inline ClusterStateEvent&
+ClusterStateEvent::setSource(mqbi::DispatcherClient* value)
+{
+    d_source_p = value;
     return *this;
 }
 

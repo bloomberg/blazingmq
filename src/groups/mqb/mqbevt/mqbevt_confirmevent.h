@@ -62,6 +62,9 @@ class ConfirmEvent : public mqbi::DispatcherEvent {
   private:
     // DATA
 
+    /// Source client of this event.
+    mqbi::DispatcherClient* d_source_p;
+
     /// Blob associated to this event.
     bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
 
@@ -97,10 +100,17 @@ class ConfirmEvent : public mqbi::DispatcherEvent {
     /// reference offering modifiable access to this object.
     ConfirmEvent& setConfirmMessage(const bmqp::ConfirmMessage& value);
 
+    /// Set the source client to the specified `value` and return a
+    /// reference offering modifiable access to this object.
+    ConfirmEvent& setSource(mqbi::DispatcherClient* value);
+
     /// Reset all members of this event to default values.
     void reset() BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
+
+    /// Return the source client of this event.
+    mqbi::DispatcherClient* source() const;
 
     /// Return a reference not offering modifiable access to the blob
     /// associated to this event.
@@ -125,6 +135,11 @@ class ConfirmEvent : public mqbi::DispatcherEvent {
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
+
+inline mqbi::DispatcherClient* ConfirmEvent::source() const
+{
+    return d_source_p;
+}
 
 inline const bsl::shared_ptr<bdlbb::Blob>& ConfirmEvent::blob() const
 {
@@ -163,6 +178,12 @@ inline ConfirmEvent&
 ConfirmEvent::setConfirmMessage(const bmqp::ConfirmMessage& value)
 {
     d_confirmMessage = value;
+    return *this;
+}
+
+inline ConfirmEvent& ConfirmEvent::setSource(mqbi::DispatcherClient* value)
+{
+    d_source_p = value;
     return *this;
 }
 

@@ -54,6 +54,9 @@ class ControlMessageEvent : public mqbi::DispatcherEvent {
   private:
     // DATA
 
+    /// Source client of this event.
+    mqbi::DispatcherClient* d_source_p;
+
     /// ControlMessage in this event.
     bmqp_ctrlmsg::ControlMessage d_controlMessage;
 
@@ -77,10 +80,17 @@ class ControlMessageEvent : public mqbi::DispatcherEvent {
     ControlMessageEvent&
     setControlMessage(const bmqp_ctrlmsg::ControlMessage& value);
 
+    /// Set the source client to the specified `value` and return a
+    /// reference offering modifiable access to this object.
+    ControlMessageEvent& setSource(mqbi::DispatcherClient* value);
+
     /// Reset all members of this event to default values.
     void reset() BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
+
+    /// Return the source client of this event.
+    mqbi::DispatcherClient* source() const;
 
     /// Return a reference not offering modifiable access to the control
     /// message associated to this event.
@@ -99,6 +109,11 @@ class ControlMessageEvent : public mqbi::DispatcherEvent {
 //                             INLINE DEFINITIONS
 // ============================================================================
 
+inline mqbi::DispatcherClient* ControlMessageEvent::source() const
+{
+    return d_source_p;
+}
+
 inline const bmqp_ctrlmsg::ControlMessage&
 ControlMessageEvent::controlMessage() const
 {
@@ -114,6 +129,13 @@ inline ControlMessageEvent& ControlMessageEvent::setControlMessage(
     const bmqp_ctrlmsg::ControlMessage& value)
 {
     d_controlMessage = value;
+    return *this;
+}
+
+inline ControlMessageEvent&
+ControlMessageEvent::setSource(mqbi::DispatcherClient* value)
+{
+    d_source_p = value;
     return *this;
 }
 

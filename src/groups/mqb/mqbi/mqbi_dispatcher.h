@@ -465,10 +465,6 @@ class Dispatcher {
 class DispatcherEvent {
   private:
     // DATA
-    DispatcherClient* d_source_p;
-    // Source ('producer') of this event
-    // if any.
-
     DispatcherClient* d_destination_p;
     // Destination ('consumer') for this
     // event.
@@ -489,22 +485,17 @@ class DispatcherEvent {
 
     /// Set the corresponding member to the specified `value` and return a
     /// reference offering modifiable access to this object.
-    DispatcherEvent& setSource(DispatcherClient* value);
     DispatcherEvent& setDestination(DispatcherClient* value);
 
     /// Reset common members of this `DispatcherEvent` to default values.
     /// Derived classes should override to reset their specific members.
-    virtual void reset();
+    virtual void reset() { d_destination_p = 0; }
 
     // ACCESSORS
 
     /// Return the type of this event.  Concrete event types must implement
     /// this to return their specific type constant.
     virtual DispatcherEventType::Enum type() const = 0;
-
-    /// Return the DispatcherClient source (`producer`) of this event, if
-    /// specified by the producer of this event.
-    DispatcherClient* source() const;
 
     /// Return the DispatcherClient destination target (`consumer`) of this
     /// event.
@@ -535,8 +526,9 @@ class DispatcherEvent {
     /// negative format the entire output on one line, suppressing all but
     /// the initial indentation (as governed by `level`).  If `stream` is
     /// not valid on entry, this operation has no effect.
-    virtual bsl::ostream&
-    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    virtual bsl::ostream& print(bsl::ostream& stream,
+                                int           level          = 0,
+                                int           spacesPerLevel = 4) const = 0;
 };
 
 // FREE OPERATORS
@@ -736,22 +728,11 @@ bsl::ostream& operator<<(bsl::ostream& stream, const DispatcherClient& client);
 // class DispatcherEvent
 // ---------------------
 
-inline DispatcherEvent& DispatcherEvent::setSource(DispatcherClient* value)
-{
-    d_source_p = value;
-    return *this;
-}
-
 inline DispatcherEvent&
 DispatcherEvent::setDestination(DispatcherClient* value)
 {
     d_destination_p = value;
     return *this;
-}
-
-inline DispatcherClient* DispatcherEvent::source() const
-{
-    return d_source_p;
 }
 
 inline DispatcherClient* DispatcherEvent::destination() const

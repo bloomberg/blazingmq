@@ -59,6 +59,9 @@ class RecoveryEvent : public mqbi::DispatcherEvent {
   private:
     // DATA
 
+    /// Source client of this event.
+    mqbi::DispatcherClient* d_source_p;
+
     /// Blob associated to this event.
     bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
 
@@ -87,10 +90,17 @@ class RecoveryEvent : public mqbi::DispatcherEvent {
     /// offering modifiable access to this object.
     RecoveryEvent& setClusterNode(mqbnet::ClusterNode* value);
 
+    /// Set the source client to the specified `value` and return a
+    /// reference offering modifiable access to this object.
+    RecoveryEvent& setSource(mqbi::DispatcherClient* value);
+
     /// Reset all members of this event to default values.
     void reset() BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
+
+    /// Return the source client of this event.
+    mqbi::DispatcherClient* source() const;
 
     /// Return a reference not offering modifiable access to the blob
     /// associated to this event.
@@ -111,6 +121,11 @@ class RecoveryEvent : public mqbi::DispatcherEvent {
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
+
+inline mqbi::DispatcherClient* RecoveryEvent::source() const
+{
+    return d_source_p;
+}
 
 inline const bsl::shared_ptr<bdlbb::Blob>& RecoveryEvent::blob() const
 {
@@ -137,6 +152,12 @@ RecoveryEvent::setBlob(const bsl::shared_ptr<bdlbb::Blob>& value)
 inline RecoveryEvent& RecoveryEvent::setClusterNode(mqbnet::ClusterNode* value)
 {
     d_clusterNode_p = value;
+    return *this;
+}
+
+inline RecoveryEvent& RecoveryEvent::setSource(mqbi::DispatcherClient* value)
+{
+    d_source_p = value;
     return *this;
 }
 

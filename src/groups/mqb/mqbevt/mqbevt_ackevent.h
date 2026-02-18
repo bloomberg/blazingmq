@@ -62,6 +62,9 @@ class AckEvent : public mqbi::DispatcherEvent {
   private:
     // DATA
 
+    /// Source client of this event.
+    mqbi::DispatcherClient* d_source_p;
+
     /// Ack message associated to this event.
     bmqp::AckMessage d_ackMessage;
 
@@ -111,10 +114,17 @@ class AckEvent : public mqbi::DispatcherEvent {
     /// offering modifiable access to this object.
     AckEvent& setIsRelay(bool value);
 
+    /// Set the source client to the specified `value` and return a
+    /// reference offering modifiable access to this object.
+    AckEvent& setSource(mqbi::DispatcherClient* value);
+
     /// Reset all members of this event to default values.
     void reset() BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
+
+    /// Return the source client of this event.
+    mqbi::DispatcherClient* source() const;
 
     /// Return a reference not offering modifiable access to the ack message
     /// associated to this event.
@@ -146,6 +156,11 @@ class AckEvent : public mqbi::DispatcherEvent {
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
+
+inline mqbi::DispatcherClient* AckEvent::source() const
+{
+    return d_source_p;
+}
 
 inline const bmqp::AckMessage& AckEvent::ackMessage() const
 {
@@ -205,6 +220,12 @@ inline AckEvent& AckEvent::setClusterNode(mqbnet::ClusterNode* value)
 inline AckEvent& AckEvent::setIsRelay(bool value)
 {
     d_isRelay = value;
+    return *this;
+}
+
+inline AckEvent& AckEvent::setSource(mqbi::DispatcherClient* value)
+{
+    d_source_p = value;
     return *this;
 }
 

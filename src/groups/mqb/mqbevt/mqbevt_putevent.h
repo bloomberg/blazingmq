@@ -68,6 +68,9 @@ class PutEvent : public mqbi::DispatcherEvent {
   private:
     // DATA
 
+    /// Source client of this event.
+    mqbi::DispatcherClient* d_source_p;
+
     /// Blob associated to this event.
     bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
 
@@ -131,10 +134,17 @@ class PutEvent : public mqbi::DispatcherEvent {
     /// offering modifiable access to this object.
     PutEvent& setState(const bsl::shared_ptr<bmqu::AtomicState>& value);
 
+    /// Set the source client to the specified `value` and return a
+    /// reference offering modifiable access to this object.
+    PutEvent& setSource(mqbi::DispatcherClient* value);
+
     /// Reset all members of this event to default values.
     void reset() BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
+
+    /// Return the source client of this event.
+    mqbi::DispatcherClient* source() const;
 
     /// Return a reference not offering modifiable access to the blob
     /// associated to this event.
@@ -173,6 +183,11 @@ class PutEvent : public mqbi::DispatcherEvent {
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
+
+inline mqbi::DispatcherClient* PutEvent::source() const
+{
+    return d_source_p;
+}
 
 inline const bsl::shared_ptr<bdlbb::Blob>& PutEvent::blob() const
 {
@@ -255,6 +270,12 @@ inline PutEvent&
 PutEvent::setState(const bsl::shared_ptr<bmqu::AtomicState>& value)
 {
     d_state_sp = value;
+    return *this;
+}
+
+inline PutEvent& PutEvent::setSource(mqbi::DispatcherClient* value)
+{
+    d_source_p = value;
     return *this;
 }
 
