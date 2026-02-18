@@ -369,6 +369,16 @@ class Cluster : public mqbi::Cluster,
     processClusterControlMessage(const bmqp_ctrlmsg::ControlMessage& message,
                                  mqbnet::ClusterNode*                source);
 
+    /// @brief Pass a protocol event to the dispatcher.
+    ///
+    /// @tparam EventType Concrete event type (e.g., mqbevt::PutEvent)
+    /// @tparam IsRelay   Whether this event is a relay event
+    /// @param event      bmqp::Event containing the blob to copy
+    /// @param source     Cluster node this event originates from
+    template <typename EventType, bool IsRelay>
+    void sendToDispatcher(const bmqp::Event&   event,
+                          mqbnet::ClusterNode* source);
+
     void onPutEvent(const mqbevt::PutEvent& event);
 
     void onRelayAckEvent(const mqbevt::AckEvent& event);
