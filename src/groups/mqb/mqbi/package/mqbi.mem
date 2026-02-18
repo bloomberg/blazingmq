@@ -1,6 +1,7 @@
 mqbi_cluster
 mqbi_clusterstatemanager
 mqbi_dispatcher
+mqbi_dispatchereventsource
 mqbi_domain
 mqbi_queue
 mqbi_queueengine

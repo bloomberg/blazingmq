@@ -80,7 +80,7 @@ namespace mqbc {
 /// This class provides a mechanism to manage the state of a cluster.
 class ClusterStateManager BSLS_KEYWORD_FINAL
 : public mqbi::ClusterStateManager,
-  public ClusterStateTableActions<ClusterFSM::ClusterFSMArgsSp>,
+  public ClusterStateTableActions<ClusterFSM::EventWithMetadata>,
   public mqbc::ElectorInfoObserver,
   public mqbc::ClusterStateObserver {
   private:
@@ -107,8 +107,6 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     typedef ClusterFSMEventMetadata::InputMessagesCIter InputMessagesCIter;
 
     typedef ClusterFSM::EventWithMetadata EventWithMetadata;
-    typedef ClusterFSM::ClusterFSMArgs    ClusterFSMArgs;
-    typedef ClusterFSM::ClusterFSMArgsSp  ClusterFSMArgsSp;
 
     typedef mqbi::ClusterStateManager::AppInfos AppInfos;
 
@@ -171,86 +169,100 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
   private:
     // PRIVATE MANIPULATORS
     //   (virtual: mqbc::ClusterStateTableActions)
-    void do_startWatchDog(const ClusterFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
-
-    void do_stopWatchDog(const ClusterFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+    void do_abort(const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
 
     void
-    do_triggerWatchDog(const ClusterFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+    do_startWatchDog(const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
 
-    void do_applyCSLSelf(const ClusterFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+    void do_stopWatchDog(const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
 
-    void do_initializeQueueKeyInfoMap(const ClusterFSMArgsSp& args)
+    void
+    do_triggerWatchDog(const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_applyCSLSelf(const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_initializeQueueKeyInfoMap(const EventWithMetadata& event)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_sendFollowerLSNRequests(const ClusterFSMArgsSp& args)
+    void do_stopPFSMs(const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_updatePrimaryInPFSMs(const EventWithMetadata& event)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_sendFollowerLSNResponse(const ClusterFSMArgsSp& args)
+    void do_sendFollowerLSNRequests(const EventWithMetadata& event)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_sendFailureFollowerLSNResponse(const ClusterFSMArgsSp& args)
+    void do_sendFollowerLSNResponse(const EventWithMetadata& event)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_findHighestLSN(const ClusterFSMArgsSp& x) BSLS_KEYWORD_OVERRIDE;
-
-    void do_sendFollowerClusterStateRequest(const ClusterFSMArgsSp& args)
+    void do_sendFailureFollowerLSNResponse(const EventWithMetadata& event)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_sendFollowerClusterStateResponse(const ClusterFSMArgsSp& args)
+    void
+    do_findHighestLSN(const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_sendFollowerClusterStateRequest(const EventWithMetadata& event)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_sendFollowerClusterStateResponse(const EventWithMetadata& event)
         BSLS_KEYWORD_OVERRIDE;
 
     void do_sendFailureFollowerClusterStateResponse(
-        const ClusterFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+        const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
 
-    void do_storeSelfLSN(const ClusterFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
-
-    void
-    do_storeFollowerLSNs(const ClusterFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+    void do_storeSelfLSN(const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
 
     void
-    do_removeFollowerLSN(const ClusterFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
-
-    void do_checkLSNQuorum(const ClusterFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
-
-    void do_sendRegistrationRequest(const ClusterFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_sendRegistrationResponse(const ClusterFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_sendFailureRegistrationResponse(const ClusterFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_logStaleFollowerLSNResponse(const ClusterFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_logStaleFollowerClusterStateResponse(const ClusterFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_logErrorLeaderNotHealed(const ClusterFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_logFailFollowerLSNResponses(const ClusterFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_logFailFollowerClusterStateResponse(const ClusterFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_logFailRegistrationResponse(const ClusterFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_reapplyEvent(const ClusterFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+    do_storeFollowerLSNs(const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
 
     void
-    do_reapplySelectLeader(const ClusterFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+    do_removeFollowerLSN(const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
 
-    void do_reapplySelectFollower(const ClusterFSMArgsSp& args)
+    void
+    do_checkLSNQuorum(const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_sendRegistrationRequest(const EventWithMetadata& event)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_cleanupLSNs(const ClusterFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+    void do_sendRegistrationResponse(const EventWithMetadata& event)
+        BSLS_KEYWORD_OVERRIDE;
 
-    void do_cancelRequests(const ClusterFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+    void do_sendFailureRegistrationResponse(const EventWithMetadata& event)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_logUnexpectedCSLCommit(const EventWithMetadata& event)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_logStaleFollowerLSNResponse(const EventWithMetadata& event)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_logStaleFollowerClusterStateResponse(
+        const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_logErrorLeaderNotHealed(const EventWithMetadata& event)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_logFailFollowerLSNResponses(const EventWithMetadata& event)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_logFailFollowerClusterStateResponse(const EventWithMetadata& event)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_logFailRegistrationResponse(const EventWithMetadata& event)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_reapplyEvent(const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_reapplySelectLeader(const EventWithMetadata& event)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_reapplySelectFollower(const EventWithMetadata& event)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_cleanupLSNs(const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
+
+    void
+    do_cancelRequests(const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
 
     // PRIVATE MANIPULATORS
     //   (virtual: mqbc::ClusterStateObserver)

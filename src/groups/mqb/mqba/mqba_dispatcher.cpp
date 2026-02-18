@@ -42,6 +42,7 @@ namespace mqba {
 
 namespace {
 const double k_QUEUE_STUCK_INTERVAL = 3 * 60.0;
+const int    k_POOL_GROW_BY         = 1024;
 }  // close unnamed namespace
 
 // -------------------------
@@ -51,7 +52,8 @@ const double k_QUEUE_STUCK_INTERVAL = 3 * 60.0;
 // CREATORS
 Dispatcher_Executor::Dispatcher_Executor(const Dispatcher* dispacher,
                                          const mqbi::DispatcherClient* client)
-    BSLS_CPP11_NOEXCEPT : d_processorPool_p(0),
+    BSLS_CPP11_NOEXCEPT : d_eventSource_sp(),
+                          d_processorPool_p(0),
                           d_processorHandle()
 {
     // PRECONDITIONS
@@ -62,6 +64,8 @@ Dispatcher_Executor::Dispatcher_Executor(const Dispatcher* dispacher,
                 mqbi::DispatcherClientType::e_UNDEFINED);
     BSLS_ASSERT(client->dispatcherClientData().processorHandle() !=
                 mqbi::Dispatcher::k_INVALID_PROCESSOR_HANDLE);
+
+    d_eventSource_sp = client->getEventSource();
 
     // set processor
     d_processorPool_p = dispacher->d_contexts
@@ -86,7 +90,7 @@ void Dispatcher_Executor::post(const bsl::function<void()>& f) const
 
     // create an event containing the function to be invoked on the processor
     bsl::shared_ptr<mqbi::DispatcherEvent> event =
-        d_processorPool_p->getEvent();
+        d_eventSource_sp->getEvent();
 
     (*event)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
@@ -124,6 +128,27 @@ void Dispatcher_Executor::dispatch(const bsl::function<void()>& f) const
     }
 }
 
+// ---------------------------
+// class DispatcherEventSource
+// ---------------------------
+
+Dispatcher_EventSource::Dispatcher_EventSource(bslma::Allocator* allocator)
+: d_pool(bdlf::BindUtil::bindS(allocator,
+                               &Dispatcher_EventSource::eventCreator,
+                               bdlf::PlaceHolders::_1,   // arena
+                               bdlf::PlaceHolders::_2),  // allocator
+         k_POOL_GROW_BY,
+         allocator)
+{
+    // NOTHING
+}
+
+Dispatcher_EventSource::~Dispatcher_EventSource()
+{
+    // Make sure all the events have returned to the pool.
+    BSLS_ASSERT(d_pool.numObjects() == d_pool.numAvailableObjects());
+}
+
 // ------------------------------------
 // struct Dispatcher::DispatcherContext
 // ------------------------------------
@@ -137,40 +162,14 @@ Dispatcher::DispatcherContext::DispatcherContext(
 , d_flushList(config.numProcessors(),
               DispatcherClientPtrVector(allocator),
               allocator)
+, d_eventSources(config.numProcessors(), allocator)
 {
-    // NOTHING
-}
-
-// ------------------------------------
-// class Dispatcher::OnNewClientFunctor
-// ------------------------------------
-
-Dispatcher::OnNewClientFunctor::OnNewClientFunctor(
-    Dispatcher*                      owner_p,
-    mqbi::DispatcherClientType::Enum type,
-    int                              processorId)
-: d_owner_p(owner_p)
-, d_type(type)
-, d_processorId(processorId)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_owner_p);
-}
-
-// ACCESSORS
-void Dispatcher::OnNewClientFunctor::operator()() const
-{
-    // executed by the *DISPATCHER* thread
-
-    // Resize the 'd_flushList' vector for that specified 'processorId', if
-    // needed, to ensure it has enough space to hold all clients associated to
-    // that processorId.
-    DispatcherContext& context = *(d_owner_p->d_contexts[d_type]);
-
-    int count = context.d_loadBalancer.clientsCountForProcessor(d_processorId);
-    if (static_cast<int>(context.d_flushList[d_processorId].capacity()) <
-        count) {
-        context.d_flushList[d_processorId].reserve(count);
+    typedef bsl::vector<bsl::shared_ptr<mqbi::DispatcherEventSource> >
+        EventSources;
+    for (EventSources::iterator it = d_eventSources.begin();
+         it != d_eventSources.end();
+         ++it) {
+        *it = bsl::allocate_shared<mqba::Dispatcher_EventSource>(allocator);
     }
 }
 
@@ -223,15 +222,13 @@ int Dispatcher::startContext(bsl::ostream&                    errorDescription,
                              this,
                              type,
                              bdlf::PlaceHolders::_1,   // processorId
-                             bdlf::PlaceHolders::_2,   // context*
-                             bdlf::PlaceHolders::_3),  // event*
+                             bdlf::PlaceHolders::_2),  // event*
         bdlf::BindUtil::bind(&Dispatcher::queueCreator,
                              this,
                              type,
                              config.processorConfig(),
-                             bdlf::PlaceHolders::_1,   // qCreatorRet*
-                             bdlf::PlaceHolders::_2,   // processorId
-                             bdlf::PlaceHolders::_3),  // allocator*
+                             bdlf::PlaceHolders::_1,   // processorId
+                             bdlf::PlaceHolders::_2),  // allocator*
         d_allocator_p);
 
     processorPoolConfig.setName(mqbi::DispatcherClientType::toAscii(type))
@@ -241,8 +238,6 @@ int Dispatcher::startContext(bsl::ostream&                    errorDescription,
     // TBD: .statContext(...) / .createSubcontext(true)
     //      We should have subcontext per each type of event (PUSH, PUT,
     //      CALLBACK, ACK, ...)
-
-    processorPoolConfig.setGrowBy(64 * 1024);
 
     context->d_processorPool_mp.load(
         new (*d_allocator_p) ProcessorPool(processorPoolConfig, d_allocator_p),
@@ -265,7 +260,6 @@ int Dispatcher::startContext(bsl::ostream&                    errorDescription,
 Dispatcher::ProcessorPool::Queue*
 Dispatcher::queueCreator(mqbi::DispatcherClientType::Enum             type,
                          const mqbcfg::DispatcherProcessorParameters& config,
-                         BSLA_UNUSED ProcessorPool::QueueCreatorRet* ret,
                          int               processorId,
                          bslma::Allocator* allocator)
 {
@@ -293,7 +287,6 @@ Dispatcher::queueCreator(mqbi::DispatcherClientType::Enum             type,
 
 void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
                               int                              processorId,
-                              BSLA_UNUSED void*                context,
                               const ProcessorPool::EventSp&    event)
 {
     if (event) {
@@ -341,15 +334,19 @@ void Dispatcher::flushClients(mqbi::DispatcherClientType::Enum type,
                               int                              processorId)
 {
     // executed by the *DISPATCHER* thread
+    bmqu::GateKeeper::Status status(d_flushClientsGate);
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!status.isOpen())) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return;  // RETURN
+    }
 
     DispatcherContext& context = *(d_contexts[type]);
-    for (size_t i = 0; i < context.d_flushList[processorId].size(); ++i) {
-        context.d_flushList[processorId][i]->flush();
-        context.d_flushList[processorId][i]
-            ->dispatcherClientData()
-            .setAddedToFlushList(false);
+    DispatcherClientPtrVector& flushList = context.d_flushList[processorId];
+    for (size_t i = 0; i < flushList.size(); ++i) {
+        flushList[i]->flush();
+        flushList[i]->dispatcherClientData().setAddedToFlushList(false);
     }
-    context.d_flushList[processorId].clear();
+    flushList.clear();
 }
 
 Dispatcher::Dispatcher(const mqbcfg::DispatcherConfig& config,
@@ -360,10 +357,17 @@ Dispatcher::Dispatcher(const mqbcfg::DispatcherConfig& config,
 , d_config(config)
 , d_scheduler_p(scheduler)
 , d_contexts(allocator)
+, d_defaultEventSource_sp(
+      bsl::allocate_shared<mqba::Dispatcher_EventSource>(allocator))
+, d_customEventSources(allocator)
+, d_customEventSources_mtx()
+, d_flushClientsGate()
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(scheduler->clockType() ==
                      bsls::SystemClockType::e_MONOTONIC);
+
+    d_flushClientsGate.open();
 }
 
 Dispatcher::~Dispatcher()
@@ -427,6 +431,11 @@ int Dispatcher::start(bsl::ostream& errorDescription)
     return 0;
 }
 
+void Dispatcher::disableFlushClients()
+{
+    d_flushClientsGate.close();
+}
+
 void Dispatcher::stop()
 {
     if (!d_isStarted) {
@@ -461,6 +470,11 @@ void Dispatcher::stop()
     STOP_AND_CLEAR(context->d_processorPool_mp);
     STOP_AND_CLEAR(context->d_threadPool_mp);
 
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(&d_customEventSources_mtx);
+        d_customEventSources.clear();
+    }
+
 #undef STOP_AND_CLEAR
 }
 
@@ -488,32 +502,13 @@ Dispatcher::registerClient(mqbi::DispatcherClient*           client,
             .setProcessorHandle(processor);
         client->setThreadId(
             context.d_processorPool_mp->queueThreadId(processor));
+        client->setEventSource(context.d_eventSources[processor]);
 
         BALL_LOG_DEBUG << "Registered a new client to the dispatcher "
                        << "[Client: " << client->description()
                        << ", type: " << type << ", processor: " << processor
                        << "]";
 
-        // Enqueue an event to resize (if needed) the flush vector to
-        // accommodate for a new client.  This has to execute on the processor
-        // thread, because the vector is not thread safe; and this must be done
-        // before any event is being dispatched to this client (since that
-        // would cause it to be added to the flush list).
-        bsl::shared_ptr<mqbi::DispatcherEvent> event =
-            context.d_processorPool_mp->getEvent();
-        (*event)
-            .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-            .setDestination(client);  // TODO: not needed?
-
-        // Build callback functor in-place.
-        // The destructor for functor is called in `reset`.
-        event->callback().createInplace<OnNewClientFunctor>(this,
-                                                            type,
-                                                            processor);
-
-        context.d_processorPool_mp->enqueueEvent(
-            bslmf::MovableRefUtil::move(event),
-            processor);
         return processor;  // RETURN
     }  // break;
     case mqbi::DispatcherClientType::e_UNDEFINED:
@@ -576,7 +571,8 @@ void Dispatcher::executeOnAllQueues(
                    << "queues [hasFinalizeCallback: "
                    << (doneCallback ? "yes" : "no") << "]";
 
-    bsl::shared_ptr<mqbi::DispatcherEvent> qEvent = processorPool->getEvent();
+    bsl::shared_ptr<mqbi::DispatcherEvent> qEvent =
+        d_defaultEventSource_sp->getEvent();
     qEvent->setType(mqbi::DispatcherEventType::e_DISPATCHER);
     qEvent->callback().set(functor);
     qEvent->finalizeCallback().set(doneCallback);
@@ -601,7 +597,8 @@ void Dispatcher::synchronize(mqbi::DispatcherClientType::Enum  type,
     typedef void (bslmt::Semaphore::*PostFn)();
 
     bslmt::Semaphore       semaphore;
-    bsl::shared_ptr<mqbi::DispatcherEvent> event = getEvent(type);
+    bsl::shared_ptr<mqbi::DispatcherEvent> event =
+        d_defaultEventSource_sp->getEvent();
     (*event)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
         .setCallback(
@@ -621,6 +618,17 @@ Dispatcher::executor(const mqbi::DispatcherClient* client) const
                 mqbi::DispatcherClientType::e_UNDEFINED);
 
     return Dispatcher_Executor(this, client);
+}
+
+bsl::shared_ptr<mqbi::DispatcherEventSource> Dispatcher::createEventSource()
+{
+    bsl::shared_ptr<mqbi::DispatcherEventSource> res =
+        bsl::allocate_shared<mqba::Dispatcher_EventSource>(d_allocator_p);
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(&d_customEventSources_mtx);
+        d_customEventSources.push_back(res);
+    }
+    return res;
 }
 
 }  // close package namespace

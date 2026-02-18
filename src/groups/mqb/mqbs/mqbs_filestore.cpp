@@ -3495,20 +3495,30 @@ void FileStore::archive(FileSet* fileSet)
                                   d_config.archiveLocation());
     if (0 != rc) {
         BMQTSK_ALARMLOG_ALARM("FILE_IO")
-            << partitionDesc() << "Failed to move file ["
+            << partitionDesc() << "Failed to move data file ["
             << fileSet->d_dataFileName << "] " << "to location ["
             << d_config.archiveLocation() << "] rc: " << rc
             << BMQTSK_ALARMLOG_END;
+    }
+    else {
+        BALL_LOG_INFO << partitionDesc() << "Moved data file ["
+                      << fileSet->d_dataFileName << "] to location ["
+                      << d_config.archiveLocation() << "].";
     }
 
     rc = FileSystemUtil::move(fileSet->d_journalFileName,
                               d_config.archiveLocation());
     if (0 != rc) {
         BMQTSK_ALARMLOG_ALARM("FILE_IO")
-            << partitionDesc() << "Failed to move file ["
+            << partitionDesc() << "Failed to move journal file ["
             << fileSet->d_journalFileName << "] " << "to location ["
             << d_config.archiveLocation() << "] rc: " << rc
             << BMQTSK_ALARMLOG_END;
+    }
+    else {
+        BALL_LOG_INFO << partitionDesc() << "Moved journal file ["
+                      << fileSet->d_journalFileName << "] to location ["
+                      << d_config.archiveLocation() << "].";
     }
 
     if (d_qListAware) {
@@ -3516,10 +3526,15 @@ void FileStore::archive(FileSet* fileSet)
                                   d_config.archiveLocation());
         if (0 != rc) {
             BMQTSK_ALARMLOG_ALARM("FILE_IO")
-                << partitionDesc() << "Failed to move file ["
+                << partitionDesc() << "Failed to move qlistfile ["
                 << fileSet->d_qlistFileName << "] " << "to location ["
                 << d_config.archiveLocation() << "] rc: " << rc
                 << BMQTSK_ALARMLOG_END;
+        }
+        else {
+            BALL_LOG_INFO << partitionDesc() << "Moved qlist file ["
+                          << fileSet->d_qlistFileName << "] to location ["
+                          << d_config.archiveLocation() << "].";
         }
     }
 }
@@ -4987,12 +5002,8 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
     BSLS_ASSERT_SAFE(activeFileSet);
     BSLS_ASSERT_SAFE(0 != journalOffset);
 
-    const unsigned int journalOffsetWords = journalOffset /
-                                            bmqp::Protocol::k_WORD_SIZE;
-
-    bmqt::EventBuilderResult::Enum buildRc;
-    MappedFileDescriptor&          journal = activeFileSet->d_journalFile;
-    AliasedBufferDeleterSp         deleterSp =
+    MappedFileDescriptor&  journal = activeFileSet->d_journalFile;
+    AliasedBufferDeleterSp deleterSp =
         d_aliasedBufferDeleterSpPool.getObject();
     deleterSp->setFileSet(activeFileSet);
 
@@ -5000,7 +5011,7 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
                                                 journal.mapping() +
                                                     journalOffset);
     bdlbb::BlobBuffer     journalRecordBlobBuffer(
-        journalRecordBufferSp,
+        bslmf::MovableRefUtil::move(journalRecordBufferSp),
         FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
 
     bdlbb::BlobBuffer dataBlobBuffer;
@@ -5012,9 +5023,13 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
 
         bsl::shared_ptr<char> dataBufferSp(deleterSp,  // reuse same deleter
                                            mfd.mapping() + dataOffset);
-        dataBlobBuffer.reset(dataBufferSp, totalDataLen);
+        dataBlobBuffer.reset(bslmf::MovableRefUtil::move(dataBufferSp),
+                             totalDataLen);
     }
 
+    bmqt::EventBuilderResult::Enum buildRc;
+    const unsigned int             journalOffsetWords = journalOffset /
+                                            bmqp::Protocol::k_WORD_SIZE;
     bool flushAndRetry = false;
     do {
         if (bmqp::StorageMessageType::e_DATA == type) {

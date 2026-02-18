@@ -594,8 +594,9 @@ void ClusterProxy::processEvent(const bmqp::Event&   event,
         BALL_LOG_ERROR << "#UNEXPECTED_EVENT " << description() << "REJECT";
     } break;
     case bmqp::EventType::e_PUSH: {
-        mqbi::Dispatcher::DispatcherEventSp dispEvent = dispatcher()->getEvent(
-            this);
+        // TODO(678098): revisit, use per-IO thread event source
+        mqbi::Dispatcher::DispatcherEventSp dispEvent =
+            dispatcher()->getDefaultEventSource()->getEvent();
         bsl::shared_ptr<bdlbb::Blob> blobSp =
             d_clusterData.blobSpPool().getObject();
         *blobSp = *(event.blob());
@@ -607,8 +608,9 @@ void ClusterProxy::processEvent(const bmqp::Event&   event,
                                     this);
     } break;
     case bmqp::EventType::e_ACK: {
-        mqbi::Dispatcher::DispatcherEventSp dispEvent = dispatcher()->getEvent(
-            this);
+        // TODO(678098): revisit, use per-IO thread event source
+        mqbi::Dispatcher::DispatcherEventSp dispEvent =
+            dispatcher()->getDefaultEventSource()->getEvent();
         bsl::shared_ptr<bdlbb::Blob> blobSp =
             d_clusterData.blobSpPool().getObject();
         *blobSp = *(event.blob());
@@ -619,6 +621,11 @@ void ClusterProxy::processEvent(const bmqp::Event&   event,
         dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(dispEvent),
                                     this);
     } break;
+    case bmqp::EventType::e_AUTHENTICATION: {
+        // TODO
+        BALL_LOG_ERROR << "Received Authentication Event but reauthentication "
+                          "logic is not implemented yet.";
+    } break;  // BREAK
     case bmqp::EventType::e_UNDEFINED:
     case bmqp::EventType::e_CLUSTER_STATE:
     case bmqp::EventType::e_ELECTOR:
@@ -1152,7 +1159,7 @@ ClusterProxy::sendConfirmInline(BSLA_UNUSED int             partitionId,
     // This event is invoked as a result of RemoteQueue asking cluster proxy to
     // relay CONFIRM message to cluster on it's behalf.
 
-    mqbc::GateKeeper::Status primaryStatus(d_gateActiveNode);
+    bmqu::GateKeeper::Status primaryStatus(d_gateActiveNode);
 
     if (!primaryStatus.isOpen()) {
         return mqbi::InlineResult::e_INVALID_PRIMARY;  // RETURN
@@ -1192,7 +1199,7 @@ mqbi::InlineResult::Enum ClusterProxy::sendPutInline(
     // This event is invoked as a result of RemoteQueue asking cluster proxy to
     // relay CONFIRM message to cluster on it's behalf.
 
-    mqbc::GateKeeper::Status primaryStatus(d_gateActiveNode);
+    bmqu::GateKeeper::Status primaryStatus(d_gateActiveNode);
 
     if (!primaryStatus.isOpen()) {
         return mqbi::InlineResult::e_INVALID_PRIMARY;  // RETURN

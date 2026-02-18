@@ -216,8 +216,10 @@ void QueueHandle::postMessage(
     // NOTHING
 }
 
-void QueueHandle::confirmMessage(const bmqt::MessageGUID& msgGUID,
-                                 unsigned int             downstreamSubQueueId)
+void QueueHandle::confirmMessage(
+    BSLA_MAYBE_UNUSED mqbi::DispatcherEventSource* eventSource_p,
+    const bmqt::MessageGUID&                       msgGUID,
+    unsigned int                                   downstreamSubQueueId)
 {
     // Update unconfirmed messages collection
     Downstreams::iterator mapIter = d_downstreams.find(downstreamSubQueueId);

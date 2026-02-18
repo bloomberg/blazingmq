@@ -210,7 +210,7 @@ mqbi::InlineResult::Enum ClusterNodeSession::sendPush(
     // payload, and so, primary (this node) sends only the guid and, if
     // applicable, the associated subQueueIds.
 
-    GateKeeper::Status status(d_gatePush);
+    bmqu::GateKeeper::Status status(d_gatePush);
 
     if (!status.isOpen()) {
         // Target node (or self) is not AVAILABLE, so we don't send this PUSH
@@ -267,7 +267,7 @@ ClusterNodeSession::sendAck(int queueId, const bmqp::AckMessage& ackMessage)
     // This ACK message is enqueued by mqbblp::Queue on this node, and needs to
     // be forwarded to 'clusterNode()' (the replica node).
 
-    GateKeeper::Status status(d_gateAck);
+    bmqu::GateKeeper::Status status(d_gateAck);
 
     if (!status.isOpen()) {
         // Drop the ACK because downstream node (or self) is either starting,

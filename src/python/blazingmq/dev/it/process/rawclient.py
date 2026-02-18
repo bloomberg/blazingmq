@@ -23,13 +23,15 @@ PURPOSE: Provide a BMQ raw client.
 import socket
 import json
 from typing import Optional, Tuple, Union
+import base64
 
 from blazingmq.schemas import broker
 
 
 class RawClient:
-    def __init__(self):
+    def __init__(self, socket_timeout: float = 10.0):
         self._channel: Optional[socket.socket] = None
+        self._socket_timeout = socket_timeout
 
     @staticmethod
     def _wrap_control_event(payload: Union[str, dict]) -> bytes:
@@ -80,7 +82,35 @@ class RawClient:
 
         return event_size + event_desc
 
-    def _send_raw(self, message: bytes) -> None:
+    @staticmethod
+    def _wrap_authentication_event(payload: Union[str, dict]) -> bytes:
+        """
+        Wraps the specified 'payload' with EventHeader and adds padding to the
+        end. Returns the raw bytes authentication message.
+
+        See also: bmqp::EventHeader
+        """
+
+        if isinstance(payload, str):
+            payload_str = payload
+        else:
+            payload_str = json.dumps(payload)
+
+        padding_len = 4 - len(payload_str) % 4
+        padding = bytes([padding_len] * padding_len)
+
+        event_type = broker.EventType.AUTHENTICATION
+        type_specific = broker.TypeSpecific.ENCODING_JSON
+
+        auth_header_bytes = 8
+        auth_event_size = (auth_header_bytes + len(payload_str) + padding_len).to_bytes(
+            4, "big"
+        )
+        auth_event_desc = bytes([0x40 + event_type, 0x02, type_specific, 0x00])
+
+        return auth_event_size + auth_event_desc + payload_str.encode("ascii") + padding
+
+    def _send_raw(self, message: bytes) -> Tuple[bytes, bytes]:
         """
         Send the specified raw "message" over the channel to the broker.
         Return the received byte response.
@@ -171,14 +201,15 @@ class RawClient:
     def open_channel(self, host: str, port: int) -> None:
         """
         Open a new channel to the broker using the specified 'host' / 'port'.
-        This method is used to establish a connection for sending negotiation requests.
+        This method is used to establish a connection for sending
+        authentication and negotiation requests.
         """
         assert self._channel is None
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         sock.connect((host, port))
-        sock.settimeout(10.0)
+        sock.settimeout(self._socket_timeout)
 
         self._channel = sock
 
@@ -199,9 +230,59 @@ class RawClient:
         print(f"Unknown encoding type: {type_specific}")
         raise ValueError("Unknown encoding in response")
 
-    def send_negotiation_request(self) -> dict:
+    def authenticate(self, auth_mechanism: str, auth_data: Union[str, bytes]) -> dict:
+        """
+        Send an authentication request to the broker with the specified
+        authentication mechanism 'auth_mechanism' and authentication data 'auth_data'.
+        Return the authentication response from the broker.
+        """
+        self._send_authentication_request(auth_mechanism, auth_data)
+        return self._receive_authentication_response()
+
+    def _send_authentication_request(
+        self, auth_mechanism: str, auth_data: Union[str, bytes]
+    ) -> None:
+        """
+        Send an authentication request to the broker with the specified
+        authentication mechanism 'auth_mechanism' and authentication data 'auth_data'.
+        """
+        assert self._channel is not None
+
+        auth_request = broker.AUTHENTICATE_REQUEST_SCHEMA
+
+        if isinstance(auth_data, str):
+            raw_bytes = auth_data.encode("utf-8")
+        else:
+            raw_bytes = auth_data  # already bytes
+
+        auth_request["authenticationRequest"]["mechanism"] = auth_mechanism
+        auth_request["authenticationRequest"]["data"] = base64.b64encode(
+            raw_bytes
+        ).decode("ascii")
+
+        self._send_raw(self._wrap_authentication_event(auth_request))
+
+    def _receive_authentication_response(self) -> dict:
+        """
+        Receive an authentication response from the broker.
+        """
+        response_header, response_body = self._receive_event()
+        response = self.decode_event_bytes(response_header, response_body)
+        return response
+
+    def negotiate(self) -> dict:
         """
         Send a negotiation request to the broker.
+        Return the negotiation response from the broker.
+        """
+        self._send_negotiation_request()
+        return self._receive_negotiation_response()
+
+    def _send_negotiation_request(self) -> None:
+        """
+        Send a negotiation request to the broker without waiting for a response.
+        Use this when you need to send the request asynchronously or when you want
+        to send other requests before receiving the negotiation response.
         """
         assert self._channel is not None
 
@@ -209,8 +290,12 @@ class RawClient:
         raw_client_identity["clientIdentity"]["clientType"] = "E_TCPCLIENT"
 
         self._send_raw(self._wrap_control_event(raw_client_identity))
-        _, response_body = self._receive_event()
 
+    def _receive_negotiation_response(self) -> dict:
+        """
+        Receive a negotiation response from the broker.
+        """
+        _, response_body = self._receive_event()
         return json.loads(response_body)
 
     def stop(self) -> None:

@@ -59,6 +59,9 @@ namespace BloombergLP {
 namespace bdlmt {
 class EventScheduler;
 }
+namespace mqbauthn {
+class AuthenticationController;
+}
 namespace mqbblp {
 class ClusterCatalog;
 }
@@ -99,12 +102,14 @@ class Application {
 
   private:
     // PRIVATE TYPES
-    typedef bslma::ManagedPtr<mqbplug::PluginManager>   PluginManagerMp;
-    typedef bslma::ManagedPtr<mqbblp::ClusterCatalog>   ClusterCatalogMp;
-    typedef bslma::ManagedPtr<ConfigProvider>           ConfigProviderMp;
-    typedef bslma::ManagedPtr<Dispatcher>               DispatcherMp;
-    typedef bslma::ManagedPtr<DomainManager>            DomainManagerMp;
-    typedef bslma::ManagedPtr<mqbstat::StatController>  StatControllerMp;
+    typedef bslma::ManagedPtr<mqbplug::PluginManager>  PluginManagerMp;
+    typedef bslma::ManagedPtr<mqbblp::ClusterCatalog>  ClusterCatalogMp;
+    typedef bslma::ManagedPtr<ConfigProvider>          ConfigProviderMp;
+    typedef bslma::ManagedPtr<Dispatcher>              DispatcherMp;
+    typedef bslma::ManagedPtr<DomainManager>           DomainManagerMp;
+    typedef bslma::ManagedPtr<mqbstat::StatController> StatControllerMp;
+    typedef bslma::ManagedPtr<mqbauthn::AuthenticationController>
+        AuthenticationControllerMp;
     typedef bslma::ManagedPtr<mqbnet::TransportManager> TransportManagerMp;
     typedef bdlcc::SharedObjectPool<
         bdlbb::Blob,
@@ -145,6 +150,9 @@ class Application {
 
     /// Statistics controller component.
     StatControllerMp d_statController_mp;
+
+    /// Authentication controller component.
+    AuthenticationControllerMp d_authenticationController_mp;
 
     ConfigProviderMp d_configProvider_mp;
 

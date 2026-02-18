@@ -6982,13 +6982,19 @@ BrokerSession::lookupQueue(const bmqp::QueueId& queueId) const
     return d_queueManager.lookupQueue(queueId);
 }
 
-bool BrokerSession::acceptUserEvent(const bdlbb::Blob&        eventBlob,
-                                    const bsls::TimeInterval& timeout)
+bool BrokerSession::acceptUserEvent(const bdlbb::Blob& eventBlob)
 {
     // executed by the APPLICATION thread
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!d_extensionBufferEmpty)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+
+        const bsls::TimeInterval& timeout =
+            d_sessionOptions.channelWriteTimeout();
+
+        if (timeout.totalMilliseconds() == 0) {
+            return false;  // RETURN
+        }
 
         const bsls::TimeInterval expireAfter =
             bmqsys::Time::nowMonotonicClock() + timeout;
@@ -7069,8 +7075,7 @@ BrokerSession::createDTSpan(bsl::string_view              operation,
     return result;
 }
 
-int BrokerSession::post(const bdlbb::Blob&        eventBlob,
-                        const bsls::TimeInterval& timeout)
+int BrokerSession::post(const bdlbb::Blob& eventBlob)
 {
     // Prevent send of an empty/invalid blob: when using the
     // MessageEventBuilder, if no messages were added (i.e., 'PackMessage()'
@@ -7128,7 +7133,8 @@ int BrokerSession::post(const bdlbb::Blob&        eventBlob,
                        << "Unable to post event [reason: 'SESSION_STOPPED']";
         return bmqt::PostResult::e_NOT_CONNECTED;  // RETURN
     }
-    bool isAccepted = acceptUserEvent(eventBlob, timeout);
+
+    bool isAccepted = acceptUserEvent(eventBlob);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!isAccepted)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
@@ -7157,8 +7163,7 @@ int BrokerSession::post(const bdlbb::Blob&        eventBlob,
 }
 
 int BrokerSession::confirmMessage(const bsl::shared_ptr<bmqimp::Queue>& queue,
-                                  const bmqt::MessageGUID&  messageId,
-                                  const bsls::TimeInterval& timeout)
+                                  const bmqt::MessageGUID& messageId)
 {
     // PRECONDTIONS
     BSLS_ASSERT(queue && "non-null 'queue' must be specified");
@@ -7215,7 +7220,7 @@ int BrokerSession::confirmMessage(const bsl::shared_ptr<bmqimp::Queue>& queue,
                        << rc;
         return rc;  // RETURN
     }
-    bool isAccepted = acceptUserEvent(*builder.blob(), timeout);
+    bool isAccepted = acceptUserEvent(*builder.blob());
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!isAccepted)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
@@ -7227,8 +7232,7 @@ int BrokerSession::confirmMessage(const bsl::shared_ptr<bmqimp::Queue>& queue,
     return bmqt::GenericResult::e_SUCCESS;
 }
 
-int BrokerSession::confirmMessages(const bdlbb::Blob&        blob,
-                                   const bsls::TimeInterval& timeout)
+int BrokerSession::confirmMessages(const bdlbb::Blob& blob)
 {
     if (blob.length() <= static_cast<int>(sizeof(bmqp::EventHeader))) {
         return bmqt::GenericResult::e_INVALID_ARGUMENT;  // RETURN
@@ -7261,7 +7265,7 @@ int BrokerSession::confirmMessages(const bdlbb::Blob&        blob,
         return bmqt::GenericResult::e_INVALID_ARGUMENT;  // RETURN
     }
 
-    bool isAccepted = acceptUserEvent(blob, timeout);
+    bool isAccepted = acceptUserEvent(blob);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!isAccepted)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 

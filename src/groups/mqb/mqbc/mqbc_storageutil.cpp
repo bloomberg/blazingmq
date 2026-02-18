@@ -1364,11 +1364,10 @@ int StorageUtil::assignPartitionDispatcherThreads(
 }
 
 void StorageUtil::clearPrimaryForPartition(
-    mqbs::FileStore*     fs,
-    PartitionInfo*       partitionInfo,
-    const bsl::string&   clusterDescription,
-    int                  partitionId,
-    mqbnet::ClusterNode* primary)
+    mqbs::FileStore*   fs,
+    PartitionInfo*     partitionInfo,
+    const bsl::string& clusterDescription,
+    int                partitionId)
 {
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
 
@@ -1380,10 +1379,6 @@ void StorageUtil::clearPrimaryForPartition(
     if (0 == partitionInfo->primary()) {
         // Already notified.
 
-        return;  // RETURN
-    }
-
-    if (primary != partitionInfo->primary()) {
         return;  // RETURN
     }
 
@@ -2501,8 +2496,7 @@ void StorageUtil::registerQueueAsPrimary(const mqbi::Cluster*    cluster,
             // the addition/removal of those pairs.
 
             mqbi::Dispatcher::DispatcherEventSp queueEvent =
-                dispatcher->getEvent(fs);
-
+                cluster->getEvent();
             (*queueEvent)
                 .setType(mqbi::DispatcherEventType::e_DISPATCHER)
                 .setCallback(bdlf::BindUtil::bind(
@@ -2538,7 +2532,7 @@ void StorageUtil::registerQueueAsPrimary(const mqbi::Cluster*    cluster,
     // Dispatch the registration of storage with the partition in appropriate
     // thread.
 
-    mqbi::Dispatcher::DispatcherEventSp queueEvent = dispatcher->getEvent(fs);
+    mqbi::Dispatcher::DispatcherEventSp queueEvent = cluster->getEvent();
 
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)

@@ -214,32 +214,11 @@ class PartitionFSM {
                       bsl::vector<PartitionFSMEventData> >
         EventWithData;
 
-    struct PartitionFSMArgs {
-      private:
-        // DATA
-
-        /// Queue containing events which need to be applied to the current
-        /// state of the FSM.
-        bsl::queue<EventWithData>* d_eventsQueue_p;
-
-      public:
-        // CREATORS
-
-        /// Create an instance with the specified `queue`.
-        PartitionFSMArgs(bsl::queue<EventWithData>* queue);
-
-        // ACCESSORS
-
-        /// Return the value of the corresponding member of this object
-        bsl::queue<EventWithData>* eventsQueue();
-    };
-
-    typedef bsl::shared_ptr<PartitionFSMArgs>       PartitionFSMArgsSp;
-    typedef PartitionStateTable<PartitionFSMArgsSp> StateTable;
-    typedef StateTable::State                       State;
-    typedef StateTable::Event                       Event;
-    typedef StateTable::ActionFunctor               ActionFunctor;
-    typedef StateTable::Transition                  Transition;
+    typedef PartitionStateTable<EventWithData> StateTable;
+    typedef StateTable::State                  State;
+    typedef StateTable::Event                  Event;
+    typedef StateTable::ActionFunctor          ActionFunctor;
+    typedef StateTable::Transition             Transition;
 
     /// A set of PartitionFSM observers.
     typedef bsl::unordered_set<PartitionFSMObserver*> ObserversSet;
@@ -253,10 +232,24 @@ class PartitionFSM {
 
     State::Enum d_state;
 
-    PartitionStateTableActions<PartitionFSMArgsSp>& d_actions;
+    PartitionStateTableActions<EventWithData>& d_actions;
+
+    /// Internal queue containing events which need to be applied to the
+    /// current state of the FSM.
+    bsl::queue<EventWithData> d_eventsQueue;
 
     /// Observers of this object.
     ObserversSet d_observers;
+
+  private:
+    // NOT IMPLEMENTED
+    PartitionFSM(const PartitionFSM&);
+    PartitionFSM& operator=(const PartitionFSM&);
+
+    // PRIVATE MANIPULATORS
+
+    /// Process the specified `event` and notify observers.
+    void processEvent(const EventWithData& event);
 
   public:
     // TRAITS
@@ -266,8 +259,8 @@ class PartitionFSM {
 
     /// Create an instance with the specified `actions`, using the specified
     /// `allocator`.
-    PartitionFSM(PartitionStateTableActions<PartitionFSMArgsSp>& actions,
-                 bslma::Allocator*                               allocator);
+    PartitionFSM(PartitionStateTableActions<EventWithData>& actions,
+                 bslma::Allocator*                          allocator);
 
     // MANIPULATORS
 
@@ -281,11 +274,9 @@ class PartitionFSM {
     /// object.
     PartitionFSM& unregisterObserver(PartitionFSMObserver* observer);
 
-    /// While the specified `eventsQueue` is not empty, pop the event from the
-    /// head of the queue and process it as an input to the FSM.  During the
-    /// processing, new events might be enqueued to the end of `eventsQueue`.
-    void popEventAndProcess(
-        const bsl::shared_ptr<bsl::queue<EventWithData> >& eventsQueue);
+    /// Enqueue the specified `event` to the internal events queue.  It will be
+    /// processed as an input to the FSM.
+    void enqueueEvent(const EventWithData& event);
 
     // ACCESSORS
 
@@ -493,36 +484,19 @@ PartitionFSMEventData::storageEvent() const
     return d_storageEvent;
 }
 
-// ------------------------------------
-// class PartitionFSM::PartitionFSMArgs
-// ------------------------------------
-// CREATORS
-inline PartitionFSM::PartitionFSMArgs::PartitionFSMArgs(
-    bsl::queue<EventWithData>* queue)
-: d_eventsQueue_p(queue)
-{
-    // NOTHING
-}
-
-// ACCESSORS
-inline bsl::queue<PartitionFSM::EventWithData>*
-PartitionFSM::PartitionFSMArgs::eventsQueue()
-{
-    return d_eventsQueue_p;
-}
-
 // ------------------
 // class PartitionFSM
 // ------------------
 
 // CREATORS
 inline PartitionFSM::PartitionFSM(
-    PartitionStateTableActions<PartitionFSMArgsSp>& actions,
-    bslma::Allocator*                               allocator)
+    PartitionStateTableActions<EventWithData>& actions,
+    bslma::Allocator*                          allocator)
 : d_allocator_p(allocator)
 , d_stateTable()
 , d_state(State::e_UNKNOWN)
 , d_actions(actions)
+, d_eventsQueue(allocator)
 , d_observers(allocator)
 {
     // NOTHING

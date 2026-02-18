@@ -50,8 +50,10 @@
 #include <mqbi_dispatcher.h>
 #include <mqbu_loadbalancer.h>
 
+// BMQ
 #include <bmqc_multiqueuethreadpool.h>
 #include <bmqex_executor.h>
+#include <bmqu_atomicgate.h>
 
 // BDE
 #include <ball_log.h>
@@ -98,6 +100,8 @@ class Dispatcher;
 class Dispatcher_Executor {
   private:
     // PRIVATE DATA
+    bsl::shared_ptr<mqbi::DispatcherEventSource> d_eventSource_sp;
+
     bmqc::MultiQueueThreadPool<mqbi::DispatcherEvent>* d_processorPool_p;
 
     mqbi::Dispatcher::ProcessorHandle d_processorHandle;
@@ -133,13 +137,66 @@ class Dispatcher_Executor {
     void dispatch(const bsl::function<void()>& f) const;
 };
 
+// ============================
+// class Dispatcher_EventSource
+// ============================
+
+class Dispatcher_EventSource BSLS_KEYWORD_FINAL
+: public mqbi::DispatcherEventSource {
+  public:
+    // PUBLIC TYPES
+    typedef bsl::shared_ptr<mqbi::DispatcherEvent> DispatcherEventSp;
+    typedef bslmf::MovableRef<DispatcherEventSp>   DispatcherEventRvRef;
+
+  private:
+    // TYPES
+
+    /// `CreatorFn` is an alias for a functor creating an object
+    /// in the specified `arena` using the specified `allocator`.
+    typedef bsl::function<void(void* arena, bslma::Allocator* allocator)>
+        CreatorFn;
+
+    typedef bdlcc::SharedObjectPool<
+        mqbi::DispatcherEvent,
+        CreatorFn,
+        bdlcc::ObjectPoolFunctors::Reset<mqbi::DispatcherEvent> >
+        EventPool;
+
+    // DATA
+    EventPool d_pool;
+
+    // PRIVATE CLASS METHODS
+
+    /// Creator function passed to `d_pool` to create an event in the
+    /// specified `arena` using the specified `allocator`.
+    static void eventCreator(void* arena, bslma::Allocator* allocator);
+
+  public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(Dispatcher_EventSource,
+                                   bslma::UsesBslmaAllocator)
+
+    // CREATORS
+    explicit Dispatcher_EventSource(bslma::Allocator* allocator = 0);
+    ~Dispatcher_EventSource() BSLS_KEYWORD_OVERRIDE;
+
+    // MANIPULATORS
+
+    /// @brief Get an event for mqbi::Dispatcher.
+    /// @return A shared pointer to event.
+    /// The behaviour is undefined unless all the shared pointers to events
+    /// acquired with `getEvent` are destructed before destructor is called
+    /// for this event source.
+    DispatcherEventSp getEvent() BSLS_KEYWORD_OVERRIDE;
+};
+
 // ================
 // class Dispatcher
 // ================
 
 /// This class provides an implementation of the `mqbi::Dispatcher`
 /// protocol, using the bmqc::MultiQueueThreadPool
-class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
+class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBA.DISPATCHER");
@@ -153,31 +210,6 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
     typedef bslma::ManagedPtr<ProcessorPool> ProcessorPoolMp;
 
     typedef bsl::vector<mqbi::DispatcherClient*> DispatcherClientPtrVector;
-
-    /// The purpose is to avoid memory allocation by bdlf::BindUtil::bind
-    /// when dispatching CONFIRM from Cluster to Queue.
-    class OnNewClientFunctor : public bmqu::ManagedCallback::CallbackFunctor {
-      private:
-        // PRIVATE DATA
-        Dispatcher*                      d_owner_p;
-        mqbi::DispatcherClientType::Enum d_type;
-        int                              d_processorId;
-
-      public:
-        // CREATORS
-        /// This functor is invoked when a new client with the specified `type`
-        /// is registered to the dispatcher, from the thread associated to that
-        /// new client that is mapped to the specified `processorId`.  The
-        /// specified `owner_p` holds pointer to the parent Dispatcher object.
-        explicit OnNewClientFunctor(Dispatcher*                      owner_p,
-                                    mqbi::DispatcherClientType::Enum type,
-                                    int processorId);
-
-        // ACCESSORS
-        /// Updated the data associated with the new client from the
-        /// appropriate thread, using fields stored in this functor.
-        void operator()() const BSLS_KEYWORD_OVERRIDE;
-    };
 
     /// Context for a dispatcher, with threads and pools
     struct DispatcherContext {
@@ -205,6 +237,11 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
         /// clients for which a flush needs to be called.  The first index of
         /// the vector corresponds to the processor.
         bsl::vector<DispatcherClientPtrVector> d_flushList;
+
+        /// An event sources that should be exclusively used by the threads
+        /// assigned for each processor.
+        bsl::vector<bsl::shared_ptr<mqbi::DispatcherEventSource> >
+            d_eventSources;
 
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(DispatcherContext,
@@ -243,6 +280,21 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
     /// The various contexts, one for each `ClientType`.
     bsl::vector<DispatcherContextSp> d_contexts;
 
+    /// The event source that can be used by any routine that is not called
+    /// from a dispatcher thread.
+    bsl::shared_ptr<mqbi::DispatcherEventSource> d_defaultEventSource_sp;
+
+    /// All the event sources allocated by `createEventSource`.
+    /// Cached to ensure their lifetime is at least until `stop` is called.
+    bsl::vector<bsl::shared_ptr<mqbi::DispatcherEventSource> >
+        d_customEventSources;
+
+    /// The mutex for thread-safe access to `d_customEventSources`.
+    bslmt::Mutex d_customEventSources_mtx;
+
+    /// @brief Mechanism controlling enabling/disabling of client flushing.
+    bmqu::GateKeeper d_flushClientsGate;
+
     // FRIENDS
     friend class Dispatcher_Executor;
 
@@ -260,22 +312,18 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
     /// Create a queue for the multi-fixed queue thread pool in charge of
     /// dispatcher client of the specified `type` and using the specified
     /// `config`.  This queue corresponds to the specified `processorId` and
-    /// the specified `allocator` should be used to create it.  The
-    /// specified `ret` can be used to set a context for the queue.
+    /// the specified `allocator` should be used to create it.
     ProcessorPool::Queue*
     queueCreator(mqbi::DispatcherClientType::Enum             type,
                  const mqbcfg::DispatcherProcessorParameters& config,
-                 ProcessorPool::QueueCreatorRet*              ret,
                  int                                          processorId,
                  bslma::Allocator*                            allocator);
 
-    /// Callback when a new object in the specified `event` and having the
-    /// specified associated `context` is dispatched for the queue in charge of
-    /// dispatcher client of the specified `type`, having the specified
-    /// `processorId`.
+    /// Callback when a new object in the specified `event` is dispatched
+    /// for the queue in charge of dispatcher client of the specified `type`,
+    /// having the specified `processorId`.
     void queueEventCb(mqbi::DispatcherClientType::Enum type,
                       int                              processorId,
-                      void*                            context,
                       const ProcessorPool::EventSp&    event);
 
     /// Flush clients of the specified `type` for the specified
@@ -305,6 +353,9 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
     /// error.
     int start(bsl::ostream& errorDescription);
 
+    /// @brief Stop calling `flush` on idle dispatcher clients.
+    void disableFlushClients();
+
     /// Stop the `Dispatcher`.
     void stop();
 
@@ -331,22 +382,24 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
     void
     unregisterClient(mqbi::DispatcherClient* client) BSLS_KEYWORD_OVERRIDE;
 
-    /// Retrieve an event from the pool to send to a client of the specified
-    /// `type`.  This event *must* be enqueued by calling `dispatchEvent`;
-    /// otherwise it will be leaked.
-    bsl::shared_ptr<mqbi::DispatcherEvent>
-    getEvent(mqbi::DispatcherClientType::Enum type) BSLS_KEYWORD_OVERRIDE;
-
-    /// Retrieve an event from the pool to send to the specified `client`.
-    /// This event *must* be enqueued by calling `dispatchEvent`; otherwise it
-    /// will be leaked.
-    bsl::shared_ptr<mqbi::DispatcherEvent>
-    getEvent(const mqbi::DispatcherClient* client) BSLS_KEYWORD_OVERRIDE;
-
     /// Dispatch the specified `event` to the specified `destination`.
     void
     dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
                   mqbi::DispatcherClient* destination) BSLS_KEYWORD_OVERRIDE;
+
+    /// @brief Construct a new event source.
+    /// @return event source.
+    /// NOTE: the returned value should be cached and used by long-living
+    ///       work threads that need to enqueue events to a dispatcher.
+    bsl::shared_ptr<mqbi::DispatcherEventSource>
+    createEventSource() BSLS_KEYWORD_OVERRIDE;
+
+    /// @brief Get a pointer to the default event source owned by dispatcher.
+    /// @return event source const reference.
+    /// NOTE: the returned value should be used by short-living routines
+    ///       that need to enqueue events to a dispatcher.
+    const bsl::shared_ptr<mqbi::DispatcherEventSource>&
+    getDefaultEventSource() BSLS_KEYWORD_OVERRIDE;
 
     /// Dispatch the specified `event` to the queue associated with the
     /// specified `type` and `handle`.  The behavior is undefined unless the
@@ -423,24 +476,37 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
 //                             INLINE DEFINITIONS
 // ============================================================================
 
+// ----------------------------
+// class Dispatcher_EventSource
+// ----------------------------
+
+inline void Dispatcher_EventSource::eventCreator(void*             arena,
+                                                 bslma::Allocator* allocator)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT(arena);
+    BSLS_ASSERT(allocator);
+
+    bslalg::ScalarPrimitives::construct(
+        reinterpret_cast<mqbi::DispatcherEvent*>(arena),
+        allocator);
+}
+
+inline Dispatcher_EventSource::DispatcherEventSp
+Dispatcher_EventSource::getEvent()
+{
+    return d_pool.getObject();
+}
+
 // ----------------
 // class Dispatcher
 // ----------------
 
 // MANIPULATORS
-inline bsl::shared_ptr<mqbi::DispatcherEvent>
-Dispatcher::getEvent(mqbi::DispatcherClientType::Enum type)
+inline const bsl::shared_ptr<mqbi::DispatcherEventSource>&
+Dispatcher::getDefaultEventSource()
 {
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(type != mqbi::DispatcherClientType::e_UNDEFINED);
-
-    return d_contexts[type]->d_processorPool_mp->getEvent();
-}
-
-inline bsl::shared_ptr<mqbi::DispatcherEvent>
-Dispatcher::getEvent(const mqbi::DispatcherClient* client)
-{
-    return getEvent(client->dispatcherClientData().clientType());
+    return d_defaultEventSource_sp;
 }
 
 inline void
@@ -493,8 +559,8 @@ inline void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
                      type == mqbi::DispatcherEventType::e_DISPATCHER);
     BSLS_ASSERT_SAFE(functor);
 
-    bsl::shared_ptr<mqbi::DispatcherEvent> event = getEvent(client);
-
+    bsl::shared_ptr<mqbi::DispatcherEvent> event =
+        d_defaultEventSource_sp->getEvent();
     (*event).setType(type).callback().set(functor);
 
     dispatchEvent(bslmf::MovableRefUtil::move(event), client);
@@ -506,9 +572,8 @@ inline void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(functor);
 
-    bsl::shared_ptr<mqbi::DispatcherEvent> event = getEvent(
-        client.clientType());
-
+    bsl::shared_ptr<mqbi::DispatcherEvent> event =
+        d_defaultEventSource_sp->getEvent();
     (*event)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
         .callback()

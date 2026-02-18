@@ -1181,8 +1181,8 @@ int RemoteQueue::rejectMessage(const bmqt::MessageGUID& msgGUID,
             .setMessageGUID(msgGUID);
 
         mqbi::Dispatcher*      dispatcher = queue->dispatcher();
-        mqbi::Dispatcher::DispatcherEventSp dispEvent  = dispatcher->getEvent(
-            cluster);
+        mqbi::Dispatcher::DispatcherEventSp dispEvent =
+            d_state_p->queue()->getEvent();
         (*dispEvent)
             .setType(mqbi::DispatcherEventType::e_REJECT)
             .setSource(queue)

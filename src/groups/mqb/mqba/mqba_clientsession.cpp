@@ -1527,7 +1527,9 @@ void ClientSession::onConfirmEvent(const mqbi::DispatcherConfirmEvent& event)
                            << "' GUID: " << confIt.message().messageGUID()
                            << "]";
 
-            queueHandle->confirmMessage(confIt.message().messageGUID(), subId);
+            queueHandle->confirmMessage(getEventSource().get(),
+                                        confIt.message().messageGUID(),
+                                        subId);
         }
         else {
             BMQ_LOGTHROTTLE_WARN
@@ -2483,6 +2485,9 @@ void ClientSession::processEvent(const bmqp::Event& event,
 {
     // executed by the *IO* thread
 
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!event.isAuthenticationEvent());
+
     if (event.isControlEvent()) {
         bdlma::LocalSequentialAllocator<2048> localAllocator(
             d_state.d_allocator_p);
@@ -2654,8 +2659,9 @@ void ClientSession::processEvent(const bmqp::Event& event,
         }
 
         // Dispatch the event
-        mqbi::Dispatcher::DispatcherEventSp dispEvent = dispatcher()->getEvent(
-            this);
+        // TODO(678098): revisit, use per-IO thread event source
+        mqbi::Dispatcher::DispatcherEventSp dispEvent =
+            dispatcher()->getDefaultEventSource()->getEvent();
         bsl::shared_ptr<bdlbb::Blob> blobSp =
             d_state.d_blobSpPool_p->getObject();
         *blobSp = *(event.blob());

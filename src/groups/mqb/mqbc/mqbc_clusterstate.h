@@ -567,7 +567,7 @@ class ClusterState {
     /// Observers of the cluster state.
     ObserversSet d_observers;
 
-    bsl::vector<GateKeeper> d_gatePrimary;
+    bsl::vector<bmqu::GateKeeper> d_gatePrimary;
 
     PartitionIdExtractor d_partitionIdExtractor;
 
@@ -697,7 +697,7 @@ class ClusterState {
     /// Clear this cluster state object, without firing any observers.
     void clear();
 
-    GateKeeper& gatePrimary(int partitionId);
+    bmqu::GateKeeper& gatePrimary(int partitionId);
 
     /// TODO (FSM); remove after switching to FSM
     bool cacheDoubleAssignment(const bmqt::Uri& uri, int partitionId);
@@ -1062,7 +1062,7 @@ inline ClusterState::QueueKeys& ClusterState::queueKeys()
     return d_queueKeys;
 }
 
-inline GateKeeper& ClusterState::gatePrimary(int partitionId)
+inline bmqu::GateKeeper& ClusterState::gatePrimary(int partitionId)
 {
     // This assumes thread-safe access to d_gatePrimary vector.
     return d_gatePrimary[partitionId];

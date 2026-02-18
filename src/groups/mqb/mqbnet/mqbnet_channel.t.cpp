@@ -344,13 +344,13 @@ void TestChannelEx::setLimit(size_t limit)
     // WRITE-LOCK
 
     if (d_isInHWM) {
-        if (limit == 0 || writeCalls().size() < limit) {
+        if (limit == 0 || numWriteCalls() < limit) {
             d_isInHWM = false;
             d_channel.onWatermark(
                 bmqio::ChannelWatermarkType::e_LOW_WATERMARK);
         }
     }
-    else if (writeCalls().size() >= limit) {
+    else if (limit <= numWriteCalls()) {
         d_isInHWM = true;
         d_channel.onWatermark(bmqio::ChannelWatermarkType::e_HIGH_WATERMARK);
     }
@@ -385,7 +385,7 @@ void TestChannelEx::write(bmqio::Status*     status,
         return;  // RETURN
     }
 
-    if (d_limit && writeCalls().size() >= d_limit) {
+    if (d_limit && d_limit <= numWriteCalls()) {
         d_isInHWM = true;
         status->setCategory(bmqio::StatusCategory::e_LIMIT);
         d_channel.onWatermark(bmqio::ChannelWatermarkType::e_HIGH_WATERMARK);
@@ -637,9 +637,8 @@ inline size_t Tester<Builder>::verify(
         d_builder.reset();
     }
 
-    typedef bsl::deque<bmqio::TestChannel::WriteCall>::const_iterator Writes;
-
-    Writes            writes = testChannel->writeCalls().begin();
+    bmqio::TestChannel::WriteCall writeCall;
+    size_t                        writeCallIndex = 0;
     Iterator<Builder> itEvents(&d_bufferFactory, d_allocator_p);
     size_t            counter    = 0;
     size_t            writeBlobs = 0;
@@ -659,12 +658,13 @@ inline size_t Tester<Builder>::verify(
             if (itEvents.next() != 1) {
                 bool isFound = false;
 
-                for (; writes != testChannel->writeCalls().end() && !isFound;
-                     ++writes) {
-                    // This assumes that the scope of iterator can be greater
-                    // than the scope of the event
-                    bmqp::Event event(&writes->d_blob, d_allocator_p);
+                for (;
+                     writeCallIndex < testChannel->numWriteCalls() && !isFound;
+                     ++writeCallIndex) {
+                    BMQTST_ASSERT(
+                        testChannel->getWriteCall(&writeCall, writeCallIndex));
 
+                    bmqp::Event event(&writeCall.d_blob, d_allocator_p);
                     if (event.type() == eventHistory.type()) {
                         itEvents.load(event);
                         BMQTST_ASSERT_EQ(itEvents.next(), 1);
@@ -673,13 +673,12 @@ inline size_t Tester<Builder>::verify(
                         isFound = true;
                     }
                 }
-                BMQTST_ASSERT_EQ_D("# " << counter, isFound, true);
+                BMQTST_ASSERT_D("# " << counter, isFound);
             }
 
-            BMQTST_ASSERT_EQ_D("# " << counter, itEvents.isValid(), true);
-            BMQTST_ASSERT_EQ_D("# " << counter,
-                               itHistoryEvents.isEqual(itEvents),
-                               true);
+            BMQTST_ASSERT_D("# " << counter, itEvents.isValid());
+            BMQTST_ASSERT_D("# " << counter,
+                            itHistoryEvents.isEqual(itEvents));
             ++counter;
         }
     }
@@ -810,7 +809,7 @@ static void test1_write()
     // Flush ACKs which are secondary
     channel.wakeUp();
 
-    BMQTST_ASSERT_EQ(testChannel->waitForChannel(bsls::TimeInterval(3)), true);
+    BMQTST_ASSERT(testChannel->waitForChannel(bsls::TimeInterval(3)));
 
     writeBlobs += put.verify(testChannel);
     writeBlobs += push.verify(testChannel);
@@ -818,7 +817,7 @@ static void test1_write()
     writeBlobs += confirm.verify(testChannel);
     writeBlobs += reject.verify(testChannel);
 
-    BMQTST_ASSERT_EQ(testChannel->writeCalls().size(), writeBlobs);
+    BMQTST_ASSERT_EQ(testChannel->numWriteCalls(), writeBlobs);
 }
 
 static void test2_highWatermark()
@@ -925,7 +924,7 @@ static void test2_highWatermark()
     // Flush ACKs which are secondary
     channel.wakeUp();
 
-    BMQTST_ASSERT_EQ(testChannel->waitForChannel(bsls::TimeInterval(1)), true);
+    BMQTST_ASSERT(testChannel->waitForChannel(bsls::TimeInterval(1)));
 
     writeBlobs += put.verify(testChannel);
     writeBlobs += push.verify(testChannel);
@@ -934,7 +933,7 @@ static void test2_highWatermark()
     writeBlobs += control.verify(testChannel);
     writeBlobs += reject.verify(testChannel);
 
-    BMQTST_ASSERT_EQ(testChannel->writeCalls().size(), writeBlobs);
+    BMQTST_ASSERT_EQ(testChannel->numWriteCalls(), writeBlobs);
 }
 
 static void test3_highWatermarkInWriteCb()
@@ -1015,15 +1014,13 @@ static void test3_highWatermarkInWriteCb()
     phase2.wait();
 
     // Wait for at least 2 'write' calls (the second triggers HWM)
-    BMQTST_ASSERT_EQ(testChannel->waitFor(2, false, bsls::TimeInterval(3)),
-                     true);
+    BMQTST_ASSERT(testChannel->waitFor(2, bsls::TimeInterval(3)));
 
     // trigger LWM during which the limit gets hit and trigger HWM
     testChannel->lowWatermark();
 
     // Wait for at least 1 'write' call to trigger HWM
-    BMQTST_ASSERT_EQ(testChannel->waitFor(3, false, bsls::TimeInterval(3)),
-                     true);
+    BMQTST_ASSERT(testChannel->waitFor(3, bsls::TimeInterval(3)));
 
     confirm.stop();
     put.stop();
@@ -1041,8 +1038,7 @@ static void test3_highWatermarkInWriteCb()
 
     // Flush ACKs which are secondary
     channel.wakeUp();
-    BMQTST_ASSERT_EQ(testChannel->waitForChannel(bsls::TimeInterval(10)),
-                     true);
+    BMQTST_ASSERT(testChannel->waitForChannel(bsls::TimeInterval(10)));
 
     size_t writeBlobs = 0;
     writeBlobs += put.verify(testChannel);
@@ -1051,7 +1047,7 @@ static void test3_highWatermarkInWriteCb()
     writeBlobs += confirm.verify(testChannel);
     writeBlobs += reject.verify(testChannel);
 
-    BMQTST_ASSERT_EQ(testChannel->writeCalls().size(), writeBlobs);
+    BMQTST_ASSERT_EQ(testChannel->numWriteCalls(), writeBlobs);
 }
 
 static void test4_controlBlob()
@@ -1140,12 +1136,14 @@ static void test4_controlBlob()
     writeBlobs += confirm.verify(testChannel);
     writeBlobs += reject.verify(testChannel);
 
-    BMQTST_ASSERT_EQ(testChannel->writeCalls().size(), writeBlobs + 1);
+    BMQTST_ASSERT_EQ(testChannel->numWriteCalls(), writeBlobs + 1);
 
-    const bdlbb::Blob& lastWrite = (--testChannel->writeCalls().end())->d_blob;
+    bmqio::TestChannel::WriteCall lastWrite;
+    BMQTST_ASSERT(testChannel->getWriteCall(&lastWrite, writeBlobs));
 
     // make sure the control is the last
-    BMQTST_ASSERT_EQ(bdlbb::BlobUtil::compare(*payload_sp, lastWrite), 0);
+    BMQTST_ASSERT_EQ(bdlbb::BlobUtil::compare(*payload_sp, lastWrite.d_blob),
+                     0);
 }
 
 static void test5_reconnect()
@@ -1190,13 +1188,16 @@ static void test5_reconnect()
                                            bmqp::EventType::e_CONTROL),
                          bmqt::GenericResult::e_SUCCESS);
 
-        BMQTST_ASSERT_EQ(testChannel->waitForChannel(bsls::TimeInterval(1)),
-                         true);
-        const bdlbb::Blob& write = testChannel->writeCalls().begin()->d_blob;
+        BMQTST_ASSERT(testChannel->waitForChannel(bsls::TimeInterval(1)));
 
-        BMQTST_ASSERT_EQ(bdlbb::BlobUtil::compare(*payload_sp, write), 0);
+        bmqio::TestChannel::WriteCall writeCall;
+        BMQTST_ASSERT(testChannel->getWriteCall(&writeCall, 0u));
+
+        BMQTST_ASSERT_EQ(bdlbb::BlobUtil::compare(*payload_sp,
+                                                  writeCall.d_blob),
+                         0);
     }
-    BMQTST_ASSERT_EQ(testChannel->writeCalls().size(), 1U);
+    BMQTST_ASSERT_EQ(testChannel->numWriteCalls(), 1U);
 
     testChannel->setWriteStatus(bmqio::StatusCategory::e_CONNECTION);
 
@@ -1212,7 +1213,7 @@ static void test5_reconnect()
                                            bmqp::EventType::e_CONTROL),
                          bmqt::GenericResult::e_SUCCESS);
     }
-    BMQTST_ASSERT_EQ(testChannel->writeCalls().size(), 1U);
+    BMQTST_ASSERT_EQ(testChannel->numWriteCalls(), 1U);
 
     // simulate reconnection
     channel.resetChannel();
@@ -1232,15 +1233,17 @@ static void test5_reconnect()
                                            bmqp::EventType::e_CONTROL),
                          bmqt::GenericResult::e_SUCCESS);
 
-        BMQTST_ASSERT_EQ(testChannel->waitForChannel(bsls::TimeInterval(1)),
-                         true);
-        const bdlbb::Blob& write =
-            (++testChannel->writeCalls().begin())->d_blob;
+        BMQTST_ASSERT(testChannel->waitForChannel(bsls::TimeInterval(1)));
 
-        BMQTST_ASSERT_EQ(bdlbb::BlobUtil::compare(*payload_sp, write), 0);
+        bmqio::TestChannel::WriteCall writeCall;
+        BMQTST_ASSERT(testChannel->getWriteCall(&writeCall, 1u));
+
+        BMQTST_ASSERT_EQ(bdlbb::BlobUtil::compare(*payload_sp,
+                                                  writeCall.d_blob),
+                         0);
     }
 
-    BMQTST_ASSERT_EQ(testChannel->writeCalls().size(), 2U);
+    BMQTST_ASSERT_EQ(testChannel->numWriteCalls(), 2U);
 }
 
 // ============================================================================

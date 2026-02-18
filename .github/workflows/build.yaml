@@ -52,11 +52,19 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}/src/python
         run: |
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
-          pip install "xsdata[cli]"
+          pip install "xsdata[cli]==25.7"
           cd ${{ github.workspace }}
           src/python/bin/schemagen
           src/python/bin/tweakgen
           pytest src/python
+
+      - name: Print generated schemas
+        if: failure()
+        run: |
+          cd ${{ github.workspace }}
+          cat src/python/blazingmq/schemas/mqbcfg.py
+          cat src/python/blazingmq/schemas/mqbconf.py
+          cat src/python/blazingmq/dev/it/tweaks/generated.py
 
   integration_tests_ubuntu:
     name: IT [${{ matrix.cluster }}/${{ matrix.mode }}/${{ matrix.consistency }}]
@@ -258,13 +266,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # The following steps restore cached deps
-      # If the cache is not hit, it will build and install the dependencies
-      # If the cache is hit, building deps is skipped, only make install is run
       - uses: actions/cache/restore@v4
         with:
           path: deps
           key: ${{ needs.get_dependencies.outputs.cache_key }}
+
       - name: Set up plugins dependencies
         run: |
           sudo apt-get update
@@ -297,17 +303,9 @@ jobs:
         env:
           PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
         run: |
-          cmake -S . -B build/blazingmq -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DBDE_BUILD_TARGET_SAFE=ON \
-            -DBDE_BUILD_TARGET_64=ON \
-            -DBDE_BUILD_TARGET_CPP17=ON \
-            -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
-            -DCMAKE_INSTALL_LIBDIR=lib64 \
-            -DINSTALL_TARGETS="prometheus;bmqbrkr;bmqtool"
+          cmake --preset gh-prometheus-ubuntu-latest-cpp17 -S .
           echo "::add-matcher::.github/workflows/problem-matchers/cpp.json"
-          cmake --build build/blazingmq --parallel 8 --target bmqbrkr bmqtool bmqprometheus
+          cmake --build --preset gh-prometheus-ubuntu-latest-cpp17
           echo "::remove-matcher owner=cpp"
 
       - name: Create prometheus dir
@@ -377,3 +375,6 @@ jobs:
 
       - name: Docker Cluster Workflow
         run: docker compose -f docker/cluster/docker-compose.yaml up --build -d
+
+      - name: Inspect Docker images
+        run: docker image ls

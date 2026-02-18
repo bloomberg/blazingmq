@@ -47,6 +47,7 @@
 #include <mqbi_cluster.h>
 #include <mqbi_dispatcher.h>
 #include <mqbmock_dispatcher.h>
+#include <mqbmock_domain.h>
 #include <mqbnet_channel.h>
 #include <mqbnet_cluster.h>
 #include <mqbnet_transportmanager.h>
@@ -101,7 +102,7 @@ class Domain;
 }
 namespace mqbnet {
 class Negotiator;
-class InitialConnectionHandler;
+class Authenticator;
 }
 
 namespace mqbmock {
@@ -120,10 +121,9 @@ class Cluster : public mqbi::Cluster {
     typedef bsl::function<void(const mqbi::DispatcherEvent& event)>
         EventProcessor;
 
-    typedef bslma::ManagedPtr<mqbnet::InitialConnectionHandler>
-        InitialConnectionHandlerMp;
-
     typedef bslma::ManagedPtr<mqbnet::Negotiator> NegotiatorMp;
+
+    typedef bslma::ManagedPtr<mqbnet::Authenticator> AuthenticatorMp;
 
     typedef bslma::ManagedPtr<mqbnet::Cluster> NetClusterMp;
 
@@ -180,6 +180,9 @@ class Cluster : public mqbi::Cluster {
     bslma::Allocator* d_allocator_p;
     // Allocator to use
 
+    bsl::string d_name;
+    // Cluster name
+
     bdlbb::PooledBlobBufferFactory d_bufferFactory;
     // Buffer factory to use
 
@@ -202,11 +205,20 @@ class Cluster : public mqbi::Cluster {
     mqbcfg::ClusterDefinition d_clusterDefinition;
     // Cluster definition
 
+    mqbmock::Domain d_domain;
+    // Domain to be used by the domain factory
+
+    mqbmock::DomainFactory d_domainFactory;
+    // Domain factory
+
     TestChannelMap d_channels;
     // Test channels
 
-    // Initial Connection Handler
-    InitialConnectionHandlerMp d_initialConnectionHandler_mp;
+    // Authenticator
+    AuthenticatorMp d_authenticator_mp;
+
+    // Negotiator
+    NegotiatorMp d_negotiator_mp;
 
     mqbnet::TransportManager d_transportManager;
     // Transport manager

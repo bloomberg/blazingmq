@@ -1103,12 +1103,18 @@ void QueueEngineTester::confirm(const bsl::string&       clientText,
             const bmqt::MessageGUID& msgGUID = it->second;
             BSLS_ASSERT_OPT(!msgGUID.isUnset());
 
-            mockHandle->confirmMessage(msgGUID, subQueueId);
+            mockHandle->confirmMessage(
+                dispatcher()->getDefaultEventSource().get(),
+                msgGUID,
+                subQueueId);
         }
         else {
             // This message was never posted - this is a "legal" testing
             // scenario.
-            mockHandle->confirmMessage(d_invalidGuid, subQueueId);
+            mockHandle->confirmMessage(
+                dispatcher()->getDefaultEventSource().get(),
+                d_invalidGuid,
+                subQueueId);
         }
     }
 }

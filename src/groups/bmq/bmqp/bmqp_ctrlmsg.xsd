@@ -1687,6 +1687,9 @@
         guidInfo..........: data provided by bmqp::MessageGUIDGenerator.
                             Contains clientId, current timer tick and number of
                             seconds from epoch.
+        userAgent.........: a string identifying the agent the client is using
+                            to connect.  Should include the SDK name/language
+                            and version.
       </documentation>
     </annotation>
     <sequence>
@@ -1702,6 +1705,7 @@
       <element name='clusterNodeId'   type='int'    default='-1'/>
       <element name='sdkLanguage'     type='tns:ClientLanguage' default='E_CPP'/>
       <element name='guidInfo'        type='tns:GuidInfo'/>
+      <element name='userAgent'       type='string' default=''/>
     </sequence>
   </complexType>
 
