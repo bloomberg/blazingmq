@@ -60,28 +60,27 @@ namespace bmqt {
 struct GenericResult {
     // TYPES
     enum Enum {
-        e_SUCCESS = 0  // Operation was success
-        ,
-        e_UNKNOWN = -1  // Operation failed for unknown reason
-        ,
-        e_TIMEOUT = -2  // Operation timedout
-        ,
-        e_NOT_CONNECTED = -3  // Cant process, not connected to the broker
-        ,
-        e_CANCELED = -4  // Operation was canceled
-        ,
-        e_NOT_SUPPORTED = -5  // Operation is not supported
-        ,
-        e_REFUSED = -6  // Operation was refused
-        ,
-        e_INVALID_ARGUMENT = -7  // An invalid argument was provided
-        ,
-        e_NOT_READY = -8  // Not ready to process the request
-        ,
+        /// Operation was success
+        e_SUCCESS = 0,
+        /// Operation failed for unknown reason
+        e_UNKNOWN = -1,
+        /// Operation timedout
+        e_TIMEOUT = -2,
+        /// Cant process, not connected to the broker
+        e_NOT_CONNECTED = -3,
+        /// Operation was canceled
+        e_CANCELED = -4,
+        /// Operation is not supported
+        e_NOT_SUPPORTED = -5,
+        /// Operation was refused
+        e_REFUSED = -6,
+        /// An invalid argument was provided
+        e_INVALID_ARGUMENT = -7,
+        /// Not ready to process the request
+        e_NOT_READY = -8,
+        /// Used in test driver only, to validate consistency between this enum
+        /// and the 'bmqp_ctrlmsg.xsd::StatusCategory' one
         e_LAST = e_NOT_READY
-        // Used in test driver only, to validate
-        // consistency between this enum and the
-        // 'bmqp_ctrlmsg.xsd::StatusCategory' one
     };
 
     // CLASS METHODS
@@ -144,22 +143,22 @@ struct OpenQueueResult {
         e_NOT_SUPPORTED    = GenericResult::e_NOT_SUPPORTED,
         e_REFUSED          = GenericResult::e_REFUSED,
         e_INVALID_ARGUMENT = GenericResult::e_INVALID_ARGUMENT,
-        e_NOT_READY        = GenericResult::e_NOT_READY
+        e_NOT_READY        = GenericResult::e_NOT_READY,
 
         // SPECIALIZED
         // WARNINGS
-        ,
-        e_ALREADY_OPENED = 100  // The queue is already opened
-        ,
-        e_ALREADY_IN_PROGRESS = 101  // The queue is already being opened
+        /// The queue is already opened
+        e_ALREADY_OPENED = 100,
+        /// The queue is already being opened
+        e_ALREADY_IN_PROGRESS = 101,
 
         // ERRORS
-        ,
-        e_INVALID_URI = -100  // The queue uri is invalid
-        ,
-        e_INVALID_FLAGS = -101  // The flags provided are invalid
-        ,
-        e_CORRELATIONID_NOT_UNIQUE = -102  // The correlationdId is not unique
+        /// The queue uri is invalid
+        e_INVALID_URI = -100,
+        /// The flags provided are invalid
+        e_INVALID_FLAGS = -101,
+        /// The correlationdId is not unique
+        e_CORRELATIONID_NOT_UNIQUE = -102
     };
 
     // CLASS METHODS
@@ -222,14 +221,13 @@ struct ConfigureQueueResult {
         e_NOT_SUPPORTED    = GenericResult::e_NOT_SUPPORTED,
         e_REFUSED          = GenericResult::e_REFUSED,
         e_INVALID_ARGUMENT = GenericResult::e_INVALID_ARGUMENT,
-        e_NOT_READY        = GenericResult::e_NOT_READY
+        e_NOT_READY        = GenericResult::e_NOT_READY,
 
         // SPECIALIZED WARNINGS
-        ,
-        e_ALREADY_IN_PROGRESS = 100  // The queue is already being configured
+        /// The queue is already being configured
+        e_ALREADY_IN_PROGRESS = 100,
 
         // ERRORS
-        ,
         e_INVALID_QUEUE = -101
     };
 
@@ -294,20 +292,20 @@ struct CloseQueueResult {
         e_NOT_SUPPORTED    = GenericResult::e_NOT_SUPPORTED,
         e_REFUSED          = GenericResult::e_REFUSED,
         e_INVALID_ARGUMENT = GenericResult::e_INVALID_ARGUMENT,
-        e_NOT_READY        = GenericResult::e_NOT_READY
+        e_NOT_READY        = GenericResult::e_NOT_READY,
 
         // SPECIALIZED
         // WARNINGS
-        ,
-        e_ALREADY_CLOSED = 100  // The queue is already closed
-        ,
-        e_ALREADY_IN_PROGRESS = 101  // The queue is already being closed
+        /// The queue is already closed
+        e_ALREADY_CLOSED = 100,
+        /// The queue is already being closed
+        e_ALREADY_IN_PROGRESS = 101,
 
         // ERRORS
-        ,
-        e_UNKNOWN_QUEUE = -100  // The queue doesn't exist
-        ,
-        e_INVALID_QUEUE = -101  // The queue provided is invalid
+        /// The queue doesn't exist
+        e_UNKNOWN_QUEUE = -100,
+        /// The queue provided is invalid
+        e_INVALID_QUEUE = -101
     };
 
     // CLASS METHODS
@@ -364,23 +362,20 @@ struct EventBuilderResult {
     enum Enum {
         // GENERIC
         e_SUCCESS = GenericResult::e_SUCCESS,
-        e_UNKNOWN = GenericResult::e_UNKNOWN
+        e_UNKNOWN = GenericResult::e_UNKNOWN,
 
         // SPECIALIZED
         // ERRORS
-        ,
         e_QUEUE_INVALID          = -100,
         e_QUEUE_READONLY         = -101,
         e_MISSING_CORRELATION_ID = -102,
         e_EVENT_TOO_BIG          = -103,
         e_PAYLOAD_TOO_BIG        = -104,
         e_PAYLOAD_EMPTY          = -105,
-        e_OPTION_TOO_BIG         = -106
+        e_OPTION_TOO_BIG         = -106,
 #ifdef BMQ_ENABLE_MSG_GROUPID
-        ,
-        e_INVALID_MSG_GROUP_ID = -107
+        e_INVALID_MSG_GROUP_ID = -107,
 #endif
-        ,
         e_QUEUE_SUSPENDED = -108
     };
 
@@ -444,30 +439,30 @@ struct AckResult {
         e_NOT_SUPPORTED    = GenericResult::e_NOT_SUPPORTED,
         e_REFUSED          = GenericResult::e_REFUSED,
         e_INVALID_ARGUMENT = GenericResult::e_INVALID_ARGUMENT,
-        e_NOT_READY        = GenericResult::e_NOT_READY
+        e_NOT_READY        = GenericResult::e_NOT_READY,
 
         // SPECIALIZED
         // ERRORS
-        ,
-        e_LIMIT_MESSAGES = -100  // Messages limit reached
-        ,
-        e_LIMIT_BYTES = -101  // Bytes limit reached
+        /// Messages limit reached
+        e_LIMIT_MESSAGES = -100,
+        /// Bytes limit reached
+        e_LIMIT_BYTES = -101,
 
         // TBD:DEPRECATED >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         // >libbmq-1.3.5
         // The below 4 values are deprecated in favor of the above two ones
-        ,
-        e_LIMIT_DOMAIN_MESSAGES = -100  // The domain is full (messages)
-        ,
-        e_LIMIT_DOMAIN_BYTES = -101  // The domain is full (bytes)
-        ,
-        e_LIMIT_QUEUE_MESSAGES = -102  // The queue is full (messages)
-        ,
-        e_LIMIT_QUEUE_BYTES = -103  // The queue is full (bytes)
+        /// The domain is full (messages)
+        e_LIMIT_DOMAIN_MESSAGES = -100,
+        /// The domain is full (bytes)
+        e_LIMIT_DOMAIN_BYTES = -101,
+        /// The queue is full (messages)
+        e_LIMIT_QUEUE_MESSAGES = -102,
+        /// The queue is full (bytes)
+        e_LIMIT_QUEUE_BYTES = -103,
         // TBD:DEPRECATED >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         // >libbmq-1.3.5
-        ,
-        e_STORAGE_FAILURE = -104  // The storage (on disk) is full
+        /// The storage (on disk) is full
+        e_STORAGE_FAILURE = -104
     };
 
     // CLASS METHODS
@@ -529,14 +524,13 @@ struct PostResult {
         e_NOT_SUPPORTED    = GenericResult::e_NOT_SUPPORTED,
         e_REFUSED          = GenericResult::e_REFUSED,
         e_INVALID_ARGUMENT = GenericResult::e_INVALID_ARGUMENT,
-        e_NOT_READY        = GenericResult::e_NOT_READY
+        e_NOT_READY        = GenericResult::e_NOT_READY,
 
         // SPECIALIZED
         // WARNINGS
-        ,
-        e_BW_LIMIT = 100  // The application has been posting too much
-                          // data, and the IO or broker are temporarily
-                          // rejecting new messages.
+        /// The application has been posting too much data, and the IO or
+        /// broker are temporarily rejecting new messages.
+        e_BW_LIMIT = 100
     };
 
     // CLASS METHODS

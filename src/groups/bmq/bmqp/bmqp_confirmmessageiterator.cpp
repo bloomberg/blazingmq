@@ -60,18 +60,17 @@ int ConfirmMessageIterator::next()
 {
     enum RcEnum {
         // Value for the various RC error categories
-        rc_HAS_NEXT = 1  // There is another message after this
-                         // one
-        ,
-        rc_AT_END = 0  // This is the last message
-        ,
-        rc_INVALID = -1  // The Iterator is an invalid state
-        ,
-        rc_NOT_ENOUGH_BYTES = -2  // The number of bytes in the blob is
-                                  // less than the payload size of the
-                                  // message declared in the header
-        ,
-        rc_INVALID_ADVANCE_LENGTH = -3  // Advance length is not positive
+        /// There is another message after this one
+        rc_HAS_NEXT = 1,
+        /// This is the last message
+        rc_AT_END = 0,
+        /// The Iterator is an invalid state
+        rc_INVALID = -1,
+        /// The number of bytes in the blob is less than the payload size of
+        /// the message declared in the header
+        rc_NOT_ENOUGH_BYTES = -2,
+        /// Advance length is not positive
+        rc_INVALID_ADVANCE_LENGTH = -3
     };
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!isValid())) {
@@ -122,18 +121,16 @@ int ConfirmMessageIterator::reset(const bdlbb::Blob* blob,
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_INVALID_EVENTHEADER = -1  // The blob doesn't contain a complete
-                                     // EventHeader, or is not followed by a
-                                     // ConfirmHeader
-        ,
-        rc_INVALID_CONFIRMHEADER = -2  // The blob doesn't contain a complete
-                                       // ConfirmHeader
-        ,
-        rc_NOT_ENOUGH_BYTES = -3  // The number of bytes in the blob is
-                                  // less than the header size declared
-                                  // in the header
+        /// Success
+        rc_SUCCESS = 0,
+        /// The blob doesn't contain a complete EventHeader, or is not followed
+        /// by a ConfirmHeader
+        rc_INVALID_EVENTHEADER = -1,
+        /// The blob doesn't contain a complete ConfirmHeader
+        rc_INVALID_CONFIRMHEADER = -2,
+        /// The number of bytes in the blob is less than the header size
+        /// declared in the header
+        rc_NOT_ENOUGH_BYTES = -3
     };
 
     d_blobIter.reset(blob, bmqu::BlobPosition(), blob->length(), true);

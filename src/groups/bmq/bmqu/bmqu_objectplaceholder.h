@@ -47,8 +47,8 @@
 // Include version that can be compiled with C++03
 // Generated on Wed Jun 18 14:44:06 2025
 // Command line: sim_cpp11_features.pl bmqu_objectplaceholder.h
-# define COMPILING_BMQU_OBJECTPLACEHOLDER_H
-# include <bmqu_objectplaceholder_cpp03.h>
+#define COMPILING_BMQU_OBJECTPLACEHOLDER_H
+#include <bmqu_objectplaceholder_cpp03.h>
 #undef COMPILING_BMQU_OBJECTPLACEHOLDER_H
 #else
 
@@ -98,11 +98,12 @@ class ObjectPlaceHolder {
     enum State {
         // State of the placeholder.
 
-        e_EMPTY = 0  // The placeholder is empty.
-        ,
-        e_FULL_INT = 1  // The placeholder contains an internal object.
-        ,
-        e_FULL_EXT = 2  // The placeholder contains an external object.
+        /// The placeholder is empty.
+        e_EMPTY = 0,
+        /// The placeholder contains an internal object.
+        e_FULL_INT = 1,
+        /// The placeholder contains an external object.
+        e_FULL_EXT = 2
     };
 
     /// An aligned buffer large enough to hold two pointers - the allocator

@@ -64,11 +64,11 @@ class StorageKey {
         // Enum representing the size of a buffer needed to represent a
         // StorageKey.
 
-        e_KEY_LENGTH_BINARY = 5  // Number of bytes in a binary representation
+        /// Number of bytes in a binary representation
+        e_KEY_LENGTH_BINARY = 5,
 
-        ,
+        /// Number of bytes in a hex representation
         e_KEY_LENGTH_HEX = 2 * e_KEY_LENGTH_BINARY
-        // Number of bytes in a hex representation
     };
 
     // PUBLIC CONSTANTS

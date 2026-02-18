@@ -184,11 +184,12 @@ class CapacityMeter {
         // Enum representing the possible result value of the
         // 'commitUnreserved' operation.
 
-        e_SUCCESS = 0  // operation was success
-        ,
-        e_LIMIT_MESSAGES = 1  // messages limit was hit
-        ,
-        e_LIMIT_BYTES = 2  // bytes limit was hit
+        /// operation was success
+        e_SUCCESS = 0,
+        /// messages limit was hit
+        e_LIMIT_MESSAGES = 1,
+        /// bytes limit was hit
+        e_LIMIT_BYTES = 2
     };
 
     // Callback function to log enhanced storage info into the

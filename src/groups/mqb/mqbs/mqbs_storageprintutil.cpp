@@ -58,9 +58,10 @@ int StoragePrintUtil::listMessage(mqbcmd::Message*             message,
     BSLS_ASSERT_SAFE(storage);
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_ITER_AT_END = -1  // Iterator is pointing at the end of the queue
+        /// Success
+        rc_SUCCESS = 0,
+        /// Iterator is pointing at the end of the queue
+        rc_ITER_AT_END = -1
     };
 
     if (storageIter.atEnd()) {

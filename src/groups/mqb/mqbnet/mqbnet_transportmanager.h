@@ -114,10 +114,11 @@ class TransportManager {
     enum ConnectionMode {
         // Enum describing how the cluster should establish connection with the
         // nodes of the cluster.
-        e_CONNECT_ALL = 0  // Connect out to all nodes
-        ,
-        e_MIXED = 1  // Connect out to higher node Ids only, expect
-                     // incoming connection from lower node Ids
+        /// Connect out to all nodes
+        e_CONNECT_ALL = 0,
+        /// Connect out to higher node Ids only, expect incoming connection
+        /// from lower node Ids
+        e_MIXED = 1
     };
 
   private:

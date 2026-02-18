@@ -1084,15 +1084,15 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_NO_FILE_SETS_TO_RECOVER = 1  // Special rc, do not change
-        ,
-        rc_SUCCESS               = 0,
-        rc_OPEN_FILE_SET_FAILURE = -1,
-        rc_INVALID_FILE_SET      = -2,
-        rc_FILE_ITERATOR_FAILURE = -3,
-        rc_INVALID_DATA_OFFSET   = -4,
-        rc_INVALID_QLIST_OFFSET  = -5,
-        rc_INVALID_QLIST_RECORD  = -6
+        /// Special rc, do not change
+        rc_NO_FILE_SETS_TO_RECOVER = 1,
+        rc_SUCCESS                 = 0,
+        rc_OPEN_FILE_SET_FAILURE   = -1,
+        rc_INVALID_FILE_SET        = -2,
+        rc_FILE_ITERATOR_FAILURE   = -3,
+        rc_INVALID_DATA_OFFSET     = -4,
+        rc_INVALID_QLIST_OFFSET    = -5,
+        rc_INVALID_QLIST_RECORD    = -6
     };
 
     const int        k_MAX_NUM_FILE_SETS_TO_CHECK = 2;

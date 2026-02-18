@@ -295,10 +295,9 @@ struct ElectorTransitionReason {
     // TYPES
     enum Enum {
         // Valid with all 4 ElectorStates
-        e_NONE = 0
+        e_NONE = 0,
 
         // Valid only with ElectorState::e_FOLLOWER
-        ,
         e_STARTED             = 1,
         e_LEADER_NO_HEARTBEAT = 2,
         e_LEADER_UNAVAILABLE  = 3,

@@ -84,10 +84,10 @@ class PushStream {
     struct Element;
 
     enum ElementList {
-        e_GUID = 0  // column
-        ,
-        e_APP = 1  // row
-        ,
+        /// column
+        e_GUID = 0,
+        /// row
+        e_APP   = 1,
         e_TOTAL = 2
     };
 

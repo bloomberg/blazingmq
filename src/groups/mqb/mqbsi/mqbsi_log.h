@@ -83,93 +83,74 @@ struct LogOpResult {
     enum Enum {
         // Generic
         // - - - -
-        e_SUCCESS = 0
-        // Operation was successful
+        /// Operation was successful
+        e_SUCCESS = 0,
 
         /// Unknown result
-        ,
-        e_UNKNOWN = -1
+        e_UNKNOWN = -1,
 
         /// Operation is *not* supported for this type of log
-        ,
-        e_UNSUPPORTED_OPERATION = -2
+        e_UNSUPPORTED_OPERATION = -2,
 
         /// Log was already opened
-        ,
-        e_LOG_ALREADY_OPENED = -3
+        e_LOG_ALREADY_OPENED = -3,
 
         /// Log was already closed
-        ,
-        e_LOG_ALREADY_CLOSED = -4
+        e_LOG_ALREADY_CLOSED = -4,
 
         /// Read-only contract is violated
-        ,
-        e_LOG_READONLY = -5
+        e_LOG_READONLY = -5,
 
         // File specific, only relevant to on-disk logs
         // - - - - - - - - - - - - - - - - - - - - - -
 
         /// File does not exist
-        ,
-        e_FILE_NOT_EXIST = -6
+        e_FILE_NOT_EXIST = -6,
 
         /// Error when opening the file
-        ,
-        e_FILE_OPEN_FAILURE = -7
+        e_FILE_OPEN_FAILURE = -7,
 
         /// Error when closing the file
-        ,
-        e_FILE_CLOSE_FAILURE = -8
+        e_FILE_CLOSE_FAILURE = -8,
 
         /// Error when growing the size of the file
-        ,
-        e_FILE_GROW_FAILURE = -9
+        e_FILE_GROW_FAILURE = -9,
 
         /// Error when truncating the file
-        ,
-        e_FILE_TRUNCATE_FAILURE = -10
+        e_FILE_TRUNCATE_FAILURE = -10,
 
         /// Error when seeking in the file
-        ,
-        e_FILE_SEEK_FAILURE = -11
+        e_FILE_SEEK_FAILURE = -11,
 
         /// Error when flushing file changes to disk
-        ,
-        e_FILE_FLUSH_FAILURE = -12
+        e_FILE_FLUSH_FAILURE = -12,
 
         /// Error when synchronizing the memory map back to the filesystem
-        ,
-        e_FILE_MSYNC_FAILURE = -13
+        e_FILE_MSYNC_FAILURE = -13,
 
         // Range checks for log, record, and blob
         // - - - - - - - - - - - - - - - - - - -
 
         /// The offset input argument is out of range of valid offsets
-        ,
-        e_OFFSET_OUT_OF_RANGE = -14
+        e_OFFSET_OUT_OF_RANGE = -14,
 
-        /// Operation would result in the log exceeding the configured
-        /// maximum size
-        ,
-        e_REACHED_END_OF_LOG = -15
+        /// Operation would result in the log exceeding the configured maximum
+        /// size
+        e_REACHED_END_OF_LOG = -15,
 
         /// Operation would exceed the end of the record
-        ,
-        e_REACHED_END_OF_RECORD = -16
+        e_REACHED_END_OF_RECORD = -16,
 
         /// An invalid blob section was provided
-        ,
-        e_INVALID_BLOB_SECTION = -17
+        e_INVALID_BLOB_SECTION = -17,
 
         // Byte read/write
         // - - - - - - - -
 
         /// Failed to read bytes from the log
-        ,
-        e_BYTE_READ_FAILURE = -18
+        e_BYTE_READ_FAILURE = -18,
 
         /// Failed to write bytes into the log
-        ,
         e_BYTE_WRITE_FAILURE = -19
     };
 
@@ -338,10 +319,10 @@ class Log {
     typedef bsls::Types::Uint64 UnsignedOffset;
 
     enum Enum {
-        e_READ_ONLY = (1 << 0)  // Whether the log is read-only
-        ,
-        e_CREATE_IF_MISSING = (1 << 1)  // Whether to create the log when
-                                        // opening if it does not exist
+        /// Whether the log is read-only
+        e_READ_ONLY = (1 << 0),
+        /// Whether to create the log when opening if it does not exist
+        e_CREATE_IF_MISSING = (1 << 1)
     };
 
     // CLASS DATA

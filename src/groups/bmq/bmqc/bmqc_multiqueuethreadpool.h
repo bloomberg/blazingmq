@@ -290,16 +290,14 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
   private:
     // PRIVATE TYPES
     enum MonitorEventState {
-        e_MONITOR_PENDING  // an event has been enqueued on the queue but the
-                           // next 'processMonitorEvents' hasn't been called
-                           // yet
-
-        ,
-        e_MONITOR_PROCESSED  // a monitor event has been processed by the queue
-
-        ,
-        e_MONITOR_STUCK  // the queue hasn't processed its event in at
-                         // least one timeout interval
+        /// An event has been enqueued on the queue but the next
+        /// `processMonitorEvents` hasn't been called yet
+        e_MONITOR_PENDING,
+        /// A monitor event has been processed by the queue
+        e_MONITOR_PROCESSED,
+        // the queue hasn't processed its event in at least one timeout
+        // interval
+        e_MONITOR_STUCK
     };
 
     struct QueueInfo {
