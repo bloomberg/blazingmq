@@ -259,108 +259,84 @@ bool MessageProperties::streamInPropertyValue(const Property& p) const
     BSLS_ASSERT_SAFE(p.d_value.isUnset());
     BSLS_ASSERT_SAFE(p.d_offset);
 
-    bmqu::BlobPosition position;
-    int rc = bmqu::BlobUtil::findOffsetSafe(&position, *d_blob_p, p.d_offset);
-    BSLS_ASSERT_SAFE(rc == 0);
+    bmqu::BlobSection section;
+    const int         rc = bmqu::BlobUtil::findBlobSectionSafe(&section,
+                                                       *d_blob_p,
+                                                       bmqu::BlobPosition(),
+                                                       p.d_offset,
+                                                       p.d_length);
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(0 != rc)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return false;  // RETURN
+    }
 
     switch (p.d_type) {
     case bmqt::PropertyType::e_BOOL: {
         char value;
-        rc = bmqu::BlobUtil::readNBytes(&value,
-                                        *d_blob_p,
-                                        position,
-                                        sizeof(value));
-
+        section.readTo(&value, *d_blob_p, sizeof(char));
         p.d_value = value == 1 ? true : false;
         break;
     }
     case bmqt::PropertyType::e_CHAR: {
         char value;
-        rc = bmqu::BlobUtil::readNBytes(&value,
-                                        *d_blob_p,
-                                        position,
-                                        sizeof(value));
-
+        section.readTo(&value, *d_blob_p, sizeof(char));
         p.d_value = value;
         break;
     }
     case bmqt::PropertyType::e_SHORT: {
         bdlb::BigEndianInt16 nboValue;
-        rc = bmqu::BlobUtil::readNBytes(reinterpret_cast<char*>(&nboValue),
-                                        *d_blob_p,
-                                        position,
-                                        sizeof(nboValue));
-
+        section.readTo(reinterpret_cast<char*>(&nboValue),
+                       *d_blob_p,
+                       sizeof(bdlb::BigEndianInt16));
         p.d_value = static_cast<short>(nboValue);
         break;
     }
     case bmqt::PropertyType::e_INT32: {
         bdlb::BigEndianInt32 nboValue;
-        rc = bmqu::BlobUtil::readNBytes(reinterpret_cast<char*>(&nboValue),
-                                        *d_blob_p,
-                                        position,
-                                        sizeof(nboValue));
-
+        section.readTo(reinterpret_cast<char*>(&nboValue),
+                       *d_blob_p,
+                       sizeof(bdlb::BigEndianInt32));
         p.d_value = static_cast<int>(nboValue);
         break;
     }
     case bmqt::PropertyType::e_INT64: {
         bdlb::BigEndianInt64 nboValue;
-        rc = bmqu::BlobUtil::readNBytes(reinterpret_cast<char*>(&nboValue),
-                                        *d_blob_p,
-                                        position,
-                                        sizeof(nboValue));
-
+        section.readTo(reinterpret_cast<char*>(&nboValue),
+                       *d_blob_p,
+                       sizeof(bdlb::BigEndianInt64));
         p.d_value = static_cast<bsls::Types::Int64>(nboValue);
         break;
     }
-
     case bmqt::PropertyType::e_STRING: {
         // Try to avoid copying the string.  'd_blop' already keeps a copy.
-        bmqu::BlobPosition end;
-        const int          ret =
-            bmqu::BlobUtil::findOffset(&end, *d_blob_p, position, p.d_length);
-        bool doCopy = true;
-        if (ret == 0) {
-            // Do not align
-            if (bmqu::BlobUtil::isDataContinuous(position, end)) {
-                // Section is good
-                char* start = d_blob_p->buffer(position.buffer()).data() +
-                              position.byte();
-
-                p.d_value = bsl::string_view(start, p.d_length);
-                doCopy    = false;
-            }
+        if (section.isDataContinuous()) {
+            // Shallow copy
+            const bmqu::BlobPosition& start = section.start();
+            char* data = d_blob_p->buffer(start.buffer()).data() +
+                         start.byte();
+            p.d_value = bsl::string_view(data, p.d_length);
         }
-        if (doCopy) {
-            bsl::string value(p.d_length, ' ', d_allocator_p);
-            rc        = bmqu::BlobUtil::readNBytes(&value[0],
-                                            *d_blob_p,
-                                            position,
-                                            p.d_length);
-            p.d_value = value;
+        else {
+            bsl::string copy(p.d_length, ' ', d_allocator_p);
+            section.readTo(copy.data(), *d_blob_p, p.d_length);
+            p.d_value = bslmf::MovableRefUtil::move(copy);
         }
 
         break;
     }
     case bmqt::PropertyType::e_BINARY: {
-        bsl::vector<char> value(p.d_length, d_allocator_p);
-        rc = bmqu::BlobUtil::readNBytes(&value[0],
-                                        *d_blob_p,
-                                        position,
-                                        p.d_length);
-
-        p.d_value = value;
+        bsl::vector<char> copy(p.d_length, d_allocator_p);
+        section.readTo(copy.data(), *d_blob_p, p.d_length);
+        p.d_value = bslmf::MovableRefUtil::move(copy);
         break;
     }
-    case bmqt::PropertyType::e_UNDEFINED:
+    case bmqt::PropertyType::e_UNDEFINED: BSLA_FALLTHROUGH;
     default:
         BSLS_ASSERT_OPT(0 && "Invalid data type for property value.");
-        rc = -1;
-        break;  // BREAK
+        return false;
     }
 
-    return rc == 0;
+    return true;
 }
 
 // CREATORS
