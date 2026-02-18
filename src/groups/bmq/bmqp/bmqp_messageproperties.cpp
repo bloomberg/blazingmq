@@ -202,8 +202,8 @@ MessageProperties_Schema::~MessageProperties_Schema()
 }
 
 // PUBLIC ACCESSORS
-bool MessageProperties_Schema::loadIndex(int*               index,
-                                         const bsl::string& name) const
+bool MessageProperties_Schema::loadIndex(int*             index,
+                                         bsl::string_view name) const
 {
     PropertyMap::const_iterator cit = d_indices.find(name);
 
@@ -466,7 +466,7 @@ void MessageProperties::clear()
     }
 }
 
-bool MessageProperties::remove(const bsl::string&        name,
+bool MessageProperties::remove(bsl::string_view          name,
                                bmqt::PropertyType::Enum* buffer)
 {
     PropertyMapIter it = findProperty(name);
@@ -867,8 +867,8 @@ int MessageProperties::streamIn(const bdlbb::Blob&           blob,
 // ACCESSORS
 // PUBLIC ACCESSORS
 bdld::Datum
-MessageProperties::getPropertyRef(const bsl::string& name,
-                                  bslma::Allocator*  basicAllocator) const
+MessageProperties::getPropertyRef(bsl::string_view  name,
+                                  bslma::Allocator* basicAllocator) const
 {
     PropertyMapIter it = findProperty(name);
     if (it == d_properties.end()) {
@@ -906,7 +906,7 @@ MessageProperties::getPropertyRef(const bsl::string& name,
     }
 }
 
-bool MessageProperties::hasProperty(const bsl::string&        name,
+bool MessageProperties::hasProperty(bsl::string_view          name,
                                     bmqt::PropertyType::Enum* type) const
 {
     PropertyMapConstIter cit = findProperty(name);
@@ -922,7 +922,7 @@ bool MessageProperties::hasProperty(const bsl::string&        name,
 }
 
 bmqt::PropertyType::Enum
-MessageProperties::propertyType(const bsl::string& name) const
+MessageProperties::propertyType(bsl::string_view name) const
 {
     PropertyMapConstIter cit = findProperty(name);
     BSLS_ASSERT((cit != d_properties.end()) && "Property does not exist");
