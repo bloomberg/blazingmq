@@ -32,6 +32,7 @@
 // BDE
 #include <bsl_memory.h>
 #include <bsl_string_view.h>
+#include <bsl_vector.h>
 
 namespace BloombergLP {
 namespace bmqpi {
@@ -56,6 +57,22 @@ class DTTracer {
         const bsl::shared_ptr<DTSpan>& parent,
         const bsl::string_view&        operation,
         const DTSpan::Baggage&         baggage = DTSpan::Baggage()) const = 0;
+
+    /// Serialize the specified `dtSpan` into the specified `buffer`.
+    /// Return 0 on success, or a non-zero error code on error with `buffer`
+    /// being valid-but-unspecified.
+    virtual int serializeSpan(bsl::vector<unsigned char>*    buffer,
+                              const bsl::shared_ptr<DTSpan>& dtSpan) const = 0;
+
+    /// Deserialize the specified `buffer` as a span, and then construct a
+    /// new `DTSpan` in `child`, representing `operation` as a child of the
+    /// deserialized span and having the key-value tags defined by `baggage`.
+    /// Return 0 on success, or a non-zero error code on error.
+    virtual int deserializeAndCreateChildSpan(
+        bsl::shared_ptr<DTSpan>*          child,
+        const bsl::vector<unsigned char>& buffer,
+        const bsl::string_view&           operation,
+        const DTSpan::Baggage& baggage = DTSpan::Baggage()) const = 0;
 };
 
 }  // close package namespace
