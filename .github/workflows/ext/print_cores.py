@@ -93,6 +93,7 @@ def main() -> None:
             bmqtool_path if is_bmqtool(core_path) else bmqbrkr_path,
             core_path,
         ]
+        cmd = [str(comp) for comp in cmd]
 
         print(f"::group::{core_path}", flush=True)
         print(f"#CORE: {core_path}", flush=True)
