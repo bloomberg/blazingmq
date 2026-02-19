@@ -5301,6 +5301,9 @@ int FileStore::open(const QueueKeyInfoMap& queueKeyInfoMap)
 
 void FileStore::close(bool flush)
 {
+    // The FileStore might be not opened by the time we call `close()`
+    cancelTimersAndWait();
+
     if (!d_isOpen) {
         return;  // RETURN
     }
@@ -5309,11 +5312,6 @@ void FileStore::close(bool flush)
     d_isStopping         = false;
     d_flushWhenClosing   = flush;
     d_lastSyncPtReceived = false;
-
-    d_config.scheduler()->cancelEventAndWait(&d_syncPointEventHandle);
-    d_config.scheduler()->cancelEventAndWait(
-        &d_partitionHighwatermarkEventHandle);
-    // Ok to ignore rc above
 
     BALL_LOG_INFO << partitionDesc() << "Closing partition. ";
 
@@ -6677,9 +6675,7 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
         d_isPrimary = false;
         d_partitionStats_sp->setNodeRole(
             mqbstat::PartitionStats::PrimaryStatus::e_REPLICA);
-        d_config.scheduler()->cancelEvent(&d_syncPointEventHandle);
-        d_config.scheduler()->cancelEvent(
-            &d_partitionHighwatermarkEventHandle);
+        cancelTimersAndWait();
 
         if (d_lastRecoveredStrongConsistency.d_primaryLeaseId ==
             d_primaryLeaseId) {
@@ -7132,6 +7128,7 @@ void FileStore::unregisterStorage(const ReplicatedStorage* storage)
 
 void FileStore::cancelTimersAndWait()
 {
+    // Thread: *ANY*
     d_config.scheduler()->cancelEventAndWait(&d_syncPointEventHandle);
     d_config.scheduler()->cancelEventAndWait(
         &d_partitionHighwatermarkEventHandle);
