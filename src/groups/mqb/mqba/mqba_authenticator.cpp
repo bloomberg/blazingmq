@@ -78,7 +78,7 @@ int Authenticator::onAuthenticationRequest(
     BSLS_ASSERT_SAFE(authenticationMsg.isAuthenticationRequestValue());
 
     BALL_LOG_DEBUG << "Received authentication message from '"
-                   << context_p->channel()->peerUri() << "'";
+                   << context_p->channel().get() << "'";
 
     // Create an AuthenticationContext for that connection
     bsl::shared_ptr<mqbnet::AuthenticationContext> authenticationContext =
@@ -196,7 +196,7 @@ int Authenticator::authenticateAsync(
 
     if (rc != 0) {
         errorDescription << "Failed to enqueue authentication job for '"
-                         << channel->peerUri() << "' [rc: " << rc << "]";
+                         << channel.get() << "' [rc: " << rc << "]";
     }
 
     return rc;
@@ -254,9 +254,8 @@ void Authenticator::authenticate(
     bmqp::EncodingType::Enum encodingType = context_sp->encodingType();
 
     BALL_LOG_INFO << (isReauthn ? "Reauthenticating" : "Authenticating")
-                  << " connection '" << channel->peerUri()
-                  << "' with mechanism '" << authenticationRequest.mechanism()
-                  << "'";
+                  << " connection '" << channel.get() << "' with mechanism '"
+                  << authenticationRequest.mechanism() << "'";
 
     // Authenticate
     bmqu::MemOutStream                             authnErrStream;
@@ -280,7 +279,7 @@ void Authenticator::authenticate(
         {
             BALL_LOG_OUTPUT_STREAM
                 << "Authentication successful for connection '"
-                << channel->peerUri() << "': mechanism [ "
+                << channel.get() << "': mechanism [ "
                 << authenticationRequest.mechanism() << " ], lifetimeMs [ ";
             if (result && result->lifetimeMs().has_value()) {
                 BALL_LOG_OUTPUT_STREAM << result->lifetimeMs().value();
@@ -315,7 +314,7 @@ void Authenticator::authenticate(
         error = authnErrStream.str();
 
         BALL_LOG_WARN << "Authentication failed for connection '"
-                      << channel->peerUri() << "': mechanism [ "
+                      << channel.get() << "': mechanism [ "
                       << authenticationRequest.mechanism() << " ], error: '"
                       << authnErrStream.str() << "'";
 

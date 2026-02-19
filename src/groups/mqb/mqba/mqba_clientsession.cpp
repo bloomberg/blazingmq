@@ -2458,7 +2458,7 @@ ClientSession::ClientSession(
                   << ", identity: " << *(d_clientIdentity_p)
                   << ", ptr: " << this << ", queueHandleRequesterId: "
                   << d_queueSessionManager.requesterContext()->requesterId()
-                  << "].";
+                  << ", channel: '" << d_channel_sp.get() << "'].";
 }
 
 ClientSession::~ClientSession()

@@ -366,8 +366,7 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
         negotiationMessage.clientIdentity();
 
     BALL_LOG_INFO << "Handle negotiation message received from '"
-                  << context_p->channel()->peerUri()
-                  << "': " << clientIdentity;
+                  << context_p->channel().get() << "': " << clientIdentity;
 
     bsl::shared_ptr<mqbnet::Session> session;
 
@@ -534,8 +533,7 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onBrokerResponseMessage(
         negotiationMessage.brokerResponse();
 
     BALL_LOG_DEBUG << "Received negotiation message from '"
-                   << context_p->channel()->peerUri()
-                   << "': " << brokerResponse;
+                   << context_p->channel().get() << "': " << brokerResponse;
 
     bsl::shared_ptr<mqbnet::Session> session;
 

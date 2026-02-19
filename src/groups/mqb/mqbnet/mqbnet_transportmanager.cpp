@@ -51,26 +51,6 @@
 namespace BloombergLP {
 namespace mqbnet {
 
-namespace {
-
-bsl::ostream& operator<<(bsl::ostream& os, const bmqio::Channel* channel)
-{
-    // 'pretty-print' the specified 'channel' to the specified 'os'.  The
-    // printed channel from that function includes the address of the channel
-    // for easy tracking and matching of logs.
-
-    if (channel) {
-        os << channel->peerUri() << "#" << static_cast<const void*>(channel);
-    }
-    else {
-        os << "*null*";
-    }
-
-    return os;
-}
-
-}  // close unnamed namespace
-
 // ----------------------
 // class TransportManager
 // ----------------------
