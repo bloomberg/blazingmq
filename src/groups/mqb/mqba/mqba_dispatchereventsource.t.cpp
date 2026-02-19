@@ -16,6 +16,9 @@
 // mqba_dispatchereventsource.t.cpp                                   -*-C++-*-
 #include <mqba_dispatchereventsource.h>
 
+// BMQ
+#include <bmqtst_table.h>
+
 // MQB
 #include <mqbevt_ackevent.h>
 #include <mqbevt_callbackevent.h>
@@ -55,16 +58,18 @@ static const int k_BENCHMARK_ITERATIONS = 100000;
 namespace {
 
 template <typename EVENT_TYPE>
-void benchmarkEventType(const char* eventName)
+void benchmarkEventType(bmqtst::Table* results, const char* eventName)
 {
-    bsls::Stopwatch stopwatch;
+    // PRECONDITIONS
+    BSLS_ASSERT_OPT(results);
 
-    bsl::cout << eventName << ":\n";
-    bsl::cout << "  Size:                " << sizeof(EVENT_TYPE) << " bytes\n";
+    results->column("Name").insertValue(eventName);
+    results->column("sizeof").insertValue(bsl::to_string(sizeof(EVENT_TYPE)));
 
     // Construction time
     bdlma::LocalSequentialAllocator<1024> lsa(
         bmqtst::TestHelperUtil::allocator());
+    bsls::Stopwatch stopwatch;
     stopwatch.reset();
     stopwatch.start();
     for (int i = 0; i < k_BENCHMARK_ITERATIONS; ++i) {
@@ -72,10 +77,23 @@ void benchmarkEventType(const char* eventName)
         (void)event;
     }
     stopwatch.stop();
-    bsl::cout << "  Construction time:   "
-              << stopwatch.elapsedTime() / k_BENCHMARK_ITERATIONS * 1e9
-              << " ns/op\n";
-    bsl::cout << "\n";
+    results->column("constructor, ns/op")
+        .insertValue(bsl::to_string(stopwatch.elapsedTime() /
+                                    k_BENCHMARK_ITERATIONS * 1e9));
+
+    stopwatch.reset();
+    stopwatch.start();
+    {
+        EVENT_TYPE event(&lsa);
+        for (int i = 0; i < k_BENCHMARK_ITERATIONS; ++i) {
+            event.reset();
+        }
+    }
+    stopwatch.stop();
+
+    results->column("reset (ns/op)")
+        .insertValue(bsl::to_string(stopwatch.elapsedTime() /
+                                    k_BENCHMARK_ITERATIONS * 1e9));
 }
 
 }  // close unnamed namespace
@@ -111,8 +129,7 @@ static void test1_breathingTest()
     {
         bsl::shared_ptr<mqbevt::CallbackEvent> event = obj.getCallbackEvent();
         BMQTST_ASSERT(event);
-        BMQTST_ASSERT_EQ(event->type(),
-                         mqbi::DispatcherEventType::e_CALLBACK);
+        BMQTST_ASSERT_EQ(event->type(), mqbi::DispatcherEventType::e_CALLBACK);
     }
 
     {
@@ -167,8 +184,7 @@ static void test1_breathingTest()
     {
         bsl::shared_ptr<mqbevt::RecoveryEvent> event = obj.getRecoveryEvent();
         BMQTST_ASSERT(event);
-        BMQTST_ASSERT_EQ(event->type(),
-                         mqbi::DispatcherEventType::e_RECOVERY);
+        BMQTST_ASSERT_EQ(event->type(), mqbi::DispatcherEventType::e_RECOVERY);
     }
 
     {
@@ -200,45 +216,28 @@ static void testN1_dispatcherEventBenchmark()
 {
     bmqtst::TestHelper::printTestName("DISPATCHER EVENT BENCHMARK");
 
-    bsl::cout << "\n"
-              << "================================================\n"
-              << "Event Type Benchmark (iterations: "
-              << k_BENCHMARK_ITERATIONS << ")\n"
-              << "================================================\n"
-              << "\n";
+    bmqtst::Table results(bmqtst::TestHelperUtil::allocator());
 
-    bsl::cout << "Base class:\n";
-    bsl::cout << "  mqbi::DispatcherEvent:         "
-              << sizeof(mqbi::DispatcherEvent) << " bytes\n";
-    bsl::cout << "\n";
-
-    benchmarkEventType<mqbevt::AckEvent>("mqbevt::AckEvent");
-
-    benchmarkEventType<mqbevt::CallbackEvent>("mqbevt::CallbackEvent");
-
-    benchmarkEventType<mqbevt::ClusterStateEvent>("mqbevt::ClusterStateEvent");
-
-    benchmarkEventType<mqbevt::ConfirmEvent>("mqbevt::ConfirmEvent");
-
+    benchmarkEventType<mqbevt::AckEvent>(&results, "mqbevt::AckEvent");
+    benchmarkEventType<mqbevt::CallbackEvent>(&results,
+                                              "mqbevt::CallbackEvent");
+    benchmarkEventType<mqbevt::ClusterStateEvent>(&results,
+                                                  "mqbevt::ClusterStateEvent");
+    benchmarkEventType<mqbevt::ConfirmEvent>(&results, "mqbevt::ConfirmEvent");
     benchmarkEventType<mqbevt::ControlMessageEvent>(
+        &results,
         "mqbevt::ControlMessageEvent");
+    benchmarkEventType<mqbevt::DispatcherEvent>(&results,
+                                                "mqbevt::DispatcherEvent");
+    benchmarkEventType<mqbevt::PushEvent>(&results, "mqbevt::PushEvent");
+    benchmarkEventType<mqbevt::PutEvent>(&results, "mqbevt::PutEvent");
+    benchmarkEventType<mqbevt::ReceiptEvent>(&results, "mqbevt::ReceiptEvent");
+    benchmarkEventType<mqbevt::RecoveryEvent>(&results,
+                                              "mqbevt::RecoveryEvent");
+    benchmarkEventType<mqbevt::RejectEvent>(&results, "mqbevt::RejectEvent");
+    benchmarkEventType<mqbevt::StorageEvent>(&results, "mqbevt::StorageEvent");
 
-    benchmarkEventType<mqbevt::DispatcherEvent>("mqbevt::DispatcherEvent");
-
-    benchmarkEventType<mqbevt::PushEvent>("mqbevt::PushEvent");
-
-    benchmarkEventType<mqbevt::PutEvent>("mqbevt::PutEvent");
-
-    benchmarkEventType<mqbevt::ReceiptEvent>("mqbevt::ReceiptEvent");
-
-    benchmarkEventType<mqbevt::RecoveryEvent>("mqbevt::RecoveryEvent");
-
-    benchmarkEventType<mqbevt::RejectEvent>("mqbevt::RejectEvent");
-
-    benchmarkEventType<mqbevt::StorageEvent>("mqbevt::StorageEvent");
-
-    bsl::cout << "================================================\n"
-              << "\n";
+    results.print(bsl::cout);
 }
 
 // ============================================================================
