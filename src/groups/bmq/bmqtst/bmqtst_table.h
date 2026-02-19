@@ -68,7 +68,6 @@ namespace bmqtst {
 // class Table
 // ===========
 
-/// @class Table
 /// @brief Class for aggregation and pretty printing simple stats.
 ///
 /// This class provides a mechanism to create and format tabular data with

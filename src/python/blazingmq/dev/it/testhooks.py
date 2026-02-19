@@ -29,12 +29,14 @@ def is_test_reported_failed(request):
     To decide if test failed
     """
 
-    report = request.node.stash[PHASE_REPORT_KEY]
-    if report["setup"].failed:
+    report = request.node.stash.get(PHASE_REPORT_KEY, {})
+    if not report:
+        return False
+    if report.get("setup") and report["setup"].failed:
         return True
-    if report["setup"].skipped:
+    if report.get("setup") and report["setup"].skipped:
         return True
-    if ("call" not in report) or report["call"].failed:
+    if ("call" not in report) or (report.get("call") and report["call"].failed):
         return True
 
     return False
