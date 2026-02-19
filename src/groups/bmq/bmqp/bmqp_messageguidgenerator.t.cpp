@@ -43,6 +43,7 @@
 #include <bsls_types.h>
 
 // TEST DRIVER
+#include <bmqtst_table.h>
 #include <bmqtst_testhelper.h>
 
 // BENCHMARKING LIBRARY
@@ -243,143 +244,6 @@ struct HashBenchmarkStats {
 
     /// The estimated hash computation rate (per second)
     bsls::Types::Int64 d_hashesPerSecond;
-};
-
-/// The class for aggregation and pretty printing simple stats.
-class Table {
-  public:
-    // FORWARD DECLARATIONS
-    class ColumnView;
-    friend class ColumnView;
-
-  private:
-    // DATA
-    /// 2-dimensional table with values presented as `bsl::string`,
-    /// the column index is first, the row index is the second.
-    /// The 0-th row contains column labels.
-    bsl::vector<bsl::vector<bsl::string> > d_columns;
-
-    /// The mapping between column title and ColumnView-s
-    bsl::map<bsl::string, ColumnView> d_views;
-
-    // CLASS METHODS
-    static bsl::string pad(const bsl::string& text, size_t width)
-    {
-        BSLS_ASSERT(text.length() <= width);
-        return bsl::string(width - text.length(), ' ') + text;
-    }
-
-  public:
-    // PUBLIC TYPES
-    class ColumnView {
-      private:
-        // PRIVATE TYPES
-
-        /// Reference to the parent table
-        Table& d_table;
-
-        /// The index of this column in the parent table
-        size_t d_columnIndex;
-
-      public:
-        // CREATORS
-        explicit ColumnView(Table& table, size_t columnIndex)
-        : d_table(table)
-        , d_columnIndex(columnIndex)
-        {
-            // NOTHING
-        }
-
-        // MANIPULATORS
-
-        /// Insert the specified 'value' to the end of the column.
-        void insertValue(const bsl::string& value)
-        {
-            d_table.d_columns.at(d_columnIndex).push_back(value);
-        }
-
-        /// Insert the specified 'value' to the end of the column.
-        void insertValue(const bsls::Types::Uint64& value)
-        {
-            d_table.d_columns.at(d_columnIndex)
-                .push_back(bsl::to_string(value));
-        }
-    };
-
-    /// Return a `ColumnView` manipulator to the table column data for the
-    /// specified `columnTitle`.
-    ///
-    /// Note: we return ColumnView by value, not by reference.  If we return
-    ///       a reference to an object in the stored map, the reference can
-    ///       become invalid if we continue to add new nodes to the map.
-    ///
-    /// Guarantee: each ColumnView returned before is valid as manipulator to
-    ///            its column until the parent Table object is valid.
-    ColumnView column(const bsl::string& columnTitle)
-    {
-        if (d_views.find(columnTitle) == d_views.end()) {
-            d_columns.resize(d_columns.size() + 1);
-            d_columns.back().push_back(columnTitle);
-            d_views.insert(
-                bsl::make_pair(columnTitle,
-                               ColumnView(*this, d_columns.size() - 1)));
-        }
-        return d_views.find(columnTitle)->second;
-    }
-
-    ///  Print the stored data as a pretty table to the specified `os`.
-    void print(bsl::ostream& os) const
-    {
-        // PRECONDITIONS
-        if (d_columns.empty()) {
-            return;  // RETURN
-        }
-        const size_t      rows      = d_columns.front().size();
-        const bsl::string separator = " | ";
-        for (size_t columnId = 0; columnId < d_columns.size(); columnId++) {
-            // Expect all columns to have the same number of rows
-            BSLS_ASSERT(rows == d_columns.at(columnId).size());
-        }
-
-        // For each column, calculate the longest stored value and remember it
-        // as this column's width
-        bsl::vector<size_t> paddings;
-        paddings.resize(d_columns.size(), 0);
-        for (size_t columnId = 0; columnId < d_columns.size(); columnId++) {
-            const bsl::vector<bsl::string>& column = d_columns.at(columnId);
-
-            size_t& maxLen = paddings.at(columnId);
-            for (size_t rowId = 0; rowId < rows; rowId++) {
-                maxLen = bsl::max(maxLen, column.at(rowId).length());
-            }
-        }
-
-        // Print the table using precalculated column widths
-        for (size_t rowId = 0; rowId < rows; rowId++) {
-            for (size_t columnId = 0; columnId < d_columns.size();
-                 columnId++) {
-                if (columnId > 0) {
-                    os << separator;
-                }
-                os << pad(d_columns.at(columnId).at(rowId),
-                          paddings.at(columnId));
-            }
-            os << bsl::endl;
-
-            // Print horizontal line after the initial row
-            if (rowId == 0) {
-                size_t lineWidth = 0;
-                for (bsl::vector<size_t>::const_iterator it =
-                         paddings.cbegin();
-                     it != paddings.cend();
-                     ++it) {
-                    lineWidth += *it;
-                }
-                lineWidth += separator.size() * (paddings.size() - 1);
-                os << bsl::string(lineWidth, '=') << bsl::endl;
-            }
-        }
-    }
 };
 
 template <class HashType>
@@ -1579,7 +1443,7 @@ static void testN9_hashBenchmarkComparison()
     stats.push_back(
         benchmarkHash<bslh::Hash<bmqt::MessageGUIDHashAlgo> >("mxm"));
 
-    Table table;
+    bmqtst::Table table(bmqtst::TestHelperUtil::allocator());
     for (size_t i = 0; i < stats.size(); i++) {
         const HashBenchmarkStats& st = stats[i];
         table.column("Name").insertValue(st.d_caseName);
@@ -1828,7 +1692,7 @@ static void testN10_hashCollisionsComparison()
     const size_t k_NUM_HASH_CHECKERS = sizeof(k_HASH_CHECKERS) /
                                        sizeof(*k_HASH_CHECKERS);
 
-    Table table;
+    bmqtst::Table table(bmqtst::TestHelperUtil::allocator());
     for (size_t checkerId = 0; checkerId < k_NUM_HASH_CHECKERS; checkerId++) {
         const HashCheckerContext& checker = k_HASH_CHECKERS[checkerId];
         table.column("Name").insertValue(checker.d_name);
