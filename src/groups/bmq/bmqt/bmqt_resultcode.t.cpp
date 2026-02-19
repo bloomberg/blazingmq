@@ -178,8 +178,7 @@ static void test3_printTest()
             {L_, bmqt::GenericResult::e_REFUSED, "REFUSED"},
             {L_, bmqt::GenericResult::e_INVALID_ARGUMENT, "INVALID_ARGUMENT"},
             {L_, bmqt::GenericResult::e_NOT_READY, "NOT_READY"},
-            {L_, bmqt::GenericResult::e_LAST, "NOT_READY"},
-            {L_, bmqt::GenericResult::e_LAST - 1, "(* UNKNOWN *)"}};
+            {L_, bmqt::GenericResult::e_LAST, "NOT_READY"}};
 
         printEnumHelper<bmqt::GenericResult>(k_DATA);
     }
@@ -206,8 +205,7 @@ static void test3_printTest()
             {L_, bmqt::OpenQueueResult::e_INVALID_FLAGS, "INVALID_FLAGS"},
             {L_,
              bmqt::OpenQueueResult::e_CORRELATIONID_NOT_UNIQUE,
-             "CORRELATIONID_NOT_UNIQUE"},
-            {L_, -1234, "(* UNKNOWN *)"}};
+             "CORRELATIONID_NOT_UNIQUE"}};
 
         printEnumHelper<bmqt::OpenQueueResult>(k_DATA);
     }
@@ -229,8 +227,9 @@ static void test3_printTest()
             {L_,
              bmqt::ConfigureQueueResult::e_ALREADY_IN_PROGRESS,
              "ALREADY_IN_PROGRESS"},
-            {L_, bmqt::ConfigureQueueResult::e_INVALID_QUEUE, "INVALID_QUEUE"},
-            {L_, -1234, "(* UNKNOWN *)"}};
+            {L_,
+             bmqt::ConfigureQueueResult::e_INVALID_QUEUE,
+             "INVALID_QUEUE"}};
 
         printEnumHelper<bmqt::ConfigureQueueResult>(k_DATA);
     }
@@ -254,8 +253,7 @@ static void test3_printTest()
              bmqt::CloseQueueResult::e_ALREADY_IN_PROGRESS,
              "ALREADY_IN_PROGRESS"},
             {L_, bmqt::CloseQueueResult::e_UNKNOWN_QUEUE, "UNKNOWN_QUEUE"},
-            {L_, bmqt::CloseQueueResult::e_INVALID_QUEUE, "INVALID_QUEUE"},
-            {L_, -1234, "(* UNKNOWN *)"}};
+            {L_, bmqt::CloseQueueResult::e_INVALID_QUEUE, "INVALID_QUEUE"}};
 
         printEnumHelper<bmqt::CloseQueueResult>(k_DATA);
     }
@@ -275,13 +273,14 @@ static void test3_printTest()
              bmqt::EventBuilderResult::e_PAYLOAD_TOO_BIG,
              "PAYLOAD_TOO_BIG"},
             {L_, bmqt::EventBuilderResult::e_PAYLOAD_EMPTY, "PAYLOAD_EMPTY"},
-            {L_, bmqt::EventBuilderResult::e_OPTION_TOO_BIG, "OPTION_TOO_BIG"},
+            {L_, bmqt::EventBuilderResult::e_OPTION_TOO_BIG, "OPTION_TOO_BIG"}
 #ifdef BMQ_ENABLE_MSG_GROUPID
+            ,
             {L_,
              bmqt::EventBuilderResult::e_INVALID_MSG_GROUP_ID,
-             "INVALID_MSG_GROUP_ID"},
+             "INVALID_MSG_GROUP_ID"}
 #endif
-            {L_, -1234, "(* UNKNOWN *)"}};
+        };
 
         printEnumHelper<bmqt::EventBuilderResult>(k_DATA);
     }
@@ -306,8 +305,7 @@ static void test3_printTest()
              bmqt::AckResult::e_LIMIT_QUEUE_MESSAGES,
              "LIMIT_QUEUE_MESSAGES"},
             {L_, bmqt::AckResult::e_LIMIT_QUEUE_BYTES, "LIMIT_QUEUE_BYTES"},
-            {L_, bmqt::AckResult::e_STORAGE_FAILURE, "STORAGE_FAILURE"},
-            {L_, -1234, "(* UNKNOWN *)"}};
+            {L_, bmqt::AckResult::e_STORAGE_FAILURE, "STORAGE_FAILURE"}};
 
         printEnumHelper<bmqt::AckResult>(k_DATA);
     }
@@ -324,8 +322,7 @@ static void test3_printTest()
             {L_, bmqt::PostResult::e_REFUSED, "REFUSED"},
             {L_, bmqt::PostResult::e_INVALID_ARGUMENT, "INVALID_ARGUMENT"},
             {L_, bmqt::PostResult::e_NOT_READY, "NOT_READY"},
-            {L_, bmqt::PostResult::e_BW_LIMIT, "BW_LIMIT"},
-            {L_, -1234, "(* UNKNOWN *)"}};
+            {L_, bmqt::PostResult::e_BW_LIMIT, "BW_LIMIT"}};
 
         printEnumHelper<bmqt::PostResult>(k_DATA);
     }

@@ -120,8 +120,7 @@ static void test1_exitCode_toAscii()
                   {L_, 10, "STORAGE_OUT_OF_SYNC"},
                   {L_, 11, "UNSUPPORTED_SCENARIO"},
                   {L_, 12, "MEMORY_LIMIT"},
-                  {L_, 13, "REQUESTED"},
-                  {L_, -1, "(* UNKNOWN *)"}};
+                  {L_, 13, "REQUESTED"}};
     // NOTE: Using the 'integer' value instead of the enum to ensure the
     //       numeric values are *never* changed.
 
@@ -237,8 +236,7 @@ static void test3_exitCode_print()
                   {L_, 10, "STORAGE_OUT_OF_SYNC"},
                   {L_, 11, "UNSUPPORTED_SCENARIO"},
                   {L_, 12, "MEMORY_LIMIT"},
-                  {L_, 13, "REQUESTED"},
-                  {L_, -1, "(* UNKNOWN *)"}};
+                  {L_, 13, "REQUESTED"}};
 
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 

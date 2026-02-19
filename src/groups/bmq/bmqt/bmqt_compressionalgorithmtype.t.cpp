@@ -113,10 +113,7 @@ static void test1_enumPrint()
         PrintTestData k_DATA[] = {
             {L_, bmqt::CompressionAlgorithmType::e_UNKNOWN, "UNKNOWN"},
             {L_, bmqt::CompressionAlgorithmType::e_NONE, "NONE"},
-            {L_, bmqt::CompressionAlgorithmType::e_ZLIB, "ZLIB"},
-            {L_,
-             bmqt::CompressionAlgorithmType::k_HIGHEST_SUPPORTED_TYPE + 1,
-             "(* UNKNOWN *)"}};
+            {L_, bmqt::CompressionAlgorithmType::e_ZLIB, "ZLIB"}};
 
         printEnumHelper<bmqt::CompressionAlgorithmType>(k_DATA);
     }

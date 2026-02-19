@@ -1276,6 +1276,7 @@ static void test4_processDumpCommand_invalidDumpMessage()
         // b. Attempt to process further an *invalid* dump command and verify
         //    that it does not impact the state of the MessageDumper object as
         //    well as that a non-zero error code is returned.
+
         bmqp_ctrlmsg::DumpMessages invalidDumpMessagesCommand;
         invalidDumpMessagesCommand.msgTypeToDump() =
             static_cast<bmqp_ctrlmsg::DumpMsgType::Value>(-1);

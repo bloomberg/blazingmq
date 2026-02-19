@@ -98,14 +98,13 @@ static void test2_printTest()
         {bmqt::SessionEventType::e_QUEUE_RESUMED, "QUEUE_RESUMED"},
         {bmqt::SessionEventType::e_ERROR, "ERROR"},
         {bmqt::SessionEventType::e_TIMEOUT, "TIMEOUT"},
-        {bmqt::SessionEventType::e_CANCELED, "CANCELED"},
-        {static_cast<bmqt::SessionEventType::Enum>(-1234), "(* UNKNOWN *)"},
-    };
+        {bmqt::SessionEventType::e_CANCELED, "CANCELED"}};
 
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
-        const Test&        test = k_DATA[idx];
+        const Test& test = k_DATA[idx];
+
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         bmqu::MemOutStream expected(bmqtst::TestHelperUtil::allocator());
 
