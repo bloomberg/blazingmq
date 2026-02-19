@@ -5313,8 +5313,6 @@ void FileStore::close(bool flush)
     d_flushWhenClosing   = flush;
     d_lastSyncPtReceived = false;
 
-    // Ok to ignore rc above
-
     BALL_LOG_INFO << partitionDesc() << "Closing partition. ";
 
     // Clear 'd_records' so that gc logic is invoked on all mapped data files.
