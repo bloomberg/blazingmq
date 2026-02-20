@@ -745,6 +745,9 @@ def with_rollover_admin_cmd(
     res = leader.trigger_rollover(all_partition_id, succeed=True)
     assert not res is None
 
+    for node in cluster.nodes():
+        node.wait_rollover_complete()
+
 
 @pytest.fixture(params=[without_rollover, with_rollover, with_rollover_admin_cmd])
 def optional_rollover(request):
