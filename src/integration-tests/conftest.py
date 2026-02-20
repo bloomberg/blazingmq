@@ -30,15 +30,8 @@ import blazingmq.util.logging as bul
 from blazingmq.dev.pytest import PYTEST_LOG_SPEC_VAR
 from blazingmq.dev.it.testhooks import PHASE_REPORT_KEY
 
-# pylint: disable=unused-import, wrong-import-position
-from blazingmq.dev.it.fixtures import (
-    single_node,
-    multi_node,
-    cluster,
-    fsm_single_node,
-    fsm_multi_node,
-    fsm_cluster,
-)
+# Load the fixtures defined in the BlazingMQ support library
+pytest_plugins = "blazingmq.dev.it.fixtures"
 
 
 @pytest.hookimpl(hookwrapper=True, tryfirst=True)

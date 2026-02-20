@@ -12,6 +12,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 // mqbcfg_messages.h             *DO NOT EDIT*             @generated -*-C++-*-
 #ifndef INCLUDED_MQBCFG_MESSAGES
 #define INCLUDED_MQBCFG_MESSAGES
@@ -114,6 +115,9 @@ class TcpClusterNodeConnection;
 }
 namespace mqbcfg {
 class TcpInterfaceListener;
+}
+namespace mqbcfg {
+class TlsConfig;
 }
 namespace mqbcfg {
 class VirtualClusterInformation;
@@ -240,7 +244,7 @@ struct AllocatorType {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(mqbcfg::AllocatorType)
+BDLAT_DECL_ENUMERATION_TRAITS(mqbcfg::AllocatorType);
 
 namespace mqbcfg {
 
@@ -405,7 +409,7 @@ class BmqconfConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::BmqconfConfig)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::BmqconfConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::BmqconfConfig> : bsl::true_type {};
 
@@ -619,7 +623,7 @@ class ClusterAttributes {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ClusterAttributes)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ClusterAttributes);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterAttributes> : bsl::true_type {
 };
@@ -908,7 +912,7 @@ class ClusterMonitorConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ClusterMonitorConfig)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ClusterMonitorConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterMonitorConfig>
 : bsl::true_type {};
@@ -1131,7 +1135,7 @@ class Credential {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::Credential)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::Credential);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::Credential> : bsl::true_type {};
 
@@ -1282,7 +1286,7 @@ class Disallow {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::Disallow)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::Disallow);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::Disallow> : bsl::true_type {};
 
@@ -1484,7 +1488,7 @@ class DispatcherProcessorParameters {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::DispatcherProcessorParameters)
+    mqbcfg::DispatcherProcessorParameters);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::DispatcherProcessorParameters>
 : bsl::true_type {};
@@ -1794,7 +1798,7 @@ class ElectorConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ElectorConfig)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ElectorConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::ElectorConfig> : bsl::true_type {};
 
@@ -1857,7 +1861,7 @@ struct ExportMode {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(mqbcfg::ExportMode)
+BDLAT_DECL_ENUMERATION_TRAITS(mqbcfg::ExportMode);
 
 namespace mqbcfg {
 
@@ -2080,7 +2084,7 @@ class Heartbeat {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::Heartbeat)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::Heartbeat);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::Heartbeat> : bsl::true_type {};
 
@@ -2325,7 +2329,7 @@ class LogDumpConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::LogDumpConfig)
+    mqbcfg::LogDumpConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::LogDumpConfig> : bsl::true_type {};
 
@@ -2393,7 +2397,7 @@ struct MasterAssignmentAlgorithm {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(mqbcfg::MasterAssignmentAlgorithm)
+BDLAT_DECL_ENUMERATION_TRAITS(mqbcfg::MasterAssignmentAlgorithm);
 
 namespace mqbcfg {
 
@@ -2604,7 +2608,7 @@ class MessagePropertiesV2 {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::MessagePropertiesV2)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::MessagePropertiesV2);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::MessagePropertiesV2>
 : bsl::true_type {};
@@ -2832,7 +2836,7 @@ class MessageThrottleConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::MessageThrottleConfig)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::MessageThrottleConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::MessageThrottleConfig>
 : bsl::true_type {};
@@ -3151,7 +3155,7 @@ class PluginSettingValue {
 // TRAITS
 
 BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::PluginSettingValue)
+    mqbcfg::PluginSettingValue);
 
 namespace mqbcfg {
 
@@ -3364,7 +3368,7 @@ class Plugins {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::Plugins)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::Plugins);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::Plugins> : bsl::true_type {};
 
@@ -3725,7 +3729,7 @@ class QueueOperationsConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::QueueOperationsConfig)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::QueueOperationsConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::QueueOperationsConfig>
 : bsl::true_type {};
@@ -3957,7 +3961,7 @@ class ResolvedDomain {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::ResolvedDomain)
+    mqbcfg::ResolvedDomain);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::ResolvedDomain> : bsl::true_type {};
 
@@ -4224,7 +4228,7 @@ class StatsPrinterConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::StatsPrinterConfig)
+    mqbcfg::StatsPrinterConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::StatsPrinterConfig>
 : bsl::true_type {};
@@ -4560,7 +4564,7 @@ class StorageSyncConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::StorageSyncConfig)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::StorageSyncConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::StorageSyncConfig> : bsl::true_type {
 };
@@ -4812,7 +4816,8 @@ class SyslogConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::SyslogConfig)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    mqbcfg::SyslogConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::SyslogConfig> : bsl::true_type {};
 
@@ -5028,7 +5033,7 @@ class TcpClusterNodeConnection {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::TcpClusterNodeConnection)
+    mqbcfg::TcpClusterNodeConnection);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::TcpClusterNodeConnection>
 : bsl::true_type {};
@@ -5043,39 +5048,47 @@ class TcpInterfaceListener {
     // This type describes the information needed for the broker to open a TCP
     // listener.
     // name.................: A name to associate this listener to.
-    // address..............: The IP address this listener will accept
+    // address..............: The IPv4 address this listener will accept
     // connections on.  port.................: The port this listener will
-    // accept connections on.
+    // accept connections on.  tls..................: Use TLS on this
+    // interface.
 
     // INSTANCE DATA
     bsl::string d_name;
     bsl::string d_address;
     int         d_port;
+    bool        d_tls;
 
     // PRIVATE ACCESSORS
     template <typename t_HASH_ALGORITHM>
     void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
+
+    bool isEqualTo(const TcpInterfaceListener& rhs) const;
 
   public:
     // TYPES
     enum {
         ATTRIBUTE_ID_NAME    = 0,
         ATTRIBUTE_ID_ADDRESS = 1,
-        ATTRIBUTE_ID_PORT    = 2
+        ATTRIBUTE_ID_PORT    = 2,
+        ATTRIBUTE_ID_TLS     = 3
     };
 
-    enum { NUM_ATTRIBUTES = 3 };
+    enum { NUM_ATTRIBUTES = 4 };
 
     enum {
         ATTRIBUTE_INDEX_NAME    = 0,
         ATTRIBUTE_INDEX_ADDRESS = 1,
-        ATTRIBUTE_INDEX_PORT    = 2
+        ATTRIBUTE_INDEX_PORT    = 2,
+        ATTRIBUTE_INDEX_TLS     = 3
     };
 
     // CONSTANTS
     static const char CLASS_NAME[];
 
     static const char DEFAULT_INITIALIZER_ADDRESS[];
+
+    static const bool DEFAULT_INITIALIZER_TLS;
 
     static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
@@ -5182,6 +5195,9 @@ class TcpInterfaceListener {
     // Return a reference to the modifiable "Port" attribute of this
     // object.
 
+    bool& tls();
+    // Return a reference to the modifiable "Tls" attribute of this object.
+
     // ACCESSORS
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
@@ -5236,6 +5252,9 @@ class TcpInterfaceListener {
     int port() const;
     // Return the value of the "Port" attribute of this object.
 
+    bool tls() const;
+    // Return the value of the "Tls" attribute of this object.
+
     // HIDDEN FRIENDS
     friend bool operator==(const TcpInterfaceListener& lhs,
                            const TcpInterfaceListener& rhs)
@@ -5243,8 +5262,7 @@ class TcpInterfaceListener {
     // have the same value, and 'false' otherwise.  Two attribute objects
     // have the same value if each respective attribute has the same value.
     {
-        return lhs.name() == rhs.name() && lhs.address() == rhs.address() &&
-               lhs.port() == rhs.port();
+        return lhs.isEqualTo(rhs);
     }
 
     friend bool operator!=(const TcpInterfaceListener& lhs,
@@ -5279,10 +5297,265 @@ class TcpInterfaceListener {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::TcpInterfaceListener)
+    mqbcfg::TcpInterfaceListener);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::TcpInterfaceListener>
 : bsl::true_type {};
+
+namespace mqbcfg {
+
+// ===============
+// class TlsConfig
+// ===============
+
+class TlsConfig {
+    // certificateAuthority.: A path to the FILE, containing concatenation of
+    // known certificates the server can use to reference as its certificate
+    // store.  certificate..........: A path to the FILE, containing the
+    // certificate the broker will use to identify itself to other clients.
+    // key..................: A path to the FILE, containing the private key
+    // that the broker uses to read the certificate.  versions.............: A
+    // string with a comma-separated list of supported protocol versions.
+
+    // INSTANCE DATA
+    bsl::string d_certificateAuthority;
+    bsl::string d_certificate;
+    bsl::string d_key;
+    bsl::string d_versions;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
+
+    bool isEqualTo(const TlsConfig& rhs) const;
+
+  public:
+    // TYPES
+    enum {
+        ATTRIBUTE_ID_CERTIFICATE_AUTHORITY = 0,
+        ATTRIBUTE_ID_CERTIFICATE           = 1,
+        ATTRIBUTE_ID_KEY                   = 2,
+        ATTRIBUTE_ID_VERSIONS              = 3
+    };
+
+    enum { NUM_ATTRIBUTES = 4 };
+
+    enum {
+        ATTRIBUTE_INDEX_CERTIFICATE_AUTHORITY = 0,
+        ATTRIBUTE_INDEX_CERTIFICATE           = 1,
+        ATTRIBUTE_INDEX_KEY                   = 2,
+        ATTRIBUTE_INDEX_VERSIONS              = 3
+    };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const char DEFAULT_INITIALIZER_VERSIONS[];
+
+    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
+
+  public:
+    // CLASS METHODS
+    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
+
+    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
+                                                          int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
+
+    // CREATORS
+    explicit TlsConfig(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'TlsConfig' having the default value.  Use
+    // the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
+
+    TlsConfig(const TlsConfig& original, bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'TlsConfig' having the value of the
+    // specified 'original' object.  Use the optionally specified
+    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
+    // currently installed default allocator is used.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    TlsConfig(TlsConfig&& original) noexcept;
+    // Create an object of type 'TlsConfig' having the value of the
+    // specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+
+    TlsConfig(TlsConfig&& original, bslma::Allocator* basicAllocator);
+    // Create an object of type 'TlsConfig' having the value of the
+    // specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+    // Use the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
+#endif
+
+    ~TlsConfig();
+    // Destroy this object.
+
+    // MANIPULATORS
+    TlsConfig& operator=(const TlsConfig& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    TlsConfig& operator=(TlsConfig&& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+    // After performing this action, the 'rhs' object will be left in a
+    // valid, but unspecified state.
+#endif
+
+    void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator,
+                            const char*    name,
+                            int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    bsl::string& certificateAuthority();
+    // Return a reference to the modifiable "CertificateAuthority"
+    // attribute of this object.
+
+    bsl::string& certificate();
+    // Return a reference to the modifiable "Certificate" attribute of this
+    // object.
+
+    bsl::string& key();
+    // Return a reference to the modifiable "Key" attribute of this object.
+
+    bsl::string& versions();
+    // Return a reference to the modifiable "Versions" attribute of this
+    // object.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    template <typename t_ACCESSOR>
+    int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor,
+                        const char* name,
+                        int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    const bsl::string& certificateAuthority() const;
+    // Return a reference offering non-modifiable access to the
+    // "CertificateAuthority" attribute of this object.
+
+    const bsl::string& certificate() const;
+    // Return a reference offering non-modifiable access to the
+    // "Certificate" attribute of this object.
+
+    const bsl::string& key() const;
+    // Return a reference offering non-modifiable access to the "Key"
+    // attribute of this object.
+
+    const bsl::string& versions() const;
+    // Return a reference offering non-modifiable access to the "Versions"
+    // attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const TlsConfig& lhs, const TlsConfig& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.isEqualTo(rhs);
+    }
+
+    friend bool operator!=(const TlsConfig& lhs, const TlsConfig& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream& stream, const TlsConfig& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM& hashAlg, const TlsConfig& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for 'TlsConfig'.
+    {
+        object.hashAppendImpl(hashAlg);
+    }
+};
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::TlsConfig);
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::TlsConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -5508,7 +5781,7 @@ class VirtualClusterInformation {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::VirtualClusterInformation)
+    mqbcfg::VirtualClusterInformation);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::VirtualClusterInformation>
 : bsl::true_type {};
@@ -5766,7 +6039,7 @@ class AnonymousCredential {
 // TRAITS
 
 BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::AnonymousCredential)
+    mqbcfg::AnonymousCredential);
 
 namespace mqbcfg {
 
@@ -5989,7 +6262,7 @@ class ClusterNodeConnection {
 // TRAITS
 
 BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::ClusterNodeConnection)
+    mqbcfg::ClusterNodeConnection);
 
 namespace mqbcfg {
 
@@ -6175,7 +6448,7 @@ class DispatcherProcessorConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::DispatcherProcessorConfig)
+    mqbcfg::DispatcherProcessorConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::DispatcherProcessorConfig>
 : bsl::true_type {};
@@ -6504,7 +6777,7 @@ class LogController {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::LogController)
+    mqbcfg::LogController);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::LogController> : bsl::true_type {};
 
@@ -6864,7 +7137,7 @@ class PartitionConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::PartitionConfig)
+    mqbcfg::PartitionConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::PartitionConfig> : bsl::true_type {};
 
@@ -7088,7 +7361,7 @@ class PluginSettingKeyValue {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::PluginSettingKeyValue)
+    mqbcfg::PluginSettingKeyValue);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::PluginSettingKeyValue>
 : bsl::true_type {};
@@ -7337,7 +7610,7 @@ class StatPluginConfigPrometheus {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::StatPluginConfigPrometheus)
+    mqbcfg::StatPluginConfigPrometheus);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::StatPluginConfigPrometheus>
 : bsl::true_type {};
@@ -7672,7 +7945,7 @@ class TcpInterfaceConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::TcpInterfaceConfig)
+    mqbcfg::TcpInterfaceConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::TcpInterfaceConfig>
 : bsl::true_type {};
@@ -7900,7 +8173,7 @@ class AuthenticatorPluginConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::AuthenticatorPluginConfig)
+    mqbcfg::AuthenticatorPluginConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::AuthenticatorPluginConfig>
 : bsl::true_type {};
@@ -8154,7 +8427,7 @@ class ClusterNode {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::ClusterNode)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::ClusterNode);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterNode> : bsl::true_type {};
 
@@ -8356,7 +8629,7 @@ class DispatcherConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::DispatcherConfig)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::DispatcherConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::DispatcherConfig> : bsl::true_type {
 };
@@ -8580,7 +8853,7 @@ class NetworkInterfaces {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::NetworkInterfaces)
+    mqbcfg::NetworkInterfaces);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::NetworkInterfaces> : bsl::true_type {
 };
@@ -8903,7 +9176,7 @@ class StatPluginConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::StatPluginConfig)
+    mqbcfg::StatPluginConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::StatPluginConfig> : bsl::true_type {
 };
@@ -9139,7 +9412,7 @@ class TaskConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::TaskConfig)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::TaskConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::TaskConfig> : bsl::true_type {};
 
@@ -9408,7 +9681,7 @@ class AuthenticatorConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::AuthenticatorConfig)
+    mqbcfg::AuthenticatorConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::AuthenticatorConfig>
 : bsl::true_type {};
@@ -9728,7 +10001,7 @@ class ClusterDefinition {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::ClusterDefinition)
+    mqbcfg::ClusterDefinition);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterDefinition> : bsl::true_type {
 };
@@ -10002,7 +10275,7 @@ class ClusterProxyDefinition {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::ClusterProxyDefinition)
+    mqbcfg::ClusterProxyDefinition);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterProxyDefinition>
 : bsl::true_type {};
@@ -10242,7 +10515,7 @@ class StatsConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::StatsConfig)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::StatsConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::StatsConfig> : bsl::true_type {};
 
@@ -10272,28 +10545,30 @@ class AppConfig {
     // ConfigureQueue advertiseSubscriptions.: temporarily control use of
     // ConfigureStream in SDK routeCommandTimeoutMs: maximum amount of time to
     // wait for a routed command's response authentication.......:
-    // configuration for authentication
+    // configuration for authentication tlsConfig............: optional
+    // configuration for TLS
 
     // INSTANCE DATA
-    bsl::string         d_brokerInstanceName;
-    bsl::string         d_etcDir;
-    bsl::string         d_hostName;
-    bsl::string         d_hostTags;
-    bsl::string         d_hostDataCenter;
-    bsl::string         d_latencyMonitorDomain;
-    StatsConfig         d_stats;
-    Plugins             d_plugins;
-    NetworkInterfaces   d_networkInterfaces;
-    MessagePropertiesV2 d_messagePropertiesV2;
-    DispatcherConfig    d_dispatcherConfig;
-    BmqconfConfig       d_bmqconfConfig;
-    AuthenticatorConfig d_authentication;
-    int                 d_brokerVersion;
-    int                 d_configVersion;
-    int                 d_logsObserverMaxSize;
-    int                 d_routeCommandTimeoutMs;
-    bool                d_configureStream;
-    bool                d_advertiseSubscriptions;
+    bsl::string                    d_brokerInstanceName;
+    bsl::string                    d_etcDir;
+    bsl::string                    d_hostName;
+    bsl::string                    d_hostTags;
+    bsl::string                    d_hostDataCenter;
+    bsl::string                    d_latencyMonitorDomain;
+    bdlb::NullableValue<TlsConfig> d_tlsConfig;
+    StatsConfig                    d_stats;
+    Plugins                        d_plugins;
+    NetworkInterfaces              d_networkInterfaces;
+    MessagePropertiesV2            d_messagePropertiesV2;
+    DispatcherConfig               d_dispatcherConfig;
+    BmqconfConfig                  d_bmqconfConfig;
+    AuthenticatorConfig            d_authentication;
+    int                            d_brokerVersion;
+    int                            d_configVersion;
+    int                            d_logsObserverMaxSize;
+    int                            d_routeCommandTimeoutMs;
+    bool                           d_configureStream;
+    bool                           d_advertiseSubscriptions;
 
     // PRIVATE ACCESSORS
     template <typename t_HASH_ALGORITHM>
@@ -10322,10 +10597,11 @@ class AppConfig {
         ATTRIBUTE_ID_CONFIGURE_STREAM         = 15,
         ATTRIBUTE_ID_ADVERTISE_SUBSCRIPTIONS  = 16,
         ATTRIBUTE_ID_ROUTE_COMMAND_TIMEOUT_MS = 17,
-        ATTRIBUTE_ID_AUTHENTICATION           = 18
+        ATTRIBUTE_ID_AUTHENTICATION           = 18,
+        ATTRIBUTE_ID_TLS_CONFIG               = 19
     };
 
-    enum { NUM_ATTRIBUTES = 19 };
+    enum { NUM_ATTRIBUTES = 20 };
 
     enum {
         ATTRIBUTE_INDEX_BROKER_INSTANCE_NAME     = 0,
@@ -10346,7 +10622,8 @@ class AppConfig {
         ATTRIBUTE_INDEX_CONFIGURE_STREAM         = 15,
         ATTRIBUTE_INDEX_ADVERTISE_SUBSCRIPTIONS  = 16,
         ATTRIBUTE_INDEX_ROUTE_COMMAND_TIMEOUT_MS = 17,
-        ATTRIBUTE_INDEX_AUTHENTICATION           = 18
+        ATTRIBUTE_INDEX_AUTHENTICATION           = 18,
+        ATTRIBUTE_INDEX_TLS_CONFIG               = 19
     };
 
     // CONSTANTS
@@ -10527,6 +10804,10 @@ class AppConfig {
     // Return a reference to the modifiable "Authentication" attribute of
     // this object.
 
+    bdlb::NullableValue<TlsConfig>& tlsConfig();
+    // Return a reference to the modifiable "TlsConfig" attribute of this
+    // object.
+
     // ACCESSORS
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
@@ -10643,6 +10924,10 @@ class AppConfig {
     // Return a reference offering non-modifiable access to the
     // "Authentication" attribute of this object.
 
+    const bdlb::NullableValue<TlsConfig>& tlsConfig() const;
+    // Return a reference offering non-modifiable access to the "TlsConfig"
+    // attribute of this object.
+
     // HIDDEN FRIENDS
     friend bool operator==(const AppConfig& lhs, const AppConfig& rhs)
     // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
@@ -10679,7 +10964,7 @@ class AppConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::AppConfig)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::AppConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::AppConfig> : bsl::true_type {};
 
@@ -10929,7 +11214,7 @@ class ClustersDefinition {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::ClustersDefinition)
+    mqbcfg::ClustersDefinition);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::ClustersDefinition>
 : bsl::true_type {};
@@ -11150,7 +11435,7 @@ class Configuration {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::Configuration)
+    mqbcfg::Configuration);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::Configuration> : bsl::true_type {};
 
@@ -15454,6 +15739,14 @@ void TcpInterfaceListener::hashAppendImpl(
     hashAppend(hashAlgorithm, this->name());
     hashAppend(hashAlgorithm, this->address());
     hashAppend(hashAlgorithm, this->port());
+    hashAppend(hashAlgorithm, this->tls());
+}
+
+inline bool
+TcpInterfaceListener::isEqualTo(const TcpInterfaceListener& rhs) const
+{
+    return this->name() == rhs.name() && this->address() == rhs.address() &&
+           this->port() == rhs.port() && this->tls() == rhs.tls();
 }
 
 // CLASS METHODS
@@ -15479,6 +15772,11 @@ int TcpInterfaceListener::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
+    ret = manipulator(&d_tls, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -15500,6 +15798,9 @@ int TcpInterfaceListener::manipulateAttribute(t_MANIPULATOR& manipulator,
     case ATTRIBUTE_ID_PORT: {
         return manipulator(&d_port,
                            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PORT]);
+    }
+    case ATTRIBUTE_ID_TLS: {
+        return manipulator(&d_tls, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS]);
     }
     default: return NOT_FOUND;
     }
@@ -15536,6 +15837,11 @@ inline int& TcpInterfaceListener::port()
     return d_port;
 }
 
+inline bool& TcpInterfaceListener::tls()
+{
+    return d_tls;
+}
+
 // ACCESSORS
 template <typename t_ACCESSOR>
 int TcpInterfaceListener::accessAttributes(t_ACCESSOR& accessor) const
@@ -15553,6 +15859,11 @@ int TcpInterfaceListener::accessAttributes(t_ACCESSOR& accessor) const
     }
 
     ret = accessor(d_port, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PORT]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_tls, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS]);
     if (ret) {
         return ret;
     }
@@ -15575,6 +15886,9 @@ int TcpInterfaceListener::accessAttribute(t_ACCESSOR& accessor, int id) const
     }
     case ATTRIBUTE_ID_PORT: {
         return accessor(d_port, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PORT]);
+    }
+    case ATTRIBUTE_ID_TLS: {
+        return accessor(d_tls, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS]);
     }
     default: return NOT_FOUND;
     }
@@ -15609,6 +15923,223 @@ inline const bsl::string& TcpInterfaceListener::address() const
 inline int TcpInterfaceListener::port() const
 {
     return d_port;
+}
+
+inline bool TcpInterfaceListener::tls() const
+{
+    return d_tls;
+}
+
+// ---------------
+// class TlsConfig
+// ---------------
+
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void TlsConfig::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->certificateAuthority());
+    hashAppend(hashAlgorithm, this->certificate());
+    hashAppend(hashAlgorithm, this->key());
+    hashAppend(hashAlgorithm, this->versions());
+}
+
+inline bool TlsConfig::isEqualTo(const TlsConfig& rhs) const
+{
+    return this->certificateAuthority() == rhs.certificateAuthority() &&
+           this->certificate() == rhs.certificate() &&
+           this->key() == rhs.key() && this->versions() == rhs.versions();
+}
+
+// CLASS METHODS
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int TlsConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
+{
+    int ret;
+
+    ret = manipulator(
+        &d_certificateAuthority,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CERTIFICATE_AUTHORITY]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_certificate,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CERTIFICATE]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_key, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_KEY]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_versions,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_VERSIONS]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_MANIPULATOR>
+int TlsConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_CERTIFICATE_AUTHORITY: {
+        return manipulator(
+            &d_certificateAuthority,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CERTIFICATE_AUTHORITY]);
+    }
+    case ATTRIBUTE_ID_CERTIFICATE: {
+        return manipulator(&d_certificate,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CERTIFICATE]);
+    }
+    case ATTRIBUTE_ID_KEY: {
+        return manipulator(&d_key, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_KEY]);
+    }
+    case ATTRIBUTE_ID_VERSIONS: {
+        return manipulator(&d_versions,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_VERSIONS]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_MANIPULATOR>
+int TlsConfig::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                   const char*    name,
+                                   int            nameLength)
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return manipulateAttribute(manipulator, attributeInfo->d_id);
+}
+
+inline bsl::string& TlsConfig::certificateAuthority()
+{
+    return d_certificateAuthority;
+}
+
+inline bsl::string& TlsConfig::certificate()
+{
+    return d_certificate;
+}
+
+inline bsl::string& TlsConfig::key()
+{
+    return d_key;
+}
+
+inline bsl::string& TlsConfig::versions()
+{
+    return d_versions;
+}
+
+// ACCESSORS
+template <typename t_ACCESSOR>
+int TlsConfig::accessAttributes(t_ACCESSOR& accessor) const
+{
+    int ret;
+
+    ret = accessor(
+        d_certificateAuthority,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CERTIFICATE_AUTHORITY]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_certificate,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CERTIFICATE]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_key, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_KEY]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_versions, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_VERSIONS]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_ACCESSOR>
+int TlsConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_CERTIFICATE_AUTHORITY: {
+        return accessor(
+            d_certificateAuthority,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CERTIFICATE_AUTHORITY]);
+    }
+    case ATTRIBUTE_ID_CERTIFICATE: {
+        return accessor(d_certificate,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CERTIFICATE]);
+    }
+    case ATTRIBUTE_ID_KEY: {
+        return accessor(d_key, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_KEY]);
+    }
+    case ATTRIBUTE_ID_VERSIONS: {
+        return accessor(d_versions,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_VERSIONS]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_ACCESSOR>
+int TlsConfig::accessAttribute(t_ACCESSOR& accessor,
+                               const char* name,
+                               int         nameLength) const
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return accessAttribute(accessor, attributeInfo->d_id);
+}
+
+inline const bsl::string& TlsConfig::certificateAuthority() const
+{
+    return d_certificateAuthority;
+}
+
+inline const bsl::string& TlsConfig::certificate() const
+{
+    return d_certificate;
+}
+
+inline const bsl::string& TlsConfig::key() const
+{
+    return d_key;
+}
+
+inline const bsl::string& TlsConfig::versions() const
+{
+    return d_versions;
 }
 
 // -------------------------------
@@ -20060,6 +20591,7 @@ void AppConfig::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     hashAppend(hashAlgorithm, this->advertiseSubscriptions());
     hashAppend(hashAlgorithm, this->routeCommandTimeoutMs());
     hashAppend(hashAlgorithm, this->authentication());
+    hashAppend(hashAlgorithm, this->tlsConfig());
 }
 
 inline bool AppConfig::isEqualTo(const AppConfig& rhs) const
@@ -20082,7 +20614,8 @@ inline bool AppConfig::isEqualTo(const AppConfig& rhs) const
            this->configureStream() == rhs.configureStream() &&
            this->advertiseSubscriptions() == rhs.advertiseSubscriptions() &&
            this->routeCommandTimeoutMs() == rhs.routeCommandTimeoutMs() &&
-           this->authentication() == rhs.authentication();
+           this->authentication() == rhs.authentication() &&
+           this->tlsConfig() == rhs.tlsConfig();
 }
 
 // CLASS METHODS
@@ -20212,6 +20745,12 @@ int AppConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
+    ret = manipulator(&d_tlsConfig,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS_CONFIG]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -20310,6 +20849,10 @@ int AppConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
         return manipulator(
             &d_authentication,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTHENTICATION]);
+    }
+    case ATTRIBUTE_ID_TLS_CONFIG: {
+        return manipulator(&d_tlsConfig,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS_CONFIG]);
     }
     default: return NOT_FOUND;
     }
@@ -20424,6 +20967,11 @@ inline int& AppConfig::routeCommandTimeoutMs()
 inline AuthenticatorConfig& AppConfig::authentication()
 {
     return d_authentication;
+}
+
+inline bdlb::NullableValue<TlsConfig>& AppConfig::tlsConfig()
+{
+    return d_tlsConfig;
 }
 
 // ACCESSORS
@@ -20548,6 +21096,12 @@ int AppConfig::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
+    ret = accessor(d_tlsConfig,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS_CONFIG]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -20641,6 +21195,10 @@ int AppConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
     case ATTRIBUTE_ID_AUTHENTICATION: {
         return accessor(d_authentication,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTHENTICATION]);
+    }
+    case ATTRIBUTE_ID_TLS_CONFIG: {
+        return accessor(d_tlsConfig,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS_CONFIG]);
     }
     default: return NOT_FOUND;
     }
@@ -20755,6 +21313,11 @@ inline int AppConfig::routeCommandTimeoutMs() const
 inline const AuthenticatorConfig& AppConfig::authentication() const
 {
     return d_authentication;
+}
+
+inline const bdlb::NullableValue<TlsConfig>& AppConfig::tlsConfig() const
+{
+    return d_tlsConfig;
 }
 
 // ------------------------
@@ -21082,6 +21645,6 @@ inline const AppConfig& Configuration::appConfig() const
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
+// GENERATED BY BLP_BAS_CODEGEN_2025.12.11
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd

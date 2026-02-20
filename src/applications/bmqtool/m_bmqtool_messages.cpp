@@ -1,4 +1,4 @@
-// Copyright 2014-2025 Bloomberg Finance L.P.
+// Copyright 2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -4306,6 +4306,11 @@ const char CommandLineParameters::DEFAULT_INITIALIZER_MODE[] = "cli";
 const char CommandLineParameters::DEFAULT_INITIALIZER_BROKER[] =
     "tcp://localhost:30114";
 
+const char CommandLineParameters::DEFAULT_INITIALIZER_TLS_AUTHORITY[] = "";
+
+const char CommandLineParameters::DEFAULT_INITIALIZER_TLS_VERSIONS[] =
+    "TLSv1.3";
+
 const char CommandLineParameters::DEFAULT_INITIALIZER_QUEUE_URI[] = "";
 
 const char CommandLineParameters::DEFAULT_INITIALIZER_QUEUE_FLAGS[] = "";
@@ -4368,6 +4373,16 @@ const bdlat_AttributeInfo CommandLineParameters::ATTRIBUTE_INFO_ARRAY[] = {
     {ATTRIBUTE_ID_BROKER,
      "broker",
      sizeof("broker") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
+    {ATTRIBUTE_ID_TLS_AUTHORITY,
+     "tlsAuthority",
+     sizeof("tlsAuthority") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
+    {ATTRIBUTE_ID_TLS_VERSIONS,
+     "tlsVersions",
+     sizeof("tlsVersions") - 1,
      "",
      bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_QUEUE_URI,
@@ -4501,7 +4516,7 @@ const bdlat_AttributeInfo CommandLineParameters::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo*
 CommandLineParameters::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 27; ++i) {
+    for (int i = 0; i < 29; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             CommandLineParameters::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -4520,6 +4535,10 @@ const bdlat_AttributeInfo* CommandLineParameters::lookupAttributeInfo(int id)
     case ATTRIBUTE_ID_MODE: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MODE];
     case ATTRIBUTE_ID_BROKER:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BROKER];
+    case ATTRIBUTE_ID_TLS_AUTHORITY:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS_AUTHORITY];
+    case ATTRIBUTE_ID_TLS_VERSIONS:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS_VERSIONS];
     case ATTRIBUTE_ID_QUEUE_URI:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_URI];
     case ATTRIBUTE_ID_QUEUE_FLAGS:
@@ -4582,6 +4601,8 @@ CommandLineParameters::CommandLineParameters(bslma::Allocator* basicAllocator)
 , d_messageProperties(basicAllocator)
 , d_mode(DEFAULT_INITIALIZER_MODE, basicAllocator)
 , d_broker(DEFAULT_INITIALIZER_BROKER, basicAllocator)
+, d_tlsAuthority(DEFAULT_INITIALIZER_TLS_AUTHORITY, basicAllocator)
+, d_tlsVersions(DEFAULT_INITIALIZER_TLS_VERSIONS, basicAllocator)
 , d_queueUri(DEFAULT_INITIALIZER_QUEUE_URI, basicAllocator)
 , d_queueFlags(DEFAULT_INITIALIZER_QUEUE_FLAGS, basicAllocator)
 , d_latency(DEFAULT_INITIALIZER_LATENCY, basicAllocator)
@@ -4616,6 +4637,8 @@ CommandLineParameters::CommandLineParameters(
 , d_messageProperties(original.d_messageProperties, basicAllocator)
 , d_mode(original.d_mode, basicAllocator)
 , d_broker(original.d_broker, basicAllocator)
+, d_tlsAuthority(original.d_tlsAuthority, basicAllocator)
+, d_tlsVersions(original.d_tlsVersions, basicAllocator)
 , d_queueUri(original.d_queueUri, basicAllocator)
 , d_queueFlags(original.d_queueFlags, basicAllocator)
 , d_latency(original.d_latency, basicAllocator)
@@ -4651,6 +4674,8 @@ CommandLineParameters::CommandLineParameters(
   d_messageProperties(bsl::move(original.d_messageProperties)),
   d_mode(bsl::move(original.d_mode)),
   d_broker(bsl::move(original.d_broker)),
+  d_tlsAuthority(bsl::move(original.d_tlsAuthority)),
+  d_tlsVersions(bsl::move(original.d_tlsVersions)),
   d_queueUri(bsl::move(original.d_queueUri)),
   d_queueFlags(bsl::move(original.d_queueFlags)),
   d_latency(bsl::move(original.d_latency)),
@@ -4683,6 +4708,8 @@ CommandLineParameters::CommandLineParameters(CommandLineParameters&& original,
 , d_messageProperties(bsl::move(original.d_messageProperties), basicAllocator)
 , d_mode(bsl::move(original.d_mode), basicAllocator)
 , d_broker(bsl::move(original.d_broker), basicAllocator)
+, d_tlsAuthority(bsl::move(original.d_tlsAuthority), basicAllocator)
+, d_tlsVersions(bsl::move(original.d_tlsVersions), basicAllocator)
 , d_queueUri(bsl::move(original.d_queueUri), basicAllocator)
 , d_queueFlags(bsl::move(original.d_queueFlags), basicAllocator)
 , d_latency(bsl::move(original.d_latency), basicAllocator)
@@ -4722,6 +4749,8 @@ CommandLineParameters::operator=(const CommandLineParameters& rhs)
     if (this != &rhs) {
         d_mode                     = rhs.d_mode;
         d_broker                   = rhs.d_broker;
+        d_tlsAuthority             = rhs.d_tlsAuthority;
+        d_tlsVersions              = rhs.d_tlsVersions;
         d_queueUri                 = rhs.d_queueUri;
         d_queueFlags               = rhs.d_queueFlags;
         d_latency                  = rhs.d_latency;
@@ -4760,6 +4789,8 @@ CommandLineParameters::operator=(CommandLineParameters&& rhs)
     if (this != &rhs) {
         d_mode                     = bsl::move(rhs.d_mode);
         d_broker                   = bsl::move(rhs.d_broker);
+        d_tlsAuthority             = bsl::move(rhs.d_tlsAuthority);
+        d_tlsVersions              = bsl::move(rhs.d_tlsVersions);
         d_queueUri                 = bsl::move(rhs.d_queueUri);
         d_queueFlags               = bsl::move(rhs.d_queueFlags);
         d_latency                  = bsl::move(rhs.d_latency);
@@ -4795,6 +4826,8 @@ void CommandLineParameters::reset()
 {
     d_mode                  = DEFAULT_INITIALIZER_MODE;
     d_broker                = DEFAULT_INITIALIZER_BROKER;
+    d_tlsAuthority          = DEFAULT_INITIALIZER_TLS_AUTHORITY;
+    d_tlsVersions           = DEFAULT_INITIALIZER_TLS_VERSIONS;
     d_queueUri              = DEFAULT_INITIALIZER_QUEUE_URI;
     d_queueFlags            = DEFAULT_INITIALIZER_QUEUE_FLAGS;
     d_latency               = DEFAULT_INITIALIZER_LATENCY;
@@ -4833,6 +4866,8 @@ bsl::ostream& CommandLineParameters::print(bsl::ostream& stream,
     printer.start();
     printer.printAttribute("mode", this->mode());
     printer.printAttribute("broker", this->broker());
+    printer.printAttribute("tlsAuthority", this->tlsAuthority());
+    printer.printAttribute("tlsVersions", this->tlsVersions());
     printer.printAttribute("queueUri", this->queueUri());
     printer.printAttribute("queueFlags", this->queueFlags());
     printer.printAttribute("latency", this->latency());
@@ -6850,6 +6885,6 @@ const char* Command::selectionName() const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY BLP_BAS_CODEGEN_2025.10.09.2
+// GENERATED BY BLP_BAS_CODEGEN_2025.10.23
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package m_bmqtool --msgComponent messages bmqtoolcmd.xsd

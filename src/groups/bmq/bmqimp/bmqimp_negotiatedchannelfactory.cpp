@@ -16,11 +16,11 @@
 // bmqimp_negotiatedchannelfactory.cpp                                -*-C++-*-
 #include <bmqimp_negotiatedchannelfactory.h>
 
-#include <bmqscm_version.h>
 // BMQ
 #include <bmqp_event.h>
 #include <bmqp_protocol.h>
 #include <bmqp_schemaeventbuilder.h>
+#include <bmqscm_version.h>
 
 #include <bmqio_channelutil.h>
 #include <bmqu_blob.h>
@@ -394,6 +394,16 @@ void NegotiatedChannelFactory::connect(bmqio::Status*               status,
                              bdlf::PlaceHolders::_1,    // event
                              bdlf::PlaceHolders::_2,    // status
                              bdlf::PlaceHolders::_3));  // channel
+}
+
+int NegotiatedChannelFactory::start()
+{
+    return d_config.d_baseFactory_p->start();
+}
+
+void NegotiatedChannelFactory::stop()
+{
+    d_config.d_baseFactory_p->stop();
 }
 
 }  // close package namespace

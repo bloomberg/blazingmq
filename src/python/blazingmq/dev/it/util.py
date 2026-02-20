@@ -25,6 +25,7 @@ import logging
 import random
 import string
 import time
+import os
 
 from typing import List, Optional, TypeVar
 from typing import TYPE_CHECKING
@@ -170,3 +171,20 @@ class ListContextManager(List[_T]):
     def __exit__(self, *args):
         for item in self.__reversed__():
             item.__exit__(*args)
+
+
+class chdir(contextlib.AbstractContextManager):
+    """Non thread-safe context manager to change the current working directory."""
+
+    # Backported from upstream python
+
+    def __init__(self, path):
+        self.path = path
+        self._old_cwd = []
+
+    def __enter__(self):
+        self._old_cwd.append(os.getcwd())
+        os.chdir(self.path)
+
+    def __exit__(self, *excinfo):
+        os.chdir(self._old_cwd.pop())
