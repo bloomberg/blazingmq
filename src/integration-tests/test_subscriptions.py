@@ -1864,6 +1864,7 @@ def test_redelivery_on_primary_node_crash(
     consumer_low2.expect_messages(expected2, confirm=True)
 
 
+@tweak.cluster.queue_operations.configure_timeout_ms(5000)
 @tweak.broker.app_config.configure_stream(True)
 @tweak.broker.app_config.advertise_subscriptions(True)
 def test_reconfigure_on_primary_node_crash(
@@ -1919,6 +1920,13 @@ def test_reconfigure_on_primary_node_crash(
     consumer_low1.configure(subscriptions=["x <= 0"])
     consumer_low2.configure(subscriptions=["x > 0"])
     consumer_high.close()
+
+    # Note that the proxy node might have sent a configure request to a leader
+    # node that is already killed but not marked as killed yet in proxy's
+    # internal state.
+    # This should be handled by the proxy broker that will try to resend the
+    # configure request after `configureTimeoutMs` timeout.
+    # This timeout is tweaked in this test to be lower.
 
     leader = multi_node.wait_leader()
     assert leader is not None
