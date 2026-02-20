@@ -198,9 +198,12 @@ void ConfigProvider::clearCache(bsl::string_view domainName)
         d_cache.clear();
     }
     else {
-        BALL_LOG_INFO << "Clearing up conf cache for '" << domainName << "'";
         CacheMap::iterator it = d_cache.find(domainName);
-        d_cache.erase(it);
+        if (it != d_cache.end()) {
+            BALL_LOG_INFO << "Clearing up conf cache for '" << domainName
+                          << "'";
+            d_cache.erase(it);
+        }
     }
 }
 
