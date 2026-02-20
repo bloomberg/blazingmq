@@ -448,6 +448,7 @@ void StorageManager::processReplicaDataRequestPull(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(source);
     BSLS_ASSERT_SAFE(message.choice().isClusterMessageValue());
     BSLS_ASSERT_SAFE(
         message.choice().clusterMessage().choice().isPartitionMessageValue());
@@ -483,6 +484,35 @@ void StorageManager::processReplicaDataRequestPull(
                       << " Partition [" << partitionId << "]: "
                       << "Cluster is stopping; skipping processing of "
                       << "ReplicaDataRequestPull.";
+        return;  // RETURN
+    }
+
+    mqbnet::ClusterNode* const selfNode =
+        d_clusterData_p->membership().selfNode();
+    const bmqp_ctrlmsg::PartitionSequenceNumber selfSeqNum =
+        d_nodeToSeqNumCtxMapVec.at(partitionId).at(selfNode).d_seqNum;
+    if (replicaDataRequest.endSequenceNumber() != selfSeqNum) {
+        bmqp_ctrlmsg::ControlMessage controlMsg;
+        controlMsg.rId() = message.rId();
+
+        bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
+        status.category() = bmqp_ctrlmsg::StatusCategory::E_INVALID_ARGUMENT;
+        status.code()     = mqbi::ClusterErrorCode::e_STORAGE_FAILURE;
+        status.message()  = "End sequence number mismatch";
+
+        d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
+                                                              source);
+
+        BALL_LOG_ERROR
+            << d_clusterData_p->identity().description() << " Partition ["
+            << partitionId << "]: "
+            << "Received ReplicaDataRequestPull from "
+            << source->nodeDescription() << " with endSequenceNumber: "
+            << replicaDataRequest.endSequenceNumber()
+            << " that does not match self's current sequence number: "
+            << selfSeqNum << ".  Sent a failure response " << controlMsg
+            << ".";
+
         return;  // RETURN
     }
 
@@ -1250,8 +1280,8 @@ void StorageManager::do_storeSelfSeq(const EventWithData& event)
     BSLS_ASSERT_SAFE(dataRange.first <= dataRange.second);
 
     mqbnet::ClusterNode* selfNode = d_clusterData_p->membership().selfNode();
-    NodeSeqNumContext&   nodeSeqNumCtx =
-        d_nodeToSeqNumCtxMapVec[partitionId][selfNode];
+    NodeSeqNumContext&   nodeSeqNumCtx = d_nodeToSeqNumCtxMapVec.at(
+        partitionId)[selfNode];
     if (dataRange.second > bmqp_ctrlmsg::PartitionSequenceNumber()) {
         // NOTE: `dataRange` is set *if and only if* the input event is
         //       `e_REPLICA_DATA_RSPN_PULL`.  In that case, we need to update
