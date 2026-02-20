@@ -843,17 +843,18 @@ class Cluster(contextlib.AbstractContextManager):
     def reconfigure_domain(
         self,
         domain_name: str,
+        *,
         leader_only: bool = False,
         write_only: bool = False,
-        succeed: bool = False,
-    ):
+        succeed: Optional[bool] = False,
+    ) -> bool:
         """
         Overwrites the domains config files to use the key-value pairs in
         'kvs' for 'qualified_domain', and thereafter issues a 'DOMAINS
         RECONFIGURE' command, first to the leader, then to the other nodes,
-        unless 'leader_only' is True. If 'succeed' is 'True', then the
+        unless 'leader_only' is True. If 'succeed' is True, then the
         function will block until process output confirms that the reconfigure
-        operation completed successfully. Returns 'True' if the command was
+        operation completed successfully. Returns True if the command was
         successfully issued to all nodes. Keys in 'kvs' should be rendered as
         '.'-separated paths (e.g., "storage.domain.messages.quota").
         """
@@ -866,21 +867,20 @@ class Cluster(contextlib.AbstractContextManager):
         if write_only:
             return True
 
-        with internal_use(self):
-            if not self.last_known_leader.reconfigure_domain(domain_name, succeed):
-                self._logger.warning(
-                    f"Failed to reconfigure domain {domain_name} on leader {self.last_known_leader.name}"
-                )
-                return False
+        nodes_order = [self.last_known_leader]
+        if not leader_only:
+            nodes_order += [
+                node for node in self.nodes() if node is not self.last_known_leader
+            ]
 
-            if not leader_only:
-                for node in self.nodes():
-                    if node is not self.last_known_leader:
-                        if not node.reconfigure_domain(domain_name, succeed):
-                            self._logger.warning(
-                                f"Failed to reconfigure domain {domain_name} on node {node.name}"
-                            )
-                            return False
+        with internal_use(self):
+            for node in nodes_order:
+                rc = node.reconfigure_domain(domain_name, succeed=succeed)
+                if succeed is not None and rc != 0:
+                    self._logger.warning(
+                        f"Failed to reconfigure domain {domain_name} on node {node.name}"
+                    )
+                    return False
 
         self._logger.info(
             f"Successfully reconfigured domain {domain_name} on all nodes"
