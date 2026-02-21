@@ -23,3 +23,4 @@ src/groups/mqb/mqbcmd/mqbcmd_messages.h linguist-generated=true
 src/groups/mqb/mqbconfm/mqbconfm_messages.cpp linguist-generated=true
 src/groups/mqb/mqbconfm/mqbconfm_messages.h linguist-generated=true
 src/python/blazingmq/dev/it/tweaks/generated.py linguist-generated=true
+*.sh text eol=lf
