@@ -134,9 +134,9 @@ void AuthenticatedChannelFactory::sendRequest(
         return;  // RETURN
     }
 
-    bmqp_ctrlmsg::AuthenticationMessage  authenticaionMessage;
+    bmqp_ctrlmsg::AuthenticationMessage  authenticationMessage;
     bmqp_ctrlmsg::AuthenticationRequest& ar =
-        authenticaionMessage.makeAuthenticationRequest();
+        authenticationMessage.makeAuthenticationRequest();
     ar.mechanism() = credential.value().mechanism();
     ar.data()      = credential.value().data();
 
@@ -146,7 +146,7 @@ void AuthenticatedChannelFactory::sendRequest(
                                      k_DEFAULT_ENCODING,
                                      d_config.d_allocator_p);
 
-    const int rc = builder.setMessage(authenticaionMessage,
+    const int rc = builder.setMessage(authenticationMessage,
                                       bmqp::EventType::e_AUTHENTICATION);
     if (rc != 0) {
         BALL_LOG_ERROR << "Authentication failed [reason: 'packet failed to "
@@ -159,7 +159,7 @@ void AuthenticatedChannelFactory::sendRequest(
     }
 
     BALL_LOG_INFO << "Sending authentication message to '"
-                  << channel->peerUri() << "': " << authenticaionMessage;
+                  << channel->peerUri();
     bmqio::Status status;
     BALL_LOG_TRACE << "Sending blob:\n"
                    << bmqu::BlobStartHexDumper(builder.blob().get());
