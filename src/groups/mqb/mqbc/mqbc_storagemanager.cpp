@@ -2099,10 +2099,12 @@ void StorageManager::do_replicaDataRequestDrop(const EventWithData& event)
         }
     }
     else {
-        // Self primary must have triggered this event, **only possible** by
-        // receiving a ReplicaDataResponsePull from the up-to-date replica.
-        BSLS_ASSERT_SAFE(eventType ==
-                         PartitionFSM::Event::e_REPLICA_DATA_RSPN_PULL);
+        // Either self primary has certified itself as
+        // highest-sequence-number node, or has received a
+        // `ReplicaDataResponsePull` from the up-to-date replica.
+        BSLS_ASSERT_SAFE(
+            eventType == PartitionFSM::Event::e_SELF_HIGHEST_SEQ ||
+            eventType == PartitionFSM::Event::e_REPLICA_DATA_RSPN_PULL);
 
         for (NodeToSeqNumCtxMapCIter cit = nodeToSeqNumCtxMap.cbegin();
              cit != nodeToSeqNumCtxMap.cend();
