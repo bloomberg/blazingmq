@@ -32,7 +32,9 @@
 #include <bmqt_resultcode.h>
 
 // BDE
+#include <bdlb_transparentequalto.h>
 #include <bdlb_transparenthash.h>
+#include <bdlb_transparentless.h>
 #include <bdlb_variant.h>
 #include <bdlbb_blob.h>
 #include <bdld_datum.h>
@@ -84,7 +86,7 @@ class MessageProperties_Schema BSLS_KEYWORD_FINAL {
     typedef bsl::unordered_map<bsl::string,
                                int,
                                bdlb::TransparentHash,
-                               bsl::equal_to<> >
+                               bdlb::TransparentEqualTo>
         PropertyMap;
 
   private:
@@ -165,7 +167,7 @@ class MessageProperties {
     /// although property's size can be retrieved from property's value (by
     /// applying a visitor to the variant), size is explicitly maintained to
     /// avoid switch cases during serialization.
-    typedef bsl::map<bsl::string, Property, std::less<> > PropertyMap;
+    typedef bsl::map<bsl::string, Property, bdlb::TransparentLess> PropertyMap;
 
     typedef PropertyMap::iterator PropertyMapIter;
 
