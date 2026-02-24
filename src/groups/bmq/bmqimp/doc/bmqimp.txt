@@ -12,7 +12,7 @@
 
 /Hierarchical Synopsis
 /---------------------
-The 'bmqimp' package currently has 11 component having 7 levels of physical
+The 'bmqimp' package currently has 12 component having 7 levels of physical
 dependency.  The list below shows the hierarchical ordering of the components.
 ..
   7. bmqimp_application
