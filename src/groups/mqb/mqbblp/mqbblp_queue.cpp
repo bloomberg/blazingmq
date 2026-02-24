@@ -25,9 +25,9 @@
 // This conversion always happens from within the queue's associated dispatcher
 // thread, in order to guarantee thread safety of the operation.  Therefore, no
 // method executing on a different thread should ever directly bind to the
-// 'd_localQueue_mp' or the 'd_remoteQueue_mp' object, but rather it should
-// first blindly be dispatched to the queue dispatcher thread, in which then
-// the decision can be made depending on the current state of the object.
+// members of the 'd_impl' variant, but rather it should first blindly be
+// dispatched to the queue dispatcher thread, in which then the decision can be
+// made depending on the current state of the object.
 
 // MQB
 #include <mqbblp_storagemanager.h>
@@ -113,8 +113,7 @@ Queue::Queue(const bmqt::Uri&                          uri,
 : d_allocator_p(allocator)
 , d_schemaLearner(allocator)
 , d_state(this, uri, id, key, partitionId, domain, resources, allocator)
-, d_localQueue_mp(0)
-, d_remoteQueue_mp(0)
+, d_impl()
 {
     BALL_LOG_INFO << d_state.uri() << ": constructor (" << this << ")";
 
@@ -145,12 +144,11 @@ Queue::Queue(const bmqt::Uri&                          uri,
 void Queue::makeLocal()
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!d_localQueue_mp);
-    BSLS_ASSERT_SAFE(!d_remoteQueue_mp);
+    BSLS_ASSERT_SAFE(d_impl.isUnset());
 
-    d_localQueue_mp.load(new (*d_allocator_p)
-                             LocalQueue(&d_state, d_allocator_p),
-                         d_allocator_p);
+    d_impl.createInPlace<LocalQueueMp>(new (*d_allocator_p)
+                                           LocalQueue(&d_state, d_allocator_p),
+                                       d_allocator_p);
 }
 
 void Queue::makeRemote(int                       deduplicationTimeoutMs,
@@ -158,16 +156,15 @@ void Queue::makeRemote(int                       deduplicationTimeoutMs,
                        RemoteQueue::StateSpPool* statePool)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!d_localQueue_mp);
-    BSLS_ASSERT_SAFE(!d_remoteQueue_mp);
+    BSLS_ASSERT_SAFE(d_impl.isUnset());
 
-    d_remoteQueue_mp.load(new (*d_allocator_p)
-                              RemoteQueue(&d_state,
-                                          deduplicationTimeoutMs,
-                                          ackWindowSize,
-                                          statePool,
-                                          d_allocator_p),
-                          d_allocator_p);
+    d_impl.createInPlace<RemoteQueueMp>(new (*d_allocator_p)
+                                            RemoteQueue(&d_state,
+                                                        deduplicationTimeoutMs,
+                                                        ackWindowSize,
+                                                        statePool,
+                                                        d_allocator_p),
+                                        d_allocator_p);
 }
 
 void Queue::configureDispatchedAndPost(int*              result,
@@ -184,14 +181,13 @@ void Queue::configureDispatchedAndPost(int*              result,
     BSLS_ASSERT_SAFE(sync);
 
     int rc = 0;
-    if (d_localQueue_mp) {
-        rc = d_localQueue_mp->configure(*errorDescription, isReconfigure);
-    }
-    else if (d_remoteQueue_mp) {
-        rc = d_remoteQueue_mp->configure(*errorDescription, isReconfigure);
+    if (d_impl.is<LocalQueueMp>()) {
+        rc = d_impl.the<LocalQueueMp>()->configure(*errorDescription,
+                                                   isReconfigure);
     }
     else {
-        BSLS_ASSERT_OPT(false && "Uninitialized queue");
+        rc = d_impl.the<RemoteQueueMp>()->configure(*errorDescription,
+                                                    isReconfigure);
     }
 
     *result = rc;
@@ -207,14 +203,11 @@ void Queue::configureDispatched(bool isReconfigure)
 
     bmqu::MemOutStream throwaway(d_allocator_p);
 
-    if (d_localQueue_mp) {
-        d_localQueue_mp->configure(throwaway, isReconfigure);
-    }
-    else if (d_remoteQueue_mp) {
-        d_remoteQueue_mp->configure(throwaway, isReconfigure);
+    if (d_impl.is<LocalQueueMp>()) {
+        d_impl.the<LocalQueueMp>()->configure(throwaway, isReconfigure);
     }
     else {
-        BSLS_ASSERT_OPT(false && "Uninitialized queue");
+        d_impl.the<RemoteQueueMp>()->configure(throwaway, isReconfigure);
     }
 }
 
@@ -233,22 +226,19 @@ void Queue::getHandleDispatched(
         clientContext->requesterId() !=
         mqbi::QueueHandleRequesterContext::k_INVALID_REQUESTER_ID);
 
-    if (d_localQueue_mp) {
-        d_localQueue_mp->getHandle(context,
-                                   clientContext,
-                                   handleParameters,
-                                   upstreamSubQueueId,
-                                   callback);
-    }
-    else if (d_remoteQueue_mp) {
-        d_remoteQueue_mp->getHandle(context,
-                                    clientContext,
-                                    handleParameters,
-                                    upstreamSubQueueId,
-                                    callback);
+    if (d_impl.is<LocalQueueMp>()) {
+        d_impl.the<LocalQueueMp>()->getHandle(context,
+                                              clientContext,
+                                              handleParameters,
+                                              upstreamSubQueueId,
+                                              callback);
     }
     else {
-        BSLS_ASSERT_OPT(false && "Uninitialized queue");
+        d_impl.the<RemoteQueueMp>()->getHandle(context,
+                                               clientContext,
+                                               handleParameters,
+                                               upstreamSubQueueId,
+                                               callback);
     }
 
     updateStats();
@@ -265,20 +255,17 @@ void Queue::releaseHandleDispatched(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
 
-    if (d_localQueue_mp) {
-        d_localQueue_mp->releaseHandle(handle,
-                                       handleParameters,
-                                       isFinal,
-                                       releasedCb);
-    }
-    else if (d_remoteQueue_mp) {
-        d_remoteQueue_mp->releaseHandle(handle,
-                                        handleParameters,
-                                        isFinal,
-                                        releasedCb);
+    if (d_impl.is<LocalQueueMp>()) {
+        d_impl.the<LocalQueueMp>()->releaseHandle(handle,
+                                                  handleParameters,
+                                                  isFinal,
+                                                  releasedCb);
     }
     else {
-        BSLS_ASSERT_OPT(false && "Uninitialized queue");
+        d_impl.the<RemoteQueueMp>()->releaseHandle(handle,
+                                                   handleParameters,
+                                                   isFinal,
+                                                   releasedCb);
     }
 
     updateStats();
@@ -414,14 +401,11 @@ void Queue::closeDispatched()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
 
-    if (d_localQueue_mp) {
-        d_localQueue_mp->close();
-    }
-    else if (d_remoteQueue_mp) {
-        d_remoteQueue_mp->close();
+    if (d_impl.is<LocalQueueMp>()) {
+        d_impl.the<LocalQueueMp>()->close();
     }
     else {
-        BSLS_ASSERT_OPT(false && "Uninitialized queue");
+        d_impl.the<RemoteQueueMp>()->close();
     }
 
     updateStats();
@@ -434,9 +418,7 @@ void Queue::convertToLocalDispatched()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
 
-    if (d_localQueue_mp) {
-        BSLS_ASSERT_SAFE(!d_remoteQueue_mp);
-
+    if (d_impl.is<LocalQueueMp>()) {
         BALL_LOG_INFO << d_state.uri() << ": has already converted to local "
                       << "[handlesCount: "
                       << d_state.handleCatalog().handlesCount()
@@ -446,9 +428,6 @@ void Queue::convertToLocalDispatched()
 
         return;  // RETURN
     }
-
-    BSLS_ASSERT_SAFE(d_remoteQueue_mp);
-    BSLS_ASSERT_SAFE(!d_localQueue_mp);
 
     BALL_LOG_INFO << d_state.uri() << ": converting to local "
                   << "[handlesCount: "
@@ -461,14 +440,14 @@ void Queue::convertToLocalDispatched()
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
     bmqu::MemOutStream                    errorDescription(&localAllocator);
 
-    // Move remoteQueue to a temporary stack based managed pointer, so that
-    // we can bypass all precondition checks (since we are temporarily
-    // going to have both local and remote queue co-existing).
-    bslma::ManagedPtr<RemoteQueue> remoteQueue = d_remoteQueue_mp;
+    // Move the RemoteQueue out of the variant before replacing it with a
+    // LocalQueue.
+    bslma::ManagedPtr<RemoteQueue> remoteQueue = d_impl.the<RemoteQueueMp>();
+    d_impl.reset();
 
     d_state.setId(bmqp::QueueId::k_PRIMARY_QUEUE_ID);
     makeLocal();
-    rc = d_localQueue_mp->configure(errorDescription, false);
+    rc = d_impl.the<LocalQueueMp>()->configure(errorDescription, false);
     if (rc != 0) {
         BALL_LOG_ERROR
             << "#QUEUE_CONVERTION_FAILURE " << d_state.uri()
@@ -479,7 +458,7 @@ void Queue::convertToLocalDispatched()
         return;  // RETURN
     }
 
-    rc = d_localQueue_mp->importState(errorDescription);
+    rc = d_impl.the<LocalQueueMp>()->importState(errorDescription);
     if (rc != 0) {
         BALL_LOG_ERROR << "#QUEUE_CONVERTION_FAILURE " << d_state.uri()
                        << ": failed to import state during conversion [rc: "
@@ -490,7 +469,7 @@ void Queue::convertToLocalDispatched()
 
     remoteQueue->iteratePendingMessages(
         bdlf::BindUtil::bind(&LocalQueue::postMessage,
-                             d_localQueue_mp.get(),
+                             d_impl.the<LocalQueueMp>().get(),
                              bdlf::PlaceHolders::_1,    // putHeader
                              bdlf::PlaceHolders::_2,    // appData
                              bdlf::PlaceHolders::_3,    // options
@@ -498,7 +477,7 @@ void Queue::convertToLocalDispatched()
 
     remoteQueue->iteratePendingConfirms(
         bdlf::BindUtil::bind(&LocalQueue::confirmMessage,
-                             d_localQueue_mp.get(),
+                             d_impl.the<LocalQueueMp>().get(),
                              bdlf::PlaceHolders::_1,    // GUID
                              bdlf::PlaceHolders::_2,    // subQueueId
                              bdlf::PlaceHolders::_3));  // source
@@ -514,7 +493,7 @@ void Queue::convertToLocalDispatched()
     // In this case, 'onHandleUsable' event did not trigger any delivery.
     // Now that the queue is local, nudge its delivery to cover for this case.
 
-    d_localQueue_mp->queueEngine()->afterNewMessage();
+    d_impl.the<LocalQueueMp>()->queueEngine()->afterNewMessage();
 }
 
 void Queue::updateStats()
@@ -561,14 +540,11 @@ void Queue::loadInternals(mqbcmd::QueueInternals* out)
 
     // Queue
     mqbcmd::Queue& queue = out->queue();
-    if (d_localQueue_mp) {
-        d_localQueue_mp->loadInternals(&queue.makeLocalQueue());
-    }
-    else if (d_remoteQueue_mp) {
-        d_remoteQueue_mp->loadInternals(&queue.makeRemoteQueue());
+    if (d_impl.is<LocalQueueMp>()) {
+        d_impl.the<LocalQueueMp>()->loadInternals(&queue.makeLocalQueue());
     }
     else {
-        queue.makeUninitializedQueue();
+        d_impl.the<RemoteQueueMp>()->loadInternals(&queue.makeRemoteQueue());
     }
 }
 
@@ -668,8 +644,8 @@ void Queue::onLostUpstream()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
 
-    if (d_remoteQueue_mp) {
-        d_remoteQueue_mp->onLostUpstream();
+    if (d_impl.is<RemoteQueueMp>()) {
+        d_impl.the<RemoteQueueMp>()->onLostUpstream();
     }
 }
 
@@ -680,8 +656,8 @@ void Queue::onOpenFailure(unsigned int subQueueId)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
 
-    if (d_remoteQueue_mp) {
-        d_remoteQueue_mp->onOpenFailure(subQueueId);
+    if (d_impl.is<RemoteQueueMp>()) {
+        d_impl.the<RemoteQueueMp>()->onOpenFailure(subQueueId);
     }
 }
 
@@ -694,26 +670,28 @@ void Queue::onOpenUpstream(bsls::Types::Uint64 genCount,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
 
-    if (d_remoteQueue_mp) {
-        d_remoteQueue_mp->onOpenUpstream(genCount, subQueueId, isWriterOnly);
+    if (d_impl.is<RemoteQueueMp>()) {
+        d_impl.the<RemoteQueueMp>()->onOpenUpstream(genCount,
+                                                    subQueueId,
+                                                    isWriterOnly);
     }
 }
 
 void Queue::onReceipt(const bmqt::MessageGUID& msgGUID,
                       mqbi::QueueHandle*       queueHandle)
 {
-    BSLS_ASSERT_SAFE(d_localQueue_mp);
+    BSLS_ASSERT_SAFE(d_impl.is<LocalQueueMp>());
 
-    d_localQueue_mp->onReceipt(msgGUID, queueHandle);
+    d_impl.the<LocalQueueMp>()->onReceipt(msgGUID, queueHandle);
 }
 
 void Queue::onRemoval(const bmqt::MessageGUID& msgGUID,
                       mqbi::QueueHandle*       queueHandle,
                       bmqt::AckResult::Enum    result)
 {
-    BSLS_ASSERT_SAFE(d_localQueue_mp);
+    BSLS_ASSERT_SAFE(d_impl.is<LocalQueueMp>());
 
-    d_localQueue_mp->onRemoval(msgGUID, queueHandle, result);
+    d_impl.the<LocalQueueMp>()->onRemoval(msgGUID, queueHandle, result);
 }
 
 void Queue::onReplicatedBatch()
@@ -723,8 +701,8 @@ void Queue::onReplicatedBatch()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
 
-    if (d_localQueue_mp) {
-        d_localQueue_mp->deliverIfNeeded();
+    if (d_impl.is<LocalQueueMp>()) {
+        d_impl.the<LocalQueueMp>()->deliverIfNeeded();
     }
 }
 
@@ -796,18 +774,15 @@ void Queue::configureHandle(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
 
-    if (d_localQueue_mp) {
-        d_localQueue_mp->configureHandle(handle,
-                                         streamParameters,
-                                         configuredCb);
-    }
-    else if (d_remoteQueue_mp) {
-        d_remoteQueue_mp->configureHandle(handle,
-                                          streamParameters,
-                                          configuredCb);
+    if (d_impl.is<LocalQueueMp>()) {
+        d_impl.the<LocalQueueMp>()->configureHandle(handle,
+                                                    streamParameters,
+                                                    configuredCb);
     }
     else {
-        BSLS_ASSERT_OPT(false && "Uninitialized queue");
+        d_impl.the<RemoteQueueMp>()->configureHandle(handle,
+                                                     streamParameters,
+                                                     configuredCb);
     }
 }
 
@@ -891,14 +866,15 @@ void Queue::confirmMessage(const bmqt::MessageGUID& msgGUID,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
 
-    if (d_localQueue_mp) {
-        d_localQueue_mp->confirmMessage(msgGUID, upstreamSubQueueId, source);
-    }
-    else if (d_remoteQueue_mp) {
-        d_remoteQueue_mp->confirmMessage(msgGUID, upstreamSubQueueId, source);
+    if (d_impl.is<LocalQueueMp>()) {
+        d_impl.the<LocalQueueMp>()->confirmMessage(msgGUID,
+                                                   upstreamSubQueueId,
+                                                   source);
     }
     else {
-        BSLS_ASSERT_OPT(false && "Uninitialized queue");
+        d_impl.the<RemoteQueueMp>()->confirmMessage(msgGUID,
+                                                    upstreamSubQueueId,
+                                                    source);
     }
 }
 
@@ -910,18 +886,15 @@ int Queue::rejectMessage(const bmqt::MessageGUID& msgGUID,
     BSLS_ASSERT_SAFE(inDispatcherThread());
     int result = false;
 
-    if (d_localQueue_mp) {
-        result = d_localQueue_mp->rejectMessage(msgGUID,
-                                                upstreamSubQueueId,
-                                                source);
-    }
-    else if (d_remoteQueue_mp) {
-        result = d_remoteQueue_mp->rejectMessage(msgGUID,
-                                                 upstreamSubQueueId,
-                                                 source);
+    if (d_impl.is<LocalQueueMp>()) {
+        result = d_impl.the<LocalQueueMp>()->rejectMessage(msgGUID,
+                                                           upstreamSubQueueId,
+                                                           source);
     }
     else {
-        BSLS_ASSERT_OPT(false && "Uninitialized queue");
+        result = d_impl.the<RemoteQueueMp>()->rejectMessage(msgGUID,
+                                                            upstreamSubQueueId,
+                                                            source);
     }
     return result;
 }
@@ -992,14 +965,11 @@ void Queue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
 
-    if (d_localQueue_mp) {
-        d_localQueue_mp->onDispatcherEvent(event);
-    }
-    else if (d_remoteQueue_mp) {
-        d_remoteQueue_mp->onDispatcherEvent(event);
+    if (d_impl.is<LocalQueueMp>()) {
+        d_impl.the<LocalQueueMp>()->onDispatcherEvent(event);
     }
     else {
-        BSLS_ASSERT_OPT(false && "Uninitialized queue");
+        d_impl.the<RemoteQueueMp>()->onDispatcherEvent(event);
     }
 }
 
@@ -1010,14 +980,11 @@ void Queue::flush()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
 
-    if (d_localQueue_mp) {
-        d_localQueue_mp->flush();
-    }
-    else if (d_remoteQueue_mp) {
-        d_remoteQueue_mp->flush();
+    if (d_impl.is<LocalQueueMp>()) {
+        d_impl.the<LocalQueueMp>()->flush();
     }
     else {
-        BSLS_ASSERT_OPT(false && "Uninitialized queue");
+        d_impl.the<RemoteQueueMp>()->flush();
     }
 }
 
