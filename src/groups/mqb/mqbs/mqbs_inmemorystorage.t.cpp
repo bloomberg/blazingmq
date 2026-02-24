@@ -197,7 +197,6 @@ struct Tester {
         domainCfg.messageTtl()          = k_INT64_MAX;
 
         d_replicatedStorage_mp.load(new (*d_allocator_p) mqbs::InMemoryStorage(
-                                        0,  // No FileStore
                                         bmqt::Uri(k_URI_STR, d_allocator_p),
                                         k_QUEUE_KEY,
                                         &d_mockDomain,

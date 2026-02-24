@@ -5375,8 +5375,7 @@ void FileStore::createStorage(bsl::shared_ptr<ReplicatedStorage>* storageSp,
     bslma::Allocator* storageAlloc = d_storageAllocatorStore.baseAllocator();
     if (storageCfg.isInMemoryValue()) {
         storageSp->reset(new (*storageAlloc)
-                             InMemoryStorage(this,
-                                             queueUri,
+                             InMemoryStorage(queueUri,
                                              queueKey,
                                              domain,
                                              config().partitionId(),
