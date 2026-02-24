@@ -210,9 +210,9 @@ int QueueEngineUtil::validateUri(
 {
     bmqt::Uri       uri;
     bsl::string     error;
-    BSLA_UNUSED int rc = bmqt::UriParser::parse(&uri,
-                                                &error,
-                                                handleParameters.uri());
+    BSLA_MAYBE_UNUSED int rc = bmqt::UriParser::parse(&uri,
+                                                      &error,
+                                                      handleParameters.uri());
     if (handle->queue()->uri().canonical() != uri.canonical()) {
         BALL_LOG_ERROR_BLOCK
         {
@@ -768,8 +768,8 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
 
 bool QueueEngineUtil_AppsDeliveryContext::visit(
     mqbi::QueueHandle* handle,
-    BSLA_UNUSED Routers::Consumer* consumer,
-    unsigned int                   downstreamSubscriptionId)
+    BSLA_MAYBE_UNUSED Routers::Consumer* consumer,
+    unsigned int                         downstreamSubscriptionId)
 {
     BSLS_ASSERT_SAFE(handle);
     BSLS_ASSERT_SAFE(
@@ -785,8 +785,8 @@ bool QueueEngineUtil_AppsDeliveryContext::visit(
 
 bool QueueEngineUtil_AppsDeliveryContext::visitBroadcast(
     mqbi::QueueHandle* handle,
-    BSLA_UNUSED Routers::Consumer* consumer,
-    unsigned int                   downstreamSubscriptionId)
+    BSLA_MAYBE_UNUSED Routers::Consumer* consumer,
+    unsigned int                         downstreamSubscriptionId)
 {
     BSLS_ASSERT_SAFE(handle);
 
@@ -1076,8 +1076,8 @@ void QueueEngineUtil_AppState::broadcastOneMessage(
 bool QueueEngineUtil_AppState::visitBroadcast(
     const mqbi::StorageIterator* message,
     mqbi::QueueHandle*           handle,
-    BSLA_UNUSED Routers::Consumer* consumer,
-    unsigned int                   downstreamSubscriptionId)
+    BSLA_MAYBE_UNUSED Routers::Consumer* consumer,
+    unsigned int                         downstreamSubscriptionId)
 {
     BSLS_ASSERT_SAFE(handle);
     // TBD: groupId: send 'options' as well...

@@ -228,7 +228,7 @@ const bsls::Types::Int64 k_NS_PER_MESSAGE =
 /// `session` (which is a shared_ptr to the session itself) to events being
 /// enqueued to the dispatcher and let it die `naturally` when all threads are
 /// drained up to the event.
-void sessionHolderDummy(BSLA_UNUSED const bsl::shared_ptr<void>& session)
+void sessionHolderDummy(BSLA_MAYBE_UNUSED const bsl::shared_ptr<void>& session)
 {
 }
 
@@ -1044,13 +1044,13 @@ void ClientSession::processDisconnectAllQueuesDone(
 
 void ClientSession::processDisconnect(
     const bmqp_ctrlmsg::ControlMessage& controlMessage,
-    BSLA_UNUSED const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
 {
     // executed by the *CLIENT* dispatcher thread
 
     // Want to keep `opLogger` until the end of this scope to log the current
     // operation execution time, but we don't use it directly, so it's marked
-    // as `BSLA_UNUSED`.
+    // as `BSLA_MAYBE_UNUSED`.
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
@@ -1131,16 +1131,16 @@ void ClientSession::processOpenQueue(
 
 void ClientSession::openQueueCb(
     const bmqp_ctrlmsg::Status& status,
-    BSLA_UNUSED mqbi::QueueHandle*         handle,
+    BSLA_MAYBE_UNUSED mqbi::QueueHandle*   handle,
     const bmqp_ctrlmsg::OpenQueueResponse& openQueueResponse,
     const bmqp_ctrlmsg::ControlMessage&    handleParamsCtrlMsg,
-    BSLA_UNUSED const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
 {
     // executed by the *CLIENT* dispatcher thread
 
     // Want to keep `opLogger` until the end of this scope to log the current
     // operation execution time, but we don't use it directly, so it's marked
-    // as `BSLA_UNUSED`.
+    // as `BSLA_MAYBE_UNUSED`.
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
@@ -1215,13 +1215,13 @@ void ClientSession::processCloseQueue(
 void ClientSession::closeQueueCb(
     const bsl::shared_ptr<mqbi::QueueHandle>& handle,
     const bmqp_ctrlmsg::ControlMessage&       handleParamsCtrlMsg,
-    BSLA_UNUSED const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
 {
     // executed by the *CLIENT* dispatcher thread
 
     // Want to keep `opLogger` until the end of this scope to log the current
     // operation execution time, but we don't use it directly, so it's marked
-    // as `BSLA_UNUSED`.
+    // as `BSLA_MAYBE_UNUSED`.
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
@@ -2481,7 +2481,7 @@ ClientSession::~ClientSession()
 // MANIPULATORS
 //   (virtual: mqbnet::Session)
 void ClientSession::processEvent(const bmqp::Event& event,
-                                 BSLA_UNUSED mqbnet::ClusterNode* source)
+                                 BSLA_MAYBE_UNUSED mqbnet::ClusterNode* source)
 {
     // executed by the *IO* thread
 
@@ -2967,7 +2967,7 @@ void ClientSession::processClusterMessage(
 }
 
 void ClientSession::onDeconfiguredHandle(
-    BSLA_UNUSED const ShutdownContextSp& contextSp)
+    BSLA_MAYBE_UNUSED const ShutdownContextSp& contextSp)
 {
     // empty
 }

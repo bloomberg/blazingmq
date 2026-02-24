@@ -380,7 +380,7 @@ mqbsi::Log::Offset ReadWriteOnDiskLog::write(const bdlbb::Blob&       entry,
     return write(entry, section.start(), length);
 }
 
-int ReadWriteOnDiskLog::flush(BSLA_UNUSED Offset offset)
+int ReadWriteOnDiskLog::flush(BSLA_MAYBE_UNUSED Offset offset)
 {
     // TBD: Consider using fdatasync() for Linux and Solaris, and
     // fcntl(F_FULLFSYNC) for OSX instead. Ideally, we should add a
@@ -504,9 +504,9 @@ int ReadWriteOnDiskLog::read(bdlbb::Blob* entry,
     return LogOpResult::e_SUCCESS;
 }
 
-int ReadWriteOnDiskLog::alias(BSLA_UNUSED void** entry,
-                              BSLA_UNUSED int    length,
-                              BSLA_UNUSED Offset offset) const
+int ReadWriteOnDiskLog::alias(BSLA_MAYBE_UNUSED void** entry,
+                              BSLA_MAYBE_UNUSED int    length,
+                              BSLA_MAYBE_UNUSED Offset offset) const
 {
     BSLS_ASSERT_OPT(false && "Aliasing is not supported for"
                              "ReadWriteOnDiskLog");
@@ -514,9 +514,9 @@ int ReadWriteOnDiskLog::alias(BSLA_UNUSED void** entry,
     return LogOpResult::e_UNSUPPORTED_OPERATION;
 }
 
-int ReadWriteOnDiskLog::alias(BSLA_UNUSED bdlbb::Blob* entry,
-                              BSLA_UNUSED int          length,
-                              BSLA_UNUSED Offset       offset) const
+int ReadWriteOnDiskLog::alias(BSLA_MAYBE_UNUSED bdlbb::Blob* entry,
+                              BSLA_MAYBE_UNUSED int          length,
+                              BSLA_MAYBE_UNUSED Offset       offset) const
 {
     BSLS_ASSERT_OPT(false && "Aliasing is not supported for"
                              "ReadWriteOnDiskLog");

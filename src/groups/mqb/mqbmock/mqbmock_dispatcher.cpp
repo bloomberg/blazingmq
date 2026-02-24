@@ -77,7 +77,7 @@ Dispatcher::~Dispatcher()
 Dispatcher::ProcessorHandle Dispatcher::registerClient(
     mqbi::DispatcherClient*          client,
     mqbi::DispatcherClientType::Enum type,
-    BSLA_UNUSED mqbi::Dispatcher::ProcessorHandle handle)
+    BSLA_MAYBE_UNUSED mqbi::Dispatcher::ProcessorHandle handle)
 {
     client->dispatcherClientData().setDispatcher(this).setClientType(type);
     client->setThreadId(bslmt::ThreadUtil::selfId());
@@ -86,7 +86,8 @@ Dispatcher::ProcessorHandle Dispatcher::registerClient(
     return Dispatcher::k_INVALID_PROCESSOR_HANDLE;
 }
 
-void Dispatcher::unregisterClient(BSLA_UNUSED mqbi::DispatcherClient* client)
+void Dispatcher::unregisterClient(
+    BSLA_MAYBE_UNUSED mqbi::DispatcherClient* client)
 {
     // NOTHING
 }
@@ -98,30 +99,32 @@ void Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
 }
 
 void Dispatcher::dispatchEvent(
-    BSLA_UNUSED mqbi::Dispatcher::DispatcherEventRvRef event,
-    BSLA_UNUSED mqbi::DispatcherClientType::Enum type,
-    BSLA_UNUSED mqbi::Dispatcher::ProcessorHandle handle)
+    BSLA_MAYBE_UNUSED mqbi::Dispatcher::DispatcherEventRvRef event,
+    BSLA_MAYBE_UNUSED mqbi::DispatcherClientType::Enum type,
+    BSLA_MAYBE_UNUSED mqbi::Dispatcher::ProcessorHandle handle)
 {
     // NOTHING
 }
 
-void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
-                         BSLA_UNUSED mqbi::DispatcherClient* client,
-                         BSLA_UNUSED mqbi::DispatcherEventType::Enum type)
+void Dispatcher::execute(
+    const mqbi::Dispatcher::VoidFunctor& functor,
+    BSLA_MAYBE_UNUSED mqbi::DispatcherClient* client,
+    BSLA_MAYBE_UNUSED mqbi::DispatcherEventType::Enum type)
 {
     _execute(functor);
 }
 
-void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
-                         BSLA_UNUSED const mqbi::DispatcherClientData& client)
+void Dispatcher::execute(
+    const mqbi::Dispatcher::VoidFunctor& functor,
+    BSLA_MAYBE_UNUSED const mqbi::DispatcherClientData& client)
 {
     _execute(functor);
 }
 
 void Dispatcher::executeOnAllQueues(
     const mqbi::Dispatcher::VoidFunctor& functor,
-    BSLA_UNUSED mqbi::DispatcherClientType::Enum type,
-    const mqbi::Dispatcher::VoidFunctor&         doneCallback)
+    BSLA_MAYBE_UNUSED mqbi::DispatcherClientType::Enum type,
+    const mqbi::Dispatcher::VoidFunctor&               doneCallback)
 {
     if (functor) {
         _execute(functor);
@@ -165,14 +168,14 @@ void Dispatcher::_execute(const mqbi::Dispatcher::VoidFunctor& functor)
     }
 }
 
-void Dispatcher::synchronize(BSLA_UNUSED mqbi::DispatcherClient* client)
+void Dispatcher::synchronize(BSLA_MAYBE_UNUSED mqbi::DispatcherClient* client)
 {
     // NOTHING
 }
 
 void Dispatcher::synchronize(
-    BSLA_UNUSED mqbi::DispatcherClientType::Enum type,
-    BSLA_UNUSED mqbi::Dispatcher::ProcessorHandle handle)
+    BSLA_MAYBE_UNUSED mqbi::DispatcherClientType::Enum type,
+    BSLA_MAYBE_UNUSED mqbi::Dispatcher::ProcessorHandle handle)
 {
     // NOTHING
 }
@@ -197,13 +200,13 @@ Dispatcher::getDefaultEventSource()
 // ACCESSORS
 //   (virtual: mqbi::Dispatcher)
 int Dispatcher::numProcessors(
-    BSLA_UNUSED mqbi::DispatcherClientType::Enum type) const
+    BSLA_MAYBE_UNUSED mqbi::DispatcherClientType::Enum type) const
 {
     return 1;  // placeholder value for number of processors
 }
 
-bmqex::Executor
-Dispatcher::executor(BSLA_UNUSED const mqbi::DispatcherClient* client) const
+bmqex::Executor Dispatcher::executor(
+    BSLA_MAYBE_UNUSED const mqbi::DispatcherClient* client) const
 {
     BSLS_ASSERT(false && "Not yet implemented");
     return bmqex::Executor();

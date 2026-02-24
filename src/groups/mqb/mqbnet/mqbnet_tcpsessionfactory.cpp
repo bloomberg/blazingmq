@@ -146,8 +146,8 @@ int calculateInitialMissedHbCounter(const mqbcfg::TcpInterfaceConfig& config)
 /// `SessionNegotiator` can extract and leverage).
 void ntcChannelPreCreation(
     const bsl::shared_ptr<bmqio::NtcChannel>& channel,
-    BSLA_UNUSED const bsl::shared_ptr<bmqio::ChannelFactory::OpHandle>&
-                      operationHandle)
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<bmqio::ChannelFactory::OpHandle>&
+                            operationHandle)
 {
     ntsa::Endpoint peerEndpoint   = channel->peerEndpoint();
     ntsa::Endpoint sourceEndpoint = channel->sourceEndpoint();

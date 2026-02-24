@@ -68,7 +68,7 @@ namespace BloombergLP {
 namespace mqbc {
 
 void RecoveryManager::ChunkDeleter::operator()(
-    BSLA_UNUSED const void* ptr) const
+    BSLA_MAYBE_UNUSED const void* ptr) const
 {
     // executed by *ANY* thread
     // PRECONDITIONS
@@ -137,7 +137,7 @@ RecoveryManager::~RecoveryManager()
 }
 
 // MANIPULATORS
-int RecoveryManager::start(BSLA_UNUSED bsl::ostream& errorDescription)
+int RecoveryManager::start(BSLA_MAYBE_UNUSED bsl::ostream& errorDescription)
 {
     // NOTHING
     return 0;

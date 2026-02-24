@@ -49,13 +49,15 @@ DummySession::~DummySession()
     BALL_LOG_INFO << d_description << ": destroyed";
 }
 
-void DummySession::tearDown(BSLA_UNUSED const bsl::shared_ptr<void>& handle,
-                            BSLA_UNUSED bool isBrokerShutdown)
+void DummySession::tearDown(
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<void>& handle,
+    BSLA_MAYBE_UNUSED bool                         isBrokerShutdown)
 {
     // NOTHING
 }
 
-void DummySession::initiateShutdown(BSLA_UNUSED const ShutdownCb& callback)
+void DummySession::initiateShutdown(
+    BSLA_MAYBE_UNUSED const ShutdownCb& callback)
 {
     // NOTHING
 }
@@ -65,8 +67,8 @@ void DummySession::invalidate()
     // NOTHING
 }
 
-void DummySession::processEvent(BSLA_UNUSED const bmqp::Event& event,
-                                BSLA_UNUSED mqbnet::ClusterNode* source)
+void DummySession::processEvent(BSLA_MAYBE_UNUSED const bmqp::Event& event,
+                                BSLA_MAYBE_UNUSED mqbnet::ClusterNode* source)
 {
     BSLS_ASSERT_OPT(false &&
                     "'processEvent' should never be called on a DummySession");

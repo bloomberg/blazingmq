@@ -84,8 +84,8 @@ CslSearchShortResult::CslSearchShortResult(
 
 bool CslSearchShortResult::processRecord(
     const mqbc::ClusterStateRecordHeader& header,
-    BSLA_UNUSED const bmqp_ctrlmsg::ClusterMessage& record,
-    const mqbsi::LedgerRecordId&                    recordId)
+    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::ClusterMessage& record,
+    const mqbsi::LedgerRecordId&                          recordId)
 {
     printer()->printShortResult(header, recordId);
 
@@ -283,7 +283,7 @@ CslSummaryResult::CslSummaryResult(
 bool CslSummaryResult::processRecord(
     const mqbc::ClusterStateRecordHeader& header,
     const bmqp_ctrlmsg::ClusterMessage&   record,
-    BSLA_UNUSED const mqbsi::LedgerRecordId& recordId)
+    BSLA_MAYBE_UNUSED const mqbsi::LedgerRecordId& recordId)
 {
     updateRecordCount(&d_recordCount, header.recordType());
 

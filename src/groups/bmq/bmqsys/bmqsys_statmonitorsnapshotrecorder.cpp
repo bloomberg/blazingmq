@@ -119,7 +119,7 @@ StatMonitorSnapshotRecorder::StatMonitorSnapshotRecorder(
 
 StatMonitorSnapshotRecorder::StatMonitorSnapshotRecorder(
     const bmqsys::StatMonitorSnapshotRecorder& other,
-    BSLA_UNUSED bslma::Allocator* allocator)
+    BSLA_MAYBE_UNUSED bslma::Allocator* allocator)
 : d_impl_sp(other.d_impl_sp)
 {
     // NOTHING

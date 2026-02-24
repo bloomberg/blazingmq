@@ -100,7 +100,7 @@ class CslSearchShortResult : public CslSearchResult {
     /// Record counters
     CslRecordCount d_recordCount;
     /// Allocator used inside the class.
-    BSLA_UNUSED bslma::Allocator* d_allocator_p;
+    BSLA_MAYBE_UNUSED bslma::Allocator* d_allocator_p;
 
   public:
     // CREATORS
@@ -146,7 +146,7 @@ class CslSearchDetailResult : public CslSearchResult {
     /// Record counters
     CslRecordCount d_recordCount;
     /// Allocator used inside the class.
-    BSLA_UNUSED bslma::Allocator* d_allocator_p;
+    BSLA_MAYBE_UNUSED bslma::Allocator* d_allocator_p;
 
   public:
     // CREATORS
@@ -311,7 +311,7 @@ class CslSummaryResult : public CslSearchResult {
     /// Limit number of queues to display
     unsigned int d_cslSummaryQueuesLimit;
     /// Pointer to allocator that is used inside the class.
-    BSLA_UNUSED bslma::Allocator* d_allocator_p;
+    BSLA_MAYBE_UNUSED bslma::Allocator* d_allocator_p;
 
   public:
     // CREATORS

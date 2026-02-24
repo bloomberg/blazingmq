@@ -33,7 +33,7 @@ namespace {
 /// optionally specified `level` and `spacesPerLevel`.
 static bsl::ostream& prettyPrintSize(bsl::ostream&              stream,
                                      const bsls::Types::Uint64& size,
-                                     BSLA_UNUSED int            level = 0,
+                                     BSLA_MAYBE_UNUSED int      level = 0,
                                      int spacesPerLevel               = 4)
 {
     stream << bmqu::PrintUtil::prettyNumber(

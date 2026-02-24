@@ -542,8 +542,8 @@ int Authenticator::handleReauthentication(
 }
 
 int Authenticator::authenticationOutbound(
-    BSLA_UNUSED bsl::ostream&                  errorDescription,
-    BSLA_UNUSED const AuthenticationContextSp& context)
+    BSLA_MAYBE_UNUSED bsl::ostream&                  errorDescription,
+    BSLA_MAYBE_UNUSED const AuthenticationContextSp& context)
 {
     BALL_LOG_ERROR << "Not Implemented";
 

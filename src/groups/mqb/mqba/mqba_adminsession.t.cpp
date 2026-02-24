@@ -116,7 +116,7 @@ struct TestAdminRetranslator {
     TestAdminRetranslator() {}
 
     int enqueueCommand(
-        BSLA_UNUSED const bslstl::StringRef&            source,
+        BSLA_MAYBE_UNUSED const bslstl::StringRef&      source,
         const bsl::string&                              cmd,
         const mqbnet::Session::AdminCommandProcessedCb& onProcessedCb)
     {
