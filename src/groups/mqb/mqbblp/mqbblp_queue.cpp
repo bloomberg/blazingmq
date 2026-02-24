@@ -381,7 +381,7 @@ void Queue::convertToLocalDispatched()
     bslma::ManagedPtr<RemoteQueue> remoteQueue = d_remoteQueue_mp;
 
     d_state.setId(bmqp::QueueId::k_PRIMARY_QUEUE_ID);
-    createLocal();
+    makeLocal();
     rc = d_localQueue_mp->configure(errorDescription, false);
     if (rc != 0) {
         BALL_LOG_ERROR
@@ -535,7 +535,7 @@ Queue::~Queue()
     // TBD: It should wait for flush of the dispatcher
 }
 
-void Queue::createLocal()
+void Queue::makeLocal()
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!d_localQueue_mp);
@@ -546,9 +546,9 @@ void Queue::createLocal()
                          d_allocator_p);
 }
 
-void Queue::createRemote(int                       deduplicationTimeoutMs,
-                         int                       ackWindowSize,
-                         RemoteQueue::StateSpPool* statePool)
+void Queue::makeRemote(int                       deduplicationTimeoutMs,
+                       int                       ackWindowSize,
+                       RemoteQueue::StateSpPool* statePool)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!d_localQueue_mp);

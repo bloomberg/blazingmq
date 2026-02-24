@@ -2333,7 +2333,7 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
 
     // Create Local/Remote queue flavor
     if (!isPrimary) {
-        queueSp->createRemote(
+        queueSp->makeRemote(
             openQueueResponse.deduplicationTimeMs(),
             d_clusterData_p->clusterConfig().queueOperations().ackWindowSize(),
             &d_clusterData_p->stateSpPool());
@@ -2343,7 +2343,7 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
 
         BSLS_ASSERT_SAFE(d_clusterState_p->isSelfActivePrimary(pid));
 
-        queueSp->createLocal();
+        queueSp->makeLocal();
 
         // This is the *only* place where queue is registered with StorageMgr.
         // Only the primary needs to register the queue with StorageMgr, which

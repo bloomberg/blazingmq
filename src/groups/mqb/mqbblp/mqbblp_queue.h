@@ -176,10 +176,10 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
     ~Queue() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
-    void createLocal();
-    void createRemote(int                       deduplicationTimeoutMs,
-                      int                       ackWindowSize,
-                      RemoteQueue::StateSpPool* statePool);
+    void makeLocal();
+    void makeRemote(int                       deduplicationTimeoutMs,
+                    int                       ackWindowSize,
+                    RemoteQueue::StateSpPool* statePool);
 
     void convertToLocal() BSLS_KEYWORD_OVERRIDE;
     void convertToRemote();
