@@ -319,9 +319,9 @@ void AuthenticatedChannelFactory::onBrokerAuthenticationResponse(
         return;  // RETURN
     }
 
-    processAuthenticationEvent(event, cb, channel);
-
-    cb(bmqio::ChannelFactoryEvent::e_CHANNEL_UP, bmqio::Status(), channel);
+    if (processAuthenticationEvent(event, cb, channel)) {
+        cb(bmqio::ChannelFactoryEvent::e_CHANNEL_UP, bmqio::Status(), channel);
+    }
 }
 
 void AuthenticatedChannelFactory::onChannelDown(
@@ -333,7 +333,7 @@ void AuthenticatedChannelFactory::onChannelDown(
     d_config.d_scheduler_p->cancelEvent(&d_reauthenticationTimeoutHandle);
 }
 
-void AuthenticatedChannelFactory::processAuthenticationEvent(
+bool AuthenticatedChannelFactory::processAuthenticationEvent(
     const bmqp::Event&                     event,
     const ResultCallback&                  cb,
     const bsl::shared_ptr<bmqio::Channel>& channel)
@@ -349,7 +349,7 @@ void AuthenticatedChannelFactory::processAuthenticationEvent(
                              "authenticationError",
                              rc_INVALID_BROKER_RESPONSE);
         cb(bmqio::ChannelFactoryEvent::e_CONNECT_FAILED, status, channel);
-        return;  // RETURN
+        return false;  // RETURN
     }
 
     if (!response.isAuthenticationResponseValue()) {
@@ -360,7 +360,7 @@ void AuthenticatedChannelFactory::processAuthenticationEvent(
                              "authenticationError",
                              rc_INVALID_BROKER_RESPONSE);
         cb(bmqio::ChannelFactoryEvent::e_CONNECT_FAILED, status, channel);
-        return;  // RETURN
+        return false;  // RETURN
     }
 
     const bmqp_ctrlmsg::AuthenticationResponse& authenticationResponse =
@@ -375,7 +375,7 @@ void AuthenticatedChannelFactory::processAuthenticationEvent(
                              "authenticationError",
                              rc_AUTHENTICATION_FAILURE);
         cb(bmqio::ChannelFactoryEvent::e_CONNECT_FAILED, status, channel);
-        return;  // RETURN
+        return false;  // RETURN
     }
 
     // Authentication SUCCEEDED
@@ -400,6 +400,8 @@ void AuthenticatedChannelFactory::processAuthenticationEvent(
                                  channel,
                                  cb));
     }
+
+    return true;
 }
 
 // CREATORS

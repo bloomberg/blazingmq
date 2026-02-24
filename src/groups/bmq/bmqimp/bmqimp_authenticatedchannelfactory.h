@@ -193,7 +193,11 @@ class AuthenticatedChannelFactory : public bmqio::ChannelFactory {
                  const bmqio::ConnectOptions& options,
                  const ResultCallback&        cb) BSLS_KEYWORD_OVERRIDE;
 
-    void
+    /// Process the specified authentication `event` received from the broker
+    /// on the specified `channel`, invoking the specified `cb` on failure.
+    /// Return `true` if authentication succeeded, or `false` if it failed
+    /// (in which case `cb` has already been invoked with `e_CONNECT_FAILED`).
+    bool
     processAuthenticationEvent(const bmqp::Event&                     event,
                                const ResultCallback&                  cb,
                                const bsl::shared_ptr<bmqio::Channel>& channel);
