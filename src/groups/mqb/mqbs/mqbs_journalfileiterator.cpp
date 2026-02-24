@@ -44,19 +44,20 @@ int JournalFileIterator::reset(const MappedFileDescriptor* mfd,
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_NO_FILE_HEADER = -1  // Not enough bytes for FileHeader
-        ,
-        rc_CORRUPT_FILE_HEADER = -2  // Corrupt FileHeader
-        ,
-        rc_NO_JOURNAL_HEADER = -3  // Not enough bytes for JournalHeader
-        ,
-        rc_CORRUPT_JOURNAL_HEADER = -4  // Corrupt JournalHeader
-        ,
-        rc_NOT_ENOUGH_BYTES = -5  // Not enough bytes
-        ,
-        rc_NO_VALID_RECORD = -6  // No valid record in the journal
+        /// Success
+        rc_SUCCESS = 0,
+        /// Not enough bytes for FileHeader
+        rc_NO_FILE_HEADER = -1,
+        /// Corrupt FileHeader
+        rc_CORRUPT_FILE_HEADER = -2,
+        /// Not enough bytes for JournalHeader
+        rc_NO_JOURNAL_HEADER = -3,
+        /// Corrupt JournalHeader
+        rc_CORRUPT_JOURNAL_HEADER = -4,
+        /// Not enough bytes
+        rc_NOT_ENOUGH_BYTES = -5,
+        /// No valid record in the journal
+        rc_NO_VALID_RECORD = -6
     };
 
     // Clear earlier state
@@ -191,17 +192,18 @@ int JournalFileIterator::advance(const bsls::Types::Uint64 distance)
 {
     enum RcEnum {
         // Value for the various RC error categories
-        rc_HAS_NEXT = 1  // There is another message after this one
-        ,
-        rc_AT_END = 0  // This is the last message
-        ,
-        rc_INVALID = -1  // The Iterator is an invalid state
-        ,
-        rc_INVALID_RECORD_TYPE = -2  // Invalid record type
-        ,
-        rc_INVALID_SEQ_NUM = -3  // Invalid sequence number
-        ,
-        rc_MAGIC_MISMATCH = -4  // Magic mismatch
+        /// There is another message after this one
+        rc_HAS_NEXT = 1,
+        /// This is the last message
+        rc_AT_END = 0,
+        /// The Iterator is an invalid state
+        rc_INVALID = -1,
+        /// Invalid record type
+        rc_INVALID_RECORD_TYPE = -2,
+        /// Invalid sequence number
+        rc_INVALID_SEQ_NUM = -3,
+        /// Magic mismatch
+        rc_MAGIC_MISMATCH = -4
     };
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!isValid())) {

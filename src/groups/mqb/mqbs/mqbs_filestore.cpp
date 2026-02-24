@@ -364,8 +364,8 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
     BSLS_ASSERT_SAFE(inDispatcherThread());
 
     enum {
-        rc_NO_FILES_TO_RECOVER = 1  // Reserved rc
-        ,
+        /// Reserved rc
+        rc_NO_FILES_TO_RECOVER                 = 1,
         rc_SUCCESS                             = 0,
         rc_RECOVERY_FILE_SET_RETRIEVAL_FAILURE = -1,
         rc_FILE_ITERATOR_FAILURE               = -2,
@@ -6105,11 +6105,12 @@ int FileStore::removeRecord(const DataStoreRecordHandle& handle)
 {
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_INVALID_HANDLE = -1  // Invalid handle
-        ,
-        rc_HANDLE_NOT_FOUND = -2  // Handle not found
+        /// Success
+        rc_SUCCESS = 0,
+        /// Invalid handle
+        rc_INVALID_HANDLE = -1,
+        /// Handle not found
+        rc_HANDLE_NOT_FOUND = -2
     };
 
     if (!handle.isValid()) {

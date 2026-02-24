@@ -344,41 +344,43 @@ struct TestSession BSLS_CPP11_FINAL {
     // enumerators:
 
     enum QueueTestStep {
-        e_OPEN_OPENING = 0  // pending open queue request
-        ,
-        e_OPEN_CONFIGURING = 1  // pending config queue request
-        ,
-        e_OPEN_OPENED = 2  // no pending requests
-        ,
-        e_REOPEN_OPENING = 3  // pending open queue request
-        ,
-        e_REOPEN_CONFIGURING = 4  // pending config queue request
-        ,
-        e_REOPEN_REOPENED = 5  // no pending requests
-        ,
-        e_CONFIGURING = 6  // pending config queue request
-        ,
-        e_CONFIGURING_RECONFIGURING = 7  // pending config queue request
-        ,
-        e_CONFIGURED = 8  // no pending requests
-        ,
-        e_CLOSE_CONFIGURING = 9  // pending config queue request
-        ,
-        e_CLOSE_CLOSING = 10  // pending close queue request
-        ,
-        e_CLOSE_CLOSED = 11  // no pending requests
+        /// pending open queue request
+        e_OPEN_OPENING = 0,
+        /// pending config queue request
+        e_OPEN_CONFIGURING = 1,
+        /// no pending requests
+        e_OPEN_OPENED = 2,
+        /// pending open queue request
+        e_REOPEN_OPENING = 3,
+        /// pending config queue request
+        e_REOPEN_CONFIGURING = 4,
+        /// no pending requests
+        e_REOPEN_REOPENED = 5,
+        /// pending config queue request
+        e_CONFIGURING = 6,
+        /// pending config queue request
+        e_CONFIGURING_RECONFIGURING = 7,
+        /// no pending requests
+        e_CONFIGURED = 8,
+        /// pending config queue request
+        e_CLOSE_CONFIGURING = 9,
+        /// pending close queue request
+        e_CLOSE_CLOSING = 10,
+        /// no pending requests
+        e_CLOSE_CLOSED = 11
     };
 
     enum LateResponseTestStep {
-        e_LATE_OPEN_OPENING = 0  // late open 1st part respose
-        ,
-        e_LATE_OPEN_CONFIGURING_CFG = 1  // late open 2nd part respose
-        ,
-        e_LATE_RECONFIGURING = 2  // expired reconfigure request
-        ,
-        e_LATE_CLOSE_CONFIGURING = 3  // late close 1st part response
-        ,
-        e_LATE_CLOSE_CLOSING = 4  // late close 2st part response
+        /// late open 1st part respose
+        e_LATE_OPEN_OPENING = 0,
+        /// late open 2nd part respose
+        e_LATE_OPEN_CONFIGURING_CFG = 1,
+        /// expired reconfigure request
+        e_LATE_RECONFIGURING = 2,
+        /// late close 1st part response
+        e_LATE_CLOSE_CONFIGURING = 3,
+        /// late close 2st part response
+        e_LATE_CLOSE_CLOSING = 4
     };
 
     typedef bdlcc::Deque<bsl::shared_ptr<bmqimp::Event> > EventQueue;

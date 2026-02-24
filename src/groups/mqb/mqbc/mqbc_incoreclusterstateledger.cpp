@@ -213,9 +213,10 @@ int IncoreClusterStateLedger::cleanupLog(const bsl::string& logPath)
 {
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_REMOVE_FILE_FAILURE = -1  // Fail to remove log file
+        /// Success
+        rc_SUCCESS = 0,
+        /// Fail to remove log file
+        rc_REMOVE_FILE_FAILURE = -1
     };
 
     const bsl::string& cluster = d_clusterData_p->cluster().name();
@@ -243,14 +244,14 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_WRITE_HEADER_FAILURE = -1  // Fail to write CSL file header to
-                                      // ledger
-        ,
-        rc_CREATE_RECORD_FAILURE = -2  // Fail to create record
-        ,
-        rc_WRITE_RECORD_FAILURE = -3  // Fail to write record to ledger
+        /// Success
+        rc_SUCCESS = 0,
+        /// Fail to write CSL file header to ledger
+        rc_WRITE_HEADER_FAILURE = -1,
+        /// Fail to create record
+        rc_CREATE_RECORD_FAILURE = -2,
+        /// Fail to write record to ledger
+        rc_WRITE_RECORD_FAILURE = -3
     };
 
     BALL_LOG_INFO << description() << ": Rolling over from log with logId ["
@@ -391,15 +392,16 @@ int IncoreClusterStateLedger::applyAdvisoryInternal(
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_ADVISORY_STALE = -1  // Advisory is stale
-        ,
-        rc_ADVISORY_ALREADY_APPLIED = -2  // Advisory was already applied
-        ,
-        rc_CREATE_RECORD_FAILURE = -3  // Fail to create advisory record
-        ,
-        rc_APPLY_RECORD_FAILURE = -4  // Fail to apply advisory record
+        /// Success
+        rc_SUCCESS = 0,
+        /// Advisory is stale
+        rc_ADVISORY_STALE = -1,
+        /// Advisory was already applied
+        rc_ADVISORY_ALREADY_APPLIED = -2,
+        /// Fail to create advisory record
+        rc_CREATE_RECORD_FAILURE = -3,
+        /// Fail to apply advisory record
+        rc_APPLY_RECORD_FAILURE = -4
     };
 
     if (sequenceNumber <
@@ -454,23 +456,22 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
 {
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_UNKNOWN = -1  // Unknown result
-        ,
-        rc_WRITE_FAILURE = -2  // Fail to write record to ledger
-        ,
-        rc_CREATE_ACK_FAILURE = -3  // Fail to create leader advisory ack
-        ,
-        rc_COMMIT_FAILURE = -4  // Fail to create leader advisory
-                                // commit
-        ,
-        rc_APPLY_ACK_FAILURE = -5  // Fail to apply leader advisory ack
-        ,
-        rc_SEND_ACK_FAILURE = -6  // Fail to send leader advisory ack
-                                  // back to leader
-        ,
-        rc_ADVISORY_NOT_FOUND = -7  // Advisory not found
+        /// Success
+        rc_SUCCESS = 0,
+        /// Unknown result
+        rc_UNKNOWN = -1,
+        /// Fail to write record to ledger
+        rc_WRITE_FAILURE = -2,
+        /// Fail to create leader advisory ack
+        rc_CREATE_ACK_FAILURE = -3,
+        /// Fail to create leader advisory commit
+        rc_COMMIT_FAILURE = -4,
+        /// Fail to apply leader advisory ack
+        rc_APPLY_ACK_FAILURE = -5,
+        /// Fail to send leader advisory ack back to leader
+        rc_SEND_ACK_FAILURE = -6,
+        /// Advisory not found
+        rc_ADVISORY_NOT_FOUND = -7
     };
 
     int rc = rc_UNKNOWN;
@@ -774,11 +775,12 @@ int IncoreClusterStateLedger::applyCommit(
 {
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_CREATE_COMMIT_FAILURE = -1  // Fail to create leader advisory
-        ,
-        rc_APPLY_COMMIT_FAILURE = -2  // Fail to apply leader advisory commit
+        /// Success
+        rc_SUCCESS = 0,
+        /// Fail to create leader advisory
+        rc_CREATE_COMMIT_FAILURE = -1,
+        /// Fail to apply leader advisory commit
+        rc_APPLY_COMMIT_FAILURE = -2
     };
 
     // Consistency level reached. Apply a commit message for the
@@ -903,26 +905,26 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_INVALID_SOURCE = -1  // Source is not leader
-        ,
-        rc_MISSING_HEADER = -2  // Event or record header is missing
-        ,
-        rc_INVALID_HEADER = -3  // Event or record header is invalid
-        ,
-        rc_UNEXPECTED_RECORD_TYPE = -4  // Unexpected record type
-        ,
-        rc_RECORD_ALREADY_APPLIED = -5  // Record was already applied
-        ,
-        rc_RECORD_STALE = -6  // Record is stale
-        ,
-        rc_LOAD_MESSAGE_FAILURE = -7  // Fail to load cluster message
-        ,
-        rc_ADVISORY_INVALID = -8  // Advisory is invalid, as determined
-                                  // by type-specific validation
-        ,
-        rc_APPLY_RECORD_FAILURE = -9  // Fail to apply record
+        /// Success
+        rc_SUCCESS = 0,
+        /// Source is not leader
+        rc_INVALID_SOURCE = -1,
+        /// Event or record header is missing
+        rc_MISSING_HEADER = -2,
+        /// Event or record header is invalid
+        rc_INVALID_HEADER = -3,
+        /// Unexpected record type
+        rc_UNEXPECTED_RECORD_TYPE = -4,
+        /// Record was already applied
+        rc_RECORD_ALREADY_APPLIED = -5,
+        /// Record is stale
+        rc_RECORD_STALE = -6,
+        /// Fail to load cluster message
+        rc_LOAD_MESSAGE_FAILURE = -7,
+        /// Advisory is invalid, as determined by type-specific validation
+        rc_ADVISORY_INVALID = -8,
+        /// Fail to apply record
+        rc_APPLY_RECORD_FAILURE = -9
     };
 
     BALL_LOG_INFO << "Applying cluster state record event from node '"
@@ -1320,13 +1322,14 @@ int IncoreClusterStateLedger::open()
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_ALREADY_OPENED = -1  // CSL Already opened
-        ,
-        rc_OPEN_FAILURE = -2  // Failure to open ledger
-        ,
-        rc_INTERNAL_LEDGER_ERROR = -3  // Internal ledger error
+        /// Success
+        rc_SUCCESS = 0,
+        /// CSL Already opened
+        rc_ALREADY_OPENED = -1,
+        /// Failure to open ledger
+        rc_OPEN_FAILURE = -2,
+        /// Internal ledger error
+        rc_INTERNAL_LEDGER_ERROR = -3
     };
 
     if (d_isOpen) {
@@ -1374,11 +1377,12 @@ int IncoreClusterStateLedger::close()
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_NOT_OPENED = -1  // CSL is not opened
-        ,
-        rc_CLOSE_FAILURE = -2  // Failure to close ledger
+        /// Success
+        rc_SUCCESS = 0,
+        /// CSL is not opened
+        rc_NOT_OPENED = -1,
+        /// Failure to close ledger
+        rc_CLOSE_FAILURE = -2
     };
 
     if (!d_isOpen) {

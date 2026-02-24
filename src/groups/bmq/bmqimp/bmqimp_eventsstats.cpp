@@ -35,9 +35,10 @@ namespace {
 const char k_STAT_NAME[] = "events";
 
 enum {
-    k_STAT_EVENT = 0  // value = bytes ; increments = number of events
-    ,
-    k_STAT_MESSAGE = 1  // value = number of messages
+    /// value = bytes ; increments = number of events
+    k_STAT_EVENT = 0,
+    /// value = number of messages
+    k_STAT_MESSAGE = 1
 };
 }  // close unnamed namespace
 

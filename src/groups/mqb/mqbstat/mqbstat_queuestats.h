@@ -440,88 +440,70 @@ struct DomainQueueStats {
     enum Enum {
         /// Value:      Current number of clients who opened the queue with
         ///             the `WRITE` flag
-        e_STAT_NB_PRODUCER
+        e_STAT_NB_PRODUCER,
 
-        ,
         /// Value:      Current number of clients who opened the queue with
         ///             the 'READ' flag
-        e_STAT_NB_CONSUMER
+        e_STAT_NB_CONSUMER,
 
-        ,
         /// Value:      Current number of messages in the queue
-        e_STAT_MESSAGES
+        e_STAT_MESSAGES,
 
-        ,
         /// Value:      Accumulated bytes of all messages currently in the
         ///             queue
-        e_STAT_BYTES
+        e_STAT_BYTES,
 
-        ,
         /// Value:      Number of ack messages delivered by this queue
-        e_STAT_ACK
+        e_STAT_ACK,
 
-        ,
         /// Value:      The time between PUT and ACK (in nanoseconds).
-        e_STAT_ACK_TIME
+        e_STAT_ACK_TIME,
 
-        ,
         /// Value:      Number of NACK messages generated for this queue
-        e_STAT_NACK
+        e_STAT_NACK,
 
-        ,
         /// Value:      Number of CONFIRM messages received by this queue
-        e_STAT_CONFIRM
+        e_STAT_CONFIRM,
 
-        ,
         /// Value:      The time between PUSH and CONFIRM (in nanoseconds).
-        e_STAT_CONFIRM_TIME
+        e_STAT_CONFIRM_TIME,
 
-        ,
         /// Value:      Number of messages rejected by this queue (RDA
         ///             reaching zero)
-        e_STAT_REJECT
+        e_STAT_REJECT,
 
-        ,
         /// Value:      The time spent by the message in the queue (in
         ///             nanoseconds).
-        e_STAT_QUEUE_TIME
+        e_STAT_QUEUE_TIME,
 
-        ,
         /// Value:      Accumulated bytes of all messages ever pushed from
         ///             the queue
         /// Increment:  Number of messages ever pushed from the queue
-        e_STAT_PUSH
+        e_STAT_PUSH,
 
-        ,
         /// Value:      Accumulated bytes of all messages ever put in the
         ///             queue
         /// Increment:  Number of messages ever put in the queue
-        e_STAT_PUT
+        e_STAT_PUT,
 
-        ,
         /// Value:      Accumulated number of messages ever GC'ed in the
         ///             queue
-        e_STAT_GC_MSGS
+        e_STAT_GC_MSGS,
 
-        ,
         /// Value:      Role (Unknown, Primary, Replica, Proxy)
-        e_STAT_ROLE
+        e_STAT_ROLE,
 
-        ,
         /// Value:      The configured queue messages capacity
-        e_CFG_MSGS
+        e_CFG_MSGS,
 
-        ,
         /// Value:      The configured queue bytes capacity
-        e_CFG_BYTES
+        e_CFG_BYTES,
 
-        ,
         /// Value:      Accumulated number of messages in the strong
         ///             consistency queue expired before receiving quorum
         ///             Receipts
-        e_STAT_NO_SC_MSGS
+        e_STAT_NO_SC_MSGS,
 
-        ,
         /// Value:      Current number of GUIDs stored in queue's history
         ///             (does not include messages in the queue)
         e_STAT_HISTORY

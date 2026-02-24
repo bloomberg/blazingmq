@@ -492,9 +492,10 @@ class OrderedHashMap {
     typedef OrderedHashMap_Bucket          Bucket;
 
     enum {
-        e_NODE_SIZE = sizeof(Node)  // For NodePool
-        ,
-        e_INITIAL_NUM_BUCKET = 13  // Must be prime
+        /// For NodePool
+        e_NODE_SIZE = sizeof(Node),
+        /// Must be prime
+        e_INITIAL_NUM_BUCKET = 13
     };
 
   public:

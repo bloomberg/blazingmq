@@ -332,16 +332,14 @@ int QueueManager::onPushEvent(QueueManager::EventInfos* eventInfos,
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // No error
-        ,
-        rc_ITERATION_ERROR = -1  // An error was encountered while
-                                 // iterating
-        ,
-        rc_OPTIONS_LOAD_ERROR = -2  // An error occurred while loading the
-                                    // options of a message
-        ,
-        rc_SUB_QUEUE_IDS_LOAD_ERROR = -3  // An error occurred while loading a
-                                          // SubQueueId option
+        /// No error
+        rc_SUCCESS = 0,
+        /// An error was encountered while iterating
+        rc_ITERATION_ERROR = -1,
+        /// An error occurred while loading the options of a message
+        rc_OPTIONS_LOAD_ERROR = -2,
+        /// An error occurred while loading a SubQueueId option
+        rc_SUB_QUEUE_IDS_LOAD_ERROR = -3
     };
 
     *messageCount                      = 0;
@@ -459,12 +457,12 @@ int QueueManager::updateStatsOnPutEvent(
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // No error
-        ,
-        rc_ITERATION_ERROR = -1  // An error was encountered while iterating
-        ,
-        rc_INVALID_QUEUE = -2  // Queue not valid or not opened with write
-                               // flags
+        /// No error
+        rc_SUCCESS = 0,
+        /// An error was encountered while iterating
+        rc_ITERATION_ERROR = -1,
+        /// Queue not valid or not opened with write flags
+        rc_INVALID_QUEUE = -2
     };
 
     *messageCount = 0;

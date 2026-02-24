@@ -50,17 +50,17 @@ int RecoveryMessageIterator::next()
 {
     enum RcEnum {
         // Value for the various RC error categories
-        rc_HAS_NEXT = 1  // There is another message after this one
-        ,
-        rc_AT_END = 0  // This is the last message
-        ,
-        rc_INVALID = -1  // The Iterator is in invalid state
-        ,
-        rc_NO_RECOVERYHEADER = -2  // RecoveryHeader is missing or incomplete
-        ,
-        rc_NOT_ENOUGH_BYTES = -3  // The number of bytes in the blob is less
-                                  // than the header size OR payload size
-                                  // declared in the header
+        /// There is another message after this one
+        rc_HAS_NEXT = 1,
+        /// This is the last message
+        rc_AT_END = 0,
+        /// The Iterator is in invalid state
+        rc_INVALID = -1,
+        /// RecoveryHeader is missing or incomplete
+        rc_NO_RECOVERYHEADER = -2,
+        /// The number of bytes in the blob is less than the header size OR
+        /// payload size declared in the header
+        rc_NOT_ENOUGH_BYTES = -3
     };
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!isValid())) {
@@ -125,11 +125,11 @@ int RecoveryMessageIterator::reset(const bdlbb::Blob* blob,
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_INVALID_EVENTHEADER = -1  // The blob contains only an event header
-                                     // (maybe not event complete); i.e., there
-                                     // are no messages in it
+        /// Success
+        rc_SUCCESS = 0,
+        /// The blob contains only an event header (maybe not event complete);
+        /// i.e., there are no messages in it
+        rc_INVALID_EVENTHEADER = -1
     };
 
     d_blobIter.reset(blob, bmqu::BlobPosition(), blob->length(), true);

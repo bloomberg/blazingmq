@@ -57,12 +57,11 @@ struct StorageCollectionUtilSortMetric {
     // TYPES
     enum Enum {
         /// Alphanumeric order of its queue's URI
-        e_QUEUE_URI     = 0,
-        e_MESSAGE_COUNT = 1
-        // Number of messages in its queue, in descending order
-        ,
+        e_QUEUE_URI = 0,
+        /// Number of messages in its queue, in descending order
+        e_MESSAGE_COUNT = 1,
+        /// Number of bytes in its queue, in descending order
         e_BYTE_COUNT = 2
-        // Number of bytes in its queue, in descending order
 
     };
 

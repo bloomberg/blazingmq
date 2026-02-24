@@ -355,14 +355,14 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription,
 {
     enum RcEnum {
         // Return values
-        rc_SUCCESS = 0  // No error
-        ,
-        rc_APP_INITIALIZATION_ERROR = -1  // No Virtual Storage
-        ,
-        rc_APP_SUBSCRIPTION_ERROR = -2  // Wrong expression
-        ,
-        rc_APP_SUBSCRIPTIONS_ERROR = -3  // Wrong number of application
-                                         // subscriptions
+        /// No error
+        rc_SUCCESS = 0,
+        /// No Virtual Storage
+        rc_APP_INITIALIZATION_ERROR = -1,
+        /// Wrong expression
+        rc_APP_SUBSCRIPTION_ERROR = -2,
+        /// Wrong number of application subscriptions
+        rc_APP_SUBSCRIPTIONS_ERROR = -3
     };
 
     // Populate map of appId to appKey for statically registered consumers
