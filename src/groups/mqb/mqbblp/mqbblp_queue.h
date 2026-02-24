@@ -160,6 +160,105 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
     void loadInternals(mqbcmd::QueueInternals* out);
 
   public:
+    // CLASS METHODS
+
+    /// Create and return a new `Queue` with a `LocalQueue` strategy, suitable
+    /// for use as a primary partition owner.
+    ///
+    /// @param[in] uri
+    ///     The URI identifying this queue.
+    /// @param[in] id
+    ///     The unique numeric ID for this queue, as advertised to connections
+    ///     upon queue opening.
+    /// @param[in] key
+    ///     The storage key associated with this queue.
+    /// @param[in] partitionId
+    ///     The partition to which this queue is assigned.
+    /// @param[in] domain
+    ///     The domain to which this queue belongs.
+    /// @param[in] storageManager
+    ///     The storage manager used to manage this queue's storage.
+    /// @param[in] resources
+    ///     The cluster resources shared by queues in this cluster.
+    /// @param[in] threadPool
+    ///     A thread pool onto which blocking I/O work (such as file
+    ///     operations) may be offloaded to avoid stalling dispatcher threads.
+    /// @param[in] routingCfg
+    ///     The routing configuration for this queue.
+    /// @param[in] allocator
+    ///     The allocator used to supply memory.
+    ///
+    /// @return A shared pointer to the newly created `Queue`.
+    ///
+    /// @pre The behavior is undefined unless `domain`, `storageManager`,
+    ///      `threadPool`, and `allocator` each point to a valid object.
+    static bsl::shared_ptr<Queue>
+    createLocal(const bmqt::Uri&                          uri,
+                unsigned int                              id,
+                const mqbu::StorageKey&                   key,
+                int                                       partitionId,
+                mqbi::Domain*                             domain,
+                mqbi::StorageManager*                     storageManager,
+                const mqbi::ClusterResources&             resources,
+                bdlmt::FixedThreadPool*                   threadPool,
+                const bmqp_ctrlmsg::RoutingConfiguration& routingCfg,
+                bslma::Allocator*                         allocator);
+
+    /// Create and return a new `Queue` with a `RemoteQueue` strategy, suitable
+    /// for use as a replica or proxy.
+    ///
+    /// @param[in] uri
+    ///     The URI identifying this queue.
+    /// @param[in] id
+    ///     The unique numeric ID for this queue, as advertised to upstream
+    ///     connections upon queue opening.
+    /// @param[in] key
+    ///     The storage key associated with this queue.
+    /// @param[in] partitionId
+    ///     The partition to which this queue is assigned.
+    /// @param[in] domain
+    ///     The domain to which this queue belongs.
+    /// @param[in] storageManager
+    ///     The storage manager used to manage this queue's storage.
+    /// @param[in] resources
+    ///     The cluster resources shared by queues in this cluster.
+    /// @param[in] threadPool
+    ///     A thread pool onto which blocking I/O work (such as file
+    ///     operations) may be offloaded to avoid stalling dispatcher threads.
+    /// @param[in] routingCfg
+    ///     The routing configuration for this queue.
+    /// @param[in] deduplicationTimeoutMs
+    ///     The timeout in milliseconds after which retransmission of pending
+    ///     PUT messages stops.
+    /// @param[in] ackWindowSize
+    ///     The number of unacknowledged broadcast PUTs after which an ACK is
+    ///     explicitly requested from upstream.
+    /// @param[in] statePool
+    ///     The shared object pool used to allocate atomic state objects for
+    ///     pending PUT messages.
+    /// @param[in] allocator
+    ///     The allocator used to supply memory.
+    ///
+    /// @return A shared pointer to the newly created `Queue`.
+    ///
+    /// @pre The behavior is undefined unless `domain`, `storageManager`,
+    ///      `threadPool`, `statePool`, and `allocator` each point to a valid
+    ///      object.
+    static bsl::shared_ptr<Queue>
+    createRemote(const bmqt::Uri&                          uri,
+                 unsigned int                              id,
+                 const mqbu::StorageKey&                   key,
+                 int                                       partitionId,
+                 mqbi::Domain*                             domain,
+                 mqbi::StorageManager*                     storageManager,
+                 const mqbi::ClusterResources&             resources,
+                 bdlmt::FixedThreadPool*                   threadPool,
+                 const bmqp_ctrlmsg::RoutingConfiguration& routingCfg,
+                 int                       deduplicationTimeoutMs,
+                 int                       ackWindowSize,
+                 RemoteQueue::StateSpPool* statePool,
+                 bslma::Allocator*         allocator);
+
     // CREATORS
     Queue(const bmqt::Uri&                          uri,
           unsigned int                              id,

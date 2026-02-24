@@ -486,6 +486,76 @@ void Queue::loadInternals(mqbcmd::QueueInternals* out)
     }
 }
 
+bsl::shared_ptr<Queue>
+Queue::createLocal(const bmqt::Uri&                          uri,
+                   unsigned int                              id,
+                   const mqbu::StorageKey&                   key,
+                   int                                       partitionId,
+                   mqbi::Domain*                             domain,
+                   mqbi::StorageManager*                     storageManager,
+                   const mqbi::ClusterResources&             resources,
+                   bdlmt::FixedThreadPool*                   threadPool,
+                   const bmqp_ctrlmsg::RoutingConfiguration& routingCfg,
+                   bslma::Allocator*                         allocator)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(domain);
+    BSLS_ASSERT_SAFE(storageManager);
+    BSLS_ASSERT_SAFE(threadPool);
+    BSLS_ASSERT_SAFE(allocator);
+
+    bsl::shared_ptr<mqbblp::Queue> queueSp(new (*allocator)
+                                               Queue(uri,
+                                                     id,
+                                                     key,
+                                                     partitionId,
+                                                     domain,
+                                                     storageManager,
+                                                     resources,
+                                                     threadPool,
+                                                     routingCfg,
+                                                     allocator));
+    queueSp->makeLocal();
+    return queueSp;
+}
+
+bsl::shared_ptr<Queue>
+Queue::createRemote(const bmqt::Uri&                          uri,
+                    unsigned int                              id,
+                    const mqbu::StorageKey&                   key,
+                    int                                       partitionId,
+                    mqbi::Domain*                             domain,
+                    mqbi::StorageManager*                     storageManager,
+                    const mqbi::ClusterResources&             resources,
+                    bdlmt::FixedThreadPool*                   threadPool,
+                    const bmqp_ctrlmsg::RoutingConfiguration& routingCfg,
+                    int                       deduplicationTimeoutMs,
+                    int                       ackWindowSize,
+                    RemoteQueue::StateSpPool* statePool,
+                    bslma::Allocator*         allocator)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(domain);
+    BSLS_ASSERT_SAFE(storageManager);
+    BSLS_ASSERT_SAFE(threadPool);
+    BSLS_ASSERT_SAFE(statePool);
+    BSLS_ASSERT_SAFE(allocator);
+
+    bsl::shared_ptr<mqbblp::Queue> queueSp(new (*allocator)
+                                               Queue(uri,
+                                                     id,
+                                                     key,
+                                                     partitionId,
+                                                     domain,
+                                                     storageManager,
+                                                     resources,
+                                                     threadPool,
+                                                     routingCfg,
+                                                     allocator));
+    queueSp->makeRemote(deduplicationTimeoutMs, ackWindowSize, statePool);
+    return queueSp;
+}
+
 Queue::Queue(const bmqt::Uri&                          uri,
              unsigned int                              id,
              const mqbu::StorageKey&                   key,
