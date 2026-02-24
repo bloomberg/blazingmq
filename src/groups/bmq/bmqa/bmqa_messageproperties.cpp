@@ -163,8 +163,8 @@ int MessageProperties::setPropertyAsString(bsl::string_view name,
     return d_impl_p->setPropertyAsString(name, value);
 }
 
-int MessageProperties::setPropertyAsBinary(bsl::string_view         name,
-                                           const bsl::vector<char>& value)
+int MessageProperties::setPropertyAsBinary(bsl::string_view      name,
+                                           bsl::span<const char> value)
 {
     return d_impl_p->setPropertyAsBinary(name, value);
 }
