@@ -132,6 +132,11 @@ PartitionStateTableEvent::toAscii(PartitionStateTableEvent::Enum value)
         CASE(REPLICA_HIGHEST_SEQ)
         CASE(WATCH_DOG)
         CASE(STOP_NODE)
+        CASE(QUORUM_REPLICA_FILE_SIZES)
+        CASE(REPLICA_RESIZE_STORAGE)
+        CASE(REPLICA_DATA_RQST_RESIZE)
+        CASE(REPLICA_DATA_RSPN_RESIZE)
+        CASE(FAIL_REPLICA_DATA_RSPN_RESIZE)
         CASE(NUM_EVENTS)
     default: return "(* UNKNOWN *)";
     }

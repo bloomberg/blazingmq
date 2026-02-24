@@ -567,10 +567,13 @@
         maxJournalFileSize...: maximum size of partitions' journal file
         maxQlistFileSize.....: maximum size of partitions' qlist file
         maxCSLFileSize.......: maximum size of partitions' CSL file
-        dataFileGrowLimit....: limit for data file growth during rollover
-        journalFileGrowLimit.: limit for journal file growth during rollover
-        qListFileGrowLimit...: limit for qlist file growth during rollover
-        growStepPercent.....: step (in percents of max file size) for file
+        dataFileGrowLimit....: limit for data file growth during rollover,
+                               if set to 0, maxDataFileSize is used
+        journalFileGrowLimit.: limit for journal file growth during rollover,
+                               if set to 0, maxJournalFileSize is used
+        qListFileGrowLimit...: limit for qlist file growth during rollover,
+                               if set to 0, maxQlistFileSize is used
+        growStepPercent..... : step (in percents of max file size) for file
                                growth during rollover
         minAvailSpacePercent.: minimum available free file space (in percents)
                                which will appear after rollover (rollover criteria)
@@ -594,9 +597,9 @@
       <element name='maxJournalFileSize'   type='unsignedLong'/>
       <element name='maxQlistFileSize'     type='unsignedLong'/>
       <element name='maxCSLFileSize'       type='unsignedLong' default='67108864'/>
-      <element name='dataFileGrowLimit'    type='unsignedLong' default='25769803776'/> <!-- 24 GB -->
-      <element name='journalFileGrowLimit' type='unsignedLong' default='4294967296'/>  <!-- 4 GB -->
-      <element name='qListFileGrowLimit'   type='unsignedLong' default='1073741824'/>  <!-- 1 GB -->
+      <element name='dataFileGrowLimit'    type='unsignedLong'/>
+      <element name='journalFileGrowLimit' type='unsignedLong'/>
+      <element name='qListFileGrowLimit'   type='unsignedLong'/>
       <element name='growStepPercent'      type='unsignedInt' default='50'/> <!-- 50% -->
       <element name='minAvailSpacePercent' type='unsignedInt' default='20'/> <!-- 20% -->
       <element name='preallocate'          type='boolean' default='false'/>

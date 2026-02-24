@@ -335,6 +335,7 @@ struct FileHeader {
     //  Header Words (HW)......: Number of words in this file header
     //  Bitness (B)............: Bitness of task writing this file
     //  FileType...............: Type of BlazingMQ file
+    //  MaxFileSize............: Maximum file size for this file (in bytes)
     //  PartitionId............: This file's partitionId
     //..
 
@@ -405,9 +406,9 @@ struct FileHeader {
 
     FileHeader& setFileType(FileType::Enum value);
 
-    FileHeader& setPartitionId(int value);
-
     FileHeader& setMaxFileSize(bsls::Types::Uint64 value);
+
+    FileHeader& setPartitionId(int value);
 
     // ACCESSORS
     unsigned int magic1() const;
@@ -422,9 +423,9 @@ struct FileHeader {
 
     unsigned char headerWords() const;
 
-    int partitionId() const;
-
     bsls::Types::Uint64 maxFileSize() const;
+
+    int partitionId() const;
 };
 
 // =====================
@@ -2254,15 +2255,15 @@ inline FileType::Enum FileHeader::fileType() const
                                        k_FILE_TYPE_MASK);
 }
 
-inline int FileHeader::partitionId() const
-{
-    return d_partitionId;
-}
-
 inline bsls::Types::Uint64 FileHeader::maxFileSize() const
 {
     return bmqp::Protocol::combine(d_maxFileSizeUpperBits,
                                    d_maxFileSizeLowerBits);
+}
+
+inline int FileHeader::partitionId() const
+{
+    return d_partitionId;
 }
 
 // ---------------------

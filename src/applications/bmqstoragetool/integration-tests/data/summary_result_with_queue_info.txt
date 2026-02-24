@@ -20,8 +20,8 @@ Details of journal file:
     Bitness           : 64
     FileType          : JOURNAL
     HeaderWords       : 8
-    PartitionId       : 0
     MaxFileSize       : 0
+    PartitionId       : 0
 
     Journal File Header    : 
     HeaderWords                           : 3
@@ -56,8 +56,8 @@ Details of data file:
     Bitness           : 64
     FileType          : DATA
     HeaderWords       : 8
-    PartitionId       : 0
     MaxFileSize       : 0
+    PartitionId       : 0
 
     Data File Header       : 
     HeaderWords       : 2

@@ -126,7 +126,7 @@ class PartitionFSMEventData {
     /// the associated data sequence number is an optionally specified
     /// `seqNum` and optionally specified `firstSyncPointAfterRollloverSeqNum`.
     /// There are also optionally specified `highestSeqNumNode`,
-    /// optionally specified `seqNumDataRange`.
+    /// `seqNumDataRange`, and `partitionMaxFileSizes`.
     PartitionFSMEventData(
         mqbnet::ClusterNode*                         source,
         int                                          requestId,

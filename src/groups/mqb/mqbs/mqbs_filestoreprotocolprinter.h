@@ -106,15 +106,15 @@ void printFileHeader(bsl::ostream&                     stream,
     fields.push_back("Bitness");
     fields.push_back("FileType");
     fields.push_back("HeaderWords");
-    fields.push_back("PartitionId");
     fields.push_back("MaxFileSize");
+    fields.push_back("PartitionId");
 
     const mqbs::FileHeader& fh = mqbs::FileStoreProtocolUtil::bmqHeader(mfd);
 
     PRINTER_TYPE printer(stream, &fields);
     printer << static_cast<unsigned int>(fh.protocolVersion()) << fh.bitness()
             << fh.fileType() << static_cast<unsigned int>(fh.headerWords())
-            << fh.partitionId() << fh.maxFileSize();
+            << fh.maxFileSize() << fh.partitionId();
 }
 
 /// Print the specified `header` while using the specified `journalFd` and the

@@ -164,8 +164,9 @@ class StorageManager BSLS_KEYWORD_FINAL
         PrimaryStatusAdvisoryInfosVec;
 
     /// VST representing node's sequence number, first sync point after
-    /// rollover sequence number and flag of whether recovery data is in sync.
-    class NodeSeqNumContext {
+    /// rollover sequence number, partition max file size and flag of whether
+    ///  recovery data is in sync.
+    class NodeContext {
       public:
         // DATA
 
@@ -176,17 +177,21 @@ class StorageManager BSLS_KEYWORD_FINAL
         bmqp_ctrlmsg::PartitionSequenceNumber
             d_firstSyncPointAfterRolloverSeqNum;
 
+        /// Node's partition max file sizes.
+        bmqp_ctrlmsg::PartitionMaxFileSizes  d_partitionMaxFileSizes;
+
         /// Flag of whether recovery data is already sent to that node.
         /// It, however, does not mean that the node is already healed.
         bool d_isRecoveryDataSent;
 
         // CREATORS
-        NodeSeqNumContext();
+        NodeContext();
 
-        explicit NodeSeqNumContext(
-            const bmqp_ctrlmsg::PartitionSequenceNumber d_seqNum,
+        explicit NodeContext(
+            const bmqp_ctrlmsg::PartitionSequenceNumber seqNum,
             const bmqp_ctrlmsg::PartitionSequenceNumber
-                 d_firstSyncPointAfterRolloverSeqNum,
+                 firstSyncPointAfterRolloverSeqNum,
+            const bmqp_ctrlmsg::PartitionMaxFileSizes& partitionMaxFileSizes,
             bool isRecoveryDataSent);
     };
 
@@ -197,21 +202,21 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// Pool of shared pointers to Blobs
     typedef StorageUtil::BlobSpPool BlobSpPool;
 
-    typedef bsl::unordered_map<mqbnet::ClusterNode*, NodeSeqNumContext>
-                                               NodeToSeqNumCtxMap;
-    typedef NodeToSeqNumCtxMap::iterator       NodeToSeqNumCtxMapIter;
-    typedef NodeToSeqNumCtxMap::const_iterator NodeToSeqNumCtxMapCIter;
-    typedef bsl::vector<NodeToSeqNumCtxMap>    NodeToSeqNumCtxMapPartitionVec;
+    typedef bsl::unordered_map<mqbnet::ClusterNode*, NodeContext>
+                                               NodeToContextMap;
+    typedef NodeToContextMap::iterator       NodeToContextMapIter;
+    typedef NodeToContextMap::const_iterator NodeToContextMapCIter;
+    typedef bsl::vector<NodeToContextMap>    NodeToContextMapPartitionVec;
 
-    typedef bsl::unordered_map<mqbnet::ClusterNode*,
-                               bmqp_ctrlmsg::PartitionMaxFileSizes>
-        NodeToPartitionMaxFileSizesMap;
-    typedef NodeToPartitionMaxFileSizesMap::iterator
-        NodeToPartitionMaxFileSizesMapIter;
-    typedef NodeToPartitionMaxFileSizesMap::const_iterator
-        NodeToPartitionMaxFileSizesMapCIter;
-    typedef bsl::vector<NodeToPartitionMaxFileSizesMap>
-        NodeToPartitionMaxFileSizesMapVec;
+    // typedef bsl::unordered_map<mqbnet::ClusterNode*,
+    //                            bmqp_ctrlmsg::PartitionMaxFileSizes>
+    //     NodeToPartitionMaxFileSizesMap;
+    // typedef NodeToPartitionMaxFileSizesMap::iterator
+    //     NodeToPartitionMaxFileSizesMapIter;
+    // typedef NodeToPartitionMaxFileSizesMap::const_iterator
+    //     NodeToPartitionMaxFileSizesMapCIter;
+    // typedef bsl::vector<NodeToPartitionMaxFileSizesMap>
+    //     NodeToPartitionMaxFileSizesMapVec;
 
     typedef StorageUtil::DomainQueueMessagesCountMaps
         DomainQueueMessagesCountMaps;
@@ -351,19 +356,19 @@ class StorageManager BSLS_KEYWORD_FINAL
     ///         for the i-th partitionId.
     bsl::vector<bsls::Types::Int64> d_recoveryStartTimes;
 
-    /// Vector of `NodeToSeqNumCtxMap` indexed by partitionId.
+    /// Vector of `NodeToContextMap` indexed by partitionId.
     ///
     /// THREAD: Except during the ctor, the i-th index of this data member
     ///         **must** be accessed in the associated Queue dispatcher thread
     ///         for the i-th partitionId.
-    NodeToSeqNumCtxMapPartitionVec d_nodeToSeqNumCtxMapVec;
+    NodeToContextMapPartitionVec d_nodeToContextMapVec;
 
     /// Vector of `NodeToPartitionMaxFileSizesMap` indexed by partitionId.
     ///
     /// THREAD: Except during the ctor, the i-th index of this data member
     ///         **must** be accessed in the associated Queue dispatcher thread
     ///         for the i-th partitionId.
-    NodeToPartitionMaxFileSizesMapVec d_nodeToPartitionMaxFileSizesMapVec;
+    // NodeToPartitionMaxFileSizesMapVec d_nodeToPartitionMaxFileSizesMapVec;
 
     /// Vector of number of replica data responses received, indexed by
     /// partitionId.
@@ -601,15 +606,6 @@ class StorageManager BSLS_KEYWORD_FINAL
     void
     do_closeRecoveryFileSet(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
-    void do_storeSelfMaxFileSizes(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_storePrimaryMaxFileSizes(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_storeReplicaMaxFileSizes(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
-
     void do_storeSelfSeq(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
     void do_storePrimarySeq(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
@@ -742,11 +738,8 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// THREAD: Executed by the Queue's dispatcher thread.
     bool allPartitionsAvailable() const;
 
-    /// Return the sequence number quorum to be used for this cluster.
-    unsigned int getSeqNumQuorum() const;
-
-    /// Return the maximum file sizes quorum to be used for this cluster.
-    unsigned int getMaxFileSizesQuorum() const;
+    /// Return the partition quorum to be used for this cluster.
+    unsigned int getPartitionFSMQuorum() const;
 
     /// Return own the first sync point after rollover sequence number.
     const bmqp_ctrlmsg::PartitionSequenceNumber
@@ -1076,9 +1069,9 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// Return the health state of the specified `partitionId`.
     PartitionFSM::State::Enum partitionHealthState(int partitionId) const;
 
-    /// Return the mapping from node in the cluster to their sequence number
+    /// Return the mapping from node in the cluster to their
     /// context for the specified 'partitionId'.
-    const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap(int partitionId) const;
+    const NodeToContextMap& nodeToContextMap(int partitionId) const;
 };
 
 // ============================
@@ -1247,42 +1240,40 @@ StorageManager::partitionHealthState(int partitionId) const
     return d_partitionFSMVec[partitionId]->state();
 }
 
-inline const StorageManager::NodeToSeqNumCtxMap&
-StorageManager::nodeToSeqNumCtxMap(int partitionId) const
+inline const StorageManager::NodeToContextMap&
+StorageManager::nodeToContextMap(int partitionId) const
 {
-    return d_nodeToSeqNumCtxMapVec[partitionId];
+    return d_nodeToContextMapVec[partitionId];
 }
 
-inline unsigned int StorageManager::getSeqNumQuorum() const
-{
-    return d_clusterData_p->quorumManager().quorum();
-}
-
-inline unsigned int StorageManager::getMaxFileSizesQuorum() const
+inline unsigned int StorageManager::getPartitionFSMQuorum() const
 {
     return d_clusterData_p->quorumManager().quorum();
 }
 
-// =======================================
-// class StorageManager::NodeSeqNumContext
-// =======================================
+// =================================
+// class StorageManager::NodeContext
+// =================================
 
 // CREATORS
-inline StorageManager::NodeSeqNumContext::NodeSeqNumContext()
+inline StorageManager::NodeContext::NodeContext()
 : d_seqNum()
 , d_firstSyncPointAfterRolloverSeqNum()
+, d_partitionMaxFileSizes()
 , d_isRecoveryDataSent(false)
 {
     // NOTHING
 }
 
-inline StorageManager::NodeSeqNumContext::NodeSeqNumContext(
+inline StorageManager::NodeContext::NodeContext(
     const bmqp_ctrlmsg::PartitionSequenceNumber seqNum,
     const bmqp_ctrlmsg::PartitionSequenceNumber
          firstSyncPointAfterRolloverSeqNum,
+    const bmqp_ctrlmsg::PartitionMaxFileSizes& partitionMaxFileSizes,
     bool isInSync)
 : d_seqNum(seqNum)
 , d_firstSyncPointAfterRolloverSeqNum(firstSyncPointAfterRolloverSeqNum)
+, d_partitionMaxFileSizes(partitionMaxFileSizes)
 , d_isRecoveryDataSent(isInSync)
 {
     // NOTHING
