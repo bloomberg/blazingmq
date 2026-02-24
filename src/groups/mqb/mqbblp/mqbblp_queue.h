@@ -121,7 +121,25 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
     Queue& operator=(const Queue& other) BSLS_CPP11_DELETED;
 
   private:
+    // PRIVATE CREATORS
+    Queue(const bmqt::Uri&                          uri,
+          unsigned int                              id,
+          const mqbu::StorageKey&                   key,
+          int                                       partitionId,
+          mqbi::Domain*                             domain,
+          mqbi::StorageManager*                     storageManager,
+          const mqbi::ClusterResources&             resources,
+          bdlmt::FixedThreadPool*                   threadPool,
+          const bmqp_ctrlmsg::RoutingConfiguration& routingCfg,
+          bslma::Allocator*                         allocator);
+
+  private:
     // PRIVATE MANIPULATORS
+    void makeLocal();
+    void makeRemote(int                       deduplicationTimeoutMs,
+                    int                       ackWindowSize,
+                    RemoteQueue::StateSpPool* statePool);
+
     void configureDispatchedAndPost(int*              result,
                                     bsl::ostream*     errorDescription,
                                     bool              isReconfigure,
@@ -260,26 +278,11 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
                  bslma::Allocator*         allocator);
 
     // CREATORS
-    Queue(const bmqt::Uri&                          uri,
-          unsigned int                              id,
-          const mqbu::StorageKey&                   key,
-          int                                       partitionId,
-          mqbi::Domain*                             domain,
-          mqbi::StorageManager*                     storageManager,
-          const mqbi::ClusterResources&             resources,
-          bdlmt::FixedThreadPool*                   threadPool,
-          const bmqp_ctrlmsg::RoutingConfiguration& routingCfg,
-          bslma::Allocator*                         allocator);
 
     /// Destructor
     ~Queue() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
-    void makeLocal();
-    void makeRemote(int                       deduplicationTimeoutMs,
-                    int                       ackWindowSize,
-                    RemoteQueue::StateSpPool* statePool);
-
     void convertToLocal() BSLS_KEYWORD_OVERRIDE;
     void convertToRemote();
 

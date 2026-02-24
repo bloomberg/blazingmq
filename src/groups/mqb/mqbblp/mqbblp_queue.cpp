@@ -100,6 +100,77 @@ void onHandleDeconfigured(
 // class Queue
 // -----------
 
+// PRIVATE CREATORS
+Queue::Queue(const bmqt::Uri&                          uri,
+             unsigned int                              id,
+             const mqbu::StorageKey&                   key,
+             int                                       partitionId,
+             mqbi::Domain*                             domain,
+             mqbi::StorageManager*                     storageManager,
+             const mqbi::ClusterResources&             resources,
+             bdlmt::FixedThreadPool*                   threadPool,
+             const bmqp_ctrlmsg::RoutingConfiguration& routingCfg,
+             bslma::Allocator*                         allocator)
+: d_allocator_p(allocator)
+, d_schemaLearner(allocator)
+, d_state(this, uri, id, key, partitionId, domain, resources, allocator)
+, d_localQueue_mp(0)
+, d_remoteQueue_mp(0)
+{
+    BALL_LOG_INFO << d_state.uri() << ": constructor (" << this << ")";
+
+    const mqbcfg::MessageThrottleConfig& messageThrottleConfig =
+        domain->cluster()->isClusterMember()
+            ? domain->cluster()->clusterConfig()->messageThrottleConfig()
+            : domain->cluster()->clusterProxyConfig()->messageThrottleConfig();
+
+    // You should not use `domain->loadRoutingConfiguration()` to get
+    // 'routingCfg' because at proxies, domains are not configured thus would
+    // cause an error and only give the (irrelevant) value 0.  The correct way
+    // to get 'RoutingConfiguration' is through the 'routingCfg' argument.
+
+    // TBD: For now taking a blobBufferFactory because ClusterProxy doesn't
+    // have
+    //      a 'storageManager', so we can't get a blobBufferFactory out of it.
+    //      StorageManager's purpose is currently wrong: every type of cluster
+    //      should have a storage manager, even if they don't use FileBacked
+    //      storage.
+
+    d_state.setStorageManager(storageManager)
+        .setMiscWorkThreadPool(threadPool)
+        .setRoutingConfig(routingCfg)
+        .setMessageThrottleConfig(messageThrottleConfig);
+}
+
+// PRIVATE MANIPULATORS
+void Queue::makeLocal()
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!d_localQueue_mp);
+    BSLS_ASSERT_SAFE(!d_remoteQueue_mp);
+
+    d_localQueue_mp.load(new (*d_allocator_p)
+                             LocalQueue(&d_state, d_allocator_p),
+                         d_allocator_p);
+}
+
+void Queue::makeRemote(int                       deduplicationTimeoutMs,
+                       int                       ackWindowSize,
+                       RemoteQueue::StateSpPool* statePool)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!d_localQueue_mp);
+    BSLS_ASSERT_SAFE(!d_remoteQueue_mp);
+
+    d_remoteQueue_mp.load(new (*d_allocator_p)
+                              RemoteQueue(&d_state,
+                                          deduplicationTimeoutMs,
+                                          ackWindowSize,
+                                          statePool,
+                                          d_allocator_p),
+                          d_allocator_p);
+}
+
 void Queue::configureDispatchedAndPost(int*              result,
                                        bsl::ostream*     errorDescription,
                                        bool              isReconfigure,
@@ -556,47 +627,7 @@ Queue::createRemote(const bmqt::Uri&                          uri,
     return queueSp;
 }
 
-Queue::Queue(const bmqt::Uri&                          uri,
-             unsigned int                              id,
-             const mqbu::StorageKey&                   key,
-             int                                       partitionId,
-             mqbi::Domain*                             domain,
-             mqbi::StorageManager*                     storageManager,
-             const mqbi::ClusterResources&             resources,
-             bdlmt::FixedThreadPool*                   threadPool,
-             const bmqp_ctrlmsg::RoutingConfiguration& routingCfg,
-             bslma::Allocator*                         allocator)
-: d_allocator_p(allocator)
-, d_schemaLearner(allocator)
-, d_state(this, uri, id, key, partitionId, domain, resources, allocator)
-, d_localQueue_mp(0)
-, d_remoteQueue_mp(0)
-{
-    BALL_LOG_INFO << d_state.uri() << ": constructor (" << this << ")";
-
-    const mqbcfg::MessageThrottleConfig& messageThrottleConfig =
-        domain->cluster()->isClusterMember()
-            ? domain->cluster()->clusterConfig()->messageThrottleConfig()
-            : domain->cluster()->clusterProxyConfig()->messageThrottleConfig();
-
-    // You should not use `domain->loadRoutingConfiguration()` to get
-    // 'routingCfg' because at proxies, domains are not configured thus would
-    // cause an error and only give the (irrelevant) value 0.  The correct way
-    // to get 'RoutingConfiguration' is through the 'routingCfg' argument.
-
-    // TBD: For now taking a blobBufferFactory because ClusterProxy doesn't
-    // have
-    //      a 'storageManager', so we can't get a blobBufferFactory out of it.
-    //      StorageManager's purpose is currently wrong: every type of cluster
-    //      should have a storage manager, even if they don't use FileBacked
-    //      storage.
-
-    d_state.setStorageManager(storageManager)
-        .setMiscWorkThreadPool(threadPool)
-        .setRoutingConfig(routingCfg)
-        .setMessageThrottleConfig(messageThrottleConfig);
-}
-
+// CREATORS
 Queue::~Queue()
 {
     BALL_LOG_INFO << d_state.uri() << ": destructor (" << this << ")";
@@ -605,34 +636,7 @@ Queue::~Queue()
     // TBD: It should wait for flush of the dispatcher
 }
 
-void Queue::makeLocal()
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!d_localQueue_mp);
-    BSLS_ASSERT_SAFE(!d_remoteQueue_mp);
-
-    d_localQueue_mp.load(new (*d_allocator_p)
-                             LocalQueue(&d_state, d_allocator_p),
-                         d_allocator_p);
-}
-
-void Queue::makeRemote(int                       deduplicationTimeoutMs,
-                       int                       ackWindowSize,
-                       RemoteQueue::StateSpPool* statePool)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!d_localQueue_mp);
-    BSLS_ASSERT_SAFE(!d_remoteQueue_mp);
-
-    d_remoteQueue_mp.load(new (*d_allocator_p)
-                              RemoteQueue(&d_state,
-                                          deduplicationTimeoutMs,
-                                          ackWindowSize,
-                                          statePool,
-                                          d_allocator_p),
-                          d_allocator_p);
-}
-
+// MANIPULATORS
 void Queue::convertToLocal()
 {
     // executed by *ANY* thread
