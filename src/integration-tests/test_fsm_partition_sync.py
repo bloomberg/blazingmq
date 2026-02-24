@@ -53,10 +53,22 @@ def _run_storage_tool(journal_file: Path, mode: str) -> subprocess.CompletedProc
     )
 
 
-def _compare_journal_files(
+def _stop_cluster_and_compare_journal_files(
     leader_name: str, replica_name: str, cluster: Cluster
 ) -> None:
-    """Compare leader and replica journal files content, and assert that they are equal."""
+    """
+    Stop cluster after bumping quorum on all replicas to prevent primary switch. Then, compare leader and replica journal files content, and assert that they are equal.
+
+    NOTE: Stopping all nodes ensures that all journal files are closed and flushed to disk, and that there are no discrepancies due to in-flight sync points.
+    """
+
+    for node in cluster.nodes():
+        if node.is_alive():
+            node.set_quorum(5)
+    if cluster.last_known_leader:
+        cluster.last_known_leader.stop()
+        cluster.make_sure_node_stopped(cluster.last_known_leader)
+    cluster.stop_nodes()
 
     leader_journal_files = glob.glob(
         str(cluster.work_dir.joinpath(leader_name, "storage")) + "/*journal*"
@@ -181,8 +193,8 @@ def test_sync_after_missed_rollover(
         f"Leader {leader} is not cluster.last_known_leader {cluster.last_known_leader}"
     )
 
-    # Check that leader and replica journal files are equal
-    _compare_journal_files(leader.name, replica.name, cluster)
+    # Check that leader and replica journal files are equal, after stopping all nodes
+    _stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
 
 
 @start_cluster(False)
@@ -285,8 +297,8 @@ def test_sync_after_missed_rollover_after_restart(
         "east2 did not output 'Cluster (itCluster) is available' within 10s"
     )
 
-    # Check that leader `east1` and replica `east2` (which is missed rollover) journal files are equal
-    _compare_journal_files(east1.name, east2.name, cluster)
+    # Check that leader `east1` and replica `east2` (which is missed rollover) journal files are equal, after stopping all nodes
+    _stop_cluster_and_compare_journal_files(east1.name, east2.name, cluster)
 
 
 def test_sync_after_missed_records(
@@ -343,8 +355,8 @@ def test_sync_after_missed_records(
         f"Leader {leader} is not cluster.last_known_leader {cluster.last_known_leader}"
     )
 
-    # Check that leader and replica journal files are equal
-    _compare_journal_files(leader.name, replica.name, cluster)
+    # Check that leader and replica journal files are equal, after stopping all nodes
+    _stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
 
 
 def test_sync_if_leader_missed_records(
@@ -419,8 +431,8 @@ def test_sync_if_leader_missed_records(
     # Select replica
     replica = cluster.nodes(exclude=next_leader)[0]
 
-    # Check that `next_leader` and replica journal files are equal
-    _compare_journal_files(next_leader.name, replica.name, cluster)
+    # Check that `next_leader` and replica journal files are equal, after stopping all nodes
+    _stop_cluster_and_compare_journal_files(next_leader.name, replica.name, cluster)
 
 
 def test_sync_after_replicas_missed_various_records(
@@ -510,9 +522,9 @@ def test_sync_after_replicas_missed_various_records(
         f"Leader {leader} is not cluster.last_known_leader {cluster.last_known_leader}"
     )
 
-    # Check that leader and replicas' journal files are equal
+    # Check that leader and replicas' journal files are equal, after stopping all nodes
     for replica in (replica1, replica2, replica3):
-        _compare_journal_files(leader.name, replica.name, cluster)
+        _stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
 
 
 def test_sync_after_replicas_missed_or_extra_records(
@@ -613,4 +625,4 @@ def test_sync_after_replicas_missed_or_extra_records(
 
     # # Check that new primary and replicas' journal files are equal
     # for replica in (replica1, replica2, leader):
-    #     _compare_journal_files(replica3.name, replica.name, cluster)
+    #     _stop_cluster_and_compare_journal_files(replica3.name, replica.name, cluster)
