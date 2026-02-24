@@ -723,9 +723,10 @@ class JsonPrinter : public Printer {
         const Parameters::ProcessRecordTypes& processRecordTypes) const
         BSLS_KEYWORD_OVERRIDE;
 
-    void printOutstandingRatio(int         ratio,
-                               bsl::size_t outstandingMessagesCount,
-                               BSLA_UNUSED bsl::size_t totalMessagesCount)
+    void
+    printOutstandingRatio(int               ratio,
+                          bsl::size_t       outstandingMessagesCount,
+                          BSLA_MAYBE_UNUSED bsl::size_t totalMessagesCount)
         const BSLS_KEYWORD_OVERRIDE;
 
     void printMessageSummary(bsl::size_t totalMessagesCount,
@@ -857,9 +858,9 @@ void JsonPrinter::printExactMatchFooter(
 }
 
 void JsonPrinter::printOutstandingRatio(
-    int         ratio,
-    bsl::size_t outstandingMessagesCount,
-    BSLA_UNUSED bsl::size_t totalMessagesCount) const
+    int               ratio,
+    bsl::size_t       outstandingMessagesCount,
+    BSLA_MAYBE_UNUSED bsl::size_t totalMessagesCount) const
 {
     closeBraceIfOpen();
     d_ostream << "  \"OutstandingRatio\": \"" << ratio

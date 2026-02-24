@@ -2235,9 +2235,9 @@ void RootQueueEngine::registerStorage(const bsl::string&      appId,
 }
 
 void RootQueueEngine::unregisterStorage(
-    const bsl::string& appId,
-    BSLA_UNUSED const mqbu::StorageKey& appKey,
-    BSLA_UNUSED unsigned int            appOrdinal)
+    const bsl::string&      appId,
+    BSLA_MAYBE_UNUSED const mqbu::StorageKey& appKey,
+    BSLA_MAYBE_UNUSED unsigned int            appOrdinal)
 {
     // executed by the *QUEUE DISPATCHER* thread
 

@@ -1328,13 +1328,13 @@ Cluster::sendConfirmInline(int                         partitionId,
     return mqbi::InlineResult::e_SUCCESS;
 }
 
-mqbi::InlineResult::Enum
-Cluster::sendPutInline(int                                 partitionId,
-                       const bmqp::PutHeader&              putHeader,
-                       const bsl::shared_ptr<bdlbb::Blob>& appData,
-                       BSLA_UNUSED const bsl::shared_ptr<bdlbb::Blob>& options,
-                       const bsl::shared_ptr<bmqu::AtomicState>&       state,
-                       bsls::Types::Uint64 genCount)
+mqbi::InlineResult::Enum Cluster::sendPutInline(
+    int                                 partitionId,
+    const bmqp::PutHeader&              putHeader,
+    const bsl::shared_ptr<bdlbb::Blob>& appData,
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<bdlbb::Blob>& options,
+    const bsl::shared_ptr<bmqu::AtomicState>&             state,
+    bsls::Types::Uint64                                   genCount)
 {
     // executed by *ANY* thread
 
@@ -2953,7 +2953,7 @@ void Cluster::onNodeHighWatermark(mqbnet::ClusterNode* node)
         << node->nodeDescription() << BMQTSK_ALARMLOG_END;
 }
 
-void Cluster::onNodeLowWatermark(BSLA_UNUSED mqbnet::ClusterNode* node)
+void Cluster::onNodeLowWatermark(BSLA_MAYBE_UNUSED mqbnet::ClusterNode* node)
 {
     // executed by the *IO* thread
 

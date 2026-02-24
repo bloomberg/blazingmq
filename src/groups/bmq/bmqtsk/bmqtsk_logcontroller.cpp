@@ -244,8 +244,8 @@ void LogControllerConfig::clearCategoriesProperties()
 // -------------------
 
 void LogController::afterFileRotation(
-    BSLA_UNUSED int   status,
-    BSLA_UNUSED const bsl::string& rotatedFileName)
+    BSLA_MAYBE_UNUSED int   status,
+    BSLA_MAYBE_UNUSED const bsl::string& rotatedFileName)
 {
     updateLastLogSymlink();
 }
@@ -282,8 +282,8 @@ void LogController::updateLastLogSymlink()
     }
 }
 
-int LogController::processInfoCommand(BSLA_UNUSED bsl::istream& cmd,
-                                      bsl::ostream&             os)
+int LogController::processInfoCommand(BSLA_MAYBE_UNUSED bsl::istream& cmd,
+                                      bsl::ostream&                   os)
 {
     // Gather some information
     ball::Severity::Level verbosity = static_cast<ball::Severity::Level>(

@@ -543,8 +543,8 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
 }
 
 void LocalQueue::onPushMessage(
-    BSLA_UNUSED const bmqt::MessageGUID& msgGUID,
-    BSLA_UNUSED const bsl::shared_ptr<bdlbb::Blob>& blob)
+    BSLA_MAYBE_UNUSED const bmqt::MessageGUID& msgGUID,
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<bdlbb::Blob>& blob)
 {
     BSLS_ASSERT_OPT(false &&
                     "onPushMessage should not be called on LocalQueue");

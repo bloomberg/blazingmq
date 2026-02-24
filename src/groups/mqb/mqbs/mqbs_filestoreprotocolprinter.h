@@ -224,9 +224,9 @@ int printMessageProperties(unsigned int* propertiesAreaLen,
 /// also update the logic to correctly print (with proper indentation
 /// etc) the subQueueId option (even though this options won't be stored
 /// in the DATA file).
-void printOption(bsl::ostream&     stream,
-                 BSLA_UNUSED const bmqp::OptionsView*     ov,
-                 const bmqp::OptionsView::const_iterator& cit);
+void printOption(bsl::ostream&           stream,
+                 BSLA_MAYBE_UNUSED const bmqp::OptionsView* ov,
+                 const bmqp::OptionsView::const_iterator&   cit);
 
 /// Print the options pointed by the specified `options` of the
 /// specified `len` to the specified `stream`.

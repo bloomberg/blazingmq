@@ -220,10 +220,10 @@ class MockDataStore : public mqbs::DataStore {
 
     int writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
                            mqbs::DataStoreRecordHandle*    handle,
-                           BSLA_UNUSED const bmqt::MessageGUID& guid,
-                           const bsl::shared_ptr<bdlbb::Blob>&  appData,
-                           const bsl::shared_ptr<bdlbb::Blob>&  options,
-                           BSLA_UNUSED const mqbu::StorageKey& queueKey)
+                           BSLA_MAYBE_UNUSED const bmqt::MessageGUID& guid,
+                           const bsl::shared_ptr<bdlbb::Blob>&        appData,
+                           const bsl::shared_ptr<bdlbb::Blob>&        options,
+                           BSLA_MAYBE_UNUSED const mqbu::StorageKey& queueKey)
         BSLS_KEYWORD_OVERRIDE
     {
         d_messageCounter++;

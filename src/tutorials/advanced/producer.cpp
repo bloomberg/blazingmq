@@ -838,7 +838,7 @@ static void produce(bmqa::Session* session, QueueManager* queueManager)
 //                              MAIN PROGRAM
 //-----------------------------------------------------------------------------
 
-int main(BSLA_UNUSED int argc, BSLA_UNUSED const char* argv[])
+int main(BSLA_MAYBE_UNUSED int argc, BSLA_MAYBE_UNUSED const char* argv[])
 {
     // Set up logging with output to the console and verbosity set to
     // INFO-level.  This way we will get logs from the BlazingMQ SDK.

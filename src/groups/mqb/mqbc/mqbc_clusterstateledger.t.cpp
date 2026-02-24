@@ -108,7 +108,8 @@ struct ClusterStateLedgerTestImp
     }
 
     // ACCESSORS
-    void setCommitCb(BSLA_UNUSED const CommitCb& value) BSLS_KEYWORD_OVERRIDE
+    void
+    setCommitCb(BSLA_MAYBE_UNUSED const CommitCb& value) BSLS_KEYWORD_OVERRIDE
     {
         markDone();
     }

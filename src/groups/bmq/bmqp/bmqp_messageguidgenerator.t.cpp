@@ -116,7 +116,7 @@ class LegacyHash {
     // MANIPULATORS
     /// Compute the unrolled djb2 hash on the specified `data`. The specified
     /// `numBytes` is not used.
-    void operator()(const void* data, BSLA_UNUSED size_t numBytes)
+    void operator()(const void* data, BSLA_MAYBE_UNUSED size_t numBytes)
     {
         d_result = 5381ULL;
 
@@ -163,7 +163,7 @@ class BaselineHash {
     // MANIPULATORS
     /// Compute the trivial hash of the specified `data`. The specified
     /// `numBytes` is not used.
-    void operator()(const void* data, BSLA_UNUSED size_t numBytes)
+    void operator()(const void* data, BSLA_MAYBE_UNUSED size_t numBytes)
     {
         const bsls::Types::Uint64* start =
             reinterpret_cast<const bsls::Types::Uint64*>(data);
@@ -194,7 +194,7 @@ class Mx3Hash {
     // MANIPULATORS
     /// Compute the hash of the specified `data`. The specified `numBytes` is
     /// not used.
-    void operator()(const void* data, BSLA_UNUSED size_t numBytes)
+    void operator()(const void* data, BSLA_MAYBE_UNUSED size_t numBytes)
     {
         const bsls::Types::Uint64* start =
             reinterpret_cast<const bsls::Types::Uint64*>(data);

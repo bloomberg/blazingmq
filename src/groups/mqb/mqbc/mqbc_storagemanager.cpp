@@ -2385,7 +2385,7 @@ void StorageManager::do_failureReplicaDataResponsePull(
 }
 
 void StorageManager::do_failureReplicaDataResponsePush(
-    const BSLA_UNUSED EventWithData& event)
+    BSLA_MAYBE_UNUSED const EventWithData& event)
 {
     // TODO: Complete Impl
 }
@@ -3508,8 +3508,8 @@ StorageManager::~StorageManager()
 // MANIPULATORS
 //   (virtual: mqbc::PartitionFSMObserver)
 void StorageManager::onTransitionToPrimaryHealed(
-    int         partitionId,
-    BSLA_UNUSED PartitionStateTableState::Enum oldState)
+    int               partitionId,
+    BSLA_MAYBE_UNUSED PartitionStateTableState::Enum oldState)
 {
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
 
@@ -3522,8 +3522,8 @@ void StorageManager::onTransitionToPrimaryHealed(
 }
 
 void StorageManager::onTransitionToReplicaHealed(
-    int         partitionId,
-    BSLA_UNUSED mqbc::PartitionStateTableState::Enum oldState)
+    int               partitionId,
+    BSLA_MAYBE_UNUSED mqbc::PartitionStateTableState::Enum oldState)
 {
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
 
@@ -4387,39 +4387,39 @@ void StorageManager::processStorageEvent(
 }
 
 void StorageManager::processStorageSyncRequest(
-    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLA_UNUSED mqbnet::ClusterNode* source)
+    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* source)
 {
     BSLS_ASSERT_SAFE(false &&
                      "This method can only be invoked in non-CSL mode");
 }
 
 void StorageManager::processPartitionSyncStateRequest(
-    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLA_UNUSED mqbnet::ClusterNode* source)
+    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* source)
 {
     BSLS_ASSERT_SAFE(false &&
                      "This method can only be invoked in non-CSL mode");
 }
 
 void StorageManager::processPartitionSyncDataRequest(
-    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLA_UNUSED mqbnet::ClusterNode* source)
+    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* source)
 {
     BSLS_ASSERT_SAFE(false &&
                      "This method can only be invoked in non-CSL mode");
 }
 
 void StorageManager::processPartitionSyncDataRequestStatus(
-    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLA_UNUSED mqbnet::ClusterNode* source)
+    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* source)
 {
     BSLS_ASSERT_SAFE(false &&
                      "This method can only be invoked in non-CSL mode");
 }
 
 void StorageManager::processRecoveryEvent(
-    BSLA_UNUSED const mqbi::DispatcherRecoveryEvent& event)
+    BSLA_MAYBE_UNUSED const mqbi::DispatcherRecoveryEvent& event)
 {
     BSLS_ASSERT_SAFE(false &&
                      "This method can only be invoked in non-CSL mode");
@@ -4499,8 +4499,8 @@ void StorageManager::bufferPrimaryStatusAdvisory(
 }
 
 void StorageManager::processPrimaryStatusAdvisory(
-    BSLA_UNUSED const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
-    BSLA_UNUSED mqbnet::ClusterNode* source)
+    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
+    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* source)
 {
     // executed by *CLUSTER DISPATCHER* thread
 
