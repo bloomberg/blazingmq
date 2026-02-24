@@ -1061,12 +1061,6 @@ void RootQueueEngine::releaseHandle(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
-    BALL_LOG_INFO << "RootQueueEngine::releaseHandle "
-                  << "HandlePtr '" << handle << "', queue handle's URI '"
-                  << handle->queue()->uri()
-                  << "', specified handle params: " << handleParameters
-                  << ", isFinal: " << bsl::boolalpha << isFinal << ".";
-
     QueueEngineUtil_ReleaseHandleProctor proctor(d_queueState_p,
                                                  isFinal,
                                                  releasedCb);
@@ -1075,10 +1069,16 @@ void RootQueueEngine::releaseHandle(
         BALL_LOG_ERROR << "#CLIENT_IMPROPER_BEHAVIOR "
                        << "Attempting to release unknown handle. HandlePtr '"
                        << handle << "', queue '" << d_queueState_p->uri()
-                       << "'.";
+                       << "', specified handle params: " << handleParameters
+                       << ", isFinal: " << bsl::boolalpha << isFinal << ".";
 
         return;  // RETURN
     }
+
+    BALL_LOG_INFO << "RootQueueEngine::releaseHandle: HandlePtr '" << handle
+                  << "', queue handle's URI '" << handle->queue()->uri()
+                  << "', specified handle params: " << handleParameters
+                  << ", isFinal: " << bsl::boolalpha << isFinal << ".";
 
     bmqt::Uri   uri;
     bsl::string error;
