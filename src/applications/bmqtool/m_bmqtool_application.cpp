@@ -883,7 +883,6 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
         if (rc != 0) {
             BALL_LOG_ERROR << "Failed to send " << msgId << " confirms for "
                            << event << " [rc: " << rc << "]";
-            BSLS_ASSERT_SAFE(!d_isRunning);
         }
     }
 }
