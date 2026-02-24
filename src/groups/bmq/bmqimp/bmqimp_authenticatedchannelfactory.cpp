@@ -363,11 +363,11 @@ void AuthenticatedChannelFactory::processAuthenticationEvent(
         return;  // RETURN
     }
 
-    const bmqp_ctrlmsg::AuthenticationResponse& AuthenticationResponse =
-        response.makeAuthenticationResponse();
+    const bmqp_ctrlmsg::AuthenticationResponse& authenticationResponse =
+        response.authenticationResponse();
 
     // Check if it's an error response
-    if (AuthenticationResponse.status().category() !=
+    if (authenticationResponse.status().category() !=
         bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
         BALL_LOG_ERROR << "Authentication with broker failed: " << response;
 
@@ -383,14 +383,14 @@ void AuthenticatedChannelFactory::processAuthenticationEvent(
 
     // Schedule recurring events to send re-authentication request if lifetime
     // is specified in the response.
-    if (AuthenticationResponse.lifetimeMs().has_value()) {
+    if (authenticationResponse.lifetimeMs().has_value()) {
         int intervalMs = timeoutInterval(
-            AuthenticationResponse.lifetimeMs().value());
+            authenticationResponse.lifetimeMs().value());
 
         BALL_LOG_INFO << "Scheduling reauthentication in " << intervalMs
                       << " milliseconds.";
 
-        // Pening events will be cancelled when Application stops.
+        // Pending events will be cancelled when Application stops.
         d_config.d_scheduler_p->scheduleEvent(
             &d_reauthenticationTimeoutHandle,
             bsls::TimeInterval(bmqsys::Time::nowMonotonicClock())
