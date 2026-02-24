@@ -46,6 +46,7 @@
 
 // BDE
 #include <ball_log.h>
+#include <bdlb_variant.h>
 #include <bdlbb_blob.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
@@ -106,12 +107,16 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
     BALL_LOG_SET_CLASS_CATEGORY("MQBBLP.QUEUE");
 
   private:
+    // TYPES
+    typedef bslma::ManagedPtr<LocalQueue>  LocalQueueMp;
+    typedef bslma::ManagedPtr<RemoteQueue> RemoteQueueMp;
+
+  private:
     // DATA
-    bslma::Allocator*              d_allocator_p;
-    mutable bmqp::SchemaLearner    d_schemaLearner;  // must precede d_state
-    QueueState                     d_state;
-    bslma::ManagedPtr<LocalQueue>  d_localQueue_mp;
-    bslma::ManagedPtr<RemoteQueue> d_remoteQueue_mp;
+    bslma::Allocator*           d_allocator_p;
+    mutable bmqp::SchemaLearner d_schemaLearner;  // must precede d_state
+    QueueState                  d_state;
+    bdlb::Variant2<LocalQueueMp, RemoteQueueMp> d_impl;
 
   private:
     // NOT IMPLEMENTED
@@ -562,20 +567,12 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
 
 inline bool Queue::isLocal() const
 {
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!(d_localQueue_mp && d_remoteQueue_mp));
-    // Can only be either local, remote, or not initialized but not both.
-
-    return d_localQueue_mp;
+    return d_impl.is<LocalQueueMp>();
 }
 
 inline bool Queue::isRemote() const
 {
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!(d_localQueue_mp && d_remoteQueue_mp));
-    // Can only be either local, remote, or not initialized but not both.
-
-    return d_remoteQueue_mp;
+    return d_impl.is<RemoteQueueMp>();
 }
 
 inline mqbu::CapacityMeter* Queue::capacityMeter()
@@ -590,16 +587,10 @@ inline mqbi::QueueEngine* Queue::queueEngine()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
 
-    if (d_localQueue_mp) {
-        return d_localQueue_mp->queueEngine();  // RETURN
+    if (d_impl.is<LocalQueueMp>()) {
+        return d_impl.the<LocalQueueMp>()->queueEngine();
     }
-    else if (d_remoteQueue_mp) {
-        return d_remoteQueue_mp->queueEngine();  // RETURN
-    }
-    else {
-        BSLS_ASSERT_OPT(false && "Uninitialized queue");
-        return 0;  // RETURN
-    }
+    return d_impl.the<RemoteQueueMp>()->queueEngine();
 }
 
 inline const bsl::shared_ptr<mqbstat::QueueStatsDomain>& Queue::stats() const
