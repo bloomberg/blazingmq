@@ -284,7 +284,6 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
 
     // MANIPULATORS
     void convertToLocal() BSLS_KEYWORD_OVERRIDE;
-    void convertToRemote();
 
     // ACCESSORS
     bool isLocal() const;

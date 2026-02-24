@@ -646,19 +646,6 @@ void Queue::convertToLocal()
         this);
 }
 
-void Queue::convertToRemote()
-{
-    // executed by the *QUEUE* dispatcher thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(inDispatcherThread());
-    BSLS_ASSERT_SAFE(d_localQueue_mp);
-
-    BALL_LOG_INFO << d_state.uri() << ": converting to remote";
-
-    // TBD: Not yet implemented !
-}
-
 void Queue::onLostUpstream()
 {
     // executed by the *QUEUE* dispatcher thread
