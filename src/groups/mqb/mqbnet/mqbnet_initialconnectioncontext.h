@@ -323,7 +323,11 @@ class InitialConnectionContext {
 
   private:
     // PRIVATE MANIPULATORS
-    void setState(InitialConnectionState::Enum value);
+
+    /// Transition to the specified `value` state in response to the specified
+    /// `event`.
+    void setState(InitialConnectionState::Enum value,
+                  InitialConnectionEvent::Enum event);
 
     /// Schedule the next read operation on the channel.
     /// Return 0 on success, or a non-zero error code and populate

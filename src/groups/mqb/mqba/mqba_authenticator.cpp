@@ -42,7 +42,9 @@
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_protocol.h>
 #include <bmqp_schemaeventbuilder.h>
+#include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <ball_log.h>
@@ -76,7 +78,7 @@ int Authenticator::onAuthenticationRequest(
     BSLS_ASSERT_SAFE(authenticationMsg.isAuthenticationRequestValue());
 
     BALL_LOG_DEBUG << "Received authentication message from '"
-                   << context_p->channel()->peerUri() << "'";
+                   << context_p->channel().get() << "'";
 
     // Create an AuthenticationContext for that connection
     bsl::shared_ptr<mqbnet::AuthenticationContext> authenticationContext =
@@ -194,7 +196,7 @@ int Authenticator::authenticateAsync(
 
     if (rc != 0) {
         errorDescription << "Failed to enqueue authentication job for '"
-                         << channel->peerUri() << "' [rc: " << rc << "]";
+                         << channel.get() << "' [rc: " << rc << "]";
     }
 
     return rc;
@@ -252,9 +254,8 @@ void Authenticator::authenticate(
     bmqp::EncodingType::Enum encodingType = context_sp->encodingType();
 
     BALL_LOG_INFO << (isReauthn ? "Reauthenticating" : "Authenticating")
-                  << " connection '" << channel->peerUri()
-                  << "' with mechanism '" << authenticationRequest.mechanism()
-                  << "'";
+                  << " connection '" << channel.get() << "' with mechanism '"
+                  << authenticationRequest.mechanism() << "'";
 
     // Authenticate
     bmqu::MemOutStream                             authnErrStream;
@@ -264,11 +265,33 @@ void Authenticator::authenticate(
             ? bsl::vector<char>()
             : authenticationRequest.data().value(),
         channel->peerUri());
+    const bsls::Types::Int64 start   = bmqsys::Time::highResolutionTimer();
     const int authnRc = d_authnController_p->authenticate(
         authnErrStream,
         &result,
         authenticationRequest.mechanism(),
         authenticationData);
+    const bsls::Types::Int64 elapsed = bmqsys::Time::highResolutionTimer() -
+                                       start;
+
+    if (authnRc == 0) {
+        BALL_LOG_INFO_BLOCK
+        {
+            BALL_LOG_OUTPUT_STREAM
+                << "Authentication successful for connection '"
+                << channel.get() << "': mechanism [ "
+                << authenticationRequest.mechanism() << " ], lifetimeMs [ ";
+            if (result && result->lifetimeMs().has_value()) {
+                BALL_LOG_OUTPUT_STREAM << result->lifetimeMs().value();
+            }
+            else {
+                BALL_LOG_OUTPUT_STREAM << "none";
+            }
+            BALL_LOG_OUTPUT_STREAM
+                << " ], took: " << bmqu::PrintUtil::prettyTimeInterval(elapsed)
+                << " (" << elapsed << " nanoseconds)";
+        }
+    }
 
     // For anonymous authentication, skip sending the response and proceed
     // directly to the next negotiation step
@@ -289,6 +312,11 @@ void Authenticator::authenticate(
     if (authnRc != 0) {
         rc    = (authnRc * 10) + rc_AUTHENTICATION_FAILED;
         error = authnErrStream.str();
+
+        BALL_LOG_WARN << "Authentication failed for connection '"
+                      << channel.get() << "': mechanism [ "
+                      << authenticationRequest.mechanism() << " ], error: '"
+                      << authnErrStream.str() << "'";
 
         sendAuthenticationResponse(sendResponseErrStream,
                                    authnRc,
