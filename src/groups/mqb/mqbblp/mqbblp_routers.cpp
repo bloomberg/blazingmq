@@ -97,7 +97,8 @@ Routers::MessagePropertiesReader::MessagePropertiesReader(
 , d_schemaLearnerContext(schemaLearner.createContext())
 , d_properties(allocator)
 , d_currentMessage_p(0)
-, d_isDirty(false)
+, d_needData(false)
+, d_numHits(0)
 {
     d_properties.setDeepCopy(false);
 }
@@ -107,16 +108,10 @@ Routers::MessagePropertiesReader::~MessagePropertiesReader()
     // NOTHING
 }
 
-void Routers::MessagePropertiesReader::_set(
-    bmqp::MessageProperties& properties)
-{
-    d_properties = properties;
-}
-
 bdld::Datum Routers::MessagePropertiesReader::get(const bsl::string& name,
                                                   bslma::Allocator*  allocator)
 {
-    if (d_isDirty) {
+    if (d_needData) {
         if (!d_appData) {
             if (d_currentMessage_p && d_currentMessage_p->appData()) {
                 d_appData = d_currentMessage_p->appData();
@@ -134,8 +129,10 @@ bdld::Datum Routers::MessagePropertiesReader::get(const bsl::string& name,
                                << "]";
             }
         }
-        d_isDirty = false;
+        d_needData = false;
     }
+
+    ++d_numHits;
 
     return d_properties.getPropertyRef(name, allocator);
 }
@@ -143,10 +140,14 @@ bdld::Datum Routers::MessagePropertiesReader::get(const bsl::string& name,
 void Routers::MessagePropertiesReader::next(
     const mqbi::StorageIterator* currentMessage)
 {
-    if (currentMessage == d_currentMessage_p && currentMessage) {
-        return;  // RETURN
+    if (currentMessage) {
+        // Not loading mqbi::StorageIterator::appData to check equality
+        if (currentMessage == d_currentMessage_p) {
+            return;  // RETURN
+        }
+        d_numHits = 0;
     }
-    // Not loading mqbi::StorageIterator::appData to check equality
+    // if currentMessage == 0, keep the last numHits
 
     clear();
 
@@ -159,7 +160,7 @@ void Routers::MessagePropertiesReader::clear()
 
     d_currentMessage_p = 0;
     d_appData.reset();
-    d_isDirty = true;
+    d_needData = true;
 }
 
 void Routers::MessagePropertiesReader::next(
@@ -170,6 +171,11 @@ void Routers::MessagePropertiesReader::next(
 
     d_appData               = appData;
     d_messagePropertiesInfo = messagePropertiesInfo;
+}
+
+unsigned int Routers::MessagePropertiesReader::numHits() const
+{
+    return d_numHits;
 }
 
 // ==========================
@@ -195,6 +201,9 @@ bool Routers::Expression::evaluate()
         /// - Result type is not a boolean
         /// - Property used in the expression is not found in the message
         /// - Unexpected type for expression operand
+
+        BSLS_ASSERT_SAFE(d_evaluationContext_p);
+
         return d_evaluator.evaluate(*d_evaluationContext_p);  // RETURN
     }
 

@@ -209,6 +209,14 @@ Dispatcher::executor(BSLA_UNUSED const mqbi::DispatcherClient* client) const
     return bmqex::Executor();
 }
 
+bsls::Types::Int64 Dispatcher::numProcessorEvents(
+    BSLA_MAYBE_UNUSED const mqbi::DispatcherClient* client) const
+{
+    BSLS_ASSERT_SAFE(client);
+
+    return 0;
+}
+
 // ---------------------------------
 // class Dispatcher::InnerEventGuard
 // ---------------------------------

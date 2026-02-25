@@ -33,6 +33,7 @@
 #include <mqbi_queueengine.h>
 #include <mqbi_storage.h>
 #include <mqbs_virtualstorage.h>
+#include <mqbu_flowcontroller.h>
 #include <mqbu_storagekey.h>
 
 // BMQ
@@ -111,9 +112,6 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// rejected message.
     bdlmt::FixedThreadPool* d_miscWorkThreadPool_p;
 
-    /// Throttler for REJECTs.
-    bdlmt::Throttle d_throttledRejectedMessages;
-
     /// Throttler for when reject messages are dumped into temp files.
     bdlmt::Throttle d_throttledRejectMessageDump;
 
@@ -127,6 +125,12 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// Storage iterator to access storage state.  Queue Engine uses this one
     /// to access random message (as in the case of redelivery).
     bslma::ManagedPtr<mqbi::StorageIterator> d_realStorageIter_mp;
+
+    mqbu::FlowController d_flowController;
+
+    bdlmt::EventSchedulerEventHandle d_flowControlEventHandle;
+
+    const bsl::function<void()> d_flowControlTimerCb;
 
     /// Allocator to use.
     bslma::Allocator* d_allocator_p;
@@ -199,6 +203,9 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     void logAlarmCb(
         const bsl::string&                              appId,
         const bslma::ManagedPtr<mqbi::StorageIterator>& oldestMsgIt) const;
+
+    void updateFlowControl(bsls::Types::Int64 nowMs);
+    void onFlowControlTimer();
 
   public:
     // TRAITS

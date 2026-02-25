@@ -635,11 +635,11 @@ QueueEngineUtil_AppsDeliveryContext::QueueEngineUtil_AppsDeliveryContext(
 : d_consumers(allocator)
 , d_numApps(0)
 , d_numStops(0)
-, d_currentMessage(0)
+, d_currentMessage_p(0)
 , d_queue_p(queue)
 , d_timeDelta()
 , d_currentAppView_p(0)
-, d_visitVisitor(
+, d_fanoutVisitor(
       bdlf::BindUtil::bindS(allocator,
                             &QueueEngineUtil_AppsDeliveryContext::visit,
                             this,
@@ -667,11 +667,11 @@ bool QueueEngineUtil_AppsDeliveryContext::reset(
     bool result = false;
 
     if (haveProgress() && currentMessage && currentMessage->hasReceipt()) {
-        d_currentMessage = currentMessage;
+        d_currentMessage_p = currentMessage;
         result           = true;
     }
     else {
-        d_currentMessage = 0;
+        d_currentMessage_p = 0;
     }
 
     d_numApps  = 0;
@@ -687,13 +687,14 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
     unsigned int              ordinal,
     bool                      putAsideReturnValue)
 {
-    BSLS_ASSERT_SAFE(d_currentMessage->hasReceipt());
+    BSLS_ASSERT_SAFE(d_currentMessage_p->hasReceipt());
 
     ++d_numApps;
 
     if (d_queue_p->isDeliverAll()) {
         // collect all handles
-        app.routing()->iterateConsumers(d_broadcastVisitor, d_currentMessage);
+        app.routing()->iterateConsumers(d_broadcastVisitor,
+                                        d_currentMessage_p);
 
         // Broadcast does not need stats nor any special per-message treatment.
         return false;  // RETURN
@@ -703,14 +704,14 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
         if (app.resumePoint().isUnset() && app.isAuthorized()) {
             // The 'app' needs to resume (in 'deliverMessages').
             // The queue iterator can advance leaving the 'app' behind.
-            app.setResumePoint(d_currentMessage->guid());
+            app.setResumePoint(d_currentMessage_p->guid());
         }
         ++d_numStops;
         // else the existing resumePoint is earlier (if authorized)
         return false;  // RETURN
     }
 
-    const mqbi::AppMessage& appView = d_currentMessage->appMessageView(
+    const mqbi::AppMessage& appView = d_currentMessage_p->appMessageView(
         ordinal);
 
     if (!appView.isNew()) {
@@ -725,8 +726,8 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
     // message has a huge TTL and there are no consumers for this message.
 
     d_currentAppView_p     = &appView;
-    Routers::Result result = app.selectConsumer(d_visitVisitor,
-                                                d_currentMessage,
+    Routers::Result result = app.selectConsumer(d_fanoutVisitor,
+                                                d_currentMessage_p,
                                                 ordinal);
     // We use this pointer only from `d_visitVisitor`, so not cleaning it is
     // okay, but we clean it to keep contract that `d_currentAppView_p` only
@@ -745,7 +746,7 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
         // Instead, wait for 'onHandleUsable' event and then catch up
         // from this resume point.
 
-        app.setResumePoint(d_currentMessage->guid());
+        app.setResumePoint(d_currentMessage_p->guid());
 
         // Early return.
         // If all Apps return 'e_NO_CAPACITY_ALL', stop the iteration
@@ -761,7 +762,7 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
 
     // This app does not have capacity to deliver.  Still, move on and
     // consider (evaluate) subsequent messages for the 'app'.
-    app.putAside(d_currentMessage->guid());
+    app.putAside(d_currentMessage_p->guid());
 
     return putAsideReturnValue;
 }
@@ -798,7 +799,7 @@ bool QueueEngineUtil_AppsDeliveryContext::visitBroadcast(
 
 void QueueEngineUtil_AppsDeliveryContext::deliverMessage()
 {
-    BSLS_ASSERT_SAFE(d_currentMessage);
+    BSLS_ASSERT_SAFE(d_currentMessage_p);
 
     if (!d_consumers.empty()) {
         for (Consumers::const_iterator it = d_consumers.begin();
@@ -807,11 +808,11 @@ void QueueEngineUtil_AppsDeliveryContext::deliverMessage()
             BSLS_ASSERT_SAFE(!it->second.empty());
 
             if (QueueEngineUtil::isBroadcastMode(d_queue_p)) {
-                it->first->deliverMessageNoTrack(*d_currentMessage,
+                it->first->deliverMessageNoTrack(*d_currentMessage_p,
                                                  it->second);
             }
             else {
-                it->first->deliverMessage(*d_currentMessage,
+                it->first->deliverMessage(*d_currentMessage_p,
                                           it->second,
                                           false);
             }
@@ -819,10 +820,10 @@ void QueueEngineUtil_AppsDeliveryContext::deliverMessage()
     }
 
     if (haveProgress()) {
-        d_currentMessage->advance();
+        d_currentMessage_p->advance();
     }
 
-    d_currentMessage = 0;
+    d_currentMessage_p = 0;
 }
 
 bool QueueEngineUtil_AppsDeliveryContext::isEmpty() const
@@ -838,7 +839,7 @@ bool QueueEngineUtil_AppsDeliveryContext::haveProgress() const
 bsls::Types::Int64 QueueEngineUtil_AppsDeliveryContext::timeDelta()
 {
     if (!d_timeDelta.has_value()) {
-        d_timeDelta = getMessageQueueTime(d_currentMessage->attributes());
+        d_timeDelta = getMessageQueueTime(d_currentMessage_p->attributes());
     }
     return d_timeDelta.value();
 }

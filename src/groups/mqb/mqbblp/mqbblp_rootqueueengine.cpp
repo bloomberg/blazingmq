@@ -77,6 +77,18 @@ const bsls::Types::Int64 k_NS_PER_MESSAGE =
     bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
 // Time interval between messages logged with throttling.
 
+const bsls::Types::Int64 k_FLOW_CONTROL_LOW_WATERMARK  = 10;
+const bsls::Types::Int64 k_FLOW_CONTROL_MAX_RATE_LIMIT = 500000;
+const unsigned int       k_FLOW_CONTROL_BATCH          = 100;
+
+#define BMQ_LOGTHROTTLE_INFO                                                  \
+    BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)           \
+        << "[THROTTLED] "
+
+#define BMQ_LOGTHROTTLE_WARN                                                  \
+    BALL_LOGTHROTTLE_WARN(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)           \
+        << "[THROTTLED] "
+
 struct VirtualIterator : mqbblp::QueueEngineUtil_AppState::VirtualIterator {
     mqbi::StorageIterator*  d_start_p;
     const bmqt::MessageGUID d_stop;
@@ -123,6 +135,14 @@ VirtualIterator::~VirtualIterator()
     // Make sure to invalidate any cached data within this iterator after use.
     // TODO: refactor iterators to remove cached data.
     d_start_p->clearCache();
+}
+
+void executeInQueueDispatcher(mqbi::Queue*                 queue,
+                              const bsl::function<void()>& fn)
+{
+    BSLS_ASSERT_SAFE(queue);
+
+    queue->dispatcher()->execute(fn, queue);
 }
 
 }  // close unnamed namespace
@@ -325,6 +345,12 @@ RootQueueEngine::RootQueueEngine(QueueState*             queueState,
 , d_scheduler_p(queueState->scheduler())
 , d_miscWorkThreadPool_p(queueState->miscWorkThreadPool())
 , d_appsDeliveryContext(d_queueState_p->queue(), allocator)
+, d_flowController()
+, d_flowControlEventHandle()
+, d_flowControlTimerCb(
+      bdlf::BindUtil::bindS(allocator,
+                            &RootQueueEngine::onFlowControlTimer,
+                            this))
 , d_allocator_p(allocator)
 {
     // PRECONDITIONS
@@ -333,11 +359,6 @@ RootQueueEngine::RootQueueEngine(QueueState*             queueState,
     BSLS_ASSERT_SAFE(d_queueState_p->storage());
     BSLS_ASSERT_SAFE(
         d_queueState_p->queue()->domain()->cluster()->isClusterMember());
-
-    d_throttledRejectedMessages.initialize(
-        1,
-        5 * bdlt::TimeUnitRatio::k_NS_PER_S);
-    // One maximum log per 5 seconds
 
     d_throttledRejectMessageDump.initialize(
         1,
@@ -535,6 +556,15 @@ int RootQueueEngine::initializeAppId(const bsl::string& appId,
 
 void RootQueueEngine::resetState(bool isShuttingDown)
 {
+    // executed by the *QUEUE DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
+
+    if (d_flowControlEventHandle) {
+        d_scheduler_p->cancelEventAndWait(&d_flowControlEventHandle);
+    }
+
     for (Apps::iterator it = d_apps.begin(); it != d_apps.end(); ++it) {
         it->second->undoRouting();
         it->second->routing()->reset();
@@ -1371,11 +1401,49 @@ void RootQueueEngine::afterNewMessage()
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
+    mqbi::Queue* queue = d_queueState_p->queue();
+    BSLS_ASSERT_SAFE(queue);
+
+    BSLS_ASSERT_SAFE(queue->inDispatcherThread());
+
+    mqbi::StorageIterator* storageIt = d_storageIter_mp.get();
+    bsls::TimeInterval     now       = bsls::SystemTime::now(
+        bsls::SystemClockType::e_MONOTONIC);
+    updateFlowControl(now.totalMilliseconds());
+
+    if (d_flowController.isFull()) {
+        BMQ_LOGTHROTTLE_INFO
+            << "Local queue: " << d_queueState_p->uri()
+            << " throttling delivery "
+            << (d_flowControlEventHandle ? "; has already started the timer."
+                                         : "and starting the timer.");
+
+        if (!d_flowControlEventHandle) {
+            const bsls::TimeInterval timeout(1.0);
+
+            // Our Schedule is of the type e_MONOTONIC,
+            // see m_bmqbrkr::Task::Task.
+
+            d_scheduler_p->scheduleEvent(
+                &d_flowControlEventHandle,
+                now + timeout,
+                bdlf::BindUtil::bindS(d_allocator_p,
+                                      executeInQueueDispatcher,
+                                      queue,
+                                      d_flowControlTimerCb));
+        }
+
+        // bypass the loop and go to the cleaning at the end.
+        storageIt = 0;
+    }
 
     // Deliver new messages to active (alive and capable to deliver) consumers
 
-    while (d_appsDeliveryContext.reset(d_storageIter_mp.get())) {
+    bsls::Types::Int64 numMessages = queue->storage()->numMessages(
+        mqbu::StorageKey::k_NULL_KEY);
+    unsigned int batch = 0;
+
+    while (d_appsDeliveryContext.reset(storageIt)) {
         // Assume, all Apps need to deliver (some may be at capacity)
         for (Apps::iterator iter = d_apps.begin(); iter != d_apps.end();
              ++iter) {
@@ -1390,27 +1458,61 @@ void RootQueueEngine::afterNewMessage()
 
                 // Report queue time metric per App
                 // Report 'queue time' metric for all active appIds
-                d_queueState_p->queue()->stats()->onEvent(
+                queue->stats()->onEvent(
                     mqbstat::QueueStatsDomain::EventType::e_QUEUE_TIME,
                     d_appsDeliveryContext.timeDelta(),
                     app->appId());
             }
         }
+        const unsigned int numHits =
+            d_queueState_p->routingContext().d_preader->numHits();
+
         if (!d_appsDeliveryContext.isEmpty()) {
+            --numMessages;
             // Report 'queue time' metric for the entire queue
-            d_queueState_p->queue()
-                ->stats()
+            queue->stats()
                 ->onEvent<mqbstat::QueueStatsDomain::EventType::e_QUEUE_TIME>(
                     d_appsDeliveryContext.timeDelta());
         }
         d_appsDeliveryContext.deliverMessage();
+
+        mqbu::FlowController::Watermark::Enum result = d_flowController.add(
+            numHits);
+
+        if (result == mqbu::FlowController::Watermark::e_STRICT) {
+            BMQ_LOGTHROTTLE_INFO << "Local queue: " << d_queueState_p->uri()
+                                 << " throttling delivery after overhead of "
+                                 << numHits << " subscription operations.";
+
+            d_appsDeliveryContext.reset(0);
+
+            // break the loop and go to the cleaning at the end.
+            storageIt = 0;
+        }
+        else if (result > mqbu::FlowController::Watermark::e_ZERO) {
+            if (++batch >= k_FLOW_CONTROL_BATCH) {
+                batch = 0;
+
+                now = bsls::SystemTime::now(
+                    bsls::SystemClockType::e_MONOTONIC);
+                updateFlowControl(now.totalMilliseconds());
+            }
+        }
     }
 
-    if (QueueEngineUtil::isBroadcastMode(d_queueState_p->queue())) {
+    if (QueueEngineUtil::isBroadcastMode(queue)) {
+        if (!d_storageIter_mp->atEnd()) {
+            BMQTSK_ALARMLOG_ALARM("BCAST_SUBSCRIPTIONS")
+                << "Local queue: " << d_queueState_p->uri() << " dropping "
+                << numMessages
+                << " bcast messages because of subscription overhead."
+                << BMQTSK_ALARMLOG_END;
+        }
+
         // Clear storage status
         BSLA_MAYBE_UNUSED mqbi::StorageResult::Enum rc =
-            d_queueState_p->queue()->storage()->removeAll(
-                mqbu::StorageKey::k_NULL_KEY);
+            queue->storage()->removeAll(mqbu::StorageKey::k_NULL_KEY);
+
         // Intended to be used with 'InMemoryStorage'.  Since 'appKey' isn't
         //  used while calling 'removeAll()', it should always succeed.
         BSLS_ASSERT_SAFE(mqbi::StorageResult::e_SUCCESS == rc);
@@ -1473,10 +1575,12 @@ int RootQueueEngine::onConfirmMessage(mqbi::QueueHandle*       handle,
         return rc_NO_MORE_REFERENCES;  // RETURN
     }
 
-    BALL_LOG_INFO << "'" << d_queueState_p->queue()->description()
-                  << "', appId = '" << app.appId()
-                  << "' failed to release references upon CONFIRM " << msgGUID
-                  << "' [reason: " << mqbi::StorageResult::toAscii(rc) << "]";
+    BMQ_LOGTHROTTLE_INFO << "'" << d_queueState_p->queue()->description()
+                         << "', appId = '" << app.appId()
+                         << "' failed to release references upon CONFIRM "
+                         << msgGUID
+                         << "' [reason: " << mqbi::StorageResult::toAscii(rc)
+                         << "]";
 
     // TBD: Handle return code for 'e_GUID_NOT_FOUND', 'e_APPKEY_NOT_FOUND',
     //      and (probably dramatically) 'e_WRITE_FAILURE'.
@@ -1557,8 +1661,8 @@ int RootQueueEngine::onRejectMessage(
                                                   rda.isUnlimited())) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-            BALL_LOGTHROTTLE_WARN(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
-                << "[THROTTLED] Mismatch between the message's RdaInfo " << rda
+            BMQ_LOGTHROTTLE_WARN
+                << "Mismatch between the message's RdaInfo " << rda
                 << " and the domain's 'maxDeliveryAttempts' setting ["
                 << maxDeliveryAttempts << "], updating message's RdaInfo";
             if (maxDeliveryAttempts > 0) {
@@ -1571,13 +1675,11 @@ int RootQueueEngine::onRejectMessage(
 
         counter = rda.counter();
 
-        if (d_throttledRejectedMessages.requestPermission()) {
-            BALL_LOG_INFO << "[THROTTLED] Queue '" << d_queueState_p->uri()
-                          << "' rejecting PUSH [GUID: '" << msgGUID
-                          << "', appId: " << app.appId()
-                          << ", subQueueId: " << app.upstreamSubQueueId()
-                          << "] with the counter: [" << rda << "]";
-        }
+        BMQ_LOGTHROTTLE_INFO << "Queue '" << d_queueState_p->uri()
+                             << "' rejecting PUSH [GUID: '" << msgGUID
+                             << "', appId: " << app.appId()
+                             << ", subQueueId: " << app.upstreamSubQueueId()
+                             << "] with the counter: [" << rda << "]";
 
         if (!rda.isUnlimited()) {
             BSLS_ASSERT_SAFE(counter);
@@ -1631,11 +1733,11 @@ int RootQueueEngine::onRejectMessage(
             }
         }
     }
-    else if (d_throttledRejectedMessages.requestPermission()) {
-        BALL_LOG_INFO << "[THROTTLED] Queue '" << d_queueState_p->uri()
-                      << "' got reject for an unknown message [GUID: '"
-                      << msgGUID
-                      << "', subQueueId: " << app.upstreamSubQueueId() << "]";
+    else {
+        BMQ_LOGTHROTTLE_INFO
+            << "Queue '" << d_queueState_p->uri()
+            << "' got reject for an unknown message [GUID: '" << msgGUID
+            << "', subQueueId: " << app.upstreamSubQueueId() << "]";
     }
 
     return counter;
@@ -1744,7 +1846,7 @@ RootQueueEngine::logAppSubscriptionInfo(bsl::ostream&     stream,
         routing.subscriptionGroups();
     if (!subscrGroups.empty()) {
         // Limit to log only k_EXPR_NUM_LIMIT expressions
-        static const size_t k_EXPR_NUM_LIMIT = 50;
+        static const size_t k_EXPR_NUM_LIMIT = 10;
         if (subscrGroups.size() > k_EXPR_NUM_LIMIT) {
             stream << "First " << k_EXPR_NUM_LIMIT
                    << " of consumer subscription expressions: \n";
@@ -1796,8 +1898,8 @@ RootQueueEngine::logAppSubscriptionInfo(bsl::ostream&     stream,
             }
             else {
                 BALL_LOG_WARN << "Failed to streamIn MessageProperties, rc = "
-                              << rc;
-                stream << "Message Properties: Failed to acquire [rc: " << rc
+                              << ret;
+                stream << "Message Properties: Failed to acquire [rc: " << ret
                        << "]\n";
             }
         }
@@ -1956,6 +2058,53 @@ void RootQueueEngine::logAlarmCb(
     BMQTSK_ALARMLOG_ALARM("QUEUE_STUCK") << out.str() << BMQTSK_ALARMLOG_END;
 }
 
+void RootQueueEngine::updateFlowControl(bsls::Types::Int64 nowMs)
+{
+    // executed by the *QUEUE DISPATCHER* thread
+
+    // PRECONDITIONS
+    mqbi::Queue* queue = d_queueState_p->queue();
+    BSLS_ASSERT_SAFE(queue);
+
+    BSLS_ASSERT_SAFE(queue->inDispatcherThread());
+
+    if (d_flowController.isIdle()) {
+        return;
+    }
+
+    // Provide time to the bucket algorithm.
+    mqbi::Dispatcher* dispatcher = queue->dispatcher();
+
+    bsls::Types::Int64 numEvents = dispatcher->numProcessorEvents(queue);
+
+    d_flowController.update(nowMs, numEvents);
+
+    const mqbu::FlowController::Config before = d_flowController.config();
+    d_flowController.checkWatermark(k_FLOW_CONTROL_LOW_WATERMARK,
+                                    k_FLOW_CONTROL_MAX_RATE_LIMIT);
+
+    if (before != d_flowController.config()) {
+        BMQ_LOGTHROTTLE_INFO
+            << "Local queue: " << d_queueState_p->uri() << " is at "
+            << numEvents
+            << " dispatcher events and updates the throttling policy ["
+            << d_flowController << "].";
+    }
+}
+
+void RootQueueEngine::onFlowControlTimer()
+{
+    // executed by the *QUEUE DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
+
+    BSLS_ASSERT_SAFE(d_flowControlEventHandle);
+
+    d_flowControlEventHandle.release();
+    afterNewMessage();
+}
+
 void RootQueueEngine::afterAppIdRegistered(
     const mqbi::Storage::AppInfos& addedAppIds)
 {
@@ -2065,18 +2214,19 @@ void RootQueueEngine::registerStorage(const bsl::string&      appId,
     if (app.isAuthorized()) {
         BSLS_ASSERT_SAFE(appKey == app.appKey());
 
-        BALL_LOG_INFO << "Local queue: " << d_queueState_p->uri()
-                      << " (id: " << d_queueState_p->id()
-                      << ") changing [App Id: " << appId << ", key: " << appKey
-                      << ", ordinal: " << app.ordinal()
-                      << "] to [ordinal: " << appOrdinal << "]";
+        BMQ_LOGTHROTTLE_INFO << "Local queue: " << d_queueState_p->uri()
+                             << " (id: " << d_queueState_p->id()
+                             << ") changing [App Id: " << appId
+                             << ", key: " << appKey
+                             << ", ordinal: " << app.ordinal()
+                             << "] to [ordinal: " << appOrdinal << "]";
     }
     else {
-        BALL_LOG_INFO << "Local queue: " << d_queueState_p->uri()
-                      << " (id: " << d_queueState_p->id()
-                      << ") now has storage: [App Id: " << appId
-                      << ", key: " << appKey << ", ordinal: " << appOrdinal
-                      << "]";
+        BMQ_LOGTHROTTLE_INFO << "Local queue: " << d_queueState_p->uri()
+                             << " (id: " << d_queueState_p->id()
+                             << ") now has storage: [App Id: " << appId
+                             << ", key: " << appKey
+                             << ", ordinal: " << appOrdinal << "]";
 
         d_consumptionMonitor.registerSubStream(appId);
     }
