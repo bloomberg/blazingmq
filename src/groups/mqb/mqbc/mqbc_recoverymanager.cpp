@@ -438,8 +438,8 @@ void RecoveryManager::setExpectedDataChunkRange(
     if (receiveDataCtx.d_expectChunks) {
         BMQTSK_ALARMLOG_ALARM(PartitionFSM::k_PFSM_DEFECT_LOG_TAG)
             << d_clusterData.identity().description() << " Partition ["
-            << partitionId << "]: "
-            << " Got notification to expect chunks when self is "
+            << partitionId
+            << "]: " << " Got notification to expect chunks when self is "
             << "already expecting chunks.  Self's view: "
             << "recovery requestId = " << receiveDataCtx.d_recoveryRequestId
             << "; beginSeqNum = " << receiveDataCtx.d_beginSeqNum

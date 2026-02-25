@@ -514,8 +514,7 @@ void StorageManager::processReplicaDataRequestPull(
 
         BALL_LOG_ERROR
             << d_clusterData_p->identity().description() << " Partition ["
-            << partitionId << "]: "
-            << "Received ReplicaDataRequestPull from "
+            << partitionId << "]: " << "Received ReplicaDataRequestPull from "
             << source->nodeDescription() << " with endSequenceNumber: "
             << replicaDataRequest.endSequenceNumber()
             << " that does not match self's current sequence number: "
@@ -1951,8 +1950,8 @@ void StorageManager::do_determineDataDestinations(const EventWithData& event)
                 selfFirstSyncAfterRolloverSeqNum) {
             BALL_LOG_WARN
                 << d_clusterData_p->identity().description() << " Partition ["
-                << partitionId << "]: "
-                << "Replica " << cit->first->nodeDescription()
+                << partitionId << "]: " << "Replica "
+                << cit->first->nodeDescription()
                 << " has non-empty storage with different first sync point, "
                 << "implying that it has missed rollover.  We need to send "
                 << "ReplicaDataRequestDrop to this replica.";
@@ -1973,8 +1972,8 @@ void StorageManager::do_determineDataDestinations(const EventWithData& event)
 
             BALL_LOG_WARN
                 << d_clusterData_p->identity().description() << " Partition ["
-                << partitionId << "]: "
-                << "Replica " << cit->first->nodeDescription()
+                << partitionId << "]: " << "Replica "
+                << cit->first->nodeDescription()
                 << " has partition sequence number " << nodeSeqNum
                 << ", while the historic highest sequence number for the same "
                 << "primary lease ID is " << historicHighestSeqNum
@@ -1992,8 +1991,8 @@ void StorageManager::do_determineDataDestinations(const EventWithData& event)
             // replica.
             BALL_LOG_INFO
                 << d_clusterData_p->identity().description() << " Partition ["
-                << partitionId << "]: "
-                << "Replica " << cit->first->nodeDescription()
+                << partitionId << "]: " << "Replica "
+                << cit->first->nodeDescription()
                 << " has partition sequence number " << nodeSeqNum
                 << ", which is lower than or equal to self's partition "
                 << "sequence number " << selfSeqNum
@@ -2005,8 +2004,8 @@ void StorageManager::do_determineDataDestinations(const EventWithData& event)
         else {
             BALL_LOG_WARN
                 << d_clusterData_p->identity().description() << " Partition ["
-                << partitionId << "]: "
-                << "Replica " << cit->first->nodeDescription()
+                << partitionId << "]: " << "Replica "
+                << cit->first->nodeDescription()
                 << " has partition sequence number " << nodeSeqNum
                 << ", which is higher than self's partition sequence number "
                 << selfSeqNum
