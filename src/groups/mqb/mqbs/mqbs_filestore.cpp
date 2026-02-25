@@ -3938,7 +3938,7 @@ void FileStore::issueSyncPointDispatched(BSLA_UNUSED int partitionId)
 {
     // executed by the *DISPATCHER* thread
 
-    if (!d_isOpen || !d_isPrimary) {
+    if (!d_isOpen || !d_isPrimary || d_isStopping) {
         return;  // RETURN
     }
 
