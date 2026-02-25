@@ -276,7 +276,7 @@ jobs:
 
       - name: Build BlazingMQ
         env:
-          CXXFLAGS: "-Wno-poison-system-directories"
+          CXXFLAGS: "-Werror -Wno-poison-system-directories"
         run: |
           echo "::add-matcher::.github/workflows/problem-matchers/cpp.json"
           bin/build-darwin.sh
