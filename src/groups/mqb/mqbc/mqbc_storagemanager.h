@@ -178,7 +178,7 @@ class StorageManager BSLS_KEYWORD_FINAL
             d_firstSyncPointAfterRolloverSeqNum;
 
         /// Node's partition max file sizes.
-        bmqp_ctrlmsg::PartitionMaxFileSizes  d_partitionMaxFileSizes;
+        bmqp_ctrlmsg::PartitionMaxFileSizes d_partitionMaxFileSizes;
 
         /// Flag of whether recovery data is already sent to that node.
         /// It, however, does not mean that the node is already healed.
@@ -190,9 +190,9 @@ class StorageManager BSLS_KEYWORD_FINAL
         explicit NodeContext(
             const bmqp_ctrlmsg::PartitionSequenceNumber seqNum,
             const bmqp_ctrlmsg::PartitionSequenceNumber
-                 firstSyncPointAfterRolloverSeqNum,
+                firstSyncPointAfterRolloverSeqNum,
             const bmqp_ctrlmsg::PartitionMaxFileSizes& partitionMaxFileSizes,
-            bool isRecoveryDataSent);
+            bool                                       isRecoveryDataSent);
     };
 
   public:
@@ -203,7 +203,7 @@ class StorageManager BSLS_KEYWORD_FINAL
     typedef StorageUtil::BlobSpPool BlobSpPool;
 
     typedef bsl::unordered_map<mqbnet::ClusterNode*, NodeContext>
-                                               NodeToContextMap;
+                                             NodeToContextMap;
     typedef NodeToContextMap::iterator       NodeToContextMapIter;
     typedef NodeToContextMap::const_iterator NodeToContextMapCIter;
     typedef bsl::vector<NodeToContextMap>    NodeToContextMapPartitionVec;
@@ -695,11 +695,11 @@ class StorageManager BSLS_KEYWORD_FINAL
     void
     do_attemptOpenStorage(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
-    void do_findHighestFileSizes(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
+    void
+    do_findHighestFileSizes(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
-    void do_overrideMaxFileSizes(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
+    void
+    do_overrideMaxFileSizes(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
     void do_updateStorage(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
@@ -1268,9 +1268,9 @@ inline StorageManager::NodeContext::NodeContext()
 inline StorageManager::NodeContext::NodeContext(
     const bmqp_ctrlmsg::PartitionSequenceNumber seqNum,
     const bmqp_ctrlmsg::PartitionSequenceNumber
-         firstSyncPointAfterRolloverSeqNum,
+        firstSyncPointAfterRolloverSeqNum,
     const bmqp_ctrlmsg::PartitionMaxFileSizes& partitionMaxFileSizes,
-    bool isInSync)
+    bool                                       isInSync)
 : d_seqNum(seqNum)
 , d_firstSyncPointAfterRolloverSeqNum(firstSyncPointAfterRolloverSeqNum)
 , d_partitionMaxFileSizes(partitionMaxFileSizes)

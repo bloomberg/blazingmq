@@ -1753,8 +1753,9 @@ int RecoveryManager::recoverSeqNum(
     return rc_SUCCESS;
 }
 
-void
-RecoveryManager::recoverPartitionMaxFileSizes(bmqp_ctrlmsg::PartitionMaxFileSizes* maxFileSizes, int partitionId)
+void RecoveryManager::recoverPartitionMaxFileSizes(
+    bmqp_ctrlmsg::PartitionMaxFileSizes* maxFileSizes,
+    int                                  partitionId)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
@@ -1775,15 +1776,15 @@ RecoveryManager::recoverPartitionMaxFileSizes(bmqp_ctrlmsg::PartitionMaxFileSize
     // Get partition max file sizes from the file headers
     bmqp_ctrlmsg::PartitionMaxFileSizes result;
     maxFileSizes->journalFileSize() = mqbs::FileStoreProtocolUtil::bmqHeader(
-                                   recoveryCtx.d_mappedJournalFd)
-                                   .maxFileSize();
+                                          recoveryCtx.d_mappedJournalFd)
+                                          .maxFileSize();
     maxFileSizes->dataFileSize() = mqbs::FileStoreProtocolUtil::bmqHeader(
-                                recoveryCtx.d_mappedDataFd)
-                                .maxFileSize();
+                                       recoveryCtx.d_mappedDataFd)
+                                       .maxFileSize();
     if (d_qListAware) {
         maxFileSizes->qListFileSize() = mqbs::FileStoreProtocolUtil::bmqHeader(
-                                     recoveryCtx.d_mappedQlistFd)
-                                     .maxFileSize();
+                                            recoveryCtx.d_mappedQlistFd)
+                                            .maxFileSize();
     }
 }
 

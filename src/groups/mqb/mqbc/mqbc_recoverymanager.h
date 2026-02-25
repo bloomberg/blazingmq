@@ -415,14 +415,14 @@ class RecoveryManager {
                       bool firstSyncPointAfterRolllover = false);
 
     /// Recover partition max file sizes from the file headers
-    /// for the specified `partitionId` and populate the output 
+    /// for the specified `partitionId` and populate the output
     /// in the specified `maxFileSizes`.
     ///
     /// THREAD: Executed in the dispatcher thread associated with the
     /// specified `partitionId`.
-    void
-    recoverPartitionMaxFileSizes(bmqp_ctrlmsg::PartitionMaxFileSizes* maxFileSizes,
-                                 int partitionId);
+    void recoverPartitionMaxFileSizes(
+        bmqp_ctrlmsg::PartitionMaxFileSizes* maxFileSizes,
+        int                                  partitionId);
 
     /// Set the live data source of the specified 'partitionId' to the
     /// specified 'source', and clear any existing buffered storage events.

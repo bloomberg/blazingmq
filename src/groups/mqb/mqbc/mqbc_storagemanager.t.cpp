@@ -711,7 +711,7 @@ struct TestHelper {
     }
 
     NodeSeqNumPair
-    getHighestSeqNumNodeDetails(mqbnet::ClusterNode*      selfNode,
+    getHighestSeqNumNodeDetails(mqbnet::ClusterNode*    selfNode,
                                 const NodeToContextMap& nodeToContextMap)
     {
         // Return the highest sequence number (node, seqNum) pair in the
@@ -1242,8 +1242,8 @@ static void test4_primaryHealingStage1ReceivesReplicaStateRqst()
     }
     helper.clearChannels();
 
-    const NodeToContextMap& nodeToContextMap =
-        storageManager.nodeToContextMap(k_PARTITION_ID);
+    const NodeToContextMap& nodeToContextMap = storageManager.nodeToContextMap(
+        k_PARTITION_ID);
 
     BSLS_ASSERT_OPT(nodeToContextMap.size() == 1);
 
@@ -1929,8 +1929,8 @@ static void test10_replicaHealingDetectSelfPrimary()
     }
     helper.clearChannels();
 
-    const NodeToContextMap& nodeToContextMap =
-        storageManager.nodeToContextMap(k_PARTITION_ID);
+    const NodeToContextMap& nodeToContextMap = storageManager.nodeToContextMap(
+        k_PARTITION_ID);
     BSLS_ASSERT_OPT(nodeToContextMap.size() == 1);
 
     // Apply Detect Self Primary event to Self Node.
@@ -2022,8 +2022,8 @@ static void test11_replicaHealingReceivesReplicaStateRqst()
     }
     helper.clearChannels();
 
-    const NodeToContextMap& nodeToContextMap =
-        storageManager.nodeToContextMap(k_PARTITION_ID);
+    const NodeToContextMap& nodeToContextMap = storageManager.nodeToContextMap(
+        k_PARTITION_ID);
 
     BSLS_ASSERT_OPT(nodeToContextMap.size() == 1);
 
@@ -2127,8 +2127,8 @@ static void test12_replicaHealingReceivesPrimaryStateRspn()
     }
     helper.clearChannels();
 
-    const NodeToContextMap& nodeToContextMap =
-        storageManager.nodeToContextMap(k_PARTITION_ID);
+    const NodeToContextMap& nodeToContextMap = storageManager.nodeToContextMap(
+        k_PARTITION_ID);
 
     BSLS_ASSERT_OPT(nodeToContextMap.size() == 1);
 
@@ -2230,8 +2230,8 @@ static void test13_replicaHealingReceivesFailedPrimaryStateRspn()
     }
     helper.clearChannels();
 
-    const NodeToContextMap& nodeToContextMap =
-        storageManager.nodeToContextMap(k_PARTITION_ID);
+    const NodeToContextMap& nodeToContextMap = storageManager.nodeToContextMap(
+        k_PARTITION_ID);
 
     BSLS_ASSERT_OPT(nodeToContextMap.size() == 1);
 
@@ -2322,8 +2322,8 @@ static void test14_replicaHealingReceivesPrimaryStateRqst()
     }
     helper.clearChannels();
 
-    const NodeToContextMap& nodeToContextMap =
-        storageManager.nodeToContextMap(k_PARTITION_ID);
+    const NodeToContextMap& nodeToContextMap = storageManager.nodeToContextMap(
+        k_PARTITION_ID);
 
     BSLS_ASSERT_OPT(nodeToContextMap.size() == 1);
 
@@ -2444,8 +2444,8 @@ static void test15_replicaHealingReceivesReplicaDataRqstPull()
     }
     helper.clearChannels();
 
-    const NodeToContextMap& nodeToContextMap =
-        storageManager.nodeToContextMap(k_PARTITION_ID);
+    const NodeToContextMap& nodeToContextMap = storageManager.nodeToContextMap(
+        k_PARTITION_ID);
 
     BSLS_ASSERT_OPT(nodeToContextMap.size() == 1);
 
@@ -2592,8 +2592,8 @@ static void test16_primaryHealingStage1SelfHighestSendsDataChunks()
     }
     helper.clearChannels();
 
-    const NodeToContextMap& nodeToContextMap =
-        storageManager.nodeToContextMap(k_PARTITION_ID);
+    const NodeToContextMap& nodeToContextMap = storageManager.nodeToContextMap(
+        k_PARTITION_ID);
 
     BSLS_ASSERT_OPT(nodeToContextMap.size() == 1);
 
