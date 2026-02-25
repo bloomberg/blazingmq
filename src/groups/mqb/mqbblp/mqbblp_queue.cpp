@@ -128,13 +128,6 @@ Queue::Queue(const bmqt::Uri&                          uri,
     // cause an error and only give the (irrelevant) value 0.  The correct way
     // to get 'RoutingConfiguration' is through the 'routingCfg' argument.
 
-    // TBD: For now taking a blobBufferFactory because ClusterProxy doesn't
-    // have
-    //      a 'storageManager', so we can't get a blobBufferFactory out of it.
-    //      StorageManager's purpose is currently wrong: every type of cluster
-    //      should have a storage manager, even if they don't use FileBacked
-    //      storage.
-
     d_state.setStorageManager(storageManager)
         .setMiscWorkThreadPool(threadPool)
         .setRoutingConfig(routingCfg)
