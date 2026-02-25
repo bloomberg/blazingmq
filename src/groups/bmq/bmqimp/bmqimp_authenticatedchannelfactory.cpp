@@ -115,7 +115,7 @@ AuthenticatedChannelFactoryConfig::AuthenticatedChannelFactoryConfig(
 // ---------------------------------
 
 // PRIVATE ACCESSORS
-void AuthenticatedChannelFactory::sendRequest(
+bool AuthenticatedChannelFactory::sendRequest(
     const bsl::shared_ptr<bmqio::Channel>& channel,
     const ResultCallback&                  cb) const
 {
@@ -131,7 +131,7 @@ void AuthenticatedChannelFactory::sendRequest(
                              "authenticationError",
                              rc_AUTHENTICATION_FAILURE);
         cb(bmqio::ChannelFactoryEvent::e_CONNECT_FAILED, status, channel);
-        return;  // RETURN
+        return false;  // RETURN
     }
 
     bmqp_ctrlmsg::AuthenticationMessage  authenticationMessage;
@@ -155,7 +155,7 @@ void AuthenticatedChannelFactory::sendRequest(
                              "authenticationError",
                              rc_PACKET_ENCODE_FAILURE);
         cb(bmqio::ChannelFactoryEvent::e_CONNECT_FAILED, status, channel);
-        return;
+        return false;  // RETURN
     }
 
     BALL_LOG_INFO << "Sending authentication message to '"
@@ -170,8 +170,10 @@ void AuthenticatedChannelFactory::sendRequest(
             << ", status: " << status << "]";
         status.properties().set("authenticationError", rc_WRITE_FAILURE);
         cb(bmqio::ChannelFactoryEvent::e_CONNECT_FAILED, status, channel);
-        return;
+        return false;  // RETURN
     }
+
+    return true;
 }
 
 void AuthenticatedChannelFactory::readResponse(
@@ -206,8 +208,9 @@ void AuthenticatedChannelFactory::authenticate(
     const bsl::shared_ptr<bmqio::Channel>& channel,
     const ResultCallback&                  cb) const
 {
-    sendRequest(channel, cb);
-    readResponse(channel, cb);
+    if (sendRequest(channel, cb)) {
+        readResponse(channel, cb);
+    }
 }
 
 int AuthenticatedChannelFactory::timeoutInterval(int lifetimeMs) const
