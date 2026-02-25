@@ -248,7 +248,7 @@ class RawClient:
         """
         assert self._channel is not None
 
-        auth_request = broker.AUTHENTICATE_REQUEST_SCHEMA
+        auth_request = broker.AUTHENTICATION_REQUEST_SCHEMA
 
         if isinstance(auth_data, str):
             raw_bytes = auth_data.encode("utf-8")
