@@ -25,22 +25,19 @@ with a broker: sending commands, waiting until a leader is elected, etc.
 
 import itertools
 import os
-from pathlib import Path
 import re
 import signal
+from pathlib import Path
+from typing import TYPE_CHECKING, Optional, TypeVar
 
-from typing import Optional, TypeVar
-from typing import TYPE_CHECKING
+import blazingmq.dev.configurator.configurator as cfg
+import blazingmq.dev.it.process.bmqproc
+import blazingmq.dev.it.testconstants as tc
+from blazingmq.dev.it.process import proc
+from blazingmq.dev.it.util import ListContextManager, Queue, internal_use, wait_until
 
 if TYPE_CHECKING:
     from blazingmq.dev.it.cluster import Cluster
-
-from blazingmq.dev.it.process import proc
-import blazingmq.dev.it.process.bmqproc
-import blazingmq.dev.it.testconstants as tc
-import blazingmq.dev.configurator.configurator as cfg
-
-from blazingmq.dev.it.util import internal_use, ListContextManager, Queue
 
 BLOCK_TIMEOUT = 20
 START_TIMEOUT = 20
@@ -86,6 +83,17 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
             self.last_known_leader = None
             self.last_known_active = None
 
+        # The order of the "broker started successfully" and "cluster is ready"
+        # messages is not guaranteed, so we monitor the standard output
+        # asynchronously, looking for the "started successfully" message. If we
+        # used 'capture' in 'wait_until_ready', we could accidentally skip
+        # "cluster is ready".
+        self.add_async_log_hook(self.__started_successfully_hook)
+
+    def __started_successfully_hook(self, line: str) -> None:
+        if "BMQbrkr started successfully" in line:
+            self._started_successfully = True
+
     def __str__(self):
         return f"Broker({self.name})"
 
@@ -109,14 +117,25 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
         """
         return self._pid
 
+    def start(self):
+        """
+        Set '_started_successfully' to False, then start the broker using
+        'Process.start'.
+        """
+
+        self._started_successfully = False
+        super().start()
+
     def wait_until_started(self):
         """
-        Wait until the broker has started.
+        Wait until the broker has written "started successfully" in its
+        standard output.
         """
+
         with internal_use(self):
-            if not self.outputs_substr(
-                "BMQbrkr started successfully", timeout=START_TIMEOUT
-            ):
+            seen = wait_until(lambda: self._started_successfully, START_TIMEOUT)
+            self.raise_if_exited_in_error()
+            if not seen:
                 raise RuntimeError(f"Failed to start broker on {self.name}: timeout")
 
         with (self._cwd / "bmqbrkr.pid").open("r") as file:
