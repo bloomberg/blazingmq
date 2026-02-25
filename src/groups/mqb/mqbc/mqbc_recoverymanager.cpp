@@ -1147,8 +1147,8 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
     }
 
     // Get partition max file sizes from opened file set
-    bmqp_ctrlmsg::PartitionMaxFileSizes partitionMaxFileSizes =
-        recoverPartitionMaxFileSizes(partitionId);
+    bmqp_ctrlmsg::PartitionMaxFileSizes partitionMaxFileSizes;
+    recoverPartitionMaxFileSizes(&partitionMaxFileSizes, partitionId);
 
     // Close the read-only file set
     rc = closeRecoveryFileSet(partitionId);
@@ -1753,12 +1753,13 @@ int RecoveryManager::recoverSeqNum(
     return rc_SUCCESS;
 }
 
-bmqp_ctrlmsg::PartitionMaxFileSizes
-RecoveryManager::recoverPartitionMaxFileSizes(int partitionId)
+void
+RecoveryManager::recoverPartitionMaxFileSizes(bmqp_ctrlmsg::PartitionMaxFileSizes* maxFileSizes, int partitionId)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
     // PRECONDITIONS
+    BSLS_ASSERT_SAFE(maxFileSizes);
     BSLS_ASSERT_SAFE(partitionId >= 0 &&
                      partitionId <
                          d_clusterConfig.partitionConfig().numPartitions());
@@ -1773,18 +1774,17 @@ RecoveryManager::recoverPartitionMaxFileSizes(int partitionId)
 
     // Get partition max file sizes from the file headers
     bmqp_ctrlmsg::PartitionMaxFileSizes result;
-    result.journalFileSize() = mqbs::FileStoreProtocolUtil::bmqHeader(
+    maxFileSizes->journalFileSize() = mqbs::FileStoreProtocolUtil::bmqHeader(
                                    recoveryCtx.d_mappedJournalFd)
                                    .maxFileSize();
-    result.dataFileSize() = mqbs::FileStoreProtocolUtil::bmqHeader(
+    maxFileSizes->dataFileSize() = mqbs::FileStoreProtocolUtil::bmqHeader(
                                 recoveryCtx.d_mappedDataFd)
                                 .maxFileSize();
     if (d_qListAware) {
-        result.qListFileSize() = mqbs::FileStoreProtocolUtil::bmqHeader(
+        maxFileSizes->qListFileSize() = mqbs::FileStoreProtocolUtil::bmqHeader(
                                      recoveryCtx.d_mappedQlistFd)
                                      .maxFileSize();
     }
-    return result;
 }
 
 void RecoveryManager::setLiveDataSource(mqbnet::ClusterNode* source,

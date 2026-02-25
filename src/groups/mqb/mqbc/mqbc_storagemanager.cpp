@@ -1355,8 +1355,7 @@ void StorageManager::do_storeSelfSeq(const EventWithData& event)
     BSLS_ASSERT_SAFE(dataRange.first <= dataRange.second);
 
     mqbnet::ClusterNode* selfNode = d_clusterData_p->membership().selfNode();
-    NodeContext&   nodeContext =
-        d_nodeToContextMapVec[partitionId][selfNode];
+    NodeContext& nodeContext = d_nodeToContextMapVec[partitionId][selfNode];
     if (dataRange.second > bmqp_ctrlmsg::PartitionSequenceNumber()) {
         nodeContext.d_seqNum = dataRange.second;
     }
@@ -1374,16 +1373,15 @@ void StorageManager::do_storeSelfSeq(const EventWithData& event)
     }
     nodeContext.d_firstSyncPointAfterRolloverSeqNum =
         getSelfFirstSyncPointAfterRolloverSequenceNumber(partitionId);
-    
-    nodeContext.d_partitionMaxFileSizes =
-        getSelfPartitionMaxFileSizes(partitionId);
-    
+
+    nodeContext.d_partitionMaxFileSizes = getSelfPartitionMaxFileSizes(
+        partitionId);
+
     nodeContext.d_isRecoveryDataSent = false;
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << ": In Partition [" << partitionId << "]'s FSM, "
-                  << "storing self sequence number as "
-                  << nodeContext.d_seqNum
+                  << "storing self sequence number as " << nodeContext.d_seqNum
                   << ", first sync point after rollover as "
                   << nodeContext.d_firstSyncPointAfterRolloverSeqNum
                   << ", partition max file sizes as "
@@ -1413,7 +1411,7 @@ void StorageManager::do_storePrimarySeq(const EventWithData& event)
 
     // Information from 'ReplicaStateRequest' or 'PrimaryStateResponse' could
     // be stale; ignore if so.
-    bool                   hasNew = false;
+    bool                 hasNew = false;
     NodeToContextMapIter it     = d_nodeToContextMapVec[partitionId].find(
         eventData.source());
     if (it == d_nodeToContextMapVec[partitionId].end()) {
@@ -1431,8 +1429,8 @@ void StorageManager::do_storePrimarySeq(const EventWithData& event)
         it->second.d_firstSyncPointAfterRolloverSeqNum =
             eventData.firstSyncPointAfterRolloverSequenceNumber();
         it->second.d_partitionMaxFileSizes = eventData.partitionMaxFileSizes();
-        it->second.d_isRecoveryDataSent = false;
-        hasNew                          = true;
+        it->second.d_isRecoveryDataSent    = false;
+        hasNew                             = true;
     }
 
     if (hasNew) {
@@ -1471,8 +1469,8 @@ void StorageManager::do_storeReplicaSeq(const EventWithData& event)
 
         // Information from 'PrimaryStateRequest' or 'ReplicaStateResponse'
         // could be stale; ignore if so.
-        bool                   hasNew = false;
-        NodeToContextMapIter it = d_nodeToContextMapVec[partitionId].find(
+        bool                 hasNew = false;
+        NodeToContextMapIter it     = d_nodeToContextMapVec[partitionId].find(
             cit->source());
         if (it == d_nodeToContextMapVec[partitionId].end()) {
             NodeContext nodeContext(
@@ -1490,8 +1488,8 @@ void StorageManager::do_storeReplicaSeq(const EventWithData& event)
             it->second.d_firstSyncPointAfterRolloverSeqNum =
                 cit->firstSyncPointAfterRolloverSequenceNumber();
             it->second.d_partitionMaxFileSizes = cit->partitionMaxFileSizes();
-            it->second.d_isRecoveryDataSent = false;
-            hasNew                          = true;
+            it->second.d_isRecoveryDataSent    = false;
+            hasNew                             = true;
         }
 
         if (hasNew) {
@@ -1502,7 +1500,8 @@ void StorageManager::do_storeReplicaSeq(const EventWithData& event)
                 << cit->source()->nodeDescription() << " as " << seqNum
                 << ", first sync point after rollover sequence number: "
                 << cit->firstSyncPointAfterRolloverSequenceNumber()
-                << ", partition max file sizes: " << cit->partitionMaxFileSizes();
+                << ", partition max file sizes: "
+                << cit->partitionMaxFileSizes();
         }
     }
 }
@@ -1590,8 +1589,8 @@ void StorageManager::do_replicaStateResponse(const EventWithData& event)
     response.partitionId() = partitionId;
     response.latestSequenceNumber() =
         d_nodeToContextMapVec[partitionId]
-                               [d_clusterData_p->membership().selfNode()]
-                                   .d_seqNum;
+                             [d_clusterData_p->membership().selfNode()]
+                                 .d_seqNum;
 
     // Get own first sync point after rollover sequence number
     response.firstSyncPointAfterRolloverSequenceNumber() =
@@ -1736,8 +1735,8 @@ void StorageManager::do_primaryStateRequest(const EventWithData& event)
     primaryStateRequest.partitionId() = partitionId;
     primaryStateRequest.latestSequenceNumber() =
         d_nodeToContextMapVec[partitionId]
-                               [d_clusterData_p->membership().selfNode()]
-                                   .d_seqNum;
+                             [d_clusterData_p->membership().selfNode()]
+                                 .d_seqNum;
 
     // Get own first sync point after rollover sequence number
     primaryStateRequest.firstSyncPointAfterRolloverSequenceNumber() =
@@ -1802,8 +1801,8 @@ void StorageManager::do_primaryStateResponse(const EventWithData& event)
     response.partitionId() = partitionId;
     response.latestSequenceNumber() =
         d_nodeToContextMapVec[partitionId]
-                               [d_clusterData_p->membership().selfNode()]
-                                   .d_seqNum;
+                             [d_clusterData_p->membership().selfNode()]
+                                 .d_seqNum;
 
     // Get own first sync point after rollover sequence number
     response.firstSyncPointAfterRolloverSequenceNumber() =
@@ -1894,16 +1893,14 @@ void StorageManager::do_replicaDataRequestPush(const EventWithData& event)
 
     mqbnet::ClusterNode* selfNode = d_clusterData_p->membership().selfNode();
 
-    NodeToContextMap& nodeToContextMap =
-        d_nodeToContextMapVec[partitionId];
+    NodeToContextMap& nodeToContextMap = d_nodeToContextMapVec[partitionId];
     BSLS_ASSERT_SAFE(nodeToContextMap.find(selfNode) !=
                      nodeToContextMap.end());
     const bmqp_ctrlmsg::PartitionSequenceNumber& selfSeqNum =
         nodeToContextMap.at(selfNode).d_seqNum;
     const bmqp_ctrlmsg::PartitionSequenceNumber&
         selfFirstSyncAfterRolloverSeqNum =
-            nodeToContextMap.at(selfNode)
-                .d_firstSyncPointAfterRolloverSeqNum;
+            nodeToContextMap.at(selfNode).d_firstSyncPointAfterRolloverSeqNum;
 
     // Determine the outdated and up-to-date replicas
     ClusterNodeVec outdatedReplicas;
@@ -2076,16 +2073,14 @@ void StorageManager::do_replicaDataRequestDrop(const EventWithData& event)
     mqbnet::ClusterNode* const selfNode =
         d_clusterData_p->membership().selfNode();
 
-    NodeToContextMap& nodeToContextMap =
-        d_nodeToContextMapVec[partitionId];
+    NodeToContextMap& nodeToContextMap = d_nodeToContextMapVec[partitionId];
     BSLS_ASSERT_SAFE(nodeToContextMap.find(selfNode) !=
                      nodeToContextMap.end());
     const bmqp_ctrlmsg::PartitionSequenceNumber& selfSeqNum =
         nodeToContextMap.at(selfNode).d_seqNum;
     const bmqp_ctrlmsg::PartitionSequenceNumber&
         selfFirstSyncAfterRolloverSeqNum =
-            nodeToContextMap.at(selfNode)
-                .d_firstSyncPointAfterRolloverSeqNum;
+            nodeToContextMap.at(selfNode).d_firstSyncPointAfterRolloverSeqNum;
 
     // Determine the replicas with obsolete data to be dropped
     ClusterNodeVec obsoleteDataReplicas;
@@ -2255,8 +2250,8 @@ void StorageManager::do_replicaDataRequestPull(const EventWithData& event)
     replicaDataRequest.partitionId() = partitionId;
     replicaDataRequest.beginSequenceNumber() =
         d_nodeToContextMapVec[partitionId]
-                               [d_clusterData_p->membership().selfNode()]
-                                   .d_seqNum;
+                             [d_clusterData_p->membership().selfNode()]
+                                 .d_seqNum;
     replicaDataRequest.endSequenceNumber() =
         d_nodeToContextMapVec[partitionId][destNode].d_seqNum;
 
@@ -2735,8 +2730,7 @@ void StorageManager::do_startSendDataChunks(const EventWithData& event)
 
         const bmqp_ctrlmsg::PartitionSequenceNumber&
             selfFirstSyncAfterRolloverSeqNum =
-                nodeToContextMap[selfNode]
-                    .d_firstSyncPointAfterRolloverSeqNum;
+                nodeToContextMap[selfNode].d_firstSyncPointAfterRolloverSeqNum;
 
         for (NodeToContextMapCIter cit = nodeToContextMap.cbegin();
              cit != nodeToContextMap.cend();
@@ -2972,8 +2966,7 @@ void StorageManager::do_updateStorage(const EventWithData& event)
                      static_cast<unsigned int>(partitionId));
 
     // Get first sync point after rollover sequence number from source node.
-    NodeToContextMapIter it = d_nodeToContextMapVec[partitionId].find(
-        source);
+    NodeToContextMapIter it = d_nodeToContextMapVec[partitionId].find(source);
     BSLS_ASSERT_SAFE(it != d_nodeToContextMapVec[partitionId].end());
     bmqp_ctrlmsg::PartitionSequenceNumber firstSyncPointAfterRolloverSeqNum =
         it->second.d_firstSyncPointAfterRolloverSeqNum;
@@ -3272,7 +3265,8 @@ void StorageManager::do_findHighestFileSizes(const EventWithData& event)
     }
 
     // Limit highest partition max file sizes to configured grow limits.
-    bmqp_ctrlmsg::PartitionMaxFileSizes limitedHighestPartitionMaxFileSizes = highestPartitionMaxFileSizes;
+    bmqp_ctrlmsg::PartitionMaxFileSizes limitedHighestPartitionMaxFileSizes =
+        highestPartitionMaxFileSizes;
     if (limitPartitionMaxFileSizes(&limitedHighestPartitionMaxFileSizes,
                                    d_clusterConfig.partitionConfig())) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
@@ -3292,7 +3286,8 @@ void StorageManager::do_findHighestFileSizes(const EventWithData& event)
     for (NodeToContextMapCIter cit = nodeToContextMap.cbegin();
          cit != nodeToContextMap.cend();
          cit++) {
-        if (cit->second.d_partitionMaxFileSizes == highestPartitionMaxFileSizes) {
+        if (cit->second.d_partitionMaxFileSizes ==
+            highestPartitionMaxFileSizes) {
             // Node already has the highest partition max file sizes.
             continue;  // CONTINUE
         }
@@ -3345,7 +3340,8 @@ void StorageManager::do_overrideMaxFileSizes(const EventWithData& event)
     bmqp_ctrlmsg::PartitionMaxFileSizes highestPartitionMaxFileSizes =
         eventData.partitionMaxFileSizes();
 
-    bmqp_ctrlmsg::PartitionMaxFileSizes limitedHighestPartitionMaxFileSizes = highestPartitionMaxFileSizes;
+    bmqp_ctrlmsg::PartitionMaxFileSizes limitedHighestPartitionMaxFileSizes =
+        highestPartitionMaxFileSizes;
     if (limitPartitionMaxFileSizes(&limitedHighestPartitionMaxFileSizes,
                                    d_clusterConfig.partitionConfig())) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
@@ -3373,8 +3369,7 @@ void StorageManager::do_overrideMaxFileSizes(const EventWithData& event)
                   << highestPartitionMaxFileSizes;
 }
 
-void StorageManager::do_replicaDataRequestResize(
-    const EventWithData& event)
+void StorageManager::do_replicaDataRequestResize(const EventWithData& event)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
@@ -3440,8 +3435,7 @@ void StorageManager::do_replicaDataRequestResize(
     }
 }
 
-void StorageManager::do_replicaDataResponseResize(
-    const EventWithData& event)
+void StorageManager::do_replicaDataResponseResize(const EventWithData& event)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
@@ -4957,10 +4951,15 @@ StorageManager::getSelfPartitionMaxFileSizes(int partitionId) const
     BSLS_ASSERT_SAFE(fs);
 
     // Get own partition max file sizes from file headers.
-    bmqp_ctrlmsg::PartitionMaxFileSizes selfPartitionMaxFileSizes =
-        fs->isOpen()
-            ? fs->partitionMaxFileSizes()
-            : d_recoveryManager_mp->recoverPartitionMaxFileSizes(partitionId);
+    bmqp_ctrlmsg::PartitionMaxFileSizes selfPartitionMaxFileSizes;
+    if (fs->isOpen()) {
+        selfPartitionMaxFileSizes = fs->partitionMaxFileSizes();
+    }
+    else {
+        d_recoveryManager_mp->recoverPartitionMaxFileSizes(
+            &selfPartitionMaxFileSizes,
+            partitionId);
+    }
 
     BSLS_ASSERT_SAFE(selfPartitionMaxFileSizes !=
                      bmqp_ctrlmsg::PartitionMaxFileSizes());

@@ -14,7 +14,6 @@
 // limitations under the License.
 
 // mqbs_filestore.cpp                                                 -*-C++-*-
-#include "mqbs_filestoreprotocol.h"
 #include <ball_log.h>
 #include <mqbs_filestore.h>
 
