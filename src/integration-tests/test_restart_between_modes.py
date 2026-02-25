@@ -96,6 +96,7 @@ def confirm_one_message(consumer: Client, queue: str, app_id: Optional[str] = No
         flags=["read"],
         succeed=True,
     )
+    consumer.wait_push_event()
     consumer.confirm(queue_with_appid, "+1", succeed=True)
     consumer.close(queue_with_appid, succeed=True)
 
