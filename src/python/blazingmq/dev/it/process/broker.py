@@ -92,17 +92,6 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
     def __repr__(self):
         return f"Broker({self.name})"
 
-    def start(self):
-        """
-        Start the broker process after cleaning up the named pipe.
-        """
-        # Clean up the named pipe before starting to avoid conflicts from
-        # previous runs. This is necessary when restarting a broker without
-        # creating a new Broker object.
-        ctl_path = self._cwd / "bmqbrkr.ctl"
-        ctl_path.unlink(missing_ok=True)
-        super().start()
-
     @property
     def datacenter(self) -> str:
         return self.config.config.app_config.host_data_center
