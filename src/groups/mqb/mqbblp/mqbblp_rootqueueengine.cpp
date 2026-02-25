@@ -1441,7 +1441,7 @@ void RootQueueEngine::afterNewMessage()
 
     bsls::Types::Int64 numMessages = queue->storage()->numMessages(
         mqbu::StorageKey::k_NULL_KEY);
-    unsigned int batch = k_FLOW_CONTROL_BATCH;
+    unsigned int batch = 0;
 
     while (d_appsDeliveryContext.reset(storageIt)) {
         // Assume, all Apps need to deliver (some may be at capacity)
@@ -1490,10 +1490,8 @@ void RootQueueEngine::afterNewMessage()
             storageIt = 0;
         }
         else if (result > mqbu::FlowController::Watermark::e_ZERO) {
-            BSLS_ASSERT_SAFE(batch > 0);
-
-            if (--batch == 0) {
-                batch = k_FLOW_CONTROL_BATCH;
+            if (++batch >= k_FLOW_CONTROL_BATCH) {
+                batch = 0;
 
                 now = bsls::SystemTime::now(
                     bsls::SystemClockType::e_MONOTONIC);
@@ -2076,7 +2074,6 @@ void RootQueueEngine::updateFlowControl(bsls::Types::Int64 nowMs)
 
     // Provide time to the bucket algorithm.
     mqbi::Dispatcher* dispatcher = queue->dispatcher();
-    BSLS_ASSERT_SAFE(dispatcher);
 
     bsls::Types::Int64 numEvents = dispatcher->numProcessorEvents(queue);
 

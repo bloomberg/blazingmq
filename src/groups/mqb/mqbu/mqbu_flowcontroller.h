@@ -28,9 +28,6 @@
 ///-------------
 // This object is *not* thread safe.
 //
-/// Usage
-///-----
-//
 
 // MQB
 #include <mqbscm_version.h>
@@ -53,9 +50,10 @@ class FlowController {
 
     struct Policy {
         enum Enum {
-            e_NONE = 0  // Just calculate the moving (5 min) average
-            ,
-            e_LIMIT = 1  // Enforce rate limit
+            /// Just calculate the moving (5 min) average
+            e_NONE = 0,
+            /// Enforce rate limit
+            e_LIMIT = 1
         };
     };
 
@@ -93,13 +91,14 @@ class FlowController {
 
     struct Watermark {
         enum Enum {
-            e_ZERO = 0  // No data
-            ,
-            e_LOW = 1  // No overload
-            ,
-            e_HIGH = 2  // Resource(s) is(are) at the first high wm
-            ,
-            e_STRICT = 3  // Drop the data
+            /// No data
+            e_ZERO = 0,
+            /// No overload
+            e_LOW = 1,
+            /// Resource(s) is(are) at the first high wm
+            e_HIGH = 2,
+            /// Drop the data
+            e_STRICT = 3
         };
     };
 
