@@ -627,4 +627,3 @@ def test_sync_after_replicas_missed_or_extra_records(
     # Check that new primary and replicas' journal files are equal
     for replica in (replica1, replica2, leader):
         _stop_cluster_and_compare_journal_files(replica3.name, replica.name, cluster)
-
