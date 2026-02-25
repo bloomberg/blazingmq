@@ -27,6 +27,7 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     tweak,
     start_cluster,
+    test_logger,
     fsm_multi_cluster,
 )
 
@@ -399,6 +400,7 @@ def test_sync_if_leader_missed_records(
     next_leader.check_exit_code = False
     next_leader.kill()
     next_leader.wait()
+    test_logger.info(f"Killed node {next_leader} who will be the next leader")
 
     # Put 2 more messages
     for i in range(3, 5):
@@ -427,6 +429,7 @@ def test_sync_if_leader_missed_records(
     assert next_leader.last_known_leader == next_leader, (
         f"next_leader {next_leader} is not last_known_leader {next_leader.last_known_leader}"
     )
+    cluster.last_known_leader = next_leader
 
     # Select replica
     replica = cluster.nodes(exclude=next_leader)[0]
