@@ -129,3 +129,43 @@ def reserve_port() -> typing.Iterator[TcpAddress]:
         address = tcp_address(sockname[0], sockname[1])
 
         yield address
+
+
+def reserve_port_pool(pool_size: int = 32) -> typing.Generator[int, None, None]:
+    """Return a generator of reserved TCP ports.
+
+    This function allocates the specified 'pool_size' sockets (default 32),
+    extracts their port numbers, frees all the sockets, and then yields the
+    ports as integers. This creates a pool of available ports that can be
+    used to prevent port allocation races.
+
+    Note that this function exists mostly for macOS runs.
+    On macOS, SO_REUSEADDR behaves differently than on Linux. Unlike Linux,
+    macOS does not allow binding to a port that is still open/bound by another
+    socket, even with SO_REUSEADDR set.
+    Therefore, we must close all sockets before the ports can be reused.
+    This solution is a bit flaky, however:
+    1. We only have a minimal support of macOS for development
+    2. Don't have a better option
+    """
+    ports = []
+
+    with contextlib.ExitStack() as stack:
+        for _ in range(pool_size):
+            sock = socket.socket()
+            stack.enter_context(sock)
+            # On macOS, SO_REUSEADDR behaves differently than on Linux.
+            # Unlike Linux, macOS does not allow binding to a port that is
+            # still open/bound by another socket, even with SO_REUSEADDR set.
+            # Therefore, we must close all sockets before the ports can be reused.
+            # This solution is a bit flaky, however:
+            # 1. We only have a minimal support of macOS for development
+            # 2. Don't have a better option
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.bind(("0.0.0.0", 0))
+            sockname = sock.getsockname()
+            ports.append(sockname[1])
+
+    yield from ports
+
+    raise RuntimeError(f"Ran out of ports (used {pool_size})")
