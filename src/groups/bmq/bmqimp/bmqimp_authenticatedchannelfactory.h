@@ -138,7 +138,11 @@ class AuthenticatedChannelFactory : public bmqio::ChannelFactory {
 
   private:
     // PRIVATE ACCESSORS
-    void sendRequest(const bsl::shared_ptr<bmqio::Channel>& channel,
+    /// Send an authentication request on the specified `channel`, invoking
+    /// the specified `cb` on failure.  Return `true` if the request was
+    /// sent successfully, or `false` if it failed (in which case `cb` has
+    /// already been invoked with `e_CONNECT_FAILED`).
+    bool sendRequest(const bsl::shared_ptr<bmqio::Channel>& channel,
                      const ResultCallback&                  cb) const;
 
     void readResponse(const bsl::shared_ptr<bmqio::Channel>& channel,
