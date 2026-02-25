@@ -47,7 +47,7 @@ def test_adminsession_res_log_stat(
 
     # connect and send request to primary
     admin.connect(leader.config.host, int(leader.config.port))
-    res = admin.send_admin(f"STAT SHOW")
+    res = admin.send_admin("STAT SHOW")
 
     assert ":::::::::: :::::::::: DOMAINQUEUES >>" in res
 
@@ -59,7 +59,7 @@ def test_adminsession_res_log_stat(
 
     # connect and send request to member1
     admin.connect(member1.config.host, int(member1.config.port))
-    res = admin.send_admin(f"STAT SHOW")
+    res = admin.send_admin("STAT SHOW")
 
     assert ":::::::::: :::::::::: DOMAINQUEUES >>" in res
 

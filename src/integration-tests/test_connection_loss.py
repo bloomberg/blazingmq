@@ -33,7 +33,6 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     start_cluster,
 )
 from blazingmq.dev.it.process.admin import AdminClient
-from blazingmq.dev.it.process.broker import Broker
 from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.process.proc import Process
 

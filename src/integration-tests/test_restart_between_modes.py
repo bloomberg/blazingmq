@@ -19,7 +19,6 @@ in the middle of things.  Note that this test does not test the HA
 functionality (i.e., no PUTs/CONFIRMs etc are retransmitted).
 """
 
-import functools
 import re
 import time
 from typing import List, Dict, Optional
