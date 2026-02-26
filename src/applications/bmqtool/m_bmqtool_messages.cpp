@@ -1,4 +1,4 @@
-// Copyright 2014-2025 Bloomberg Finance L.P.
+// Copyright 2014-2026 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -1289,11 +1289,17 @@ bsl::ostream& DumpQueueCommand::print(bsl::ostream& stream,
 const char JournalCommandChoiceType::CLASS_NAME[] = "JournalCommandChoiceType";
 
 const bdlat_EnumeratorInfo JournalCommandChoiceType::ENUMERATOR_INFO_ARRAY[] =
-    {{JournalCommandChoiceType::CONFIRM, "confirm", sizeof("confirm") - 1, ""},
-     {JournalCommandChoiceType::DELETE, "delete", sizeof("delete") - 1, ""},
-     {JournalCommandChoiceType::JOP, "jop", sizeof("jop") - 1, ""},
-     {JournalCommandChoiceType::MESSAGE, "message", sizeof("message") - 1, ""},
-     {JournalCommandChoiceType::QOP, "qop", sizeof("qop") - 1, ""}};
+    {{JournalCommandChoiceType::e_CONFIRM,
+      "confirm",
+      sizeof("confirm") - 1,
+      ""},
+     {JournalCommandChoiceType::e_DELETE, "delete", sizeof("delete") - 1, ""},
+     {JournalCommandChoiceType::e_JOP, "jop", sizeof("jop") - 1, ""},
+     {JournalCommandChoiceType::e_MESSAGE,
+      "message",
+      sizeof("message") - 1,
+      ""},
+     {JournalCommandChoiceType::e_QOP, "qop", sizeof("qop") - 1, ""}};
 
 // CLASS METHODS
 
@@ -1301,11 +1307,11 @@ int JournalCommandChoiceType::fromInt(JournalCommandChoiceType::Value* result,
                                       int                              number)
 {
     switch (number) {
-    case JournalCommandChoiceType::CONFIRM:
-    case JournalCommandChoiceType::DELETE:
-    case JournalCommandChoiceType::JOP:
-    case JournalCommandChoiceType::MESSAGE:
-    case JournalCommandChoiceType::QOP:
+    case JournalCommandChoiceType::e_CONFIRM:
+    case JournalCommandChoiceType::e_DELETE:
+    case JournalCommandChoiceType::e_JOP:
+    case JournalCommandChoiceType::e_MESSAGE:
+    case JournalCommandChoiceType::e_QOP:
         *result = static_cast<JournalCommandChoiceType::Value>(number);
         return 0;
     default: return -1;
@@ -1336,19 +1342,19 @@ const char*
 JournalCommandChoiceType::toString(JournalCommandChoiceType::Value value)
 {
     switch (value) {
-    case CONFIRM: {
+    case e_CONFIRM: {
         return "confirm";
     }
-    case DELETE: {
+    case e_DELETE: {
         return "delete";
     }
-    case JOP: {
+    case e_JOP: {
         return "jop";
     }
-    case MESSAGE: {
+    case e_MESSAGE: {
         return "message";
     }
-    case QOP: {
+    case e_QOP: {
         return "qop";
     }
     }
@@ -1645,8 +1651,8 @@ bsl::ostream& LoadPostCommand::print(bsl::ostream& stream,
 const char MessagePropertyType::CLASS_NAME[] = "MessagePropertyType";
 
 const bdlat_EnumeratorInfo MessagePropertyType::ENUMERATOR_INFO_ARRAY[] = {
-    {MessagePropertyType::E_STRING, "E_STRING", sizeof("E_STRING") - 1, ""},
-    {MessagePropertyType::E_INT, "E_INT", sizeof("E_INT") - 1, ""}};
+    {MessagePropertyType::e_E_STRING, "E_STRING", sizeof("E_STRING") - 1, ""},
+    {MessagePropertyType::e_E_INT, "E_INT", sizeof("E_INT") - 1, ""}};
 
 // CLASS METHODS
 
@@ -1654,8 +1660,8 @@ int MessagePropertyType::fromInt(MessagePropertyType::Value* result,
                                  int                         number)
 {
     switch (number) {
-    case MessagePropertyType::E_STRING:
-    case MessagePropertyType::E_INT:
+    case MessagePropertyType::e_E_STRING:
+    case MessagePropertyType::e_E_INT:
         *result = static_cast<MessagePropertyType::Value>(number);
         return 0;
     default: return -1;
@@ -1684,10 +1690,10 @@ int MessagePropertyType::fromString(MessagePropertyType::Value* result,
 const char* MessagePropertyType::toString(MessagePropertyType::Value value)
 {
     switch (value) {
-    case E_STRING: {
+    case e_E_STRING: {
         return "E_STRING";
     }
-    case E_INT: {
+    case e_E_INT: {
         return "E_INT";
     }
     }
@@ -4359,6 +4365,10 @@ const int CommandLineParameters::DEFAULT_INITIALIZER_AUTO_PUB_SUB_MODULO = 0;
 
 const int CommandLineParameters::DEFAULT_INITIALIZER_TIMEOUT_SEC = 300;
 
+const char CommandLineParameters::DEFAULT_INITIALIZER_AUTHN_MECHANISM[] = "";
+
+const char CommandLineParameters::DEFAULT_INITIALIZER_AUTHN_DATA[] = "";
+
 const bdlat_AttributeInfo CommandLineParameters::ATTRIBUTE_INFO_ARRAY[] = {
     {ATTRIBUTE_ID_MODE,
      "mode",
@@ -4494,14 +4504,24 @@ const bdlat_AttributeInfo CommandLineParameters::ATTRIBUTE_INFO_ARRAY[] = {
      "timeoutSec",
      sizeof("timeoutSec") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+    {ATTRIBUTE_ID_AUTHN_MECHANISM,
+     "authnMechanism",
+     sizeof("authnMechanism") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
+    {ATTRIBUTE_ID_AUTHN_DATA,
+     "authnData",
+     sizeof("authnData") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
 const bdlat_AttributeInfo*
 CommandLineParameters::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 27; ++i) {
+    for (int i = 0; i < 29; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             CommandLineParameters::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -4570,6 +4590,10 @@ const bdlat_AttributeInfo* CommandLineParameters::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTO_PUB_SUB_MODULO];
     case ATTRIBUTE_ID_TIMEOUT_SEC:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TIMEOUT_SEC];
+    case ATTRIBUTE_ID_AUTHN_MECHANISM:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTHN_MECHANISM];
+    case ATTRIBUTE_ID_AUTHN_DATA:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTHN_DATA];
     default: return 0;
     }
 }
@@ -4594,6 +4618,8 @@ CommandLineParameters::CommandLineParameters(bslma::Allocator* basicAllocator)
 , d_log(DEFAULT_INITIALIZER_LOG, basicAllocator)
 , d_sequentialMessagePattern(DEFAULT_INITIALIZER_SEQUENTIAL_MESSAGE_PATTERN,
                              basicAllocator)
+, d_authnMechanism(DEFAULT_INITIALIZER_AUTHN_MECHANISM, basicAllocator)
+, d_authnData(DEFAULT_INITIALIZER_AUTHN_DATA, basicAllocator)
 , d_msgSize(DEFAULT_INITIALIZER_MSG_SIZE)
 , d_postRate(DEFAULT_INITIALIZER_POST_RATE)
 , d_postInterval(DEFAULT_INITIALIZER_POST_INTERVAL)
@@ -4628,6 +4654,8 @@ CommandLineParameters::CommandLineParameters(
 , d_log(original.d_log, basicAllocator)
 , d_sequentialMessagePattern(original.d_sequentialMessagePattern,
                              basicAllocator)
+, d_authnMechanism(original.d_authnMechanism, basicAllocator)
+, d_authnData(original.d_authnData, basicAllocator)
 , d_msgSize(original.d_msgSize)
 , d_postRate(original.d_postRate)
 , d_postInterval(original.d_postInterval)
@@ -4662,6 +4690,8 @@ CommandLineParameters::CommandLineParameters(
   d_storage(bsl::move(original.d_storage)),
   d_log(bsl::move(original.d_log)),
   d_sequentialMessagePattern(bsl::move(original.d_sequentialMessagePattern)),
+  d_authnMechanism(bsl::move(original.d_authnMechanism)),
+  d_authnData(bsl::move(original.d_authnData)),
   d_msgSize(bsl::move(original.d_msgSize)),
   d_postRate(bsl::move(original.d_postRate)),
   d_postInterval(bsl::move(original.d_postInterval)),
@@ -4695,6 +4725,8 @@ CommandLineParameters::CommandLineParameters(CommandLineParameters&& original,
 , d_log(bsl::move(original.d_log), basicAllocator)
 , d_sequentialMessagePattern(bsl::move(original.d_sequentialMessagePattern),
                              basicAllocator)
+, d_authnMechanism(bsl::move(original.d_authnMechanism), basicAllocator)
+, d_authnData(bsl::move(original.d_authnData), basicAllocator)
 , d_msgSize(bsl::move(original.d_msgSize))
 , d_postRate(bsl::move(original.d_postRate))
 , d_postInterval(bsl::move(original.d_postInterval))
@@ -4747,6 +4779,8 @@ CommandLineParameters::operator=(const CommandLineParameters& rhs)
         d_subscriptions            = rhs.d_subscriptions;
         d_autoPubSubModulo         = rhs.d_autoPubSubModulo;
         d_timeoutSec               = rhs.d_timeoutSec;
+        d_authnMechanism           = rhs.d_authnMechanism;
+        d_authnData                = rhs.d_authnData;
     }
 
     return *this;
@@ -4785,6 +4819,8 @@ CommandLineParameters::operator=(CommandLineParameters&& rhs)
         d_subscriptions            = bsl::move(rhs.d_subscriptions);
         d_autoPubSubModulo         = bsl::move(rhs.d_autoPubSubModulo);
         d_timeoutSec               = bsl::move(rhs.d_timeoutSec);
+        d_authnMechanism           = bsl::move(rhs.d_authnMechanism);
+        d_authnData                = bsl::move(rhs.d_authnData);
     }
 
     return *this;
@@ -4821,6 +4857,8 @@ void CommandLineParameters::reset()
     bdlat_ValueTypeFunctions::reset(&d_subscriptions);
     d_autoPubSubModulo = DEFAULT_INITIALIZER_AUTO_PUB_SUB_MODULO;
     d_timeoutSec       = DEFAULT_INITIALIZER_TIMEOUT_SEC;
+    d_authnMechanism   = DEFAULT_INITIALIZER_AUTHN_MECHANISM;
+    d_authnData        = DEFAULT_INITIALIZER_AUTHN_DATA;
 }
 
 // ACCESSORS
@@ -4860,6 +4898,8 @@ bsl::ostream& CommandLineParameters::print(bsl::ostream& stream,
     printer.printAttribute("subscriptions", this->subscriptions());
     printer.printAttribute("autoPubSubModulo", this->autoPubSubModulo());
     printer.printAttribute("timeoutSec", this->timeoutSec());
+    printer.printAttribute("authnMechanism", this->authnMechanism());
+    printer.printAttribute("authnData", this->authnData());
     printer.end();
     return stream;
 }
@@ -6850,6 +6890,13 @@ const char* Command::selectionName() const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY BLP_BAS_CODEGEN_2025.10.09.2
+// GENERATED BY BLP_BAS_CODEGEN_2026.02.05
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package m_bmqtool --msgComponent messages bmqtoolcmd.xsd
+// ----------------------------------------------------------------------------
+// NOTICE:
+//      Copyright 2026 Bloomberg Finance L.P. All rights reserved.
+//      Property of Bloomberg Finance L.P. (BFLP)
+//      This software is made available solely pursuant to the
+//      terms of a BFLP license agreement which governs its use.
+// ------------------------------- END-OF-FILE --------------------------------
