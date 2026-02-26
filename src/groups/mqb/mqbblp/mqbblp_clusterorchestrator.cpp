@@ -864,11 +864,11 @@ void ClusterOrchestrator::processStopRequest(
                   << ", current status: " << ns->nodeStatus()
                   << ", new status: " << bmqp_ctrlmsg::NodeStatus::E_STOPPING;
 
+    processNodeStoppingNotification(ns, &request);
+
     bmqp_ctrlmsg::NodeStatus::Value selfStatus =
         d_clusterData_p->membership().selfNodeStatus();
     ns->setNodeStatus(bmqp_ctrlmsg::NodeStatus::E_STOPPING, selfStatus);
-
-    processNodeStoppingNotification(ns, &request);
 }
 
 void ClusterOrchestrator::processClusterStateFSMMessage(

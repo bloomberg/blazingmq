@@ -1185,10 +1185,10 @@ QueueEngineUtil_AppState::processDeliveryList(bsls::TimeInterval*    delay,
     };
 
     if (numMessages) {
-        BALL_LOG_INFO << "Queue '" << d_queue_p->description()
-                      << "', appId = '" << appId() << "' (re)delivered "
-                      << numMessages << " messages starting from " << firstGuid
-                      << ".";
+        BMQ_LOGTHROTTLE_INFO << "Queue '" << d_queue_p->description()
+                             << "', appId = '" << appId() << "' (re)delivered "
+                             << numMessages << " messages starting from "
+                             << firstGuid << ".";
     }
     return numMessages;
 }
