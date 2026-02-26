@@ -79,6 +79,8 @@ namespace {
 static const bsls::Types::Int64 k_WATCHDOG_TIMEOUT_DURATION = 5 * 60;
 // 5 minutes
 
+static const int k_WATCHDOG_NUM_RETRIES = 1;
+
 // TYPES
 typedef mqbmock::Cluster::TestChannelMapCIter TestChannelMapCIter;
 
@@ -1009,6 +1011,7 @@ static void test1_breathingTest()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -1059,6 +1062,7 @@ static void test2_unknownDetectSelfPrimary()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -1126,6 +1130,7 @@ static void test3_unknownDetectSelfReplica()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -1201,6 +1206,7 @@ static void test4_primaryHealingStage1ReceivesReplicaStateRqst()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -1312,6 +1318,7 @@ static void test5_primaryHealingStage1ReceivesReplicaStateRspnQuorum()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -1419,6 +1426,7 @@ static void test6_primaryHealingStage1ReceivesPrimaryStateRequestQuorum()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -1531,6 +1539,7 @@ static void test7_primaryHealingStage1ReceivesPrimaryStateRqst()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -1640,6 +1649,7 @@ static void test8_primaryHealingStage1ReceivesReplicaStateRspnNoQuorum()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -1754,6 +1764,7 @@ static void test9_primaryHealingStage1QuorumSendsReplicaDataRequestPull()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -1876,6 +1887,7 @@ static void test10_replicaWaitingDetectSelfPrimary()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -1976,6 +1988,7 @@ static void test11_replicaWaitingReceivesReplicaStateRqst()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -2095,6 +2108,7 @@ static void test12_replicaWaitingReceivesPrimaryStateRspn()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -2198,6 +2212,7 @@ static void test13_replicaWaitingReceivesFailedPrimaryStateRspn()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -2290,6 +2305,7 @@ static void test14_replicaWaitingReceivesPrimaryStateRqst()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -2414,6 +2430,7 @@ static void test15_replicaWaitingReceivesReplicaDataRqstPull()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -2575,6 +2592,7 @@ static void test16_primaryHealingStage1SelfHighestSendsDataChunks()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -2728,6 +2746,7 @@ static void test17_fileSizesHardLimits()
                 helper.d_cluster_mp->_clusterData()->domainFactory(),
                 helper.d_cluster_mp->dispatcher(),
                 k_WATCHDOG_TIMEOUT_DURATION,
+                k_WATCHDOG_NUM_RETRIES,
                 mockOnRecoveryStatus,
                 mockOnPartitionPrimaryStatus,
                 bmqtst::TestHelperUtil::allocator());

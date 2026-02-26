@@ -132,8 +132,6 @@ class StorageManager BSLS_KEYWORD_FINAL
 
     typedef bdlmt::EventScheduler::RecurringEventHandle RecurringEventHandle;
 
-    typedef bsl::vector<bdlmt::EventSchedulerEventHandle> EventHandles;
-
     typedef bsl::vector<PartitionFSMEventData>                 EventData;
     typedef bsl::vector<PartitionFSMEventData>::const_iterator EventDataCIter;
 
@@ -162,6 +160,56 @@ class StorageManager BSLS_KEYWORD_FINAL
 
     typedef bsl::vector<PrimaryStatusAdvisoryInfos>
         PrimaryStatusAdvisoryInfosVec;
+
+    /// VST representing per-partition watchdog state.
+    class WatchdogContext {
+      public:
+        // DATA
+
+        /// Generation count to detect and ignore stale watchdog triggers.
+        /// Incremented each time a watchdog is stopped
+        ///
+        /// THREAD: Except during the ctor, this data member is modified in the
+        ///         partition thread and accessed in both the cluster thread
+        ///         and the partition thread.
+        bsls::AtomicInt d_generation;
+
+        /// Whether the watchdog timer is currently active.  Since the event
+        /// handle does not invalidate upon watchdog firing, we must rely on
+        /// this flag.
+        ///
+        /// THREAD: Used in both the cluster thread and the partition thread.
+        bsls::AtomicBool d_active;
+
+        /// Event handle for the scheduled watchdog timer.
+        ///
+        /// THREAD: Used in the partition thread.
+        bdlmt::EventSchedulerEventHandle d_eventHandle;
+
+        /// Number of retries remaining before terminating the broker,
+        /// reset for each generation.
+        ///
+        /// THREAD: Used in both the cluster thread and the partition thread.
+        bsls::AtomicInt d_retriesRemaining;
+
+        // CREATORS
+
+        /// Create a default `WatchdogContext` with no active timer, zero
+        /// generation and zero retries remaining.
+        WatchdogContext();
+
+        /// Create a `WatchdogContext` copying the values from the specified
+        /// `other`.
+        ///
+        /// WARNING: This copy constructor is NOT thread-safe.
+        /// The atomic loads of individual fields are each atomic, but the
+        /// overall copy is not an atomic snapshot of `other`.  This
+        /// constructor exists solely to satisfy `bsl::vector::resize()`
+        /// during startup in the StorageManager constructor, before any
+        /// threads access the watchdog contexts.  It must NOT be used
+        /// after startup.
+        WatchdogContext(const WatchdogContext& other);
+    };
 
     /// VST representing node's sequence number, first sync point after
     /// rollover sequence number.
@@ -213,15 +261,16 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// Whether this StorageMgr has started.
     bsls::AtomicBool d_isStarted;
 
-    /// List of event handles for the watchdog, indexed by partitionId.
+    /// List of watchdog contexts, indexed by partitionId.
     ///
-    /// THREAD: Except during the ctor, the i-th index of this data member
-    ///         **must** be accessed in the associated Queue dispatcher thread
-    ///         for the i-th partitionId.
-    EventHandles d_watchDogEventHandles;
+    /// THREAD: Used in both the cluster thread and the partition thread.
+    bsl::vector<WatchdogContext> d_watchdogContexts;
 
     /// Timeout interval for the watchdog.
-    const bsls::TimeInterval d_watchDogTimeoutInterval;
+    const bsls::TimeInterval d_watchdogTimeoutInterval;
+
+    /// Number of watchdog retries before terminating the broker.
+    const int d_watchdogNumRetries;
 
     /// Flag to denote if a low disk space warning was issued.  This flag is
     /// used *only* for logging purposes (see `storageMonitorCb` impl).
@@ -420,18 +469,21 @@ class StorageManager BSLS_KEYWORD_FINAL
     void recoveredQueuesCb(int                    partitionId,
                            const QueueKeyInfoMap& queueKeyInfoMap);
 
-    /// Process the watchdog trigger event for the specified `partitionId`,
-    /// indicating unhealthiness in the Partition FSM.
+    /// Process the watchdog trigger event for the specified
+    /// `partitionId` and watchdog `generation`, indicating unhealthiness in
+    /// the Partition FSM.  If the generation does not match the current
+    /// generation, the event is ignored as stale.
     ///
     /// THREAD: Executed by the scheduler thread.
-    void onWatchDog(int partitionId);
+    void onWatchdog(int partitionId, int generation);
 
-    /// Process the watchdog trigger event for the specified `partitionId`,
-    /// indicating unhealthiness in the Partition FSM.
+    /// Process the watchdog trigger event for the specified
+    /// `partitionId` and watchdog `generation`, indicating unhealthiness in
+    /// the Partition FSM.  If the generation does not match the current
+    /// generation, the event is ignored as stale.
     ///
-    /// THREAD: This method is invoked in the associated cluster's
-    ///         dispatcher thread.
-    void onWatchDogDispatched(int partitionId);
+    /// THREAD: Executed by the cluster's dispatcher thread.
+    void onWatchdogDispatched(int partitionId, int generation);
 
     /// Callback to generate an event for the associated PartitionFSM after
     /// done sending data chunks of the specified `range` related to the
@@ -453,18 +505,21 @@ class StorageManager BSLS_KEYWORD_FINAL
     ///         thread for the specified `partitionId`.
     void onPartitionRecovery(int partitionId);
 
-    /// Dispatch the event to *QUEUE DISPATCHER* thread associated with
-    /// the `partitionId` as per the specified `eventDataVec` with the
-    /// specified `event`.  If we are already in *QUEUE DISPATCHER* thread,
-    /// then execute the event in place.
-    void dispatchEventToPartition(PartitionFSM::Event::Enum event,
+    /// Enqueue the `event` with `eventDataVec` to the Partition FSM.
+    ///
+    /// THREAD: This method is invoked in the cluster dispatcher thread or the
+    ///         associated Queue dispatcher thread for the `partitionId` in the
+    ///         specified `eventDataVec`.
+    void enqueuePartitionFSMEvent(PartitionFSM::Event::Enum event,
                                   const EventData&          eventDataVec);
 
-    /// Verify and execute the event in *QUEUE DISPATCHER* thread associated
-    /// with the `partitionId` as per the specified `eventDataVec` with the
-    /// specified `event`.
-    void executeEventInPartitionThread(PartitionFSM::Event::Enum event,
-                                       const EventData&          eventDataVec);
+    /// Verify and enqueue the `event` with `eventDataVec` to the Partition
+    /// FSM.
+    ///
+    /// THREAD: This method is invoked in the associated Queue dispatcher
+    ///         thread for the partitionId in the specified `eventDataVec`.
+    void enqueuePartitionFSMEventDispatched(PartitionFSM::Event::Enum event,
+                                            const EventData& eventDataVec);
 
     /// Set the primary status of the specified `partitionId` to the specified
     /// `value`.
@@ -724,16 +779,19 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// which is associated with the specified `cluster` which uses the
     /// non-persistent data in the specified `clusterData` and the
     /// persistent data in the specified `clusterState`, using the
-    /// specified `domainFactory`, `fsmObserver`, `dispatcher`,
-    /// `watchDogTimeoutDuration`, `recoveryStatusCb`,
-    /// `partitionPrimaryStatusCb`  and `allocator`.
+    /// specified `domainFactory`, `dispatcher`, `watchdogTimeoutDuration`
+    /// (in seconds), and `watchdogNumRetries`. Use the specified
+    /// `recoveryStatusCb` to notify of recovery status and the specified
+    /// `partitionPrimaryStatusCb` to notify of partition primary status
+    /// changes. Use the specified `allocator` for memory allocations.
     StorageManager(const mqbcfg::ClusterDefinition& clusterConfig,
                    mqbi::Cluster*                   cluster,
                    mqbc::ClusterData*               clusterData,
                    mqbc::ClusterState*              clusterState,
                    mqbi::DomainFactory*             domainFactory,
                    mqbi::Dispatcher*                dispatcher,
-                   bsls::Types::Int64               watchDogTimeoutDuration,
+                   bsls::Types::Int64               watchdogTimeoutDuration,
+                   int                              watchdogNumRetries,
                    const RecoveryStatusCb&          recoveryStatusCb,
                    const PartitionPrimaryStatusCb&  partitionPrimaryStatusCb,
                    bslma::Allocator*                allocator);
@@ -1217,6 +1275,30 @@ StorageManager::nodeToSeqNumCtxMap(int partitionId) const
 inline unsigned int StorageManager::getSeqNumQuorum() const
 {
     return d_clusterData_p->quorumManager().quorum();
+}
+
+// =====================================
+// class StorageManager::WatchdogContext
+// =====================================
+
+// CREATORS
+inline StorageManager::WatchdogContext::WatchdogContext()
+: d_generation(0)
+, d_active(false)
+, d_eventHandle()
+, d_retriesRemaining(0)
+{
+    // NOTHING
+}
+
+inline StorageManager::WatchdogContext::WatchdogContext(
+    const WatchdogContext& other)
+: d_generation(static_cast<int>(other.d_generation))
+, d_active(static_cast<bool>(other.d_active))
+, d_eventHandle(other.d_eventHandle)
+, d_retriesRemaining(static_cast<int>(other.d_retriesRemaining))
+{
+    // NOTHING
 }
 
 // =======================================

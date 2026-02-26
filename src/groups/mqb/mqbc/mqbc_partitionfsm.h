@@ -87,6 +87,10 @@ class PartitionFSMEventData {
     /// Increment count (for counting number of replica data responses).
     int d_incrementCount;
 
+    /// Watchdog generation count. Used to detect and ignore stale watchdog
+    /// events. A value of -1 indicates this event is not a watchdog event.
+    int d_watchdogGeneration;
+
     /// The primary for the associated partitionId.
     mqbnet::ClusterNode* d_primary_p;
 
@@ -172,13 +176,21 @@ class PartitionFSMEventData {
                           int                                 incrementCount,
                           const bsl::shared_ptr<bdlbb::Blob>& storageEvent);
 
+    // MANIPULATORS
+
+    /// Set the watchdog generation to the specified `generation`.
+    void setWatchdogGeneration(int generation);
+
     // ACCESSORS
+
+    /// Return the value of the corresponding member of this object
     mqbnet::ClusterNode* source() const;
     mqbnet::ClusterNode* primary() const;
     unsigned int         primaryLeaseId() const;
     int                  requestId() const;
     int                  partitionId() const;
     int                  incrementCount() const;
+    int                  watchdogGeneration() const;
     const bmqp_ctrlmsg::PartitionSequenceNumber&
     partitionSequenceNumber() const;
     const bmqp_ctrlmsg::PartitionSequenceNumber&
@@ -300,6 +312,7 @@ inline PartitionFSMEventData::PartitionFSMEventData()
 , d_requestId(-1)  // Invalid requestId
 , d_partitionId(mqbi::Storage::k_INVALID_PARTITION_ID)
 , d_incrementCount(1)
+, d_watchdogGeneration(-1)  // Not a watchdog event
 , d_primary_p(0)
 , d_primaryLeaseId(k_INVALID_LEASE_ID)
 , d_partitionSequenceNumber()
@@ -327,6 +340,7 @@ inline PartitionFSMEventData::PartitionFSMEventData(
 , d_requestId(requestId)
 , d_partitionId(partitionId)
 , d_incrementCount(incrementCount)
+, d_watchdogGeneration(-1)  // Not a watchdog event
 , d_primary_p(primary)
 , d_primaryLeaseId(primaryLeaseId)
 , d_partitionSequenceNumber(seqNum)
@@ -351,6 +365,7 @@ inline PartitionFSMEventData::PartitionFSMEventData(
 , d_requestId(requestId)
 , d_partitionId(partitionId)
 , d_incrementCount(incrementCount)
+, d_watchdogGeneration(-1)  // Not a watchdog event
 , d_primary_p(0)
 , d_primaryLeaseId(k_INVALID_LEASE_ID)
 , d_partitionSequenceNumber(seqNum)
@@ -373,6 +388,7 @@ inline PartitionFSMEventData::PartitionFSMEventData(
 , d_requestId(requestId)
 , d_partitionId(partitionId)
 , d_incrementCount(incrementCount)
+, d_watchdogGeneration(-1)  // Not a watchdog event
 , d_primary_p(0)
 , d_primaryLeaseId(k_INVALID_LEASE_ID)
 , d_partitionSequenceNumber()
@@ -393,6 +409,7 @@ inline PartitionFSMEventData::PartitionFSMEventData(
 , d_requestId(-1)  // Invalid requestId
 , d_partitionId(partitionId)
 , d_incrementCount(incrementCount)
+, d_watchdogGeneration(-1)  // Not a watchdog event
 , d_primary_p(0)
 , d_primaryLeaseId(k_INVALID_LEASE_ID)
 , d_partitionSequenceNumber()
@@ -402,6 +419,12 @@ inline PartitionFSMEventData::PartitionFSMEventData(
 , d_storageEvent(storageEvent)
 {
     // NOTHING
+}
+
+// MANIPULATORS
+inline void PartitionFSMEventData::setWatchdogGeneration(int generation)
+{
+    d_watchdogGeneration = generation;
 }
 
 // ACCESSORS
@@ -433,6 +456,11 @@ inline int PartitionFSMEventData::partitionId() const
 inline int PartitionFSMEventData::incrementCount() const
 {
     return d_incrementCount;
+}
+
+inline int PartitionFSMEventData::watchdogGeneration() const
+{
+    return d_watchdogGeneration;
 }
 
 inline const bmqp_ctrlmsg::PartitionSequenceNumber&

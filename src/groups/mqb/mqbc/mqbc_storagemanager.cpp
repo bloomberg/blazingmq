@@ -166,18 +166,19 @@ void StorageManager::recoveredQueuesCb(int                    partitionId,
         d_unrecognizedDomains);
 }
 
-void StorageManager::onWatchDog(int partitionId)
+void StorageManager::onWatchdog(int partitionId, int generation)
 {
     // executed by the *SCHEDULER* thread
 
     dispatcher()->execute(
-        bdlf::BindUtil::bind(&StorageManager::onWatchDogDispatched,
+        bdlf::BindUtil::bind(&StorageManager::onWatchdogDispatched,
                              this,
-                             partitionId),
+                             partitionId,
+                             generation),
         d_cluster_p);
 }
 
-void StorageManager::onWatchDogDispatched(int partitionId)
+void StorageManager::onWatchdogDispatched(int partitionId, int generation)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -187,21 +188,56 @@ void StorageManager::onWatchDogDispatched(int partitionId)
                      partitionId <
                          d_clusterConfig.partitionConfig().numPartitions());
 
+    WatchdogContext& ctx = d_watchdogContexts[partitionId];
+
+    // Check if this watchdog is stale
+    if (generation != ctx.d_generation) {
+        BSLS_ASSERT_SAFE(generation < ctx.d_generation);
+        BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId
+                      << "]: Ignoring stale watchdog event with generation "
+                      << generation << ", current generation is "
+                      << ctx.d_generation;
+        return;  // RETURN
+    }
+
+    // Mark that watchdog has fired so that `do_startWatchDog` will schedule
+    // a fresh timer on the next invocation.
+    ctx.d_active = false;
+
+    // Decrement retry counter
+    const int retriesRemaining = ctx.d_retriesRemaining--;
+
     BMQTSK_ALARMLOG_ALARM("RECOVERY")
         << d_clusterData_p->identity().description() << " Partition ["
         << partitionId
         << "]: " << "Watchdog triggered because partition startup healing "
         << "sequence was not completed in the configured time of "
-        << d_watchDogTimeoutInterval.totalSeconds() << " seconds."
-        << BMQTSK_ALARMLOG_END;
+        << d_watchdogTimeoutInterval.totalSeconds() << " seconds. "
+        << "Retries remaining: " << retriesRemaining << " of "
+        << d_watchdogNumRetries << BMQTSK_ALARMLOG_END;
 
-    EventData eventDataVec;
-    eventDataVec.emplace_back(d_clusterData_p->membership().selfNode(),
-                              -1,  // placeholder requestId
-                              partitionId,
-                              1);
+    if (retriesRemaining > 0) {
+        EventData eventDataVec;
+        eventDataVec.emplace_back(d_clusterData_p->membership().selfNode(),
+                                  -1,  // placeholder requestId
+                                  partitionId,
+                                  1);
+        eventDataVec.back().setWatchdogGeneration(generation);
 
-    dispatchEventToPartition(PartitionFSM::Event::e_WATCH_DOG, eventDataVec);
+        enqueuePartitionFSMEvent(PartitionFSM::Event::e_WATCH_DOG,
+                                 eventDataVec);
+    }
+    else {
+        // Retries exhausted, terminate the broker
+        BMQTSK_ALARMLOG_ALARM("RECOVERY")
+            << d_clusterData_p->identity().description() << " Partition ["
+            << partitionId << "]: " << "Watchdog retries exhausted after "
+            << d_watchdogNumRetries << " attempts. Terminating broker."
+            << BMQTSK_ALARMLOG_END;
+
+        mqbu::ExitUtil::shutdown(mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
+    }
 }
 
 void StorageManager::onPartitionDoneSendDataChunksCb(
@@ -230,12 +266,12 @@ void StorageManager::onPartitionDoneSendDataChunksCb(
     // ReplicaDataResponsePull depending on 'status'.  In the future, it might
     // no longer be no-op for primary.
     if (status != 0) {
-        dispatchEventToPartition(
+        enqueuePartitionFSMEvent(
             PartitionFSM::Event::e_ERROR_SENDING_DATA_CHUNKS,
             eventDataVec);
     }
     else {
-        dispatchEventToPartition(
+        enqueuePartitionFSMEvent(
             PartitionFSM::Event::e_DONE_SENDING_DATA_CHUNKS,
             eventDataVec);
     }
@@ -297,7 +333,7 @@ void StorageManager::onPartitionRecovery(int partitionId)
     }
 }
 
-void StorageManager::dispatchEventToPartition(PartitionFSM::Event::Enum event,
+void StorageManager::enqueuePartitionFSMEvent(PartitionFSM::Event::Enum event,
                                               const EventData& eventDataVec)
 {
     // executed by the cluster *DISPATCHER* or *QUEUE_DISPATCHER* thread
@@ -324,32 +360,40 @@ void StorageManager::dispatchEventToPartition(PartitionFSM::Event::Enum event,
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
     BSLS_ASSERT_SAFE(fs);
     if (fs->inDispatcherThread()) {
-        executeEventInPartitionThread(event, eventDataVec);
+        enqueuePartitionFSMEventDispatched(event, eventDataVec);
     }
     else {
         fs->execute(bdlf::BindUtil::bind(
-            &StorageManager::executeEventInPartitionThread,
+            &StorageManager::enqueuePartitionFSMEventDispatched,
             this,
             event,
             eventDataVec));
     }
 }
 
-void StorageManager::executeEventInPartitionThread(
+void StorageManager::enqueuePartitionFSMEventDispatched(
     PartitionFSM::Event::Enum event,
     const EventData&          eventDataVec)
 {
-    // Thread: QUEUE dispatcher
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(eventDataVec.size() >= 1);
+    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
 
     const int partitionId = eventDataVec[0].partitionId();
-    BSLS_ASSERT_SAFE(0 <= partitionId &&
-                     partitionId < static_cast<int>(d_fileStores.size()));
-    BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
 
-    // Verify events
+    // For WATCH_DOG events, check generation count to ignore stale events
+    if (event == PartitionFSM::Event::e_WATCH_DOG) {
+        const int generation = eventDataVec[0].watchdogGeneration();
+        if (generation != -1 &&
+            generation != d_watchdogContexts[partitionId].d_generation) {
+            BALL_LOG_WARN << d_clusterData_p->identity().description()
+                          << " Partition [" << partitionId
+                          << "]: Ignoring stale WATCH_DOG event with "
+                          << "generation " << generation
+                          << ", current generation is "
+                          << d_watchdogContexts[partitionId].d_generation;
+            return;  // RETURN
+        }
+    }
+
     if (eventDataVec.size() == 1) {
         const PartitionFSMEventData& evt = eventDataVec[0];
 
@@ -581,7 +625,7 @@ void StorageManager::processReplicaDataRequestPull(
         PartitionSeqNumDataRange(replicaDataRequest.beginSequenceNumber(),
                                  replicaDataRequest.endSequenceNumber()));
 
-    dispatchEventToPartition(PartitionFSM::Event::e_REPLICA_DATA_RQST_PULL,
+    enqueuePartitionFSMEvent(PartitionFSM::Event::e_REPLICA_DATA_RQST_PULL,
                              eventDataVec);
 }
 
@@ -648,7 +692,7 @@ void StorageManager::processReplicaDataRequestPush(
         PartitionSeqNumDataRange(replicaDataRequest.beginSequenceNumber(),
                                  replicaDataRequest.endSequenceNumber()));
 
-    dispatchEventToPartition(PartitionFSM::Event::e_REPLICA_DATA_RQST_PUSH,
+    enqueuePartitionFSMEvent(PartitionFSM::Event::e_REPLICA_DATA_RQST_PUSH,
                              eventDataVec);
 }
 
@@ -708,7 +752,7 @@ void StorageManager::processReplicaDataRequestDrop(
                               partitionId,
                               1);
 
-    dispatchEventToPartition(PartitionFSM::Event::e_REPLICA_DATA_RQST_DROP,
+    enqueuePartitionFSMEvent(PartitionFSM::Event::e_REPLICA_DATA_RQST_DROP,
                              eventDataVec);
 }
 
@@ -763,7 +807,7 @@ void StorageManager::processPrimaryStateResponseDispatched(
         EventData eventDataVec;
         eventDataVec.emplace_back(responder, responseId, partitionId, 1);
 
-        dispatchEventToPartition(
+        enqueuePartitionFSMEvent(
             PartitionFSM::Event::e_FAIL_PRIMARY_STATE_RSPN,
             eventDataVec);
         return;  // RETURN
@@ -806,7 +850,7 @@ void StorageManager::processPrimaryStateResponseDispatched(
         response.latestSequenceNumber(),
         response.firstSyncPointAfterRolloverSequenceNumber());
 
-    dispatchEventToPartition(PartitionFSM::Event::e_PRIMARY_STATE_RSPN,
+    enqueuePartitionFSMEvent(PartitionFSM::Event::e_PRIMARY_STATE_RSPN,
                              eventDataVec);
 }
 
@@ -939,12 +983,12 @@ void StorageManager::processReplicaStateResponseDispatched(
     }
 
     if (eventDataVec.size() > 0) {
-        dispatchEventToPartition(PartitionFSM::Event::e_REPLICA_STATE_RSPN,
+        enqueuePartitionFSMEvent(PartitionFSM::Event::e_REPLICA_STATE_RSPN,
                                  eventDataVec);
     }
 
     if (failedEventDataVec.size() > 0) {
-        dispatchEventToPartition(
+        enqueuePartitionFSMEvent(
 
             PartitionFSM::Event::e_FAIL_REPLICA_STATE_RSPN,
             failedEventDataVec);
@@ -1021,17 +1065,17 @@ void StorageManager::processReplicaDataResponseDispatched(
 
         switch (dataType) {
         case bmqp_ctrlmsg::ReplicaDataType::E_PULL: {
-            dispatchEventToPartition(
+            enqueuePartitionFSMEvent(
                 PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_PULL,
                 eventDataVec);
         } break;
         case bmqp_ctrlmsg::ReplicaDataType::E_PUSH: {
-            dispatchEventToPartition(
+            enqueuePartitionFSMEvent(
                 PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_PUSH,
                 eventDataVec);
         } break;
         case bmqp_ctrlmsg::ReplicaDataType::E_DROP: {
-            dispatchEventToPartition(
+            enqueuePartitionFSMEvent(
                 PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_DROP,
                 eventDataVec);
         } break;
@@ -1099,15 +1143,15 @@ void StorageManager::processReplicaDataResponseDispatched(
 
     switch (dataType) {
     case bmqp_ctrlmsg::ReplicaDataType::E_PULL: {
-        dispatchEventToPartition(PartitionFSM::Event::e_REPLICA_DATA_RSPN_PULL,
+        enqueuePartitionFSMEvent(PartitionFSM::Event::e_REPLICA_DATA_RSPN_PULL,
                                  eventDataVec);
     } break;
     case bmqp_ctrlmsg::ReplicaDataType::E_PUSH: {
-        dispatchEventToPartition(PartitionFSM::Event::e_REPLICA_DATA_RSPN_PUSH,
+        enqueuePartitionFSMEvent(PartitionFSM::Event::e_REPLICA_DATA_RSPN_PUSH,
                                  eventDataVec);
     } break;
     case bmqp_ctrlmsg::ReplicaDataType::E_DROP: {
-        dispatchEventToPartition(PartitionFSM::Event::e_REPLICA_DATA_RSPN_DROP,
+        enqueuePartitionFSMEvent(PartitionFSM::Event::e_REPLICA_DATA_RSPN_DROP,
                                  eventDataVec);
     } break;
     case bmqp_ctrlmsg::ReplicaDataType::E_UNKNOWN:
@@ -1202,13 +1246,28 @@ void StorageManager::do_startWatchDog(const EventWithData& event)
     BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
     const int partitionId = eventDataVec[0].partitionId();
 
-    // Clear any existing watchdog before starting the timer anew.
-    d_watchDogEventHandles[partitionId].release();
+    WatchdogContext& ctx = d_watchdogContexts[partitionId];
 
-    d_clusterData_p->scheduler().scheduleEvent(
-        &d_watchDogEventHandles[partitionId],
-        d_clusterData_p->scheduler().now() + d_watchDogTimeoutInterval,
-        bdlf::BindUtil::bind(&StorageManager::onWatchDog, this, partitionId));
+    // Only start a new timer if no timer is currently active.  This
+    // prevents resetting the timer during error retries (e.g.,
+    // ERROR_RECEIVING_DATA_CHUNKS transitions that reapply
+    // DETECT_SELF_PRIMARY without stopping the watchdog).  After a
+    // watchdog fires, `onWatchDogDispatched` sets `d_active` to false,
+    // so a subsequent call here will start a fresh timer for the retry.
+    if (!ctx.d_active) {
+        ctx.d_eventHandle.release();
+
+        const int generation = ctx.d_generation;
+        d_clusterData_p->scheduler().scheduleEvent(
+            &ctx.d_eventHandle,
+            d_clusterData_p->scheduler().now() + d_watchdogTimeoutInterval,
+            bdlf::BindUtil::bind(&StorageManager::onWatchdog,
+                                 this,
+                                 partitionId,
+                                 generation));
+
+        ctx.d_active = true;
+    }
 }
 
 void StorageManager::do_stopWatchDog(const EventWithData& event)
@@ -1220,8 +1279,16 @@ void StorageManager::do_stopWatchDog(const EventWithData& event)
     BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
     const int partitionId = eventDataVec[0].partitionId();
 
-    const int rc = d_clusterData_p->scheduler().cancelEvent(
-        d_watchDogEventHandles[partitionId]);
+    WatchdogContext& ctx = d_watchdogContexts[partitionId];
+
+    // Increment generation to invalidate any in-flight stale watchdog
+    // triggers from the previous healing session and reset the retry counter
+    // for the next healing session.
+    ++ctx.d_generation;
+    ctx.d_retriesRemaining = d_watchdogNumRetries;
+    ctx.d_active           = false;
+
+    const int rc = d_clusterData_p->scheduler().cancelEvent(ctx.d_eventHandle);
     if (rc != 0) {
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
                        << " Partition [" << partitionId
@@ -1784,7 +1851,7 @@ void StorageManager::do_primaryStateRequest(const EventWithData& event)
                                         partitionId,
                                         1);
 
-        dispatchEventToPartition(
+        enqueuePartitionFSMEvent(
             PartitionFSM::Event::e_FAIL_PRIMARY_STATE_RSPN,
             failedEventDataVec);
     }
@@ -2035,7 +2102,7 @@ void StorageManager::do_replicaDataRequestPush(const EventWithData& event)
     }
 
     if (!failedEventDataVec.empty()) {
-        dispatchEventToPartition(
+        enqueuePartitionFSMEvent(
             PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_PUSH,
             failedEventDataVec);
     }
@@ -2254,7 +2321,7 @@ void StorageManager::do_replicaDataRequestDrop(const EventWithData& event)
     }
 
     if (!failedEventDataVec.empty()) {
-        dispatchEventToPartition(
+        enqueuePartitionFSMEvent(
             PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_DROP,
             failedEventDataVec);
     }
@@ -2371,7 +2438,7 @@ void StorageManager::do_replicaDataRequestPull(const EventWithData& event)
                                         partitionId,
                                         1);
 
-        dispatchEventToPartition(
+        enqueuePartitionFSMEvent(
             PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_PULL,
             failedEventDataVec);
     }
@@ -2569,7 +2636,7 @@ void StorageManager::do_processBufferedLiveData(const EventWithData& event)
                                            partitionId,
                                            1);
 
-            dispatchEventToPartition(PartitionFSM::Event::e_ISSUE_LIVESTREAM,
+            enqueuePartitionFSMEvent(PartitionFSM::Event::e_ISSUE_LIVESTREAM,
                                      eventDataVecLocal);
             break;  // BREAK
         }
@@ -2998,7 +3065,7 @@ void StorageManager::do_setExpectedDataChunkRange(const EventWithData& event)
                                          partitionId,
                                          1,  // incrementCount
                                          eventData.partitionSeqNumDataRange());
-            dispatchEventToPartition(
+            enqueuePartitionFSMEvent(
                 PartitionFSM::Event::e_DONE_RECEIVING_DATA_CHUNKS,
                 eventDataVecOut);
 
@@ -3159,12 +3226,12 @@ void StorageManager::do_updateStorage(const EventWithData& event)
     // As replica, we will send either success or failure
     // ReplicaDataResponsePush/Drop depending on 'rc'.
     if (rc == 1) {
-        dispatchEventToPartition(
+        enqueuePartitionFSMEvent(
             PartitionFSM::Event::e_DONE_RECEIVING_DATA_CHUNKS,
             eventDataVecOut);
     }
     else if (rc != 0) {
-        dispatchEventToPartition(
+        enqueuePartitionFSMEvent(
             PartitionFSM::Event::e_ERROR_RECEIVING_DATA_CHUNKS,
             eventDataVecOut);
     }
@@ -3258,7 +3325,7 @@ void StorageManager::do_checkQuorumRplcaDataRspn(const EventWithData& event)
                       << ") of cluster nodes now has healed partitions. "
                       << "Transitiong self to healed primary";
 
-        dispatchEventToPartition(
+        enqueuePartitionFSMEvent(
             PartitionFSM::Event::e_QUORUM_REPLICA_DATA_RSPN,
             eventDataVec);
     }
@@ -3279,7 +3346,7 @@ void StorageManager::do_reapplyEvent(const EventWithData& event)
                   << "]: " << " Re-apply event: " << event.first
                   << " in the Partition FSM.";
 
-    dispatchEventToPartition(event.first, event.second);
+    enqueuePartitionFSMEvent(event.first, event.second);
 }
 
 void StorageManager::do_checkQuorumSeq(const EventWithData& event)
@@ -3307,7 +3374,7 @@ void StorageManager::do_checkQuorumSeq(const EventWithData& event)
                       << "Achieved a quorum of SeqNums with a count of "
                       << d_nodeToSeqNumCtxMapVec[partitionId].size();
 
-        dispatchEventToPartition(PartitionFSM::Event::e_QUORUM_REPLICA_SEQ,
+        enqueuePartitionFSMEvent(PartitionFSM::Event::e_QUORUM_REPLICA_SEQ,
                                  event.second);
     }
 }
@@ -3368,11 +3435,11 @@ void StorageManager::do_findHighestSeq(const EventWithData& event)
         highestSeqNumNode);
 
     if (selfHighestSeq) {
-        dispatchEventToPartition(PartitionFSM::Event::e_SELF_HIGHEST_SEQ,
+        enqueuePartitionFSMEvent(PartitionFSM::Event::e_SELF_HIGHEST_SEQ,
                                  newEventDataVec);
     }
     else {
-        dispatchEventToPartition(PartitionFSM::Event::e_REPLICA_HIGHEST_SEQ,
+        enqueuePartitionFSMEvent(PartitionFSM::Event::e_REPLICA_HIGHEST_SEQ,
                                  newEventDataVec);
     }
 }
@@ -3446,7 +3513,7 @@ void StorageManager::do_reapplyDetectSelfPrimary(const EventWithData& event)
         1,
         d_partitionInfoVec[partitionId].primary(),
         d_partitionInfoVec[partitionId].primaryLeaseId());
-    dispatchEventToPartition(PartitionFSM::Event::e_DETECT_SELF_PRIMARY,
+    enqueuePartitionFSMEvent(PartitionFSM::Event::e_DETECT_SELF_PRIMARY,
                              eventDataVecOut);
 }
 
@@ -3478,7 +3545,7 @@ void StorageManager::do_reapplyDetectSelfReplica(const EventWithData& event)
         1,
         d_partitionInfoVec[partitionId].primary(),
         d_partitionInfoVec[partitionId].primaryLeaseId());
-    dispatchEventToPartition(PartitionFSM::Event::e_DETECT_SELF_REPLICA,
+    enqueuePartitionFSMEvent(PartitionFSM::Event::e_DETECT_SELF_REPLICA,
                              eventDataVecOut);
 }
 
@@ -3528,15 +3595,17 @@ StorageManager::StorageManager(
     mqbc::ClusterState*              clusterState,
     mqbi::DomainFactory*             domainFactory,
     mqbi::Dispatcher*                dispatcher,
-    bsls::Types::Int64               watchDogTimeoutDuration,
+    bsls::Types::Int64               watchdogTimeoutDuration,
+    int                              watchdogNumRetries,
     const RecoveryStatusCb&          recoveryStatusCb,
     const PartitionPrimaryStatusCb&  partitionPrimaryStatusCb,
     bslma::Allocator*                allocator)
 : d_allocator_p(allocator)
 , d_allocators(d_allocator_p)
 , d_isStarted(false)
-, d_watchDogEventHandles(allocator)
-, d_watchDogTimeoutInterval(watchDogTimeoutDuration)
+, d_watchdogContexts(allocator)
+, d_watchdogTimeoutInterval(watchdogTimeoutDuration)
+, d_watchdogNumRetries(watchdogNumRetries)
 , d_lowDiskspaceWarning(false)
 , d_unrecognizedDomainsLock()
 , d_unrecognizedDomains(allocator)
@@ -3581,7 +3650,10 @@ StorageManager::StorageManager(
     const mqbcfg::PartitionConfig& partitionCfg =
         d_clusterConfig.partitionConfig();
 
-    d_watchDogEventHandles.resize(partitionCfg.numPartitions());
+    d_watchdogContexts.resize(partitionCfg.numPartitions());
+    for (int i = 0; i < partitionCfg.numPartitions(); ++i) {
+        d_watchdogContexts[i].d_retriesRemaining = d_watchdogNumRetries;
+    }
     d_unrecognizedDomains.resize(partitionCfg.numPartitions());
     d_fileStores.resize(partitionCfg.numPartitions());
     d_storages.resize(partitionCfg.numPartitions());
@@ -4162,7 +4234,7 @@ void StorageManager::stopPFSMs()
                                   -1,  // placeholder requestId
                                   pid,
                                   1);
-        dispatchEventToPartition(PartitionFSM::Event::e_STOP_NODE,
+        enqueuePartitionFSMEvent(PartitionFSM::Event::e_STOP_NODE,
                                  eventDataVec);
     }
 }
@@ -4190,7 +4262,7 @@ void StorageManager::detectPrimaryLossInPFSM(int partitionId)
         d_clusterState_p->partitionsInfo().at(partitionId).primaryNode(),
         d_clusterState_p->partitionsInfo().at(partitionId).primaryLeaseId());
 
-    dispatchEventToPartition(PartitionFSM::Event::e_RST_UNKNOWN, eventDataVec);
+    enqueuePartitionFSMEvent(PartitionFSM::Event::e_RST_UNKNOWN, eventDataVec);
 }
 
 void StorageManager::detectSelfPrimaryInPFSM(int                  partitionId,
@@ -4219,7 +4291,7 @@ void StorageManager::detectSelfPrimaryInPFSM(int                  partitionId,
                               primaryNode,
                               primaryLeaseId);
 
-    dispatchEventToPartition(PartitionFSM::Event::e_DETECT_SELF_PRIMARY,
+    enqueuePartitionFSMEvent(PartitionFSM::Event::e_DETECT_SELF_PRIMARY,
                              eventDataVec);
 }
 
@@ -4249,7 +4321,7 @@ void StorageManager::detectSelfReplicaInPFSM(int                  partitionId,
                               primaryNode,
                               primaryLeaseId);
 
-    dispatchEventToPartition(PartitionFSM::Event::e_DETECT_SELF_REPLICA,
+    enqueuePartitionFSMEvent(PartitionFSM::Event::e_DETECT_SELF_REPLICA,
                              eventDataVec);
 }
 
@@ -4306,7 +4378,7 @@ void StorageManager::processPrimaryStateRequest(
         primaryStateRequest.latestSequenceNumber(),
         primaryStateRequest.firstSyncPointAfterRolloverSequenceNumber());
 
-    dispatchEventToPartition(PartitionFSM::Event::e_PRIMARY_STATE_RQST,
+    enqueuePartitionFSMEvent(PartitionFSM::Event::e_PRIMARY_STATE_RQST,
                              eventDataVec);
 }
 
@@ -4364,7 +4436,7 @@ void StorageManager::processReplicaStateRequest(
         replicaStateRequest.latestSequenceNumber(),
         replicaStateRequest.firstSyncPointAfterRolloverSequenceNumber());
 
-    dispatchEventToPartition(PartitionFSM::Event::e_REPLICA_STATE_RQST,
+    enqueuePartitionFSMEvent(PartitionFSM::Event::e_REPLICA_STATE_RQST,
                              eventDataVec);
 }
 
@@ -4492,11 +4564,11 @@ void StorageManager::processStorageEvent(
     eventDataVec.emplace_back(event.clusterNode(), pid, 1, event.blob());
 
     if (rawEvent.isStorageEvent()) {
-        dispatchEventToPartition(PartitionFSM::Event::e_LIVE_DATA,
+        enqueuePartitionFSMEvent(PartitionFSM::Event::e_LIVE_DATA,
                                  eventDataVec);
     }
     else {
-        dispatchEventToPartition(PartitionFSM::Event::e_RECOVERY_DATA,
+        enqueuePartitionFSMEvent(PartitionFSM::Event::e_RECOVERY_DATA,
                                  eventDataVec);
     }
 }
