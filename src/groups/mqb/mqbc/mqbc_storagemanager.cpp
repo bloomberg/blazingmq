@@ -586,7 +586,6 @@ void StorageManager::processReplicaDataRequestPush(
         d_clusterState_p->partitionsInfo().at(partitionId).primaryLeaseId(),
         bmqp_ctrlmsg::PartitionSequenceNumber(),
         bmqp_ctrlmsg::PartitionSequenceNumber(),
-        bmqp_ctrlmsg::PartitionMaxFileSizes(),
         source,
         PartitionSeqNumDataRange(replicaDataRequest.beginSequenceNumber(),
                                  replicaDataRequest.endSequenceNumber()));
@@ -3208,7 +3207,6 @@ void StorageManager::do_findHighestSeq(const EventWithData& event)
         highestPartitionSeqNum,
         bmqp_ctrlmsg::
             PartitionSequenceNumber(),  // firstSyncPointAfterRollloverSeqNum
-        bmqp_ctrlmsg::PartitionMaxFileSizes(),
         highestSeqNumNode);
 
     if (selfHighestSeq) {
