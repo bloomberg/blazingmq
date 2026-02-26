@@ -337,9 +337,9 @@ jobs:
           PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
         run: |
           cmake --preset gh-prometheus-ubuntu-latest-cpp17 -S .
-          echo "::add-matcher::.github/workflows/problem-matchers/cpp.json"
+          echo "::add-matcher::.github/workflows/problem-matchers/cpp-prometheus.json"
           cmake --build --preset gh-prometheus-ubuntu-latest-cpp17
-          echo "::remove-matcher owner=cpp"
+          echo "::remove-matcher owner=cpp-prometheus"
 
       - name: Create prometheus dir
         run:  mkdir -p prometheus_dir
