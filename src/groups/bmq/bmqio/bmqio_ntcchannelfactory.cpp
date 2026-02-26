@@ -307,15 +307,21 @@ void NtcChannelFactory::listen(Status*                      status,
                                            catalogHandle),
                       k_CLOSE_GROUP);
 
-    rc = listener->listen(status, options);
-    if (rc != 0) {
-        removeListener(catalogHandle);
-        return;  // RETURN
-    }
-
+    // `handle` might be modified from another thread once we call
+    // `channel->listen`, make sure to initialize it before.
     if (handle) {
         bslma::ManagedPtr<bmqio::NtcListener> alias(listener.managedPtr());
         handle->loadAlias(alias, listener.get());
+    }
+
+    rc = listener->listen(status, options);
+    if (rc != 0) {
+        if (handle) {
+            // Listen failed: undo alias
+            handle->reset();
+        }
+        removeListener(catalogHandle);
+        return;  // RETURN
     }
 
     BALL_LOG_TRACE << "NTC listener " << AddressFormatter(listener.get())
@@ -372,15 +378,21 @@ void NtcChannelFactory::connect(Status*                      status,
                                           catalogHandle),
                      k_CLOSE_GROUP);
 
-    rc = channel->connect(status, options);
-    if (rc != 0) {
-        removeChannel(catalogHandle);
-        return;  // RETURN
-    }
-
+    // `handle` might be modified from another thread once we call
+    // `channel->connect`, make sure to initialize it before.
     if (handle) {
         bslma::ManagedPtr<bmqio::NtcChannel> alias(channel.managedPtr());
         handle->loadAlias(alias, channel.get());
+    }
+
+    rc = channel->connect(status, options);
+    if (rc != 0) {
+        if (handle) {
+            // Connect failed: undo alias
+            handle->reset();
+        }
+        removeChannel(catalogHandle);
+        return;  // RETURN
     }
 
     BALL_LOG_TRACE << "NTC channel " << AddressFormatter(channel.get())
