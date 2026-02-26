@@ -192,6 +192,9 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
                       d_clusterData.clusterConfig()
                           .clusterAttributes()
                           .partitionFsmWatchdogTimeoutSec(),
+                      d_clusterData.clusterConfig()
+                          .clusterAttributes()
+                          .partitionFsmWatchdogNumRetries(),
                       bdlf::BindUtil::bind(&Cluster::onRecoveryStatus,
                                            this,
                                            bdlf::PlaceHolders::_1,  // status
