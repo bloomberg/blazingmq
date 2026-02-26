@@ -35,6 +35,8 @@
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
 #include <bdlma_localsequentialallocator.h>
+#include <bdlt_currenttime.h>
+#include <bdlt_datetime.h>
 #include <bsl_algorithm.h>
 #include <bsl_iostream.h>
 #include <bsl_memory.h>
@@ -117,7 +119,8 @@ AuthenticatedChannelFactoryConfig::AuthenticatedChannelFactoryConfig(
 // PRIVATE ACCESSORS
 bool AuthenticatedChannelFactory::sendRequest(
     const bsl::shared_ptr<bmqio::Channel>& channel,
-    const ResultCallback&                  cb) const
+    const ResultCallback&                  cb,
+    bool                                   isReauthentication) const
 {
     bmqu::MemOutStream errStream;
 
@@ -158,8 +161,9 @@ bool AuthenticatedChannelFactory::sendRequest(
         return false;  // RETURN
     }
 
-    BALL_LOG_INFO << "Sending authentication message to '"
-                  << channel->peerUri();
+    BALL_LOG_INFO << "Sending " << (isReauthentication ? "re" : "")
+                  << "authentication request to '" << channel->peerUri()
+                  << "'";
     bmqio::Status status;
     BALL_LOG_TRACE << "Sending blob:\n"
                    << bmqu::BlobStartHexDumper(builder.blob().get());
@@ -381,17 +385,18 @@ bool AuthenticatedChannelFactory::processAuthenticationEvent(
         return false;  // RETURN
     }
 
-    // Authentication SUCCEEDED
-    BALL_LOG_INFO << "Authentication with broker was successful: " << response;
-
-    // Schedule recurring events to send re-authentication request if lifetime
-    // is specified in the response.
+    // Authentication SUCCEEDED.  Schedule reauthentication if lifetime is
+    // specified in the response.
     if (authenticationResponse.lifetimeMs().has_value()) {
         int intervalMs = timeoutInterval(
             authenticationResponse.lifetimeMs().value());
 
-        BALL_LOG_INFO << "Scheduling reauthentication in " << intervalMs
-                      << " milliseconds.";
+        bdlt::Datetime reauthTime = bdlt::CurrentTime::utc();
+        reauthTime.addMilliseconds(intervalMs);
+
+        BALL_LOG_INFO << "Authentication with broker was successful, "
+                      << "reauthentication scheduled at " << reauthTime << ": "
+                      << response;
 
         // Pending events will be cancelled when Application stops.
         d_config.d_scheduler_p->scheduleEvent(
@@ -401,7 +406,12 @@ bool AuthenticatedChannelFactory::processAuthenticationEvent(
             bdlf::BindUtil::bind(&AuthenticatedChannelFactory::sendRequest,
                                  this,
                                  channel,
-                                 cb));
+                                 cb,
+                                 true));
+    }
+    else {
+        BALL_LOG_INFO << "Authentication with broker was successful: "
+                      << response;
     }
 
     return true;
