@@ -143,7 +143,8 @@ class AuthenticatedChannelFactory : public bmqio::ChannelFactory {
     /// sent successfully, or `false` if it failed (in which case `cb` has
     /// already been invoked with `e_CONNECT_FAILED`).
     bool sendRequest(const bsl::shared_ptr<bmqio::Channel>& channel,
-                     const ResultCallback&                  cb) const;
+                     const ResultCallback&                  cb,
+                     bool isReauthentication = false) const;
 
     void readResponse(const bsl::shared_ptr<bmqio::Channel>& channel,
                       const ResultCallback&                  cb) const;
