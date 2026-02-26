@@ -280,6 +280,13 @@ class Parameters {
     // Timeout for session operations.  This timeout is used for all timeouts
     // in the `bmqt::SessionOptions` used by the session.
 
+    bsl::string d_authnMechanism;
+    // Authentication mechanism name (e.g. "BASIC").  If empty, no
+    // authentication callback is set.
+
+    bsl::string d_authnData;
+    // Authentication data/credentials string.
+
   public:
     // CREATORS
 
@@ -317,6 +324,8 @@ class Parameters {
     Parameters& setAutoIncrementedField(const bsl::string& value);
     Parameters& setAutoPubSubModulo(int autoPubSubModulo);
     Parameters& setTimeout(const bsls::TimeInterval& value);
+    Parameters& setAuthnMechanism(const bsl::string& value);
+    Parameters& setAuthnData(const bsl::string& value);
 
     // Set the corresponding member to the specified 'value' and return a
     // reference offering modifiable access to this object.
@@ -377,6 +386,8 @@ class Parameters {
     const bsl::string&                  autoIncrementedField() const;
     int                                 autoPubSubModulo() const;
     const bsls::TimeInterval&           timeout() const;
+    const bsl::string&                  authnMechanism() const;
+    const bsl::string&                  authnData() const;
 
     const char* autoPubSubPropertyName() const;
 };
@@ -602,6 +613,18 @@ inline Parameters& Parameters::setTimeout(const bsls::TimeInterval& value)
     return *this;
 }
 
+inline Parameters& Parameters::setAuthnMechanism(const bsl::string& value)
+{
+    d_authnMechanism = value;
+    return *this;
+}
+
+inline Parameters& Parameters::setAuthnData(const bsl::string& value)
+{
+    d_authnData = value;
+    return *this;
+}
+
 // ACCESSORS
 inline ParametersMode::Value Parameters::mode() const
 {
@@ -757,6 +780,16 @@ inline int Parameters::autoPubSubModulo() const
 inline const bsls::TimeInterval& Parameters::timeout() const
 {
     return d_timeout;
+}
+
+inline const bsl::string& Parameters::authnMechanism() const
+{
+    return d_authnMechanism;
+}
+
+inline const bsl::string& Parameters::authnData() const
+{
+    return d_authnData;
 }
 
 }  // close package namespace

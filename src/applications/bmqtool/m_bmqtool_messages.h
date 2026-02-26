@@ -1,4 +1,4 @@
-// Copyright 2014-2025 Bloomberg Finance L.P.
+// Copyright 2014-2026 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -431,7 +431,7 @@ class BatchPostCommand {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    m_bmqtool::BatchPostCommand)
+    m_bmqtool::BatchPostCommand);
 template <>
 struct bdlat_UsesDefaultValueFlag<m_bmqtool::BatchPostCommand>
 : bsl::true_type {};
@@ -654,7 +654,7 @@ class CloseQueueCommand {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    m_bmqtool::CloseQueueCommand)
+    m_bmqtool::CloseQueueCommand);
 template <>
 struct bdlat_UsesDefaultValueFlag<m_bmqtool::CloseQueueCommand>
 : bsl::true_type {};
@@ -804,7 +804,8 @@ class CloseStorageCommand {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(m_bmqtool::CloseStorageCommand)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
+    m_bmqtool::CloseStorageCommand);
 template <>
 struct bdlat_UsesDefaultValueFlag<m_bmqtool::CloseStorageCommand>
 : bsl::true_type {};
@@ -1026,7 +1027,7 @@ class ConfirmCommand {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    m_bmqtool::ConfirmCommand)
+    m_bmqtool::ConfirmCommand);
 template <>
 struct bdlat_UsesDefaultValueFlag<m_bmqtool::ConfirmCommand> : bsl::true_type {
 };
@@ -1394,7 +1395,7 @@ class DataCommandChoice {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_BITWISEMOVEABLE_TRAITS(m_bmqtool::DataCommandChoice)
+BDLAT_DECL_CHOICE_WITH_BITWISEMOVEABLE_TRAITS(m_bmqtool::DataCommandChoice);
 
 namespace m_bmqtool {
 
@@ -1612,7 +1613,7 @@ class DumpQueueCommand {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    m_bmqtool::DumpQueueCommand)
+    m_bmqtool::DumpQueueCommand);
 template <>
 struct bdlat_UsesDefaultValueFlag<m_bmqtool::DumpQueueCommand>
 : bsl::true_type {};
@@ -1626,9 +1627,21 @@ namespace m_bmqtool {
 struct JournalCommandChoiceType {
   public:
     // TYPES
-    enum Value { CONFIRM = 0, DELETE = 1, JOP = 2, MESSAGE = 3, QOP = 4 };
+    enum Value {
+        e_CONFIRM = 0,
+        e_DELETE  = 1,
+        e_JOP     = 2,
+        e_MESSAGE = 3,
+        e_QOP     = 4,
 
-    enum { NUM_ENUMERATORS = 5 };
+        CONFIRM = e_CONFIRM,
+        DELETE  = e_DELETE,
+        JOP     = e_JOP,
+        MESSAGE = e_MESSAGE,
+        QOP     = e_QOP
+    };
+
+    enum { k_NUM_ENUMERATORS = 5, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -1676,7 +1689,7 @@ struct JournalCommandChoiceType {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(m_bmqtool::JournalCommandChoiceType)
+BDLAT_DECL_ENUMERATION_TRAITS(m_bmqtool::JournalCommandChoiceType);
 
 namespace m_bmqtool {
 
@@ -1881,7 +1894,7 @@ class ListCommand {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    m_bmqtool::ListCommand)
+    m_bmqtool::ListCommand);
 template <>
 struct bdlat_UsesDefaultValueFlag<m_bmqtool::ListCommand> : bsl::true_type {};
 
@@ -2029,7 +2042,7 @@ class ListQueuesCommand {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(m_bmqtool::ListQueuesCommand)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(m_bmqtool::ListQueuesCommand);
 template <>
 struct bdlat_UsesDefaultValueFlag<m_bmqtool::ListQueuesCommand>
 : bsl::true_type {};
@@ -2251,7 +2264,7 @@ class LoadPostCommand {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    m_bmqtool::LoadPostCommand)
+    m_bmqtool::LoadPostCommand);
 template <>
 struct bdlat_UsesDefaultValueFlag<m_bmqtool::LoadPostCommand>
 : bsl::true_type {};
@@ -2267,9 +2280,15 @@ struct MessagePropertyType {
 
   public:
     // TYPES
-    enum Value { E_STRING = 0, E_INT = 1 };
+    enum Value {
+        e_E_STRING = 0,
+        e_E_INT    = 1,
 
-    enum { NUM_ENUMERATORS = 2 };
+        E_STRING = e_E_STRING,
+        E_INT    = e_E_INT
+    };
+
+    enum { k_NUM_ENUMERATORS = 2, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -2317,7 +2336,7 @@ struct MessagePropertyType {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(m_bmqtool::MessagePropertyType)
+BDLAT_DECL_ENUMERATION_TRAITS(m_bmqtool::MessagePropertyType);
 
 namespace m_bmqtool {
 
@@ -2463,7 +2482,7 @@ class MetadataCommand {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(m_bmqtool::MetadataCommand)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(m_bmqtool::MetadataCommand);
 template <>
 struct bdlat_UsesDefaultValueFlag<m_bmqtool::MetadataCommand>
 : bsl::true_type {};
@@ -2676,7 +2695,7 @@ class OpenStorageCommand {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    m_bmqtool::OpenStorageCommand)
+    m_bmqtool::OpenStorageCommand);
 template <>
 struct bdlat_UsesDefaultValueFlag<m_bmqtool::OpenStorageCommand>
 : bsl::true_type {};
@@ -3044,7 +3063,7 @@ class QlistCommandChoice {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_BITWISEMOVEABLE_TRAITS(m_bmqtool::QlistCommandChoice)
+BDLAT_DECL_CHOICE_WITH_BITWISEMOVEABLE_TRAITS(m_bmqtool::QlistCommandChoice);
 
 namespace m_bmqtool {
 
@@ -3211,7 +3230,7 @@ class StartCommand {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(m_bmqtool::StartCommand)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(m_bmqtool::StartCommand);
 template <>
 struct bdlat_UsesDefaultValueFlag<m_bmqtool::StartCommand> : bsl::true_type {};
 
@@ -3379,7 +3398,7 @@ class StopCommand {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(m_bmqtool::StopCommand)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(m_bmqtool::StopCommand);
 template <>
 struct bdlat_UsesDefaultValueFlag<m_bmqtool::StopCommand> : bsl::true_type {};
 
@@ -3641,7 +3660,7 @@ class Subscription {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    m_bmqtool::Subscription)
+    m_bmqtool::Subscription);
 template <>
 struct bdlat_UsesDefaultValueFlag<m_bmqtool::Subscription> : bsl::true_type {};
 
@@ -3922,7 +3941,7 @@ class ConfigureQueueCommand {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    m_bmqtool::ConfigureQueueCommand)
+    m_bmqtool::ConfigureQueueCommand);
 template <>
 struct bdlat_UsesDefaultValueFlag<m_bmqtool::ConfigureQueueCommand>
 : bsl::true_type {};
@@ -4090,7 +4109,7 @@ class DataCommand {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(m_bmqtool::DataCommand)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(m_bmqtool::DataCommand);
 template <>
 struct bdlat_UsesDefaultValueFlag<m_bmqtool::DataCommand> : bsl::true_type {};
 
@@ -4524,7 +4543,7 @@ class JournalCommandChoice {
 // TRAITS
 
 BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    m_bmqtool::JournalCommandChoice)
+    m_bmqtool::JournalCommandChoice);
 
 namespace m_bmqtool {
 
@@ -4765,7 +4784,7 @@ class MessageProperty {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    m_bmqtool::MessageProperty)
+    m_bmqtool::MessageProperty);
 template <>
 struct bdlat_UsesDefaultValueFlag<m_bmqtool::MessageProperty>
 : bsl::true_type {};
@@ -5058,7 +5077,7 @@ class OpenQueueCommand {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    m_bmqtool::OpenQueueCommand)
+    m_bmqtool::OpenQueueCommand);
 template <>
 struct bdlat_UsesDefaultValueFlag<m_bmqtool::OpenQueueCommand>
 : bsl::true_type {};
@@ -5227,7 +5246,7 @@ class QlistCommand {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(m_bmqtool::QlistCommand)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(m_bmqtool::QlistCommand);
 template <>
 struct bdlat_UsesDefaultValueFlag<m_bmqtool::QlistCommand> : bsl::true_type {};
 
@@ -5255,6 +5274,8 @@ class CommandLineParameters {
     bsl::string                  d_storage;
     bsl::string                  d_log;
     bsl::string                  d_sequentialMessagePattern;
+    bsl::string                  d_authnMechanism;
+    bsl::string                  d_authnData;
     int                          d_msgSize;
     int                          d_postRate;
     int                          d_postInterval;
@@ -5302,10 +5323,12 @@ class CommandLineParameters {
         ATTRIBUTE_ID_MESSAGE_PROPERTIES         = 23,
         ATTRIBUTE_ID_SUBSCRIPTIONS              = 24,
         ATTRIBUTE_ID_AUTO_PUB_SUB_MODULO        = 25,
-        ATTRIBUTE_ID_TIMEOUT_SEC                = 26
+        ATTRIBUTE_ID_TIMEOUT_SEC                = 26,
+        ATTRIBUTE_ID_AUTHN_MECHANISM            = 27,
+        ATTRIBUTE_ID_AUTHN_DATA                 = 28
     };
 
-    enum { NUM_ATTRIBUTES = 27 };
+    enum { NUM_ATTRIBUTES = 29 };
 
     enum {
         ATTRIBUTE_INDEX_MODE                       = 0,
@@ -5334,7 +5357,9 @@ class CommandLineParameters {
         ATTRIBUTE_INDEX_MESSAGE_PROPERTIES         = 23,
         ATTRIBUTE_INDEX_SUBSCRIPTIONS              = 24,
         ATTRIBUTE_INDEX_AUTO_PUB_SUB_MODULO        = 25,
-        ATTRIBUTE_INDEX_TIMEOUT_SEC                = 26
+        ATTRIBUTE_INDEX_TIMEOUT_SEC                = 26,
+        ATTRIBUTE_INDEX_AUTHN_MECHANISM            = 27,
+        ATTRIBUTE_INDEX_AUTHN_DATA                 = 28
     };
 
     // CONSTANTS
@@ -5389,6 +5414,10 @@ class CommandLineParameters {
     static const int DEFAULT_INITIALIZER_AUTO_PUB_SUB_MODULO;
 
     static const int DEFAULT_INITIALIZER_TIMEOUT_SEC;
+
+    static const char DEFAULT_INITIALIZER_AUTHN_MECHANISM[];
+
+    static const char DEFAULT_INITIALIZER_AUTHN_DATA[];
 
     static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
@@ -5590,6 +5619,14 @@ class CommandLineParameters {
     // Return a reference to the modifiable "TimeoutSec" attribute of this
     // object.
 
+    bsl::string& authnMechanism();
+    // Return a reference to the modifiable "AuthnMechanism" attribute of
+    // this object.
+
+    bsl::string& authnData();
+    // Return a reference to the modifiable "AuthnData" attribute of this
+    // object.
+
     // ACCESSORS
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
@@ -5730,6 +5767,14 @@ class CommandLineParameters {
     int timeoutSec() const;
     // Return the value of the "TimeoutSec" attribute of this object.
 
+    const bsl::string& authnMechanism() const;
+    // Return a reference offering non-modifiable access to the
+    // "AuthnMechanism" attribute of this object.
+
+    const bsl::string& authnData() const;
+    // Return a reference offering non-modifiable access to the "AuthnData"
+    // attribute of this object.
+
     // HIDDEN FRIENDS
     friend bool operator==(const CommandLineParameters& lhs,
                            const CommandLineParameters& rhs)
@@ -5772,7 +5817,7 @@ class CommandLineParameters {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    m_bmqtool::CommandLineParameters)
+    m_bmqtool::CommandLineParameters);
 template <>
 struct bdlat_UsesDefaultValueFlag<m_bmqtool::CommandLineParameters>
 : bsl::true_type {};
@@ -5985,7 +6030,7 @@ class JournalCommand {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    m_bmqtool::JournalCommand)
+    m_bmqtool::JournalCommand);
 template <>
 struct bdlat_UsesDefaultValueFlag<m_bmqtool::JournalCommand> : bsl::true_type {
 };
@@ -6262,7 +6307,7 @@ class PostCommand {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    m_bmqtool::PostCommand)
+    m_bmqtool::PostCommand);
 template <>
 struct bdlat_UsesDefaultValueFlag<m_bmqtool::PostCommand> : bsl::true_type {};
 
@@ -6944,7 +6989,7 @@ class Command {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(m_bmqtool::Command)
+BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(m_bmqtool::Command);
 
 // ============================================================================
 //                          INLINE DEFINITIONS
@@ -10631,6 +10676,8 @@ void CommandLineParameters::hashAppendImpl(
     hashAppend(hashAlgorithm, this->subscriptions());
     hashAppend(hashAlgorithm, this->autoPubSubModulo());
     hashAppend(hashAlgorithm, this->timeoutSec());
+    hashAppend(hashAlgorithm, this->authnMechanism());
+    hashAppend(hashAlgorithm, this->authnData());
 }
 
 inline bool
@@ -10661,7 +10708,9 @@ CommandLineParameters::isEqualTo(const CommandLineParameters& rhs) const
            this->messageProperties() == rhs.messageProperties() &&
            this->subscriptions() == rhs.subscriptions() &&
            this->autoPubSubModulo() == rhs.autoPubSubModulo() &&
-           this->timeoutSec() == rhs.timeoutSec();
+           this->timeoutSec() == rhs.timeoutSec() &&
+           this->authnMechanism() == rhs.authnMechanism() &&
+           this->authnData() == rhs.authnData();
 }
 
 // CLASS METHODS
@@ -10834,6 +10883,18 @@ int CommandLineParameters::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
+    ret = manipulator(&d_authnMechanism,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTHN_MECHANISM]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_authnData,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTHN_DATA]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -10959,6 +11020,15 @@ int CommandLineParameters::manipulateAttribute(t_MANIPULATOR& manipulator,
     case ATTRIBUTE_ID_TIMEOUT_SEC: {
         return manipulator(&d_timeoutSec,
                            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TIMEOUT_SEC]);
+    }
+    case ATTRIBUTE_ID_AUTHN_MECHANISM: {
+        return manipulator(
+            &d_authnMechanism,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTHN_MECHANISM]);
+    }
+    case ATTRIBUTE_ID_AUTHN_DATA: {
+        return manipulator(&d_authnData,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTHN_DATA]);
     }
     default: return NOT_FOUND;
     }
@@ -11113,6 +11183,16 @@ inline int& CommandLineParameters::autoPubSubModulo()
 inline int& CommandLineParameters::timeoutSec()
 {
     return d_timeoutSec;
+}
+
+inline bsl::string& CommandLineParameters::authnMechanism()
+{
+    return d_authnMechanism;
+}
+
+inline bsl::string& CommandLineParameters::authnData()
+{
+    return d_authnData;
 }
 
 // ACCESSORS
@@ -11277,6 +11357,18 @@ int CommandLineParameters::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
+    ret = accessor(d_authnMechanism,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTHN_MECHANISM]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_authnData,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTHN_DATA]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -11395,6 +11487,14 @@ int CommandLineParameters::accessAttribute(t_ACCESSOR& accessor, int id) const
     case ATTRIBUTE_ID_TIMEOUT_SEC: {
         return accessor(d_timeoutSec,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TIMEOUT_SEC]);
+    }
+    case ATTRIBUTE_ID_AUTHN_MECHANISM: {
+        return accessor(d_authnMechanism,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTHN_MECHANISM]);
+    }
+    case ATTRIBUTE_ID_AUTHN_DATA: {
+        return accessor(d_authnData,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTHN_DATA]);
     }
     default: return NOT_FOUND;
     }
@@ -11552,6 +11652,16 @@ inline int CommandLineParameters::autoPubSubModulo() const
 inline int CommandLineParameters::timeoutSec() const
 {
     return d_timeoutSec;
+}
+
+inline const bsl::string& CommandLineParameters::authnMechanism() const
+{
+    return d_authnMechanism;
+}
+
+inline const bsl::string& CommandLineParameters::authnData() const
+{
+    return d_authnData;
 }
 
 // --------------------
@@ -12513,6 +12623,13 @@ inline bool Command::isUndefinedValue() const
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY BLP_BAS_CODEGEN_2025.10.09.2
+// GENERATED BY BLP_BAS_CODEGEN_2026.02.05
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package m_bmqtool --msgComponent messages bmqtoolcmd.xsd
+// ----------------------------------------------------------------------------
+// NOTICE:
+//      Copyright 2026 Bloomberg Finance L.P. All rights reserved.
+//      Property of Bloomberg Finance L.P. (BFLP)
+//      This software is made available solely pursuant to the
+//      terms of a BFLP license agreement which governs its use.
+// ------------------------------- END-OF-FILE --------------------------------
