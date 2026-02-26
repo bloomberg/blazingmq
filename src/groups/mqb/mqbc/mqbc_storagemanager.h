@@ -630,6 +630,9 @@ class StorageManager BSLS_KEYWORD_FINAL
     void do_replicaDataRequestResize(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
 
+    void do_replicaDataRequestResizeIfNeeded(const EventWithData& event)
+        BSLS_KEYWORD_OVERRIDE;
+
     void do_replicaDataResponseResize(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
 
