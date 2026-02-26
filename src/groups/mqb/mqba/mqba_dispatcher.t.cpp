@@ -19,6 +19,7 @@
 // MQB
 #include <mqbcfg_messages.h>
 #include <mqbmock_dispatcher.h>
+#include <mqbstat_dispatcherstats.h>
 
 #include <bmqex_bindutil.h>
 #include <bmqex_executionpolicy.h>
@@ -237,8 +238,13 @@ static void test1_breathingTest()
 
     {
         // Create Dispatcher
+        bsl::shared_ptr<bmqst::StatContext> statContext =
+            mqbstat::DispatcherStatsUtil::initializeStatContext(
+                0,
+                bmqtst::TestHelperUtil::allocator());
         mqbcfg::DispatcherConfig dispatcherConfig = makeConfig();
         mqba::Dispatcher         dispatcher(dispatcherConfig,
+                                    statContext.get(),
                                     &eventScheduler,
                                     bmqtst::TestHelperUtil::allocator());
     }
@@ -306,8 +312,13 @@ static void test3_executorsSupport()
     BSLS_ASSERT_OPT(rc == 0);
 
     // create the dispatcher
+    bsl::shared_ptr<bmqst::StatContext> statContext =
+        mqbstat::DispatcherStatsUtil::initializeStatContext(
+            0,
+            bmqtst::TestHelperUtil::allocator());
     mqbcfg::DispatcherConfig dispatcherConfig = makeConfig();
-    mqba::Dispatcher dispatcher(dispatcherConfig,
+    mqba::Dispatcher         dispatcher(dispatcherConfig,
+                                statContext.get(),
                                 &eventScheduler,
                                 bmqtst::TestHelperUtil::allocator());
 
@@ -495,8 +506,13 @@ static void test4_eventSource()
 
     {
         // Create Dispatcher
+        bsl::shared_ptr<bmqst::StatContext> statContext =
+            mqbstat::DispatcherStatsUtil::initializeStatContext(0, alloc);
         mqbcfg::DispatcherConfig dispatcherConfig = makeConfig();
-        mqba::Dispatcher dispatcher(dispatcherConfig, &eventScheduler, alloc);
+        mqba::Dispatcher         dispatcher(dispatcherConfig,
+                                    statContext.get(),
+                                    &eventScheduler,
+                                    alloc);
 
         // Start the dispatcher
         bsl::stringstream startErr(alloc);
@@ -593,8 +609,13 @@ static void testN1_inDispatcherThread()
 
     {
         // Create dispatcher
+        bsl::shared_ptr<bmqst::StatContext> statContext =
+            mqbstat::DispatcherStatsUtil::initializeStatContext(
+                0,
+                bmqtst::TestHelperUtil::allocator());
         mqbcfg::DispatcherConfig dispatcherConfig = makeConfig();
-        mqba::Dispatcher obj(dispatcherConfig,
+        mqba::Dispatcher         obj(dispatcherConfig,
+                             statContext.get(),
                              &eventScheduler,
                              bmqtst::TestHelperUtil::allocator());
 
