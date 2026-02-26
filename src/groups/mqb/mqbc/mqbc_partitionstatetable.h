@@ -49,14 +49,44 @@ struct PartitionStateTableState {
 
     /// Enumeration used to distinguish among different type of state.
     enum Enum {
-        e_UNKNOWN              = 0,
+        /// The primary is unknown.
+        e_UNKNOWN = 0,
+
+        /// Self is in primary healing stage 1, which collects sequence
+        /// numbers from replicas through state requests/responses to determine
+        /// the most up-to-date node.
         e_PRIMARY_HEALING_STG1 = 1,
+
+        /// Self is in primary healing stage 2, which synchronizes self with
+        /// the most up-to-date node if self is behind, then sychronizes data
+        /// with all replicas.
         e_PRIMARY_HEALING_STG2 = 2,
-        e_REPLICA_HEALING      = 3,
-        e_PRIMARY_HEALED       = 4,
-        e_REPLICA_HEALED       = 5,
-        e_STOPPED              = 6,
-        e_NUM_STATES           = 7
+
+        /// Self is healed primary, which guarantees that a quorum of nodes
+        /// have synchronized their storage data.
+        e_PRIMARY_HEALED = 3,
+
+        /// Self is replica, waiting for either success of failure
+        /// PrimaryStateResponse.  It **must** reject the ReplicaStateRequest
+        /// to prevent primary from healing us twice in a row, leading to
+        /// duplicate work.
+        e_REPLICA_WAITING = 4,
+
+        /// Self is healing replica, following instructions from primary to
+        /// synchronize its storage data.
+        e_REPLICA_HEALING = 5,
+
+        /// Self is healed replica, which guarantees that self has synchronized
+        /// its storage data with the primary.
+        e_REPLICA_HEALED = 6,
+
+        /// Self is stopping.  Self could be either primary or replica, or
+        /// replica might be unknown.
+        e_STOPPED = 7,
+
+        /// **NOT A VALID STATE**.  This is an artificial enum value to
+        /// represent the number of states.
+        e_NUM_STATES = 8
     };
 
     // CLASS METHODS
@@ -229,6 +259,11 @@ class PartitionStateTableActions {
 
     virtual void do_logFailurePrimaryStateResponse(const ARGS& args) = 0;
 
+    virtual void do_logUnexpectedPrimaryStateResponse(const ARGS& args) = 0;
+
+    virtual void
+    do_logUnexpectedFailurePrimaryStateResponse(const ARGS& args) = 0;
+
     virtual void do_primaryStateRequest(const ARGS& args) = 0;
 
     virtual void do_primaryStateResponse(const ARGS& args) = 0;
@@ -332,7 +367,7 @@ class PartitionStateTableActions {
         const ARGS& args);
 
     void
-    do_closeRecoveryFileSet_attemptOpenStorage_replicaDataRequestPush_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
+    do_closeRecoveryFileSet_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
         const ARGS& args);
 
     void do_setExpectedDataChunkRange_replicaDataRequestPull(const ARGS& args);
@@ -438,7 +473,11 @@ class PartitionStateTable
             UNKNOWN,
             DETECT_SELF_REPLICA,
             startWatchDog_openRecoveryFileSet_storeSelfSeq_primaryStateRequest,
-            REPLICA_HEALING);
+            REPLICA_WAITING);
+        PST_CFG(UNKNOWN,
+                PRIMARY_STATE_RQST,
+                failurePrimaryStateResponse,
+                UNKNOWN);
         PST_CFG(UNKNOWN, STOP_NODE, none, STOPPED);
         PST_CFG(PRIMARY_HEALING_STG1,
                 DETECT_SELF_REPLICA,
@@ -467,7 +506,7 @@ class PartitionStateTable
         PST_CFG(
             PRIMARY_HEALING_STG1,
             SELF_HIGHEST_SEQ,
-            closeRecoveryFileSet_attemptOpenStorage_replicaDataRequestPush_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn,
+            closeRecoveryFileSet_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn,
             PRIMARY_HEALING_STG2);
         PST_CFG(PRIMARY_HEALING_STG1,
                 REPLICA_HIGHEST_SEQ,
@@ -502,6 +541,10 @@ class PartitionStateTable
             REPLICA_STATE_RSPN,
             storeReplicaSeq_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks,
             PRIMARY_HEALING_STG2);
+        PST_CFG(PRIMARY_HEALING_STG2,
+                FAIL_REPLICA_STATE_RSPN,
+                logFailureReplicaStateResponse,
+                PRIMARY_HEALING_STG2);
         PST_CFG(
             PRIMARY_HEALING_STG2,
             PRIMARY_STATE_RQST,
@@ -541,6 +584,42 @@ class PartitionStateTable
                 STOP_NODE,
                 cleanupMetadata_closeRecoveryFileSet_stopWatchDog,
                 STOPPED);
+        PST_CFG(REPLICA_WAITING,
+                DETECT_SELF_PRIMARY,
+                cleanupMetadata_stopWatchDog_reapplyEvent,
+                UNKNOWN);
+        PST_CFG(REPLICA_WAITING,
+                DETECT_SELF_REPLICA,
+                cleanupMetadata_stopWatchDog_reapplyEvent,
+                UNKNOWN);
+        PST_CFG(REPLICA_WAITING,
+                REPLICA_STATE_RQST,
+                failureReplicaStateResponse,
+                REPLICA_WAITING);
+        PST_CFG(REPLICA_WAITING,
+                PRIMARY_STATE_RQST,
+                failurePrimaryStateResponse,
+                REPLICA_WAITING);
+        PST_CFG(REPLICA_WAITING,
+                PRIMARY_STATE_RSPN,
+                storePrimarySeq,
+                REPLICA_HEALING);
+        PST_CFG(REPLICA_WAITING,
+                FAIL_PRIMARY_STATE_RSPN,
+                logFailurePrimaryStateResponse,
+                REPLICA_HEALING);
+        PST_CFG(REPLICA_WAITING,
+                RST_UNKNOWN,
+                cleanupMetadata_closeRecoveryFileSet_stopWatchDog,
+                UNKNOWN);
+        PST_CFG(REPLICA_WAITING,
+                WATCH_DOG,
+                cleanupMetadata_closeRecoveryFileSet_reapplyDetectSelfReplica,
+                UNKNOWN);
+        PST_CFG(REPLICA_WAITING,
+                STOP_NODE,
+                cleanupMetadata_closeRecoveryFileSet_stopWatchDog,
+                STOPPED);
         PST_CFG(REPLICA_HEALING,
                 DETECT_SELF_PRIMARY,
                 cleanupMetadata_stopWatchDog_reapplyEvent,
@@ -559,11 +638,11 @@ class PartitionStateTable
                 REPLICA_HEALING);
         PST_CFG(REPLICA_HEALING,
                 PRIMARY_STATE_RSPN,
-                storePrimarySeq,
+                logUnexpectedPrimaryStateResponse,
                 REPLICA_HEALING);
         PST_CFG(REPLICA_HEALING,
                 FAIL_PRIMARY_STATE_RSPN,
-                logFailurePrimaryStateResponse,
+                logUnexpectedFailurePrimaryStateResponse,
                 REPLICA_HEALING);
         PST_CFG(REPLICA_HEALING,
                 REPLICA_DATA_RQST_PULL,
@@ -627,6 +706,10 @@ class PartitionStateTable
                 replicaStateResponse,
                 REPLICA_HEALED);
         PST_CFG(REPLICA_HEALED,
+                FAIL_PRIMARY_STATE_RSPN,
+                logFailurePrimaryStateResponse,
+                REPLICA_HEALED);
+        PST_CFG(REPLICA_HEALED,
                 REPLICA_DATA_RQST_PUSH,
                 replicaDataResponsePush,
                 REPLICA_HEALED);
@@ -646,6 +729,10 @@ class PartitionStateTable
             REPLICA_STATE_RSPN,
             storeSelfSeq_storeReplicaSeq_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks,
             PRIMARY_HEALED);
+        PST_CFG(PRIMARY_HEALED,
+                FAIL_REPLICA_STATE_RSPN,
+                logFailureReplicaStateResponse,
+                PRIMARY_HEALED);
         PST_CFG(
             PRIMARY_HEALED,
             PRIMARY_STATE_RQST,
@@ -807,12 +894,13 @@ void PartitionStateTableActions<ARGS>::
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_closeRecoveryFileSet_attemptOpenStorage_replicaDataRequestPush_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
+    do_closeRecoveryFileSet_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
         const ARGS& args)
 {
     do_closeRecoveryFileSet(args);
     do_attemptOpenStorage(args);
     do_replicaDataRequestPush(args);
+    do_replicaDataRequestDrop(args);
     do_startSendDataChunks(args);
     do_incrementNumRplcaDataRspn(args);
     do_checkQuorumRplcaDataRspn(args);

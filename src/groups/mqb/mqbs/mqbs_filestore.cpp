@@ -4736,6 +4736,14 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
                     return 10 * rc + rc_ROLLOVER_FAILURE;  // RETURN
                 }
             }
+            else {
+                BSLS_ASSERT_SAFE(SyncPointType::e_REGULAR ==
+                                 jOpRec->syncPointType());
+                BALL_LOG_INFO << partitionDesc()
+                              << "Received regular sync point: " << syncPoint
+                              << ", at journal offset: " << recordOffset
+                              << ".";
+            }
 
             // If self is stopping, update the flag which indicates that self
             // has received the "last" SyncPt from the primary, and self should
