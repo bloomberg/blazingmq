@@ -42,6 +42,8 @@ class TestRolloverCSL:
         Test that rolling over CSL cleans up the old file.
         """
         leader = cluster.last_known_leader
+        leader.drain()
+
         proxy = next(cluster.proxy_cycle())
         domain_priority = domain_urls.domain_priority
 
@@ -88,6 +90,7 @@ class TestRolloverCSL:
         """
         du = domain_urls
         leader = cluster.last_known_leader
+        leader.drain()
         proxy = next(cluster.proxy_cycle())
         producer = proxy.create_client("producer")
 
