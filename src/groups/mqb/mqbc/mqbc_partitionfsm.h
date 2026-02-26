@@ -127,27 +127,26 @@ class PartitionFSMEventData {
     /// `seqNum` and optionally specified `firstSyncPointAfterRollloverSeqNum`.
     /// There are also optionally specified `highestSeqNumNode`,
     /// `seqNumDataRange`.
-    PartitionFSMEventData(
-        mqbnet::ClusterNode*                         source,
-        int                                          requestId,
-        int                                          partitionId,
-        int                                          incrementCount,
-        mqbnet::ClusterNode*                         primary        = 0,
-        unsigned int                                 primaryLeaseId = 0,
-        const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum =
-            bmqp_ctrlmsg::PartitionSequenceNumber(),
-        const bmqp_ctrlmsg::PartitionSequenceNumber&
-            firstSyncPointAfterRollloverSeqNum =
-                bmqp_ctrlmsg::PartitionSequenceNumber(),
-        mqbnet::ClusterNode*            highestSeqNumNode = 0,
-        const PartitionSeqNumDataRange& seqNumDataRange =
-            PartitionSeqNumDataRange());
+    PartitionFSMEventData(mqbnet::ClusterNode* source,
+                          int                  requestId,
+                          int                  partitionId,
+                          int                  incrementCount,
+                          mqbnet::ClusterNode* primary        = 0,
+                          unsigned int         primaryLeaseId = 0,
+                          const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum =
+                              bmqp_ctrlmsg::PartitionSequenceNumber(),
+                          const bmqp_ctrlmsg::PartitionSequenceNumber&
+                              firstSyncPointAfterRollloverSeqNum =
+                                  bmqp_ctrlmsg::PartitionSequenceNumber(),
+                          mqbnet::ClusterNode* highestSeqNumNode = 0,
+                          const PartitionSeqNumDataRange& seqNumDataRange =
+                              PartitionSeqNumDataRange());
 
     /// Create an instance of PartitionFSMEventData using the specified
     /// `source` where request id is the specified `requestId`, the
     /// partition identifier is the specified `partitionId`, the specified
-    /// 'incrementCount', the associated primary and primary lease id are 
-    /// the specified `primary` and `primaryLeaseId`, 
+    /// 'incrementCount', the associated primary and primary lease id are
+    /// the specified `primary` and `primaryLeaseId`,
     /// the associated data sequence number is the specified
     /// `seqNum`, the first sync point after rollover sequence number is the
     /// specified `firstSyncPointAfterRollloverSeqNum`, and partition max file
@@ -348,9 +347,9 @@ inline PartitionFSMEventData::PartitionFSMEventData(
     unsigned int                                 primaryLeaseId,
     const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum,
     const bmqp_ctrlmsg::PartitionSequenceNumber&
-        firstSyncPointAfterRollloverSeqNum,
-    mqbnet::ClusterNode*                       highestSeqNumNode,
-    const PartitionSeqNumDataRange&            seqNumDataRange)
+                                    firstSyncPointAfterRollloverSeqNum,
+    mqbnet::ClusterNode*            highestSeqNumNode,
+    const PartitionSeqNumDataRange& seqNumDataRange)
 : d_source_p(source)
 , d_requestId(requestId)
 , d_partitionId(partitionId)
