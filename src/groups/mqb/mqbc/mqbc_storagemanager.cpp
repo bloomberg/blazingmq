@@ -15,6 +15,7 @@
 
 // mqbc_storagemanager.cpp                                            -*-C++-*-
 #include <ball_log.h>
+#include <ball_logthrottle.h>
 #include <bsls_assert.h>
 #include <mqbc_storagemanager.h>
 
@@ -52,6 +53,18 @@ namespace BloombergLP {
 namespace mqbc {
 
 namespace {
+
+const int k_MAX_INSTANT_MESSAGES = 10;
+// Maximum messages logged with throttling in a short period of time.
+
+const bsls::Types::Int64 k_NS_PER_MESSAGE =
+    bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
+// Time interval between messages logged with throttling.
+
+#define BMQ_LOGTHROTTLE_WARN                                                  \
+    BALL_LOGTHROTTLE_WARN(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)           \
+        << "[THROTTLED] "
+
 const int k_GC_MESSAGES_INTERVAL_SECONDS = 5;
 
 bool isPrimaryActive(const mqbi::StorageManager_PartitionInfo pinfo)
@@ -4338,8 +4351,9 @@ void StorageManager::processStorageEvent(
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!d_isStarted)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        BALL_LOG_INFO << d_clusterData_p->identity().description()
-                      << " Dropping storage event as storage has been closed.";
+        BMQ_LOGTHROTTLE_WARN
+            << d_clusterData_p->identity().description()
+            << " Dropping storage event as storage has been closed.";
         return;  // RETURN
     }
 
@@ -4353,10 +4367,11 @@ void StorageManager::processStorageEvent(
     const unsigned int pid = StorageUtil::extractPartitionId<false>(rawEvent);
 
     if (d_cluster_p->isStopping()) {
-        BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << " Partition [" << pid << "]: "
-                      << "Cluster is stopping; skipping processing of "
-                      << "storage event.";
+        BMQ_LOGTHROTTLE_WARN
+            << d_clusterData_p->identity().description() << " Partition ["
+            << pid
+            << "]: Cluster is stopping; skipping processing of storage event.";
+
         return;  // RETURN
     }
 

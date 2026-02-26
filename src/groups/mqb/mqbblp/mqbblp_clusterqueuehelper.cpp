@@ -5561,7 +5561,7 @@ void ClusterQueueHelper::processNodeStoppingNotification(
                                           VoidFunctor()));
             }
             BALL_LOG_INFO << d_clusterData_p->identity().description()
-                          << ": deconfigured " << handles.size()
+                          << ": deconfiguring " << handles.size()
                           << " handles while processing StopRequest from "
                           << clusterNode->nodeDescription() << " "
                           << contextSp.numReferences();
