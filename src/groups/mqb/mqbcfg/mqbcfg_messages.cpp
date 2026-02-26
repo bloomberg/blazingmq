@@ -1,4 +1,4 @@
-// Copyright 2026 Bloomberg Finance L.P.
+// Copyright 2025-2026 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -189,6 +189,22 @@ const bool ClusterAttributes::DEFAULT_INITIALIZER_IS_F_S_M_WORKFLOW = false;
 const bool ClusterAttributes::DEFAULT_INITIALIZER_DOES_F_S_MWRITE_Q_L_I_S_T =
     true;
 
+const int
+    ClusterAttributes::DEFAULT_INITIALIZER_CLUSTER_FSM_WATCHDOG_TIMEOUT_SEC =
+        300;
+
+const int
+    ClusterAttributes::DEFAULT_INITIALIZER_CLUSTER_FSM_WATCHDOG_NUM_RETRIES =
+        1;
+
+const int
+    ClusterAttributes::DEFAULT_INITIALIZER_PARTITION_FSM_WATCHDOG_TIMEOUT_SEC =
+        300;
+
+const int
+    ClusterAttributes::DEFAULT_INITIALIZER_PARTITION_FSM_WATCHDOG_NUM_RETRIES =
+        1;
+
 const bdlat_AttributeInfo ClusterAttributes::ATTRIBUTE_INFO_ARRAY[] = {
     {ATTRIBUTE_ID_IS_C_S_L_MODE_ENABLED,
      "isCSLModeEnabled",
@@ -204,14 +220,34 @@ const bdlat_AttributeInfo ClusterAttributes::ATTRIBUTE_INFO_ARRAY[] = {
      "doesFSMwriteQLIST",
      sizeof("doesFSMwriteQLIST") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
+    {ATTRIBUTE_ID_CLUSTER_FSM_WATCHDOG_TIMEOUT_SEC,
+     "clusterFsmWatchdogTimeoutSec",
+     sizeof("clusterFsmWatchdogTimeoutSec") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+    {ATTRIBUTE_ID_CLUSTER_FSM_WATCHDOG_NUM_RETRIES,
+     "clusterFsmWatchdogNumRetries",
+     sizeof("clusterFsmWatchdogNumRetries") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+    {ATTRIBUTE_ID_PARTITION_FSM_WATCHDOG_TIMEOUT_SEC,
+     "partitionFsmWatchdogTimeoutSec",
+     sizeof("partitionFsmWatchdogTimeoutSec") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+    {ATTRIBUTE_ID_PARTITION_FSM_WATCHDOG_NUM_RETRIES,
+     "partitionFsmWatchdogNumRetries",
+     sizeof("partitionFsmWatchdogNumRetries") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
 const bdlat_AttributeInfo*
 ClusterAttributes::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 7; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             ClusterAttributes::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -234,6 +270,18 @@ const bdlat_AttributeInfo* ClusterAttributes::lookupAttributeInfo(int id)
     case ATTRIBUTE_ID_DOES_F_S_MWRITE_Q_L_I_S_T:
         return &ATTRIBUTE_INFO_ARRAY
             [ATTRIBUTE_INDEX_DOES_F_S_MWRITE_Q_L_I_S_T];
+    case ATTRIBUTE_ID_CLUSTER_FSM_WATCHDOG_TIMEOUT_SEC:
+        return &ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_CLUSTER_FSM_WATCHDOG_TIMEOUT_SEC];
+    case ATTRIBUTE_ID_CLUSTER_FSM_WATCHDOG_NUM_RETRIES:
+        return &ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_CLUSTER_FSM_WATCHDOG_NUM_RETRIES];
+    case ATTRIBUTE_ID_PARTITION_FSM_WATCHDOG_TIMEOUT_SEC:
+        return &ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_PARTITION_FSM_WATCHDOG_TIMEOUT_SEC];
+    case ATTRIBUTE_ID_PARTITION_FSM_WATCHDOG_NUM_RETRIES:
+        return &ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_PARTITION_FSM_WATCHDOG_NUM_RETRIES];
     default: return 0;
     }
 }
@@ -241,7 +289,15 @@ const bdlat_AttributeInfo* ClusterAttributes::lookupAttributeInfo(int id)
 // CREATORS
 
 ClusterAttributes::ClusterAttributes()
-: d_isCSLModeEnabled(DEFAULT_INITIALIZER_IS_C_S_L_MODE_ENABLED)
+: d_clusterFsmWatchdogTimeoutSec(
+      DEFAULT_INITIALIZER_CLUSTER_FSM_WATCHDOG_TIMEOUT_SEC)
+, d_clusterFsmWatchdogNumRetries(
+      DEFAULT_INITIALIZER_CLUSTER_FSM_WATCHDOG_NUM_RETRIES)
+, d_partitionFsmWatchdogTimeoutSec(
+      DEFAULT_INITIALIZER_PARTITION_FSM_WATCHDOG_TIMEOUT_SEC)
+, d_partitionFsmWatchdogNumRetries(
+      DEFAULT_INITIALIZER_PARTITION_FSM_WATCHDOG_NUM_RETRIES)
+, d_isCSLModeEnabled(DEFAULT_INITIALIZER_IS_C_S_L_MODE_ENABLED)
 , d_isFSMWorkflow(DEFAULT_INITIALIZER_IS_F_S_M_WORKFLOW)
 , d_doesFSMwriteQLIST(DEFAULT_INITIALIZER_DOES_F_S_MWRITE_Q_L_I_S_T)
 {
@@ -254,6 +310,14 @@ void ClusterAttributes::reset()
     d_isCSLModeEnabled  = DEFAULT_INITIALIZER_IS_C_S_L_MODE_ENABLED;
     d_isFSMWorkflow     = DEFAULT_INITIALIZER_IS_F_S_M_WORKFLOW;
     d_doesFSMwriteQLIST = DEFAULT_INITIALIZER_DOES_F_S_MWRITE_Q_L_I_S_T;
+    d_clusterFsmWatchdogTimeoutSec =
+        DEFAULT_INITIALIZER_CLUSTER_FSM_WATCHDOG_TIMEOUT_SEC;
+    d_clusterFsmWatchdogNumRetries =
+        DEFAULT_INITIALIZER_CLUSTER_FSM_WATCHDOG_NUM_RETRIES;
+    d_partitionFsmWatchdogTimeoutSec =
+        DEFAULT_INITIALIZER_PARTITION_FSM_WATCHDOG_TIMEOUT_SEC;
+    d_partitionFsmWatchdogNumRetries =
+        DEFAULT_INITIALIZER_PARTITION_FSM_WATCHDOG_NUM_RETRIES;
 }
 
 // ACCESSORS
@@ -267,6 +331,14 @@ bsl::ostream& ClusterAttributes::print(bsl::ostream& stream,
     printer.printAttribute("isCSLModeEnabled", this->isCSLModeEnabled());
     printer.printAttribute("isFSMWorkflow", this->isFSMWorkflow());
     printer.printAttribute("doesFSMwriteQLIST", this->doesFSMwriteQLIST());
+    printer.printAttribute("clusterFsmWatchdogTimeoutSec",
+                           this->clusterFsmWatchdogTimeoutSec());
+    printer.printAttribute("clusterFsmWatchdogNumRetries",
+                           this->clusterFsmWatchdogNumRetries());
+    printer.printAttribute("partitionFsmWatchdogTimeoutSec",
+                           this->partitionFsmWatchdogTimeoutSec());
+    printer.printAttribute("partitionFsmWatchdogNumRetries",
+                           this->partitionFsmWatchdogNumRetries());
     printer.end();
     return stream;
 }
