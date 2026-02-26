@@ -49,65 +49,55 @@ struct ExitCode {
   public:
     // TYPES
     enum Enum {
-        e_SUCCESS = 0  // Clean exit
+        /// Clean exit
+        e_SUCCESS = 0,
 
-        ,
-        e_COMMAND_LINE = 1  // Error while parsing the command line
-                            // parameters, this typically mean that an
-                            // invalid argument was provided.
+        /// Error while parsing the command line parameters, this typically
+        /// mean that an invalid argument was provided.
+        e_COMMAND_LINE = 1,
 
-        ,
-        e_CONFIG_GENERATION = 2  // Error while generating the
-                                 // configuration, or parsing the generated
-                                 // configuration: this could mean the
-                                 // python failed to execute, the generated
-                                 // output was invalid JSON syntax, or
-                                 // didn't match the expected schema.
+        /// Error while generating the configuration, or parsing the generated
+        /// configuration: this could mean the python failed to execute, the
+        /// generated output was invalid JSON syntax, or didn't match the
+        /// expected schema.
+        e_CONFIG_GENERATION = 2,
 
-        ,
-        e_TASK_INITIALIZE = 3  // Failed to initialize the task.  Possible
-                               // cause are invalid configuration, failed
-                               // to create threads, unable to open the
-                               // pipe control channel, ..
+        /// Failed to initialize the task.  Possible cause are invalid
+        /// configuration, failed to create threads, unable to open the pipe
+        /// control channel, ..
+        e_TASK_INITIALIZE = 3,
 
-        ,
-        e_BENCH_START = 4  // Unable to start the bench application.
+        /// Unable to start the bench application.
+        e_BENCH_START = 4,
 
-        ,
-        e_APP_INITIALIZE = 5  // Failed to initialize the application.
+        /// Failed to initialize the application.
+        e_APP_INITIALIZE = 5,
 
-        ,
-        e_RUN = 6  // Failed to start the application (many
-                   // reasons such as failed to listen to TCP
-                   // port, ...).
+        /// Failed to start the application (many reasons such as failed to
+        /// listen to TCP port, ...).
+        e_RUN = 6,
 
-        ,
-        e_QUEUEID_FULL = 7  // The upstream queueId counter has reached
-                            // capacity limit.
+        /// The upstream queueId counter has reached capacity limit.
+        e_QUEUEID_FULL = 7,
 
-        ,
-        e_SUBQUEUEID_FULL = 8  // The upstream subQueueId counter has
-                               // reached capacity limit for a particular
-                               // queue
+        /// The upstream subQueueId counter has reached capacity limit for a
+        /// particular queue
+        e_SUBQUEUEID_FULL = 8,
 
-        ,
-        e_RECOVERY_FAILURE = 9  // A fatal error was encountered while
-                                // attempting storage recovery.
+        /// A fatal error was encountered while attempting storage recovery.
+        e_RECOVERY_FAILURE = 9,
 
-        ,
-        e_STORAGE_OUT_OF_SYNC = 10  // Storage on this node has gone out of
-                                    // sync.
+        /// Storage on this node has gone out of sync.
+        e_STORAGE_OUT_OF_SYNC = 10,
 
-        ,
-        e_UNSUPPORTED_SCENARIO = 11  // An supported scenario was encountered.
+        /// An supported scenario was encountered.
+        e_UNSUPPORTED_SCENARIO = 11,
 
-        ,
-        e_MEMORY_LIMIT = 12  // The configured maximum memory allocation
-                             // has been reached.
+        /// The configured maximum memory allocation has been reached.
+        e_MEMORY_LIMIT = 12,
 
-        ,
-        e_REQUESTED = 13  // The broker was requested, through a
-                          // command, to stop.
+        /// The broker was requested, through a command, to stop.
+        e_REQUESTED = 13
     };
 
     // CLASS METHODS

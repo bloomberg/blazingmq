@@ -1,5 +1,6 @@
 mqbu_capacitymeter
 mqbu_exit
+mqbu_flowcontroller
 mqbu_loadbalancer
 mqbu_messageguidutil
 mqbu_resourceusagemonitor

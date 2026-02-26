@@ -134,11 +134,12 @@ namespace mqbu {
 struct ResourceUsageMonitorState {
     // TYPES
     enum Enum {
-        e_STATE_NORMAL = 0  // Monitor is in normal state
-        ,
-        e_STATE_HIGH_WATERMARK = 1  // Monitor is in high watermark state
-        ,
-        e_STATE_FULL = 2  // Monitor is full
+        /// Monitor is in normal state
+        e_STATE_NORMAL = 0,
+        /// Monitor is in high watermark state
+        e_STATE_HIGH_WATERMARK = 1,
+        /// Monitor is full
+        e_STATE_FULL = 2
     };
 
     // CLASS METHODS
@@ -187,13 +188,14 @@ bsl::ostream& operator<<(bsl::ostream&                   stream,
 struct ResourceUsageMonitorStateTransition {
     // TYPES
     enum Enum {
-        e_NO_CHANGE  // The state of the monitor hasn't changed
-        ,
-        e_LOW_WATERMARK  // The value is back to low watermark
-        ,
-        e_HIGH_WATERMARK  // The value has reached the high watermark
-        ,
-        e_FULL  // The monitored resource is full
+        /// The state of the monitor hasn't changed
+        e_NO_CHANGE,
+        /// The value is back to low watermark
+        e_LOW_WATERMARK,
+        /// The value has reached the high watermark
+        e_HIGH_WATERMARK,
+        /// The monitored resource is full
+        e_FULL
     };
 
     // CLASS METHODS

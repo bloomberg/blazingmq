@@ -176,13 +176,12 @@ int PutMessageIterator::loadApplicationData(bdlbb::Blob* blob) const
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_INVALID_APP_DATA_OFFSET = -1  // The appData offset isn't within
-                                         // range of the blob data
-        ,
-        rc_INVALID_APP_DATA_LENGTH = -2  // The appData size from the header
-                                         // isn't with range of the blob data
+        /// Success
+        rc_SUCCESS = 0,
+        /// The appData offset isn't within range of the blob data
+        rc_INVALID_APP_DATA_OFFSET = -1,
+        /// The appData size from the header isn't with range of the blob data
+        rc_INVALID_APP_DATA_LENGTH = -2
     };
 
     if (d_applicationDataSize > -1) {
@@ -218,10 +217,10 @@ int PutMessageIterator::loadOptions(bdlbb::Blob* blob) const
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_INVALID_OPTIONS_DATA = -1  // The options size from the header isn't
-                                      // valid
+        /// Success
+        rc_SUCCESS = 0,
+        /// The options size from the header isn't valid
+        rc_INVALID_OPTIONS_DATA = -1
     };
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!hasOptions())) {
@@ -467,22 +466,17 @@ int PutMessageIterator::next()
 {
     enum RcEnum {
         // Value for the various RC error categories
-        rc_HAS_NEXT = 1  // There is another message
-                         // after this one
-        ,
-        rc_AT_END = 0  // This is the last message
-        ,
-        rc_INVALID = -1  // The Iterator is an invalid
-                         // state
-        ,
-        rc_NO_PUTHEADER = -2  // PutHeader is missing or
-                              // incomplete
-        ,
-        rc_NOT_ENOUGH_BYTES = -3  // The number of bytes in the
-                                  // blob is less than the
-                                  // header size OR payload size
-                                  // declared in the header
-        ,
+        /// There is another message after this one
+        rc_HAS_NEXT = 1,
+        /// This is the last message
+        rc_AT_END = 0,
+        /// The Iterator is an invalid state
+        rc_INVALID = -1,
+        /// PutHeader is missing or incomplete
+        rc_NO_PUTHEADER = -2,
+        /// The number of bytes in the blob is less than the header size OR
+        /// payload size declared in the header
+        rc_NOT_ENOUGH_BYTES                 = -3,
         rc_INVALID_APPLICATION_DATA_OFFSET  = -4,
         rc_PARSING_ERROR                    = -5,
         rc_INVALID_OPTIONS_OFFSET           = -6,
@@ -683,11 +677,11 @@ int PutMessageIterator::reset(const bdlbb::Blob* blob,
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_INVALID_EVENTHEADER = -1  // The blob contains only an event header
-                                     // (maybe not event complete); i.e., there
-                                     // are no messages in it
+        /// Success
+        rc_SUCCESS = 0,
+        /// The blob contains only an event header (maybe not event complete);
+        /// i.e., there are no messages in it
+        rc_INVALID_EVENTHEADER = -1
     };
 
     clear();

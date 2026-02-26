@@ -92,17 +92,14 @@ void NtcChannelFactory::processListenerResult(
             bsl::shared_ptr<bmqio::NtcChannel> alias;
             bslstl::SharedPtrUtil::dynamicCast(&alias, channel);
             if (alias) {
-                int catalogHandle = d_channels.add(alias);
-
-                // Increment resource usage count for new channel
-                d_resourceMonitor.acquire();
+                const int catalogHandle = addChannel(alias);
 
                 alias->setChannelId(catalogHandle);
-                alias->onClose(bdlf::BindUtil::bind(
-                                   &NtcChannelFactory::processChannelClosed,
-                                   this,
-                                   catalogHandle),
-                               k_CLOSE_GROUP);
+                alias->onClose(
+                    bdlf::BindUtil::bind(&NtcChannelFactory::removeChannel,
+                                         this,
+                                         catalogHandle),
+                    k_CLOSE_GROUP);
 
                 d_createSignaler(alias, alias);
 
@@ -115,19 +112,6 @@ void NtcChannelFactory::processListenerResult(
     }
 
     callback(event, status, channel);
-}
-
-void NtcChannelFactory::processListenerClosed(int handle)
-{
-    bsl::shared_ptr<bmqio::NtcListener> listener;
-    int rc = d_listeners.remove(handle, &listener);
-    if (rc == 0) {
-        BALL_LOG_TRACE << "NTC listener " << AddressFormatter(listener.get())
-                       << " at " << listener->localUri() << " deregistered"
-                       << BALL_LOG_END;
-    }
-
-    d_resourceMonitor.release();  // Decrement resource usage count
 }
 
 void NtcChannelFactory::processChannelResult(
@@ -150,19 +134,6 @@ void NtcChannelFactory::processChannelResult(
     }
 
     callback(event, status, channel);
-}
-
-void NtcChannelFactory::processChannelClosed(int handle)
-{
-    bsl::shared_ptr<bmqio::NtcChannel> channel;
-    int rc = d_channels.remove(handle, &channel);
-    if (rc == 0) {
-        BALL_LOG_TRACE << "NTC channel " << AddressFormatter(channel.get())
-                       << " to " << channel->peerUri() << " deregistered"
-                       << BALL_LOG_END;
-    }
-
-    d_resourceMonitor.release();  // Decrement resource usage count
 }
 
 // CREATORS
@@ -330,22 +301,17 @@ void NtcChannelFactory::listen(Status*                      status,
                            resultCallbackProxy,
                            d_allocator_p);
 
-    int catalogHandle = d_listeners.add(listener);
-
-    listener->onClose(
-        bdlf::BindUtil::bind(&NtcChannelFactory::processListenerClosed,
-                             this,
-                             catalogHandle),
-        k_CLOSE_GROUP);
+    const int catalogHandle = addListener(listener);
+    listener->onClose(bdlf::BindUtil::bind(&NtcChannelFactory::removeListener,
+                                           this,
+                                           catalogHandle),
+                      k_CLOSE_GROUP);
 
     rc = listener->listen(status, options);
     if (rc != 0) {
-        d_listeners.remove(catalogHandle);
+        removeListener(catalogHandle);
         return;  // RETURN
     }
-
-    // Increment resource usage count for new listener
-    d_resourceMonitor.acquire();
 
     if (handle) {
         bslma::ManagedPtr<bmqio::NtcListener> alias(listener.managedPtr());
@@ -397,19 +363,18 @@ void NtcChannelFactory::connect(Status*                      status,
                           resultCallbackProxy,
                           d_allocator_p);
 
-    int catalogHandle = d_channels.add(channel);
+    const int catalogHandle = addChannel(channel);
 
     channel->setChannelId(catalogHandle);
 
-    channel->onClose(
-        bdlf::BindUtil::bind(&NtcChannelFactory::processChannelClosed,
-                             this,
-                             catalogHandle),
-        k_CLOSE_GROUP);
+    channel->onClose(bdlf::BindUtil::bind(&NtcChannelFactory::removeChannel,
+                                          this,
+                                          catalogHandle),
+                     k_CLOSE_GROUP);
 
     rc = channel->connect(status, options);
     if (rc != 0) {
-        d_channels.remove(catalogHandle);
+        removeChannel(catalogHandle);
         return;  // RETURN
     }
 
@@ -417,9 +382,6 @@ void NtcChannelFactory::connect(Status*                      status,
         bslma::ManagedPtr<bmqio::NtcChannel> alias(channel.managedPtr());
         handle->loadAlias(alias, channel.get());
     }
-
-    // Increment resource usage count for new channel
-    d_resourceMonitor.acquire();
 
     BALL_LOG_TRACE << "NTC channel " << AddressFormatter(channel.get())
                    << " to " << channel->peerUri() << " registered"
@@ -441,6 +403,44 @@ int NtcChannelFactory::lookupChannel(
     int                                 channelId)
 {
     return d_channels.find(channelId, result);
+}
+
+void NtcChannelFactory::removeListener(int handle)
+{
+    bsl::shared_ptr<bmqio::NtcListener> listener;
+    const int rc = d_listeners.remove(handle, &listener);
+    if (rc == 0) {
+        BALL_LOG_TRACE << "NTC listener " << AddressFormatter(listener.get())
+                       << " at " << listener->localUri() << " deregistered";
+    }
+
+    d_resourceMonitor.release();
+}
+
+void NtcChannelFactory::removeChannel(int handle)
+{
+    bsl::shared_ptr<bmqio::NtcChannel> channel;
+    const int rc = d_channels.remove(handle, &channel);
+    if (rc == 0) {
+        BALL_LOG_TRACE << "NTC channel " << AddressFormatter(channel.get())
+                       << " to " << channel->peerUri() << " deregistered";
+    }
+
+    d_resourceMonitor.release();
+}
+
+int NtcChannelFactory::addListener(
+    const bsl::shared_ptr<bmqio::NtcListener>& listener)
+{
+    d_resourceMonitor.acquire();
+    return d_listeners.add(listener);
+}
+
+int NtcChannelFactory::addChannel(
+    const bsl::shared_ptr<bmqio::NtcChannel>& channel)
+{
+    d_resourceMonitor.acquire();
+    return d_channels.add(channel);
 }
 
 // ----------------------------

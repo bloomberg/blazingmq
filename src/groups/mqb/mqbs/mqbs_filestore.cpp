@@ -364,8 +364,8 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
     BSLS_ASSERT_SAFE(inDispatcherThread());
 
     enum {
-        rc_NO_FILES_TO_RECOVER = 1  // Reserved rc
-        ,
+        /// Reserved rc
+        rc_NO_FILES_TO_RECOVER                 = 1,
         rc_SUCCESS                             = 0,
         rc_RECOVERY_FILE_SET_RETRIEVAL_FAILURE = -1,
         rc_FILE_ITERATOR_FAILURE               = -2,
@@ -4024,7 +4024,7 @@ void FileStore::issueSyncPointDispatched(BSLA_UNUSED int partitionId)
 {
     // executed by the *DISPATCHER* thread
 
-    if (!d_isOpen || !d_isPrimary) {
+    if (!d_isOpen || !d_isPrimary || d_isStopping) {
         return;  // RETURN
     }
 
@@ -5394,6 +5394,9 @@ int FileStore::open(const QueueKeyInfoMap& queueKeyInfoMap)
 
 void FileStore::close(bool flush)
 {
+    // The FileStore might be not opened by the time we call `close()`
+    cancelTimersAndWait();
+
     if (!d_isOpen) {
         return;  // RETURN
     }
@@ -5402,11 +5405,6 @@ void FileStore::close(bool flush)
     d_isStopping         = false;
     d_flushWhenClosing   = flush;
     d_lastSyncPtReceived = false;
-
-    d_config.scheduler()->cancelEventAndWait(&d_syncPointEventHandle);
-    d_config.scheduler()->cancelEventAndWait(
-        &d_partitionHighwatermarkEventHandle);
-    // Ok to ignore rc above
 
     BALL_LOG_INFO << partitionDesc() << "Closing partition. ";
 
@@ -6200,11 +6198,12 @@ int FileStore::removeRecord(const DataStoreRecordHandle& handle)
 {
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_INVALID_HANDLE = -1  // Invalid handle
-        ,
-        rc_HANDLE_NOT_FOUND = -2  // Handle not found
+        /// Success
+        rc_SUCCESS = 0,
+        /// Invalid handle
+        rc_INVALID_HANDLE = -1,
+        /// Handle not found
+        rc_HANDLE_NOT_FOUND = -2
     };
 
     if (!handle.isValid()) {
@@ -6770,9 +6769,7 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
         d_isPrimary = false;
         d_partitionStats_sp->setNodeRole(
             mqbstat::PartitionStats::PrimaryStatus::e_REPLICA);
-        d_config.scheduler()->cancelEvent(&d_syncPointEventHandle);
-        d_config.scheduler()->cancelEvent(
-            &d_partitionHighwatermarkEventHandle);
+        cancelTimersAndWait();
 
         if (d_lastRecoveredStrongConsistency.d_primaryLeaseId ==
             d_primaryLeaseId) {
@@ -7225,6 +7222,7 @@ void FileStore::unregisterStorage(const ReplicatedStorage* storage)
 
 void FileStore::cancelTimersAndWait()
 {
+    // Thread: *ANY*
     d_config.scheduler()->cancelEventAndWait(&d_syncPointEventHandle);
     d_config.scheduler()->cancelEventAndWait(
         &d_partitionHighwatermarkEventHandle);

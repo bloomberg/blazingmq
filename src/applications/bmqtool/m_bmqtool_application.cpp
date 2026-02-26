@@ -784,13 +784,17 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
                         BuildConfirmOverflowFunctor(*d_session_mp.get(),
                                                     confirmBuilder));
 
-                BSLS_ASSERT_SAFE(rc == 0);
-
-                // Write to log file
-                d_fileLogger.writeConfirmMessage(message);
-                // Note that we add to the fileLogger here, despite sending
-                // the batched confirm event out of this loop because we
-                // need to access each individual's message details.
+                if (rc == 0) {
+                    // Write to log file
+                    d_fileLogger.writeConfirmMessage(message);
+                    // Note that we add to the fileLogger here, despite sending
+                    // the batched confirm event out of this loop because we
+                    // need to access each individual's message details.
+                }
+                else {
+                    BALL_LOG_ERROR << "Failed to confirm [" << message
+                                   << "]: " << rc << ".";
+                }
             }
 
             // Try to compute and record end-to-end latency, or break early
@@ -879,7 +883,6 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
         if (rc != 0) {
             BALL_LOG_ERROR << "Failed to send " << msgId << " confirms for "
                            << event << " [rc: " << rc << "]";
-            BSLS_ASSERT_SAFE(!d_isRunning);
         }
     }
 }

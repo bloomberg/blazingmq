@@ -18,10 +18,8 @@
 
 #include <mqbscm_version.h>
 // BMQ
-#include <bmqsys_time.h>
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_memoutstream.h>
-#include <bmqu_printutil.h>
 
 // MQB
 #include <mqbauthn_anonauthenticator.h>
@@ -438,8 +436,6 @@ int AuthenticationController::authenticate(
         rc_MECHANISM_NOT_SUPPORTED = -2
     };
 
-    const bsls::Types::Int64 start = bmqsys::Time::highResolutionTimer();
-
     const bsl::string normMech = normalizeMechanism(mechanism, d_allocator_p);
     AuthenticatorMap::const_iterator cit = d_authenticators.find(normMech);
     if (cit != d_authenticators.cend()) {
@@ -463,25 +459,6 @@ int AuthenticationController::authenticate(
                          << "' not supported.";
         return rc_MECHANISM_NOT_SUPPORTED;
     }
-
-    // Log the successful authentication
-    const bsls::Types::Int64 elapsed = bmqsys::Time::highResolutionTimer() -
-                                       start;
-
-    BALL_LOG_INFO_BLOCK
-    {
-        BALL_LOG_OUTPUT_STREAM << "Authentication successful: mechanism [ "
-                               << normMech << " ],  lifetimeMs [ ";
-        if ((*result)->lifetimeMs().has_value()) {
-            BALL_LOG_OUTPUT_STREAM << (*result)->lifetimeMs().value();
-        }
-        else {
-            BALL_LOG_OUTPUT_STREAM << "none";
-        }
-        BALL_LOG_OUTPUT_STREAM
-            << " ], took: " << bmqu::PrintUtil::prettyTimeInterval(elapsed)
-            << " (" << elapsed << " nanoseconds)";
-    };
 
     return rc_SUCCESS;
 }

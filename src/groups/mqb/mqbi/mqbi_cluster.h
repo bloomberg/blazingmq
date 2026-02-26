@@ -107,51 +107,39 @@ struct ClusterErrorCode {
         // - - - -
         e_OK = 0,
 
-        e_UNKNOWN = -10
-        // Operation failed for unknown reason
-        ,
-        e_STOPPING = -11
-        // The node (either current or remote) is being stopped
+        /// Operation failed for unknown reason
+        e_UNKNOWN = -10,
+        /// The node (either current or remote) is being stopped
+        e_STOPPING = -11,
 
         // ClusterProxy specific
         // - - - - - - - - - - -
-        ,
-        e_ACTIVE_LOST = -100
-        // The connection to the active node was lost
+        /// The connection to the active node was lost
+        e_ACTIVE_LOST = -100,
 
         // Cluster specific
         // - - - - - - - -
-        ,
-        e_NOT_LEADER = -200
-        // The node is not the leader of the cluster
-        ,
-        e_NOT_PRIMARY = -201
-        // The node is not the primary of the partition
-        ,
-        e_NO_PARTITION = -202
-        // Unable to find a partition for the queue
-        ,
-        e_NODE_DOWN = -203
-        // The connection with the remote node went down
-        ,
-        e_UNKNOWN_QUEUE = -204
-        // The node is not aware of that queue
-        ,
-        e_LIMIT = -205
-        // A limit has been reached, currently:
-        //: o too many active queues in the domain
-        ,
-        e_NOT_FOLLOWER = -206
-        // The node is not a follower in the cluster
-        ,
-        e_NOT_REPLICA = -207
-        // The node is not a replica of the partition
-        ,
-        e_CSL_FAILURE = -208
-        // Failure to apply to the CSL
-        ,
+        /// The node is not the leader of the cluster
+        e_NOT_LEADER = -200,
+        /// The node is not the primary of the partition
+        e_NOT_PRIMARY = -201,
+        /// Unable to find a partition for the queue
+        e_NO_PARTITION = -202,
+        /// The connection with the remote node went down
+        e_NODE_DOWN = -203,
+        /// The node is not aware of that queue
+        e_UNKNOWN_QUEUE = -204,
+        /// A limit has been reached, currently:
+        ///   - too many active queues in the domain
+        e_LIMIT = -205,
+        /// The node is not a follower in the cluster
+        e_NOT_FOLLOWER = -206,
+        /// The node is not a replica of the partition
+        e_NOT_REPLICA = -207,
+        /// Failure to apply to the CSL
+        e_CSL_FAILURE = -208,
+        /// Storage failure other than CSL failure
         e_STORAGE_FAILURE = -209
-        // Storage failure other than CSL failure
     };
 
     // CLASS METHODS

@@ -574,15 +574,14 @@ class Routers {
         const mqbi::StorageIterator* d_currentMessage_p;
         bsl::shared_ptr<bdlbb::Blob> d_appData;
         bmqp::MessagePropertiesInfo  d_messagePropertiesInfo;
-        bool                         d_isDirty;
+        bool                         d_needData;
+        unsigned int                 d_numHits;
 
       public:
         MessagePropertiesReader(bmqp::SchemaLearner& schemaLearner,
                                 bslma::Allocator*    allocator);
 
         ~MessagePropertiesReader() BSLS_KEYWORD_OVERRIDE;
-
-        void _set(bmqp::MessageProperties& properties);
 
         bdld::Datum get(const bsl::string& name,
                         bslma::Allocator*  allocator) BSLS_KEYWORD_OVERRIDE;
@@ -598,6 +597,8 @@ class Routers {
 
         /// Reset the reader to the state of empty properties.
         void clear();
+
+        unsigned int numHits() const;
     };
 
     /// Mechanism to assist `Expression`s evaluation optimization to avoid

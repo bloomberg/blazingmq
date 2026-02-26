@@ -222,8 +222,12 @@ InitialConnectionContext::~InitialConnectionContext()
 }
 
 // PRIVATE MANIPULATORS
-void InitialConnectionContext::setState(InitialConnectionState::Enum value)
+void InitialConnectionContext::setState(InitialConnectionState::Enum value,
+                                        InitialConnectionEvent::Enum event)
 {
+    BALL_LOG_DEBUG << "State transition: " << d_state << " -> (" << event
+                   << ") -> " << value << " [peer: " << d_channelSp.get()
+                   << "]";
     d_state = value;
 }
 
@@ -465,7 +469,7 @@ void InitialConnectionContext::readCallback(const bmqio::Status& status,
     // PRECONDITIONS
 
     BALL_LOG_TRACE << "InitialConnectionContext readCb: [status: " << status
-                   << ", peer: '" << channel()->peerUri() << "']";
+                   << ", peer: '" << channel().get() << "']";
 
     bdlbb::Blob        outPacket;
     bool               isFullBlob = true;
@@ -529,17 +533,16 @@ void InitialConnectionContext::handleEvent(
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
-    BALL_LOG_INFO << "Enter InitialConnectionContext::handleEvent: "
-                  << "state = " << d_state << ", event = " << event
-                  << "; peerUri = " << d_channelSp->peerUri()
-                  << "; context address = " << this;
+    BALL_LOG_DEBUG << "Enter InitialConnectionContext::handleEvent: "
+                   << "state = " << d_state << ", event = " << event
+                   << " [peer: " << d_channelSp.get() << "]";
 
     InitialConnectionState::Enum oldState = d_state;
 
     switch (event) {
     case InitialConnectionEvent::e_OUTBOUND_NEGOTIATION: {
         if (oldState == InitialConnectionState::e_INITIAL) {
-            setState(InitialConnectionState::e_NEGOTIATING_OUTBOUND);
+            setState(InitialConnectionState::e_NEGOTIATING_OUTBOUND, event);
 
             createNegotiationContext();
 
@@ -552,7 +555,7 @@ void InitialConnectionContext::handleEvent(
             errStream << "Unexpected event received: " << oldState << " -> "
                       << event;
             BALL_LOG_ERROR << "#UNEXPECTED_STATE " << errStream.str()
-                           << " [peer: " << channel()->peerUri() << "]";
+                           << " [peer: " << channel().get() << "]";
         }
         break;
     }
@@ -565,7 +568,7 @@ void InitialConnectionContext::handleEvent(
             errStream << "Unexpected event received: " << oldState << " -> "
                       << event;
             BALL_LOG_ERROR << "#UNEXPECTED_STATE " << errStream.str()
-                           << " [peer: " << channel()->peerUri() << "]";
+                           << " [peer: " << channel().get() << "]";
         }
         break;
     }
@@ -577,7 +580,10 @@ void InitialConnectionContext::handleEvent(
             bsl::get<bmqp_ctrlmsg::AuthenticationMessage>(message);
 
         if (oldState == InitialConnectionState::e_INITIAL) {
-            setState(InitialConnectionState::e_AUTHENTICATING);
+            BALL_LOG_INFO << "Received authentication request"
+                          << " [peer: " << channel().get() << "]";
+
+            setState(InitialConnectionState::e_AUTHENTICATING, event);
 
             rc = d_authenticator_p->handleAuthentication(errStream,
                                                          this,
@@ -587,7 +593,7 @@ void InitialConnectionContext::handleEvent(
             errStream << "Unexpected event received: " << oldState << " -> "
                       << event;
             BALL_LOG_ERROR << "#UNEXPECTED_STATE " << errStream.str()
-                           << " [peer: " << channel()->peerUri() << "]";
+                           << " [peer: " << channel().get() << "]";
         }
         break;
     }
@@ -599,7 +605,12 @@ void InitialConnectionContext::handleEvent(
 
         if (oldState == InitialConnectionState::e_INITIAL &&
             negotiationMsg.isClientIdentityValue()) {
-            setState(InitialConnectionState::e_ANON_AUTHENTICATING);
+            BALL_LOG_INFO
+                << "Received negotiation message without authentication, "
+                << "performing anonymous authentication for '"
+                << channel().get() << "'";
+
+            setState(InitialConnectionState::e_ANON_AUTHENTICATING, event);
 
             createNegotiationContext();
             negotiationContext()->setNegotiationMessage(negotiationMsg);
@@ -608,7 +619,7 @@ void InitialConnectionContext::handleEvent(
         }
         else if (oldState == InitialConnectionState::e_AUTHENTICATED &&
                  negotiationMsg.isClientIdentityValue()) {
-            setState(InitialConnectionState::e_NEGOTIATED);
+            setState(InitialConnectionState::e_NEGOTIATED, event);
 
             createNegotiationContext();
             negotiationContext()->setNegotiationMessage(negotiationMsg);
@@ -617,7 +628,7 @@ void InitialConnectionContext::handleEvent(
         }
         else if (oldState == InitialConnectionState::e_NEGOTIATING_OUTBOUND &&
                  negotiationMsg.isBrokerResponseValue()) {
-            setState(InitialConnectionState::e_NEGOTIATED);
+            setState(InitialConnectionState::e_NEGOTIATED, event);
 
             BSLS_ASSERT_SAFE(negotiationContext());
             negotiationContext()->setNegotiationMessage(negotiationMsg);
@@ -629,19 +640,19 @@ void InitialConnectionContext::handleEvent(
                       << event << " [ negotiationMsg: " << negotiationMsg
                       << " ]";
             BALL_LOG_ERROR << "#UNEXPECTED_STATE " << errStream.str()
-                           << " [peer: " << channel()->peerUri() << "]";
+                           << " [peer: " << channel().get() << "]";
         }
         break;
     }
     case InitialConnectionEvent::e_AUTHN_SUCCESS: {
         if (oldState == InitialConnectionState::e_AUTHENTICATING) {
-            setState(InitialConnectionState::e_AUTHENTICATED);
+            setState(InitialConnectionState::e_AUTHENTICATED, event);
 
             // Now read Negotiation message
             rc = scheduleRead(errStream);
         }
         else if (oldState == InitialConnectionState::e_ANON_AUTHENTICATING) {
-            setState(InitialConnectionState::e_NEGOTIATED);
+            setState(InitialConnectionState::e_NEGOTIATED, event);
 
             BSLS_ASSERT_SAFE(negotiationContext());
             BSLS_ASSERT_SAFE(negotiationContext()
@@ -654,7 +665,7 @@ void InitialConnectionContext::handleEvent(
             errStream << "Unexpected event received: " << oldState << " -> "
                       << event;
             BALL_LOG_ERROR << "#UNEXPECTED_STATE " << errStream.str()
-                           << " [peer: " << channel()->peerUri() << "]";
+                           << " [peer: " << channel().get() << "]";
         }
         break;
     }
@@ -664,33 +675,33 @@ void InitialConnectionContext::handleEvent(
     case InitialConnectionEvent::e_NONE: {
         errStream << "InitialConnectionContext: received e_NONE event";
         BALL_LOG_ERROR << "#UNEXPECTED_STATE " << errStream.str()
-                       << " [peer: " << channel()->peerUri() << "]";
+                       << " [peer: " << channel().get() << "]";
         break;
     }
     default:
         errStream << "InitialConnectionContext: "
                   << "unexpected event received: " << event;
         BALL_LOG_ERROR << "#UNEXPECTED_STATE " << errStream.str()
-                       << " [peer: " << channel()->peerUri() << "]";
+                       << " [peer: " << channel().get() << "]";
     }
-
-    BALL_LOG_INFO << "In initial connection state transition: " << oldState
-                  << " -> (" << event << ") -> " << d_state;
 
     bsl::shared_ptr<mqbnet::Session> session;
 
     if (rc == rc_SUCCESS && d_state == InitialConnectionState::e_NEGOTIATED) {
         rc = d_negotiator_p->createSessionOnMsgType(errStream, &session, this);
-        BALL_LOG_INFO << "Created a session with " << channel()->peerUri();
+        BALL_LOG_INFO << "Created a session with '" << channel().get() << "'";
     }
 
     if (rc != rc_SUCCESS) {
-        setState(InitialConnectionState::e_FAILED);
+        setState(InitialConnectionState::e_FAILED, event);
     }
 
     if (hasFinalState()) {
-        BALL_LOG_INFO << "Finished initial connection with rc = " << rc
-                      << ", error = '" << errStream.str() << "'";
+        if (rc != rc_SUCCESS) {
+            BALL_LOG_INFO << "Finished initial connection with rc = " << rc
+                          << ", error = '" << errStream.str() << "'"
+                          << " [peer: " << channel().get() << "]";
+        }
         guard.release()->unlock();
         complete(rc, errStream.str(), session);
     }

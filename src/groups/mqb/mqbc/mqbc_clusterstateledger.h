@@ -258,7 +258,7 @@ class ClusterStateLedger {
     // CREATORS
 
     /// Destructor.
-    virtual ~ClusterStateLedger() = 0;
+    virtual ~ClusterStateLedger();
 
     // MANIPULATORS
 

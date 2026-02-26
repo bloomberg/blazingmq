@@ -140,22 +140,6 @@ int calculateInitialMissedHbCounter(const mqbcfg::TcpInterfaceConfig& config)
     return -retVal;
 }
 
-bsl::ostream& operator<<(bsl::ostream& os, const bmqio::Channel* channel)
-{
-    // 'pretty-print' the specified 'channel' to the specified 'os'.  The
-    // printed channel from that function includes the address of the channel
-    // for easy tracking and matching of logs.
-
-    if (channel) {
-        os << channel->peerUri() << "#" << static_cast<const void*>(channel);
-    }
-    else {
-        os << "*null*";
-    }
-
-    return os;
-}
-
 /// Callback invoked when the specified `channel` is created, as a result of
 /// the operation with the specified `operationHandle`.  This is used to set
 /// a property on the channel, that higher levels (such as the
@@ -975,7 +959,8 @@ void TCPSessionFactory::logOpenSessionTime(
             const bsls::Types::Int64 elapsed =
                 bmqsys::Time::highResolutionTimer() - begin;
             BALL_LOG_OUTPUT_STREAM
-                << "Open session '" << sessionDescription
+                << "Open session '" << sessionDescription << "' for channel '"
+                << channel.get()
                 << "' took: " << bmqu::PrintUtil::prettyTimeInterval(elapsed)
                 << " (" << elapsed << " nanoseconds)";
         }
@@ -1717,7 +1702,7 @@ TCPSessionFactory::PortManager::addChannelContext(bmqst::StatContext* parent,
         bmqst::StatContextConfiguration portConfig(
             static_cast<bsls::Types::Int64>(port),
             &localAllocator);
-        bsl::shared_ptr<bmqst::StatContext> portStatContext =
+        bslma::ManagedPtr<bmqst::StatContext> portStatContext =
             parent->addSubcontext(
                 portConfig.storeExpiredSubcontextValues(true));
         channelStatContext      = portStatContext->addSubcontext(statConfig);

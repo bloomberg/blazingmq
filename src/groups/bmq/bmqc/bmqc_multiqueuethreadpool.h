@@ -290,16 +290,14 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
   private:
     // PRIVATE TYPES
     enum MonitorEventState {
-        e_MONITOR_PENDING  // an event has been enqueued on the queue but the
-                           // next 'processMonitorEvents' hasn't been called
-                           // yet
-
-        ,
-        e_MONITOR_PROCESSED  // a monitor event has been processed by the queue
-
-        ,
-        e_MONITOR_STUCK  // the queue hasn't processed its event in at
-                         // least one timeout interval
+        /// An event has been enqueued on the queue but the next
+        /// `processMonitorEvents` hasn't been called yet
+        e_MONITOR_PENDING,
+        /// A monitor event has been processed by the queue
+        e_MONITOR_PROCESSED,
+        // the queue hasn't processed its event in at least one timeout
+        // interval
+        e_MONITOR_STUCK
     };
 
     struct QueueInfo {
@@ -476,6 +474,8 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
     /// The behavior is undefined unless this object was created in the
     /// exclusive mode.
     bslmt::ThreadUtil::Id queueThreadId(int queueId) const;
+
+    bsls::Types::Int64 numElements(int queueId) const;
 };
 
 // ============================================================================
@@ -917,6 +917,18 @@ MultiQueueThreadPool<TYPE>::queueThreadId(int queueId) const
     BSLS_ASSERT_SAFE(queueId < numQueues());
 
     return d_queues[queueId].d_threadId;
+}
+
+template <typename TYPE>
+inline bsls::Types::Int64
+MultiQueueThreadPool<TYPE>::numElements(int queueId) const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(0 <= queueId);
+    BSLS_ASSERT_SAFE(queueId < numQueues());
+    BSLS_ASSERT_SAFE(d_queues[queueId].d_queue_p);
+
+    return d_queues[queueId].d_queue_p->numElements();
 }
 
 }  // close package namespace

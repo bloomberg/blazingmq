@@ -155,6 +155,6 @@ ADMIN_COMMAND_SCHEMA: SchemaDescription = {
     "adminCommand": {"command": "help"},
 }
 
-AUTHENTICATE_REQUEST_SCHEMA: SchemaDescription = {
-    "authenticationRequest": {"mechanism": "", "data": ""}
+AUTHENTICATION_REQUEST_SCHEMA: SchemaDescription = {
+    "authenticationRequest": {"mechanism": "ANONYMOUS", "data": ""}
 }

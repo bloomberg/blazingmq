@@ -56,9 +56,10 @@ const char k_STAT_NAME[] = "EventQueue";
 
 enum {
     // Index of the different stat values
-    k_STAT_QUEUE = 0  // Queue/Dequeue
-    ,
-    k_STAT_TIME = 1  // Event queued time
+    /// Queue/Dequeue
+    k_STAT_QUEUE = 0,
+    /// Event queued time
+    k_STAT_TIME = 1
 };
 
 }  // close unnamed namespace

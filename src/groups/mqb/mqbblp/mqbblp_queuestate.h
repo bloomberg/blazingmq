@@ -164,7 +164,7 @@ class QueueState {
 
     QueueHandleCatalog d_handleCatalog;
 
-    Routers::QueueRoutingContext d_context;
+    Routers::QueueRoutingContext d_routingContext;
 
     SubQueues d_subStreams;
 
@@ -511,7 +511,7 @@ inline void QueueState::abandon(unsigned int upstreamSubQueueId)
 
 inline Routers::QueueRoutingContext& QueueState::routingContext()
 {
-    return d_context;
+    return d_routingContext;
 }
 
 // ACCESSORS

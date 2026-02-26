@@ -2,6 +2,12 @@ name: Dependencies
 
 on:
   workflow_call:
+    inputs:
+      cxx_standard:
+        description: "What C++ Standard to build with.  [cpp03, cpp11, cpp14, cpp17, cpp20, cpp23]"
+        required: true
+        type: string
+        default: "cpp17"
     outputs:
       cache_key:
         description: "GH Actions Cache key associated with the built dependencies"
@@ -12,12 +18,12 @@ on:
     - cron: "10 0 * * *"
 
 concurrency:
-  group: global
+  group: global-${{ inputs.cxx_standard }}
   cancel-in-progress: false
 
 jobs:
   build_dependencies:
-    name: Build [ubuntu]
+    name: Build and cache dependencies [${{ inputs.cxx_standard }}]
     runs-on: ubuntu-latest
     outputs:
       cache_key: ${{ steps.get-cache-key.outputs.cache_key }}
@@ -27,7 +33,8 @@ jobs:
       - name: Generate dependencies cache key
         id: get-cache-key
         run: |
-          echo "cache_key=deps-`date +%y-%m-%d`-`cat docker/build_deps.sh | shasum`" >> $GITHUB_OUTPUT
+          BUILD_DEPS_SHA=$(cat docker/build_deps.sh | shasum)
+          echo "cache_key=deps-${{ inputs.cxx_standard }}-$BUILD_DEPS_SHA" >> $GITHUB_OUTPUT
 
       - name: Cache lookup
         uses: actions/cache/restore@v4
@@ -60,7 +67,7 @@ jobs:
         run: |
           mkdir -p deps
           cd deps
-          ../docker/build_deps.sh
+          ../docker/build_deps.sh --cxx-standard=${{ inputs.cxx_standard }}
 
       - name: Cache save
         if: steps.cache-lookup.outputs.cache-hit != 'true'

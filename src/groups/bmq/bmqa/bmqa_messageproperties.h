@@ -190,7 +190,7 @@ class MessageProperties {
     /// return true and load into the optionally specified `buffer` the data
     /// type of the property.  Return false if the `name` property does not
     /// exist, and leave the `buffer` unchanged.
-    bool remove(const bsl::string& name, bmqt::PropertyType::Enum* buffer = 0);
+    bool remove(bsl::string_view name, bmqt::PropertyType::Enum* buffer = 0);
 
     /// Remove all properties from this instance.  Note that `numProperties`
     /// will return zero after invoking this method.
@@ -201,43 +201,43 @@ class MessageProperties {
     /// failure.  Note that if a property with `name` and the same type exists,
     /// it will be updated with the provided `value`, however if the data type
     /// of the existing property differs, an error will be returned.
-    int setPropertyAsBool(const bsl::string& name, bool value);
+    int setPropertyAsBool(bsl::string_view name, bool value);
     /// Set a property with the specified `name` having the specified `char`
     /// `value`.  Return zero on success, and a non-zero value in case of
     /// failure.  Note that if a property with `name` and the same type exists,
     /// it will be updated with the provided `value`, however if the data type
     /// of the existing property differs, an error will be returned.
-    int setPropertyAsChar(const bsl::string& name, char value);
+    int setPropertyAsChar(bsl::string_view name, char value);
     /// Set a property with the specified `name` having the specified `short`
     /// `value`.  Return zero on success, and a non-zero value in case of
     /// failure.  Note that if a property with `name` and the same type exists,
     /// it will be updated with the provided `value`, however if the data type
     /// of the existing property differs, an error will be returned.
-    int setPropertyAsShort(const bsl::string& name, short value);
+    int setPropertyAsShort(bsl::string_view name, short value);
     /// Set a property with the specified `name` having the specified 32-bit
     /// integral `value`.  Return zero on success, and a non-zero value in case
     /// of failure.  Note that if a property with `name` and the same type
     /// exists, it will be updated with the provided `value`, however if the
     /// data type of the existing property differs, an error will be returned.
-    int setPropertyAsInt32(const bsl::string& name, bsl::int32_t value);
+    int setPropertyAsInt32(bsl::string_view name, bsl::int32_t value);
     /// Set a property with the specified `name` having the specified 64-bit
     /// integral `value`.  Return zero on success, and a non-zero value in case
     /// of failure.  Note that if a property with `name` and the same type
     /// exists, it will be updated with the provided `value`, however if the
     /// data type of the existing property differs, an error will be returned.
-    int setPropertyAsInt64(const bsl::string& name, bsls::Types::Int64 value);
+    int setPropertyAsInt64(bsl::string_view name, bsls::Types::Int64 value);
     /// Set a property with the specified `name` having the specified string
     /// `value`.  Return zero on success, and a non-zero value in case of
     /// failure.  Note that if a property with `name` and the same type exists,
     /// it will be updated with the provided `value`, however if the data type
     /// of the existing property differs, an error will be returned.
-    int setPropertyAsString(const bsl::string& name, const bsl::string& value);
+    int setPropertyAsString(bsl::string_view name, bsl::string_view value);
     /// Set a property with the specified `name` having the specified
     /// bytestring `value`.  Return zero on success, and a non-zero value in
     /// case of failure.  Note that if a property with `name` and the same type
     /// exists, it will be updated with the provided `value`, however if the
     /// data type of the existing property differs, an error will be returned.
-    int setPropertyAsBinary(const bsl::string&       name,
+    int setPropertyAsBinary(bsl::string_view         name,
                             const bsl::vector<char>& value);
 
     /// Populate this instance with its BlazingMQ wire protocol
@@ -261,82 +261,81 @@ class MessageProperties {
     /// Return true if a property with the specified `name` exists and load
     /// into the optionally specified `type` the type of the property.
     /// Return false otherwise.
-    bool hasProperty(const bsl::string&        name,
+    bool hasProperty(bsl::string_view          name,
                      bmqt::PropertyType::Enum* type = 0) const;
 
     /// Return the type of the property having the specified `name`.  Behavior
     /// is undefined unless `hasProperty` returns true for the property
     /// `name`.
-    bmqt::PropertyType::Enum propertyType(const bsl::string& name) const;
+    bmqt::PropertyType::Enum propertyType(bsl::string_view name) const;
 
     /// Return the value of the boolean property of the specified `name`.  The
     /// behavior is undefined unless this instance has a property of the
     /// specified `name` with a boolean type.
-    bool getPropertyAsBool(const bsl::string& name) const;
+    bool getPropertyAsBool(bsl::string_view name) const;
     /// Return the value of the `char` property of the specified `name`.  The
     /// behavior is undefined unless this instance has a property of the
     /// specified `name` with a `char` type.
-    char getPropertyAsChar(const bsl::string& name) const;
+    char getPropertyAsChar(bsl::string_view name) const;
     /// Return the value of the `short` property of the specified `name`.  The
     /// behavior is undefined unless this instance has a property of the
     /// specified `name` with a `short` type.
-    short getPropertyAsShort(const bsl::string& name) const;
+    short getPropertyAsShort(bsl::string_view name) const;
     /// Return the value of the 32-bit integral property of the specified
     /// `name`.  The behavior is undefined unless this instance has a property
     /// of the specified `name` with a 32-bit integral type.
-    bsl::int32_t getPropertyAsInt32(const bsl::string& name) const;
+    bsl::int32_t getPropertyAsInt32(bsl::string_view name) const;
     /// Return the value of the 64-bit integral property of the specified
     /// `name`.  The behavior is undefined unless this instance has a property
     /// of the specified `name` with a 64-bit integral type.
-    bsls::Types::Int64 getPropertyAsInt64(const bsl::string& name) const;
+    bsls::Types::Int64 getPropertyAsInt64(bsl::string_view name) const;
     /// Return the value of the string property of the specified `name`.  The
     /// behavior is undefined unless this instance has a property of the
     /// specified `name` with a string type.
-    const bsl::string& getPropertyAsString(const bsl::string& name) const;
+    const bsl::string& getPropertyAsString(bsl::string_view name) const;
     /// Return the value of the bytestring property of the specified `name`.
     /// The behavior is undefined unless this instance has a property of the
     /// specified `name` with a bytestring type.
-    const bsl::vector<char>&
-    getPropertyAsBinary(const bsl::string& name) const;
+    const bsl::vector<char>& getPropertyAsBinary(bsl::string_view name) const;
 
     /// Return the boolean property having the specified `name` if such a
     /// property exists.  Return the specified `value` if this instance does
     /// not have a property with the specified `name`.  The behavior is
     /// undefined unless the property with the specified `name` has a boolean
     /// type or does not exist.
-    bool getPropertyAsBoolOr(const bsl::string& name, bool value) const;
+    bool getPropertyAsBoolOr(bsl::string_view name, bool value) const;
     /// Return the `char` property having the specified `name` if such a
     /// property exists.  Return the specified `value` if this instance does
     /// not have a property with the specified `name`.  The behavior is
     /// undefined unless the property with the specified `name` has a `char`
     /// type or does not exist.
-    char getPropertyAsCharOr(const bsl::string& name, char value) const;
+    char getPropertyAsCharOr(bsl::string_view name, char value) const;
     /// Return the `short` property having the specified `name` if such a
     /// property exists.  Return the specified `value` if this instance does
     /// not have a property with the specified `name`.  The behavior is
     /// undefined unless the property with the specified `name` has a `short`
     /// type or does not exist.
-    short getPropertyAsShortOr(const bsl::string& name, short value) const;
+    short getPropertyAsShortOr(bsl::string_view name, short value) const;
     /// Return the 32-bit integral property having the specified `name` if such
     /// a property exists.  Return the specified `value` if this instance does
     /// not have a property with the specified `name`.  The behavior is
     /// undefined unless the property with the specified `name` has a 32-bit
     /// integral type or does not exist.
-    bsl::int32_t getPropertyAsInt32Or(const bsl::string& name,
-                                      bsl::int32_t       value) const;
+    bsl::int32_t getPropertyAsInt32Or(bsl::string_view name,
+                                      bsl::int32_t     value) const;
     /// Return the 64-bit integral property having the specified `name` if such
     /// a property exists.  Return the specified `value` if this instance does
     /// not have a property with the specified `name`.  The behavior is
     /// undefined unless the property with the specified `name` has a 64-bit
     /// integral type or does not exist.
-    bsls::Types::Int64 getPropertyAsInt64Or(const bsl::string& name,
+    bsls::Types::Int64 getPropertyAsInt64Or(bsl::string_view   name,
                                             bsls::Types::Int64 value) const;
     /// Return the string property having the specified `name` if such a
     /// property exists.  Return the specified `value` if this instance does
     /// not have a property with the specified `name`.  The behavior is
     /// undefined unless the property with the specified `name` has a string
     /// type or does not exist.
-    const bsl::string& getPropertyAsStringOr(const bsl::string& name,
+    const bsl::string& getPropertyAsStringOr(bsl::string_view   name,
                                              const bsl::string& value) const;
     /// Return the bytestring property having the specified `name` if such a
     /// property exists.  Return the specified `value` if this instance does
@@ -344,7 +343,7 @@ class MessageProperties {
     /// undefined unless the property with the specified `name` has a
     /// bytestring type or does not exist.
     const bsl::vector<char>&
-    getPropertyAsBinaryOr(const bsl::string&       name,
+    getPropertyAsBinaryOr(bsl::string_view         name,
                           const bsl::vector<char>& value) const;
 
     /// Return a blob having the BlazingMQ wire protocol representation of

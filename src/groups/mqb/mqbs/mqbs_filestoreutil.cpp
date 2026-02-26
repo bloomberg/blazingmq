@@ -248,12 +248,11 @@ int FileStoreUtil::findFileStoreSetsFromPaths(
     BSLS_ASSERT_SAFE(fileSetMap);
 
     enum {
-        rc_SUCCESS                = 0,
-        rc_FILE_EXTENSION_UNKNOWN = -1  // Failed to recognize file
-        // extension
-        ,
-        rc_TIMESTAMP_EXTRACTION_FAILURE = -2  // Failed to extract timestamp
-                                              // from file name
+        rc_SUCCESS = 0,
+        /// Failed to recognize file extension
+        rc_FILE_EXTENSION_UNKNOWN = -1,
+        /// Failed to extract timestamp from file name
+        rc_TIMESTAMP_EXTRACTION_FAILURE = -2
     };
 
     int localRC  = rc_SUCCESS;
@@ -1068,14 +1067,13 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
     BSLS_ASSERT_SAFE((!qlistFd && !qlistFilePos) || (qlistFd && qlistFilePos));
 
     enum {
-        rc_NO_FILE_SETS_TO_RECOVER = 1  // Special rc, do not change
-        ,
-        rc_SUCCESS                    = 0,
-        rc_FILE_SET_RETRIEVAL_FAILURE = -1  // Failed to retrieve file sets
-        ,
-        rc_RECOVERY_SET_RETRIEVAL_FAILURE = -2  // Failed to retrieve file set
-                                                // from which recovery could be
-                                                // performed
+        /// Special rc, do not change
+        rc_NO_FILE_SETS_TO_RECOVER = 1,
+        rc_SUCCESS                 = 0,
+        /// Failed to retrieve file sets
+        rc_FILE_SET_RETRIEVAL_FAILURE = -1,
+        /// Failed to retrieve file set from which recovery could be performed
+        rc_RECOVERY_SET_RETRIEVAL_FAILURE = -2
     };
 
     const int                 k_INVALID_INDEX = -1;

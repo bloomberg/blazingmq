@@ -148,21 +148,20 @@ class BrokerSession BSLS_CPP11_FINAL {
     struct State {
         // TYPES
         enum Enum {
-            e_STARTING = 0  // The session has been started, but the
-                            // channel is not yet connected
-            ,
-            e_STARTED = 1  // The session is started
-            ,
-            e_RECONNECTING = 2  // The connection is lost without user
-                                // request
-            ,
-            e_CLOSING_SESSION = 3  // The disconnect request is sent to the
-                                   // broker, waiting for the response
-            ,
-            e_CLOSING_CHANNEL = 4  // The channel is closing, waiting for the
-                                   // operation to complete
-            ,
-            e_STOPPED = 5  // The session is stopped
+            /// The session has been started, but the channel is not yet
+            /// connected
+            e_STARTING = 0,
+            /// The session is started
+            e_STARTED = 1,
+            /// The connection is lost without user request
+            e_RECONNECTING = 2,
+            /// The disconnect request is sent to the broker, waiting for the
+            /// response
+            e_CLOSING_SESSION = 3,
+            /// The channel is closing, waiting for the operation to complete
+            e_CLOSING_CHANNEL = 4,
+            /// The session is stopped
+            e_STOPPED = 5
         };
 
         // CLASS METHODS
@@ -194,27 +193,28 @@ class BrokerSession BSLS_CPP11_FINAL {
     struct FsmEvent {
         // TYPES
         enum Enum {
-            e_START = 0  // User start request
-            ,
-            e_START_FAILURE = 1  // Session start has failed
-            ,
-            e_START_TIMEOUT = 2  // Session start timeout
-            ,
-            e_STOP = 3  // User stop request
-            ,
-            e_CHANNEL_UP = 4  // Network channel is up
-            ,
-            e_CHANNEL_DOWN = 5  // Network channel is down
-            ,
-            e_SESSION_DOWN = 6  // BlazingMQ broker is disconnected
+            /// User start request
+            e_START = 0,
+            /// Session start has failed
+            e_START_FAILURE = 1,
+            /// Session start timeout
+            e_START_TIMEOUT = 2,
+            /// User stop request
+            e_STOP = 3,
+            /// Network channel is up
+            e_CHANNEL_UP = 4,
+            /// Network channel is down
+            e_CHANNEL_DOWN = 5,
+            /// BlazingMQ broker is disconnected
+            e_SESSION_DOWN = 6,
 
             // Host Health events.
-            ,
-            e_HOST_UNHEALTHY = 7  // Host running application is unhealthy
-            ,
-            e_HOST_HEALTHY = 8  // Host has become healthy again
-            ,
-            e_ALL_QUEUES_RESUMED = 9  // All queues have been resumed
+            /// Host running application is unhealthy
+            e_HOST_UNHEALTHY = 7,
+            /// Host has become healthy again
+            e_HOST_HEALTHY = 8,
+            /// All queues have been resumed
+            e_ALL_QUEUES_RESUMED = 9
         };
 
         // CLASS METHODS
@@ -258,38 +258,38 @@ class BrokerSession BSLS_CPP11_FINAL {
     struct QueueFsmEvent {
         // TYPES
         enum Enum {
-            e_OPEN_CMD = 1  // Open queue request
-            ,
-            e_CONFIG_CMD = 2  // Configure queue request
-            ,
-            e_CLOSE_CMD = 3  // Close queue request
-            ,
-            e_REQ_NOT_SENT = 4  // Request is not sent to the broker
-            ,
-            e_RESP_OK = 5  // Successful response
-            ,
-            e_LATE_RESP = 6  // Late response
-            ,
-            e_RESP_BAD = 7  // Response with error
-            ,
-            e_RESP_TIMEOUT = 8  // Response timeout
-            ,
-            e_RESP_EXPIRED = 9  // Response timeout when channel is down
-            ,
-            e_CHANNEL_DOWN = 10  // Network channel is down
-            ,
-            e_CHANNEL_UP = 11  // Network channel is up
+            /// Open queue request
+            e_OPEN_CMD = 1,
+            /// Configure queue request
+            e_CONFIG_CMD = 2,
+            /// Close queue request
+            e_CLOSE_CMD = 3,
+            /// Request is not sent to the broker
+            e_REQ_NOT_SENT = 4,
+            /// Successful response
+            e_RESP_OK = 5,
+            /// Late response
+            e_LATE_RESP = 6,
+            /// Response with error
+            e_RESP_BAD = 7,
+            /// Response timeout
+            e_RESP_TIMEOUT = 8,
+            /// Response timeout when channel is down
+            e_RESP_EXPIRED = 9,
+            /// Network channel is down
+            e_CHANNEL_DOWN = 10,
+            /// Network channel is up
+            e_CHANNEL_UP = 11,
             // Host health events.
-            ,
-            e_SUSPEND = 12  // Queue has been asked to suspend
-            ,
-            e_RESUME = 13  // Queue has been asked to resume
+            /// Queue has been asked to suspend
+            e_SUSPEND = 12,
+            /// Queue has been asked to resume
+            e_RESUME = 13,
             // Locally cancelled.
-            ,
-            e_REQ_CANCELED = 14  // Request is canceled by the SDK
-            ,
-            e_SESSION_DOWN = 15  // Request is canceled due to the session
-                                 // goes down
+            /// Request is canceled by the SDK
+            e_REQ_CANCELED = 14,
+            /// Request is canceled due to the session goes down
+            e_SESSION_DOWN = 15
         };
 
         // CLASS METHODS

@@ -107,9 +107,8 @@ class MessageGUID {
     /// Enum representing the size of a buffer needed to represent a GUID
     enum Enum {
         /// Binary format of the GUID
-        e_SIZE_BINARY = 16
+        e_SIZE_BINARY = 16,
 
-        ,
         /// Hexadecimal string representation of the GUID
         e_SIZE_HEX = 2 * e_SIZE_BINARY
     };

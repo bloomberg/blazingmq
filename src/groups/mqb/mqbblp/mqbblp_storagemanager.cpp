@@ -1108,15 +1108,14 @@ void StorageManager::registerQueueReplica(int                     partitionId,
             &mqbc::StorageUtil::createQueueStorageAsReplica,
             &d_storages[partitionId],
             &d_storagesLock,
-            d_fileStores[partitionId].get(),
+            fs,
             d_domainFactory_p,
             uri,
             queueKey,
             appIdKeyPairs,
             domain));
 
-    d_fileStores[partitionId]->dispatchEvent(
-        bslmf::MovableRefUtil::move(queueEvent));
+    fs->dispatchEvent(bslmf::MovableRefUtil::move(queueEvent));
 }
 
 void StorageManager::unregisterQueueReplica(int              partitionId,

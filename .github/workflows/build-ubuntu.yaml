@@ -32,6 +32,11 @@ on:
         required: false
         type: string
         default: "build-ubuntu"
+      cxx_standard:
+        description: "What C++ Standard to build with.  [cpp03, cpp11, cpp14, cpp17, cpp20, cpp23]"
+        required: true
+        type: string
+        default: "cpp17"
     outputs:
       artifact_key:
         description: "GH Actions Cache key associated with the built dependencies"
@@ -41,11 +46,13 @@ jobs:
   get_dependencies:
     name: "Dependencies"
     uses: ./.github/workflows/dependencies.yaml
+    with:
+      cxx_standard: ${{ inputs.cxx_standard }}
 
   build_ubuntu:
-    name: Build [ubuntu] ${{ inputs.ref }} ${{ inputs.target }}
+    name: Build [ubuntu, ${{ inputs.cxx_standard }}] ${{ inputs.ref }} ${{ inputs.target }}
     runs-on: ubuntu-latest
-    needs: get_dependencies   
+    needs: get_dependencies
     outputs:
       artifact_key: ${{ steps.get_cache_key.outputs.artifact_key }}
     steps:
@@ -54,7 +61,7 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
-      
+
       # Since input.ref can be a branch, tag or commit SHA,
       # we need to get the commit SHA to use it in the cache key.
       - name: Generate cache key from commit SHA
@@ -66,7 +73,7 @@ jobs:
         # Thus do not put the target at the end of the key.
         run: |
             COMMIT_SHA=$(git rev-parse HEAD)
-            echo "cache_key=cache-${{ inputs.target }}-${COMMIT_SHA}" >> $GITHUB_OUTPUT
+            echo "cache_key=cache-${{ inputs.cxx_standard }}-${{ inputs.target }}-${COMMIT_SHA}" >> $GITHUB_OUTPUT
             echo "artifact_key=${{ inputs.name }}-${{ inputs.target }}-${COMMIT_SHA}" >> $GITHUB_OUTPUT
       - uses: actions/cache/restore@v4
         id: build-cache-restore-step
@@ -105,15 +112,15 @@ jobs:
       - name: Install cached non packaged dependencies
         if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
         working-directory: deps
-        run: ../docker/build_deps.sh
+        run: ../docker/build_deps.sh --cxx-standard=${{ inputs.cxx_standard }}
 
       # Build BlazingMQ
       - name: Build BlazingMQ
         if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
         run: |
-          cmake --preset gh-build-ubuntu-latest-cpp17 -S .
+          cmake --preset gh-build-ubuntu-latest-${{ inputs.cxx_standard }} -S .
           echo "::add-matcher::.github/workflows/problem-matchers/cpp.json"
-          cmake --build --preset gh-build-ubuntu-latest-cpp17 --target ${{ inputs.target }}
+          cmake --build --preset gh-build-ubuntu-latest-${{ inputs.cxx_standard }} --target ${{ inputs.target }}
           echo "::remove-matcher owner=cpp"
 
       - name: Clean-up build directories before caching
@@ -125,7 +132,7 @@ jobs:
       - name: Run UT [c++]
         if: contains(inputs.target, 'all.t') && inputs.run_unit_tests == true # Variable type is boolean, thus no quotes
         run: |
-          ctest --preset gh-build-ubuntu-latest-cpp17
+          ctest --preset gh-build-ubuntu-latest-${{ inputs.cxx_standard }}
 
       - name: Fail if requested to run UTs, they were not built
         if: contains(inputs.target, 'all.t') == false && inputs.run_unit_tests == true # Variable type is boolean, thus no quotes

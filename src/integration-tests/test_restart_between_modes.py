@@ -19,7 +19,6 @@ in the middle of things.  Note that this test does not test the HA
 functionality (i.e., no PUTs/CONFIRMs etc are retransmitted).
 """
 
-import functools
 import re
 import time
 from typing import List, Dict, Optional
@@ -97,6 +96,7 @@ def confirm_one_message(consumer: Client, queue: str, app_id: Optional[str] = No
         flags=["read"],
         succeed=True,
     )
+    consumer.wait_push_event()
     consumer.confirm(queue_with_appid, "+1", succeed=True)
     consumer.close(queue_with_appid, succeed=True)
 
@@ -742,8 +742,12 @@ def with_rollover_admin_cmd(
     leader = cluster.last_known_leader
 
     all_partition_id = -1  # use -1 to rollover all partitions
-    res = leader.trigger_rollover(all_partition_id, succeed=True)
-    assert not res is None
+    # Do not wait for admin command result because "ROLLOVER COMPLETE" log record appears *before* admin command
+    # result record, and it breaks the regex search. Instead, check for ROLLOVER COMPLETE *after*
+    leader.trigger_rollover(all_partition_id, succeed=None)
+
+    for node in cluster.nodes():
+        node.wait_rollover_complete()
 
 
 @pytest.fixture(params=[without_rollover, with_rollover, with_rollover_admin_cmd])

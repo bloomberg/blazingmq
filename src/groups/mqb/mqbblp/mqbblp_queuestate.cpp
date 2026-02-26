@@ -71,7 +71,7 @@ QueueState::QueueState(mqbi::Queue*                 queue,
 , d_stats_sp(0)
 , d_messageThrottleConfig()
 , d_handleCatalog(queue, allocator)
-, d_context(queue->schemaLearner(), allocator)
+, d_routingContext(queue->schemaLearner(), allocator)
 , d_subStreams(allocator)
 , d_isStopping(false)
 {

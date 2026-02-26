@@ -48,18 +48,16 @@ int OptionsView::resetImpl(const bdlbb::Blob*        blob,
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_INVALID_OPTIONS_AREA = -1  // The blob does not contain a valid
-                                      // options area at the specified
-                                      // 'optionsAreaPos'.
-        ,
-        rc_INVALID_OPTIONS_AREA_SIZE = -2  // The blob does not contain an
-                                           // options area of the specified
-                                           // size 'optionsAreaSize'.
-        ,
-        rc_DUPLICATE_OPTION_TYPE = -3  // The blob contains a duplicate
-                                       // option type.
+        /// Success
+        rc_SUCCESS = 0,
+        /// The blob does not contain a valid options area at the specified
+        /// 'optionsAreaPos'.
+        rc_INVALID_OPTIONS_AREA = -1,
+        /// The blob does not contain an options area of the specified size
+        /// 'optionsAreaSize'.
+        rc_INVALID_OPTIONS_AREA_SIZE = -2,
+        /// The blob contains a duplicate option type.
+        rc_DUPLICATE_OPTION_TYPE = -3
 
     };
 

@@ -51,6 +51,7 @@ const char* ClusterErrorCode::toAscii(ClusterErrorCode::Enum value)
     case e_##X: return #X;
 
     switch (value) {
+        CASE(OK)
         CASE(UNKNOWN)
         CASE(STOPPING)
         CASE(ACTIVE_LOST)
@@ -80,6 +81,7 @@ bool ClusterErrorCode::fromAscii(ClusterErrorCode::Enum*  out,
         return true;                                                          \
     }
 
+    CHECKVALUE(OK)
     CHECKVALUE(UNKNOWN)
     CHECKVALUE(STOPPING)
     CHECKVALUE(ACTIVE_LOST)

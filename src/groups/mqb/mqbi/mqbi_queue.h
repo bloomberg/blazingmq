@@ -367,26 +367,21 @@ struct QueueHandleReleaseResult {
     enum ReleaseResultFlags {
         // Handle release event processing
 
-        e_NONE = 0
+        e_NONE = 0,
 
         /// no more consumers or producers for all subStream for this handle
-        ,
-        e_NO_HANDLE_CLIENTS = (1 << 0)
+        e_NO_HANDLE_CLIENTS = (1 << 0),
 
         /// no more consumers for this subStream for this handle
-        ,
-        e_NO_HANDLE_STREAM_CONSUMERS = (1 << 1)
+        e_NO_HANDLE_STREAM_CONSUMERS = (1 << 1),
 
         /// no more producers for this subStream for this handle
-        ,
-        e_NO_HANDLE_STREAM_PRODUCERS = (1 << 2)
+        e_NO_HANDLE_STREAM_PRODUCERS = (1 << 2),
 
         /// no more consumers for this subStream across all handles
-        ,
-        e_NO_QUEUE_STREAM_CONSUMERS = (1 << 3)
+        e_NO_QUEUE_STREAM_CONSUMERS = (1 << 3),
 
         /// no more producers for this subStream across all handles
-        ,
         e_NO_QUEUE_STREAM_PRODUCERS = (1 << 4)
     };
 
@@ -1123,8 +1118,7 @@ InlineResult::toAckResult(InlineResult::Enum value)
     case InlineResult::e_INVALID_PRIMARY:
     case InlineResult::e_CHANNEL_ERROR:
     case InlineResult::e_SELF_PRIMARY:
-    default:
-        return bmqt::AckResult::e_UNKNOWN;
+    default: return bmqt::AckResult::e_UNKNOWN;
     }
 }
 

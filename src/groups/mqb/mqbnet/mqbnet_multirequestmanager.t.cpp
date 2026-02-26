@@ -101,7 +101,6 @@ typedef bsl::unordered_set<ReqChoice>              ReqChoiceSet;
 typedef bsl::shared_ptr<bmqio::TestChannel>        ChannelSp;
 
 const bsls::TimeInterval SEND_REQUEST_TIMEOUT(30);
-const bsls::Types::Int64 WATERMARK = 64 * 1024 * 1024;
 
 }  // close unnamed namespace
 

@@ -55,14 +55,12 @@ const double k_COMPRESSION_RATIO_PRECISION_FACTOR_INV =
     1 / k_COMPRESSION_RATIO_PRECISION_FACTOR;
 
 enum {
-    k_STAT_IN = 0  // value = bytes received ; increments =
-                   // messages received
-    ,
-    k_STAT_OUT = 1  // value = bytes sent     ; increments =
-                    // messages sent
-    ,
-    k_STAT_COMPRESSION_RATIO = 2  // value = sum of all compression ratio for
-                                  // compressed packed messages
+    /// value = bytes received ; increments = messages received
+    k_STAT_IN = 0,
+    /// value = bytes sent     ; increments = messages sent
+    k_STAT_OUT = 1,
+    /// value = sum of all compression ratio for compressed packed messages
+    k_STAT_COMPRESSION_RATIO = 2
 };
 
 double

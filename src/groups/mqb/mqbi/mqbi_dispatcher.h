@@ -215,52 +215,53 @@ bsl::ostream& operator<<(bsl::ostream&              stream,
 /// Enumeration for the different types of dispatcher events.
 struct DispatcherEventType {
     // TYPES
+
+    /// @note Events of type 'e_DISPATCHER' are similar to those of type
+    ///       'e_CALLBACK' in the sense that they both represent a callback to
+    ///       be invoked on the thread associated to the target destination
+    ///       dispatcher client.  However, the major difference resides in when
+    ///       that callback is invoked: unlike all other types, 'e_DISPATCHER'
+    ///       events are handled internally by the dispatcher itself, and not
+    ///       sent to the 'onDispatcherEvent()' method of the targeted
+    ///       destination dispatcher client.  This will also not trigger the
+    ///       destination to be added to the flush list.
+    ///
+    ///       The purpose is that this event can be used for operations such as
+    ///       'finalize' (i.e., destroy) of a client where calling any method
+    ///       on the destination object might be undefined due to the object no
+    ///       longer being alive.
+    ///
+    ///       Unless needed, always prefer to use the 'e_CALLBACK' type to give
+    ///       more control over to the target destination dispatcher client:
+    ///       the client will be able to do some pre and post callback
+    ///       invocation duty (such as flushing some state).
     enum Enum {
-        e_UNDEFINED = 0  // invalid event
-        ,
-        e_DISPATCHER = 1  // dispatcher event, see note below
-        ,
-        e_CALLBACK = 2  // event is a 'callback' event
-        ,
-        e_CONTROL_MSG = 3  // event is a 'controlMessage' event
-        ,
-        e_CONFIRM = 4  // event is a 'confirm' event
-        ,
-        e_REJECT = 5  // event is a 'reject' event
-        ,
-        e_PUSH = 6  // event is a 'push' event
-        ,
-        e_PUT = 7  // event is a 'put' event
-        ,
-        e_ACK = 8  // event is a 'ack' event
-        ,
-        e_CLUSTER_STATE = 9  // event is a 'clusterState' event
-        ,
-        e_STORAGE = 10  // event is a 'storage' event
-        ,
-        e_RECOVERY = 11  // event is a 'recovery' event
-        ,
+        /// invalid event
+        e_UNDEFINED = 0,
+        /// dispatcher event, see note above
+        e_DISPATCHER = 1,
+        /// event is a 'callback' event
+        e_CALLBACK = 2,
+        /// event is a 'controlMessage' event
+        e_CONTROL_MSG = 3,
+        /// event is a 'confirm' event
+        e_CONFIRM = 4,
+        /// event is a 'reject' event
+        e_REJECT = 5,
+        /// event is a 'push' event
+        e_PUSH = 6,
+        /// event is a 'put' event
+        e_PUT = 7,
+        /// event is a 'ack' event
+        e_ACK = 8,
+        /// event is a 'clusterState' event
+        e_CLUSTER_STATE = 9,
+        /// event is a 'storage' event
+        e_STORAGE = 10,
+        /// event is a 'recovery' event
+        e_RECOVERY            = 11,
         e_REPLICATION_RECEIPT = 12
     };
-    // NOTE: Events of type 'e_DISPATCHER' are similar to those of type
-    //       'e_CALLBACK' in the sense that they both represent a callback to
-    //       be invoked on the thread associated to the target destination
-    //       dispatcher client.  However, the major difference resides in when
-    //       that callback is invoked: unlike all other types, 'e_DISPATCHER'
-    //       events are handled internally by the dispatcher itself, and not
-    //       sent to the 'onDispatcherEvent()' method of the targeted
-    //       destination dispatcher client.  This will also not trigger the
-    //       destination to be added to the flush list.
-    //
-    //       The purpose is that this event can be used for operations such as
-    //       'finalize' (i.e., destroy) of a client where calling any method on
-    //       the destination object might be undefined due to the object no
-    //       longer being alive.
-    //
-    //       Unless needed, always prefer to use the 'e_CALLBACK' type to give
-    //       more control over to the target destination dispatcher client: the
-    //       client will be able to do some pre and post callback invocation
-    //       duty (such as flushing some state).
 
     // CLASS METHODS
 
@@ -447,6 +448,11 @@ class Dispatcher {
     /// after the specified `client` has been unregistered from this
     /// dispatcher.
     virtual bmqex::Executor executor(const DispatcherClient* client) const = 0;
+
+    /// Return current number of events enqueued for the processor in charge of
+    /// the specified `client`.
+    virtual bsls::Types::Int64
+    numProcessorEvents(const mqbi::DispatcherClient* client) const = 0;
 };
 
 // ===============================
