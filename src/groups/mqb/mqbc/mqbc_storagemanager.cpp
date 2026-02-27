@@ -3675,8 +3675,8 @@ void StorageManager::do_replicaDataRequestResizeIfNeeded(
     if (d_recoveryManager_mp->expectedDataChunks(partitionId)) {
         BALL_LOG_INFO
             << d_clusterData_p->identity().description() << " Partition ["
-            << partitionId << "]: "
-            << "Not sending ReplicaDataRequestResize to replicas yet "
+            << partitionId
+            << "]: Not sending ReplicaDataRequestResize to replicas yet "
             << "because self is still expecting recovery data "
             << "chunks from the up-to-date replica.";
 
