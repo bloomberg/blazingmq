@@ -113,6 +113,7 @@ void PartitionFSM::processEvent(const EventWithData& event)
         }
         case State::e_PRIMARY_HEALING_STG1: BSLA_FALLTHROUGH;
         case State::e_PRIMARY_HEALING_STG2: BSLA_FALLTHROUGH;
+        case State::e_REPLICA_WAITING: BSLA_FALLTHROUGH;
         case State::e_REPLICA_HEALING: BSLA_FALLTHROUGH;
         case State::e_STOPPED: BSLA_FALLTHROUGH;
         default: {
