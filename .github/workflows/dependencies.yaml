@@ -40,8 +40,9 @@ jobs:
       - name: Generate dependencies cache key
         id: get-cache-key
         run: |
-          BUILD_DEPS_SHA=$(cat docker/build_deps.sh | shasum)
-          echo "cache_key=deps-${{ inputs.cxx_standard }}-$BUILD_DEPS_SHA" >> $GITHUB_OUTPUT
+          OS_VERSION="$( lsb_release -is )$( lsb_release -rs )"
+          BUILD_DEPS_SHA="${{ hashFiles('docker/build_deps.sh') }}"
+          echo "cache_key=deps-$OS_VERSION-${{ inputs.cxx_standard }}-$BUILD_DEPS_SHA" >> $GITHUB_OUTPUT
 
       - name: Cache lookup
         uses: actions/cache/restore@v4
