@@ -29,6 +29,7 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
 )
 from blazingmq.dev.it.process.admin import AdminClient
 from blazingmq.dev.it.process.client import Client
+from blazingmq.dev.it.util import wait_until
 
 pytestmark = order(6)
 
@@ -135,7 +136,13 @@ class TestReconfigureDomains:
         # from one queue unblocks posting on the other.
         assert not self.post_n_msgs(uri_priority_2, 1)
         self.reader.confirm(uri_priority_1, "+1", succeed=True)
-        assert self.post_n_msgs(uri_priority_2, 1)
+
+        # Give it a couple tries since uri_priority_1 and uri_priority_2 can
+        # live in separate threads.
+        def post():
+            return self.post_n_msgs(uri_priority_2, 1)
+
+        assert wait_until(post, timeout=2, interval=1)
 
     # Verify that reconfiguring queue message limits works as expected.
     @tweak.domain.storage.queue_limits.messages(INITIAL_MSG_QUOTA)
