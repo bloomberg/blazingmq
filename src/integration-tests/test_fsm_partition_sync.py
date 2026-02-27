@@ -157,9 +157,11 @@ def _stop_cluster_and_compare_partition_file_headers(
     # Check that number of files is equal to partitions number
     num_partitions = cluster.config.definition.partition_config.num_partitions
     assert len(node1_files) == num_partitions, (
-        f"Expected {num_partitions} for node {node1_name}, got {len(node1_files)}")
+        f"Expected {num_partitions} for node {node1_name}, got {len(node1_files)}"
+    )
     assert len(node2_files) == num_partitions, (
-        f"Expected {num_partitions} for node {node2_name}, got {len(node2_files)}")
+        f"Expected {num_partitions} for node {node2_name}, got {len(node2_files)}"
+    )
 
     # Check that content of file headers is equal
     FILE_HEADER_SIZE = 32  # see mqbs_filestoreprotocol.h
@@ -171,8 +173,8 @@ def _stop_cluster_and_compare_partition_file_headers(
             node1_header = lf.read(FILE_HEADER_SIZE)
             node2_header = rf.read(FILE_HEADER_SIZE)
             assert node1_header == node2_header, (
-            f"Node {node1_name} and node {node2_name} file headers differ for {node1_file} and {node2_file}"
-        )
+                f"Node {node1_name} and node {node2_name} file headers differ for {node1_file} and {node2_file}"
+            )
 
 
 @tweak.cluster.partition_config.max_journal_file_size(MAX_JOURNAL_FILE_SIZE)
@@ -749,7 +751,7 @@ def test_primary_partition_size_sync_at_startup(
 
         consumer.wait_push_event()
         consumer.confirm(uri_priority, "*", succeed=True)
-    
+
     # Choose replica
     replica = cluster.nodes(exclude=leader)[0]
 

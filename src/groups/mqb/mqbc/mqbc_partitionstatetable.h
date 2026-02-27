@@ -355,11 +355,11 @@ class PartitionStateTableActions {
 
     virtual void do_findHighestSeq(const ARGS& args) = 0;
 
-    /// This method is called by primary to find the highest partition 
+    /// This method is called by primary to find the highest partition
     /// file sizes of cluster nodes.
     virtual void do_findHighestFileSizes(const ARGS& args) = 0;
 
-    /// This method is called by primary or replica to override its 
+    /// This method is called by primary or replica to override its
     /// partition file sizes
     virtual void do_overrideMaxFileSizes(const ARGS& args) = 0;
 

@@ -3730,7 +3730,8 @@ void StorageManager::do_replicaDataRequestResizeIfNeeded(
                 // replica needs to drop its storage, no need to resize.
                 continue;  // CONTINUE
             }
-            if (cit->second.d_seqNum != bmqp_ctrlmsg::PartitionSequenceNumber() &&
+            if (cit->second.d_seqNum !=
+                    bmqp_ctrlmsg::PartitionSequenceNumber() &&
                 cit->second.d_firstSyncPointAfterRolloverSeqNum !=
                     selfFirstSyncAfterRolloverSeqNum) {
                 // replica needs to drop its storage, no need to resize.
@@ -3751,8 +3752,8 @@ void StorageManager::do_replicaDataRequestResizeIfNeeded(
             eventType == PartitionFSM::Event::e_REPLICA_DATA_RSPN_PULL);
 
         for (NodeToContextMapCIter cit = nodeToContextMap.cbegin();
-            cit != nodeToContextMap.cend();
-            cit++) {
+             cit != nodeToContextMap.cend();
+             cit++) {
             if (cit->first->nodeId() == selfNode->nodeId()) {
                 continue;  // CONTINUE
             }
@@ -3760,7 +3761,8 @@ void StorageManager::do_replicaDataRequestResizeIfNeeded(
                 // replica needs to drop its storage, no need to resize.
                 continue;  // CONTINUE
             }
-            if (cit->second.d_seqNum != bmqp_ctrlmsg::PartitionSequenceNumber() &&
+            if (cit->second.d_seqNum !=
+                    bmqp_ctrlmsg::PartitionSequenceNumber() &&
                 cit->second.d_firstSyncPointAfterRolloverSeqNum !=
                     selfFirstSyncAfterRolloverSeqNum) {
                 // replica needs to drop its storage, no need to resize.
@@ -3772,7 +3774,7 @@ void StorageManager::do_replicaDataRequestResizeIfNeeded(
             }
         }
     }
-    
+
     // Send ReplicaDataRequestResize to replicas that need to resize
     // their partition size.
     EventData failedEventDataVec;
