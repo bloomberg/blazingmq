@@ -2841,23 +2841,23 @@ void ClientSession::onDispatcherEvent(const mqbi::DispatcherEvent& event)
 
     switch (event.type()) {
     case mqbi::DispatcherEventType::e_CONFIRM: {
-        onConfirmEvent(*(event.castTo<mqbevt::ConfirmEvent>()));
+        onConfirmEvent(*(event.the<mqbevt::ConfirmEvent>()));
     } break;
     case mqbi::DispatcherEventType::e_REJECT: {
-        onRejectEvent(*(event.castTo<mqbevt::RejectEvent>()));
+        onRejectEvent(*(event.the<mqbevt::RejectEvent>()));
     } break;
     case mqbi::DispatcherEventType::e_PUSH: {
-        onPushEvent(*(event.castTo<mqbevt::PushEvent>()));
+        onPushEvent(*(event.the<mqbevt::PushEvent>()));
     } break;
     case mqbi::DispatcherEventType::e_PUT: {
-        onPutEvent(*(event.castTo<mqbevt::PutEvent>()));
+        onPutEvent(*(event.the<mqbevt::PutEvent>()));
     } break;
     case mqbi::DispatcherEventType::e_ACK: {
-        onAckEvent(*(event.castTo<mqbevt::AckEvent>()));
+        onAckEvent(*(event.the<mqbevt::AckEvent>()));
     } break;
     case mqbi::DispatcherEventType::e_CALLBACK: {
         const mqbevt::CallbackEvent* const realEvent =
-            event.castTo<mqbevt::CallbackEvent>();
+            event.the<mqbevt::CallbackEvent>();
 
         BSLS_ASSERT_SAFE(!realEvent->callback().empty());
         flush();  // Flush any pending messages to guarantee ordering of events

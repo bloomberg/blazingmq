@@ -273,7 +273,7 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
                        << " of " << type << " dispatcher: " << *event;
         if (event->type() == mqbi::DispatcherEventType::e_DISPATCHER) {
             const mqbevt::DispatcherEvent* realEvent =
-                event->castTo<mqbevt::DispatcherEvent>();
+                event->the<mqbevt::DispatcherEvent>();
 
             // We must flush now (and irrespective of a callback actually being
             // set on the event) to ensure the flushList is empty before

@@ -796,13 +796,13 @@ void RemoteQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     } break;
     case mqbi::DispatcherEventType::e_CALLBACK: {
         const mqbevt::CallbackEvent* const realEvent =
-            event.castTo<mqbevt::CallbackEvent>();
+            event.the<mqbevt::CallbackEvent>();
         BSLS_ASSERT_SAFE(!realEvent->callback().empty());
         realEvent->callback()();
     } break;
     case mqbi::DispatcherEventType::e_PUSH: {
         const mqbevt::PushEvent* const realEvent =
-            event.castTo<mqbevt::PushEvent>();
+            event.the<mqbevt::PushEvent>();
         pushMessage(realEvent->guid(),
                     realEvent->blob(),
                     realEvent->options(),
@@ -812,14 +812,14 @@ void RemoteQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     } break;
     case mqbi::DispatcherEventType::e_PUT: {
         const mqbevt::PutEvent* const realEvent =
-            event.castTo<mqbevt::PutEvent>();
+            event.the<mqbevt::PutEvent>();
         postMessage(realEvent->putHeader(),
                     realEvent->blob(),
                     realEvent->options(),
                     realEvent->queueHandle());
     } break;
     case mqbi::DispatcherEventType::e_ACK: {
-        onAckMessageDispatched(*(event.castTo<mqbevt::AckEvent>()));
+        onAckMessageDispatched(*(event.the<mqbevt::AckEvent>()));
     } break;
     case mqbi::DispatcherEventType::e_CONFIRM: {
         BSLS_ASSERT_OPT(false && "'CONFIRM' type dispatcher event unexpected");

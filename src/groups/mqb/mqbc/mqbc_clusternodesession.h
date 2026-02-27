@@ -454,10 +454,10 @@ ClusterNodeSession::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     mqbi::DispatcherEvent& ev = const_cast<mqbi::DispatcherEvent&>(event);
     switch (event.type()) {
     case mqbi::DispatcherEventType::e_PUSH: {
-        ev.castTo<mqbevt::PushEvent>()->setClusterNode(d_clusterNode_p);
+        ev.the<mqbevt::PushEvent>()->setClusterNode(d_clusterNode_p);
     } break;
     case mqbi::DispatcherEventType::e_ACK: {
-        ev.castTo<mqbevt::AckEvent>()->setClusterNode(d_clusterNode_p);
+        ev.the<mqbevt::AckEvent>()->setClusterNode(d_clusterNode_p);
     } break;
     case mqbi::DispatcherEventType::e_UNDEFINED: BSLA_FALLTHROUGH;
     case mqbi::DispatcherEventType::e_DISPATCHER: BSLA_FALLTHROUGH;

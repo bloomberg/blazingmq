@@ -502,7 +502,7 @@ class DispatcherEvent {
     DispatcherClient* destination() const;
 
     template <class EVENT_TYPE>
-    EVENT_TYPE* castTo()
+    EVENT_TYPE* the()
     {
         // PRECONDITIONS
         BSLS_ASSERT_OPT(EVENT_TYPE::k_TYPE == type());
@@ -510,7 +510,7 @@ class DispatcherEvent {
     }
 
     template <class EVENT_TYPE>
-    const EVENT_TYPE* const castTo() const
+    const EVENT_TYPE* const the() const
     {
         // PRECONDITIONS
         BSLS_ASSERT_OPT(EVENT_TYPE::k_TYPE == type());

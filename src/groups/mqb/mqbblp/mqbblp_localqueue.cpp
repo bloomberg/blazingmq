@@ -328,7 +328,7 @@ void LocalQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     switch (event.type()) {
     case mqbi::DispatcherEventType::e_PUT: {
         const mqbevt::PutEvent* const realEvent =
-            event.castTo<mqbevt::PutEvent>();
+            event.the<mqbevt::PutEvent>();
 
         postMessage(realEvent->putHeader(),
                     realEvent->blob(),
@@ -337,7 +337,7 @@ void LocalQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_CALLBACK: {
         const mqbevt::CallbackEvent* realEvent =
-            event.castTo<mqbevt::CallbackEvent>();
+            event.the<mqbevt::CallbackEvent>();
         BSLS_ASSERT_SAFE(!realEvent->callback().empty());
         realEvent->callback()();
     } break;  // BREAK

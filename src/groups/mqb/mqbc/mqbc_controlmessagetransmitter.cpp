@@ -70,7 +70,7 @@ void ControlMessageTransmitter::sendMessageHelper(
 void ControlMessageTransmitter::broadcastMessageHelper(
     const bmqp_ctrlmsg::ControlMessage& message,
     bmqp::SchemaEventBuilder*           schemaBuilder,
-    bool                                broadcastToProxies)
+    bool                                broadtheProxies)
 {
     // executed by *ANY* thread
 
@@ -91,7 +91,7 @@ void ControlMessageTransmitter::broadcastMessageHelper(
     BALL_LOG_INFO << "Broadcasted message '" << message
                   << "' to all cluster nodes";
 
-    if (!broadcastToProxies) {
+    if (!broadtheProxies) {
         return;  // RETURN
     }
 
@@ -220,7 +220,7 @@ void ControlMessageTransmitter::sendMessageSafe(
 
 void ControlMessageTransmitter::broadcastMessage(
     const bmqp_ctrlmsg::ControlMessage& message,
-    bool                                broadcastToProxies)
+    bool                                broadtheProxies)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -228,7 +228,7 @@ void ControlMessageTransmitter::broadcastMessage(
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
     d_schemaBuilder.reset();
-    broadcastMessageHelper(message, &d_schemaBuilder, broadcastToProxies);
+    broadcastMessageHelper(message, &d_schemaBuilder, broadtheProxies);
 }
 
 void ControlMessageTransmitter::broadcastMessageSafe(

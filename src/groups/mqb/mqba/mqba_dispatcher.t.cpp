@@ -178,7 +178,7 @@ struct TestDispatcherClient : public mqbi::DispatcherClient {
     onDispatcherEvent(const mqbi::DispatcherEvent& event) BSLS_KEYWORD_OVERRIDE
     {
         if (event.type() == mqbi::DispatcherEventType::e_CALLBACK) {
-            event.castTo<mqbevt::CallbackEvent>()->callback()();
+            event.the<mqbevt::CallbackEvent>()->callback()();
         }
     }
 

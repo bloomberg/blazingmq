@@ -276,7 +276,7 @@ void DispatcherClient::onDispatcherEvent(const mqbi::DispatcherEvent& event)
 {
     if (event.type() == mqbi::DispatcherEventType::e_CALLBACK) {
         const bmqu::ManagedCallback& callback =
-            event.castTo<mqbevt::CallbackEvent>()->callback();
+            event.the<mqbevt::CallbackEvent>()->callback();
         BSLS_ASSERT_SAFE(!callback.empty());
         callback();
     }
