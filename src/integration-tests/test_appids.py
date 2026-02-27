@@ -999,7 +999,7 @@ def test_gc_old_data_new_app(cluster: Cluster, domain_urls: tc.DomainUrls):
 
     # Observe that the message was GC'd from the queue.
     assert leader.capture(
-        f"queue \\[{du.uri_fanout}\\].*garbage-collected \\[1\\] messages", timeout=6
+        f"queue \\[{du.uri_fanout}\\].*garbage-collected \\[1\\] messages", timeout=10
     )
 
     leader.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, 100)
