@@ -1125,6 +1125,7 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
     BSLS_ASSERT_SAFE(!recoveryCtx.d_mappedDataFd.isValid() &&
                      !recoveryCtx.d_mappedQlistFd.isValid());
 
+    // Open in read-only mode first
     int rc = mqbs::FileStoreUtil::openRecoveryFileSet(
         errorDescription,
         &recoveryCtx.d_mappedJournalFd,
@@ -1135,13 +1136,75 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
         partitionId,
         k_MAX_NUM_FILE_SETS_TO_CHECK,
         d_dataStoreConfig,
-        false,  // readOnly
+        true,  // readOnly
         d_qListAware ? &recoveryCtx.d_mappedQlistFd : 0,
         d_qListAware ? &recoveryCtx.d_qlistFilePosition : 0);
     if (rc == 1) {
         return rc_NO_FILE_SETS_TO_RECOVER;  // RETURN
     }
     else if (rc != 0) {
+        return rc * 10 + rc_OPEN_FILE_SET_FAILURE;  // RETURN
+    }
+
+    // Get partition max file sizes from opened file set
+    bmqp_ctrlmsg::PartitionMaxFileSizes partitionMaxFileSizes;
+    recoverPartitionMaxFileSizes(&partitionMaxFileSizes, partitionId);
+
+    // Close the read-only file set
+    rc = closeRecoveryFileSet(partitionId);
+    if (rc != 0) {
+        return rc * 10 + rc_INVALID_FILE_SET;  // RETURN
+    }
+
+    // Make a copy and update data store config with partition max file sizes
+    // if needed.
+    mqbs::DataStoreConfig newDataStoreConfig = d_dataStoreConfig;
+    if (partitionMaxFileSizes != bmqp_ctrlmsg::PartitionMaxFileSizes()) {
+        newDataStoreConfig.setMaxJournalFileSize(
+            partitionMaxFileSizes.journalFileSize());
+        newDataStoreConfig.setMaxDataFileSize(
+            partitionMaxFileSizes.dataFileSize());
+        if (d_qListAware) {
+            newDataStoreConfig.setMaxQlistFileSize(
+                partitionMaxFileSizes.qListFileSize());
+        }
+        if (newDataStoreConfig.maxJournalFileSize() !=
+                d_dataStoreConfig.maxJournalFileSize() ||
+            newDataStoreConfig.maxDataFileSize() !=
+                d_dataStoreConfig.maxDataFileSize() ||
+            (d_qListAware && newDataStoreConfig.maxQlistFileSize() !=
+                                 d_dataStoreConfig.maxQlistFileSize())) {
+            BALL_LOG_WARN << d_clusterData.identity().description()
+                          << " Partition [" << partitionId
+                          << "]: " << "Override max file sizes "
+                          << "from config because max file sizes from headers "
+                          << "are different. New max journal file size: "
+                          << newDataStoreConfig.maxJournalFileSize()
+                          << ", max data file size: "
+                          << newDataStoreConfig.maxDataFileSize();
+            if (d_qListAware) {
+                BALL_LOG_WARN << ", max qlist file size: "
+                              << newDataStoreConfig.maxQlistFileSize();
+            }
+        }
+    }
+
+    // Re-open fileset in write mode
+    rc = mqbs::FileStoreUtil::openRecoveryFileSet(
+        errorDescription,
+        &recoveryCtx.d_mappedJournalFd,
+        &recoveryCtx.d_mappedDataFd,
+        &recoveryCtx.d_recoveryFileSet,
+        &recoveryCtx.d_journalFilePosition,
+        &recoveryCtx.d_dataFilePosition,
+        partitionId,
+        k_MAX_NUM_FILE_SETS_TO_CHECK,
+        newDataStoreConfig,
+        false,  // readOnly
+        d_qListAware ? &recoveryCtx.d_mappedQlistFd : 0,
+        d_qListAware ? &recoveryCtx.d_qlistFilePosition : 0);
+
+    if (rc != 0) {
         return rc * 10 + rc_OPEN_FILE_SET_FAILURE;  // RETURN
     }
 
@@ -1644,7 +1707,7 @@ int RecoveryManager::recoverSeqNum(
     RecoveryContext&   recoveryCtx = d_recoveryContextVec[partitionId];
     int                rc          = rc_UNKNOWN;
 
-    // Retrieve first sync point after rolllover sequence number.
+    // Retrieve first sync point after rollover sequence number.
     if (firstSyncPointAfterRolllover) {
         *seqNum = recoveryCtx.d_firstSyncPointAfterRolloverSeqNum;
         return rc_SUCCESS;  // RETURN
@@ -1688,6 +1751,41 @@ int RecoveryManager::recoverSeqNum(
     }
 
     return rc_SUCCESS;
+}
+
+void RecoveryManager::recoverPartitionMaxFileSizes(
+    bmqp_ctrlmsg::PartitionMaxFileSizes* maxFileSizes,
+    int                                  partitionId)
+{
+    // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(maxFileSizes);
+    BSLS_ASSERT_SAFE(partitionId >= 0 &&
+                     partitionId <
+                         d_clusterConfig.partitionConfig().numPartitions());
+
+    RecoveryContext& recoveryCtx = d_recoveryContextVec[partitionId];
+
+    BSLS_ASSERT_SAFE(recoveryCtx.d_mappedJournalFd.isValid());
+    BSLS_ASSERT_SAFE(recoveryCtx.d_mappedDataFd.isValid());
+    if (d_qListAware) {
+        BSLS_ASSERT_SAFE(recoveryCtx.d_mappedQlistFd.isValid());
+    }
+
+    // Get partition max file sizes from the file headers
+    bmqp_ctrlmsg::PartitionMaxFileSizes result;
+    maxFileSizes->journalFileSize() = mqbs::FileStoreProtocolUtil::bmqHeader(
+                                          recoveryCtx.d_mappedJournalFd)
+                                          .maxFileSize();
+    maxFileSizes->dataFileSize() = mqbs::FileStoreProtocolUtil::bmqHeader(
+                                       recoveryCtx.d_mappedDataFd)
+                                       .maxFileSize();
+    if (d_qListAware) {
+        maxFileSizes->qListFileSize() = mqbs::FileStoreProtocolUtil::bmqHeader(
+                                            recoveryCtx.d_mappedQlistFd)
+                                            .maxFileSize();
+    }
 }
 
 void RecoveryManager::setLiveDataSource(mqbnet::ClusterNode* source,

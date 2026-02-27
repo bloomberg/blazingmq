@@ -318,9 +318,9 @@ struct FileHeader {
     //   +---------------+---------------+---------------+---------------+
     //   |PV |   HW      |B|  FileType   |            Reserved           |
     //   +---------------+---------------+---------------+---------------+
-    //   |                           Reserved                            |
+    //   |                    MaxFileSize upper bits                     |
     //   +---------------+---------------+---------------+---------------+
-    //   |                           Reserved                            |
+    //   |                    MaxFileSize lower bits                     |
     //   +---------------+---------------+---------------+---------------+
     //   |                         PartitionId                           |
     //   +---------------+---------------+---------------+---------------+
@@ -335,6 +335,7 @@ struct FileHeader {
     //  Header Words (HW)......: Number of words in this file header
     //  Bitness (B)............: Bitness of task writing this file
     //  FileType...............: Type of BlazingMQ file
+    //  MaxFileSize............: Maximum file size for this file (in bytes)
     //  PartitionId............: This file's partitionId
     //..
 
@@ -374,7 +375,10 @@ struct FileHeader {
 
     char d_bitnessAndFileType;
 
-    BSLA_MAYBE_UNUSED char d_reserved1[10];
+    BSLA_MAYBE_UNUSED char d_reserved1[2];
+
+    bdlb::BigEndianUint32 d_maxFileSizeUpperBits;
+    bdlb::BigEndianUint32 d_maxFileSizeLowerBits;
 
     bdlb::BigEndianInt32 d_partitionId;
 
@@ -402,6 +406,8 @@ struct FileHeader {
 
     FileHeader& setFileType(FileType::Enum value);
 
+    FileHeader& setMaxFileSize(bsls::Types::Uint64 value);
+
     FileHeader& setPartitionId(int value);
 
     // ACCESSORS
@@ -416,6 +422,8 @@ struct FileHeader {
     FileType::Enum fileType() const;
 
     unsigned char headerWords() const;
+
+    bsls::Types::Uint64 maxFileSize() const;
 
     int partitionId() const;
 };
@@ -2200,6 +2208,14 @@ inline FileHeader& FileHeader::setPartitionId(int value)
     return *this;
 }
 
+inline FileHeader& FileHeader::setMaxFileSize(bsls::Types::Uint64 value)
+{
+    bmqp::Protocol::split(&d_maxFileSizeUpperBits,
+                          &d_maxFileSizeLowerBits,
+                          value);
+    return *this;
+}
+
 // ACCESSORS
 inline unsigned int FileHeader::magic1() const
 {
@@ -2238,6 +2254,12 @@ inline FileType::Enum FileHeader::fileType() const
 {
     return static_cast<FileType::Enum>(d_bitnessAndFileType &
                                        k_FILE_TYPE_MASK);
+}
+
+inline bsls::Types::Uint64 FileHeader::maxFileSize() const
+{
+    return bmqp::Protocol::combine(d_maxFileSizeUpperBits,
+                                   d_maxFileSizeLowerBits);
 }
 
 inline int FileHeader::partitionId() const
@@ -2293,7 +2315,6 @@ inline JournalFileHeader::JournalFileHeader()
     setHeaderWords(sizeof(JournalFileHeader) / bmqp::Protocol::k_WORD_SIZE);
     setRecordWords(FileStoreProtocol::k_JOURNAL_RECORD_SIZE /
                    bmqp::Protocol::k_WORD_SIZE);
-    setFirstSyncPointAfterRolloverOffsetWords(0);
 }
 
 // MANIPULATORS

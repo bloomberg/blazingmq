@@ -1919,6 +1919,95 @@ const char* NodeStatus::toString(NodeStatus::Value value)
     return 0;
 }
 
+// ---------------------------
+// class PartitionMaxFileSizes
+// ---------------------------
+
+// CONSTANTS
+
+const char PartitionMaxFileSizes::CLASS_NAME[] = "PartitionMaxFileSizes";
+
+const bdlat_AttributeInfo PartitionMaxFileSizes::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_DATA_FILE_SIZE,
+     "dataFileSize",
+     sizeof("dataFileSize") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_JOURNAL_FILE_SIZE,
+     "journalFileSize",
+     sizeof("journalFileSize") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_Q_LIST_FILE_SIZE,
+     "qListFileSize",
+     sizeof("qListFileSize") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo*
+PartitionMaxFileSizes::lookupAttributeInfo(const char* name, int nameLength)
+{
+    for (int i = 0; i < 3; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            PartitionMaxFileSizes::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo* PartitionMaxFileSizes::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_DATA_FILE_SIZE:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DATA_FILE_SIZE];
+    case ATTRIBUTE_ID_JOURNAL_FILE_SIZE:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_JOURNAL_FILE_SIZE];
+    case ATTRIBUTE_ID_Q_LIST_FILE_SIZE:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_Q_LIST_FILE_SIZE];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+PartitionMaxFileSizes::PartitionMaxFileSizes()
+: d_dataFileSize()
+, d_journalFileSize()
+, d_qListFileSize()
+{
+}
+
+// MANIPULATORS
+
+void PartitionMaxFileSizes::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_dataFileSize);
+    bdlat_ValueTypeFunctions::reset(&d_journalFileSize);
+    bdlat_ValueTypeFunctions::reset(&d_qListFileSize);
+}
+
+// ACCESSORS
+
+bsl::ostream& PartitionMaxFileSizes::print(bsl::ostream& stream,
+                                           int           level,
+                                           int           spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("dataFileSize", this->dataFileSize());
+    printer.printAttribute("journalFileSize", this->journalFileSize());
+    printer.printAttribute("qListFileSize", this->qListFileSize());
+    printer.end();
+    return stream;
+}
+
 // --------------------------
 // class PartitionPrimaryInfo
 // --------------------------
@@ -2647,7 +2736,8 @@ const bdlat_EnumeratorInfo ReplicaDataType::ENUMERATOR_INFO_ARRAY[] = {
     {ReplicaDataType::E_UNKNOWN, "E_UNKNOWN", sizeof("E_UNKNOWN") - 1, ""},
     {ReplicaDataType::E_PULL, "E_PULL", sizeof("E_PULL") - 1, ""},
     {ReplicaDataType::E_PUSH, "E_PUSH", sizeof("E_PUSH") - 1, ""},
-    {ReplicaDataType::E_DROP, "E_DROP", sizeof("E_DROP") - 1, ""}};
+    {ReplicaDataType::E_DROP, "E_DROP", sizeof("E_DROP") - 1, ""},
+    {ReplicaDataType::E_RESIZE, "E_RESIZE", sizeof("E_RESIZE") - 1, ""}};
 
 // CLASS METHODS
 
@@ -2658,6 +2748,7 @@ int ReplicaDataType::fromInt(ReplicaDataType::Value* result, int number)
     case ReplicaDataType::E_PULL:
     case ReplicaDataType::E_PUSH:
     case ReplicaDataType::E_DROP:
+    case ReplicaDataType::E_RESIZE:
         *result = static_cast<ReplicaDataType::Value>(number);
         return 0;
     default: return -1;
@@ -2668,7 +2759,7 @@ int ReplicaDataType::fromString(ReplicaDataType::Value* result,
                                 const char*             string,
                                 int                     stringLength)
 {
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 5; ++i) {
         const bdlat_EnumeratorInfo& enumeratorInfo =
             ReplicaDataType::ENUMERATOR_INFO_ARRAY[i];
 
@@ -2697,6 +2788,9 @@ const char* ReplicaDataType::toString(ReplicaDataType::Value value)
     }
     case E_DROP: {
         return "E_DROP";
+    }
+    case E_RESIZE: {
+        return "E_RESIZE";
     }
     }
 
@@ -5485,6 +5579,11 @@ const bdlat_AttributeInfo PrimaryStateRequest::ATTRIBUTE_INFO_ARRAY[] = {
      "firstSyncPointAfterRolloverSequenceNumber",
      sizeof("firstSyncPointAfterRolloverSequenceNumber") - 1,
      "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {ATTRIBUTE_ID_PARTITION_MAX_FILE_SIZES,
+     "partitionMaxFileSizes",
+     sizeof("partitionMaxFileSizes") - 1,
+     "",
      bdlat_FormattingMode::e_DEFAULT}};
 
 // CLASS METHODS
@@ -5492,7 +5591,7 @@ const bdlat_AttributeInfo PrimaryStateRequest::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo*
 PrimaryStateRequest::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 4; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             PrimaryStateRequest::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -5515,6 +5614,8 @@ const bdlat_AttributeInfo* PrimaryStateRequest::lookupAttributeInfo(int id)
     case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER:
         return &ATTRIBUTE_INFO_ARRAY
             [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER];
+    case ATTRIBUTE_ID_PARTITION_MAX_FILE_SIZES:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES];
     default: return 0;
     }
 }
@@ -5524,6 +5625,7 @@ const bdlat_AttributeInfo* PrimaryStateRequest::lookupAttributeInfo(int id)
 PrimaryStateRequest::PrimaryStateRequest()
 : d_latestSequenceNumber()
 , d_firstSyncPointAfterRolloverSequenceNumber()
+, d_partitionMaxFileSizes()
 , d_partitionId()
 {
 }
@@ -5536,6 +5638,7 @@ void PrimaryStateRequest::reset()
     bdlat_ValueTypeFunctions::reset(&d_latestSequenceNumber);
     bdlat_ValueTypeFunctions::reset(
         &d_firstSyncPointAfterRolloverSequenceNumber);
+    bdlat_ValueTypeFunctions::reset(&d_partitionMaxFileSizes);
 }
 
 // ACCESSORS
@@ -5551,6 +5654,8 @@ bsl::ostream& PrimaryStateRequest::print(bsl::ostream& stream,
                            this->latestSequenceNumber());
     printer.printAttribute("firstSyncPointAfterRolloverSequenceNumber",
                            this->firstSyncPointAfterRolloverSequenceNumber());
+    printer.printAttribute("partitionMaxFileSizes",
+                           this->partitionMaxFileSizes());
     printer.end();
     return stream;
 }
@@ -5578,6 +5683,11 @@ const bdlat_AttributeInfo PrimaryStateResponse::ATTRIBUTE_INFO_ARRAY[] = {
      "firstSyncPointAfterRolloverSequenceNumber",
      sizeof("firstSyncPointAfterRolloverSequenceNumber") - 1,
      "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {ATTRIBUTE_ID_PARTITION_MAX_FILE_SIZES,
+     "partitionMaxFileSizes",
+     sizeof("partitionMaxFileSizes") - 1,
+     "",
      bdlat_FormattingMode::e_DEFAULT}};
 
 // CLASS METHODS
@@ -5585,7 +5695,7 @@ const bdlat_AttributeInfo PrimaryStateResponse::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo*
 PrimaryStateResponse::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 4; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             PrimaryStateResponse::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -5608,6 +5718,8 @@ const bdlat_AttributeInfo* PrimaryStateResponse::lookupAttributeInfo(int id)
     case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER:
         return &ATTRIBUTE_INFO_ARRAY
             [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER];
+    case ATTRIBUTE_ID_PARTITION_MAX_FILE_SIZES:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES];
     default: return 0;
     }
 }
@@ -5617,6 +5729,7 @@ const bdlat_AttributeInfo* PrimaryStateResponse::lookupAttributeInfo(int id)
 PrimaryStateResponse::PrimaryStateResponse()
 : d_latestSequenceNumber()
 , d_firstSyncPointAfterRolloverSequenceNumber()
+, d_partitionMaxFileSizes()
 , d_partitionId()
 {
 }
@@ -5629,6 +5742,7 @@ void PrimaryStateResponse::reset()
     bdlat_ValueTypeFunctions::reset(&d_latestSequenceNumber);
     bdlat_ValueTypeFunctions::reset(
         &d_firstSyncPointAfterRolloverSequenceNumber);
+    bdlat_ValueTypeFunctions::reset(&d_partitionMaxFileSizes);
 }
 
 // ACCESSORS
@@ -5644,6 +5758,8 @@ bsl::ostream& PrimaryStateResponse::print(bsl::ostream& stream,
                            this->latestSequenceNumber());
     printer.printAttribute("firstSyncPointAfterRolloverSequenceNumber",
                            this->firstSyncPointAfterRolloverSequenceNumber());
+    printer.printAttribute("partitionMaxFileSizes",
+                           this->partitionMaxFileSizes());
     printer.end();
     return stream;
 }
@@ -6600,6 +6716,11 @@ const bdlat_AttributeInfo ReplicaDataRequest::ATTRIBUTE_INFO_ARRAY[] = {
      "endSequenceNumber",
      sizeof("endSequenceNumber") - 1,
      "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {ATTRIBUTE_ID_PARTITION_MAX_FILE_SIZES,
+     "partitionMaxFileSizes",
+     sizeof("partitionMaxFileSizes") - 1,
+     "",
      bdlat_FormattingMode::e_DEFAULT}};
 
 // CLASS METHODS
@@ -6607,7 +6728,7 @@ const bdlat_AttributeInfo ReplicaDataRequest::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo*
 ReplicaDataRequest::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 5; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             ReplicaDataRequest::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -6631,6 +6752,8 @@ const bdlat_AttributeInfo* ReplicaDataRequest::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BEGIN_SEQUENCE_NUMBER];
     case ATTRIBUTE_ID_END_SEQUENCE_NUMBER:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_END_SEQUENCE_NUMBER];
+    case ATTRIBUTE_ID_PARTITION_MAX_FILE_SIZES:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES];
     default: return 0;
     }
 }
@@ -6640,6 +6763,7 @@ const bdlat_AttributeInfo* ReplicaDataRequest::lookupAttributeInfo(int id)
 ReplicaDataRequest::ReplicaDataRequest()
 : d_beginSequenceNumber()
 , d_endSequenceNumber()
+, d_partitionMaxFileSizes()
 , d_partitionId()
 , d_replicaDataType(static_cast<ReplicaDataType::Value>(0))
 {
@@ -6653,6 +6777,7 @@ void ReplicaDataRequest::reset()
     bdlat_ValueTypeFunctions::reset(&d_partitionId);
     bdlat_ValueTypeFunctions::reset(&d_beginSequenceNumber);
     bdlat_ValueTypeFunctions::reset(&d_endSequenceNumber);
+    bdlat_ValueTypeFunctions::reset(&d_partitionMaxFileSizes);
 }
 
 // ACCESSORS
@@ -6667,6 +6792,8 @@ bsl::ostream& ReplicaDataRequest::print(bsl::ostream& stream,
     printer.printAttribute("partitionId", this->partitionId());
     printer.printAttribute("beginSequenceNumber", this->beginSequenceNumber());
     printer.printAttribute("endSequenceNumber", this->endSequenceNumber());
+    printer.printAttribute("partitionMaxFileSizes",
+                           this->partitionMaxFileSizes());
     printer.end();
     return stream;
 }
@@ -6699,6 +6826,11 @@ const bdlat_AttributeInfo ReplicaDataResponse::ATTRIBUTE_INFO_ARRAY[] = {
      "endSequenceNumber",
      sizeof("endSequenceNumber") - 1,
      "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {ATTRIBUTE_ID_PARTITION_MAX_FILE_SIZES,
+     "partitionMaxFileSizes",
+     sizeof("partitionMaxFileSizes") - 1,
+     "",
      bdlat_FormattingMode::e_DEFAULT}};
 
 // CLASS METHODS
@@ -6706,7 +6838,7 @@ const bdlat_AttributeInfo ReplicaDataResponse::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo*
 ReplicaDataResponse::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 5; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             ReplicaDataResponse::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -6730,6 +6862,8 @@ const bdlat_AttributeInfo* ReplicaDataResponse::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BEGIN_SEQUENCE_NUMBER];
     case ATTRIBUTE_ID_END_SEQUENCE_NUMBER:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_END_SEQUENCE_NUMBER];
+    case ATTRIBUTE_ID_PARTITION_MAX_FILE_SIZES:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES];
     default: return 0;
     }
 }
@@ -6739,6 +6873,7 @@ const bdlat_AttributeInfo* ReplicaDataResponse::lookupAttributeInfo(int id)
 ReplicaDataResponse::ReplicaDataResponse()
 : d_beginSequenceNumber()
 , d_endSequenceNumber()
+, d_partitionMaxFileSizes()
 , d_partitionId()
 , d_replicaDataType(static_cast<ReplicaDataType::Value>(0))
 {
@@ -6752,6 +6887,7 @@ void ReplicaDataResponse::reset()
     bdlat_ValueTypeFunctions::reset(&d_partitionId);
     bdlat_ValueTypeFunctions::reset(&d_beginSequenceNumber);
     bdlat_ValueTypeFunctions::reset(&d_endSequenceNumber);
+    bdlat_ValueTypeFunctions::reset(&d_partitionMaxFileSizes);
 }
 
 // ACCESSORS
@@ -6766,6 +6902,8 @@ bsl::ostream& ReplicaDataResponse::print(bsl::ostream& stream,
     printer.printAttribute("partitionId", this->partitionId());
     printer.printAttribute("beginSequenceNumber", this->beginSequenceNumber());
     printer.printAttribute("endSequenceNumber", this->endSequenceNumber());
+    printer.printAttribute("partitionMaxFileSizes",
+                           this->partitionMaxFileSizes());
     printer.end();
     return stream;
 }
@@ -6793,6 +6931,11 @@ const bdlat_AttributeInfo ReplicaStateRequest::ATTRIBUTE_INFO_ARRAY[] = {
      "firstSyncPointAfterRolloverSequenceNumber",
      sizeof("firstSyncPointAfterRolloverSequenceNumber") - 1,
      "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {ATTRIBUTE_ID_PARTITION_MAX_FILE_SIZES,
+     "partitionMaxFileSizes",
+     sizeof("partitionMaxFileSizes") - 1,
+     "",
      bdlat_FormattingMode::e_DEFAULT}};
 
 // CLASS METHODS
@@ -6800,7 +6943,7 @@ const bdlat_AttributeInfo ReplicaStateRequest::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo*
 ReplicaStateRequest::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 4; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             ReplicaStateRequest::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -6823,6 +6966,8 @@ const bdlat_AttributeInfo* ReplicaStateRequest::lookupAttributeInfo(int id)
     case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER:
         return &ATTRIBUTE_INFO_ARRAY
             [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER];
+    case ATTRIBUTE_ID_PARTITION_MAX_FILE_SIZES:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES];
     default: return 0;
     }
 }
@@ -6832,6 +6977,7 @@ const bdlat_AttributeInfo* ReplicaStateRequest::lookupAttributeInfo(int id)
 ReplicaStateRequest::ReplicaStateRequest()
 : d_latestSequenceNumber()
 , d_firstSyncPointAfterRolloverSequenceNumber()
+, d_partitionMaxFileSizes()
 , d_partitionId()
 {
 }
@@ -6844,6 +6990,7 @@ void ReplicaStateRequest::reset()
     bdlat_ValueTypeFunctions::reset(&d_latestSequenceNumber);
     bdlat_ValueTypeFunctions::reset(
         &d_firstSyncPointAfterRolloverSequenceNumber);
+    bdlat_ValueTypeFunctions::reset(&d_partitionMaxFileSizes);
 }
 
 // ACCESSORS
@@ -6859,6 +7006,8 @@ bsl::ostream& ReplicaStateRequest::print(bsl::ostream& stream,
                            this->latestSequenceNumber());
     printer.printAttribute("firstSyncPointAfterRolloverSequenceNumber",
                            this->firstSyncPointAfterRolloverSequenceNumber());
+    printer.printAttribute("partitionMaxFileSizes",
+                           this->partitionMaxFileSizes());
     printer.end();
     return stream;
 }
@@ -6886,6 +7035,11 @@ const bdlat_AttributeInfo ReplicaStateResponse::ATTRIBUTE_INFO_ARRAY[] = {
      "firstSyncPointAfterRolloverSequenceNumber",
      sizeof("firstSyncPointAfterRolloverSequenceNumber") - 1,
      "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {ATTRIBUTE_ID_PARTITION_MAX_FILE_SIZES,
+     "partitionMaxFileSizes",
+     sizeof("partitionMaxFileSizes") - 1,
+     "",
      bdlat_FormattingMode::e_DEFAULT}};
 
 // CLASS METHODS
@@ -6893,7 +7047,7 @@ const bdlat_AttributeInfo ReplicaStateResponse::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo*
 ReplicaStateResponse::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 4; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             ReplicaStateResponse::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -6916,6 +7070,8 @@ const bdlat_AttributeInfo* ReplicaStateResponse::lookupAttributeInfo(int id)
     case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER:
         return &ATTRIBUTE_INFO_ARRAY
             [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER];
+    case ATTRIBUTE_ID_PARTITION_MAX_FILE_SIZES:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_MAX_FILE_SIZES];
     default: return 0;
     }
 }
@@ -6925,6 +7081,7 @@ const bdlat_AttributeInfo* ReplicaStateResponse::lookupAttributeInfo(int id)
 ReplicaStateResponse::ReplicaStateResponse()
 : d_latestSequenceNumber()
 , d_firstSyncPointAfterRolloverSequenceNumber()
+, d_partitionMaxFileSizes()
 , d_partitionId()
 {
 }
@@ -6937,6 +7094,7 @@ void ReplicaStateResponse::reset()
     bdlat_ValueTypeFunctions::reset(&d_latestSequenceNumber);
     bdlat_ValueTypeFunctions::reset(
         &d_firstSyncPointAfterRolloverSequenceNumber);
+    bdlat_ValueTypeFunctions::reset(&d_partitionMaxFileSizes);
 }
 
 // ACCESSORS
@@ -6952,6 +7110,8 @@ bsl::ostream& ReplicaStateResponse::print(bsl::ostream& stream,
                            this->latestSequenceNumber());
     printer.printAttribute("firstSyncPointAfterRolloverSequenceNumber",
                            this->firstSyncPointAfterRolloverSequenceNumber());
+    printer.printAttribute("partitionMaxFileSizes",
+                           this->partitionMaxFileSizes());
     printer.end();
     return stream;
 }
