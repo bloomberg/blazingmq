@@ -20,12 +20,14 @@ jobs:
     name: "Dependencies"
     uses: ./.github/workflows/dependencies.yaml
     with:
+      ref: ${{ github.sha }}
       cxx_standard: cpp17
 
   get_dependencies_cpp03:
     name: "Dependencies [C++03]"
     uses: ./.github/workflows/dependencies.yaml
     with:
+      ref: ${{ github.sha }}
       cxx_standard: cpp03
 
   build_ubuntu:
@@ -301,7 +303,7 @@ jobs:
 
       - uses: actions/cache/restore@v4
         with:
-          path: deps
+          path: /opt/bb
           key: ${{ needs.get_dependencies.outputs.cache_key }}
 
       - name: Set up plugins dependencies
@@ -321,9 +323,6 @@ jobs:
             libz-dev \
             autoconf \
             libtool
-      - name: Install cached non packaged dependencies
-        working-directory: deps
-        run: ../docker/build_deps.sh
 
       - name: Create dependency fetcher working directory
         run: mkdir -p deps

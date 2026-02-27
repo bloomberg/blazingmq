@@ -3,6 +3,10 @@ name: Dependencies
 on:
   workflow_call:
     inputs:
+      ref:
+        description: "Branch name, tag, or commit SHA to build dependencies for"
+        required: true
+        type: string
       cxx_standard:
         description: "What C++ Standard to build with.  [cpp03, cpp11, cpp14, cpp17, cpp20, cpp23]"
         required: true
@@ -23,24 +27,28 @@ concurrency:
 
 jobs:
   build_dependencies:
-    name: Build and cache dependencies [${{ inputs.cxx_standard }}]
+    name: Build and cache dependencies [${{ inputs.cxx_standard }}] for ${{ inputs.ref }}
     runs-on: ubuntu-latest
     outputs:
       cache_key: ${{ steps.get-cache-key.outputs.cache_key }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
 
       - name: Generate dependencies cache key
         id: get-cache-key
         run: |
-          BUILD_DEPS_SHA=$(cat docker/build_deps.sh | shasum)
-          echo "cache_key=deps-${{ inputs.cxx_standard }}-$BUILD_DEPS_SHA" >> $GITHUB_OUTPUT
+          OS_VERSION="$( lsb_release -is )$( lsb_release -rs )"
+          BUILD_DEPS_SHA="${{ hashFiles('docker/build_deps.sh') }}"
+          echo "cache_key=deps-$OS_VERSION-${{ inputs.cxx_standard }}-$BUILD_DEPS_SHA" >> $GITHUB_OUTPUT
 
       - name: Cache lookup
         uses: actions/cache/restore@v4
         id: cache-lookup
         with:
-          path: deps
+          path: /opt/bb
           key: ${{ steps.get-cache-key.outputs.cache_key }}
           lookup-only: true
 
@@ -73,5 +81,5 @@ jobs:
         if: steps.cache-lookup.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
-          path: deps
+          path: /opt/bb
           key: ${{ steps.get-cache-key.outputs.cache_key }}
