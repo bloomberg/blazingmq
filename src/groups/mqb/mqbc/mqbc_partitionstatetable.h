@@ -314,7 +314,8 @@ class PartitionStateTableActions {
     /// This method is called by primary to request replicas to resize their
     /// partitions if needed.
     virtual void do_replicaDataRequestResizeIfNeeded(const ARGS& args) = 0;
-    /// This method is called by replica when partition is successfully resized.
+    /// This method is called by replica when partition is successfully
+    /// resized.
     virtual void do_replicaDataResponseResize(const ARGS& args) = 0;
 
     virtual void do_bufferLiveData(const ARGS& args) = 0;

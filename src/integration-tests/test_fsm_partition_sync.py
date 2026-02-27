@@ -18,7 +18,6 @@ Testing primary-replica partition synchronization in FSM mode.
 """
 
 import glob
-import json
 from pathlib import Path
 import subprocess
 
