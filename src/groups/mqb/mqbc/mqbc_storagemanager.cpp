@@ -1392,8 +1392,6 @@ void StorageManager::do_storeSelfSeq(const EventWithData& event)
     nodeContext.d_partitionMaxFileSizes = getSelfPartitionMaxFileSizes(
         partitionId);
 
-    nodeContext.d_isRecoveryDataSent = false;
-
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << ": In Partition [" << partitionId << "]'s FSM, "
                   << "storing self sequence number as " << nodeContext.d_seqNum
@@ -1443,7 +1441,6 @@ void StorageManager::do_storePrimarySeq(const EventWithData& event)
         it->second.d_firstSyncPointAfterRolloverSeqNum =
             eventData.firstSyncPointAfterRolloverSequenceNumber();
         it->second.d_partitionMaxFileSizes = eventData.partitionMaxFileSizes();
-        it->second.d_isRecoveryDataSent    = false;
         hasNew                             = true;
     }
 
@@ -2001,11 +1998,11 @@ void StorageManager::do_replicaDataRequestPush(const EventWithData& event)
 
             NodeToContextMapCIter cit = nodeToContextMap.find(source);
             if (cit == nodeToContextMap.end()) {
-                BALL_LOG_ERROR
-                    << d_clusterData_p->identity().description()
-                    << " Partition [" << partitionId << "]: " << "Replica "
-                    << source->nodeDescription()
-                    << " not found in nodeToContextMap, skipping.";
+                BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                               << " Partition [" << partitionId
+                               << "]: " << "Replica "
+                               << source->nodeDescription()
+                               << " not found in nodeToContextMap, skipping.";
                 continue;  // CONTINUE
             }
 
@@ -2229,11 +2226,11 @@ void StorageManager::do_replicaDataRequestDrop(const EventWithData& event)
 
             NodeToContextMapCIter cit = nodeToContextMap.find(source);
             if (cit == nodeToContextMap.end()) {
-                BALL_LOG_ERROR
-                    << d_clusterData_p->identity().description()
-                    << " Partition [" << partitionId << "]: " << "Replica "
-                    << source->nodeDescription()
-                    << " not found in nodeToContextMap, skipping.";
+                BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                               << " Partition [" << partitionId
+                               << "]: " << "Replica "
+                               << source->nodeDescription()
+                               << " not found in nodeToContextMap, skipping.";
                 continue;  // CONTINUE
             }
 
@@ -2894,8 +2891,7 @@ void StorageManager::do_startSendDataChunks(const EventWithData& event)
     // Self Primary is sending recovery data to outdated replicas.
     BSLS_ASSERT_SAFE(d_partitionFSMVec.at(partitionId)->isSelfPrimary());
 
-    NodeToContextMap& nodeToContextMap =
-        d_nodeToContextMapVec[partitionId];
+    NodeToContextMap& nodeToContextMap = d_nodeToContextMapVec[partitionId];
 
     // End Sequence number is primary's latest sequence number.
     const bmqp_ctrlmsg::PartitionSequenceNumber& endSeqNum =
@@ -2921,11 +2917,11 @@ void StorageManager::do_startSendDataChunks(const EventWithData& event)
 
             NodeToContextMapCIter cit = nodeToContextMap.find(source);
             if (cit == nodeToContextMap.end()) {
-                BALL_LOG_ERROR
-                    << d_clusterData_p->identity().description()
-                    << " Partition [" << partitionId << "]: " << "Replica "
-                    << source->nodeDescription()
-                    << " not found in nodeToContextMap, skipping.";
+                BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                               << " Partition [" << partitionId
+                               << "]: " << "Replica "
+                               << source->nodeDescription()
+                               << " not found in nodeToContextMap, skipping.";
                 continue;  // CONTINUE
             }
 
@@ -3713,8 +3709,7 @@ void StorageManager::do_replicaDataRequestResizeIfNeeded(
         if (cit->first->nodeId() == selfNode->nodeId()) {
             continue;  // CONTINUE
         }
-        if (cit->second.d_seqNum > selfSeqNum &&
-            !cit->second.d_isRecoveryDataSent) {
+        if (cit->second.d_seqNum > selfSeqNum) {
             // replica needs to drop its storage, no need to resize.
             continue;  // CONTINUE
         }

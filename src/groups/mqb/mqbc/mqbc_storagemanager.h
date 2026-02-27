@@ -1271,8 +1271,7 @@ inline StorageManager::NodeContext::NodeContext(
     const bmqp_ctrlmsg::PartitionSequenceNumber seqNum,
     const bmqp_ctrlmsg::PartitionSequenceNumber
         firstSyncPointAfterRolloverSeqNum,
-    const bmqp_ctrlmsg::PartitionMaxFileSizes& partitionMaxFileSizes,
-    bool                                       isInSync)
+    const bmqp_ctrlmsg::PartitionMaxFileSizes& partitionMaxFileSizes)
 : d_seqNum(seqNum)
 , d_firstSyncPointAfterRolloverSeqNum(firstSyncPointAfterRolloverSeqNum)
 , d_partitionMaxFileSizes(partitionMaxFileSizes)
