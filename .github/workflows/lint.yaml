@@ -1,0 +1,150 @@
+name: Lint
+
+on:
+  pull_request:
+    types:
+      - "opened"
+      - "reopened"
+      - "synchronize"
+      - "labeled"
+      - "unlabeled"
+
+jobs:
+  commits_check_job:
+    runs-on: ubuntu-slim
+    name: DCO Check
+    steps:
+      - name: Get PR Commits
+        id: "get-pr-commits"
+        uses: tim-actions/get-pr-commits@master
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: DCO Check
+        uses: tim-actions/dco@master
+        with:
+          commits: ${{ steps.get-pr-commits.outputs.commits }}
+
+  license_check:
+    runs-on: ubuntu-slim
+    name: License Check
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: license check
+        run: |
+          python3 ${{ github.workspace }}/.github/workflows/ext/check_license.py --path=${{ github.workspace }} | tee missing_licenses.txt
+          if [ -s missing_licenses.txt ]; then exit 1; fi
+
+  pr_title_check:
+    runs-on: ubuntu-slim
+    name: PR Title Check
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: pr title check
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          python3 ${{ github.workspace }}/.github/workflows/ext/check_pr_title.py
+
+  check_mem_sorting:
+    runs-on: ubuntu-slim
+    name: Check .mem files sorting
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check alphabetical order in .mem files
+        run: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          echo "Checking all .mem files in src/ for sorted order..."
+
+          # Find all .mem files recursively under src/
+          files=$(find src -type f -name "*.mem")
+
+          # Track whether we find any unsorted files
+          unsorted=0
+
+          for f in $files; do
+            # Compare file with its sorted version
+            if ! diff -q <(sort "$f") "$f" > /dev/null; then
+              echo "❌ File not sorted alphabetically: $f"
+              echo "   To fix, run: sort -o $f $f"
+              unsorted=1
+            fi
+          done
+
+          if [ "$unsorted" -eq 1 ]; then
+            echo
+            echo "Some .mem files are not sorted alphabetically."
+            exit 1
+          fi
+
+          echo "✅ All .mem files are sorted."
+
+  cpp_formatting_check:
+    name: C++ Formatting Check
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: clang-format style check
+        run: |
+          git clang-format-18 --diff -q origin/main | tee format_diff.txt
+          if [ -s format_diff.txt ]; then exit 1; fi
+
+  python_formatting_check:
+    # There might be differences how the formatter refactors the code locally
+    # and in the CI. If there is a problem with CI formatter mismatch, consider
+    # wrapping a troublesome python code with comments:
+    # "# fmt: off"
+    # "<Python code we don't want to format>"
+    # "# fmt: on"
+    name: Python Formatting Check
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+      - name: ruff style check
+        run: |
+          pip3 install ruff
+          ruff format .
+          git diff -q | tee format_diff.txt
+          if [ -s format_diff.txt ]; then exit 1; fi
+
+  python_linter_check:
+    name: Python Linter Check
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.4'
+      - name: Install dependencies
+        run: |
+          pip3 install -r ${{ github.workspace }}/src/python/requirements.txt
+          pip3 install pylint lint-diffs
+          ln -s ${{ github.workspace }}/src/python/pylintrc ${{ github.workspace }}/.pylintrc
+          echo [pylint] > ${{ github.workspace }}/.lint-diffs
+          echo extensions=.py >> ${{ github.workspace }}/.lint-diffs
+          echo [clang-tidy] >> ${{ github.workspace }}/.lint-diffs
+          echo extensions= >> ${{ github.workspace }}/.lint-diffs
+          echo [rubocop] >> ${{ github.workspace }}/.lint-diffs
+          echo extensions= >> ${{ github.workspace }}/.lint-diffs
+      - name: Check the whole repo with pylint
+        run: |
+          export PYTHONPATH=${{ github.workspace }}/src/python:$PYTHONPATH
+          pylint -j 8 src || true
+      - name: Check the PR with pylint
+        run: |
+          export PYTHONPATH=${{ github.workspace }}/src/python:$PYTHONPATH
+          git diff -U0 origin/main | lint-diffs
