@@ -301,12 +301,12 @@ class TestClusterNodeShutdown:
         du = domain_urls
         cluster = multi_node
         primary = cluster.last_known_leader
-        active_replica = cluster.process(self.proxy1.get_active_node())
+        active_replica = cluster.process(self.proxy2.get_active_node())
 
         # Set quorum to unreachable number more than the number of nodes
         primary.set_quorum(5, cluster.config.name, True)
 
-        res = self.producer1.open(
+        res = self.producer2.open(
             du.uri_priority_2,
             flags=["write", "ack"],
             block=True,
@@ -340,7 +340,7 @@ class TestClusterNodeShutdown:
         )
 
         # Trying to open that queue again should succeed
-        res = self.producer2.open(
+        res = self.producer1.open(
             du.uri_priority_2,
             flags=["write", "ack"],
             block=True,
