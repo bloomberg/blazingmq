@@ -97,16 +97,15 @@ void Dispatcher_Executor::post(const bsl::function<void()>& f) const
         d_eventSource_sp->getEvent<mqbevt::DispatcherEvent>();
     (*event_sp).callback().set(f);
 
+    // C++03 compatibility:
+    bsl::shared_ptr<mqbi::DispatcherEvent> base_sp(
+        bslmf::MovableRefUtil::move(event_sp));
+
     // submit the event
     int rc = d_processorPool_p->enqueueEvent(
-        bslmf::MovableRefUtil::move(event_sp),
+        bslmf::MovableRefUtil::move(base_sp),
         d_processorHandle);
     BSLS_ASSERT_OPT(rc == 0);
-
-    // TODO: We should call 'releaseUnmanagedEvent' on the
-    //      'bmqc::MultiQueueThreadPool' in case of exception to prevent the
-    //      event from leaking. But somehow this method is declared but not
-    //      implemented.
 }
 
 void Dispatcher_Executor::dispatch(const bsl::function<void()>& f) const
@@ -554,8 +553,13 @@ void Dispatcher::executeOnAllQueues(
         d_defaultEventSource_sp->getEvent<mqbevt::DispatcherEvent>();
     event_sp->callback().set(functor);
     event_sp->finalizeCallback().set(doneCallback);
-    processorPool->enqueueEventOnAllQueues(
+
+    // C++03 compatibility:
+    bsl::shared_ptr<mqbi::DispatcherEvent> base_sp(
         bslmf::MovableRefUtil::move(event_sp));
+
+    processorPool->enqueueEventOnAllQueues(
+        bslmf::MovableRefUtil::move(base_sp));
 }
 
 void Dispatcher::synchronize(mqbi::DispatcherClient* client)

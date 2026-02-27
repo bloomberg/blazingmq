@@ -333,6 +333,13 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
     void
     unregisterClient(mqbi::DispatcherClient* client) BSLS_KEYWORD_OVERRIDE;
 
+#if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+    // C++03: bring in base class template overloads hidden by the overrides
+    // below (MovableRef<shared_ptr<Derived>> does not convert to
+    // MovableRef<shared_ptr<Base>> in C++03).
+    using mqbi::Dispatcher::dispatchEvent;
+#endif
+
     /// Dispatch the specified `event` to the specified `destination`.
     void
     dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,

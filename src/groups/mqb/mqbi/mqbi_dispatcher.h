@@ -395,6 +395,29 @@ class Dispatcher {
                                DispatcherClientType::Enum type,
                                ProcessorHandle            handle) = 0;
 
+#if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+    /// C++03 compatibility:
+    /// It is not possible to cast mqbevt movable refs to mqbi movable ref.
+    template <class EVENT_TYPE>
+    inline void
+    dispatchEvent(bslmf::MovableRef<bsl::shared_ptr<EVENT_TYPE> > event,
+                  DispatcherClient*                               destination)
+    {
+        DispatcherEventSp base(bslmf::MovableRefUtil::access(event));
+        dispatchEvent(bslmf::MovableRefUtil::move(base), destination);
+    }
+
+    template <class EVENT_TYPE>
+    inline void
+    dispatchEvent(bslmf::MovableRef<bsl::shared_ptr<EVENT_TYPE> > event,
+                  DispatcherClientType::Enum                      type,
+                  ProcessorHandle                                 handle)
+    {
+        DispatcherEventSp base(bslmf::MovableRefUtil::access(event));
+        dispatchEvent(bslmf::MovableRefUtil::move(base), type, handle);
+    }
+#endif
+
     /// Execute the specified `functor`, using the optionally specified
     /// dispatcher `type`, in the processor associated to the specified
     /// `client`.  The behavior is undefined unless `type` is `e_DISPATCHER`
