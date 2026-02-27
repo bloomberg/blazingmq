@@ -202,16 +202,6 @@ class StorageManager BSLS_KEYWORD_FINAL
     typedef NodeToContextMap::const_iterator NodeToContextMapCIter;
     typedef bsl::vector<NodeToContextMap>    NodeToContextMapPartitionVec;
 
-    // typedef bsl::unordered_map<mqbnet::ClusterNode*,
-    //                            bmqp_ctrlmsg::PartitionMaxFileSizes>
-    //     NodeToPartitionMaxFileSizesMap;
-    // typedef NodeToPartitionMaxFileSizesMap::iterator
-    //     NodeToPartitionMaxFileSizesMapIter;
-    // typedef NodeToPartitionMaxFileSizesMap::const_iterator
-    //     NodeToPartitionMaxFileSizesMapCIter;
-    // typedef bsl::vector<NodeToPartitionMaxFileSizesMap>
-    //     NodeToPartitionMaxFileSizesMapVec;
-
     typedef StorageUtil::DomainQueueMessagesCountMaps
         DomainQueueMessagesCountMaps;
 
@@ -356,13 +346,6 @@ class StorageManager BSLS_KEYWORD_FINAL
     ///         **must** be accessed in the associated Queue dispatcher thread
     ///         for the i-th partitionId.
     NodeToContextMapPartitionVec d_nodeToContextMapVec;
-
-    /// Vector of `NodeToPartitionMaxFileSizesMap` indexed by partitionId.
-    ///
-    /// THREAD: Except during the ctor, the i-th index of this data member
-    ///         **must** be accessed in the associated Queue dispatcher thread
-    ///         for the i-th partitionId.
-    // NodeToPartitionMaxFileSizesMapVec d_nodeToPartitionMaxFileSizesMapVec;
 
     /// Vector of number of replica data responses received, indexed by
     /// partitionId.

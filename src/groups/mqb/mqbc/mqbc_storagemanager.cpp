@@ -3499,10 +3499,6 @@ void StorageManager::do_findHighestFileSizes(const EventWithData& event)
         }
 
         EventData newEventDataVec;
-
-        const unsigned int primaryLeaseId =
-            d_partitionInfoVec[partitionId].primaryLeaseId();
-
         newEventDataVec.emplace_back(
             cit->first,
             -1,  // placeholder requestId

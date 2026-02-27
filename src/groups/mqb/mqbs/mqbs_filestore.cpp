@@ -1802,6 +1802,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                                                    ? rec.qlistFileOffsetWords()
                                                    : 0;
             spoPair.offset()                 = jit->recordOffset();
+
             d_syncPoints.push_front(spoPair);
 
             // No need to update outstanding journal bytes, since SyncPts are
