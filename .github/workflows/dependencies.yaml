@@ -47,7 +47,7 @@ jobs:
         uses: actions/cache/restore@v4
         id: cache-lookup
         with:
-          path: deps
+          path: /opt/bb
           key: ${{ steps.get-cache-key.outputs.cache_key }}
           lookup-only: true
 
@@ -80,5 +80,5 @@ jobs:
         if: steps.cache-lookup.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
-          path: deps
+          path: /opt/bb
           key: ${{ steps.get-cache-key.outputs.cache_key }}

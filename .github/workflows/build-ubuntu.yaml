@@ -82,7 +82,7 @@ jobs:
         with:
           path: |
             build/blazingmq
-            deps
+            /opt/bb
           key: ${{ steps.get_cache_key.outputs.cache_key }}
 
       # The following steps restore cached deps
@@ -91,8 +91,9 @@ jobs:
       - uses: actions/cache/restore@v4
         if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
         with:
-          path: deps
+          path: /opt/bb
           key: ${{ needs.get_dependencies.outputs.cache_key }}
+
       - name: Set up dependencies
         if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
         run: |
@@ -110,10 +111,6 @@ jobs:
             libbenchmark-dev \
             libgmock-dev \
             libz-dev
-      - name: Install cached non packaged dependencies
-        if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
-        working-directory: deps
-        run: ../docker/build_deps.sh --cxx-standard=${{ inputs.cxx_standard }}
 
       # Build BlazingMQ
       - name: Build BlazingMQ
@@ -147,7 +144,7 @@ jobs:
         with:
           path: |
             build/blazingmq
-            deps
+            /opt/bb
           name: ${{ steps.get_cache_key.outputs.artifact_key }}
           retention-days: 1
 
@@ -159,5 +156,5 @@ jobs:
         with:
           path: |
             build/blazingmq
-            deps
+            /opt/bb
           key: ${{ steps.get_cache_key.outputs.cache_key }}

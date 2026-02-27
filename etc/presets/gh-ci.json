@@ -12,7 +12,7 @@
                 "BDE_BUILD_TARGET_64": "ON",
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_PREFIX_PATH":
-                    "$env{GITHUB_WORKSPACE}/deps/srcs/bde-tools/BdeBuildSystem"
+                    "/opt/bb/bde-tools/BdeBuildSystem"
             }
         },
         {
@@ -36,7 +36,7 @@
             "description": "GitHub Actions CI: Build on ubuntu-latest, C++03",
             "inherits": "gh-base",
             "toolchainFile":
-                "$env{GITHUB_WORKSPACE}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake",
+                "/opt/bb/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake",
             "environment": {
                 "PKG_CONFIG_PATH":
                     "/usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig"
@@ -51,7 +51,7 @@
             "description": "GitHub Actions CI: Build on ubuntu-latest, C++17",
             "inherits": "gh-base",
             "toolchainFile":
-                "$env{GITHUB_WORKSPACE}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake",
+                "/opt/bb/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake",
             "environment": {
                 "PKG_CONFIG_PATH":
                     "/usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig"
@@ -67,7 +67,7 @@
                 "GitHub Actions CI: Build with Prometheus plugin on ubuntu-latest, C++17",
             "inherits": "gh-base",
             "toolchainFile":
-                "$env{GITHUB_WORKSPACE}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake",
+                "/opt/bb/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake",
             "environment": {
                 "PKG_CONFIG_PATH":
                     "/usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig"
