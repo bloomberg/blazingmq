@@ -19,6 +19,9 @@
 // MQB
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
+#include <mqbevt_ackevent.h>
+#include <mqbevt_pushevent.h>
+#include <mqbevt_putevent.h>
 #include <mqbi_queue.h>
 #include <mqbmock_cluster.h>
 #include <mqbmock_dispatcher.h>
@@ -641,10 +644,6 @@ T assertFail()
 
 /// The `TestBench` holds system components together.
 class TestBench {
-  private:
-    // PRIVATE TYPES
-    typedef mqbmock::Dispatcher::EventGuard EventGuard;
-
   public:
     // DATA
     bdlbb::PooledBlobBufferFactory            d_bufferFactory;
@@ -824,13 +823,11 @@ class TestBench {
             guid,
             queueId);
 
-        mqbi::Dispatcher::DispatcherEventSp event =
-            bsl::allocate_shared<mqbi::DispatcherEvent>(d_allocator_p);
-        (*event)
-            .setType(mqbi::DispatcherEventType::e_ACK)
-            .setAckMessage(ackMessage);
+        bsl::shared_ptr<mqbevt::AckEvent> event_sp =
+            bsl::allocate_shared<mqbevt::AckEvent>(d_allocator_p);
+        (*event_sp).setAckMessage(ackMessage);
 
-        dispatch(event);
+        dispatch(event_sp);
     }
 
     /// Sends a `Put` event for the specified `queueId`, `msgGUID` and
@@ -870,16 +867,6 @@ class TestBench {
                                       &d_bufferFactory,
                                       cat);
 
-        mqbi::Dispatcher::DispatcherEventSp event =
-            bsl::allocate_shared<mqbi::DispatcherEvent>(d_allocator_p);
-        (*event)
-            .setType(mqbi::DispatcherEventType::e_PUT)
-            .setIsRelay(true)  // Relay message
-            .setSource(&d_cs)  // DispatcherClient *value
-            .setPutHeader(putHeader)
-            .setBlob(eventBlob)  // const bsl::shared_ptr<bdlbb::Blob>& value
-            .setCompressionAlgorithmType(cat);
-
         // Internal-ticket D167598037.
         // Verify that PutMessageIterator does not change the input.
         bmqp::Event rawEvent(eventBlob.get(),
@@ -898,7 +885,14 @@ class TestBench {
         BSLS_ASSERT(pIt2.next());
         BSLS_ASSERT(pIt3.next());
 
-        dispatch(event);
+        bsl::shared_ptr<mqbevt::PutEvent> event_sp =
+            bsl::allocate_shared<mqbevt::PutEvent>(d_allocator_p);
+        (*event_sp)
+            .setPutHeader(putHeader)
+            .setBlob(eventBlob)  // const bsl::shared_ptr<bdlbb::Blob>& value
+            .setSource(&d_cs);   // DispatcherClient *value
+
+        dispatch(event_sp);
     }
 
     /// Sends a `Push` event for the specified `queueId`, `msgGUID` and
@@ -912,20 +906,20 @@ class TestBench {
     {
         PVV("Sending PUSH with queueId=" << queueId << ", guid=" << msgGUID);
 
-        mqbi::Dispatcher::DispatcherEventSp event =
-            bsl::allocate_shared<mqbi::DispatcherEvent>(d_allocator_p);
+        bsl::shared_ptr<mqbevt::PushEvent> event_sp =
+            bsl::allocate_shared<mqbevt::PushEvent>(d_allocator_p);
 
-        (*event)
-            .setType(mqbi::DispatcherEventType::e_PUSH)
-            .setSource(&d_cs)  // DispatcherClient *value
+        (*event_sp)
             .setQueueId(queueId)
             .setBlob(blob)
             .setGuid(msgGUID)
             .setMessagePropertiesInfo(logic)
-            .setCompressionAlgorithmType(cat);
+            .setCompressionAlgorithmType(cat)
+            .setSource(&d_cs);  // DispatcherClient *value
 
-        dispatch(event);
+        dispatch(event_sp);
     }
+
     bool validateData(const bdlbb::Blob& blob,
                       int                offset,
                       int                length = k_PAYLOAD_LENGTH)
@@ -1013,7 +1007,8 @@ class TestBench {
     /// using the specified `event`.
     void dispatch(mqbi::Dispatcher::DispatcherEventSp event)
     {
-        EventGuard guard(d_mockDispatcher._withEvent(&d_cs, event));
+        mqbmock::Dispatcher::EventGuard guard(
+            d_mockDispatcher._withEvent(&d_cs, event));
 
         d_cs.onDispatcherEvent(*event);
     }
@@ -1943,9 +1938,6 @@ static void test9_newStylePush()
 
     BMQTST_ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS, rc);
 
-    mqbi::Dispatcher::DispatcherEventSp putEvent =
-        bsl::allocate_shared<mqbi::DispatcherEvent>(
-            bmqtst::TestHelperUtil::allocator());
     bmqp::Event           rawEvent(peb.blob().get(),
                          bmqtst::TestHelperUtil::allocator());
 
@@ -1957,14 +1949,15 @@ static void test9_newStylePush()
     rawEvent.loadPutMessageIterator(&putIt, false);
     BSLS_ASSERT(putIt.next());
 
-    (*putEvent)
-        .setType(mqbi::DispatcherEventType::e_PUT)
-        .setIsRelay(true)     // Relay message
-        .setSource(&tb.d_cs)  // DispatcherClient *value
+    bsl::shared_ptr<mqbevt::PutEvent> event_sp =
+        bsl::allocate_shared<mqbevt::PutEvent>(
+            bmqtst::TestHelperUtil::allocator());
+    (*event_sp)
         .setPutHeader(putIt.header())
-        .setBlob(peb.blob());  // const bsl::shared_ptr<bdlbb::Blob>& value
+        .setBlob(peb.blob())   // const bsl::shared_ptr<bdlbb::Blob>& value
+        .setSource(&tb.d_cs);  // DispatcherClient *value
 
-    tb.dispatch(putEvent);
+    tb.dispatch(event_sp);
 
     // Check if a message was sent
     const bsl::vector<MyMockQueueHandle::Post>& postMessages =
@@ -2060,9 +2053,6 @@ static void test10_newStyleCompressedPush()
 
     BMQTST_ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS, rc);
 
-    mqbi::Dispatcher::DispatcherEventSp putEvent =
-        bsl::allocate_shared<mqbi::DispatcherEvent>(
-            bmqtst::TestHelperUtil::allocator());
     bmqp::Event           rawEvent(peb.blob().get(),
                          bmqtst::TestHelperUtil::allocator());
 
@@ -2074,15 +2064,15 @@ static void test10_newStyleCompressedPush()
     rawEvent.loadPutMessageIterator(&putIt, false);
     BSLS_ASSERT(putIt.next());
 
-    (*putEvent)
-        .setType(mqbi::DispatcherEventType::e_PUT)
-        .setIsRelay(true)     // Relay message
-        .setSource(&tb.d_cs)  // DispatcherClient *value
+    bsl::shared_ptr<mqbevt::PutEvent> event_sp =
+        bsl::allocate_shared<mqbevt::PutEvent>(
+            bmqtst::TestHelperUtil::allocator());
+    (*event_sp)
         .setPutHeader(putIt.header())
-        .setBlob(peb.blob())  // const bsl::shared_ptr<bdlbb::Blob>& value
-        .setCompressionAlgorithmType(bmqt::CompressionAlgorithmType::e_ZLIB);
+        .setBlob(peb.blob())   // const bsl::shared_ptr<bdlbb::Blob>& value
+        .setSource(&tb.d_cs);  // DispatcherClient *value
 
-    tb.dispatch(putEvent);
+    tb.dispatch(event_sp);
 
     // Check if a message was sent
     const bsl::vector<MyMockQueueHandle::Post>& postMessages =

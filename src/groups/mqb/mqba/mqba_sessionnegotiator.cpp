@@ -98,10 +98,10 @@ namespace {
 BALL_LOG_SET_NAMESPACE_CATEGORY("MQBA.SESSIONNEGOTIATOR");
 
 /// Load into the specified `identity` the identity of this broker.
-/// The specified `shouldBroadcastToProxies` controls whether we advertise
+/// The specified `shouldBroadtheProxies` controls whether we advertise
 /// that feature.
 void loadBrokerIdentity(bmqp_ctrlmsg::ClientIdentity* identity,
-                        bool                          shouldBroadcastToProxies,
+                        bool                          shouldBroadtheProxies,
                         bool shouldExtendMessageProperties)
 
 {
@@ -120,7 +120,7 @@ void loadBrokerIdentity(bmqp_ctrlmsg::ClientIdentity* identity,
         .append(",")
         .append(bmqp::HighAvailabilityFeatures::k_GRACEFUL_SHUTDOWN_V2);
 
-    if (shouldBroadcastToProxies) {
+    if (shouldBroadtheProxies) {
         features.append(",").append(
             bmqp::HighAvailabilityFeatures::k_BROADCAST_TO_PROXIES);
     }
@@ -160,7 +160,7 @@ void loadBrokerIdentity(bmqp_ctrlmsg::ClientIdentity* identity,
 }
 
 void loadBrokerIdentity(bmqp_ctrlmsg::ClientIdentity* identity,
-                        bool                          shouldBroadcastToProxies,
+                        bool                          shouldBroadtheProxies,
                         const bslstl::StringRef&      name,
                         int                           nodeId)
 {
@@ -184,7 +184,7 @@ void loadBrokerIdentity(bmqp_ctrlmsg::ClientIdentity* identity,
     }
 
     loadBrokerIdentity(identity,
-                       shouldBroadcastToProxies,
+                       shouldBroadtheProxies,
                        shouldExtendMessageProperties);
 
     identity->clusterName()   = name;

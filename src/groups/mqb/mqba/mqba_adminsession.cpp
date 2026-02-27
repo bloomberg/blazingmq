@@ -72,6 +72,9 @@
 #include <bsls_performancehint.h>
 #include <bsls_timeinterval.h>
 
+// MQB
+#include <mqbevt_callbackevent.h>
+
 namespace BloombergLP {
 namespace mqba {
 
@@ -443,8 +446,8 @@ void AdminSession::onDispatcherEvent(const mqbi::DispatcherEvent& event)
 
     switch (event.type()) {
     case mqbi::DispatcherEventType::e_CALLBACK: {
-        const mqbi::DispatcherCallbackEvent* realEvent =
-            event.asCallbackEvent();
+        const mqbevt::CallbackEvent* const realEvent =
+            event.the<mqbevt::CallbackEvent>();
 
         BSLS_ASSERT_SAFE(!realEvent->callback().empty());
         realEvent->callback()();

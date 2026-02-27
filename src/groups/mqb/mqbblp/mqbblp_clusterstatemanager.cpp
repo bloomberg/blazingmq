@@ -21,6 +21,7 @@
 #include <mqbblp_storagemanager.h>
 #include <mqbc_clusternodesession.h>
 #include <mqbc_clusterstateledgeriterator.h>
+#include <mqbevt_clusterstateevent.h>
 #include <mqbi_cluster.h>
 #include <mqbi_domain.h>
 #include <mqbnet_cluster.h>
@@ -1245,7 +1246,7 @@ void ClusterStateManager::processRegistrationRequest(
 }
 
 void ClusterStateManager::processClusterStateEvent(
-    const mqbi::DispatcherClusterStateEvent& event)
+    const mqbevt::ClusterStateEvent& event)
 {
     // executed by *CLUSTER DISPATCHER* thread
 

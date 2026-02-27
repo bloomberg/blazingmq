@@ -20,7 +20,7 @@ set_property(SOURCE "mqba/mqba_application.cpp"
              APPEND
              PROPERTY COMPILE_DEFINITIONS "BMQ_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
 
-set(MQB_PRIVATE_PACKAGES mqba mqbblp mqbc mqbcmd mqbconfm mqbi mqbmock mqbnet mqbs mqbsi mqbsl mqbu)
+set(MQB_PRIVATE_PACKAGES mqba mqbblp mqbc mqbcmd mqbconfm mqbevt mqbi mqbmock mqbnet mqbs mqbsi mqbsl mqbu)
 target_bmq_style_uor( mqb PRIVATE_PACKAGES ${MQB_PRIVATE_PACKAGES})
 
 # Turn off warnings in generated code.

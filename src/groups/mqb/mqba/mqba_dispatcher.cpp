@@ -17,6 +17,11 @@
 #include <mqba_dispatcher.h>
 
 #include <mqbscm_version.h>
+
+// MQB
+#include <mqba_dispatchereventsource.h>
+#include <mqbevt_dispatcherevent.h>
+
 // BMQ
 #include <bmqu_memoutstream.h>
 
@@ -42,7 +47,6 @@ namespace mqba {
 
 namespace {
 const double k_QUEUE_STUCK_INTERVAL = 3 * 60.0;
-const int    k_POOL_GROW_BY         = 1024;
 }  // close unnamed namespace
 
 // -------------------------
@@ -89,24 +93,19 @@ void Dispatcher_Executor::post(const bsl::function<void()>& f) const
     BSLS_ASSERT(d_processorPool_p->isStarted());
 
     // create an event containing the function to be invoked on the processor
-    bsl::shared_ptr<mqbi::DispatcherEvent> event =
-        d_eventSource_sp->getEvent();
+    bsl::shared_ptr<mqbevt::DispatcherEvent> event_sp =
+        d_eventSource_sp->getEvent<mqbevt::DispatcherEvent>();
+    (*event_sp).callback().set(f);
 
-    (*event)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .callback()
-        .set(f);
+    // C++03 compatibility:
+    bsl::shared_ptr<mqbi::DispatcherEvent> base_sp(
+        bslmf::MovableRefUtil::move(event_sp));
 
     // submit the event
     int rc = d_processorPool_p->enqueueEvent(
-        bslmf::MovableRefUtil::move(event),
+        bslmf::MovableRefUtil::move(base_sp),
         d_processorHandle);
     BSLS_ASSERT_OPT(rc == 0);
-
-    // TODO: We should call 'releaseUnmanagedEvent' on the
-    //      'bmqc::MultiQueueThreadPool' in case of exception to prevent the
-    //      event from leaking. But somehow this method is declared but not
-    //      implemented.
 }
 
 void Dispatcher_Executor::dispatch(const bsl::function<void()>& f) const
@@ -126,27 +125,6 @@ void Dispatcher_Executor::dispatch(const bsl::function<void()>& f) const
         // to 'post'.
         post(f);
     }
-}
-
-// ---------------------------
-// class DispatcherEventSource
-// ---------------------------
-
-Dispatcher_EventSource::Dispatcher_EventSource(bslma::Allocator* allocator)
-: d_pool(bdlf::BindUtil::bindS(allocator,
-                               &Dispatcher_EventSource::eventCreator,
-                               bdlf::PlaceHolders::_1,   // arena
-                               bdlf::PlaceHolders::_2),  // allocator
-         k_POOL_GROW_BY,
-         allocator)
-{
-    // NOTHING
-}
-
-Dispatcher_EventSource::~Dispatcher_EventSource()
-{
-    // Make sure all the events have returned to the pool.
-    BSLS_ASSERT(d_pool.numObjects() == d_pool.numAvailableObjects());
 }
 
 // ------------------------------------
@@ -169,7 +147,7 @@ Dispatcher::DispatcherContext::DispatcherContext(
     for (EventSources::iterator it = d_eventSources.begin();
          it != d_eventSources.end();
          ++it) {
-        *it = bsl::allocate_shared<mqba::Dispatcher_EventSource>(allocator);
+        *it = bsl::allocate_shared<mqba::DispatcherEventSource>(allocator);
     }
 }
 
@@ -293,8 +271,8 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
         BALL_LOG_TRACE << "Dispatching Event to queue " << processorId
                        << " of " << type << " dispatcher: " << *event;
         if (event->type() == mqbi::DispatcherEventType::e_DISPATCHER) {
-            const mqbi::DispatcherDispatcherEvent* realEvent =
-                event->asDispatcherEvent();
+            const mqbevt::DispatcherEvent* realEvent =
+                event->the<mqbevt::DispatcherEvent>();
 
             // We must flush now (and irrespective of a callback actually being
             // set on the event) to ensure the flushList is empty before
@@ -358,7 +336,7 @@ Dispatcher::Dispatcher(const mqbcfg::DispatcherConfig& config,
 , d_scheduler_p(scheduler)
 , d_contexts(allocator)
 , d_defaultEventSource_sp(
-      bsl::allocate_shared<mqba::Dispatcher_EventSource>(allocator))
+      bsl::allocate_shared<mqba::DispatcherEventSource>(allocator))
 , d_customEventSources(allocator)
 , d_customEventSources_mtx()
 , d_flushClientsGate()
@@ -571,13 +549,17 @@ void Dispatcher::executeOnAllQueues(
                    << "queues [hasFinalizeCallback: "
                    << (doneCallback ? "yes" : "no") << "]";
 
-    bsl::shared_ptr<mqbi::DispatcherEvent> qEvent =
-        d_defaultEventSource_sp->getEvent();
-    qEvent->setType(mqbi::DispatcherEventType::e_DISPATCHER);
-    qEvent->callback().set(functor);
-    qEvent->finalizeCallback().set(doneCallback);
+    bsl::shared_ptr<mqbevt::DispatcherEvent> event_sp =
+        d_defaultEventSource_sp->getEvent<mqbevt::DispatcherEvent>();
+    event_sp->callback().set(functor);
+    event_sp->finalizeCallback().set(doneCallback);
+
+    // C++03 compatibility:
+    bsl::shared_ptr<mqbi::DispatcherEvent> base_sp(
+        bslmf::MovableRefUtil::move(event_sp));
+
     processorPool->enqueueEventOnAllQueues(
-        bslmf::MovableRefUtil::move(qEvent));
+        bslmf::MovableRefUtil::move(base_sp));
 }
 
 void Dispatcher::synchronize(mqbi::DispatcherClient* client)
@@ -597,14 +579,12 @@ void Dispatcher::synchronize(mqbi::DispatcherClientType::Enum  type,
     typedef void (bslmt::Semaphore::*PostFn)();
 
     bslmt::Semaphore       semaphore;
-    bsl::shared_ptr<mqbi::DispatcherEvent> event =
-        d_defaultEventSource_sp->getEvent();
-    (*event)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .setCallback(
-            bdlf::BindUtil::bind(static_cast<PostFn>(&bslmt::Semaphore::post),
-                                 &semaphore));
-    dispatchEvent(bslmf::MovableRefUtil::move(event), type, handle);
+    bsl::shared_ptr<mqbevt::DispatcherEvent> event_sp =
+        d_defaultEventSource_sp->getEvent<mqbevt::DispatcherEvent>();
+    (*event_sp).setCallback(
+        bdlf::BindUtil::bind(static_cast<PostFn>(&bslmt::Semaphore::post),
+                             &semaphore));
+    dispatchEvent(bslmf::MovableRefUtil::move(event_sp), type, handle);
     semaphore.wait();
 }
 
@@ -623,7 +603,7 @@ Dispatcher::executor(const mqbi::DispatcherClient* client) const
 bsl::shared_ptr<mqbi::DispatcherEventSource> Dispatcher::createEventSource()
 {
     bsl::shared_ptr<mqbi::DispatcherEventSource> res =
-        bsl::allocate_shared<mqba::Dispatcher_EventSource>(d_allocator_p);
+        bsl::allocate_shared<mqba::DispatcherEventSource>(d_allocator_p);
     {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_customEventSources_mtx);
         d_customEventSources.push_back(res);

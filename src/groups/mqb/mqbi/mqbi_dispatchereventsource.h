@@ -22,18 +22,38 @@
 //@CLASSES:
 //  mqbi::DispatcherEventSource: Interface for a DispatcherEventSource
 //
-//@DESCRIPTION: 'mqbi::DispatcherEventSource' provide an interface for
-//  a DispatcherEventSource.
+//@DESCRIPTION: 'mqbi::DispatcherEventSource' provides an interface for
+// acquiring typed dispatcher events.  Events can be obtained in two ways:
+//
+//: o Concrete getters: 'getAckEvent()', 'getPutEvent()', etc.
+//: o Template getter: 'get<EVENT_TYPE>()' which dispatches to the
+//:   appropriate concrete getter based on the template parameter.
 
 // BDE
 #include <bsl_memory.h>  // bsl::shared_ptr
 
 namespace BloombergLP {
 
-namespace mqbi {
-
 // FORWARD DECLARATIONS
+namespace mqbi {
 class DispatcherEvent;
+}
+namespace mqbevt {
+class AckEvent;
+class CallbackEvent;
+class ClusterStateEvent;
+class ConfirmEvent;
+class ControlMessageEvent;
+class DispatcherEvent;
+class PushEvent;
+class PutEvent;
+class ReceiptEvent;
+class RecoveryEvent;
+class RejectEvent;
+class StorageEvent;
+}
+
+namespace mqbi {
 
 // ===========================
 // class DispatcherEventSource
@@ -49,13 +69,119 @@ class DispatcherEventSource {
 
     // MANIPULATORS
 
-    /// @brief Get an event for mqbi::Dispatcher.
-    /// @return A shared pointer to event.
-    /// The behaviour is undefined unless all the shared pointers to events
-    /// acquired with `getEvent` are destructed before destructor is called
-    /// for this event source.
-    virtual DispatcherEventSp getEvent() = 0;
+    /// Return a shared pointer to a typed event from this event source.
+    /// Use the template method `get<EVENT_TYPE>()` for convenient access.
+    virtual bsl::shared_ptr<mqbevt::AckEvent>      getAckEvent()      = 0;
+    virtual bsl::shared_ptr<mqbevt::CallbackEvent> getCallbackEvent() = 0;
+    virtual bsl::shared_ptr<mqbevt::ClusterStateEvent>
+                                                  getClusterStateEvent() = 0;
+    virtual bsl::shared_ptr<mqbevt::ConfirmEvent> getConfirmEvent()      = 0;
+    virtual bsl::shared_ptr<mqbevt::ControlMessageEvent>
+    getControlMessageEvent()                                              = 0;
+    virtual bsl::shared_ptr<mqbevt::DispatcherEvent> getDispatcherEvent() = 0;
+    virtual bsl::shared_ptr<mqbevt::PushEvent>       getPushEvent()       = 0;
+    virtual bsl::shared_ptr<mqbevt::PutEvent>        getPutEvent()        = 0;
+    virtual bsl::shared_ptr<mqbevt::ReceiptEvent>    getReceiptEvent()    = 0;
+    virtual bsl::shared_ptr<mqbevt::RecoveryEvent>   getRecoveryEvent()   = 0;
+    virtual bsl::shared_ptr<mqbevt::RejectEvent>     getRejectEvent()     = 0;
+    virtual bsl::shared_ptr<mqbevt::StorageEvent>    getStorageEvent()    = 0;
+
+    /// Return a shared pointer to an event of the specified `EVENT_TYPE`.
+    template <class EVENT_TYPE>
+    bsl::shared_ptr<EVENT_TYPE> getEvent();
 };
+
+// ============================================================================
+//                             INLINE DEFINITIONS
+// ============================================================================
+
+// ---------------------------
+// class DispatcherEventSource
+// ---------------------------
+
+template <>
+inline bsl::shared_ptr<mqbevt::AckEvent>
+DispatcherEventSource::getEvent<mqbevt::AckEvent>()
+{
+    return getAckEvent();
+}
+
+template <>
+inline bsl::shared_ptr<mqbevt::CallbackEvent>
+DispatcherEventSource::getEvent<mqbevt::CallbackEvent>()
+{
+    return getCallbackEvent();
+}
+
+template <>
+inline bsl::shared_ptr<mqbevt::ClusterStateEvent>
+DispatcherEventSource::getEvent<mqbevt::ClusterStateEvent>()
+{
+    return getClusterStateEvent();
+}
+
+template <>
+inline bsl::shared_ptr<mqbevt::ConfirmEvent>
+DispatcherEventSource::getEvent<mqbevt::ConfirmEvent>()
+{
+    return getConfirmEvent();
+}
+
+template <>
+inline bsl::shared_ptr<mqbevt::ControlMessageEvent>
+DispatcherEventSource::getEvent<mqbevt::ControlMessageEvent>()
+{
+    return getControlMessageEvent();
+}
+
+template <>
+inline bsl::shared_ptr<mqbevt::DispatcherEvent>
+DispatcherEventSource::getEvent<mqbevt::DispatcherEvent>()
+{
+    return getDispatcherEvent();
+}
+
+template <>
+inline bsl::shared_ptr<mqbevt::PushEvent>
+DispatcherEventSource::getEvent<mqbevt::PushEvent>()
+{
+    return getPushEvent();
+}
+
+template <>
+inline bsl::shared_ptr<mqbevt::PutEvent>
+DispatcherEventSource::getEvent<mqbevt::PutEvent>()
+{
+    return getPutEvent();
+}
+
+template <>
+inline bsl::shared_ptr<mqbevt::ReceiptEvent>
+DispatcherEventSource::getEvent<mqbevt::ReceiptEvent>()
+{
+    return getReceiptEvent();
+}
+
+template <>
+inline bsl::shared_ptr<mqbevt::RecoveryEvent>
+DispatcherEventSource::getEvent<mqbevt::RecoveryEvent>()
+{
+    return getRecoveryEvent();
+}
+
+template <>
+inline bsl::shared_ptr<mqbevt::RejectEvent>
+DispatcherEventSource::getEvent<mqbevt::RejectEvent>()
+{
+    return getRejectEvent();
+}
+
+template <>
+inline bsl::shared_ptr<mqbevt::StorageEvent>
+DispatcherEventSource::getEvent<mqbevt::StorageEvent>()
+{
+    return getStorageEvent();
+}
 
 }  // close package namespace
 }  // close enterprise namespace

@@ -913,7 +913,7 @@ class StorageManager BSLS_KEYWORD_FINAL
         BSLS_KEYWORD_OVERRIDE;
 
     /// Executed in cluster dispatcher thread.
-    void processStorageEvent(const mqbi::DispatcherStorageEvent& event)
+    void processStorageEvent(const mqbevt::StorageEvent& event)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Executed by any thread.
@@ -937,7 +937,7 @@ class StorageManager BSLS_KEYWORD_FINAL
         mqbnet::ClusterNode*                source) BSLS_KEYWORD_OVERRIDE;
 
     /// Executed in cluster dispatcher thread.
-    void processRecoveryEvent(const mqbi::DispatcherRecoveryEvent& event)
+    void processRecoveryEvent(const mqbevt::RecoveryEvent& event)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Executed in IO thread.

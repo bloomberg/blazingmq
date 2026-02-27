@@ -425,7 +425,7 @@ class RemoteQueue {
     /// THREAD: This method is called from the Queue's dispatcher thread.
     size_t iteratePendingConfirms(const ConfirmsVisitor& visitor);
 
-    void onAckMessageDispatched(const mqbi::DispatcherAckEvent& event);
+    void onAckMessageDispatched(const mqbevt::AckEvent& event);
 
     /// Notify the queue that the upstream is not ready to receive
     /// PUTs/CONFIRMs.
