@@ -4685,6 +4685,7 @@ void ClusterQueueHelper::onUpstreamNodeChange(mqbnet::ClusterNode* node,
         }
 
         if (node == 0) {
+            setAsClosed(queueContextSp);
             // Replica makes all open queues buffer PUTs.
             queue->dispatcher()->execute(
                 bdlf::BindUtil::bindS(d_allocator_p,
@@ -4692,6 +4693,23 @@ void ClusterQueueHelper::onUpstreamNodeChange(mqbnet::ClusterNode* node,
                                       queue),
                 queue);
         }
+    }
+}
+
+void ClusterQueueHelper::setAsClosed(const QueueContextSp& queueContextSp)
+{
+    QueueLiveState&    queueInfo = queueContextSp->d_liveQInfo;
+    const mqbi::Queue* queuePtr  = queueInfo.d_queue_sp.get();
+
+    BSLS_ASSERT_SAFE(queuePtr);
+
+    for (StreamsMap::iterator iter = queueInfo.d_subQueueIds.begin();
+         iter != queueInfo.d_subQueueIds.end();
+         ++iter) {
+        SubQueueContext& subQueueContext = iter->value();
+
+        // block and cache all new OpenQueue requests
+        subQueueContext.d_state = SubQueueContext::k_CLOSED;
     }
 }
 
