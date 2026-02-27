@@ -126,9 +126,9 @@ bsl::string_view TestAuthenticator::mechanism() const
 }
 
 int TestAuthenticator::authenticate(
-    BSLA_UNUSED bsl::ostream&                       errorDescription,
+    BSLA_MAYBE_UNUSED bsl::ostream&                 errorDescription,
     bsl::shared_ptr<mqbplug::AuthenticationResult>* result,
-    BSLA_UNUSED const mqbplug::AuthenticationData& input) const
+    BSLA_MAYBE_UNUSED const mqbplug::AuthenticationData& input) const
 {
     BALL_LOG_INFO << "TestAuthenticator: authentication using mechanism '"
                   << mechanism() << "'.";

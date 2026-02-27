@@ -332,8 +332,8 @@ inline MessageGUIDHashAlgo::MessageGUIDHashAlgo()
 }
 
 // MANIPULATORS
-inline void MessageGUIDHashAlgo::operator()(const void*        data,
-                                            BSLA_UNUSED size_t numBytes)
+inline void MessageGUIDHashAlgo::operator()(const void*              data,
+                                            BSLA_MAYBE_UNUSED size_t numBytes)
 {
     // Implementation note: the implementation is based on Jon Maiga's research
     // on different bit mixers and their qualities (look for `mxm`):

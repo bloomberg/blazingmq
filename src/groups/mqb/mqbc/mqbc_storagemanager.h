@@ -164,8 +164,7 @@ class StorageManager BSLS_KEYWORD_FINAL
         PrimaryStatusAdvisoryInfosVec;
 
     /// VST representing node's sequence number, first sync point after
-    /// rollover sequence number, partition max file size and flag of whether
-    ///  recovery data is in sync.
+    /// rollover sequence number and partition max file size.
     class NodeContext {
       public:
         // DATA
@@ -180,10 +179,6 @@ class StorageManager BSLS_KEYWORD_FINAL
         /// Node's partition max file sizes.
         bmqp_ctrlmsg::PartitionMaxFileSizes d_partitionMaxFileSizes;
 
-        /// Flag of whether recovery data is already sent to that node.
-        /// It, however, does not mean that the node is already healed.
-        bool d_isRecoveryDataSent;
-
         // CREATORS
         NodeContext();
 
@@ -191,8 +186,7 @@ class StorageManager BSLS_KEYWORD_FINAL
             const bmqp_ctrlmsg::PartitionSequenceNumber seqNum,
             const bmqp_ctrlmsg::PartitionSequenceNumber
                 firstSyncPointAfterRolloverSeqNum,
-            const bmqp_ctrlmsg::PartitionMaxFileSizes& partitionMaxFileSizes,
-            bool                                       isRecoveryDataSent);
+            const bmqp_ctrlmsg::PartitionMaxFileSizes& partitionMaxFileSizes);
     };
 
   public:
@@ -635,6 +629,12 @@ class StorageManager BSLS_KEYWORD_FINAL
 
     void do_replicaDataResponseResize(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
+
+    void do_logUnexpectedPrimaryStateResponse(const EventWithData& event)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_logUnexpectedFailurePrimaryStateResponse(
+        const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
     void
     do_primaryStateRequest(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
@@ -1263,7 +1263,6 @@ inline StorageManager::NodeContext::NodeContext()
 : d_seqNum()
 , d_firstSyncPointAfterRolloverSeqNum()
 , d_partitionMaxFileSizes()
-, d_isRecoveryDataSent(false)
 {
     // NOTHING
 }
@@ -1277,7 +1276,6 @@ inline StorageManager::NodeContext::NodeContext(
 : d_seqNum(seqNum)
 , d_firstSyncPointAfterRolloverSeqNum(firstSyncPointAfterRolloverSeqNum)
 , d_partitionMaxFileSizes(partitionMaxFileSizes)
-, d_isRecoveryDataSent(isInSync)
 {
     // NOTHING
 }

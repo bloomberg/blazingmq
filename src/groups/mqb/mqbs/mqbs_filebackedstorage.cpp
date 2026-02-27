@@ -231,11 +231,12 @@ bool FileBackedStorage::hasReceipt(const bmqt::MessageGUID& msgGUID) const
     return d_store_p->hasReceipt(handles[0]);
 }
 
-int FileBackedStorage::configure(BSLA_UNUSED bsl::ostream& errorDescription,
-                                 const mqbconfm::Storage&  config,
-                                 const mqbconfm::Limits&   limits,
-                                 const bsls::Types::Int64  messageTtl,
-                                 int                       maxDeliveryAttempts)
+int FileBackedStorage::configure(
+    BSLA_MAYBE_UNUSED bsl::ostream& errorDescription,
+    const mqbconfm::Storage&        config,
+    const mqbconfm::Limits&         limits,
+    const bsls::Types::Int64        messageTtl,
+    int                             maxDeliveryAttempts)
 {
     d_config = config;
     d_capacityMeter.setLimits(limits.messages(), limits.bytes())

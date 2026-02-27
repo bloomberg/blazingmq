@@ -131,16 +131,16 @@ struct MockStorageIterator : public mqbi::StorageIterator {
     bool advance() BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
-    void
-    reset(const BSLA_UNUSED bmqt::MessageGUID& where) BSLS_KEYWORD_OVERRIDE;
+    void reset(BSLA_MAYBE_UNUSED const bmqt::MessageGUID& where)
+        BSLS_KEYWORD_OVERRIDE;
 
     const bmqt::MessageGUID& guid() const BSLS_KEYWORD_OVERRIDE;
 
     const mqbi::AppMessage& appMessageView(
-        BSLA_UNUSED unsigned int appOrdinal) const BSLS_KEYWORD_OVERRIDE;
+        BSLA_MAYBE_UNUSED unsigned int appOrdinal) const BSLS_KEYWORD_OVERRIDE;
 
-    mqbi::AppMessage&
-    appMessageState(BSLA_UNUSED unsigned int appOrdinal) BSLS_KEYWORD_OVERRIDE;
+    mqbi::AppMessage& appMessageState(
+        BSLA_MAYBE_UNUSED unsigned int appOrdinal) BSLS_KEYWORD_OVERRIDE;
 
     const bsl::shared_ptr<bdlbb::Blob>& appData() const BSLS_KEYWORD_OVERRIDE;
 
@@ -177,7 +177,8 @@ bool MockStorageIterator::advance()
 }
 
 // ACCESSORS
-void MockStorageIterator::reset(const BSLA_UNUSED bmqt::MessageGUID& where)
+void MockStorageIterator::reset(
+    BSLA_MAYBE_UNUSED const bmqt::MessageGUID& where)
 {
 }
 
@@ -186,14 +187,14 @@ const bmqt::MessageGUID& MockStorageIterator::guid() const
     return d_guid;
 }
 
-const mqbi::AppMessage&
-MockStorageIterator::appMessageView(BSLA_UNUSED unsigned int appOrdinal) const
+const mqbi::AppMessage& MockStorageIterator::appMessageView(
+    BSLA_MAYBE_UNUSED unsigned int appOrdinal) const
 {
     return d_appMessage;
 }
 
 mqbi::AppMessage&
-MockStorageIterator::appMessageState(BSLA_UNUSED unsigned int appOrdinal)
+MockStorageIterator::appMessageState(BSLA_MAYBE_UNUSED unsigned int appOrdinal)
 {
     return d_appMessage;
 }
@@ -356,9 +357,9 @@ Test::haveUndeliveredCb(bsls::TimeInterval*       alarmTime_p,
 }
 
 void Test::loggingCb(
-    BSLA_UNUSED const bsl::string& id,
-    BSLA_UNUSED const bslma::ManagedPtr<mqbi::StorageIterator>& oldestMsgIt)
-    const
+    BSLA_MAYBE_UNUSED const bsl::string& id,
+    BSLA_MAYBE_UNUSED const bslma::ManagedPtr<mqbi::StorageIterator>&
+                            oldestMsgIt) const
 {
     BALL_LOG_SET_CATEGORY("MQBBLP.QUEUECONSUMPTIONMONITORTEST");
 

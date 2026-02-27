@@ -247,9 +247,9 @@ struct EventHandler : public bmqa::SessionEventHandler {
         return result;
     }
 
-    void incrementAsserts(BSLA_UNUSED const char* desc,
-                          BSLA_UNUSED const char* file,
-                          BSLA_UNUSED int         line)
+    void incrementAsserts(BSLA_MAYBE_UNUSED const char* desc,
+                          BSLA_MAYBE_UNUSED const char* file,
+                          BSLA_MAYBE_UNUSED int         line)
     {
         ++d_assertsInvoked;
     }

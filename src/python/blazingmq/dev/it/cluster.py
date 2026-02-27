@@ -328,7 +328,7 @@ class Cluster(contextlib.AbstractContextManager):
         )
 
         if prevent_leader_bounce:
-            if self.last_known_leader is not None:
+            if self.last_known_leader is not None and self.last_known_leader.is_alive():
                 # Setting leader's quorum to 1, so it does not lose its leadership
                 # while supporting nodes shutting down.
                 # In case of 7-node cluster (with default quorum of 4),

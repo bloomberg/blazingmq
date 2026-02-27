@@ -1224,22 +1224,22 @@ void ClusterStateManager::processLeaderSyncDataQuery(
 }
 
 void ClusterStateManager::processFollowerLSNRequest(
-    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLA_UNUSED mqbnet::ClusterNode* source)
+    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* source)
 {
     BSLS_ASSERT_OPT(false && "This method should only be invoked in CSL mode");
 }
 
 void ClusterStateManager::processFollowerClusterStateRequest(
-    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLA_UNUSED mqbnet::ClusterNode* source)
+    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* source)
 {
     BSLS_ASSERT_OPT(false && "This method should only be invoked in CSL mode");
 }
 
 void ClusterStateManager::processRegistrationRequest(
-    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLA_UNUSED mqbnet::ClusterNode* source)
+    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* source)
 {
     BSLS_ASSERT_OPT(false && "This method should only be invoked in CSL mode");
 }
@@ -1271,7 +1271,7 @@ void ClusterStateManager::processShutdownEvent()
 }
 
 void ClusterStateManager::onNodeUnavailable(
-    BSLA_UNUSED mqbnet::ClusterNode* node)
+    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* node)
 {
     BSLS_ASSERT_OPT(false && "This method should only be invoked in CSL mode");
 }

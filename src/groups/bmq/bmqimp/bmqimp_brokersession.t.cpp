@@ -991,8 +991,9 @@ void TestSession::openQueue(bsl::shared_ptr<bmqimp::Queue> queue,
     arriveAtStep(queue, e_OPEN_OPENED, timeout, skipReaderCfgs);
 }
 
-void TestSession::reopenQueue(bsl::shared_ptr<bmqimp::Queue> queue,
-                              BSLA_UNUSED const bsls::TimeInterval& timeout)
+void TestSession::reopenQueue(
+    bsl::shared_ptr<bmqimp::Queue> queue,
+    BSLA_MAYBE_UNUSED const bsls::TimeInterval& timeout)
 {
     BMQTST_ASSERT(queue);
 

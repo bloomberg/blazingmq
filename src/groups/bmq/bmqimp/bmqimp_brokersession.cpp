@@ -133,7 +133,7 @@ void poolCreateEvent(void*                     address,
 }
 
 void callbackAdapter(const bsl::function<void()>& f,
-                     BSLA_UNUSED const bsl::shared_ptr<Event>& eventSp)
+                     BSLA_MAYBE_UNUSED const bsl::shared_ptr<Event>& eventSp)
 {
     // See the comment in 'postToFsm'.
     f();
@@ -160,8 +160,8 @@ void applyQueueSuspension(const bsl::shared_ptr<Queue>& queueSp, bool value)
     }
 }
 
-void releaseSemaphore(bslmt::Semaphore* semaphore,
-                      BSLA_UNUSED const bsl::shared_ptr<Event>& eventSp)
+void releaseSemaphore(bslmt::Semaphore*       semaphore,
+                      BSLA_MAYBE_UNUSED const bsl::shared_ptr<Event>& eventSp)
 {
     // executed by the FSM thread
 
@@ -4122,7 +4122,7 @@ bmqt::ConfigureQueueResult::Enum BrokerSession::sendDeconfigureRequest(
 }
 
 void BrokerSession::doHandleStartTimeout(
-    BSLA_UNUSED const bsl::shared_ptr<Event>& eventSp)
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<Event>& eventSp)
 {
     // executed by the FSM thread
     // PRECONDITIONS
@@ -4132,7 +4132,7 @@ void BrokerSession::doHandleStartTimeout(
 }
 
 void BrokerSession::doHandlePendingPutExpirationTimeout(
-    BSLA_UNUSED const bsl::shared_ptr<Event>& eventSp)
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<Event>& eventSp)
 {
     // executed by the FSM thread
     // PRECONDITIONS
@@ -4173,7 +4173,7 @@ void BrokerSession::doHandlePendingPutExpirationTimeout(
 
 void BrokerSession::doHandleChannelWatermark(
     bmqio::ChannelWatermarkType::Enum type,
-    BSLA_UNUSED const bsl::shared_ptr<Event>& eventSp)
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<Event>& eventSp)
 {
     // executed by the FSM thread
 
@@ -4862,10 +4862,11 @@ BrokerSession::enqueueFsmEvent(bsl::shared_ptr<Event>& event)
     return bmqt::GenericResult::e_SUCCESS;
 }
 
-void BrokerSession::doStart(bslmt::Semaphore* semaphore,
-                            int*              status,
-                            BSLA_UNUSED const bsl::shared_ptr<Event>& eventSp,
-                            const bsl::shared_ptr<bmqpi::DTSpan>&     span)
+void BrokerSession::doStart(
+    bslmt::Semaphore*       semaphore,
+    int*                    status,
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<Event>& eventSp,
+    const bsl::shared_ptr<bmqpi::DTSpan>&           span)
 {
     // executed by the FSM thread
     // PRECONDITIONS
@@ -4909,8 +4910,9 @@ void BrokerSession::doStart(bslmt::Semaphore* semaphore,
     semaphore->post();
 }
 
-void BrokerSession::doStop(BSLA_UNUSED const bsl::shared_ptr<Event>& eventSp,
-                           const bsl::shared_ptr<bmqpi::DTSpan>&     span)
+void BrokerSession::doStop(
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<Event>& eventSp,
+    const bsl::shared_ptr<bmqpi::DTSpan>&           span)
 {
     // executed by the FSM thread
     // PRECONDITIONS
@@ -4928,8 +4930,8 @@ void BrokerSession::doOpenQueue(
     const bsl::shared_ptr<Queue>& queue,
     const bsls::TimeInterval      timeout,
     const FsmCallback&            fsmCallback,
-    BSLA_UNUSED const bsl::shared_ptr<Event>& eventSp,
-    const bsl::shared_ptr<bmqpi::DTSpan>&     span)
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<Event>& eventSp,
+    const bsl::shared_ptr<bmqpi::DTSpan>&           span)
 {
     // executed by the FSM thread
     // PRECONDITIONS
@@ -4972,8 +4974,8 @@ void BrokerSession::doConfigureQueue(
     const bmqt::QueueOptions&     options,
     const bsls::TimeInterval      timeout,
     const FsmCallback&            fsmCallback,
-    BSLA_UNUSED const bsl::shared_ptr<Event>& eventSp,
-    const bsl::shared_ptr<bmqpi::DTSpan>&     span)
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<Event>& eventSp,
+    const bsl::shared_ptr<bmqpi::DTSpan>&           span)
 {
     // executed by the FSM thread
     // PRECONDITIONS
@@ -5019,8 +5021,8 @@ void BrokerSession::doCloseQueue(
     const bsl::shared_ptr<Queue>& queue,
     const bsls::TimeInterval      timeout,
     const FsmCallback&            fsmCallback,
-    BSLA_UNUSED const bsl::shared_ptr<Event>& eventSp,
-    const bsl::shared_ptr<bmqpi::DTSpan>&     span)
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<Event>& eventSp,
+    const bsl::shared_ptr<bmqpi::DTSpan>&           span)
 {
     // executed by the FSM thread
     // PRECONDITIONS
@@ -5054,7 +5056,7 @@ void BrokerSession::doCloseQueue(
 
 void BrokerSession::doSetChannel(
     const bsl::shared_ptr<bmqio::Channel> channel,
-    BSLA_UNUSED const bsl::shared_ptr<Event>& eventSp)
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<Event>& eventSp)
 {
     // executed by the FSM thread
     // PRECONDITIONS
@@ -5395,7 +5397,7 @@ void BrokerSession::onHostHealthStateChange(bmqt::HostHealthState::Enum state)
 
 void BrokerSession::doHandleHostHealthStateChange(
     bmqt::HostHealthState::Enum state,
-    BSLA_UNUSED const bsl::shared_ptr<Event>& eventSp)
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<Event>& eventSp)
 {
     // executed by the FSM thread
     // PRECONDITIONS

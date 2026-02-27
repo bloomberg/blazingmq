@@ -103,8 +103,8 @@ class Domain;
 struct ClusterErrorCode {
     // TYPES
     enum Enum {
-        // Generic
-        // - - - -
+        /// Generic
+        /// - - - -
         e_OK = 0,
 
         /// Operation failed for unknown reason
@@ -139,7 +139,11 @@ struct ClusterErrorCode {
         /// Failure to apply to the CSL
         e_CSL_FAILURE = -208,
         /// Storage failure other than CSL failure
-        e_STORAGE_FAILURE = -209
+        e_STORAGE_FAILURE = -209,
+        /// Self is replica waiting for PrimaryStateResponse, and **must**
+        /// reject the ReplicaStateRequest to prevent primary from healing us
+        /// twice in a row, leading to duplicate work.
+        e_REPLICA_WAITING = -210
     };
 
     // CLASS METHODS

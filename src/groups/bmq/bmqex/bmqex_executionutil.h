@@ -1274,7 +1274,7 @@ struct ExecutionUtil {
 // PRIVATE ACCESSORS
 template <class R, class F>
 inline void ExecutionUtil_FunctionRef<R, F>::invoke(
-    BSLA_UNUSED bsl::true_type voidResultTag) const
+    BSLA_MAYBE_UNUSED bsl::true_type voidResultTag) const
 {
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES
     bsl::forward<F> (*d_function_p)();
@@ -1285,7 +1285,7 @@ inline void ExecutionUtil_FunctionRef<R, F>::invoke(
 
 template <class R, class F>
 inline R ExecutionUtil_FunctionRef<R, F>::invoke(
-    BSLA_UNUSED bsl::false_type voidResultTag) const
+    BSLA_MAYBE_UNUSED bsl::false_type voidResultTag) const
 {
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES
     return bsl::forward<F>(*d_function_p)();
@@ -1319,14 +1319,14 @@ inline R ExecutionUtil_FunctionRef<R, F>::operator()() const
 // PRIVATE ACCESSORS
 template <class R, class F>
 inline void ExecutionUtil_OneOffFunction<R, F>::invoke(
-    BSLA_UNUSED bsl::true_type voidResultTag)
+    BSLA_MAYBE_UNUSED bsl::true_type voidResultTag)
 {
     bslmf::Util::moveIfSupported(d_functionValue.object().value())();
 }
 
 template <class R, class F>
 inline R ExecutionUtil_OneOffFunction<R, F>::invoke(
-    BSLA_UNUSED bsl::false_type voidResultTag)
+    BSLA_MAYBE_UNUSED bsl::false_type voidResultTag)
 {
     return bslmf::Util::moveIfSupported(d_functionValue.object().value())();
 }
@@ -1432,7 +1432,7 @@ ExecutionUtil_UniqueOneWayTask<F>::wait() const BSLS_KEYWORD_NOEXCEPT
 // PRIVATE MANIPULATORS
 template <class R, class F>
 inline bslmf::Nil ExecutionUtil_UniqueTwoWayTask<R, F>::doInvoke(
-    BSLA_UNUSED bsl::true_type voidResultTag)
+    BSLA_MAYBE_UNUSED bsl::true_type voidResultTag)
 {
     d_function();
     return bslmf::Nil();
@@ -1440,7 +1440,7 @@ inline bslmf::Nil ExecutionUtil_UniqueTwoWayTask<R, F>::doInvoke(
 
 template <class R, class F>
 inline R ExecutionUtil_UniqueTwoWayTask<R, F>::doInvoke(
-    BSLA_UNUSED bsl::false_type voidResultTag)
+    BSLA_MAYBE_UNUSED bsl::false_type voidResultTag)
 {
     return d_function();
 }
@@ -1448,14 +1448,14 @@ inline R ExecutionUtil_UniqueTwoWayTask<R, F>::doInvoke(
 // PRIVATE MANIPULATORS
 template <class R, class F>
 inline void ExecutionUtil_UniqueTwoWayTask<R, F>::doGet(
-    BSLA_UNUSED bsl::true_type voidResultTag)
+    BSLA_MAYBE_UNUSED bsl::true_type voidResultTag)
 {
     d_sharedState.get();
 }
 
 template <class R, class F>
 inline R ExecutionUtil_UniqueTwoWayTask<R, F>::doGet(
-    BSLA_UNUSED bsl::false_type voidResultTag)
+    BSLA_MAYBE_UNUSED bsl::false_type voidResultTag)
 {
     return bslmf::Util::moveIfSupported(d_sharedState.get());
 
@@ -1549,7 +1549,7 @@ inline ExecutionUtil_UniqueTwoWayTask<R, F>::SynchronizeOnScopeExit::
 // PRIVATE MANIPULATORS
 template <class R, class F>
 inline bslmf::Nil ExecutionUtil_SharedTwoWayTask<R, F>::doInvoke(
-    BSLA_UNUSED bsl::true_type voidResultTag)
+    BSLA_MAYBE_UNUSED bsl::true_type voidResultTag)
 {
     d_state->d_function();
     return bslmf::Nil();
@@ -1557,7 +1557,7 @@ inline bslmf::Nil ExecutionUtil_SharedTwoWayTask<R, F>::doInvoke(
 
 template <class R, class F>
 inline R ExecutionUtil_SharedTwoWayTask<R, F>::doInvoke(
-    BSLA_UNUSED bsl::false_type voidResultTag)
+    BSLA_MAYBE_UNUSED bsl::false_type voidResultTag)
 {
     return d_state->d_function();
 }

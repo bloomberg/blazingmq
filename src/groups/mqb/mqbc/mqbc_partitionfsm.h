@@ -562,7 +562,8 @@ inline bool PartitionFSM::isSelfPrimary() const
 
 inline bool PartitionFSM::isSelfReplica() const
 {
-    return d_state == State::e_REPLICA_HEALING ||
+    return d_state == State::e_REPLICA_WAITING ||
+           d_state == State::e_REPLICA_HEALING ||
            d_state == State::e_REPLICA_HEALED;
 }
 

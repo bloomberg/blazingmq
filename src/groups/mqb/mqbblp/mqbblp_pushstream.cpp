@@ -327,8 +327,8 @@ bool VirtualPushStreamIterator::atEnd() const
     return (d_currentElement == 0);
 }
 
-PushStream::Element*
-VirtualPushStreamIterator::element(BSLA_UNUSED unsigned int appOrdinal) const
+PushStream::Element* VirtualPushStreamIterator::element(
+    BSLA_MAYBE_UNUSED unsigned int appOrdinal) const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!atEnd());

@@ -132,7 +132,7 @@ bsl::string_view AnonAuthenticator::mechanism() const
 int AnonAuthenticator::authenticate(
     bsl::ostream&                                   errorDescription,
     bsl::shared_ptr<mqbplug::AuthenticationResult>* result,
-    BSLA_UNUSED const mqbplug::AuthenticationData& input) const
+    BSLA_MAYBE_UNUSED const mqbplug::AuthenticationData& input) const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(result);

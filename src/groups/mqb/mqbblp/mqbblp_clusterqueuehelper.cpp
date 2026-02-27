@@ -2963,8 +2963,8 @@ void ClusterQueueHelper::notifyQueue(QueueContext*       queueContext,
 }
 
 void ClusterQueueHelper::reconfigureCallback(
-    BSLA_UNUSED const bmqp_ctrlmsg::Status& status,
-    BSLA_UNUSED const bmqp_ctrlmsg::StreamParameters& streamParameters)
+    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::Status& status,
+    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::StreamParameters& streamParameters)
 {
     // TODO: consider success even before reconfigure response
     onReopenQueueCompletion();
@@ -5423,8 +5423,8 @@ void ClusterQueueHelper::requestToStopQueues()
 }
 
 void ClusterQueueHelper::contextHolder(
-    BSLA_UNUSED const bsl::shared_ptr<StopContext>& contextSp,
-    const VoidFunctor&                              action)
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<StopContext>& contextSp,
+    const VoidFunctor&                                    action)
 {
     if (action) {
         action();
@@ -5561,7 +5561,7 @@ void ClusterQueueHelper::processNodeStoppingNotification(
                                           VoidFunctor()));
             }
             BALL_LOG_INFO << d_clusterData_p->identity().description()
-                          << ": deconfigured " << handles.size()
+                          << ": deconfiguring " << handles.size()
                           << " handles while processing StopRequest from "
                           << clusterNode->nodeDescription() << " "
                           << contextSp.numReferences();

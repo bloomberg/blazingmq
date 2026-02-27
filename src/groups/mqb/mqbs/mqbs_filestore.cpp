@@ -4020,7 +4020,7 @@ void FileStore::alarmHighwatermarkIfNeededDispatched()
     }
 }
 
-void FileStore::issueSyncPointDispatched(BSLA_UNUSED int partitionId)
+void FileStore::issueSyncPointDispatched(BSLA_MAYBE_UNUSED int partitionId)
 {
     // executed by the *DISPATCHER* thread
 
@@ -4821,6 +4821,14 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
                         << BMQTSK_ALARMLOG_END;
                     return 10 * rc + rc_ROLLOVER_FAILURE;  // RETURN
                 }
+            }
+            else {
+                BSLS_ASSERT_SAFE(SyncPointType::e_REGULAR ==
+                                 jOpRec->syncPointType());
+                BALL_LOG_INFO << partitionDesc()
+                              << "Received regular sync point: " << syncPoint
+                              << ", at journal offset: " << recordOffset
+                              << ".";
             }
 
             // If self is stopping, update the flag which indicates that self
