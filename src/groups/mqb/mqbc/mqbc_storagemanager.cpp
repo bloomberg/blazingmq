@@ -3661,8 +3661,8 @@ void StorageManager::do_replicaDataRequestResizeIfNeeded(
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-
+    const PartitionFSM::Event::Enum eventType    = event.first;
+    const EventData&                eventDataVec = event.second;
     BSLS_ASSERT_SAFE(eventDataVec.size() >= 1);
 
     const PartitionFSMEventData& eventData   = eventDataVec[0];
@@ -3703,28 +3703,76 @@ void StorageManager::do_replicaDataRequestResizeIfNeeded(
 
     // Determine the replicas that need to resize their partition size
     ClusterNodeVec needResizeReplicas;
-    for (NodeToContextMapCIter cit = nodeToContextMap.cbegin();
-         cit != nodeToContextMap.cend();
-         cit++) {
-        if (cit->first->nodeId() == selfNode->nodeId()) {
-            continue;  // CONTINUE
-        }
-        if (cit->second.d_seqNum > selfSeqNum) {
-            // replica needs to drop its storage, no need to resize.
-            continue;  // CONTINUE
-        }
-        if (cit->second.d_seqNum != bmqp_ctrlmsg::PartitionSequenceNumber() &&
-            cit->second.d_firstSyncPointAfterRolloverSeqNum !=
-                selfFirstSyncAfterRolloverSeqNum) {
-            // replica needs to drop its storage, no need to resize.
-            continue;  // CONTINUE
-        }
-        if (cit->second.d_partitionMaxFileSizes != selfMaxFileSizes) {
-            // replica needs to resize its partition size.
-            needResizeReplicas.emplace_back(cit->first);
+    if (eventType == PartitionFSM::Event::e_REPLICA_STATE_RSPN ||
+        eventType == PartitionFSM::Event::e_PRIMARY_STATE_RQST) {
+        // Such events can contain a vector of responses
+        for (EventDataCIter eit = eventDataVec.cbegin();
+             eit != eventDataVec.cend();
+             eit++) {
+            // A replica must have triggered this event by sending us a
+            // `ReplicaStateResponse` or `PrimaryStateRequest`.  Hence, only
+            // check whether we need to send `ReplicaDataRequestResize` to that
+            // replica.
+            mqbnet::ClusterNode* const source = eit->source();
+            BSLS_ASSERT_SAFE(source);
+            BSLS_ASSERT_SAFE(source->nodeId() != selfNode->nodeId());
+
+            NodeToContextMapCIter cit = nodeToContextMap.find(source);
+            if (cit == nodeToContextMap.end()) {
+                BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                               << " Partition [" << partitionId
+                               << "]: " << "Replica "
+                               << source->nodeDescription()
+                               << " not found in nodeToContextMap, skipping.";
+                continue;  // CONTINUE
+            }
+            if (cit->second.d_seqNum > selfSeqNum) {
+                // replica needs to drop its storage, no need to resize.
+                continue;  // CONTINUE
+            }
+            if (cit->second.d_seqNum != bmqp_ctrlmsg::PartitionSequenceNumber() &&
+                cit->second.d_firstSyncPointAfterRolloverSeqNum !=
+                    selfFirstSyncAfterRolloverSeqNum) {
+                // replica needs to drop its storage, no need to resize.
+                continue;  // CONTINUE
+            }
+            if (cit->second.d_partitionMaxFileSizes != selfMaxFileSizes) {
+                // replica needs to resize its partition size.
+                needResizeReplicas.emplace_back(cit->first);
+            }
         }
     }
+    else {
+        // Either self primary has certified itself as
+        // highest-sequence-number node, or has received a
+        // `ReplicaDataResponsePull` from the up-to-date replica.
+        BSLS_ASSERT_SAFE(
+            eventType == PartitionFSM::Event::e_SELF_HIGHEST_SEQ ||
+            eventType == PartitionFSM::Event::e_REPLICA_DATA_RSPN_PULL);
 
+        for (NodeToContextMapCIter cit = nodeToContextMap.cbegin();
+            cit != nodeToContextMap.cend();
+            cit++) {
+            if (cit->first->nodeId() == selfNode->nodeId()) {
+                continue;  // CONTINUE
+            }
+            if (cit->second.d_seqNum > selfSeqNum) {
+                // replica needs to drop its storage, no need to resize.
+                continue;  // CONTINUE
+            }
+            if (cit->second.d_seqNum != bmqp_ctrlmsg::PartitionSequenceNumber() &&
+                cit->second.d_firstSyncPointAfterRolloverSeqNum !=
+                    selfFirstSyncAfterRolloverSeqNum) {
+                // replica needs to drop its storage, no need to resize.
+                continue;  // CONTINUE
+            }
+            if (cit->second.d_partitionMaxFileSizes != selfMaxFileSizes) {
+                // replica needs to resize its partition size.
+                needResizeReplicas.emplace_back(cit->first);
+            }
+        }
+    }
+    
     // Send ReplicaDataRequestResize to replicas that need to resize
     // their partition size.
     EventData failedEventDataVec;

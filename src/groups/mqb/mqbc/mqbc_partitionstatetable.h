@@ -355,8 +355,12 @@ class PartitionStateTableActions {
 
     virtual void do_findHighestSeq(const ARGS& args) = 0;
 
+    /// This method is called by primary to find the highest partition 
+    /// file sizes of cluster nodes.
     virtual void do_findHighestFileSizes(const ARGS& args) = 0;
 
+    /// This method is called by primary or replica to override its 
+    /// partition file sizes
     virtual void do_overrideMaxFileSizes(const ARGS& args) = 0;
 
     virtual void do_flagFailedReplicaSeq(const ARGS& args) = 0;
@@ -405,11 +409,11 @@ class PartitionStateTableActions {
     void do_closeRecoveryFileSet_attemptOpenStorage_startSendDataChunks(
         const ARGS& args);
 
-    void do_closeRecoveryFileSet_overrideMaxFileSizes_attemptOpenStorage(
+    void do_closeRecoveryFileSet_overrideMaxFileSizes_openRecoveryFileSet(
         const ARGS& args);
 
     void
-    do_closeRecoveryFileSet_overrideMaxFileSizes_attemptOpenStorage_replicaDataResponseResize(
+    do_closeRecoveryFileSet_overrideMaxFileSizes_openRecoveryFileSet_replicaDataResponseResize(
         const ARGS& args);
 
     void
@@ -556,7 +560,7 @@ class PartitionStateTable
                 PRIMARY_HEALING_STG1);
         PST_CFG(PRIMARY_HEALING_STG1,
                 SELF_RESIZE_STORAGE,
-                closeRecoveryFileSet_overrideMaxFileSizes_attemptOpenStorage,
+                closeRecoveryFileSet_overrideMaxFileSizes_openRecoveryFileSet,
                 PRIMARY_HEALING_STG1);
         PST_CFG(PRIMARY_HEALING_STG1,
                 REPLICA_RESIZE_STORAGE,
@@ -730,7 +734,7 @@ class PartitionStateTable
         PST_CFG(
             REPLICA_HEALING,
             REPLICA_DATA_RQST_RESIZE,
-            closeRecoveryFileSet_overrideMaxFileSizes_attemptOpenStorage_replicaDataResponseResize,
+            closeRecoveryFileSet_overrideMaxFileSizes_openRecoveryFileSet_replicaDataResponseResize,
             REPLICA_HEALING);
         PST_CFG(REPLICA_HEALING,
                 RECOVERY_DATA,
@@ -961,22 +965,22 @@ void PartitionStateTableActions<ARGS>::
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_closeRecoveryFileSet_overrideMaxFileSizes_attemptOpenStorage(
+    do_closeRecoveryFileSet_overrideMaxFileSizes_openRecoveryFileSet(
         const ARGS& args)
 {
     do_closeRecoveryFileSet(args);
     do_overrideMaxFileSizes(args);
-    do_attemptOpenStorage(args);
+    do_openRecoveryFileSet(args);
 }
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_closeRecoveryFileSet_overrideMaxFileSizes_attemptOpenStorage_replicaDataResponseResize(
+    do_closeRecoveryFileSet_overrideMaxFileSizes_openRecoveryFileSet_replicaDataResponseResize(
         const ARGS& args)
 {
     do_closeRecoveryFileSet(args);
     do_overrideMaxFileSizes(args);
-    do_attemptOpenStorage(args);
+    do_openRecoveryFileSet(args);
     do_replicaDataResponseResize(args);
 }
 
