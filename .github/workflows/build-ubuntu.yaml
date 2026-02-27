@@ -47,6 +47,7 @@ jobs:
     name: "Dependencies"
     uses: ./.github/workflows/dependencies.yaml
     with:
+      ref: ${{ inputs.ref }}
       cxx_standard: ${{ inputs.cxx_standard }}
 
   build_ubuntu:

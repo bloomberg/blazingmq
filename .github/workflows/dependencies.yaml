@@ -3,6 +3,10 @@ name: Dependencies
 on:
   workflow_call:
     inputs:
+      ref:
+        description: "Branch name, tag, or commit SHA to build dependencies for"
+        required: true
+        type: string
       cxx_standard:
         description: "What C++ Standard to build with.  [cpp03, cpp11, cpp14, cpp17, cpp20, cpp23]"
         required: true
@@ -23,12 +27,15 @@ concurrency:
 
 jobs:
   build_dependencies:
-    name: Build and cache dependencies [${{ inputs.cxx_standard }}]
+    name: Build and cache dependencies [${{ inputs.cxx_standard }}] for ${{ inputs.ref }}
     runs-on: ubuntu-latest
     outputs:
       cache_key: ${{ steps.get-cache-key.outputs.cache_key }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
 
       - name: Generate dependencies cache key
         id: get-cache-key

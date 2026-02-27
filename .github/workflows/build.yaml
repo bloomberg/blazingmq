@@ -20,12 +20,14 @@ jobs:
     name: "Dependencies"
     uses: ./.github/workflows/dependencies.yaml
     with:
+      ref: ${{ github.sha }}
       cxx_standard: cpp17
 
   get_dependencies_cpp03:
     name: "Dependencies [C++03]"
     uses: ./.github/workflows/dependencies.yaml
     with:
+      ref: ${{ github.sha }}
       cxx_standard: cpp03
 
   build_ubuntu:

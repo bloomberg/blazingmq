@@ -22,15 +22,22 @@ on:
 # Full commit SHAs (e.g., a1b2c3d4)
 
 jobs:
-  get_dependencies:
-    name: "Dependencies"
+  get_dependencies1:
+    name: "Dependencies ref ${{ github.event.inputs.ref1 }}"
     uses: ./.github/workflows/dependencies.yaml
     with:
+      ref: ${{ inputs.ref1 }}
+      cxx_standard: cpp17
+
+    name: "Dependencies ref ${{ github.event.inputs.ref2 }}"
+    uses: ./.github/workflows/dependencies.yaml
+    with:
+      ref: ${{ inputs.ref2 }}
       cxx_standard: cpp17
 
   build1:
     name: "Build ref ${{ github.event.inputs.ref1 }}"
-    needs: get_dependencies
+    needs: get_dependencies1
     uses: ./.github/workflows/build-ubuntu.yaml
     with:
       name: "build1"
@@ -41,7 +48,7 @@ jobs:
   
   build2:
     name: "Build ref ${{ github.event.inputs.ref2 }}"
-    needs: get_dependencies
+    needs: get_dependencies2
     uses: ./.github/workflows/build-ubuntu.yaml
     with:
       name: "build2"
