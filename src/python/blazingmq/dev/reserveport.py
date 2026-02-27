@@ -154,13 +154,6 @@ def reserve_port_pool(pool_size: int = 32) -> typing.Generator[int, None, None]:
         for _ in range(pool_size):
             sock = socket.socket()
             stack.enter_context(sock)
-            # On macOS, SO_REUSEADDR behaves differently than on Linux.
-            # Unlike Linux, macOS does not allow binding to a port that is
-            # still open/bound by another socket, even with SO_REUSEADDR set.
-            # Therefore, we must close all sockets before the ports can be reused.
-            # This solution is a bit flaky, however:
-            # 1. We only have a minimal support of macOS for development
-            # 2. Don't have a better option
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.bind(("0.0.0.0", 0))
             sockname = sock.getsockname()
