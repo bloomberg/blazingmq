@@ -308,5 +308,11 @@ InitialConnectionContext* AuthenticationContext::initialConnectionContext()
     return d_initialConnectionContext_p;
 }
 
+bool AuthenticationContext::isClosed() const
+{
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
+    return d_state == AuthenticationState::e_CLOSED;
+}
+
 }  // namespace mqbnet
 }  // namespace BloombergLP

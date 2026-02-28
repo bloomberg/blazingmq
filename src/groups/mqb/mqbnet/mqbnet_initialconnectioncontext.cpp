@@ -455,9 +455,13 @@ void InitialConnectionContext::setNegotiationContext(
     d_negotiationCtxSp = value;
 }
 
-void InitialConnectionContext::onClose()
+void InitialConnectionContext::onClose(bdlmt::EventScheduler* scheduler_p)
 {
     d_isClosed = true;
+
+    if (d_authenticationCtxSp) {
+        d_authenticationCtxSp->onClose(scheduler_p);
+    }
 }
 
 void InitialConnectionContext::readCallback(const bmqio::Status& status,
