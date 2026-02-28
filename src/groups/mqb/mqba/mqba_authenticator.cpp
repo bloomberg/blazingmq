@@ -249,6 +249,14 @@ void Authenticator::authenticate(
             bsl::monostate()));
     }
 
+    // Skip authentication if the client disconnected while waiting in queue
+    if (context_sp->isClosed()) {
+        BALL_LOG_WARN << "Skipping authentication for '" << channel->peerUri()
+                      << "': client already disconnected";
+        error = "client already disconnected";
+        return;  // RETURN
+    }
+
     const bmqp_ctrlmsg::AuthenticationRequest& authenticationRequest =
         context_sp->authenticationMessage().authenticationRequest();
     bmqp::EncodingType::Enum encodingType = context_sp->encodingType();

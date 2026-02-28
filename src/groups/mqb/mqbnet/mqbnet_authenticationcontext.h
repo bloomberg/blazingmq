@@ -131,7 +131,7 @@ class AuthenticationContext {
     bmqu::SharedResource<AuthenticationContext> d_self;
 
     /// Mutex to protect the state and timeoutHandle of this object.
-    bslmt::Mutex d_mutex;
+    mutable bslmt::Mutex d_mutex;
 
     /// The authentication result to be used for authorization.  It is first
     /// set during the initial authentication, and can be updated later during
@@ -240,6 +240,10 @@ class AuthenticationContext {
     bmqp::EncodingType::Enum                   encodingType() const;
 
     InitialConnectionContext* initialConnectionContext();
+
+    /// Return `true` if the channel associated with this context has been
+    /// closed.
+    bool isClosed() const;
 };
 
 }  // close package namespace

@@ -810,7 +810,7 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
             d_initialConnectionContextCache.find(channel.get());
         if (iter != d_initialConnectionContextCache.end()) {
             initialConnectionContext_sp = iter->second;
-            initialConnectionContext_sp->onClose();
+            initialConnectionContext_sp->onClose(d_scheduler_p);
         }
 
         ChannelMap::const_iterator it = d_channels.find(channel.get());
