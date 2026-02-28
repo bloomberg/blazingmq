@@ -279,21 +279,24 @@ bsl::string_view AuthenticationContext::mechanism() const
     return d_mechanism;
 }
 
-const bmqp_ctrlmsg::AuthenticationMessage&
-AuthenticationContext::authenticationMessage() const
+bool AuthenticationContext::loadAuthenticationMessage(
+    bmqp_ctrlmsg::AuthenticationMessage* message,
+    bmqp::EncodingType::Enum*            encodingType) const
 {
-    // PRECONDITION
-    BSLS_ASSERT_SAFE(d_state == AuthenticationState::e_AUTHENTICATING);
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(message);
+    BSLS_ASSERT_SAFE(encodingType);
 
-    return d_authenticationMessage;
-}
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
-bmqp::EncodingType::Enum AuthenticationContext::encodingType() const
-{
-    // PRECONDITION
-    BSLS_ASSERT_SAFE(d_state == AuthenticationState::e_AUTHENTICATING);
+    if (d_state != AuthenticationState::e_AUTHENTICATING) {
+        return false;  // RETURN
+    }
 
-    return d_encodingType;
+    *message      = d_authenticationMessage;
+    *encodingType = d_encodingType;
+
+    return true;
 }
 
 InitialConnectionContext* AuthenticationContext::initialConnectionContext()

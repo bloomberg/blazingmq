@@ -206,6 +206,7 @@ void Authenticator::authenticate(
         rc_AUTHENTICATION_FAILED               = -1,
         rc_SCHEDULE_REAUTHN_FAILED             = -2,
         rc_SEND_AUTHENTICATION_RESPONSE_FAILED = -3,
+        rc_NOT_AUTHENTICATING                  = -4,
     };
 
     int         rc = rc_SUCCESS;
@@ -235,9 +236,20 @@ void Authenticator::authenticate(
             bsl::monostate()));
     }
 
+    // Skip authentication if the client disconnected while waiting in queue
+    bmqp_ctrlmsg::AuthenticationMessage authenticationMessage(d_allocator_p);
+    bmqp::EncodingType::Enum            encodingType;
+    if (!context_sp->loadAuthenticationMessage(&authenticationMessage,
+                                               &encodingType)) {
+        BALL_LOG_WARN << "Skipping authentication for '" << channel->peerUri()
+                      << "': client already disconnected";
+        rc    = rc_NOT_AUTHENTICATING;
+        error = "client already disconnected";
+        return;  // RETURN
+    }
+
     const bmqp_ctrlmsg::AuthenticationRequest& authenticationRequest =
-        context_sp->authenticationMessage().authenticationRequest();
-    bmqp::EncodingType::Enum encodingType = context_sp->encodingType();
+        authenticationMessage.authenticationRequest();
 
     BALL_LOG_INFO << (isReauthn ? "Reauthenticating" : "Authenticating")
                   << " connection '" << channel.get() << "' with mechanism '"
@@ -502,7 +514,15 @@ int Authenticator::handleReauthentication(
         rc_REAUTHENTICATION_FAILED = -1,
     };
 
-    if (!context->authenticationMessage().isAuthenticationRequestValue()) {
+    bmqp_ctrlmsg::AuthenticationMessage authenticationMessage(d_allocator_p);
+    bmqp::EncodingType::Enum            encodingType;
+    if (!context->loadAuthenticationMessage(&authenticationMessage,
+                                            &encodingType)) {
+        errorDescription << "Authentication context is not authenticating";
+        return rc_REAUTHENTICATION_FAILED;  // RETURN
+    }
+
+    if (!authenticationMessage.isAuthenticationRequestValue()) {
         errorDescription
             << "Authentication message is not an authentication request";
         return rc_REAUTHENTICATION_FAILED;  // RETURN
@@ -511,7 +531,7 @@ int Authenticator::handleReauthentication(
     // The mechanism used to reauthenticate should be the same as the mechanism
     // used to authenticate initially.
     if (context->mechanism() !=
-        context->authenticationMessage().authenticationRequest().mechanism()) {
+        authenticationMessage.authenticationRequest().mechanism()) {
         errorDescription << "Authentication mechanism mismatch";
         return rc_REAUTHENTICATION_FAILED;  // RETURN
     }
