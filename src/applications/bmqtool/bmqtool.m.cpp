@@ -345,7 +345,17 @@ static bool parseArgs(Parameters* parameters, int argc, const char* argv[])
          "timeout",
          "The timeout to use for session operations with the broker",
          balcl::TypeInfo(&params.timeoutSec()),
-         balcl::OccurrenceInfo::e_OPTIONAL}};
+         balcl::OccurrenceInfo::e_OPTIONAL},
+        {"authnMechanism",
+         "mechanism",
+         "authentication mechanism (e.g. BASIC). If empty, no authentication.",
+         balcl::TypeInfo(&params.authnMechanism()),
+         balcl::OccurrenceInfo(params.authnMechanism())},
+        {"authnData",
+         "data",
+         "authentication data/credentials string",
+         balcl::TypeInfo(&params.authnData()),
+         balcl::OccurrenceInfo(params.authnData())}};
 
     balcl::CommandLine commandLine(specTable);
     if (commandLine.parse(argc, argv) != 0 || showHelp) {

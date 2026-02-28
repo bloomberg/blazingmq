@@ -11,7 +11,8 @@ dependency.  The list below shows the hierarchal ordering of the components.
 ..
   2.  bmqt_subscription
 
-  1.  bmqt_compressionalgorithmtype
+  1.  bmqt_authncredential
+      bmqt_compressionalgorithmtype
       bmqt_correlationid
       bmqt_encodingtype
       bmqt_hosthealthstate

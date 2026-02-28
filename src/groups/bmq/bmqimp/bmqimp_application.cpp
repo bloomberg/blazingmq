@@ -20,6 +20,8 @@
 // BMQ
 #include <bmqex_executionpolicy.h>
 #include <bmqex_systemexecutor.h>
+#include <bmqimp_authenticatedchannelfactory.h>
+#include <bmqimp_negotiatedchannelfactory.h>
 #include <bmqio_channelutil.h>
 #include <bmqio_connectoptions.h>
 #include <bmqio_status.h>
@@ -218,7 +220,24 @@ void Application::readCb(
         BALL_LOG_TRACE << channel->peerUri() << ": ReadCallback got a blob\n"
                        << bmqu::BlobStartHexDumper(&readBlob);
 
-        d_brokerSession.processPacket(event);
+        if (event.isAuthenticationEvent()) {
+            // Application received a broker response to an re-authentication
+            // request.  The callback function `channelStateCallback` should
+            // only be called for failed cases.
+            d_authenticatedChannelFactory.processAuthenticationEvent(
+                event,
+                bdlf::BindUtil::bindS(&d_allocator,
+                                      &Application::channelStateCallback,
+                                      this,
+                                      channel->peerUri(),
+                                      bdlf::PlaceHolders::_1,   // event
+                                      bdlf::PlaceHolders::_2,   // status
+                                      bdlf::PlaceHolders::_3),  // channel
+                channel);
+        }
+        else {
+            d_brokerSession.processPacket(event);
+        }
     }
 }
 
@@ -608,8 +627,16 @@ Application::Application(
                                bdlf::PlaceHolders::_2),  // handle
           allocator),
       allocator)
+, d_authenticatedChannelFactory(
+      AuthenticatedChannelFactoryConfig(&d_statChannelFactory,
+                                        &d_scheduler,
+                                        sessionOptions.authnCredentialCb(),
+                                        sessionOptions.connectTimeout(),
+                                        d_blobSpPool_sp.get(),
+                                        allocator),
+      allocator)
 , d_negotiatedChannelFactory(
-      NegotiatedChannelFactoryConfig(&d_statChannelFactory,
+      NegotiatedChannelFactoryConfig(&d_authenticatedChannelFactory,
                                      negotiationMessage,
                                      sessionOptions.connectTimeout(),
                                      d_blobSpPool_sp.get(),
