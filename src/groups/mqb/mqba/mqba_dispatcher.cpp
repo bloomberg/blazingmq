@@ -18,9 +18,12 @@
 
 #include <mqbscm_version.h>
 // BMQ
+#include <bmqsys_threadutil.h>
+#include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
 
-#include <bmqsys_threadutil.h>
+// MQB
+#include <mqbstat_dispatcherstats.h>
 
 // BDE
 #include <bdlf_bind.h>
@@ -54,6 +57,7 @@ Dispatcher_Executor::Dispatcher_Executor(const Dispatcher* dispacher,
                                          const mqbi::DispatcherClient* client)
     BSLS_CPP11_NOEXCEPT : d_eventSource_sp(),
                           d_processorPool_p(0),
+                          d_statContext_p(0),
                           d_processorHandle()
 {
     // PRECONDITIONS
@@ -67,11 +71,15 @@ Dispatcher_Executor::Dispatcher_Executor(const Dispatcher* dispacher,
 
     d_eventSource_sp = client->getEventSource();
 
+    Dispatcher::DispatcherContext* dispatcherContext_p =
+        dispacher->d_contexts.at(client->dispatcherClientData().clientType())
+            .get();
     // set processor
-    d_processorPool_p = dispacher->d_contexts
-                            .at(client->dispatcherClientData().clientType())
-                            ->d_processorPool_mp.get();
+    d_processorPool_p = dispatcherContext_p->d_processorPool_mp.get();
     d_processorHandle = client->dispatcherClientData().processorHandle();
+
+    d_statContext_p =
+        dispatcherContext_p->d_statContexts.at(d_processorHandle).get();
 }
 
 // ACCESSORS
@@ -79,7 +87,8 @@ bool Dispatcher_Executor::operator==(const Dispatcher_Executor& rhs) const
     BSLS_CPP11_NOEXCEPT
 {
     return d_processorPool_p == rhs.d_processorPool_p &&
-           d_processorHandle == rhs.d_processorHandle;
+           d_processorHandle == rhs.d_processorHandle &&
+           d_statContext_p == rhs.d_statContext_p;
 }
 
 void Dispatcher_Executor::post(const bsl::function<void()>& f) const
@@ -94,6 +103,7 @@ void Dispatcher_Executor::post(const bsl::function<void()>& f) const
 
     (*event)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
+        .setEnqueueTime(bmqsys::Time::highResolutionTimer())
         .callback()
         .set(f);
 
@@ -102,6 +112,9 @@ void Dispatcher_Executor::post(const bsl::function<void()>& f) const
         bslmf::MovableRefUtil::move(event),
         d_processorHandle);
     BSLS_ASSERT_OPT(rc == 0);
+
+    // Update stats
+    mqbstat::DispatcherStats::onEnqueue(d_statContext_p);
 
     // TODO: We should call 'releaseUnmanagedEvent' on the
     //      'bmqc::MultiQueueThreadPool' in case of exception to prevent the
@@ -163,6 +176,8 @@ Dispatcher::DispatcherContext::DispatcherContext(
               DispatcherClientPtrVector(allocator),
               allocator)
 , d_eventSources(config.numProcessors(), allocator)
+, d_clientStatContext_mp()
+, d_statContexts(config.numProcessors(), allocator)
 {
     typedef bsl::vector<bsl::shared_ptr<mqbi::DispatcherEventSource> >
         EventSources;
@@ -196,6 +211,12 @@ int Dispatcher::startContext(bsl::ostream&                    errorDescription,
                       DispatcherContext(config, d_allocator_p),
                   d_allocator_p);
 
+    // Create client stat context
+    context->d_clientStatContext_mp =
+        mqbstat::DispatcherStatsUtil::initializeClientStatContext(
+            d_statContext_p,
+            mqbi::DispatcherClientType::toAscii(type),
+            d_allocator_p);
     // Create and start the threadPool
     context->d_threadPool_mp.load(
         new (*d_allocator_p)
@@ -282,6 +303,15 @@ Dispatcher::queueCreator(mqbi::DispatcherClientType::Enum             type,
                              config.queueSize(),
                              bdlf::PlaceHolders::_1));  // state
 
+    // Create stat context for the client's queue
+    DispatcherContext* context = d_contexts[type].get();
+    context->d_statContexts.at(processorId) =
+        mqbstat::DispatcherStatsUtil::initializeQueueStatContext(
+            context->d_clientStatContext_mp.get(),
+            queueName,
+            mqbi::DispatcherClientType::toAscii(type),
+            processorId,
+            d_allocator_p);
     return queue;
 }
 
@@ -292,6 +322,12 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
     if (event) {
         BALL_LOG_TRACE << "Dispatching Event to queue " << processorId
                        << " of " << type << " dispatcher: " << *event;
+
+        const bsls::Types::Int64 queuedTime =
+            bmqsys::Time::highResolutionTimer() - event->enqueueTime();
+
+        DispatcherContext& dispatcherContext = *(d_contexts[type]);
+
         if (event->type() == mqbi::DispatcherEventType::e_DISPATCHER) {
             const mqbi::DispatcherDispatcherEvent* realEvent =
                 event->asDispatcherEvent();
@@ -311,7 +347,6 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
             }
         }
         else {
-            DispatcherContext& dispatcherContext = *(d_contexts[type]);
             event->destination()->onDispatcherEvent(*event.get());
             if (!event->destination()
                      ->dispatcherClientData()
@@ -323,6 +358,11 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
                     .setAddedToFlushList(true);
             }
         }
+
+        // Update stats
+        mqbstat::DispatcherStats::onDequeue(
+            dispatcherContext.d_statContexts[processorId].get(),
+            queuedTime);
     }
     else {
         // Empty `event` means queue is empty
@@ -350,6 +390,7 @@ void Dispatcher::flushClients(mqbi::DispatcherClientType::Enum type,
 }
 
 Dispatcher::Dispatcher(const mqbcfg::DispatcherConfig& config,
+                       bmqst::StatContext*             statContext,
                        bdlmt::EventScheduler*          scheduler,
                        bslma::Allocator*               allocator)
 : d_allocator_p(allocator)
@@ -357,6 +398,7 @@ Dispatcher::Dispatcher(const mqbcfg::DispatcherConfig& config,
 , d_config(config)
 , d_scheduler_p(scheduler)
 , d_contexts(allocator)
+, d_statContext_p(statContext)
 , d_defaultEventSource_sp(
       bsl::allocate_shared<mqba::Dispatcher_EventSource>(allocator))
 , d_customEventSources(allocator)
@@ -366,6 +408,7 @@ Dispatcher::Dispatcher(const mqbcfg::DispatcherConfig& config,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(scheduler->clockType() ==
                      bsls::SystemClockType::e_MONOTONIC);
+    BSLS_ASSERT_SAFE(statContext);
 
     d_flushClientsGate.open();
 }
@@ -476,6 +519,9 @@ void Dispatcher::stop()
     }
 
 #undef STOP_AND_CLEAR
+
+    // Clear all stat sub contexts
+    d_statContext_p->clearSubcontexts();
 }
 
 mqbi::Dispatcher::ProcessorHandle
@@ -555,6 +601,54 @@ void Dispatcher::unregisterClient(mqbi::DispatcherClient* client)
         mqbi::Dispatcher::k_INVALID_PROCESSOR_HANDLE);
 }
 
+void Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
+                               mqbi::DispatcherClient* destination)
+{
+    BALL_LOG_TRACE << "Enqueuing Event to '" << destination->description()
+                   << "': " << *bslmf::MovableRefUtil::access(event);
+
+    bslmf::MovableRefUtil::access(event)->setDestination(destination);
+
+    dispatchEvent(bslmf::MovableRefUtil::move(event),
+                  destination->dispatcherClientData().clientType(),
+                  destination->dispatcherClientData().processorHandle());
+}
+
+void Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
+                               mqbi::DispatcherClientType::Enum       type,
+                               mqbi::Dispatcher::ProcessorHandle      handle)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(handle != mqbi::Dispatcher::k_INVALID_PROCESSOR_HANDLE);
+
+    BALL_LOG_TRACE << "Enqueuing Event to processor " << handle << " of "
+                   << type << ": " << *bslmf::MovableRefUtil::access(event);
+
+    switch (type) {
+    case mqbi::DispatcherClientType::e_SESSION:
+    case mqbi::DispatcherClientType::e_QUEUE:
+    case mqbi::DispatcherClientType::e_CLUSTER: {
+        DispatcherContext* dispatcherContext = d_contexts[type].get();
+
+        bslmf::MovableRefUtil::access(event)->setEnqueueTime(
+            bmqsys::Time::highResolutionTimer());
+
+        dispatcherContext->d_processorPool_mp->enqueueEvent(
+            bslmf::MovableRefUtil::move(event),
+            handle);
+
+        // Update stats
+        mqbstat::DispatcherStats::onEnqueue(
+            dispatcherContext->d_statContexts[handle].get());
+
+    } break;
+    case mqbi::DispatcherClientType::e_UNDEFINED:
+    default: {
+        BSLS_ASSERT_OPT(false && "Invalid destination type");
+    }
+    }
+}
+
 void Dispatcher::executeOnAllQueues(
     const mqbi::Dispatcher::VoidFunctor& functor,
     mqbi::DispatcherClientType::Enum     type,
@@ -563,8 +657,10 @@ void Dispatcher::executeOnAllQueues(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(type != mqbi::DispatcherClientType::e_UNDEFINED);
 
+    DispatcherContext* context_p = d_contexts[type].get();
+
     // Pointers to the pool to enqueue the event to.
-    ProcessorPool* processorPool = d_contexts[type]->d_processorPool_mp.get();
+    ProcessorPool* processorPool = context_p->d_processorPool_mp.get();
     BSLS_ASSERT_SAFE(processorPool);
 
     BALL_LOG_TRACE << "Enqueuing Event to ALL '" << type << "' dispatcher "
@@ -573,11 +669,58 @@ void Dispatcher::executeOnAllQueues(
 
     bsl::shared_ptr<mqbi::DispatcherEvent> qEvent =
         d_defaultEventSource_sp->getEvent();
-    qEvent->setType(mqbi::DispatcherEventType::e_DISPATCHER);
+    qEvent->setType(mqbi::DispatcherEventType::e_DISPATCHER)
+        .setEnqueueTime(bmqsys::Time::highResolutionTimer());
     qEvent->callback().set(functor);
     qEvent->finalizeCallback().set(doneCallback);
     processorPool->enqueueEventOnAllQueues(
         bslmf::MovableRefUtil::move(qEvent));
+
+    // Update stats for all queues
+    for (size_t i = 0; i < context_p->d_statContexts.size(); ++i) {
+        mqbstat::DispatcherStats::onEnqueue(
+            context_p->d_statContexts[i].get());
+    }
+}
+
+void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
+                         mqbi::DispatcherClient*              client,
+                         mqbi::DispatcherEventType::Enum      type)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(client);
+    BSLS_ASSERT_SAFE(type == mqbi::DispatcherEventType::e_CALLBACK ||
+                     type == mqbi::DispatcherEventType::e_DISPATCHER);
+    BSLS_ASSERT_SAFE(functor);
+
+    bsl::shared_ptr<mqbi::DispatcherEvent> event =
+        d_defaultEventSource_sp->getEvent();
+    (*event)
+        .setType(type)
+        .setEnqueueTime(bmqsys::Time::highResolutionTimer())
+        .callback()
+        .set(functor);
+
+    dispatchEvent(bslmf::MovableRefUtil::move(event), client);
+}
+
+void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
+                         const mqbi::DispatcherClientData&    client)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(functor);
+
+    bsl::shared_ptr<mqbi::DispatcherEvent> event =
+        d_defaultEventSource_sp->getEvent();
+    (*event)
+        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
+        .setEnqueueTime(bmqsys::Time::highResolutionTimer())
+        .callback()
+        .set(functor);
+
+    dispatchEvent(bslmf::MovableRefUtil::move(event),
+                  client.clientType(),
+                  client.processorHandle());
 }
 
 void Dispatcher::synchronize(mqbi::DispatcherClient* client)
@@ -596,7 +739,7 @@ void Dispatcher::synchronize(mqbi::DispatcherClientType::Enum  type,
 
     typedef void (bslmt::Semaphore::*PostFn)();
 
-    bslmt::Semaphore       semaphore;
+    bslmt::Semaphore                       semaphore;
     bsl::shared_ptr<mqbi::DispatcherEvent> event =
         d_defaultEventSource_sp->getEvent();
     (*event)
