@@ -797,7 +797,7 @@ static void test6_printing()
     BSLMF_ASSERT(bmqp::EventType::e_CONTROL ==
                  bmqp::EventType::k_LOWEST_SUPPORTED_EVENT_TYPE);
 
-    BSLMF_ASSERT(bmqp::EventType::e_REPLICATION_RECEIPT ==
+    BSLMF_ASSERT(bmqp::EventType::e_AUTHENTICATION ==
                  bmqp::EventType::k_HIGHEST_SUPPORTED_EVENT_TYPE);
 
     bdlbb::PooledBlobBufferFactory bufferFactory(
@@ -823,7 +823,8 @@ static void test6_printing()
         {bmqp::EventType::e_HEARTBEAT_RSP, "[ type = HEARTBEAT_RSP ]"},
         {bmqp::EventType::e_REJECT, "[ type = REJECT ]"},
         {bmqp::EventType::e_REPLICATION_RECEIPT,
-         "[ type = REPLICATION_RECEIPT ]"}};
+         "[ type = REPLICATION_RECEIPT ]"},
+        {bmqp::EventType::e_AUTHENTICATION, "[ type = AUTHENTICATION ]"}};
 
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
