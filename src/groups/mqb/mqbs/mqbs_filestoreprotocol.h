@@ -3172,7 +3172,7 @@ inline JournalOpRecord::JournalOpRecord(SyncPointType::Enum syncPointType,
 {
     bsl::memset(reinterpret_cast<char*>(this), 0, sizeof(JournalOpRecord));
     d_header.setType(RecordType::e_JOURNAL_OP);
-    setType(JournalOpType::Enum::e_SYNCPOINT);
+    setType(JournalOpType::e_SYNCPOINT);
     setSyncPointType(syncPointType);
     syncPointData()
         .setSequenceNum(sequenceNum)
@@ -3190,11 +3190,12 @@ inline JournalOpRecord::JournalOpRecord(bsls::Types::Uint64 maxJournalFileSize,
 {
     bsl::memset(reinterpret_cast<char*>(this), 0, sizeof(JournalOpRecord));
     d_header.setType(RecordType::e_JOURNAL_OP);
-    setType(JournalOpType::Enum::e_RESIZE_STORAGE);
+    setType(JournalOpType::e_RESIZE_STORAGE);
     resizeStorageData()
         .setMaxJournalFileSize(maxJournalFileSize)
         .setMaxDataFileSize(maxDataFileSize)
         .setMaxQlistFileSize(maxQlistFileSize);
+    setMagic(magic);
 }
 
 // MANIPULATORS
