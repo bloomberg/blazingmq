@@ -62,28 +62,28 @@ class TestClusterNodeShutdown:
         proxies = cluster.proxy_cycle()
 
         # 1: Proxy in same datacenter as leader/primary
-        self.proxy1 = next(proxies)
+        self.proxy_leader_dc = next(proxies)
 
-        self.producer1 = self.proxy1.create_client("producer1")
+        self.producer1 = self.proxy_leader_dc.create_client("producer1")
         self.open_or_raise(self.producer1, du.uri_priority, ["write", "ack"])
         self.open_or_raise(self.producer1, du.uri_fanout, ["write", "ack"])
         self.open_or_raise(self.producer1, tc.URI_BROADCAST, ["write", "ack"])
 
-        self.consumer1 = self.proxy1.create_client("consumer1")
+        self.consumer1 = self.proxy_leader_dc.create_client("consumer1")
         self.open_or_raise(self.consumer1, du.uri_priority, ["read"])
         self.open_or_raise(self.consumer1, du.uri_fanout_foo, ["read"])
         self.open_or_raise(self.consumer1, du.uri_fanout_bar, ["read"])
         self.open_or_raise(self.consumer1, tc.URI_BROADCAST, ["read"])
 
         # 2: Replica proxy
-        self.proxy2 = next(proxies)
+        self.proxy_replica_dc = next(proxies)
 
-        self.producer2 = self.proxy2.create_client("producer2")
+        self.producer2 = self.proxy_replica_dc.create_client("producer2")
         self.open_or_raise(self.producer2, du.uri_priority, ["write", "ack"])
         self.open_or_raise(self.producer2, du.uri_fanout, ["write", "ack"])
         self.open_or_raise(self.producer2, tc.URI_BROADCAST, ["write", "ack"])
 
-        self.consumer2 = self.proxy2.create_client("consumer2")
+        self.consumer2 = self.proxy_replica_dc.create_client("consumer2")
         self.open_or_raise(self.consumer2, du.uri_priority, ["read"])
         self.open_or_raise(self.consumer2, du.uri_fanout_foo, ["read"])
         self.open_or_raise(self.consumer2, du.uri_fanout_bar, ["read"])
@@ -104,7 +104,7 @@ class TestClusterNodeShutdown:
         self, multi_node: Cluster, domain_urls: tc.DomainUrls
     ):
         cluster = multi_node
-        replica = cluster.process(self.proxy2.get_active_node())
+        replica = cluster.process(self.proxy_replica_dc.get_active_node())
 
         self._post_kill_recover_post(cluster, replica, domain_urls)
 
@@ -208,7 +208,7 @@ class TestClusterNodeShutdown:
         du = domain_urls
         cluster = multi_node
         primary = cluster.last_known_leader
-        active_replica = cluster.process(self.proxy2.get_active_node())
+        active_replica = cluster.process(self.proxy_replica_dc.get_active_node())
 
         # Suspend the other replicas to lose quorum
         other_replicas = [
@@ -241,7 +241,7 @@ class TestClusterNodeShutdown:
         )
 
         # Having a new client to open that queue a second time should succeed
-        self.producer3 = self.proxy2.create_client("producer3")
+        self.producer3 = self.proxy_replica_dc.create_client("producer3")
         self.producer3.open(
             du.uri_priority_2, flags=["write", "ack"], block=True, timeout=30
         )
@@ -256,7 +256,7 @@ class TestClusterNodeShutdown:
         du = domain_urls
         cluster = multi_node
         primary = cluster.last_known_leader
-        active_replica = cluster.process(self.proxy2.get_active_node())
+        active_replica = cluster.process(self.proxy_replica_dc.get_active_node())
 
         # Suspend the other replicas to lose quorum
         other_replicas = [
@@ -287,7 +287,7 @@ class TestClusterNodeShutdown:
             node.wait_status(wait_leader=True, wait_ready=True)
 
         # Having a new client to open that queue a second time should succeed
-        self.producer3 = self.proxy2.create_client("producer3")
+        self.producer3 = self.proxy_replica_dc.create_client("producer3")
         self.producer3.open(du.uri_priority_2, flags=["write", "ack"], block=True)
 
     def test_open_queue_after_quorum_bump_up(
@@ -301,7 +301,7 @@ class TestClusterNodeShutdown:
         du = domain_urls
         cluster = multi_node
         primary = cluster.last_known_leader
-        active_replica = cluster.process(self.proxy2.get_active_node())
+        active_replica = cluster.process(self.proxy_replica_dc.get_active_node())
 
         # Set quorum to unreachable number more than the number of nodes
         primary.set_quorum(5, cluster.config.name, True)
