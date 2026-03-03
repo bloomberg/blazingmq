@@ -3853,7 +3853,7 @@ void StorageUtil::forceIssueAdvisoryAndSyncPt(mqbc::ClusterData*   clusterData,
             .choice()
             .makePrimaryStatusAdvisory();
     primaryAdv.partitionId() = fs->config().partitionId();
-    ;
+
     primaryAdv.primaryLeaseId() = pinfo.primaryLeaseId();
     primaryAdv.status()         = bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE;
 

@@ -1004,14 +1004,17 @@ void ClusterOrchestrator::processNodeStoppingNotification(
     }
 
     // Replica makes all open queues buffer PUTs (by calling 'onOpenUpstream').
-    d_queueHelper.processNodeStoppingNotification(ns->clusterNode(),
-                                                  request,
-                                                  ns);
+    bsl::shared_ptr<ClusterQueueHelper::StopContext> context_sp =
+        d_queueHelper.processNodeStoppingNotification(ns->clusterNode(),
+                                                      request,
+                                                      ns);
 
     // For each partition for which self is primary, notify the StorageMgr
     // about the status of a peer node.  Self may end up issuing a
     // (non-scheduled) sync point to the node.
 
+    // Primary does not have to wait for 'processNodeStoppingNotification';
+    // it is synchronous for primary.
     const bsl::vector<int>& partitions =
         d_clusterData_p->membership().selfNodeSession()->primaryPartitions();
     for (int i = static_cast<int>(partitions.size()) - 1; 0 <= i; --i) {
@@ -1020,6 +1023,17 @@ void ClusterOrchestrator::processNodeStoppingNotification(
             ns->clusterNode(),
             bmqp_ctrlmsg::NodeStatus::E_STOPPING);
     }
+
+    bslmt::Latch latch(partitions.size());
+
+    for (int i = static_cast<int>(partitions.size()) - 1; 0 <= i; --i) {
+        d_storageManager_p->fileStore(partitions[i])
+            .execute(bdlf::BindUtil::bind(&bslmt::Latch::arrive, &latch));
+    }
+
+    latch.wait();
+
+    context_sp.reset();
 }
 
 void ClusterOrchestrator::processNodeStatusAdvisory(

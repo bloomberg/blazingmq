@@ -101,6 +101,22 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// Signature of a `void` callback method.
     typedef bsl::function<void(void)> VoidFunctor;
 
+    struct StopContext {
+        mqbnet::ClusterNode*         d_peer;
+        bmqp_ctrlmsg::ControlMessage d_response;
+        VoidFunctor                  d_callback;
+        /// link StopContext for the same node
+        bsl::shared_ptr<StopContext> d_previous_sp;
+
+        // TRAITS
+        BSLMF_NESTED_TRAIT_DECLARATION(StopContext, bslma::UsesBslmaAllocator)
+
+        // CREATORS
+        StopContext(mqbnet::ClusterNode* source,
+                    const VoidFunctor&   callback,
+                    bslma::Allocator*    allocator);
+    };
+
   private:
     // PRIVATE TYPES
     typedef bsl::shared_ptr<const mqbc::ClusterStateQueueInfo>
@@ -276,21 +292,6 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         void resetButKeepPending();
     };
 
-    struct StopContext {
-        mqbnet::ClusterNode*         d_peer;
-        bmqp_ctrlmsg::ControlMessage d_response;
-        VoidFunctor                  d_callback;
-        /// link StopContext for the same node
-        bsl::shared_ptr<StopContext> d_previous_sp;
-
-        // TRAITS
-        BSLMF_NESTED_TRAIT_DECLARATION(StopContext, bslma::UsesBslmaAllocator)
-
-        // CREATORS
-        StopContext(mqbnet::ClusterNode* source,
-                    const VoidFunctor&   callback,
-                    bslma::Allocator*    allocator);
-    };
     typedef bsl::unordered_map<const mqbnet::ClusterNode*,
                                bsl::weak_ptr<StopContext> >
         StopContexts;
@@ -1061,7 +1062,9 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// The optionally specified `partitions` filters which queues will be
     /// de-configured and closed.  Invoke the optionally specified 'callback
     /// upon completion of (asynchronous) processing of all queues.
-    void processNodeStoppingNotification(
+    /// Return counted reference to the `StopContext` which deleter sends
+    /// StopResponse and invokes the callback.
+    bsl::shared_ptr<StopContext> processNodeStoppingNotification(
         mqbnet::ClusterNode*                clusterNode,
         const bmqp_ctrlmsg::ControlMessage* request,
         mqbc::ClusterNodeSession*           ns,

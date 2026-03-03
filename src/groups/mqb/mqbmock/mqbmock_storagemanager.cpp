@@ -314,7 +314,7 @@ bool StorageManager::isStorageEmpty(BSLA_MAYBE_UNUSED const bmqt::Uri& uri,
     return true;
 }
 
-const mqbs::FileStore&
+mqbs::FileStore&
 StorageManager::fileStore(BSLA_MAYBE_UNUSED int partitionId) const
 {
     BSLS_ASSERT_INVOKE_NORETURN("Unimplemented");
