@@ -960,7 +960,7 @@ def test_proxy_partial_push(
     consumers["baz"].close(f"{tc.URI_FANOUT}?id=baz", block=True, succeed=True)
 
 
-@tweak.domain.message_ttl(3)
+@tweak.domain.message_ttl(1)
 def test_gc_old_data_new_app(cluster: Cluster, domain_urls: tc.DomainUrls):
     """Trigger old message GC in the presence of new App.  Need to allocate
     Apps states first.
@@ -996,6 +996,10 @@ def test_gc_old_data_new_app(cluster: Cluster, domain_urls: tc.DomainUrls):
     cluster.set_app_ids(DEFAULT_APP_IDS + [new_app_1], du)
 
     assert consumer.close(consumer_uri, block=True) == Client.e_SUCCESS
+
+    time.sleep(1)
+    # Need to make FileStore idle to trigger GC, otherwise it will run in 5 secs
+    leader.command(f"CLUSTERS CLUSTER {leader.cluster_name} STORAGE SUMMARY")
 
     # Observe that the message was GC'd from the queue.
     assert leader.capture(
