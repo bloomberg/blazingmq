@@ -1215,41 +1215,6 @@ void ClusterQueueHelper::sendOpenQueueRequest(
     }
 }
 
-void ClusterQueueHelper::tryReopenQueueRequest(
-    QueueContext*    queueContext,
-    SubQueueContext* subQueueContext)
-{
-    BSLS_ASSERT_SAFE(subQueueContext);
-    BSLS_ASSERT_SAFE(queueContext);
-
-    if (subQueueContext->d_numOpenRequestsInFlight) {
-        return;  // RETURN
-    }
-
-    BMQ_LOGTHROTTLE_INFO << d_cluster_p->description() << ": REOPENING "
-                         << queueContext->uri() << " for "
-                         << subQueueContext->d_parameters;
-
-    const int            pid        = queueContext->partitionId();
-    mqbnet::ClusterNode* targetNode = 0;
-    bsls::Types::Uint64  genCount   = 0;
-
-    if (d_cluster_p->isRemote()) {
-        targetNode = d_clusterData_p->electorInfo().leaderNode();
-        genCount   = d_clusterData_p->electorInfo().electorTerm();
-    }
-    else {
-        targetNode = d_clusterState_p->partition(pid).primaryNode();
-        genCount   = d_clusterState_p->partition(pid).primaryLeaseId();
-    }
-
-    sendReopenQueueRequest(queueContext,
-                           subQueueContext,
-                           targetNode,
-                           genCount,
-                           1);
-}
-
 bmqt::GenericResult::Enum
 ClusterQueueHelper::sendReopenQueueRequest(QueueContext*    queueContext,
                                            SubQueueContext* subQueueContext,
@@ -1413,10 +1378,7 @@ void ClusterQueueHelper::onOpenQueueResponse(
                 << responder->nodeDescription() << ": "
                 << requestContext->response()
                 << ", for request: " << requestContext->request();
-
-            tryReopenQueueRequest(qcontext, &subQueueContext);
-
-            // 'sendReopenQueueRequest' sets the state to 'k_REOPENING'.
+            // Proceed with queue creation
         }
 
         // 'createQueue' always calls 'onGetQueueHandle' which calls
@@ -1484,7 +1446,8 @@ void ClusterQueueHelper::onOpenQueueResponse(
     bmqp::QueueUtil::subtractHandleParameters(&subQueueContext.d_parameters,
                                               context->d_handleParameters);
 
-    if (d_cluster_p->isStopping()) {
+    if (!retry || d_cluster_p->isStopping() ||
+        subQueueContext.d_state == SubQueueContext::k_FAILED) {
         finishOpening(context,
                       requestContext->response().choice().status(),
                       0,
@@ -1495,15 +1458,10 @@ void ClusterQueueHelper::onOpenQueueResponse(
         return;  // RETURN
     }
 
-    bool retryNow = false;
-
-    if (subQueueContext.d_state == SubQueueContext::k_CLOSED) {
-        // Buffer this Open request until Reopen response
-        tryReopenQueueRequest(qcontext, &subQueueContext);
-    }
-    else if (subQueueContext.d_state == SubQueueContext::k_OPEN) {
-        retryNow = retry;
-    }
+    // Do retry if the state is k_OPEN && isQueuePrimaryAvailable
+    bool retryNow = subQueueContext.d_state == SubQueueContext::k_OPEN
+                        ? isQueuePrimaryAvailable(*qcontext, otherThan)
+                        : false;
 
     BSLS_ASSERT_SAFE(isQueueAssigned(*qcontext));
 
@@ -1516,22 +1474,17 @@ void ClusterQueueHelper::onOpenQueueResponse(
     // 'processOpenQueueRequest' instead of 'sendOpenQueueRequest'
     // below.
 
-    if (retryNow && isQueuePrimaryAvailable(*qcontext, otherThan)) {
+    if (retryNow) {
         processOpenQueueRequest(context);
     }
-    else if (retry) {
+    else {
+        // Buffer this Open request until Reopen response
+
         BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
                              << ": buffering open queue request for "
                              << qcontext->uri();
 
         qcontext->d_liveQInfo.d_pending.push_back(context);
-    }
-    else {
-        finishOpening(context,
-                      requestContext->response().choice().status(),
-                      0,
-                      bmqp_ctrlmsg::OpenQueueResponse(),
-                      mqbi::OpenQueueConfirmationCookieSp());
     }
 }
 
