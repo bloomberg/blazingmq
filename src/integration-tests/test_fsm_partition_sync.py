@@ -233,6 +233,10 @@ def test_sync_after_missed_rollover_after_restart(
         f"east1 {east1} is not last_known_leader {east1.last_known_leader}"
     )
 
+    # Make sure a replica is ready if it is expected to rollover
+    west1.wait_status(wait_leader=True, wait_ready=True)
+    west2.wait_status(wait_leader=True, wait_ready=True)
+
     # Create producer and consumer
     producer = east1.create_client("producer")
     producer.open(uri_priority, flags=["write,ack"], succeed=True)
