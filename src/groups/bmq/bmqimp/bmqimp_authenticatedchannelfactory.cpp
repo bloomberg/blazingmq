@@ -241,8 +241,9 @@ void AuthenticatedChannelFactory::baseResultCallback(
     }
 
     channel->onClose(
-        bdlf::BindUtil::bind(&AuthenticatedChannelFactory::onChannelDown,
-                             this,
+        bdlf::BindUtil::bind(bmqu::WeakMemFnUtil::weakMemFn(
+                                 &AuthenticatedChannelFactory::onChannelDown,
+                                 d_self.acquireWeak()),
                              bdlf::PlaceHolders::_1));  // status
 
     // We will skip authentication if no authentication credential
@@ -403,8 +404,9 @@ bool AuthenticatedChannelFactory::processAuthenticationEvent(
             &d_reauthenticationTimeoutHandle,
             bsls::TimeInterval(bmqsys::Time::nowMonotonicClock())
                 .addMilliseconds(intervalMs),
-            bdlf::BindUtil::bind(&AuthenticatedChannelFactory::sendRequest,
-                                 this,
+            bdlf::BindUtil::bind(bmqu::WeakMemFnUtil::weakMemFn(
+                                     &AuthenticatedChannelFactory::sendRequest,
+                                     d_self.acquireWeak()),
                                  channel,
                                  cb,
                                  true));
