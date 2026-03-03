@@ -225,6 +225,40 @@ const mqbi::StorageIterator* VirtualIterator::next()
     return d_start_p;
 }
 
+bool isConfigureErrorPermanent(
+    const bmqp_ctrlmsg::StatusCategory::Value& value)
+{
+    switch (value) {
+    case bmqp_ctrlmsg::StatusCategory::E_SUCCESS: {
+        return false;
+    }
+    case bmqp_ctrlmsg::StatusCategory::E_UNKNOWN: {
+        return false;
+    }
+    case bmqp_ctrlmsg::StatusCategory::E_TIMEOUT: {
+        return false;
+    }
+    case bmqp_ctrlmsg::StatusCategory::E_NOT_CONNECTED: {
+        return false;
+    }
+    case bmqp_ctrlmsg::StatusCategory::E_CANCELED: {
+        return false;
+    }
+    case bmqp_ctrlmsg::StatusCategory::E_NOT_SUPPORTED: {
+        return true;
+    }
+    case bmqp_ctrlmsg::StatusCategory::E_REFUSED: {
+        return false;
+    }
+    case bmqp_ctrlmsg::StatusCategory::E_INVALID_ARGUMENT: {
+        return true;
+    }
+    case bmqp_ctrlmsg::StatusCategory::E_NOT_READY: {
+        return false;
+    }
+    }
+}
+
 }  // close unnamed namespace
 
 // ==================================
@@ -324,10 +358,10 @@ void RelayQueueEngine::onHandleConfigured(
 void RelayQueueEngine::onHandleConfiguredDispatched(
     const bsl::weak_ptr<RelayQueueEngine>& self,
     const bmqp_ctrlmsg::Status&            status,
-    BSLA_UNUSED const bmqp_ctrlmsg::StreamParameters& upStreamParameters,
-    mqbi::QueueHandle*                                handle,
-    const bmqp_ctrlmsg::StreamParameters&             downStreamParameters,
-    const bsl::shared_ptr<ConfigureContext>&          context)
+    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::StreamParameters& upStreamParameters,
+    mqbi::QueueHandle*                                      handle,
+    const bmqp_ctrlmsg::StreamParameters&    downStreamParameters,
+    const bsl::shared_ptr<ConfigureContext>& context)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -347,7 +381,7 @@ void RelayQueueEngine::onHandleConfiguredDispatched(
     const bool isHandleKnown = d_queueState_p->handleCatalog().hasHandle(
         handle);
 
-    if (bmqp_ctrlmsg::StatusCategory::E_SUCCESS != status.category()) {
+    if (isConfigureErrorPermanent(status.category())) {
         BMQ_LOGTHROTTLE_WARN
             << "#QUEUE_CONFIGURE_FAILURE"
             << " Received failed 'configure-stream' response for "
@@ -359,8 +393,13 @@ void RelayQueueEngine::onHandleConfiguredDispatched(
         return;  // RETURN
     }
 
-    BSLS_ASSERT_SAFE(bmqp_ctrlmsg::StatusCategory::E_SUCCESS ==
-                     status.category());
+    if (bmqp_ctrlmsg::StatusCategory::E_SUCCESS != status.category()) {
+        BMQ_LOGTHROTTLE_WARN << "Received " << status.category()
+                             << " 'configure-stream' response for "
+                             << Event(handle, d_queueState_p, isHandleKnown)
+                             << ", for parameters [" << downStreamParameters
+                             << "], but will treat it as success.";
+    }
 
     if (!isHandleKnown) {
         BMQ_LOGTHROTTLE_ERROR << "#CLIENT_IMPROPER_BEHAVIOR "
@@ -1006,8 +1045,9 @@ RelayQueueEngine::~RelayQueueEngine()
 }
 
 // MANIPULATORS
-int RelayQueueEngine::configure(BSLA_UNUSED bsl::ostream& errorDescription,
-                                BSLA_UNUSED bool          isReconfigure)
+int RelayQueueEngine::configure(
+    BSLA_MAYBE_UNUSED bsl::ostream& errorDescription,
+    BSLA_MAYBE_UNUSED bool          isReconfigure)
 {
     return 0;
 }
@@ -1036,7 +1076,7 @@ void RelayQueueEngine::resetState(bool isShuttingDown)
 }
 
 int RelayQueueEngine::rebuildInternalState(
-    BSLA_UNUSED bsl::ostream& errorDescription)
+    BSLA_MAYBE_UNUSED bsl::ostream& errorDescription)
 {
     BSLS_ASSERT_OPT(false && "should never be invoked");
     return 0;
@@ -1529,9 +1569,10 @@ int RelayQueueEngine::onConfirmMessage(mqbi::QueueHandle*       handle,
     return rc_NON_ZERO_REFERENCES;
 }
 
-int RelayQueueEngine::onRejectMessage(BSLA_UNUSED mqbi::QueueHandle* handle,
-                                      const bmqt::MessageGUID&       msgGUID,
-                                      unsigned int upstreamSubQueueId)
+int RelayQueueEngine::onRejectMessage(
+    BSLA_MAYBE_UNUSED mqbi::QueueHandle* handle,
+    const bmqt::MessageGUID&             msgGUID,
+    unsigned int                         upstreamSubQueueId)
 {
     // Specified 'subQueueId' is the downstream one.  Need to convert it into
     // corresponding appKey.
@@ -1691,10 +1732,10 @@ void RelayQueueEngine::afterPostMessage()
 }
 
 mqbi::StorageResult::Enum RelayQueueEngine::evaluateAppSubscriptions(
-    BSLA_UNUSED const bmqp::PutHeader& putHeader,
-    BSLA_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,
-    BSLA_UNUSED const bmqp::MessagePropertiesInfo& mpi,
-    BSLA_UNUSED bsls::Types::Uint64 timestamp)
+    BSLA_MAYBE_UNUSED const bmqp::PutHeader& putHeader,
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,
+    BSLA_MAYBE_UNUSED const bmqp::MessagePropertiesInfo& mpi,
+    BSLA_MAYBE_UNUSED bsls::Types::Uint64 timestamp)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -1787,7 +1828,7 @@ void RelayQueueEngine::registerStorage(const bsl::string&      appId,
 void RelayQueueEngine::unregisterStorage(
     const bsl::string&      appId,
     BSLA_MAYBE_UNUSED const mqbu::StorageKey& appKey,
-    BSLA_UNUSED unsigned int                  appOrdinal)
+    BSLA_MAYBE_UNUSED unsigned int            appOrdinal)
 {
     // executed by the *QUEUE DISPATCHER* thread
 

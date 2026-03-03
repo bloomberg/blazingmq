@@ -1044,7 +1044,9 @@ void Cluster::onConfirmEvent(const mqbi::DispatcherConfirmEvent& event)
                            << "', queueId: " << queueId
                            << ", GUID: " << confIt.message().messageGUID()
                            << "] from node " << source->nodeDescription();
-            queueHandle->confirmMessage(confIt.message().messageGUID(),
+
+            queueHandle->confirmMessage(getEventSource().get(),
+                                        confIt.message().messageGUID(),
                                         queueId.subId());
         }
         else {
@@ -1283,7 +1285,7 @@ Cluster::sendConfirmInline(int                         partitionId,
         return mqbi::InlineResult::e_INVALID_PARTITION;  // RETURN
     }
 
-    mqbc::GateKeeper::Status primaryStatus(d_state.gatePrimary(partitionId));
+    bmqu::GateKeeper::Status primaryStatus(d_state.gatePrimary(partitionId));
 
     if (!primaryStatus.isOpen()) {
         return mqbi::InlineResult::e_INVALID_PRIMARY;  // RETURN
@@ -1295,7 +1297,7 @@ Cluster::sendConfirmInline(int                         partitionId,
     mqbc::ClusterNodeSession*        ns    = pinfo.primaryNodeSession();
     BSLS_ASSERT_SAFE(ns);
 
-    mqbc::GateKeeper::Status nodeStatus(ns->gateConfirm());
+    bmqu::GateKeeper::Status nodeStatus(ns->gateConfirm());
 
     if (!nodeStatus.isOpen()) {
         return mqbi::InlineResult::e_UNAVAILABLE;  // RETURN
@@ -1326,13 +1328,13 @@ Cluster::sendConfirmInline(int                         partitionId,
     return mqbi::InlineResult::e_SUCCESS;
 }
 
-mqbi::InlineResult::Enum
-Cluster::sendPutInline(int                                 partitionId,
-                       const bmqp::PutHeader&              putHeader,
-                       const bsl::shared_ptr<bdlbb::Blob>& appData,
-                       BSLA_UNUSED const bsl::shared_ptr<bdlbb::Blob>& options,
-                       const bsl::shared_ptr<bmqu::AtomicState>&       state,
-                       bsls::Types::Uint64 genCount)
+mqbi::InlineResult::Enum Cluster::sendPutInline(
+    int                                 partitionId,
+    const bmqp::PutHeader&              putHeader,
+    const bsl::shared_ptr<bdlbb::Blob>& appData,
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<bdlbb::Blob>& options,
+    const bsl::shared_ptr<bmqu::AtomicState>&             state,
+    bsls::Types::Uint64                                   genCount)
 {
     // executed by *ANY* thread
 
@@ -1347,7 +1349,7 @@ Cluster::sendPutInline(int                                 partitionId,
         return mqbi::InlineResult::e_INVALID_PARTITION;  // RETURN
     }
 
-    mqbc::GateKeeper::Status primaryStatus(d_state.gatePrimary(partitionId));
+    bmqu::GateKeeper::Status primaryStatus(d_state.gatePrimary(partitionId));
 
     if (!primaryStatus.isOpen()) {
         return mqbi::InlineResult::e_INVALID_PRIMARY;  // RETURN
@@ -1371,7 +1373,7 @@ Cluster::sendPutInline(int                                 partitionId,
 
     BSLS_ASSERT_SAFE(primaryNodeSession);
 
-    mqbc::GateKeeper::Status nodeStatus(primaryNodeSession->gatePut());
+    bmqu::GateKeeper::Status nodeStatus(primaryNodeSession->gatePut());
 
     if (!nodeStatus.isOpen()) {
         // This checks both self status and the destination status
@@ -2103,6 +2105,18 @@ Cluster::Cluster(const bslstl::StringRef&           name,
         this,
         mqbi::DispatcherClientType::e_CLUSTER);
 
+    // We don't call mqbi::Dispatcher::registerClient for node sessions,
+    // have to pass the parameters the dispatcher set for this Cluster
+    for (mqbc::ClusterMembership::ClusterNodeSessionMap::iterator iter =
+             nodeSessionMap.begin();
+         iter != nodeSessionMap.end();
+         iter++) {
+        mqbc::ClusterMembership::ClusterNodeSessionSp& nodeSessionSp =
+            iter->second;
+        nodeSessionSp->setThreadId(this->getThreadId());
+        nodeSessionSp->setEventSource(this->getEventSource());
+    }
+
     d_clusterData.requestManager().setExecutor(dispatcher->executor(this));
 
     BALL_LOG_INFO << "Created Cluster: "
@@ -2654,10 +2668,11 @@ void Cluster::processEvent(const bmqp::Event&   event,
 
     // Helper macro to dispatch event of the specified type 'T' with isRelay
     // set to the value specified in 'R'.
+    // TODO(678098): revisit, use per-IO thread event source
 #define DISPATCH_EVENT(T, R)                                                  \
     {                                                                         \
-        mqbi::Dispatcher::DispatcherEventSp _evt = dispatcher()->getEvent(    \
-            this);                                                            \
+        mqbi::Dispatcher::DispatcherEventSp _evt =                            \
+            dispatcher()->getDefaultEventSource()->getEvent();                \
         bsl::shared_ptr<bdlbb::Blob> _blobSp =                                \
             d_clusterData.blobSpPool().getObject();                           \
         *_blobSp = *(event.blob());                                           \
@@ -2783,6 +2798,11 @@ void Cluster::processEvent(const bmqp::Event&   event,
     case bmqp::EventType::e_REPLICATION_RECEIPT: {
         // Receipt event arrives from replication nodes to primary.
         d_storageManager_mp->processReceiptEvent(event, source);
+    } break;  // BREAK
+    case bmqp::EventType::e_AUTHENTICATION: {
+        // TODO
+        BALL_LOG_ERROR << "Received Authentication Event but reauthentication "
+                          "logic is not implemented yet.";
     } break;  // BREAK
     case bmqp::EventType::e_UNDEFINED:
     default: {
@@ -2933,7 +2953,7 @@ void Cluster::onNodeHighWatermark(mqbnet::ClusterNode* node)
         << node->nodeDescription() << BMQTSK_ALARMLOG_END;
 }
 
-void Cluster::onNodeLowWatermark(BSLA_UNUSED mqbnet::ClusterNode* node)
+void Cluster::onNodeLowWatermark(BSLA_MAYBE_UNUSED mqbnet::ClusterNode* node)
 {
     // executed by the *IO* thread
 

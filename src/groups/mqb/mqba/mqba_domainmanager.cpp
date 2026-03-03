@@ -677,6 +677,11 @@ int DomainManager::processCommand(mqbcmd::DomainsResult*        result,
     else if (command.isReconfigureValue()) {
         const bsl::string& name = command.reconfigure().domain();
 
+        // Clear the cache before attempting to locate or create the domain
+        // so that fresh configuration is fetched from disk, even if the
+        // domain doesn't exist yet due to previous configuration failures.
+        d_configProvider_p->clearCache(name);
+
         DomainSp domainSp;
 
         if (0 != locateOrCreateDomain(&domainSp, name)) {
@@ -687,7 +692,6 @@ int DomainManager::processCommand(mqbcmd::DomainsResult*        result,
         }
 
         DecodeAndUpsertValue configureResult;
-        d_configProvider_p->clearCache(domainSp->name());
         d_configProvider_p->getDomainConfig(
             domainSp->name(),
             bdlf::BindUtil::bind(

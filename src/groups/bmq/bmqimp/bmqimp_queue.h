@@ -68,23 +68,24 @@ namespace bmqimp {
 struct QueueState {
     // TYPES
     enum Enum {
-        e_OPENING_OPN = 1  // The queue is being opened, 1st phase
-        ,
-        e_OPENING_CFG = 2  // The queue is being opened, 2nd phase
-        ,
-        e_REOPENING_OPN = 3  // The queue is being reopened, 1st phase
-        ,
-        e_REOPENING_CFG = 4  // The queue is being reopened, 2nd phase
-        ,
-        e_OPENED = 5  // The queue is fully opened
-        ,
-        e_CLOSING_CFG = 6  // The queue is being closed, 1st phase
-        ,
-        e_CLOSING_CLS = 7  // The queue is being closed, 2nd phase
-        ,
-        e_CLOSED = 8  // The queue is fully closed
-        ,
-        e_PENDING = 9  // The queue is pending, channel is down
+        /// The queue is being opened, 1st phase
+        e_OPENING_OPN = 1,
+        /// The queue is being opened, 2nd phase
+        e_OPENING_CFG = 2,
+        /// The queue is being reopened, 1st phase
+        e_REOPENING_OPN = 3,
+        /// The queue is being reopened, 2nd phase
+        e_REOPENING_CFG = 4,
+        /// The queue is fully opened
+        e_OPENED = 5,
+        /// The queue is being closed, 1st phase
+        e_CLOSING_CFG = 6,
+        /// The queue is being closed, 2nd phase
+        e_CLOSING_CLS = 7,
+        /// The queue is fully closed
+        e_CLOSED = 8,
+        /// The queue is pending, channel is down
+        e_PENDING = 9
     };
 
     // PUBLIC CONSTANTS

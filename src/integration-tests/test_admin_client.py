@@ -251,7 +251,7 @@ def test_queue_stats(single_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     res = admin.send_admin(
         f"DOMAINS DOMAIN {task.domain} QUEUE {task.queue_name} PURGE baz"
     )
-    assert f"Purged 21 message(s)" in res
+    assert "Purged 21 message(s)" in res
 
     stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
     queue_stats = stats["domainQueues"]["domains"][domain_fanout][task.uri]
@@ -563,7 +563,7 @@ def test_purge_breathing(single_node: Cluster, domain_urls: tc.DomainUrls) -> No
         res = admin.send_admin(
             f"DOMAINS DOMAIN {task.domain} QUEUE {task.queue_name} PURGE *"
         )
-        assert f"Purged 0 message(s)" in res
+        assert "Purged 0 message(s)" in res
 
     # Stage 2: purge PRIORITY domain
     for i in range(1, 6):
@@ -577,7 +577,7 @@ def test_purge_breathing(single_node: Cluster, domain_urls: tc.DomainUrls) -> No
         assert f"Purged {q1_task.num + q2_task.num} message(s)" in res
 
         res = admin.send_admin(f"DOMAINS DOMAIN {du.domain_priority} PURGE")
-        assert f"Purged 0 message(s)" in res
+        assert "Purged 0 message(s)" in res
 
     # Stage 3: purge FANOUT queues and domain
     for i in range(1, 6):
@@ -601,10 +601,10 @@ def test_purge_breathing(single_node: Cluster, domain_urls: tc.DomainUrls) -> No
             res = admin.send_admin(
                 f"DOMAINS DOMAIN {task.domain} QUEUE {task.queue_name} PURGE {app_id}"
             )
-            assert f"Purged 0 message(s)" in res
+            assert "Purged 0 message(s)" in res
 
         res = admin.send_admin(f"DOMAINS DOMAIN {task.domain} PURGE")
-        assert f"Purged 0 message(s)" in res
+        assert "Purged 0 message(s)" in res
 
     # Stop the admin session
     admin.stop()
@@ -731,11 +731,11 @@ def test_purge_inactive(single_node: Cluster, domain_urls: tc.DomainUrls) -> Non
         res = admin.send_admin(
             f"DOMAINS DOMAIN {record.domain} QUEUE {record.queue_name} PURGE *"
         )
-        assert f"Purged 0 message(s)" in res
+        assert "Purged 0 message(s)" in res
 
     # Also check that purge domain for PRIORITY could not purge more messages.
     res = admin.send_admin(f"DOMAINS DOMAIN {du.domain_priority} PURGE")
-    assert f"Purged 0 message(s)" in res
+    assert "Purged 0 message(s)" in res
 
     # Stage 3: FANOUT purge
 
@@ -758,11 +758,11 @@ def test_purge_inactive(single_node: Cluster, domain_urls: tc.DomainUrls) -> Non
         res = admin.send_admin(
             f"DOMAINS DOMAIN {record.domain} QUEUE {record.queue_name} PURGE *"
         )
-        assert f"Purged 0 message(s)" in res
+        assert "Purged 0 message(s)" in res
 
     # Also check that purge domain for FANOUT could not purge more messages.
     res = admin.send_admin(f"DOMAINS DOMAIN {du.domain_fanout} PURGE")
-    assert f"Purged 0 message(s)" in res
+    assert "Purged 0 message(s)" in res
 
     # Stop the admin session
     admin.stop()

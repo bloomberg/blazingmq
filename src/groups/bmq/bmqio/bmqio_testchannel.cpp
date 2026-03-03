@@ -44,8 +44,6 @@ TestChannel::TestChannel(bslma::Allocator* basicAllocator)
 , d_onWatermarkCalls(basicAllocator)
 , d_properties(basicAllocator)
 , d_peerUri(basicAllocator)
-, d_isFinal(false)
-, d_hasNoMoreWriteCalls(true)
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
     // NOTHING
@@ -93,41 +91,6 @@ void TestChannel::setPeerUri(const bslstl::StringRef& value)
     d_peerUri = value;
 }
 
-bsl::deque<TestChannel::ReadCall>& TestChannel::readCalls()
-{
-    return d_readCalls;
-}
-
-bsl::deque<TestChannel::WriteCall>& TestChannel::writeCalls()
-{
-    return d_writeCalls;
-}
-
-bsl::deque<TestChannel::CancelReadCall>& TestChannel::cancelReadCalls()
-{
-    return d_cancelReadCalls;
-}
-
-bsl::deque<TestChannel::CloseCall>& TestChannel::closeCalls()
-{
-    return d_closeCalls;
-}
-
-bsl::deque<TestChannel::ExecuteCall>& TestChannel::executeCalls()
-{
-    return d_executeCalls;
-}
-
-bsl::deque<TestChannel::OnCloseCall>& TestChannel::onCloseCalls()
-{
-    return d_onCloseCalls;
-}
-
-bsl::deque<TestChannel::OnWatermarkCall>& TestChannel::onWatermarkCalls()
-{
-    return d_onWatermarkCalls;
-}
-
 void TestChannel::read(Status*                   status,
                        int                       numBytes,
                        const ReadCallback&       readCallback,
@@ -146,10 +109,6 @@ void TestChannel::write(Status*            status,
 
     d_writeCalls.emplace_back(blob, watermark);
     *status = d_writeStatus;
-
-    if (d_isFinal) {
-        d_hasNoMoreWriteCalls = false;
-    }
 
     d_condition.signal();
 }
@@ -207,24 +166,18 @@ const bmqvt::PropertyBag& TestChannel::properties() const
     return d_properties;
 }
 
-bool TestChannel::waitFor(int                       size,
-                          bool                      isFinal,
-                          const bsls::TimeInterval& interval)
+bool TestChannel::waitFor(size_t                    size,
+                          const bsls::TimeInterval& interval) const
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
-    while (writeCalls().size() < size_t(size)) {
+    while (d_writeCalls.size() < size) {
         bsls::TimeInterval when = bsls::SystemTime::nowRealtimeClock() +
                                   interval;
         if (d_condition.timedWait(&d_mutex, when)) {
             return false;
         }
     }
-    d_isFinal = isFinal;
-    if (isFinal && writeCalls().size() > size_t(size)) {
-        d_hasNoMoreWriteCalls = false;
-    }
-
     return true;
 }
 
@@ -232,15 +185,13 @@ bool TestChannel::waitFor(const bdlbb::Blob&        blob,
                           const bsls::TimeInterval& interval,
                           bool                      pop)
 {
-    if (!waitFor(1, false, interval)) {
+    if (!waitFor(1, interval)) {
         return false;  // RETURN
     }
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
-    while (
-        bdlbb::BlobUtil::compare(writeCalls()[writeCalls().size() - 1].d_blob,
-                                 blob)) {
+    while (bdlbb::BlobUtil::compare(d_writeCalls.back().d_blob, blob)) {
         bsls::TimeInterval when = bsls::SystemTime::nowRealtimeClock() +
                                   interval;
         if (d_condition.timedWait(&d_mutex, when)) {
@@ -248,7 +199,7 @@ bool TestChannel::waitFor(const bdlbb::Blob&        blob,
         }
     }
     if (pop) {
-        writeCalls().pop_back();
+        d_writeCalls.pop_back();
     }
 
     return true;
@@ -257,18 +208,40 @@ bool TestChannel::waitFor(const bdlbb::Blob&        blob,
 TestChannel::WriteCall TestChannel::popWriteCall()
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
-    WriteCall                      result = writeCalls().front();
-
-    writeCalls().pop_front();
+    WriteCall                      result = d_writeCalls.front();
+    d_writeCalls.pop_front();
     return result;
+}
+
+bool TestChannel::getWriteCall(TestChannel::WriteCall*   call,
+                               size_t                    index,
+                               const bsls::TimeInterval& interval) const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_OPT(call);
+
+    if (!waitFor(index + 1 /* size = index + 1 */, interval)) {
+        return false;  // RETURN
+    }
+
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+    *call = d_writeCalls[index];
+    return true;
 }
 
 TestChannel::CloseCall TestChannel::popCloseCall()
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
-    CloseCall                      result = closeCalls().front();
+    CloseCall                      result = d_closeCalls.front();
+    d_closeCalls.pop_front();
+    return result;
+}
 
-    closeCalls().pop_front();
+TestChannel::OnCloseCall TestChannel::popOnCloseCall()
+{
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
+    OnCloseCall                    result = d_onCloseCalls.front();
+    d_onCloseCalls.pop_front();
     return result;
 }
 
@@ -288,15 +261,22 @@ const Status& TestChannel::writeStatus() const
     return d_writeStatus;
 }
 
-bool TestChannel::hasNoMoreWriteCalls() const
-{
-    return d_hasNoMoreWriteCalls;
-}
-
-bool TestChannel::closeCallsEmpty() const
+size_t TestChannel::numWriteCalls() const
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
-    return d_closeCalls.empty();
+    return d_writeCalls.size();
+}
+
+size_t TestChannel::numCloseCalls() const
+{
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+    return d_closeCalls.size();
+}
+
+size_t TestChannel::numOnCloseCalls() const
+{
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+    return d_onCloseCalls.size();
 }
 
 }  // close package namespace

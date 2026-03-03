@@ -35,6 +35,7 @@
 #include <bmqp_protocolutil.h>
 #include <bmqp_queueid.h>
 #include <bmqst_statcontextuserdata.h>
+#include <bmqu_atomicgate.h>
 
 // BDE
 #include <ball_log.h>
@@ -50,93 +51,6 @@
 
 namespace BloombergLP {
 namespace mqbc {
-
-// ================
-// class AtomicGate
-// ================
-
-class AtomicGate {
-    // This thread-safe mechanism maintains binary state (open/close) allowing
-    // efficiently check the state ('tryEnter'/'leave'), change it to open
-    // ('open'), and to close ('closeAndDrain') waiting for all 'leave' calls
-    // matching 'tryEnter' calls.
-
-  private:
-    // PRIVATE TYPES
-
-    /// The Enum values have arithmetical meaning and cannot be changed, or
-    /// extended, or reordered.
-    enum Enum { e_INIT = 0, e_CLOSE = 1, e_ENTER = 2 };
-
-    // PRIVATE DATA
-    bsls::AtomicInt d_value;
-
-  public:
-    // CREATORS
-    AtomicGate(bool isOpen);
-    ~AtomicGate();
-
-    // MANIPULATORS
-    void closeAndDrain();
-    // Write lock.
-
-    void open();
-    // Undo 'closeAndDrain'.
-
-    bool tryEnter();
-    // Return true if 'closeAndDrain' has not been called.
-
-    void leave();
-    // Undo 'tryEnter'.  The behavior is undefined if 'tryEnter'
-    // has returned 'false', or if called more than once.
-};
-
-// ================
-// class GateKeeper
-// ================
-
-class GateKeeper {
-    // This mechanism is a wrapper around 'AtomicGate' allowing 'tryEnter'
-    // and 'leave' using RAII ('Status').
-    // 'open' and 'close' are not thread-safe and can be called from the thread
-    // maintaining the status, while 'Status' ('tryEnter'/'leave') is
-    // thread-safe and can be called from any thread attempting to 'enter' the
-    // gate.
-
-  private:
-    // DATA
-    AtomicGate d_gate;
-    bool       d_isOpen;
-
-  public:
-    // TYPES
-    class Status {
-      private:
-        // DATA
-        AtomicGate& d_gate;
-        bool        d_isOpen;
-
-      private:
-        // NOT IMPLEMENTED
-        Status(const Status& other) BSLS_KEYWORD_DELETED;
-
-      public:
-        // CREATORS
-        Status(GateKeeper& lock);
-        ~Status();
-
-        // ACCESSORS
-        bool isOpen() const;
-    };
-
-  public:
-    // CREATORS
-    GateKeeper();
-
-    // MANIPULATORS
-    void open();
-    void close();
-};
 
 // ========================
 // class ClusterNodeSession
@@ -256,10 +170,10 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     QueueHandleMap d_queueHandles;
 
     /// Gates controlling sending messages inline (from multiple threads).
-    GateKeeper d_gatePush;
-    GateKeeper d_gateAck;
-    GateKeeper d_gatePut;
-    GateKeeper d_gateConfirm;
+    bmqu::GateKeeper d_gatePush;
+    bmqu::GateKeeper d_gateAck;
+    bmqu::GateKeeper d_gatePut;
+    bmqu::GateKeeper d_gateConfirm;
 
   private:
     // NOT IMPLEMENTED
@@ -358,8 +272,8 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     //
     // THREAD: This method is called from the Queue's dispatcher thread.
 
-    GateKeeper& gatePut();
-    GateKeeper& gateConfirm();
+    bmqu::GateKeeper& gatePut();
+    bmqu::GateKeeper& gateConfirm();
 
     // ACCESSORS
 
@@ -411,115 +325,6 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
 // ============================================================================
 //                            INLINE DEFINITIONS
 // ============================================================================
-
-// ----------------
-// class AtomicGate
-// ----------------
-
-inline AtomicGate::AtomicGate(bool isOpen)
-: d_value(isOpen ? e_INIT : e_CLOSE)
-{
-    // NOTHING
-}
-
-inline AtomicGate::~AtomicGate()
-{
-    BSLS_ASSERT_SAFE(d_value <= e_CLOSE);
-}
-
-// MANIPULATORS
-inline void AtomicGate::closeAndDrain()
-{
-    int result = d_value.add(e_CLOSE);
-
-    BSLS_ASSERT_SAFE(result & e_CLOSE);
-    // Do not support more than one writer
-
-    // Spin while locked result > e_CLOSE
-
-    while (result > e_CLOSE) {
-        bslmt::ThreadUtil::yield();
-        result = d_value;
-    }
-}
-
-inline bool AtomicGate::tryEnter()
-{
-    const int result = d_value.add(e_ENTER);
-
-    if (result & e_CLOSE) {
-        d_value.subtract(e_ENTER);
-        return false;  // RETURN
-    }
-    else {
-        return true;  // RETURN
-    }
-}
-
-inline void AtomicGate::open()
-{
-    BSLA_MAYBE_UNUSED const int result = d_value.subtract(e_CLOSE);
-
-    BSLS_ASSERT_SAFE(result >= e_INIT);
-    BSLS_ASSERT_SAFE((result & e_CLOSE) == 0);
-}
-
-inline void AtomicGate::leave()
-{
-    BSLA_MAYBE_UNUSED const int result = d_value.subtract(e_ENTER);
-
-    BSLS_ASSERT_SAFE(result >= e_INIT);
-}
-
-// ------------------------
-// class GateKeeper::Status
-// ------------------------
-
-inline GateKeeper::Status::Status(GateKeeper& gateKeeper)
-: d_gate(gateKeeper.d_gate)
-, d_isOpen(d_gate.tryEnter())
-{
-    // NOTHING
-}
-
-inline GateKeeper::Status::~Status()
-{
-    if (d_isOpen) {
-        d_gate.leave();
-    }
-}
-
-inline bool GateKeeper::Status::isOpen() const
-{
-    return d_isOpen;
-}
-
-// ----------------
-// class GateKeeper
-// ----------------
-
-inline GateKeeper::GateKeeper()
-: d_gate(false)
-, d_isOpen(false)
-{
-    // NOTHING
-}
-
-inline void GateKeeper::open()
-{
-    if (!d_isOpen) {
-        d_isOpen = true;
-        d_gate.open();
-    }
-}
-
-inline void GateKeeper::close()
-{
-    if (d_isOpen) {
-        d_isOpen = false;
-        d_gate.closeAndDrain();
-    }
-}
 
 // ---------------------------------------
 // struct ClientSessionState::SubQueueInfo
@@ -660,12 +465,12 @@ inline mqbi::Dispatcher* ClusterNodeSession::dispatcher()
     return d_cluster_p->dispatcher();
 }
 
-inline GateKeeper& ClusterNodeSession::gatePut()
+inline bmqu::GateKeeper& ClusterNodeSession::gatePut()
 {
     return d_gatePut;
 }
 
-inline GateKeeper& ClusterNodeSession::gateConfirm()
+inline bmqu::GateKeeper& ClusterNodeSession::gateConfirm()
 {
     return d_gateConfirm;
 }

@@ -2963,8 +2963,8 @@ void ClusterQueueHelper::notifyQueue(QueueContext*       queueContext,
 }
 
 void ClusterQueueHelper::reconfigureCallback(
-    BSLA_UNUSED const bmqp_ctrlmsg::Status& status,
-    BSLA_UNUSED const bmqp_ctrlmsg::StreamParameters& streamParameters)
+    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::Status& status,
+    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::StreamParameters& streamParameters)
 {
     // TODO: consider success even before reconfigure response
     onReopenQueueCompletion();
@@ -4685,6 +4685,7 @@ void ClusterQueueHelper::onUpstreamNodeChange(mqbnet::ClusterNode* node,
         }
 
         if (node == 0) {
+            setAsClosed(queueContextSp);
             // Replica makes all open queues buffer PUTs.
             queue->dispatcher()->execute(
                 bdlf::BindUtil::bindS(d_allocator_p,
@@ -4692,6 +4693,23 @@ void ClusterQueueHelper::onUpstreamNodeChange(mqbnet::ClusterNode* node,
                                       queue),
                 queue);
         }
+    }
+}
+
+void ClusterQueueHelper::setAsClosed(const QueueContextSp& queueContextSp)
+{
+    QueueLiveState&    queueInfo = queueContextSp->d_liveQInfo;
+    const mqbi::Queue* queuePtr  = queueInfo.d_queue_sp.get();
+
+    BSLS_ASSERT_SAFE(queuePtr);
+
+    for (StreamsMap::iterator iter = queueInfo.d_subQueueIds.begin();
+         iter != queueInfo.d_subQueueIds.end();
+         ++iter) {
+        SubQueueContext& subQueueContext = iter->value();
+
+        // block and cache all new OpenQueue requests
+        subQueueContext.d_state = SubQueueContext::k_CLOSED;
     }
 }
 
@@ -5423,8 +5441,8 @@ void ClusterQueueHelper::requestToStopQueues()
 }
 
 void ClusterQueueHelper::contextHolder(
-    BSLA_UNUSED const bsl::shared_ptr<StopContext>& contextSp,
-    const VoidFunctor&                              action)
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<StopContext>& contextSp,
+    const VoidFunctor&                                    action)
 {
     if (action) {
         action();
@@ -5561,7 +5579,7 @@ void ClusterQueueHelper::processNodeStoppingNotification(
                                           VoidFunctor()));
             }
             BALL_LOG_INFO << d_clusterData_p->identity().description()
-                          << ": deconfigured " << handles.size()
+                          << ": deconfiguring " << handles.size()
                           << " handles while processing StopRequest from "
                           << clusterNode->nodeDescription() << " "
                           << contextSp.numReferences();

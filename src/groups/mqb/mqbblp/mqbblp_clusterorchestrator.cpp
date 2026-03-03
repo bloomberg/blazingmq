@@ -864,11 +864,11 @@ void ClusterOrchestrator::processStopRequest(
                   << ", current status: " << ns->nodeStatus()
                   << ", new status: " << bmqp_ctrlmsg::NodeStatus::E_STOPPING;
 
+    processNodeStoppingNotification(ns, &request);
+
     bmqp_ctrlmsg::NodeStatus::Value selfStatus =
         d_clusterData_p->membership().selfNodeStatus();
     ns->setNodeStatus(bmqp_ctrlmsg::NodeStatus::E_STOPPING, selfStatus);
-
-    processNodeStoppingNotification(ns, &request);
 }
 
 void ClusterOrchestrator::processClusterStateFSMMessage(
@@ -1280,9 +1280,9 @@ void ClusterOrchestrator::processElectorEvent(const bmqp::Event&   event,
     // too, otherwise, depending upon thread scheduling, a new node may get
     // certain events "out of order" (some cases were found out while testing).
 
-    mqbi::Dispatcher::DispatcherEventSp clusterEvent = dispatcher()->getEvent(
-        mqbi::DispatcherClientType::e_CLUSTER);
-
+    // TODO(678098): revisit, make per-IO thread contexts
+    mqbi::Dispatcher::DispatcherEventSp clusterEvent =
+        dispatcher()->getDefaultEventSource()->getEvent();
     (*clusterEvent).setType(mqbi::DispatcherEventType::e_CALLBACK);
 
     bmqp::Event clonedEvent = event.clone(d_allocator_p);

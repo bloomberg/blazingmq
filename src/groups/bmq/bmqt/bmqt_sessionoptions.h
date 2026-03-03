@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2014-2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -121,11 +121,20 @@
 ///     operations initiated by the client. This includes session-level
 ///     operations (e.g., Session-Start, Session-Stop) as well as queue-level
 ///     operations (e.g., Queue-Open, Queue-Configure, Queue-Close).
+///
+///   - *userAgentPrefix*:
+///     String to include in the user agent for broker telemetry. This string
+///     must only contain printable characters and must be less than 128
+///     characters long.  This is provided for libraries that are wrapping this
+///     SDK.  Applications directly using the SDK are encouraged *NOT* to set
+///     this value.
 
 // BMQ
 
 // BDE
+#include <bdlb_chartype.h>
 #include <bdlt_timeunitratio.h>
+#include <bsl_algorithm.h>
 #include <bsl_iosfwd.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
@@ -172,6 +181,8 @@ class SessionOptions {
     /// configure, close).
     static const int k_QUEUE_OPERATION_DEFAULT_TIMEOUT =
         5 * bdlt::TimeUnitRatio::k_SECONDS_PER_MINUTE;
+
+    static const unsigned int k_CHANNEL_WRITE_DEFAULT_TIMEOUT_SEC = 5;
 
   private:
     // DATA
@@ -220,6 +231,16 @@ class SessionOptions {
 
     bsl::shared_ptr<bmqpi::DTContext> d_dtContext_sp;
     bsl::shared_ptr<bmqpi::DTTracer>  d_dtTracer_sp;
+
+    /// A string to prefix the user agent that is provided to the broker for
+    /// telemetry.  This is intended for libraries that wrap `libbmq` to
+    /// identify themselves with.
+    bsl::string d_userAgentPrefix;
+
+    /// When the session channel is at high watermark, block `post` calls for
+    /// up to this value until the channel returns to low watermark and drains
+    /// buffered data.
+    bsls::TimeInterval d_channelWriteTimeout;
 
   public:
     // TRAITS
@@ -303,6 +324,20 @@ class SessionOptions {
     /// The behavior is undefined unless `lowWatermark < highWatermark`.
     SessionOptions& configureEventQueue(int lowWatermark, int highWatermark);
 
+    /// Sets the user agent prefix to the specified `value`.  This string is
+    /// prefixed to a user agent constructed by `libbmq`.  This is intended
+    /// ONLY for libraries that wrap `libbmq` to identify themselves for broker
+    /// telemetry.  Applications that are directly using `libbmq` are
+    /// encouraged not to set this.
+    ///
+    /// The behavior is undefined unless `value` consists of printable
+    /// characters and `value.size() < 128`.
+    SessionOptions& setUserAgentPrefix(bsl::string_view value);
+
+    /// Set the timeout to block `post` when at high watermark.
+    /// Zero means no blocking.
+    SessionOptions& setChannelWriteTimeout(const bsls::TimeInterval& value);
+
     // ACCESSORS
 
     /// Get the broker URI.
@@ -352,6 +387,12 @@ class SessionOptions {
     /// DEPRECATED: This parameter is no longer relevant and will be removed
     /// in future release of libbmq.
     int eventQueueSize() const;
+
+    /// Get the user agent prefix.
+    const bsl::string& userAgentPrefix() const;
+
+    /// Get the timeout to block `post` when at high watermark.
+    const bsls::TimeInterval& channelWriteTimeout() const;
 
     /// Format this object to the specified output `stream` at the (absolute
     /// value of) the optionally specified indentation `level` and return a
@@ -518,6 +559,25 @@ inline SessionOptions& SessionOptions::configureEventQueue(int lowWatermark,
     return *this;
 }
 
+inline SessionOptions&
+SessionOptions::setUserAgentPrefix(bsl::string_view value)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_OPT(value.length() < 128u);
+    BSLS_ASSERT(
+        bsl::all_of(value.begin(), value.end(), bdlb::CharType::isPrint));
+    d_userAgentPrefix.assign(value.data(), value.length());
+    return *this;
+}
+
+inline SessionOptions&
+SessionOptions::setChannelWriteTimeout(const bsls::TimeInterval& value)
+{
+    d_channelWriteTimeout = value;
+
+    return *this;
+}
+
 // ACCESSORS
 inline const bsl::string& SessionOptions::brokerUri() const
 {
@@ -606,6 +666,16 @@ inline int SessionOptions::eventQueueSize() const
     return d_eventQueueSize;
 }
 
+inline const bsl::string& SessionOptions::userAgentPrefix() const
+{
+    return d_userAgentPrefix;
+}
+
+inline const bsls::TimeInterval& SessionOptions::channelWriteTimeout() const
+{
+    return d_channelWriteTimeout;
+}
+
 }  // close package namespace
 
 // --------------------
@@ -628,7 +698,8 @@ inline bool bmqt::operator==(const bmqt::SessionOptions& lhs,
            lhs.eventQueueHighWatermark() == rhs.eventQueueHighWatermark() &&
            lhs.hostHealthMonitor() == rhs.hostHealthMonitor() &&
            lhs.traceContext() == rhs.traceContext() &&
-           lhs.tracer() == rhs.tracer();
+           lhs.tracer() == rhs.tracer() &&
+           lhs.userAgentPrefix() == rhs.userAgentPrefix();
 }
 
 inline bool bmqt::operator!=(const bmqt::SessionOptions& lhs,
@@ -647,7 +718,8 @@ inline bool bmqt::operator!=(const bmqt::SessionOptions& lhs,
            lhs.eventQueueHighWatermark() != rhs.eventQueueHighWatermark() ||
            lhs.hostHealthMonitor() != rhs.hostHealthMonitor() ||
            lhs.traceContext() != rhs.traceContext() ||
-           lhs.tracer() != rhs.tracer();
+           lhs.tracer() != rhs.tracer() ||
+           lhs.userAgentPrefix() != rhs.userAgentPrefix();
 }
 
 inline bsl::ostream& bmqt::operator<<(bsl::ostream&               stream,

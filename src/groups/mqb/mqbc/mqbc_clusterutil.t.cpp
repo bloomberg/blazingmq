@@ -72,7 +72,7 @@ struct Tester {
         const bsl::string&      uriString,
         const mqbu::StorageKey& key,
         int                     partitionId,
-        BSLA_UNUSED const mqbc::ClusterState::AppInfos& appIdInfos)
+        BSLA_MAYBE_UNUSED const mqbc::ClusterState::AppInfos& appIdInfos)
     {
         bmqp_ctrlmsg::QueueInfo advisory(bmqtst::TestHelperUtil::allocator());
 

@@ -394,6 +394,7 @@ class TestReconfigureDomains:
             client = proxy.create_client("reader-stable")
             client.open(URI, flags=["read"], succeed=True)
             if expect_success:
+                client.wait_push_event(timeout=5)
                 client.confirm(URI, "+1", succeed=True)
             else:
                 assert not client.wait_push_event(timeout=5)
@@ -440,6 +441,7 @@ class TestReconfigureDomains:
             client = proxy.create_client("reader-stable")
             client.open(URI, flags=["read"], succeed=True)
             if expect_success:
+                client.wait_push_event(timeout=5)
                 client.confirm(URI, "+1", succeed=True)
             else:
                 assert not client.wait_push_event(timeout=5)

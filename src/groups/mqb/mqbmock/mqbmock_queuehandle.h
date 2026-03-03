@@ -279,12 +279,14 @@ class QueueHandle : public mqbi::QueueHandle {
 
     /// Confirm the message with the specified `msgGUID` for the specified
     /// `downstreamSubQueueId` stream of the queue.
+    /// Use the specified `eventSource_p` for event allocations.
     ///
     /// THREAD: this method can be called from any thread and is responsible
     ///         for calling the corresponding method on the `Queue`, on the
     ///         Queue's dispatcher thread.
     void
-    confirmMessage(const bmqt::MessageGUID& msgGUID,
+    confirmMessage(mqbi::DispatcherEventSource* eventSource_p,
+                   const bmqt::MessageGUID&     msgGUID,
                    unsigned int downstreamSubQueueId) BSLS_KEYWORD_OVERRIDE;
 
     /// Reject the message with the specified `msgGUID` for the specified

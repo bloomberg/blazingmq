@@ -72,7 +72,7 @@ void createQueueStatsDatum(bmqst::StatContext* statContext,
 /// is a shared_ptr to the queue handle being closed) to events being
 /// enqueued to the dispatcher and let it die `naturally` when the
 /// associated queue's dispatcher thread is drained up to the event.
-void handleHolderDummy(BSLA_UNUSED const bsl::shared_ptr<void>& handle)
+void handleHolderDummy(BSLA_MAYBE_UNUSED const bsl::shared_ptr<void>& handle)
 {
     // NOTHING
 }

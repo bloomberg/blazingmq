@@ -126,31 +126,50 @@ class PartitionFSMEventData {
     /// the associated data sequence number is an optionally specified
     /// `seqNum` and optionally specified `firstSyncPointAfterRollloverSeqNum`.
     /// There are also optionally specified `highestSeqNumNode`,
-    /// optionally specified `seqNumDataRange`.
+    /// `seqNumDataRange`.
+    PartitionFSMEventData(mqbnet::ClusterNode* source,
+                          int                  requestId,
+                          int                  partitionId,
+                          int                  incrementCount,
+                          mqbnet::ClusterNode* primary        = 0,
+                          unsigned int         primaryLeaseId = 0,
+                          const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum =
+                              bmqp_ctrlmsg::PartitionSequenceNumber(),
+                          const bmqp_ctrlmsg::PartitionSequenceNumber&
+                              firstSyncPointAfterRollloverSeqNum =
+                                  bmqp_ctrlmsg::PartitionSequenceNumber(),
+                          mqbnet::ClusterNode* highestSeqNumNode = 0,
+                          const PartitionSeqNumDataRange& seqNumDataRange =
+                              PartitionSeqNumDataRange());
+
+    /// Create an instance of PartitionFSMEventData using the specified
+    /// `source` where request id is the specified `requestId`, the
+    /// partition identifier is the specified `partitionId`, the specified
+    /// 'incrementCount', the associated primary and primary lease id are
+    /// the specified `primary` and `primaryLeaseId`,
+    /// the associated data sequence number is the specified
+    /// `seqNum`, the first sync point after rollover sequence number is the
+    /// specified `firstSyncPointAfterRollloverSeqNum`, and partition max file
+    /// sizes is the specified `partitionMaxFileSizes`.
     PartitionFSMEventData(
         mqbnet::ClusterNode*                         source,
         int                                          requestId,
         int                                          partitionId,
         int                                          incrementCount,
-        mqbnet::ClusterNode*                         primary        = 0,
-        unsigned int                                 primaryLeaseId = 0,
-        const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum =
-            bmqp_ctrlmsg::PartitionSequenceNumber(),
+        mqbnet::ClusterNode*                         primary,
+        unsigned int                                 primaryLeaseId,
+        const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum,
         const bmqp_ctrlmsg::PartitionSequenceNumber&
-            firstSyncPointAfterRollloverSeqNum =
-                bmqp_ctrlmsg::PartitionSequenceNumber(),
-        const bmqp_ctrlmsg::PartitionMaxFileSizes& partitionMaxFileSizes =
-            bmqp_ctrlmsg::PartitionMaxFileSizes(),
-        mqbnet::ClusterNode*            highestSeqNumNode = 0,
-        const PartitionSeqNumDataRange& seqNumDataRange =
-            PartitionSeqNumDataRange());
+            firstSyncPointAfterRollloverSeqNum,
+        const bmqp_ctrlmsg::PartitionMaxFileSizes& partitionMaxFileSizes);
 
     /// Create an instance of PartitionFSMEventData using the specified
     /// `source` where request id is the specified `requestId`, the
     /// partition identifier is the specified `partitionId`, the specified
     /// 'incrementCount', the associated data sequence number is the specified
     /// `seqNum`, the first sync point after rollover sequence number is the
-    /// specified `firstSyncPointAfterRollloverSeqNum`.
+    /// specified `firstSyncPointAfterRollloverSeqNum`, and partition max file
+    /// sizes is the specified `partitionMaxFileSizes`.
     PartitionFSMEventData(
         mqbnet::ClusterNode*                         source,
         int                                          requestId,
@@ -214,32 +233,11 @@ class PartitionFSM {
                       bsl::vector<PartitionFSMEventData> >
         EventWithData;
 
-    struct PartitionFSMArgs {
-      private:
-        // DATA
-
-        /// Queue containing events which need to be applied to the current
-        /// state of the FSM.
-        bsl::queue<EventWithData>* d_eventsQueue_p;
-
-      public:
-        // CREATORS
-
-        /// Create an instance with the specified `queue`.
-        PartitionFSMArgs(bsl::queue<EventWithData>* queue);
-
-        // ACCESSORS
-
-        /// Return the value of the corresponding member of this object
-        bsl::queue<EventWithData>* eventsQueue();
-    };
-
-    typedef bsl::shared_ptr<PartitionFSMArgs>       PartitionFSMArgsSp;
-    typedef PartitionStateTable<PartitionFSMArgsSp> StateTable;
-    typedef StateTable::State                       State;
-    typedef StateTable::Event                       Event;
-    typedef StateTable::ActionFunctor               ActionFunctor;
-    typedef StateTable::Transition                  Transition;
+    typedef PartitionStateTable<EventWithData> StateTable;
+    typedef StateTable::State                  State;
+    typedef StateTable::Event                  Event;
+    typedef StateTable::ActionFunctor          ActionFunctor;
+    typedef StateTable::Transition             Transition;
 
     /// A set of PartitionFSM observers.
     typedef bsl::unordered_set<PartitionFSMObserver*> ObserversSet;
@@ -253,10 +251,24 @@ class PartitionFSM {
 
     State::Enum d_state;
 
-    PartitionStateTableActions<PartitionFSMArgsSp>& d_actions;
+    PartitionStateTableActions<EventWithData>& d_actions;
+
+    /// Internal queue containing events which need to be applied to the
+    /// current state of the FSM.
+    bsl::queue<EventWithData> d_eventsQueue;
 
     /// Observers of this object.
     ObserversSet d_observers;
+
+  private:
+    // NOT IMPLEMENTED
+    PartitionFSM(const PartitionFSM&);
+    PartitionFSM& operator=(const PartitionFSM&);
+
+    // PRIVATE MANIPULATORS
+
+    /// Process the specified `event` and notify observers.
+    void processEvent(const EventWithData& event);
 
   public:
     // TRAITS
@@ -266,8 +278,8 @@ class PartitionFSM {
 
     /// Create an instance with the specified `actions`, using the specified
     /// `allocator`.
-    PartitionFSM(PartitionStateTableActions<PartitionFSMArgsSp>& actions,
-                 bslma::Allocator*                               allocator);
+    PartitionFSM(PartitionStateTableActions<EventWithData>& actions,
+                 bslma::Allocator*                          allocator);
 
     // MANIPULATORS
 
@@ -281,11 +293,9 @@ class PartitionFSM {
     /// object.
     PartitionFSM& unregisterObserver(PartitionFSMObserver* observer);
 
-    /// While the specified `eventsQueue` is not empty, pop the event from the
-    /// head of the queue and process it as an input to the FSM.  During the
-    /// processing, new events might be enqueued to the end of `eventsQueue`.
-    void popEventAndProcess(
-        const bsl::shared_ptr<bsl::queue<EventWithData> >& eventsQueue);
+    /// Enqueue the specified `event` to the internal events queue.  It will be
+    /// processed as an input to the FSM.
+    void enqueueEvent(const EventWithData& event);
 
     // ACCESSORS
 
@@ -337,10 +347,37 @@ inline PartitionFSMEventData::PartitionFSMEventData(
     unsigned int                                 primaryLeaseId,
     const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum,
     const bmqp_ctrlmsg::PartitionSequenceNumber&
+                                    firstSyncPointAfterRollloverSeqNum,
+    mqbnet::ClusterNode*            highestSeqNumNode,
+    const PartitionSeqNumDataRange& seqNumDataRange)
+: d_source_p(source)
+, d_requestId(requestId)
+, d_partitionId(partitionId)
+, d_incrementCount(incrementCount)
+, d_primary_p(primary)
+, d_primaryLeaseId(primaryLeaseId)
+, d_partitionSequenceNumber(seqNum)
+, d_firstSyncPointAfterRolloverSequenceNumber(
+      firstSyncPointAfterRollloverSeqNum)
+, d_partitionMaxFileSizes()
+, d_highestSeqNumNode(highestSeqNumNode)
+, d_partitionSeqNumDataRange(seqNumDataRange)
+, d_storageEvent()
+{
+    // NOTHING
+}
+
+inline PartitionFSMEventData::PartitionFSMEventData(
+    mqbnet::ClusterNode*                         source,
+    int                                          requestId,
+    int                                          partitionId,
+    int                                          incrementCount,
+    mqbnet::ClusterNode*                         primary,
+    unsigned int                                 primaryLeaseId,
+    const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum,
+    const bmqp_ctrlmsg::PartitionSequenceNumber&
         firstSyncPointAfterRollloverSeqNum,
-    const bmqp_ctrlmsg::PartitionMaxFileSizes& partitionMaxFileSizes,
-    mqbnet::ClusterNode*                       highestSeqNumNode,
-    const PartitionSeqNumDataRange&            seqNumDataRange)
+    const bmqp_ctrlmsg::PartitionMaxFileSizes& partitionMaxFileSizes)
 : d_source_p(source)
 , d_requestId(requestId)
 , d_partitionId(partitionId)
@@ -351,8 +388,8 @@ inline PartitionFSMEventData::PartitionFSMEventData(
 , d_firstSyncPointAfterRolloverSequenceNumber(
       firstSyncPointAfterRollloverSeqNum)
 , d_partitionMaxFileSizes(partitionMaxFileSizes)
-, d_highestSeqNumNode(highestSeqNumNode)
-, d_partitionSeqNumDataRange(seqNumDataRange)
+, d_highestSeqNumNode(0)
+, d_partitionSeqNumDataRange()
 , d_storageEvent()
 {
     // NOTHING
@@ -493,36 +530,19 @@ PartitionFSMEventData::storageEvent() const
     return d_storageEvent;
 }
 
-// ------------------------------------
-// class PartitionFSM::PartitionFSMArgs
-// ------------------------------------
-// CREATORS
-inline PartitionFSM::PartitionFSMArgs::PartitionFSMArgs(
-    bsl::queue<EventWithData>* queue)
-: d_eventsQueue_p(queue)
-{
-    // NOTHING
-}
-
-// ACCESSORS
-inline bsl::queue<PartitionFSM::EventWithData>*
-PartitionFSM::PartitionFSMArgs::eventsQueue()
-{
-    return d_eventsQueue_p;
-}
-
 // ------------------
 // class PartitionFSM
 // ------------------
 
 // CREATORS
 inline PartitionFSM::PartitionFSM(
-    PartitionStateTableActions<PartitionFSMArgsSp>& actions,
-    bslma::Allocator*                               allocator)
+    PartitionStateTableActions<EventWithData>& actions,
+    bslma::Allocator*                          allocator)
 : d_allocator_p(allocator)
 , d_stateTable()
 , d_state(State::e_UNKNOWN)
 , d_actions(actions)
+, d_eventsQueue(allocator)
 , d_observers(allocator)
 {
     // NOTHING
@@ -542,7 +562,8 @@ inline bool PartitionFSM::isSelfPrimary() const
 
 inline bool PartitionFSM::isSelfReplica() const
 {
-    return d_state == State::e_REPLICA_HEALING ||
+    return d_state == State::e_REPLICA_WAITING ||
+           d_state == State::e_REPLICA_HEALING ||
            d_state == State::e_REPLICA_HEALED;
 }
 

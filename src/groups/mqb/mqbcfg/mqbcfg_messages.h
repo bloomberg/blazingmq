@@ -190,9 +190,17 @@ namespace mqbcfg {
 struct AllocatorType {
   public:
     // TYPES
-    enum Value { NEWDELETE = 0, COUNTING = 1, STACKTRACETEST = 2 };
+    enum Value {
+        e_NEWDELETE      = 0,
+        e_COUNTING       = 1,
+        e_STACKTRACETEST = 2,
 
-    enum { NUM_ENUMERATORS = 3 };
+        NEWDELETE      = e_NEWDELETE,
+        COUNTING       = e_COUNTING,
+        STACKTRACETEST = e_STACKTRACETEST
+    };
+
+    enum { k_NUM_ENUMERATORS = 3, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -240,7 +248,7 @@ struct AllocatorType {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(mqbcfg::AllocatorType)
+BDLAT_DECL_ENUMERATION_TRAITS(mqbcfg::AllocatorType);
 
 namespace mqbcfg {
 
@@ -405,7 +413,7 @@ class BmqconfConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::BmqconfConfig)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::BmqconfConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::BmqconfConfig> : bsl::true_type {};
 
@@ -619,7 +627,7 @@ class ClusterAttributes {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ClusterAttributes)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ClusterAttributes);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterAttributes> : bsl::true_type {
 };
@@ -908,7 +916,7 @@ class ClusterMonitorConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ClusterMonitorConfig)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ClusterMonitorConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterMonitorConfig>
 : bsl::true_type {};
@@ -1131,7 +1139,7 @@ class Credential {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::Credential)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::Credential);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::Credential> : bsl::true_type {};
 
@@ -1282,7 +1290,7 @@ class Disallow {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::Disallow)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::Disallow);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::Disallow> : bsl::true_type {};
 
@@ -1484,7 +1492,7 @@ class DispatcherProcessorParameters {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::DispatcherProcessorParameters)
+    mqbcfg::DispatcherProcessorParameters);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::DispatcherProcessorParameters>
 : bsl::true_type {};
@@ -1794,7 +1802,7 @@ class ElectorConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ElectorConfig)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ElectorConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::ElectorConfig> : bsl::true_type {};
 
@@ -1807,9 +1815,15 @@ namespace mqbcfg {
 struct ExportMode {
   public:
     // TYPES
-    enum Value { E_PUSH = 0, E_PULL = 1 };
+    enum Value {
+        e_E_PUSH = 0,
+        e_E_PULL = 1,
 
-    enum { NUM_ENUMERATORS = 2 };
+        E_PUSH = e_E_PUSH,
+        E_PULL = e_E_PULL
+    };
+
+    enum { k_NUM_ENUMERATORS = 2, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -1857,7 +1871,7 @@ struct ExportMode {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(mqbcfg::ExportMode)
+BDLAT_DECL_ENUMERATION_TRAITS(mqbcfg::ExportMode);
 
 namespace mqbcfg {
 
@@ -2080,7 +2094,7 @@ class Heartbeat {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::Heartbeat)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::Heartbeat);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::Heartbeat> : bsl::true_type {};
 
@@ -2325,7 +2339,7 @@ class LogDumpConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::LogDumpConfig)
+    mqbcfg::LogDumpConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::LogDumpConfig> : bsl::true_type {};
 
@@ -2343,9 +2357,15 @@ struct MasterAssignmentAlgorithm {
 
   public:
     // TYPES
-    enum Value { E_LEADER_IS_MASTER_ALL = 0, E_LEAST_ASSIGNED = 1 };
+    enum Value {
+        e_E_LEADER_IS_MASTER_ALL = 0,
+        e_E_LEAST_ASSIGNED       = 1,
 
-    enum { NUM_ENUMERATORS = 2 };
+        E_LEADER_IS_MASTER_ALL = e_E_LEADER_IS_MASTER_ALL,
+        E_LEAST_ASSIGNED       = e_E_LEAST_ASSIGNED
+    };
+
+    enum { k_NUM_ENUMERATORS = 2, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -2393,7 +2413,7 @@ struct MasterAssignmentAlgorithm {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(mqbcfg::MasterAssignmentAlgorithm)
+BDLAT_DECL_ENUMERATION_TRAITS(mqbcfg::MasterAssignmentAlgorithm);
 
 namespace mqbcfg {
 
@@ -2604,7 +2624,7 @@ class MessagePropertiesV2 {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::MessagePropertiesV2)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::MessagePropertiesV2);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::MessagePropertiesV2>
 : bsl::true_type {};
@@ -2832,7 +2852,7 @@ class MessageThrottleConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::MessageThrottleConfig)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::MessageThrottleConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::MessageThrottleConfig>
 : bsl::true_type {};
@@ -3151,7 +3171,7 @@ class PluginSettingValue {
 // TRAITS
 
 BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::PluginSettingValue)
+    mqbcfg::PluginSettingValue);
 
 namespace mqbcfg {
 
@@ -3364,7 +3384,7 @@ class Plugins {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::Plugins)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::Plugins);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::Plugins> : bsl::true_type {};
 
@@ -3725,7 +3745,7 @@ class QueueOperationsConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::QueueOperationsConfig)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::QueueOperationsConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::QueueOperationsConfig>
 : bsl::true_type {};
@@ -3957,7 +3977,7 @@ class ResolvedDomain {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::ResolvedDomain)
+    mqbcfg::ResolvedDomain);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::ResolvedDomain> : bsl::true_type {};
 
@@ -4224,7 +4244,7 @@ class StatsPrinterConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::StatsPrinterConfig)
+    mqbcfg::StatsPrinterConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::StatsPrinterConfig>
 : bsl::true_type {};
@@ -4560,7 +4580,7 @@ class StorageSyncConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::StorageSyncConfig)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::StorageSyncConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::StorageSyncConfig> : bsl::true_type {
 };
@@ -4812,7 +4832,8 @@ class SyslogConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::SyslogConfig)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    mqbcfg::SyslogConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::SyslogConfig> : bsl::true_type {};
 
@@ -5028,7 +5049,7 @@ class TcpClusterNodeConnection {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::TcpClusterNodeConnection)
+    mqbcfg::TcpClusterNodeConnection);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::TcpClusterNodeConnection>
 : bsl::true_type {};
@@ -5043,7 +5064,7 @@ class TcpInterfaceListener {
     // This type describes the information needed for the broker to open a TCP
     // listener.
     // name.................: A name to associate this listener to.
-    // address..............: The IP address this listener will accept
+    // address..............: The IPv4 address this listener will accept
     // connections on.  port.................: The port this listener will
     // accept connections on.
 
@@ -5279,7 +5300,7 @@ class TcpInterfaceListener {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::TcpInterfaceListener)
+    mqbcfg::TcpInterfaceListener);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::TcpInterfaceListener>
 : bsl::true_type {};
@@ -5508,7 +5529,7 @@ class VirtualClusterInformation {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::VirtualClusterInformation)
+    mqbcfg::VirtualClusterInformation);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::VirtualClusterInformation>
 : bsl::true_type {};
@@ -5766,7 +5787,7 @@ class AnonymousCredential {
 // TRAITS
 
 BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::AnonymousCredential)
+    mqbcfg::AnonymousCredential);
 
 namespace mqbcfg {
 
@@ -5989,7 +6010,7 @@ class ClusterNodeConnection {
 // TRAITS
 
 BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::ClusterNodeConnection)
+    mqbcfg::ClusterNodeConnection);
 
 namespace mqbcfg {
 
@@ -6175,7 +6196,7 @@ class DispatcherProcessorConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::DispatcherProcessorConfig)
+    mqbcfg::DispatcherProcessorConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::DispatcherProcessorConfig>
 : bsl::true_type {};
@@ -6504,7 +6525,7 @@ class LogController {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::LogController)
+    mqbcfg::LogController);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::LogController> : bsl::true_type {};
 
@@ -6524,16 +6545,18 @@ class PartitionConfig {
     // maxJournalFileSize...: maximum size of partitions' journal file
     // maxQlistFileSize.....: maximum size of partitions' qlist file
     // maxCSLFileSize.......: maximum size of partitions' CSL file
-    // dataFileGrowLimit....: limit for data file growth during rollover
-    // journalFileGrowLimit.: limit for journal file growth during rollover
-    // qListFileGrowLimit...: limit for qlist file growth during rollover
-    // growStepPercent.....: step (in percents of max file size) for file
-    // growth during rollover minAvailSpacePercent.: minimum available free
-    // file space (in percents) which will appear after rollover (rollover
-    // criteria) preallocate..........: flag to indicate whether files should
-    // be preallocated on disk maxArchivedFileSets..: maximum number of
-    // archived file sets per partition to keep prefaultPages........: flag to
-    // indicate whether to populate (prefault) page tables for a mapping.
+    // dataFileGrowLimit....: limit for data file growth during rollover, if
+    // set to 0, maxDataFileSize is used journalFileGrowLimit.: limit for
+    // journal file growth during rollover, if set to 0, maxJournalFileSize is
+    // used qListFileGrowLimit...: limit for qlist file growth during rollover,
+    // if set to 0, maxQlistFileSize is used growStepPercent.....  : step (in
+    // percents of max file size) for file growth during rollover
+    // minAvailSpacePercent.: minimum available free file space (in percents)
+    // which will appear after rollover (rollover criteria)
+    // preallocate..........: flag to indicate whether files should be
+    // preallocated on disk maxArchivedFileSets..: maximum number of archived
+    // file sets per partition to keep prefaultPages........: flag to indicate
+    // whether to populate (prefault) page tables for a mapping.
     // flushAtShutdown......: flag to indicate whether broker should flush
     // storage files to disk at shutdown syncConfig...........: configuration
     // for storage synchronization and recovery
@@ -6611,14 +6634,6 @@ class PartitionConfig {
     static const char CLASS_NAME[];
 
     static const bsls::Types::Uint64 DEFAULT_INITIALIZER_MAX_C_S_L_FILE_SIZE;
-
-    static const bsls::Types::Uint64 DEFAULT_INITIALIZER_DATA_FILE_GROW_LIMIT;
-
-    static const bsls::Types::Uint64
-        DEFAULT_INITIALIZER_JOURNAL_FILE_GROW_LIMIT;
-
-    static const bsls::Types::Uint64
-        DEFAULT_INITIALIZER_Q_LIST_FILE_GROW_LIMIT;
 
     static const unsigned int DEFAULT_INITIALIZER_GROW_STEP_PERCENT;
 
@@ -6936,7 +6951,7 @@ class PartitionConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::PartitionConfig)
+    mqbcfg::PartitionConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::PartitionConfig> : bsl::true_type {};
 
@@ -7160,7 +7175,7 @@ class PluginSettingKeyValue {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::PluginSettingKeyValue)
+    mqbcfg::PluginSettingKeyValue);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::PluginSettingKeyValue>
 : bsl::true_type {};
@@ -7409,7 +7424,7 @@ class StatPluginConfigPrometheus {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::StatPluginConfigPrometheus)
+    mqbcfg::StatPluginConfigPrometheus);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::StatPluginConfigPrometheus>
 : bsl::true_type {};
@@ -7744,7 +7759,7 @@ class TcpInterfaceConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::TcpInterfaceConfig)
+    mqbcfg::TcpInterfaceConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::TcpInterfaceConfig>
 : bsl::true_type {};
@@ -7972,7 +7987,7 @@ class AuthenticatorPluginConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::AuthenticatorPluginConfig)
+    mqbcfg::AuthenticatorPluginConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::AuthenticatorPluginConfig>
 : bsl::true_type {};
@@ -8226,7 +8241,7 @@ class ClusterNode {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::ClusterNode)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::ClusterNode);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterNode> : bsl::true_type {};
 
@@ -8428,7 +8443,7 @@ class DispatcherConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::DispatcherConfig)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::DispatcherConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::DispatcherConfig> : bsl::true_type {
 };
@@ -8652,7 +8667,7 @@ class NetworkInterfaces {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::NetworkInterfaces)
+    mqbcfg::NetworkInterfaces);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::NetworkInterfaces> : bsl::true_type {
 };
@@ -8975,7 +8990,7 @@ class StatPluginConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::StatPluginConfig)
+    mqbcfg::StatPluginConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::StatPluginConfig> : bsl::true_type {
 };
@@ -9211,7 +9226,7 @@ class TaskConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::TaskConfig)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::TaskConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::TaskConfig> : bsl::true_type {};
 
@@ -9230,28 +9245,46 @@ class AuthenticatorConfig {
     // behavior.  When specified, the broker uses the provided credential with
     // a matching plugin from `authenticators`.  When omitted, the broker
     // defaults to AnonAuthenticator and always passes for anonymous
-    // authentication.
+    // authentication.  minThreads..............: Minimum number of threads in
+    // the authentication thread pool.  maxThreads..............: Maximum
+    // number of threads in the authentication thread pool.
 
     // INSTANCE DATA
     bsl::vector<AuthenticatorPluginConfig>   d_authenticators;
     bdlb::NullableValue<AnonymousCredential> d_anonymousCredential;
+    int                                      d_minThreads;
+    int                                      d_maxThreads;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
+
+    bool isEqualTo(const AuthenticatorConfig& rhs) const;
 
   public:
     // TYPES
     enum {
         ATTRIBUTE_ID_AUTHENTICATORS       = 0,
-        ATTRIBUTE_ID_ANONYMOUS_CREDENTIAL = 1
+        ATTRIBUTE_ID_ANONYMOUS_CREDENTIAL = 1,
+        ATTRIBUTE_ID_MIN_THREADS          = 2,
+        ATTRIBUTE_ID_MAX_THREADS          = 3
     };
 
-    enum { NUM_ATTRIBUTES = 2 };
+    enum { NUM_ATTRIBUTES = 4 };
 
     enum {
         ATTRIBUTE_INDEX_AUTHENTICATORS       = 0,
-        ATTRIBUTE_INDEX_ANONYMOUS_CREDENTIAL = 1
+        ATTRIBUTE_INDEX_ANONYMOUS_CREDENTIAL = 1,
+        ATTRIBUTE_INDEX_MIN_THREADS          = 2,
+        ATTRIBUTE_INDEX_MAX_THREADS          = 3
     };
 
     // CONSTANTS
     static const char CLASS_NAME[];
+
+    static const int DEFAULT_INITIALIZER_MIN_THREADS;
+
+    static const int DEFAULT_INITIALIZER_MAX_THREADS;
 
     static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
@@ -9354,6 +9387,14 @@ class AuthenticatorConfig {
     // Return a reference to the modifiable "AnonymousCredential" attribute
     // of this object.
 
+    int& minThreads();
+    // Return a reference to the modifiable "MinThreads" attribute of this
+    // object.
+
+    int& maxThreads();
+    // Return a reference to the modifiable "MaxThreads" attribute of this
+    // object.
+
     // ACCESSORS
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
@@ -9406,6 +9447,12 @@ class AuthenticatorConfig {
     // Return a reference offering non-modifiable access to the
     // "AnonymousCredential" attribute of this object.
 
+    int minThreads() const;
+    // Return the value of the "MinThreads" attribute of this object.
+
+    int maxThreads() const;
+    // Return the value of the "MaxThreads" attribute of this object.
+
     // HIDDEN FRIENDS
     friend bool operator==(const AuthenticatorConfig& lhs,
                            const AuthenticatorConfig& rhs)
@@ -9413,8 +9460,7 @@ class AuthenticatorConfig {
     // have the same value, and 'false' otherwise.  Two attribute objects
     // have the same value if each respective attribute has the same value.
     {
-        return lhs.authenticators() == rhs.authenticators() &&
-               lhs.anonymousCredential() == rhs.anonymousCredential();
+        return lhs.isEqualTo(rhs);
     }
 
     friend bool operator!=(const AuthenticatorConfig& lhs,
@@ -9440,9 +9486,7 @@ class AuthenticatorConfig {
     // effectively provides a 'bsl::hash' specialization for
     // 'AuthenticatorConfig'.
     {
-        using bslh::hashAppend;
-        hashAppend(hashAlg, object.authenticators());
-        hashAppend(hashAlg, object.anonymousCredential());
+        object.hashAppendImpl(hashAlg);
     }
 };
 
@@ -9451,7 +9495,7 @@ class AuthenticatorConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::AuthenticatorConfig)
+    mqbcfg::AuthenticatorConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::AuthenticatorConfig>
 : bsl::true_type {};
@@ -9771,7 +9815,7 @@ class ClusterDefinition {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::ClusterDefinition)
+    mqbcfg::ClusterDefinition);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterDefinition> : bsl::true_type {
 };
@@ -10045,7 +10089,7 @@ class ClusterProxyDefinition {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::ClusterProxyDefinition)
+    mqbcfg::ClusterProxyDefinition);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterProxyDefinition>
 : bsl::true_type {};
@@ -10285,7 +10329,7 @@ class StatsConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::StatsConfig)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::StatsConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::StatsConfig> : bsl::true_type {};
 
@@ -10722,7 +10766,7 @@ class AppConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::AppConfig)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::AppConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::AppConfig> : bsl::true_type {};
 
@@ -10972,7 +11016,7 @@ class ClustersDefinition {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::ClustersDefinition)
+    mqbcfg::ClustersDefinition);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::ClustersDefinition>
 : bsl::true_type {};
@@ -11193,7 +11237,7 @@ class Configuration {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::Configuration)
+    mqbcfg::Configuration);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::Configuration> : bsl::true_type {};
 
@@ -19216,6 +19260,26 @@ inline const LogController& TaskConfig::logController() const
 // class AuthenticatorConfig
 // -------------------------
 
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void AuthenticatorConfig::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->authenticators());
+    hashAppend(hashAlgorithm, this->anonymousCredential());
+    hashAppend(hashAlgorithm, this->minThreads());
+    hashAppend(hashAlgorithm, this->maxThreads());
+}
+
+inline bool
+AuthenticatorConfig::isEqualTo(const AuthenticatorConfig& rhs) const
+{
+    return this->authenticators() == rhs.authenticators() &&
+           this->anonymousCredential() == rhs.anonymousCredential() &&
+           this->minThreads() == rhs.minThreads() &&
+           this->maxThreads() == rhs.maxThreads();
+}
+
 // CLASS METHODS
 // MANIPULATORS
 template <typename t_MANIPULATOR>
@@ -19232,6 +19296,18 @@ int AuthenticatorConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
     ret = manipulator(
         &d_anonymousCredential,
         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ANONYMOUS_CREDENTIAL]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_minThreads,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MIN_THREADS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_maxThreads,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_THREADS]);
     if (ret) {
         return ret;
     }
@@ -19255,6 +19331,14 @@ int AuthenticatorConfig::manipulateAttribute(t_MANIPULATOR& manipulator,
         return manipulator(
             &d_anonymousCredential,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ANONYMOUS_CREDENTIAL]);
+    }
+    case ATTRIBUTE_ID_MIN_THREADS: {
+        return manipulator(&d_minThreads,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MIN_THREADS]);
+    }
+    case ATTRIBUTE_ID_MAX_THREADS: {
+        return manipulator(&d_maxThreads,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_THREADS]);
     }
     default: return NOT_FOUND;
     }
@@ -19288,6 +19372,16 @@ AuthenticatorConfig::anonymousCredential()
     return d_anonymousCredential;
 }
 
+inline int& AuthenticatorConfig::minThreads()
+{
+    return d_minThreads;
+}
+
+inline int& AuthenticatorConfig::maxThreads()
+{
+    return d_maxThreads;
+}
+
 // ACCESSORS
 template <typename t_ACCESSOR>
 int AuthenticatorConfig::accessAttributes(t_ACCESSOR& accessor) const
@@ -19302,6 +19396,18 @@ int AuthenticatorConfig::accessAttributes(t_ACCESSOR& accessor) const
 
     ret = accessor(d_anonymousCredential,
                    ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ANONYMOUS_CREDENTIAL]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_minThreads,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MIN_THREADS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_maxThreads,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_THREADS]);
     if (ret) {
         return ret;
     }
@@ -19323,6 +19429,14 @@ int AuthenticatorConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
         return accessor(
             d_anonymousCredential,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ANONYMOUS_CREDENTIAL]);
+    }
+    case ATTRIBUTE_ID_MIN_THREADS: {
+        return accessor(d_minThreads,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MIN_THREADS]);
+    }
+    case ATTRIBUTE_ID_MAX_THREADS: {
+        return accessor(d_maxThreads,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_THREADS]);
     }
     default: return NOT_FOUND;
     }
@@ -19354,6 +19468,16 @@ inline const bdlb::NullableValue<AnonymousCredential>&
 AuthenticatorConfig::anonymousCredential() const
 {
     return d_anonymousCredential;
+}
+
+inline int AuthenticatorConfig::minThreads() const
+{
+    return d_minThreads;
+}
+
+inline int AuthenticatorConfig::maxThreads() const
+{
+    return d_maxThreads;
 }
 
 // -----------------------

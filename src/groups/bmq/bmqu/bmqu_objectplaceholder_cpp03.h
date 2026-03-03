@@ -87,11 +87,12 @@ class ObjectPlaceHolder {
     enum State {
         // State of the placeholder.
 
-        e_EMPTY = 0  // The placeholder is empty.
-        ,
-        e_FULL_INT = 1  // The placeholder contains an internal object.
-        ,
-        e_FULL_EXT = 2  // The placeholder contains an external object.
+        /// The placeholder is empty.
+        e_EMPTY = 0,
+        /// The placeholder contains an internal object.
+        e_FULL_INT = 1,
+        /// The placeholder contains an external object.
+        e_FULL_EXT = 2
     };
 
     /// An aligned buffer large enough to hold two pointers - the allocator

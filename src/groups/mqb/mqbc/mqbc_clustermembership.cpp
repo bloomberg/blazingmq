@@ -45,7 +45,7 @@ ClusterMembershipObserver::~ClusterMembershipObserver()
 }
 
 void ClusterMembershipObserver::onSelfNodeStatus(
-    BSLA_UNUSED bmqp_ctrlmsg::NodeStatus::Value value)
+    BSLA_MAYBE_UNUSED bmqp_ctrlmsg::NodeStatus::Value value)
 {
     // NOTHING
 }

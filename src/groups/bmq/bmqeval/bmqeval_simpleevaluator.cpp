@@ -214,7 +214,7 @@ SimpleEvaluator::IntegerLiteral::evaluate(EvaluationContext& context) const
 // -------------------------------------
 
 bdld::Datum SimpleEvaluator::BooleanLiteral::evaluate(
-    BSLA_UNUSED EvaluationContext& context) const
+    BSLA_MAYBE_UNUSED EvaluationContext& context) const
 {
     return bdld::Datum::createBoolean(d_value);
 }

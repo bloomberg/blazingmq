@@ -164,9 +164,9 @@ struct Tester {
         d_partitionCfg.maxQlistFileSize()     = 1 * 1024 * 1024;
         d_partitionCfg.maxCSLFileSize()       = 1 * 1024 * 1024;
         d_partitionCfg.maxJournalFileSize()   = 1 * 1024 * 1024;
-        d_partitionCfg.dataFileGrowLimit()    = 24 * 1024 * 1024;
-        d_partitionCfg.journalFileGrowLimit() = 4 * 1024 * 1024;
-        d_partitionCfg.qListFileGrowLimit()   = 1 * 1024 * 1024;
+        d_partitionCfg.dataFileGrowLimit()    = 200 * 1024 * 1024;
+        d_partitionCfg.journalFileGrowLimit() = 2 * 1024 * 1024;
+        d_partitionCfg.qListFileGrowLimit()   = 2 * 1024 * 1024;
         d_partitionCfg.growStepPercent()      = 50;
         d_partitionCfg.minAvailSpacePercent() = 20;
         d_partitionCfg.location()             = d_clusterLocation;

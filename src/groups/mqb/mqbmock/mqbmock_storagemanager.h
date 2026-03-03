@@ -160,6 +160,35 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
                                       bmqp_ctrlmsg::PrimaryStatus::Value value)
         BSLS_KEYWORD_OVERRIDE;
 
+    /// Stop all Partition FSMs.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
+    void stopPFSMs() BSLS_KEYWORD_OVERRIDE;
+
+    /// Apply `RST_UNKNOWN` event to the Partition FSM for the specified
+    /// `partitionId`.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
+    void detectPrimaryLossInPFSM(int partitionId) BSLS_KEYWORD_OVERRIDE;
+
+    /// Apply DETECT_SelfPrimary event to Partition FSM using the specified
+    /// `partitionId`, `primaryNode`, `primaryLeaseId`.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
+    void
+    detectSelfPrimaryInPFSM(int                  partitionId,
+                            mqbnet::ClusterNode* primaryNode,
+                            unsigned int primaryLeaseId) BSLS_KEYWORD_OVERRIDE;
+
+    /// Apply DETECT_SelfReplica event to Partition FSM using the specified
+    /// `partitionId`, `primaryNode` and `primaryLeaseId`.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
+    void
+    detectSelfReplicaInPFSM(int                  partitionId,
+                            mqbnet::ClusterNode* primaryNode,
+                            unsigned int primaryLeaseId) BSLS_KEYWORD_OVERRIDE;
+
     /// Process primary state request received from the specified `source`
     /// with the specified `message`.
     void processPrimaryStateRequest(

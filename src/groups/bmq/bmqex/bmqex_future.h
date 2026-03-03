@@ -417,9 +417,10 @@ class Future_Callback {
 /// functions of `bmqex::Future` and `bmqex::FutureSharedState`.
 struct FutureStatus {
     enum Enum {
-        e_READY  // the shared state is ready
-        ,
-        e_TIMEOUT  // the shared state did not become ready before timeout
+        /// the shared state is ready
+        e_READY,
+        /// the shared state did not become ready before timeout
+        e_TIMEOUT
     };
 };
 
@@ -839,16 +840,16 @@ class FutureSharedState {
   private:
     // PRIVATE TYPES
     enum State {
-        e_NOT_READY = 0  // shared state not ready
-        ,
-        e_READY_VALUE = 1  // shared state contains a value
+        /// shared state not ready
+        e_NOT_READY = 0,
+        /// shared state contains a value
+        e_READY_VALUE = 1,
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_EXCEPTION_HANDLING
-        ,
-        e_READY_EXCEPTION_PTR =
-            2  // shared state contains an exception pointer
+        /// shared state contains an exception pointer
+        e_READY_EXCEPTION_PTR = 2,
 #endif
-        ,
-        e_READY_EXCEPTION_OBJ = 3  // shared state contains an exception object
+        /// shared state contains an exception object
+        e_READY_EXCEPTION_OBJ = 3
     };
 
     typedef typename bsl::remove_const<R>::type ValueType;

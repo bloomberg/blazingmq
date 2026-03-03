@@ -76,15 +76,14 @@ struct LedgerOpResult {
     enum Enum {
         // Generic
         // - - - -
-        e_SUCCESS = 0  // Operation was successful
-        ,
+        /// Operation was successful
+        e_SUCCESS                 = 0,
         e_UNKNOWN                 = -1,
         e_LEDGER_NOT_EXIST        = -2,
-        e_LEDGER_UNGRACEFUL_CLOSE = -3
+        e_LEDGER_UNGRACEFUL_CLOSE = -3,
 
         // File specific
         // - - - - - - - - - - - - - - - - - - - - - -
-        ,
         e_LEDGER_READ_ONLY        = -6,
         e_LOG_CREATE_FAILURE      = -7,
         e_LOG_OPEN_FAILURE        = -8,
@@ -408,10 +407,10 @@ class Ledger {
     typedef bsl::vector<LogSp>   Logs;
 
     enum Enum {
-        e_READ_ONLY = (1 << 0)  // Whether the ledger is read-only
-        ,
-        e_CREATE_IF_MISSING = (1 << 1)  // Whether to create the ledger when
-                                        // opening if it does not exist
+        /// Whether the ledger is read-only
+        e_READ_ONLY = (1 << 0),
+        /// Whether to create the ledger when opening if it does not exist
+        e_CREATE_IF_MISSING = (1 << 1)
     };
 
   public:

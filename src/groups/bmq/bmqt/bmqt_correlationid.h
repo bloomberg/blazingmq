@@ -229,15 +229,16 @@ class CorrelationId {
   public:
     // TYPES
     enum Type {
-        e_NUMERIC  // the 'CorrelationId' holds a 64-bit integer
-        ,
-        e_POINTER  // the 'CorrelationId' holds a raw pointer
-        ,
-        e_SHARED_PTR  // the 'CorrelationId' holds a shared pointer
-        ,
-        e_AUTO_VALUE  // the 'CorrelationId' holds an auto value
-        ,
-        e_UNSET  // the 'CorrelationId' is not set
+        /// the 'CorrelationId' holds a 64-bit integer
+        e_NUMERIC,
+        /// the 'CorrelationId' holds a raw pointer
+        e_POINTER,
+        /// the 'CorrelationId' holds a shared pointer
+        e_SHARED_PTR,
+        /// the 'CorrelationId' holds an auto value
+        e_AUTO_VALUE,
+        /// the 'CorrelationId' is not set
+        e_UNSET
     };
 
     // CLASS METHOD

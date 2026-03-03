@@ -14,7 +14,6 @@
 // limitations under the License.
 
 // mqbs_filestore.cpp                                                 -*-C++-*-
-#include "mqbs_filestoreprotocol.h"
 #include <ball_log.h>
 #include <mqbs_filestore.h>
 
@@ -383,8 +382,8 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
     BSLS_ASSERT_SAFE(inDispatcherThread());
 
     enum {
-        rc_NO_FILES_TO_RECOVER = 1  // Reserved rc
-        ,
+        /// Reserved rc
+        rc_NO_FILES_TO_RECOVER                 = 1,
         rc_SUCCESS                             = 0,
         rc_RECOVERY_FILE_SET_RETRIEVAL_FAILURE = -1,
         rc_FILE_ITERATOR_FAILURE               = -2,
@@ -3551,20 +3550,30 @@ void FileStore::archive(FileSet* fileSet)
                                   d_config.archiveLocation());
     if (0 != rc) {
         BMQTSK_ALARMLOG_ALARM("FILE_IO")
-            << partitionDesc() << "Failed to move file ["
+            << partitionDesc() << "Failed to move data file ["
             << fileSet->d_dataFileName << "] " << "to location ["
             << d_config.archiveLocation() << "] rc: " << rc
             << BMQTSK_ALARMLOG_END;
+    }
+    else {
+        BALL_LOG_INFO << partitionDesc() << "Moved data file ["
+                      << fileSet->d_dataFileName << "] to location ["
+                      << d_config.archiveLocation() << "].";
     }
 
     rc = FileSystemUtil::move(fileSet->d_journalFileName,
                               d_config.archiveLocation());
     if (0 != rc) {
         BMQTSK_ALARMLOG_ALARM("FILE_IO")
-            << partitionDesc() << "Failed to move file ["
+            << partitionDesc() << "Failed to move journal file ["
             << fileSet->d_journalFileName << "] " << "to location ["
             << d_config.archiveLocation() << "] rc: " << rc
             << BMQTSK_ALARMLOG_END;
+    }
+    else {
+        BALL_LOG_INFO << partitionDesc() << "Moved journal file ["
+                      << fileSet->d_journalFileName << "] to location ["
+                      << d_config.archiveLocation() << "].";
     }
 
     if (d_qListAware) {
@@ -3572,10 +3581,15 @@ void FileStore::archive(FileSet* fileSet)
                                   d_config.archiveLocation());
         if (0 != rc) {
             BMQTSK_ALARMLOG_ALARM("FILE_IO")
-                << partitionDesc() << "Failed to move file ["
+                << partitionDesc() << "Failed to move qlistfile ["
                 << fileSet->d_qlistFileName << "] " << "to location ["
                 << d_config.archiveLocation() << "] rc: " << rc
                 << BMQTSK_ALARMLOG_END;
+        }
+        else {
+            BALL_LOG_INFO << partitionDesc() << "Moved qlist file ["
+                          << fileSet->d_qlistFileName << "] to location ["
+                          << d_config.archiveLocation() << "].";
         }
     }
 }
@@ -4062,11 +4076,11 @@ void FileStore::alarmHighwatermarkIfNeededDispatched()
     }
 }
 
-void FileStore::issueSyncPointDispatched(BSLA_UNUSED int partitionId)
+void FileStore::issueSyncPointDispatched(BSLA_MAYBE_UNUSED int partitionId)
 {
     // executed by the *DISPATCHER* thread
 
-    if (!d_isOpen || !d_isPrimary) {
+    if (!d_isOpen || !d_isPrimary || d_isStopping) {
         return;  // RETURN
     }
 
@@ -4899,6 +4913,14 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
                     return 10 * rc + rc_ROLLOVER_FAILURE;  // RETURN
                 }
             }
+            else {
+                BSLS_ASSERT_SAFE(SyncPointType::e_REGULAR ==
+                                 jOpRec->syncPointType());
+                BALL_LOG_INFO << partitionDesc()
+                              << "Received regular sync point: " << syncPoint
+                              << ", at journal offset: " << recordOffset
+                              << ".";
+            }
 
             // If self is stopping, update the flag which indicates that self
             // has received the "last" SyncPt from the primary, and self should
@@ -5095,12 +5117,8 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
     BSLS_ASSERT_SAFE(activeFileSet);
     BSLS_ASSERT_SAFE(0 != journalOffset);
 
-    const unsigned int journalOffsetWords = journalOffset /
-                                            bmqp::Protocol::k_WORD_SIZE;
-
-    bmqt::EventBuilderResult::Enum buildRc;
-    MappedFileDescriptor&          journal = activeFileSet->d_journalFile;
-    AliasedBufferDeleterSp         deleterSp =
+    MappedFileDescriptor&  journal = activeFileSet->d_journalFile;
+    AliasedBufferDeleterSp deleterSp =
         d_aliasedBufferDeleterSpPool.getObject();
     deleterSp->setFileSet(activeFileSet);
 
@@ -5108,7 +5126,7 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
                                                 journal.mapping() +
                                                     journalOffset);
     bdlbb::BlobBuffer     journalRecordBlobBuffer(
-        journalRecordBufferSp,
+        bslmf::MovableRefUtil::move(journalRecordBufferSp),
         FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
 
     bdlbb::BlobBuffer dataBlobBuffer;
@@ -5120,9 +5138,13 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
 
         bsl::shared_ptr<char> dataBufferSp(deleterSp,  // reuse same deleter
                                            mfd.mapping() + dataOffset);
-        dataBlobBuffer.reset(dataBufferSp, totalDataLen);
+        dataBlobBuffer.reset(bslmf::MovableRefUtil::move(dataBufferSp),
+                             totalDataLen);
     }
 
+    bmqt::EventBuilderResult::Enum buildRc;
+    const unsigned int             journalOffsetWords = journalOffset /
+                                            bmqp::Protocol::k_WORD_SIZE;
     bool flushAndRetry = false;
     do {
         if (bmqp::StorageMessageType::e_DATA == type) {
@@ -5488,6 +5510,9 @@ int FileStore::open(const QueueKeyInfoMap& queueKeyInfoMap)
 
 void FileStore::close(bool flush)
 {
+    // The FileStore might be not opened by the time we call `close()`
+    cancelTimersAndWait();
+
     if (!d_isOpen) {
         return;  // RETURN
     }
@@ -5496,11 +5521,6 @@ void FileStore::close(bool flush)
     d_isStopping         = false;
     d_flushWhenClosing   = flush;
     d_lastSyncPtReceived = false;
-
-    d_config.scheduler()->cancelEventAndWait(&d_syncPointEventHandle);
-    d_config.scheduler()->cancelEventAndWait(
-        &d_partitionHighwatermarkEventHandle);
-    // Ok to ignore rc above
 
     BALL_LOG_INFO << partitionDesc() << "Closing partition. ";
 
@@ -6338,11 +6358,12 @@ int FileStore::removeRecord(const DataStoreRecordHandle& handle)
 {
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_INVALID_HANDLE = -1  // Invalid handle
-        ,
-        rc_HANDLE_NOT_FOUND = -2  // Handle not found
+        /// Success
+        rc_SUCCESS = 0,
+        /// Invalid handle
+        rc_INVALID_HANDLE = -1,
+        /// Handle not found
+        rc_HANDLE_NOT_FOUND = -2
     };
 
     if (!handle.isValid()) {
@@ -6908,9 +6929,7 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
         d_isPrimary = false;
         d_partitionStats_sp->setNodeRole(
             mqbstat::PartitionStats::PrimaryStatus::e_REPLICA);
-        d_config.scheduler()->cancelEvent(&d_syncPointEventHandle);
-        d_config.scheduler()->cancelEvent(
-            &d_partitionHighwatermarkEventHandle);
+        cancelTimersAndWait();
 
         if (d_lastRecoveredStrongConsistency.d_primaryLeaseId ==
             d_primaryLeaseId) {
@@ -7396,6 +7415,7 @@ void FileStore::unregisterStorage(const ReplicatedStorage* storage)
 
 void FileStore::cancelTimersAndWait()
 {
+    // Thread: *ANY*
     d_config.scheduler()->cancelEventAndWait(&d_syncPointEventHandle);
     d_config.scheduler()->cancelEventAndWait(
         &d_partitionHighwatermarkEventHandle);

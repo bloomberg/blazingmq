@@ -23,7 +23,7 @@ o 'fuzz': launch fuzzing session with the given 'host':'port' of a BlazingMQ
 """
 
 from enum import IntEnum
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import boofuzz
 from blazingmq.schemas import broker
@@ -221,6 +221,18 @@ def wrap_event_wrong(
     return [event_size, event_contents]
 
 
+def make_authentication_message() -> BoofuzzSequence:
+    """
+    Constructs boofuzz structures representing AuthenticationMessage.
+    """
+
+    return wrap_event(
+        schema_to_boofuzz(broker.AUTHENTICATION_REQUEST_SCHEMA),
+        broker.EventType.AUTHENTICATION,
+        broker.TypeSpecific.ENCODING_JSON,
+    )
+
+
 def make_put_message() -> BoofuzzSequence:
     """
     Constructs boofuzz structures representing PutMessage.
@@ -368,8 +380,17 @@ def fuzz(host: str, port: int, request: Optional[str] = None) -> None:
         fuzz_db_keep_only_n_pass_cases=1,
     )
 
-    identity = boofuzz.Request(
-        "Identity", children=(make_control_message(broker.CLIENT_IDENTITY_SCHEMA))
+    authentication = boofuzz.Request(
+        "Authentication", children=(make_authentication_message())
+    )
+
+    negotiation = boofuzz.Request(
+        "Negotiation", children=(make_control_message(broker.CLIENT_IDENTITY_SCHEMA))
+    )
+
+    negotiation_bypass_authentication = boofuzz.Request(
+        "NegotiationBypassAuthentication",
+        children=(make_control_message(broker.CLIENT_IDENTITY_SCHEMA)),
     )
 
     open_queue = boofuzz.Request(
@@ -393,8 +414,9 @@ def fuzz(host: str, port: int, request: Optional[str] = None) -> None:
         "Disconnect", children=(make_control_message(broker.DISCONNECT_SCHEMA))
     )
 
-    sequence = [
-        (identity, "identity"),
+    base_workflow = [
+        (authentication, "authentication"),
+        (negotiation, "negotiation"),
         (open_queue, "open_queue"),
         (configure_queue_stream, "configure_queue_stream"),
         (put, "put"),
@@ -403,19 +425,32 @@ def fuzz(host: str, port: int, request: Optional[str] = None) -> None:
         (disconnect, "disconnect"),
     ]
 
-    if request is not None:
-        disabled_count = 0
-        for req, name in sequence:
-            if name != request:
-                disable_fuzzing(req)
-                disabled_count += 1
+    # TODO: remove this workflow when Authentication becomes mandatory
+    authn_bypass_workflow = [
+        (negotiation_bypass_authentication, "negotiation_bypass_authentication")
+    ]
 
-    prev = None
-    for req, name in sequence:
-        if prev is None:
-            session.connect(req)
-        else:
-            session.connect(prev, req)
-        prev = req
+    def attach_fuzz_sequence(
+        sequence: List[Tuple[boofuzz.Request, str]],
+        *,
+        fuzz_filter: Optional[str] = None,
+    ):
+        """
+        Attach the specified `sequence` of requests to fuzzing session.
+        The optionally specified `fuzz_filter` is the name of request to fuzz.
+        """
+        prev = None
+        for req, name in sequence:
+            if fuzz_filter is not None and name != fuzz_filter:
+                disable_fuzzing(req)
+
+            if prev is None:
+                session.connect(req)
+            else:
+                session.connect(prev, req)
+            prev = req
+
+    attach_fuzz_sequence(base_workflow, fuzz_filter=request)
+    attach_fuzz_sequence(authn_bypass_workflow, fuzz_filter=request)
 
     session.fuzz(max_depth=1)

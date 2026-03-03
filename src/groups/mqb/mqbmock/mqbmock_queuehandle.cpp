@@ -87,9 +87,9 @@ QueueHandle::subscription2downstreamSubQueueId(unsigned int sId) const
 QueueHandle::QueueHandle(
     const bsl::shared_ptr<mqbi::Queue>&                       queueSp,
     const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>& clientContext,
-    BSLA_UNUSED mqbstat::QueueStatsDomain*     domainStats,
-    const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
-    bslma::Allocator*                          allocator)
+    BSLA_MAYBE_UNUSED mqbstat::QueueStatsDomain* domainStats,
+    const bmqp_ctrlmsg::QueueHandleParameters&   handleParameters,
+    bslma::Allocator*                            allocator)
 : d_handleParameters(allocator)
 , d_downstreams(allocator)
 , d_subStreamInfos(allocator)
@@ -203,21 +203,23 @@ bool QueueHandle::unregisterSubStream(const bmqp_ctrlmsg::SubQueueIdInfo& info,
 }
 
 mqbi::QueueHandle*
-QueueHandle::setIsClientClusterMember(BSLA_UNUSED bool value)
+QueueHandle::setIsClientClusterMember(BSLA_MAYBE_UNUSED bool value)
 {
     return this;
 }
 
 void QueueHandle::postMessage(
-    BSLA_UNUSED const bmqp::PutHeader& putHeader,
-    BSLA_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,
-    BSLA_UNUSED const bsl::shared_ptr<bdlbb::Blob>& options)
+    BSLA_MAYBE_UNUSED const bmqp::PutHeader& putHeader,
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<bdlbb::Blob>& options)
 {
     // NOTHING
 }
 
-void QueueHandle::confirmMessage(const bmqt::MessageGUID& msgGUID,
-                                 unsigned int             downstreamSubQueueId)
+void QueueHandle::confirmMessage(
+    BSLA_MAYBE_UNUSED mqbi::DispatcherEventSource* eventSource_p,
+    const bmqt::MessageGUID&                       msgGUID,
+    unsigned int                                   downstreamSubQueueId)
 {
     // Update unconfirmed messages collection
     Downstreams::iterator mapIter = d_downstreams.find(downstreamSubQueueId);
@@ -286,7 +288,8 @@ void QueueHandle::rejectMessage(const bmqt::MessageGUID& msgGUID,
     }
 }
 
-void QueueHandle::onAckMessage(BSLA_UNUSED const bmqp::AckMessage& ackMessage)
+void QueueHandle::onAckMessage(
+    BSLA_MAYBE_UNUSED const bmqp::AckMessage& ackMessage)
 {
     // NOTHING
 }
@@ -355,9 +358,10 @@ void QueueHandle::deconfigureAll(
 }
 
 void QueueHandle::release(
-    BSLA_UNUSED const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
-    BSLA_UNUSED bool                                       isFinal,
-    BSLA_UNUSED const HandleReleasedCallback&              releasedCb)
+    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::QueueHandleParameters&
+                            handleParameters,
+    BSLA_MAYBE_UNUSED bool  isFinal,
+    BSLA_MAYBE_UNUSED const HandleReleasedCallback& releasedCb)
 {
     // NOTHING
 }
@@ -553,7 +557,8 @@ bool QueueHandle::canDeliver(unsigned int downstreamSubscriptionId) const
 }
 
 const bsl::vector<const mqbu::ResourceUsageMonitor*>
-QueueHandle::unconfirmedMonitors(BSLA_UNUSED const bsl::string& appId) const
+QueueHandle::unconfirmedMonitors(
+    BSLA_MAYBE_UNUSED const bsl::string& appId) const
 {
     bsl::vector<const mqbu::ResourceUsageMonitor*> out(d_allocator_p);
     out.push_back(&d_unconfirmedMessageMonitor);

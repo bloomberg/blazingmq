@@ -124,46 +124,46 @@ void MessageProperties::clear()
     d_impl_p->clear();
 }
 
-bool MessageProperties::remove(const bsl::string&        name,
+bool MessageProperties::remove(bsl::string_view          name,
                                bmqt::PropertyType::Enum* buffer)
 {
     return d_impl_p->remove(name, buffer);
 }
 
-int MessageProperties::setPropertyAsBool(const bsl::string& name, bool value)
+int MessageProperties::setPropertyAsBool(bsl::string_view name, bool value)
 {
     return d_impl_p->setPropertyAsBool(name, value);
 }
 
-int MessageProperties::setPropertyAsChar(const bsl::string& name, char value)
+int MessageProperties::setPropertyAsChar(bsl::string_view name, char value)
 {
     return d_impl_p->setPropertyAsChar(name, value);
 }
 
-int MessageProperties::setPropertyAsShort(const bsl::string& name, short value)
+int MessageProperties::setPropertyAsShort(bsl::string_view name, short value)
 {
     return d_impl_p->setPropertyAsShort(name, value);
 }
 
-int MessageProperties::setPropertyAsInt32(const bsl::string& name,
-                                          bsl::int32_t       value)
+int MessageProperties::setPropertyAsInt32(bsl::string_view name,
+                                          bsl::int32_t     value)
 {
     return d_impl_p->setPropertyAsInt32(name, value);
 }
 
-int MessageProperties::setPropertyAsInt64(const bsl::string& name,
+int MessageProperties::setPropertyAsInt64(bsl::string_view   name,
                                           bsls::Types::Int64 value)
 {
     return d_impl_p->setPropertyAsInt64(name, value);
 }
 
-int MessageProperties::setPropertyAsString(const bsl::string& name,
-                                           const bsl::string& value)
+int MessageProperties::setPropertyAsString(bsl::string_view name,
+                                           bsl::string_view value)
 {
     return d_impl_p->setPropertyAsString(name, value);
 }
 
-int MessageProperties::setPropertyAsBinary(const bsl::string&       name,
+int MessageProperties::setPropertyAsBinary(bsl::string_view         name,
                                            const bsl::vector<char>& value)
 {
     return d_impl_p->setPropertyAsBinary(name, value);
@@ -176,85 +176,84 @@ int MessageProperties::streamIn(const bdlbb::Blob& blob)
 }
 
 // ACCESSORS
-bool MessageProperties::getPropertyAsBool(const bsl::string& name) const
+bool MessageProperties::getPropertyAsBool(bsl::string_view name) const
 {
     return d_impl_p->getPropertyAsBool(name);
 }
 
-char MessageProperties::getPropertyAsChar(const bsl::string& name) const
+char MessageProperties::getPropertyAsChar(bsl::string_view name) const
 {
     return d_impl_p->getPropertyAsChar(name);
 }
 
-short MessageProperties::getPropertyAsShort(const bsl::string& name) const
+short MessageProperties::getPropertyAsShort(bsl::string_view name) const
 {
     return d_impl_p->getPropertyAsShort(name);
 }
 
-bsl::int32_t
-MessageProperties::getPropertyAsInt32(const bsl::string& name) const
+bsl::int32_t MessageProperties::getPropertyAsInt32(bsl::string_view name) const
 {
     return d_impl_p->getPropertyAsInt32(name);
 }
 
 bsls::Types::Int64
-MessageProperties::getPropertyAsInt64(const bsl::string& name) const
+MessageProperties::getPropertyAsInt64(bsl::string_view name) const
 {
     return d_impl_p->getPropertyAsInt64(name);
 }
 
 const bsl::string&
-MessageProperties::getPropertyAsString(const bsl::string& name) const
+MessageProperties::getPropertyAsString(bsl::string_view name) const
 {
     return d_impl_p->getPropertyAsString(name);
 }
 
 const bsl::vector<char>&
-MessageProperties::getPropertyAsBinary(const bsl::string& name) const
+MessageProperties::getPropertyAsBinary(bsl::string_view name) const
 {
     return d_impl_p->getPropertyAsBinary(name);
 }
 
-bool MessageProperties::getPropertyAsBoolOr(const bsl::string& name,
-                                            bool               value) const
+bool MessageProperties::getPropertyAsBoolOr(bsl::string_view name,
+                                            bool             value) const
 {
     return d_impl_p->getPropertyAsBoolOr(name, value);
 }
 
-char MessageProperties::getPropertyAsCharOr(const bsl::string& name,
-                                            char               value) const
+char MessageProperties::getPropertyAsCharOr(bsl::string_view name,
+                                            char             value) const
 {
     return d_impl_p->getPropertyAsCharOr(name, value);
 }
 
-short MessageProperties::getPropertyAsShortOr(const bsl::string& name,
-                                              short              value) const
+short MessageProperties::getPropertyAsShortOr(bsl::string_view name,
+                                              short            value) const
 {
     return d_impl_p->getPropertyAsShortOr(name, value);
 }
 
-bsl::int32_t MessageProperties::getPropertyAsInt32Or(const bsl::string& name,
+bsl::int32_t MessageProperties::getPropertyAsInt32Or(bsl::string_view name,
                                                      bsl::int32_t value) const
 {
     return d_impl_p->getPropertyAsInt32Or(name, value);
 }
 
 bsls::Types::Int64
-MessageProperties::getPropertyAsInt64Or(const bsl::string& name,
+MessageProperties::getPropertyAsInt64Or(bsl::string_view   name,
                                         bsls::Types::Int64 value) const
 {
     return d_impl_p->getPropertyAsInt64Or(name, value);
 }
 
 const bsl::string&
-MessageProperties::getPropertyAsStringOr(const bsl::string& name,
+MessageProperties::getPropertyAsStringOr(bsl::string_view   name,
                                          const bsl::string& value) const
 {
     return d_impl_p->getPropertyAsStringOr(name, value);
 }
 
 const bsl::vector<char>&
-MessageProperties::getPropertyAsBinaryOr(const bsl::string&       name,
+MessageProperties::getPropertyAsBinaryOr(bsl::string_view         name,
                                          const bsl::vector<char>& value) const
 {
     return d_impl_p->getPropertyAsBinaryOr(name, value);
@@ -270,14 +269,14 @@ int MessageProperties::numProperties() const
     return d_impl_p->numProperties();
 }
 
-bool MessageProperties::hasProperty(const bsl::string&        name,
+bool MessageProperties::hasProperty(bsl::string_view          name,
                                     bmqt::PropertyType::Enum* type) const
 {
     return d_impl_p->hasProperty(name, type);
 }
 
 bmqt::PropertyType::Enum
-MessageProperties::propertyType(const bsl::string& name) const
+MessageProperties::propertyType(bsl::string_view name) const
 {
     return d_impl_p->propertyType(name);
 }

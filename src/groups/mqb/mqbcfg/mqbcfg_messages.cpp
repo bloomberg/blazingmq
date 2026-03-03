@@ -47,9 +47,9 @@ namespace mqbcfg {
 const char AllocatorType::CLASS_NAME[] = "AllocatorType";
 
 const bdlat_EnumeratorInfo AllocatorType::ENUMERATOR_INFO_ARRAY[] = {
-    {AllocatorType::NEWDELETE, "NEWDELETE", sizeof("NEWDELETE") - 1, ""},
-    {AllocatorType::COUNTING, "COUNTING", sizeof("COUNTING") - 1, ""},
-    {AllocatorType::STACKTRACETEST,
+    {AllocatorType::e_NEWDELETE, "NEWDELETE", sizeof("NEWDELETE") - 1, ""},
+    {AllocatorType::e_COUNTING, "COUNTING", sizeof("COUNTING") - 1, ""},
+    {AllocatorType::e_STACKTRACETEST,
      "STACKTRACETEST",
      sizeof("STACKTRACETEST") - 1,
      ""}};
@@ -59,9 +59,9 @@ const bdlat_EnumeratorInfo AllocatorType::ENUMERATOR_INFO_ARRAY[] = {
 int AllocatorType::fromInt(AllocatorType::Value* result, int number)
 {
     switch (number) {
-    case AllocatorType::NEWDELETE:
-    case AllocatorType::COUNTING:
-    case AllocatorType::STACKTRACETEST:
+    case AllocatorType::e_NEWDELETE:
+    case AllocatorType::e_COUNTING:
+    case AllocatorType::e_STACKTRACETEST:
         *result = static_cast<AllocatorType::Value>(number);
         return 0;
     default: return -1;
@@ -90,13 +90,13 @@ int AllocatorType::fromString(AllocatorType::Value* result,
 const char* AllocatorType::toString(AllocatorType::Value value)
 {
     switch (value) {
-    case NEWDELETE: {
+    case e_NEWDELETE: {
         return "NEWDELETE";
     }
-    case COUNTING: {
+    case e_COUNTING: {
         return "COUNTING";
     }
-    case STACKTRACETEST: {
+    case e_STACKTRACETEST: {
         return "STACKTRACETEST";
     }
     }
@@ -878,16 +878,16 @@ ElectorConfig::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 const char ExportMode::CLASS_NAME[] = "ExportMode";
 
 const bdlat_EnumeratorInfo ExportMode::ENUMERATOR_INFO_ARRAY[] = {
-    {ExportMode::E_PUSH, "E_PUSH", sizeof("E_PUSH") - 1, ""},
-    {ExportMode::E_PULL, "E_PULL", sizeof("E_PULL") - 1, ""}};
+    {ExportMode::e_E_PUSH, "E_PUSH", sizeof("E_PUSH") - 1, ""},
+    {ExportMode::e_E_PULL, "E_PULL", sizeof("E_PULL") - 1, ""}};
 
 // CLASS METHODS
 
 int ExportMode::fromInt(ExportMode::Value* result, int number)
 {
     switch (number) {
-    case ExportMode::E_PUSH:
-    case ExportMode::E_PULL:
+    case ExportMode::e_E_PUSH:
+    case ExportMode::e_E_PULL:
         *result = static_cast<ExportMode::Value>(number);
         return 0;
     default: return -1;
@@ -915,10 +915,10 @@ int ExportMode::fromString(ExportMode::Value* result,
 const char* ExportMode::toString(ExportMode::Value value)
 {
     switch (value) {
-    case E_PUSH: {
+    case e_E_PUSH: {
         return "E_PUSH";
     }
-    case E_PULL: {
+    case e_E_PULL: {
         return "E_PULL";
     }
     }
@@ -1192,11 +1192,11 @@ const char MasterAssignmentAlgorithm::CLASS_NAME[] =
     "MasterAssignmentAlgorithm";
 
 const bdlat_EnumeratorInfo MasterAssignmentAlgorithm::ENUMERATOR_INFO_ARRAY[] =
-    {{MasterAssignmentAlgorithm::E_LEADER_IS_MASTER_ALL,
+    {{MasterAssignmentAlgorithm::e_E_LEADER_IS_MASTER_ALL,
       "E_LEADER_IS_MASTER_ALL",
       sizeof("E_LEADER_IS_MASTER_ALL") - 1,
       ""},
-     {MasterAssignmentAlgorithm::E_LEAST_ASSIGNED,
+     {MasterAssignmentAlgorithm::e_E_LEAST_ASSIGNED,
       "E_LEAST_ASSIGNED",
       sizeof("E_LEAST_ASSIGNED") - 1,
       ""}};
@@ -1208,8 +1208,8 @@ int MasterAssignmentAlgorithm::fromInt(
     int                               number)
 {
     switch (number) {
-    case MasterAssignmentAlgorithm::E_LEADER_IS_MASTER_ALL:
-    case MasterAssignmentAlgorithm::E_LEAST_ASSIGNED:
+    case MasterAssignmentAlgorithm::e_E_LEADER_IS_MASTER_ALL:
+    case MasterAssignmentAlgorithm::e_E_LEAST_ASSIGNED:
         *result = static_cast<MasterAssignmentAlgorithm::Value>(number);
         return 0;
     default: return -1;
@@ -1240,10 +1240,10 @@ const char*
 MasterAssignmentAlgorithm::toString(MasterAssignmentAlgorithm::Value value)
 {
     switch (value) {
-    case E_LEADER_IS_MASTER_ALL: {
+    case e_E_LEADER_IS_MASTER_ALL: {
         return "E_LEADER_IS_MASTER_ALL";
     }
-    case E_LEAST_ASSIGNED: {
+    case e_E_LEAST_ASSIGNED: {
         return "E_LEAST_ASSIGNED";
     }
     }
@@ -4296,15 +4296,6 @@ const char PartitionConfig::CLASS_NAME[] = "PartitionConfig";
 const bsls::Types::Uint64
     PartitionConfig::DEFAULT_INITIALIZER_MAX_C_S_L_FILE_SIZE = 67108864;
 
-const bsls::Types::Uint64
-    PartitionConfig::DEFAULT_INITIALIZER_DATA_FILE_GROW_LIMIT = 25769803776;
-
-const bsls::Types::Uint64
-    PartitionConfig::DEFAULT_INITIALIZER_JOURNAL_FILE_GROW_LIMIT = 4294967296;
-
-const bsls::Types::Uint64
-    PartitionConfig::DEFAULT_INITIALIZER_Q_LIST_FILE_GROW_LIMIT = 1073741824;
-
 const unsigned int PartitionConfig::DEFAULT_INITIALIZER_GROW_STEP_PERCENT = 50;
 
 const unsigned int
@@ -4356,17 +4347,17 @@ const bdlat_AttributeInfo PartitionConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "dataFileGrowLimit",
      sizeof("dataFileGrowLimit") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_JOURNAL_FILE_GROW_LIMIT,
      "journalFileGrowLimit",
      sizeof("journalFileGrowLimit") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_Q_LIST_FILE_GROW_LIMIT,
      "qListFileGrowLimit",
      sizeof("qListFileGrowLimit") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_GROW_STEP_PERCENT,
      "growStepPercent",
      sizeof("growStepPercent") - 1,
@@ -4469,9 +4460,9 @@ PartitionConfig::PartitionConfig(bslma::Allocator* basicAllocator)
 , d_maxJournalFileSize()
 , d_maxQlistFileSize()
 , d_maxCSLFileSize(DEFAULT_INITIALIZER_MAX_C_S_L_FILE_SIZE)
-, d_dataFileGrowLimit(DEFAULT_INITIALIZER_DATA_FILE_GROW_LIMIT)
-, d_journalFileGrowLimit(DEFAULT_INITIALIZER_JOURNAL_FILE_GROW_LIMIT)
-, d_qListFileGrowLimit(DEFAULT_INITIALIZER_Q_LIST_FILE_GROW_LIMIT)
+, d_dataFileGrowLimit()
+, d_journalFileGrowLimit()
+, d_qListFileGrowLimit()
 , d_location(basicAllocator)
 , d_archiveLocation(basicAllocator)
 , d_syncConfig()
@@ -4620,10 +4611,10 @@ void PartitionConfig::reset()
     bdlat_ValueTypeFunctions::reset(&d_maxDataFileSize);
     bdlat_ValueTypeFunctions::reset(&d_maxJournalFileSize);
     bdlat_ValueTypeFunctions::reset(&d_maxQlistFileSize);
-    d_maxCSLFileSize       = DEFAULT_INITIALIZER_MAX_C_S_L_FILE_SIZE;
-    d_dataFileGrowLimit    = DEFAULT_INITIALIZER_DATA_FILE_GROW_LIMIT;
-    d_journalFileGrowLimit = DEFAULT_INITIALIZER_JOURNAL_FILE_GROW_LIMIT;
-    d_qListFileGrowLimit   = DEFAULT_INITIALIZER_Q_LIST_FILE_GROW_LIMIT;
+    d_maxCSLFileSize = DEFAULT_INITIALIZER_MAX_C_S_L_FILE_SIZE;
+    bdlat_ValueTypeFunctions::reset(&d_dataFileGrowLimit);
+    bdlat_ValueTypeFunctions::reset(&d_journalFileGrowLimit);
+    bdlat_ValueTypeFunctions::reset(&d_qListFileGrowLimit);
     d_growStepPercent      = DEFAULT_INITIALIZER_GROW_STEP_PERCENT;
     d_minAvailSpacePercent = DEFAULT_INITIALIZER_MIN_AVAIL_SPACE_PERCENT;
     d_preallocate          = DEFAULT_INITIALIZER_PREALLOCATE;
@@ -6116,6 +6107,10 @@ TaskConfig::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 
 const char AuthenticatorConfig::CLASS_NAME[] = "AuthenticatorConfig";
 
+const int AuthenticatorConfig::DEFAULT_INITIALIZER_MIN_THREADS = 1;
+
+const int AuthenticatorConfig::DEFAULT_INITIALIZER_MAX_THREADS = 8;
+
 const bdlat_AttributeInfo AuthenticatorConfig::ATTRIBUTE_INFO_ARRAY[] = {
     {ATTRIBUTE_ID_AUTHENTICATORS,
      "authenticators",
@@ -6126,14 +6121,24 @@ const bdlat_AttributeInfo AuthenticatorConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "anonymousCredential",
      sizeof("anonymousCredential") - 1,
      "",
-     bdlat_FormattingMode::e_DEFAULT}};
+     bdlat_FormattingMode::e_DEFAULT},
+    {ATTRIBUTE_ID_MIN_THREADS,
+     "minThreads",
+     sizeof("minThreads") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+    {ATTRIBUTE_ID_MAX_THREADS,
+     "maxThreads",
+     sizeof("maxThreads") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
 const bdlat_AttributeInfo*
 AuthenticatorConfig::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < 4; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             AuthenticatorConfig::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -6153,6 +6158,10 @@ const bdlat_AttributeInfo* AuthenticatorConfig::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTHENTICATORS];
     case ATTRIBUTE_ID_ANONYMOUS_CREDENTIAL:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ANONYMOUS_CREDENTIAL];
+    case ATTRIBUTE_ID_MIN_THREADS:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MIN_THREADS];
+    case ATTRIBUTE_ID_MAX_THREADS:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_THREADS];
     default: return 0;
     }
 }
@@ -6162,6 +6171,8 @@ const bdlat_AttributeInfo* AuthenticatorConfig::lookupAttributeInfo(int id)
 AuthenticatorConfig::AuthenticatorConfig(bslma::Allocator* basicAllocator)
 : d_authenticators(basicAllocator)
 , d_anonymousCredential(basicAllocator)
+, d_minThreads(DEFAULT_INITIALIZER_MIN_THREADS)
+, d_maxThreads(DEFAULT_INITIALIZER_MAX_THREADS)
 {
 }
 
@@ -6169,14 +6180,19 @@ AuthenticatorConfig::AuthenticatorConfig(const AuthenticatorConfig& original,
                                          bslma::Allocator* basicAllocator)
 : d_authenticators(original.d_authenticators, basicAllocator)
 , d_anonymousCredential(original.d_anonymousCredential, basicAllocator)
+, d_minThreads(original.d_minThreads)
+, d_maxThreads(original.d_maxThreads)
 {
 }
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-AuthenticatorConfig::AuthenticatorConfig(AuthenticatorConfig&& original)
-    noexcept : d_authenticators(bsl::move(original.d_authenticators)),
-               d_anonymousCredential(bsl::move(original.d_anonymousCredential))
+AuthenticatorConfig::AuthenticatorConfig(
+    AuthenticatorConfig&& original) noexcept
+: d_authenticators(bsl::move(original.d_authenticators)),
+  d_anonymousCredential(bsl::move(original.d_anonymousCredential)),
+  d_minThreads(bsl::move(original.d_minThreads)),
+  d_maxThreads(bsl::move(original.d_maxThreads))
 {
 }
 
@@ -6185,6 +6201,8 @@ AuthenticatorConfig::AuthenticatorConfig(AuthenticatorConfig&& original,
 : d_authenticators(bsl::move(original.d_authenticators), basicAllocator)
 , d_anonymousCredential(bsl::move(original.d_anonymousCredential),
                         basicAllocator)
+, d_minThreads(bsl::move(original.d_minThreads))
+, d_maxThreads(bsl::move(original.d_maxThreads))
 {
 }
 #endif
@@ -6201,6 +6219,8 @@ AuthenticatorConfig::operator=(const AuthenticatorConfig& rhs)
     if (this != &rhs) {
         d_authenticators      = rhs.d_authenticators;
         d_anonymousCredential = rhs.d_anonymousCredential;
+        d_minThreads          = rhs.d_minThreads;
+        d_maxThreads          = rhs.d_maxThreads;
     }
 
     return *this;
@@ -6213,6 +6233,8 @@ AuthenticatorConfig& AuthenticatorConfig::operator=(AuthenticatorConfig&& rhs)
     if (this != &rhs) {
         d_authenticators      = bsl::move(rhs.d_authenticators);
         d_anonymousCredential = bsl::move(rhs.d_anonymousCredential);
+        d_minThreads          = bsl::move(rhs.d_minThreads);
+        d_maxThreads          = bsl::move(rhs.d_maxThreads);
     }
 
     return *this;
@@ -6223,6 +6245,8 @@ void AuthenticatorConfig::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_authenticators);
     bdlat_ValueTypeFunctions::reset(&d_anonymousCredential);
+    d_minThreads = DEFAULT_INITIALIZER_MIN_THREADS;
+    d_maxThreads = DEFAULT_INITIALIZER_MAX_THREADS;
 }
 
 // ACCESSORS
@@ -6235,6 +6259,8 @@ bsl::ostream& AuthenticatorConfig::print(bsl::ostream& stream,
     printer.start();
     printer.printAttribute("authenticators", this->authenticators());
     printer.printAttribute("anonymousCredential", this->anonymousCredential());
+    printer.printAttribute("minThreads", this->minThreads());
+    printer.printAttribute("maxThreads", this->maxThreads());
     printer.end();
     return stream;
 }

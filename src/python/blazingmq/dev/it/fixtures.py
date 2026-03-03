@@ -463,7 +463,7 @@ def break_before_test(request, cluster):
             for broker in cluster.nodes():
                 print(f"  {broker.name}:  {broker.pid}", end="")
                 if broker is cluster.last_known_leader:
-                    print(f" (leader)", end="")
+                    print(" (leader)", end="")
                 print()
             print("proxies:")
             for proxy in cluster.proxies():

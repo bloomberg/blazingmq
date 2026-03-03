@@ -38,21 +38,21 @@ def test_command_rollover_partitionid(
     leader = cluster.last_known_leader
 
     invalid_partition_id = -2
-    res = leader.trigger_rollover(invalid_partition_id, succeed=True)
-    assert res is None, (
+    res = leader.trigger_rollover(invalid_partition_id, succeed=False)
+    assert res != 0, (
         f"Rollover for invalid partition {invalid_partition_id} should fail"
     )
 
     all_partition_id = -1
     res = leader.trigger_rollover(all_partition_id, succeed=True)
-    assert not res is None, "Rollover for all partitions should succeed"
+    assert res == 0, "Rollover for all partitions should succeed"
 
     for partition_id in range(num_partitions):
         res = leader.trigger_rollover(partition_id, succeed=True)
-        assert not res is None, f"Rollover for partition {partition_id} should succeed"
+        assert res == 0, f"Rollover for partition {partition_id} should succeed"
 
-    res = leader.trigger_rollover(num_partitions, succeed=True)
-    assert res is None, f"Rollover for invalid partition {num_partitions} should fail"
+    res = leader.trigger_rollover(num_partitions, succeed=False)
+    assert res != 0, f"Rollover for invalid partition {num_partitions} should fail"
 
 
 def test_command_storage_partition_summary_partitionid(
@@ -68,12 +68,12 @@ def test_command_storage_partition_summary_partitionid(
     leader = cluster.last_known_leader
 
     invalid_partition_id = -1
-    res = leader.get_storage_partition_summary(invalid_partition_id, succeed=True)
-    assert res is None, "Summary for invalid partition -1 should fail"
+    res = leader.get_storage_partition_summary(invalid_partition_id, succeed=False)
+    assert res != 0, "Summary for invalid partition -1 should fail"
 
     for partition_id in range(num_partitions):
         res = leader.get_storage_partition_summary(partition_id, succeed=True)
-        assert not res is None, f"Summary for partition {partition_id} should succeed"
+        assert res == 0, f"Summary for partition {partition_id} should succeed"
 
-    res = leader.get_storage_partition_summary(num_partitions, succeed=True)
-    assert res is None, f"Summary for invalid partition {num_partitions} should fail"
+    res = leader.get_storage_partition_summary(num_partitions, succeed=False)
+    assert res != 0, f"Summary for invalid partition {num_partitions} should fail"

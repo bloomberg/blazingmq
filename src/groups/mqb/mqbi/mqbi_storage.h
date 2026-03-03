@@ -88,13 +88,13 @@ struct StorageResult {
         e_GUID_NOT_FOUND    = -3,
         e_LIMIT_MESSAGES    = -4,
         e_LIMIT_BYTES       = -5,
-        e_ZERO_REFERENCES   = -6  // Reference count has gone to zero
-        ,
-        e_NON_ZERO_REFERENCES = -7  // Reference count is not yet zero
-        ,
-        e_WRITE_FAILURE    = -8,
-        e_APPKEY_NOT_FOUND = -9,
-        e_DUPLICATE        = -10
+        /// Reference count has gone to zero
+        e_ZERO_REFERENCES = -6,
+        /// Reference count is not yet zero
+        e_NON_ZERO_REFERENCES = -7,
+        e_WRITE_FAILURE       = -8,
+        e_APPKEY_NOT_FOUND    = -9,
+        e_DUPLICATE           = -10
     };
 
     // CLASS METHODS

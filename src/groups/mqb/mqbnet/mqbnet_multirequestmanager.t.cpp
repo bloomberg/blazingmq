@@ -101,7 +101,6 @@ typedef bsl::unordered_set<ReqChoice>              ReqChoiceSet;
 typedef bsl::shared_ptr<bmqio::TestChannel>        ChannelSp;
 
 const bsls::TimeInterval SEND_REQUEST_TIMEOUT(30);
-const bsls::Types::Int64 WATERMARK = 64 * 1024 * 1024;
 
 }  // close unnamed namespace
 
@@ -345,7 +344,8 @@ Mes TestContext::createResponseCancel()
 
 Mes TestContext::getNextRequest(const ChannelSp& channel)
 {
-    BMQTST_ASSERT(channel->waitFor(1, true, bsls::TimeInterval(1)));
+    BMQTST_ASSERT(channel->waitFor(1, bsls::TimeInterval(1)));
+    BMQTST_ASSERT_EQ(channel->numWriteCalls(), 1u);
     bmqio::TestChannel::WriteCall wc = channel->popWriteCall();
     bmqp::Event                   ev(&wc.d_blob, d_allocator_p);
     BMQTST_ASSERT(ev.isControlEvent());

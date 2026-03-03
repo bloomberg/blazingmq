@@ -29,7 +29,10 @@ from blazingmq.schemas import mqbcfg, mqbconf
 from blazingmq.dev import it
 
 
-def type_str(type_):
+def type_str(type_) -> str:
+    if isinstance(type_, str):
+        return type_
+
     if origin := typing.get_origin(type_):
         if origin == typing.Union:
             nested = [type_str(item_type) for item_type in typing.get_args(type_)]

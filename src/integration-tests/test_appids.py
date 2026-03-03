@@ -131,10 +131,10 @@ def test_open_alarm_authorize_post(cluster: Cluster, domain_urls: tc.DomainUrls)
     for app_id in DEFAULT_APP_IDS:
         test_logger.info(f"Check if {app_id} has seen 2 messages")
         assert wait_until(
-            lambda: len(
-                consumers[app_id].list(f"{du.uri_fanout}?id={app_id}", block=True)
-            )
-            == 2,
+            lambda: (
+                len(consumers[app_id].list(f"{du.uri_fanout}?id={app_id}", block=True))
+                == 2
+            ),
             3,
         )
 
@@ -597,10 +597,10 @@ def test_open_authorize_restart_from_non_FSM_to_FSM(
     for app_id in all_app_ids:
         test_logger.info(f"Check if {app_id} has seen 2 messages")
         assert wait_until(
-            lambda: len(
-                consumers[app_id].list(f"{du.uri_fanout}?id={app_id}", block=True)
-            )
-            == 2,
+            lambda: (
+                len(consumers[app_id].list(f"{du.uri_fanout}?id={app_id}", block=True))
+                == 2
+            ),
             3,
         )
 
@@ -638,16 +638,17 @@ def test_open_authorize_restart_from_non_FSM_to_FSM(
     for app_id in DEFAULT_APP_IDS:
         test_logger.info(f"Check if {app_id} has seen 2 messages")
         assert wait_until(
-            lambda: len(
-                consumers[app_id].list(f"{du.uri_fanout}?id={app_id}", block=True)
-            )
-            == 2,
+            lambda: (
+                len(consumers[app_id].list(f"{du.uri_fanout}?id={app_id}", block=True))
+                == 2
+            ),
             3,
         )
 
     assert wait_until(
-        lambda: len(consumers["quux"].list(f"{du.uri_fanout}?id=quux", block=True))
-        == 1,
+        lambda: (
+            len(consumers["quux"].list(f"{du.uri_fanout}?id=quux", block=True)) == 1
+        ),
         3,
     )
 
@@ -853,7 +854,7 @@ def test_old_data_new_app(
         # Once queue is created
         leader = cluster.last_known_leader
         leader.list_messages(tc.DOMAIN_FANOUT_SC, tc.TEST_QUEUE, 0, 100)
-        assert leader.outputs_substr(f"Printing 5 message(s)", 5)
+        assert leader.outputs_substr("Printing 5 message(s)", 5)
 
         new_consumer_1 = next(proxies).create_client(new_app_1)
         new_consumer_1.open(
@@ -920,7 +921,7 @@ def test_old_data_new_app(
     _verify_clients(andConfirm=True)
 
     leader.list_messages(tc.DOMAIN_FANOUT_SC, tc.TEST_QUEUE, 0, 100)
-    assert leader.outputs_substr(f"Printing 0 message(s)", 5)
+    assert leader.outputs_substr("Printing 0 message(s)", 5)
 
 
 def test_proxy_partial_push(
@@ -1002,13 +1003,13 @@ def test_gc_old_data_new_app(cluster: Cluster, domain_urls: tc.DomainUrls):
     )
 
     leader.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, 100)
-    assert leader.outputs_substr(f"Printing 0 message(s)", 5)
+    assert leader.outputs_substr("Printing 0 message(s)", 5)
 
     leader.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, 100, appid=app_id)
-    assert leader.outputs_substr(f"Printing 0 message(s)", 5)
+    assert leader.outputs_substr("Printing 0 message(s)", 5)
 
     leader.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, 100, appid=new_app_1)
-    assert leader.outputs_substr(f"Printing 0 message(s)", 5)
+    assert leader.outputs_substr("Printing 0 message(s)", 5)
 
 
 def test_add_remove_add_app(cluster: Cluster, domain_urls: tc.DomainUrls):

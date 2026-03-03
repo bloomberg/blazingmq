@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2014-2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -114,6 +114,7 @@ struct Version {
     static const char* s_buildInfo;
     static const char* s_timestamp;
     static const char* s_sourceControlInfo;
+    static const char* s_versionDotString;
 
     // CLASS METHODS
 

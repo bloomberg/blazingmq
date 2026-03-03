@@ -68,9 +68,8 @@ class Negotiator {
     /// Send out outbound negotiation message with the specified `context`.
     /// Return 0 on success, or a non-zero error code and populate the
     /// specified `errorDescription` with a description of the error otherwise.
-    virtual int negotiateOutbound(
-        bsl::ostream&                                    errorDescription,
-        const bsl::shared_ptr<InitialConnectionContext>& context) = 0;
+    virtual int negotiateOutbound(bsl::ostream&             errorDescription,
+                                  InitialConnectionContext* context) = 0;
 };
 
 }  // close package namespace

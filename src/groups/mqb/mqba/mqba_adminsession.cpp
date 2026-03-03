@@ -226,7 +226,7 @@ void AdminSession::finalizeAdminCommand(
 
 void AdminSession::onProcessedAdminCommand(
     const bmqp_ctrlmsg::ControlMessage& adminCommandCtrlMsg,
-    BSLA_UNUSED int                     rc,
+    BSLA_MAYBE_UNUSED int               rc,
     const bsl::string&                  commandExecResults)
 {
     // executed by the *ANY* thread
@@ -313,7 +313,7 @@ AdminSession::~AdminSession()
 // MANIPULATORS
 //   (virtual: mqbnet::Session)
 void AdminSession::processEvent(const bmqp::Event& event,
-                                BSLA_UNUSED mqbnet::ClusterNode* source)
+                                BSLA_MAYBE_UNUSED mqbnet::ClusterNode* source)
 {
     // executed by the *IO* thread
 
@@ -382,8 +382,9 @@ void AdminSession::tearDownImpl(bslmt::Semaphore* semaphore)
     semaphore->post();
 }
 
-void AdminSession::tearDown(BSLA_UNUSED const bsl::shared_ptr<void>& session,
-                            BSLA_UNUSED bool isBrokerShutdown)
+void AdminSession::tearDown(
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<void>& session,
+    BSLA_MAYBE_UNUSED bool                         isBrokerShutdown)
 {
     // executed by the *IO* thread
 

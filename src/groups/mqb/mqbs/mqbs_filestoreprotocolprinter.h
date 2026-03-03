@@ -106,15 +106,15 @@ void printFileHeader(bsl::ostream&                     stream,
     fields.push_back("Bitness");
     fields.push_back("FileType");
     fields.push_back("HeaderWords");
-    fields.push_back("PartitionId");
     fields.push_back("MaxFileSize");
+    fields.push_back("PartitionId");
 
     const mqbs::FileHeader& fh = mqbs::FileStoreProtocolUtil::bmqHeader(mfd);
 
     PRINTER_TYPE printer(stream, &fields);
     printer << static_cast<unsigned int>(fh.protocolVersion()) << fh.bitness()
             << fh.fileType() << static_cast<unsigned int>(fh.headerWords())
-            << fh.partitionId() << fh.maxFileSize();
+            << fh.maxFileSize() << fh.partitionId();
 }
 
 /// Print the specified `header` while using the specified `journalFd` and the
@@ -229,9 +229,9 @@ int printMessageProperties(unsigned int* propertiesAreaLen,
 /// also update the logic to correctly print (with proper indentation
 /// etc) the subQueueId option (even though this options won't be stored
 /// in the DATA file).
-void printOption(bsl::ostream&     stream,
-                 BSLA_UNUSED const bmqp::OptionsView*     ov,
-                 const bmqp::OptionsView::const_iterator& cit);
+void printOption(bsl::ostream&           stream,
+                 BSLA_MAYBE_UNUSED const bmqp::OptionsView* ov,
+                 const bmqp::OptionsView::const_iterator&   cit);
 
 /// Print the options pointed by the specified `options` of the
 /// specified `len` to the specified `stream`.

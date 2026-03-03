@@ -335,6 +335,7 @@ struct FileHeader {
     //  Header Words (HW)......: Number of words in this file header
     //  Bitness (B)............: Bitness of task writing this file
     //  FileType...............: Type of BlazingMQ file
+    //  MaxFileSize............: Maximum file size for this file (in bytes)
     //  PartitionId............: This file's partitionId
     //..
 
@@ -405,9 +406,9 @@ struct FileHeader {
 
     FileHeader& setFileType(FileType::Enum value);
 
-    FileHeader& setPartitionId(int value);
-
     FileHeader& setMaxFileSize(bsls::Types::Uint64 value);
+
+    FileHeader& setPartitionId(int value);
 
     // ACCESSORS
     unsigned int magic1() const;
@@ -422,9 +423,9 @@ struct FileHeader {
 
     unsigned char headerWords() const;
 
-    int partitionId() const;
-
     bsls::Types::Uint64 maxFileSize() const;
+
+    int partitionId() const;
 };
 
 // =====================
@@ -613,15 +614,15 @@ struct QlistFileHeader {
 struct DataHeaderFlags {
     // TYPES
     enum Enum {
-        e_MESSAGE_PROPERTIES = (1 << 0)  // Contains message properties
-        ,
-        e_UNUSED2 = (1 << 1),
-        e_UNUSED3 = (1 << 2),
-        e_UNUSED4 = (1 << 3),
-        e_UNUSED5 = (1 << 4),
-        e_UNUSED6 = (1 << 5),
-        e_UNUSED7 = (1 << 6),
-        e_UNUSED8 = (1 << 7)
+        /// Contains message properties
+        e_MESSAGE_PROPERTIES = (1 << 0),
+        e_UNUSED2            = (1 << 1),
+        e_UNUSED3            = (1 << 2),
+        e_UNUSED4            = (1 << 3),
+        e_UNUSED5            = (1 << 4),
+        e_UNUSED6            = (1 << 5),
+        e_UNUSED7            = (1 << 6),
+        e_UNUSED8            = (1 << 7)
     };
 
     // CLASS METHODS
@@ -1643,13 +1644,14 @@ struct QueueOpType {
     // TYPES
     enum Enum {
         e_UNDEFINED = 0,
-        e_PURGE     = 1  // A queue (or a specific appId) is purged
-        ,
-        e_CREATION = 2  // A new queue is created
-        ,
-        e_DELETION = 3  // A queue (or a specific appId) is deleted
-        ,
-        e_ADDITION = 4  // New appId(s) have been added to existing queue
+        /// A queue (or a specific appId) is purged
+        e_PURGE = 1,
+        /// A new queue is created
+        e_CREATION = 2,
+        /// A queue (or a specific appId) is deleted
+        e_DELETION = 3,
+        /// New appId(s) have been added to existing queue
+        e_ADDITION = 4
     };
 
     // CLASS METHODS
@@ -2312,15 +2314,15 @@ inline FileType::Enum FileHeader::fileType() const
                                        k_FILE_TYPE_MASK);
 }
 
-inline int FileHeader::partitionId() const
-{
-    return d_partitionId;
-}
-
 inline bsls::Types::Uint64 FileHeader::maxFileSize() const
 {
     return bmqp::Protocol::combine(d_maxFileSizeUpperBits,
                                    d_maxFileSizeLowerBits);
+}
+
+inline int FileHeader::partitionId() const
+{
+    return d_partitionId;
 }
 
 // ---------------------

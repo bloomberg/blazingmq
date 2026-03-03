@@ -127,9 +127,7 @@ class SubscriptionExpression {
     /// Enum representing criteria format
     enum Enum {
         /// EMPTY
-        e_NONE = 0
-
-        ,
+        e_NONE = 0,
         /// Simple Evaluator
         e_VERSION_1 = 1
     };

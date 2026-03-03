@@ -78,8 +78,8 @@ void doFail()
     BMQTST_ASSERT(false && "Must not be invoked");
 }
 
-void executeOnClosedChannelFunc(bmqio::NtcChannel*        channel,
-                                BSLA_UNUSED const Status& status)
+void executeOnClosedChannelFunc(bmqio::NtcChannel*              channel,
+                                BSLA_MAYBE_UNUSED const Status& status)
 {
     // PRECONDITIONS
     BMQTST_ASSERT(channel);
@@ -207,10 +207,10 @@ void Tester::destroy()
 }
 
 void Tester::onAcceptConnection(
-    bslmt::Semaphore* semaphore_p,
-    BSLA_UNUSED const bsl::shared_ptr<ntci::Acceptor>& acceptor,
-    const bsl::shared_ptr<ntci::StreamSocket>&         streamSocket,
-    const ntca::AcceptEvent&                           event)
+    bslmt::Semaphore*       semaphore_p,
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<ntci::Acceptor>& acceptor,
+    const bsl::shared_ptr<ntci::StreamSocket>&               streamSocket,
+    const ntca::AcceptEvent&                                 event)
 {
     // PRECONDITIONS
     BMQTST_ASSERT(semaphore_p);
@@ -229,9 +229,9 @@ void Tester::onAcceptConnection(
 }
 
 void Tester::onChannelResult(bslmt::Semaphore* semaphore_p,
-                             BSLA_UNUSED ChannelFactoryEvent::Enum event,
-                             BSLA_UNUSED const Status&             status,
-                             const bsl::shared_ptr<Channel>&       channel)
+                             BSLA_MAYBE_UNUSED ChannelFactoryEvent::Enum event,
+                             BSLA_MAYBE_UNUSED const Status& status,
+                             const bsl::shared_ptr<Channel>& channel)
 {
     // PRECONDITIONS
     BMQTST_ASSERT(semaphore_p);

@@ -29,7 +29,7 @@ namespace bmqio {
 
 DecoratingChannelPartialImp::DecoratingChannelPartialImp(
     const bsl::shared_ptr<Channel>& base,
-    BSLA_UNUSED bslma::Allocator* basicAllocator)
+    BSLA_MAYBE_UNUSED bslma::Allocator* basicAllocator)
 : d_base(base)
 {
     // NOTHING
