@@ -44,7 +44,6 @@
 #include <bdlbb_blob.h>
 #include <bdlmt_eventscheduler.h>
 #include <bsl_functional.h>
-#include <bsl_variant.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>

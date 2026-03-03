@@ -40,7 +40,6 @@
 #include <bsl_algorithm.h>
 #include <bsl_iostream.h>
 #include <bsl_memory.h>
-#include <bsl_variant.h>
 #include <bsla_annotations.h>
 #include <bsla_unused.h>
 #include <bslma_default.h>

@@ -73,18 +73,25 @@ struct ResultItem {
     }
 };
 
+bsl::optional<bmqt::AuthnCredential>
+basicCredentialCb(bsl::ostream& /* error */)
+{
+    bslma::Allocator*      alloc   = bmqtst::TestHelperUtil::allocator();
+    const bsl::string_view dataStr = "testdata";
+    bsl::vector<char>      data(alloc);
+    data.assign(dataStr.begin(), dataStr.end());
+    return bsl::optional<bmqt::AuthnCredential>(bsl::in_place,
+                                                bsl::string("BASIC", alloc),
+                                                data);
+}
+
 /// Return a valid credential callback that always returns a credential with
 /// mechanism "BASIC" and data "testdata".
 AuthnCredentialCb makeDefaultCredentialCb()
 {
-    return [](bsl::ostream&) -> bsl::optional<bmqt::AuthnCredential> {
-        bsl::vector<char> data;
-        const char        raw[] = "testdata";
-        data.assign(&raw[0], &raw[8]);
-        return bsl::optional<bmqt::AuthnCredential>(bsl::in_place,
-                                                    bsl::string("BASIC"),
-                                                    data);
-    };
+    return bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
+                                 basicCredentialCb,
+                                 bdlf::PlaceHolders::_1);  // error stream
 }
 
 // -----------------
@@ -500,11 +507,19 @@ BMQTST_TEST(CredentialCallbackFailure)
 //   4. Verify no read registered on channel.
 // ------------------------------------------------------------------------
 {
-    AuthnCredentialCb nulloptCb =
-        [](bsl::ostream& error) -> bsl::optional<bmqt::AuthnCredential> {
-        error << "credential unavailable";
-        return bsl::nullopt;
+    struct Local {
+        static bsl::optional<bmqt::AuthnCredential>
+        alwaysFailCb(bsl::ostream& error)
+        {
+            error << "credential unavailable";
+            return bsl::nullopt;
+        }
     };
+
+    AuthnCredentialCb nulloptCb = bdlf::BindUtil::bindS(
+        bmqtst::TestHelperUtil::allocator(),
+        Local::alwaysFailCb,
+        bdlf::PlaceHolders::_1);  // error stream
     TestContext ctx(nulloptCb);
 
     ctx.connect();
