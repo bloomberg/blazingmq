@@ -267,7 +267,6 @@ def check_admin_response_too_often(admin):
     expect_same_structure(obj, dt.TEST_QUEUE_STATS_TOO_OFTEN_SNAPSHOTS, "too-often")
 
 
-@tweak.broker.app_config.network_interfaces.tcp_interface.heartbeat_interval_ms(60000)
 def test_queue_stats(single_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     """
     Test: queue metrics via admin command.
