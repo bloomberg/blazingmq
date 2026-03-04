@@ -631,7 +631,7 @@ void TCPSessionFactory::initialConnectionComplete(
             // then 'onClose' must be called and since the session is inserted
             // into 'd_channels', 'onClose' will disable heartbeat.
             d_scheduler_p->scheduleEvent(
-                bsls::TimeInterval(0),
+                bsls::SystemTime::nowMonotonicClock(),
                 bdlf::BindUtil::bind(&TCPSessionFactory::enableHeartbeat,
                                      this,
                                      info));
@@ -829,7 +829,7 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
                 //       closing the channels, so we don't need to
                 //       'disableHeartbeat' in this case.
                 d_scheduler_p->scheduleEvent(
-                    bsls::TimeInterval(0),
+                    bsls::SystemTime::nowMonotonicClock(),
                     bdlf::BindUtil::bind(&TCPSessionFactory::disableHeartbeat,
                                          this,
                                          channel.get()));
