@@ -71,6 +71,32 @@ bsls::Types::Int64 DispatcherStats::getValue(const bmqst::StatContext& context,
         latestSnapshot,                                                       \
         OLDEST_SNAPSHOT(STAT))
 
+#define CASE_PROCESSING(EVENT_NAME)                                           \
+    case Stat::e_PROCESSING_TIME_##EVENT_NAME##_MAX: {                        \
+        const bsls::Types::Int64 max = STAT_RANGE(                            \
+            rangeMax,                                                         \
+            DispatcherStatsIndex::e_STAT_PROCESSING_TIME_##EVENT_NAME);       \
+        return max == bsl::numeric_limits<bsls::Types::Int64>::min() ? 0      \
+                                                                     : max;   \
+    }                                                                         \
+    case Stat::e_PROCESSING_TIME_##EVENT_NAME##_AVG: {                        \
+        const bsls::Types::Int64 avg = STAT_RANGE(                            \
+            averagePerEvent,                                                  \
+            DispatcherStatsIndex::e_STAT_PROCESSING_TIME_##EVENT_NAME);       \
+        return avg == bsl::numeric_limits<bsls::Types::Int64>::max() ? 0      \
+                                                                     : avg;   \
+    }                                                                         \
+    case Stat::e_PROCESSING_TIME_##EVENT_NAME##_SUM: {                        \
+        return STAT_RANGE(                                                    \
+            sumDifference,                                                    \
+            DispatcherStatsIndex::e_STAT_PROCESSING_TIME_##EVENT_NAME);       \
+    }                                                                         \
+    case Stat::e_PROCESSED_COUNT_##EVENT_NAME: {                              \
+        return STAT_RANGE(                                                    \
+            eventsDifference,                                                 \
+            DispatcherStatsIndex::e_STAT_PROCESSING_TIME_##EVENT_NAME);       \
+    }
+
     switch (stat) {
     case Stat::e_ENQUEUE_DELTA: {
         return STAT_RANGE(incrementsDifference,
@@ -108,6 +134,19 @@ bsls::Types::Int64 DispatcherStats::getValue(const bmqst::StatContext& context,
     case Stat::e_QUEUE_TIME_ABS_MAX: {
         return STAT_SINGLE_ABS(absoluteMax, DispatcherStatsIndex::e_STAT_TIME);
     }
+        CASE_PROCESSING(UNDEFINED)
+        CASE_PROCESSING(DISPATCHER)
+        CASE_PROCESSING(CALLBACK)
+        CASE_PROCESSING(CONTROL_MSG)
+        CASE_PROCESSING(CONFIRM)
+        CASE_PROCESSING(REJECT)
+        CASE_PROCESSING(PUSH)
+        CASE_PROCESSING(PUT)
+        CASE_PROCESSING(ACK)
+        CASE_PROCESSING(CLUSTER_STATE)
+        CASE_PROCESSING(STORAGE)
+        CASE_PROCESSING(RECOVERY)
+        CASE_PROCESSING(REPLICATION_RECEIPT)
     default: {
         BSLS_ASSERT_SAFE(false && "Attempting to access an unknown stat");
     }
@@ -115,6 +154,7 @@ bsls::Types::Int64 DispatcherStats::getValue(const bmqst::StatContext& context,
 
     return 0;
 
+#undef CASE_PROCESSING
 #undef STAT_RANGE
 #undef STAT_SINGLE_ABS
 #undef STAT_SINGLE
@@ -138,7 +178,21 @@ DispatcherStatsUtil::initializeStatContext(int               historySize,
         .statValueAllocator(allocator)
         .storeExpiredSubcontextValues(true)
         .value("queued_count")
-        .value("queued_time", bmqst::StatValue::e_DISCRETE);
+        .value("queued_time", bmqst::StatValue::e_DISCRETE)
+        .value("processing_time_undefined", bmqst::StatValue::e_DISCRETE)
+        .value("processing_time_dispatcher", bmqst::StatValue::e_DISCRETE)
+        .value("processing_time_callback", bmqst::StatValue::e_DISCRETE)
+        .value("processing_time_control_msg", bmqst::StatValue::e_DISCRETE)
+        .value("processing_time_confirm", bmqst::StatValue::e_DISCRETE)
+        .value("processing_time_reject", bmqst::StatValue::e_DISCRETE)
+        .value("processing_time_push", bmqst::StatValue::e_DISCRETE)
+        .value("processing_time_put", bmqst::StatValue::e_DISCRETE)
+        .value("processing_time_ack", bmqst::StatValue::e_DISCRETE)
+        .value("processing_time_cluster_state", bmqst::StatValue::e_DISCRETE)
+        .value("processing_time_storage", bmqst::StatValue::e_DISCRETE)
+        .value("processing_time_recovery", bmqst::StatValue::e_DISCRETE)
+        .value("processing_time_replication_receipt",
+               bmqst::StatValue::e_DISCRETE);
 
     return bsl::shared_ptr<bmqst::StatContext>(
         new (*allocator) bmqst::StatContext(config, allocator),
