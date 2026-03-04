@@ -1023,8 +1023,17 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
 
     # Purge priority queue
     cluster.last_known_leader.purge(du.domain_priority, test_queue, succeed=True)
+
+    # need to make sure purge is done before stopping nodes.  Otherwise, can
+    # end up with a new primary unware of the purge
+    assert cluster.last_known_leader.capture(r"Purged 2 message\(s\)", 5)
+
     # Purge fanout queue app "quux"
     cluster.last_known_leader.purge(du.domain_fanout, test_queue, "quux", succeed=True)
+
+    # need to make sure purge is done before stopping nodes.  Otherwise, can
+    # end up with a new primary unware of the purge
+    assert cluster.last_known_leader.capture(r"Purged 3 message\(s\)", 5)
 
     # 5. SWITCH BACK
     switch_cluster_mode[1](cluster, producer)
