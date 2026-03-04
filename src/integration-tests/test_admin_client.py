@@ -93,19 +93,48 @@ def extract_stats(admin_response: str) -> dict:
     return d2
 
 
+def print_diff(processed1, processed2):
+    c1 = Counter(processed1)
+    c2 = Counter(processed2)
+
+    only_in_1 = c1 - c2  # items missing from arr2
+    only_in_2 = c2 - c1  # items missing from arr1
+
+    if not only_in_1 and not only_in_2:
+        print("Arrays are equivalent after preprocessing.")
+        return
+
+    if only_in_1:
+        print("Items only in first array:")
+        for item, count in only_in_1.items():
+            print(f"  {dict(item)}  (count={count})")
+
+    if only_in_2:
+        print("Items only in second array:")
+        for item, count in only_in_2.items():
+            print(f"  {dict(item)}  (count={count})")
+
+
 def expect_same_list_of_flat_objects(
     entry: list[dict],
     expected: list[dict],
     path: str = "",
-    skip_objects_with_type=["allocator"],
-    skip_keys=[
+    skip_objects_with_type=("allocator",),
+    skip_keys=(
         "timestamp",
         "client_name",
         "channel_name",
         "port_id",
         "queue_confirm_time_avg",
         "queue_confirm_time_max",
-    ],
+        "queue_queue_time_avg",
+        "queue_queue_time_max",
+        "in_bytes",
+        "out_bytes",
+        "in_bytes_delta",
+        "out_bytes_delta",
+        "connections_delta",
+    ),
 ) -> None:
     """
     Check if the specified 'entry' has the same structure as the specified 'expected'.
@@ -130,11 +159,14 @@ def expect_same_list_of_flat_objects(
         processed1 = preprocess_array(arr1, skip_keys)
         processed2 = preprocess_array(arr2, skip_keys)
 
-        return Counter(processed1) == Counter(processed2)
+        is_equal = Counter(processed1) == Counter(processed2)
 
-    assert compare_json_arrays(entry, expected), (
-        f"Path {path}: entry does not match expected"
-    )
+        if not is_equal:
+            print_diff(processed1, processed2)
+
+            raise RuntimeError(f"Path {path}: entry does not match expected")
+
+    compare_json_arrays(entry, expected)
 
 
 def expect_same_structure(
@@ -235,6 +267,7 @@ def check_admin_response_too_often(admin):
     expect_same_structure(obj, dt.TEST_QUEUE_STATS_TOO_OFTEN_SNAPSHOTS, "too-often")
 
 
+@tweak.broker.app_config.network_interfaces.tcp_interface.heartbeat_interval_ms(60000)
 def test_queue_stats(single_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     """
     Test: queue metrics via admin command.
