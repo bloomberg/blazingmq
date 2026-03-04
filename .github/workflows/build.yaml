@@ -45,7 +45,7 @@ jobs:
     uses: ./.github/workflows/build-ubuntu.yaml
     with:
       ref: ${{ github.sha }}
-      target: "bmqbrkr bmqtool"
+      target: "bmqbrkr bmqtool bmq.t mqb.t"
       save_build_as_artifacts: false
       run_unit_tests: false
       cxx_standard: cpp03
