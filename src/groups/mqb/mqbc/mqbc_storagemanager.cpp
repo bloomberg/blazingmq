@@ -1725,6 +1725,29 @@ void StorageManager::do_logFailurePrimaryStateResponse(
                   << ".";
 }
 
+void StorageManager::do_logFailureReplicaDataResponseResize(
+    const EventWithData& event)
+{
+    // executed by the *QUEUE DISPATCHER* thread associated with the
+    // paritionId contained in 'event'
+
+    const EventData& eventDataVec = event.second;
+    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+
+    int                        partitionId = eventDataVec[0].partitionId();
+    const mqbnet::ClusterNode* sourceNode  = eventDataVec[0].source();
+
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+
+    BALL_LOG_WARN << d_clusterData_p->identity().description()
+                  << " Partition [" << partitionId << "]: "
+                  << "Received unexpected ReplicaDataRequestResize from node "
+                  << (sourceNode ? sourceNode->nodeDescription()
+                                 : "** NULL **")
+                  << ".  Please review Partition FSM logic.";
+}
+
 void StorageManager::do_logUnexpectedPrimaryStateResponse(
     const EventWithData& event)
 {
@@ -3423,7 +3446,7 @@ void StorageManager::do_findHighestSeq(const EventWithData& event)
     }
 }
 
-void StorageManager::do_findHighestFileSizes(const EventWithData& event)
+void StorageManager::do_findHighestMaxFileSizes(const EventWithData& event)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
@@ -3454,10 +3477,19 @@ void StorageManager::do_findHighestFileSizes(const EventWithData& event)
         selfFirstSyncAfterRolloverSeqNum =
             nodeToContextMap.at(selfNode).d_firstSyncPointAfterRolloverSeqNum;
 
-    // Find out highest partition max file sizes.
+    // Find out the highest partition max file sizes.
     for (NodeToContextMapCIter cit = nodeToContextMap.cbegin();
          cit != nodeToContextMap.cend();
          cit++) {
+        // Check if node missed rollover
+        if (cit->second.d_seqNum != bmqp_ctrlmsg::PartitionSequenceNumber() &&
+            cit->second.d_firstSyncPointAfterRolloverSeqNum !=
+                selfFirstSyncAfterRolloverSeqNum) {
+            // Skip node with non empty storage and different first sync point
+            // after rollover, it missed rollover and need to drop its storage.
+            continue;  // CONTINUE
+        }
+
         // Check for higher max file sizes.
         highestPartitionMaxFileSizes.dataFileSize() = bsl::max(
             highestPartitionMaxFileSizes.dataFileSize(),
@@ -3556,17 +3588,31 @@ void StorageManager::do_overrideMaxFileSizes(const EventWithData& event)
     bmqp_ctrlmsg::PartitionMaxFileSizes highestPartitionMaxFileSizes =
         eventData.partitionMaxFileSizes();
 
+    // Check if grow limit is exceeded, just for logging.
     bmqp_ctrlmsg::PartitionMaxFileSizes limitedHighestPartitionMaxFileSizes =
         highestPartitionMaxFileSizes;
     if (limitPartitionMaxFileSizes(&limitedHighestPartitionMaxFileSizes,
                                    d_clusterConfig.partitionConfig())) {
-        BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << " Partition [" << partitionId
-                      << "]: " << "received highest partition max file sizes: "
-                      << highestPartitionMaxFileSizes
-                      << " were limited to grow limits"
-                      << limitedHighestPartitionMaxFileSizes;
-        highestPartitionMaxFileSizes = limitedHighestPartitionMaxFileSizes;
+        if (d_partitionFSMVec[partitionId]->isSelfPrimary()) {
+            BALL_LOG_ERROR
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId << "]: "
+                << " primary received highest partition max file sizes: "
+                << highestPartitionMaxFileSizes << " that exceed grow limits :"
+                << limitedHighestPartitionMaxFileSizes
+                << ", it should never happen because primary is"
+                << " already limited it in do_findHighestFileSizes().";
+        }
+        else {
+            BALL_LOG_WARN
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId << "]: "
+                << " replica received highest partition max file sizes: "
+                << highestPartitionMaxFileSizes << " that exceed grow limits: "
+                << limitedHighestPartitionMaxFileSizes
+                << ", skip limits and use primary's highest partition max "
+                   "file sizes.";
+        }
     }
 
     BSLS_ASSERT_SAFE(highestPartitionMaxFileSizes !=
