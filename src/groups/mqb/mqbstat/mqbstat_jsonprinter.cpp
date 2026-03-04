@@ -57,14 +57,14 @@ class JsonPrettyPrinter {
     // DATA
 
     /// Output stream to print JSON to
-    bsl::ostream& os;
+    bsl::ostream& d_os;
 
     /// Options for printing a compact JSON
-    const bdljsn::WriteOptions& opts;
+    const bdljsn::WriteOptions& d_opts;
 
-    mutable int linesWritten;
+    mutable int d_linesWritten;
 
-    const bool needValidJson;
+    const bool d_needValidJson;
 
   private:
     // NOT IMPLEMENTED
@@ -80,20 +80,20 @@ class JsonPrettyPrinter {
     JsonPrettyPrinter(bsl::ostream&               os,
                       const bdljsn::WriteOptions& opts,
                       const bool                  needValidJson)
-    : os(os)
-    , opts(opts)
-    , needValidJson(needValidJson)
-    , linesWritten(0)
+    : d_os(os)
+    , d_opts(opts)
+    , d_linesWritten(0)
+    , d_needValidJson(needValidJson)
     {
-        if (needValidJson) {
-            os << "[";
+        if (d_needValidJson) {
+            d_os << "[";
         }
     }
 
     ~JsonPrettyPrinter()
     {
-        if (needValidJson) {
-            os << "]";
+        if (d_needValidJson) {
+            d_os << "]";
         }
     }
 
@@ -102,21 +102,22 @@ class JsonPrettyPrinter {
     /// Print the specified `json` to the output stream.
     inline void printJson(const bdljsn::Json& json) const
     {
-        if (linesWritten > 0) {
-            if (needValidJson) {
-                os << ",";
+        if (d_linesWritten > 0) {
+            if (d_needValidJson) {
+                d_os << ",";
             }
             else {
-                os << std::endl;
+                d_os << std::endl;
             }
         }
 
-        linesWritten++;
+        d_linesWritten++;
 
-        const int rc = bdljsn::JsonUtil::write(os, json, opts);
+        const int rc = bdljsn::JsonUtil::write(d_os, json, d_opts);
         BSLS_ASSERT_SAFE(0 == rc);
     }
 };
+
 struct DomainsStatsConversionUtils {
     // PUBLIC CLASS METHODS
 
@@ -540,8 +541,6 @@ struct AllocatorStatsConversionUtils {
         }
         }
 
-        return 0;
-
 #undef STAT_RANGE
 #undef STAT_SINGLE
 #undef OLDEST_SNAPSHOT
@@ -786,9 +785,9 @@ JsonPrinter::JsonPrinter(const mqbcfg::StatsConfig& config,
                          bdlmt::EventScheduler*     eventScheduler,
                          const StatContextsMap&     statContextsMap,
                          bslma::Allocator*          allocator)
-: d_statContextsMap(statContextsMap)
+: d_config(config)
+, d_statContextsMap(statContextsMap)
 , d_statsLogFile(allocator)
-, d_config(config)
 , d_logfile_pattern(config.printer().file() + ".json")
 , d_statLogCleaner(eventScheduler, allocator)
 {

@@ -92,7 +92,7 @@ PrinterManager::PrinterManager(const mqbcfg::StatsConfig& brkrCfg,
         allocator);
 }
 
-int PrinterManager::start(BSLA_UNUSED bsl::ostream& errorDescription)
+int PrinterManager::start(bsl::ostream& errorDescription)
 {
     // Setup the print of stats if configured for it
     if (!isEnabled()) {
