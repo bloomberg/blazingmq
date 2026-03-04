@@ -34,6 +34,7 @@ import logging
 import os
 import re
 import shutil
+import sys
 import tempfile
 from enum import IntEnum
 from pathlib import Path
@@ -53,7 +54,7 @@ from blazingmq.dev.it.tweaks import TWEAK_ATTRIBUTE, Tweak
 from blazingmq.dev.it.util import internal_use
 from blazingmq.dev.paths import paths
 from blazingmq.dev.pytest import PYTEST_LOG_SPEC_VAR
-from blazingmq.dev.reserveport import reserve_port
+from blazingmq.dev.reserveport import reserve_port, reserve_port_pool
 from blazingmq.schemas import mqbcfg, mqbconf
 from blazingmq.dev.it.testhooks import is_test_reported_failed
 
@@ -288,7 +289,7 @@ def cluster_fixture(request, configure) -> Iterator[Cluster]:
                 logger.error(message)
                 raise RuntimeError(message)
 
-        with contextlib.ExitStack() as scope:
+        with contextlib.ExitStack() as port_scope:
             if env_ports := os.environ.get("BMQIT_PORTS"):
                 check_sequential_tests()
                 logger.info("using ports %s", env_ports)
@@ -306,12 +307,15 @@ def cluster_fixture(request, configure) -> Iterator[Cluster]:
                 check_sequential_tests()
                 logger.info("using ports sequentially allocated from %s", env_port_base)
                 port_allocator = itertools.count(int(env_port_base))
+            elif sys.platform == "darwin":
+                logger.info("allocating ephemeral ports using macOS port allocator")
+                port_allocator = reserve_port_pool()
             else:
                 logger.info("allocating ephemeral ports")
 
                 def ephemeral_port_allocator():
                     while True:
-                        yield scope.enter_context(reserve_port()).port
+                        yield port_scope.enter_context(reserve_port()).port
 
                 port_allocator = ephemeral_port_allocator()
 

@@ -21,6 +21,7 @@
 // MQB
 #include <mqbstat_brokerstats.h>
 #include <mqbstat_clusterstats.h>
+#include <mqbstat_dispatcherstats.h>
 #include <mqbstat_domainstats.h>
 #include <mqbstat_queuestats.h>
 
@@ -132,6 +133,18 @@ class Tagger {
         return *this;
     }
 
+    Tagger& setClient(bsl::string_view value)
+    {
+        labels["Client"] = bsl::string(value);
+        return *this;
+    }
+
+    Tagger& setProcessorId(int value)
+    {
+        labels["ProcessorId"] = bsl::to_string(value);
+        return *this;
+    }
+
     // ACCESSORS
     ::prometheus::Labels& getLabels() { return labels; }
 };
@@ -182,6 +195,7 @@ PrometheusStatConsumer::PrometheusStatConsumer(
     d_domainQueuesStatContext_p = getStatContext("domainQueues");
     d_clientStatContext_p       = getStatContext("clients");
     d_channelsStatContext_p     = getStatContext("channels");
+    d_dispatcherStatContext_p   = getStatContext("dispatcher");
 }
 
 int PrometheusStatConsumer::start(
@@ -260,6 +274,7 @@ void PrometheusStatConsumer::onSnapshot()
     captureClusterPartitionsStats();
     captureDomainStats(leaders);
     captureQueueStats();
+    captureDispatcherStats();
 
     d_prometheusStatExporter_p->onData();
 }
@@ -820,6 +835,61 @@ void PrometheusStatConsumer::captureDomainStats(const LeaderSet& leaders)
                 static_cast<Stat::Enum>(dpIt->d_stat));
 
             updateMetric(dpIt->d_name, tagger.getLabels(), value);
+        }
+    }
+}
+
+void PrometheusStatConsumer::captureDispatcherStats()
+{
+    // Lookup the 'dispatcher' stat context
+    // This is guaranteed to work because it was asserted in the ctor.
+    const bmqst::StatContext& dispatcherStatContext =
+        *d_dispatcherStatContext_p;
+
+    typedef mqbstat::DispatcherStats::Stat Stat;  // Shortcut
+
+    for (bmqst::StatContextIterator clientIt =
+             dispatcherStatContext.subcontextIterator();
+         clientIt;
+         ++clientIt) {
+        for (bmqst::StatContextIterator queueIt =
+                 clientIt->subcontextIterator();
+             queueIt;
+             ++queueIt) {
+            bslma::ManagedPtr<bdld::ManagedDatum> mdSp = queueIt->datum();
+            bdld::DatumMapRef                     map = mdSp->datum().theMap();
+
+            Tagger tagger;
+            tagger
+                .setInstance(mqbcfg::BrokerConfig::get().brokerInstanceName())
+                .setClient(map.find("client")->theString())
+                .setProcessorId(map.find("processorId")->theInteger())
+                .setDataType("host-data");
+
+            const auto labels = tagger.getLabels();
+
+            // Dispatcher queue metrics
+            static const DatapointDef defs[] = {
+                {"dispatcher_queue_enqueued_delta", Stat::e_ENQUEUE_DELTA},
+                {"dispatcher_queue_dequeued_delta", Stat::e_DEQUEUE_DELTA},
+                {"dispatcher_queue_size", Stat::e_QUEUE_SIZE},
+                {"dispatcher_queue_size_max", Stat::e_QUEUE_SIZE_MAX},
+                {"dispatcher_queue_size_abs_max", Stat::e_QUEUE_SIZE_ABS_MAX},
+                {"dispatcher_queue_time_min", Stat::e_QUEUE_TIME_MIN},
+                {"dispatcher_queue_time_avg", Stat::e_QUEUE_TIME_AVG},
+                {"dispatcher_queue_time_max", Stat::e_QUEUE_TIME_MAX},
+                {"dispatcher_queue_time_abs_max", Stat::e_QUEUE_TIME_ABS_MAX}};
+
+            for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
+                 dpIt != bdlb::ArrayUtil::end(defs);
+                 ++dpIt) {
+                const bsls::Types::Int64 value =
+                    mqbstat::DispatcherStats::getValue(
+                        *queueIt,
+                        d_snapshotId,
+                        static_cast<Stat::Enum>(dpIt->d_stat));
+                updateMetric(dpIt->d_name, labels, value);
+            }
         }
     }
 }

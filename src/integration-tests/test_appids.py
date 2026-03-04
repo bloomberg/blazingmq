@@ -67,7 +67,7 @@ def test_open_alarm_authorize_post(cluster: Cluster, domain_urls: tc.DomainUrls)
         quux.open(f"{du.uri_fanout}?id=quux", flags=["read"], block=True)
         == Client.e_SUCCESS
     )
-    assert leader.alarms()
+    assert leader.alarms("FANOUT_UNREGISTERED_APPID")
 
     # ---------------------------------------------------------------------
     # Check that authorized substreams are alive and 'quux' is unauthorized.
@@ -154,7 +154,7 @@ def test_open_alarm_authorize_post(cluster: Cluster, domain_urls: tc.DomainUrls)
     # stopped and started.
 
     quux.open(f"{du.uri_fanout}?id=quux", flags=["read"], succeed=True)
-    assert not leader.alarms()
+    assert not leader.alarms("FANOUT_UNREGISTERED_APPID")
 
 
 def test_create_authorize_open_post(cluster: Cluster, domain_urls: tc.DomainUrls):
@@ -352,7 +352,7 @@ def test_dynamic_twice_alarm_once(cluster: Cluster, domain_urls: tc.DomainUrls):
         consumer1.open(f"{uri_fanout}?id=quux", flags=["read"], block=True)
         == Client.e_SUCCESS
     )
-    assert leader.alarms()
+    assert leader.alarms("FANOUT_UNREGISTERED_APPID")
 
     # ---------------------------------------------------------------------
     # Create a consumer for the same unauthorized substream. This should
@@ -364,7 +364,7 @@ def test_dynamic_twice_alarm_once(cluster: Cluster, domain_urls: tc.DomainUrls):
         consumer2.open(f"{uri_fanout}?id=quux", flags=["read"], block=True)
         == Client.e_SUCCESS
     )
-    assert not leader.alarms()
+    assert not leader.alarms("FANOUT_UNREGISTERED_APPID")
 
     # ---------------------------------------------------------------------
     # Close both unauthorized substreams and re-open new one.  It should
@@ -377,7 +377,7 @@ def test_dynamic_twice_alarm_once(cluster: Cluster, domain_urls: tc.DomainUrls):
         consumer2.open(f"{uri_fanout}?id=quux", flags=["read"], block=True)
         == Client.e_SUCCESS
     )
-    assert leader.alarms()
+    assert leader.alarms("FANOUT_UNREGISTERED_APPID")
 
 
 @set_max_messages
@@ -405,7 +405,7 @@ def test_unauthorized_appid_doesnt_hold_messages(
     # dynamically create a substream
     unauthorized_consumer = next(proxies).create_client("unauthorized_consumer")
     unauthorized_consumer.open(f"{uri_fanout}?id=unauthorized", flags=["read"])
-    assert leader.alarms()
+    assert leader.alarms("FANOUT_UNREGISTERED_APPID")
 
     # ---------------------------------------------------------------------
     # consume all the messages in all the authorized substreams
@@ -998,8 +998,8 @@ def test_gc_old_data_new_app(cluster: Cluster, domain_urls: tc.DomainUrls):
     assert consumer.close(consumer_uri, block=True) == Client.e_SUCCESS
 
     # Observe that the message was GC'd from the queue.
-    leader.capture(
-        f"queue \\[{du.uri_fanout}\\].*garbage-collected \\[1\\] messages", timeout=5
+    assert leader.capture(
+        f"queue \\[{du.uri_fanout}\\].*garbage-collected \\[1\\] messages", timeout=6
     )
 
     leader.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, 100)
