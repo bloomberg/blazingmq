@@ -116,8 +116,8 @@ def print_diff(processed1, processed2):
 
 
 def expect_same_list_of_flat_objects(
-    entry: list[dict],
-    expected: list[dict],
+    entry: List[Dict[str, Any]],
+    expected: List[Dict[str, Any]],
     path: str = "",
     skip_objects_with_type=("allocator",),
     skip_keys=(
@@ -256,11 +256,7 @@ def check_admin_response(admin, expected: dict, path: str) -> None:
 
     stats = extract_stats(admin_response)
 
-    try:
-        expect_same_list_of_flat_objects(stats, expected, path)
-    except TypeError as e:
-        stats_str = json.dumps(stats, indent=2)
-        raise RuntimeError(f"TypeError: {path}, stats: {stats_str}") from e
+    expect_same_list_of_flat_objects(stats, expected, path)
 
 
 def check_admin_response_too_often(admin):
