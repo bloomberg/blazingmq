@@ -53,15 +53,6 @@
 namespace BloombergLP {
 namespace mqbstat {
 
-namespace {
-
-const char k_LOG_CATEGORY[] = "MQBSTAT.PRINTER";
-
-// Subcontext names
-const char k_SUBCONTEXT_ALLOCATORS[] = "allocators";
-
-}  // close unnamed namespace
-
 // -------------
 // class PrinterManager
 // -------------

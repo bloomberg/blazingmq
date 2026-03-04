@@ -786,9 +786,8 @@ JsonPrinter::JsonPrinter(const mqbcfg::StatsConfig& config,
                          const StatContextsMap&     statContextsMap,
                          bslma::Allocator*          allocator)
 : d_config(config)
-, d_statContextsMap(statContextsMap)
-, d_statsLogFile(allocator)
 , d_logfile_pattern(config.printer().file() + ".json")
+, d_statsLogFile(allocator)
 , d_statLogCleaner(eventScheduler, allocator)
 {
     bslma::Allocator* alloc = bslma::Default::allocator(allocator);

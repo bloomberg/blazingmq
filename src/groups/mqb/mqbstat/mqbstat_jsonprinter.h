@@ -75,9 +75,6 @@ class JsonPrinter {
     /// Log file pattern
     bsl::string d_logfile_pattern;
 
-    /// Contexts map
-    const StatContextsMap& d_statContextsMap;
-
     /// FileObserver for the stats log dump.
     ball::FileObserver2 d_statsLogFile;
 
