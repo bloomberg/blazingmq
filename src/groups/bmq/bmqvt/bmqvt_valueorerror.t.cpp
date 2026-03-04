@@ -208,13 +208,15 @@ bool operator==(const CustomAllocErrorType& lhs,
 }
 
 template <typename T, typename V>
-T makeObjectCase(const V& value, BSLA_UNUSED bsl::true_type uses_allocator)
+T makeObjectCase(const V&          value,
+                 BSLA_MAYBE_UNUSED bsl::true_type uses_allocator)
 {
     return T(value, bmqtst::TestHelperUtil::allocator());
 }
 
 template <typename T, typename V>
-T makeObjectCase(const V& value, BSLA_UNUSED bsl::false_type uses_allocator)
+T makeObjectCase(const V&          value,
+                 BSLA_MAYBE_UNUSED bsl::false_type uses_allocator)
 {
     return T(value);
 }
@@ -227,13 +229,13 @@ T makeObject(const V& value)
 }
 
 template <typename T>
-T makeObjectCase(BSLA_UNUSED bsl::true_type uses_allocator)
+T makeObjectCase(BSLA_MAYBE_UNUSED bsl::true_type uses_allocator)
 {
     return T(bmqtst::TestHelperUtil::allocator());
 }
 
 template <typename T>
-T makeObjectCase(BSLA_UNUSED bsl::false_type uses_allocator)
+T makeObjectCase(BSLA_MAYBE_UNUSED bsl::false_type uses_allocator)
 {
     return T();
 }

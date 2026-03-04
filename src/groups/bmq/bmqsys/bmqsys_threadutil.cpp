@@ -34,10 +34,6 @@
 namespace BloombergLP {
 namespace bmqsys {
 
-namespace {
-const char k_LOG_CATEGORY[] = "BMQSYS.THREADUTIL";
-}  // close unnamed namespace
-
 // -----------------
 // struct ThreadUtil
 // -----------------

@@ -2167,9 +2167,10 @@ int ClusterUtil::latestLedgerLSN(bmqp_ctrlmsg::LeaderMessageSequence* out,
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // No error
-        ,
-        rc_LEDGER_NOT_OPENED = -1  // The ledger is not opened
+        /// No error
+        rc_SUCCESS = 0,
+        /// The ledger is not opened
+        rc_LEDGER_NOT_OPENED = -1
     };
 
     if (!ledger.isOpen()) {

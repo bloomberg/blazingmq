@@ -39,7 +39,7 @@ namespace bmqio {
 StatChannelConfig::StatChannelConfig(
     const bsl::shared_ptr<bmqio::Channel>&     channel,
     const bsl::shared_ptr<bmqst::StatContext>& statContext,
-    BSLA_UNUSED bslma::Allocator* basicAllocator)
+    BSLA_MAYBE_UNUSED bslma::Allocator* basicAllocator)
 : d_channel_sp(channel)
 , d_statContext_sp(statContext)
 {
@@ -48,7 +48,7 @@ StatChannelConfig::StatChannelConfig(
 
 StatChannelConfig::StatChannelConfig(
     const StatChannelConfig& other,
-    BSLA_UNUSED bslma::Allocator* basicAllocator)
+    BSLA_MAYBE_UNUSED bslma::Allocator* basicAllocator)
 : d_channel_sp(other.d_channel_sp)
 , d_statContext_sp(other.d_statContext_sp)
 {

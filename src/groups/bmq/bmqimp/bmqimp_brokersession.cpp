@@ -133,7 +133,7 @@ void poolCreateEvent(void*                     address,
 }
 
 void callbackAdapter(const bsl::function<void()>& f,
-                     BSLA_UNUSED const bsl::shared_ptr<Event>& eventSp)
+                     BSLA_MAYBE_UNUSED const bsl::shared_ptr<Event>& eventSp)
 {
     // See the comment in 'postToFsm'.
     f();
@@ -160,8 +160,8 @@ void applyQueueSuspension(const bsl::shared_ptr<Queue>& queueSp, bool value)
     }
 }
 
-void releaseSemaphore(bslmt::Semaphore* semaphore,
-                      BSLA_UNUSED const bsl::shared_ptr<Event>& eventSp)
+void releaseSemaphore(bslmt::Semaphore*       semaphore,
+                      BSLA_MAYBE_UNUSED const bsl::shared_ptr<Event>& eventSp)
 {
     // executed by the FSM thread
 
@@ -4122,7 +4122,7 @@ bmqt::ConfigureQueueResult::Enum BrokerSession::sendDeconfigureRequest(
 }
 
 void BrokerSession::doHandleStartTimeout(
-    BSLA_UNUSED const bsl::shared_ptr<Event>& eventSp)
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<Event>& eventSp)
 {
     // executed by the FSM thread
     // PRECONDITIONS
@@ -4132,7 +4132,7 @@ void BrokerSession::doHandleStartTimeout(
 }
 
 void BrokerSession::doHandlePendingPutExpirationTimeout(
-    BSLA_UNUSED const bsl::shared_ptr<Event>& eventSp)
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<Event>& eventSp)
 {
     // executed by the FSM thread
     // PRECONDITIONS
@@ -4173,7 +4173,7 @@ void BrokerSession::doHandlePendingPutExpirationTimeout(
 
 void BrokerSession::doHandleChannelWatermark(
     bmqio::ChannelWatermarkType::Enum type,
-    BSLA_UNUSED const bsl::shared_ptr<Event>& eventSp)
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<Event>& eventSp)
 {
     // executed by the FSM thread
 
@@ -4186,6 +4186,9 @@ void BrokerSession::doHandleChannelWatermark(
     // handle HWM here
     if (type == bmqio::ChannelWatermarkType::e_HIGH_WATERMARK) {
         BALL_LOG_INFO << id() << "HWM: Channel is not writable";
+
+        enqueueSessionEvent(bmqt::SessionEventType::e_CHANNEL_HIGH_WATERMARK);
+
         return;  // RETURN
     }
 
@@ -4212,11 +4215,16 @@ void BrokerSession::doHandleChannelWatermark(
         d_extensionBlobBuffer.pop_front();
     }
     if (d_extensionBlobBuffer.empty()) {
-        bslmt::LockGuard<bslmt::Mutex> guard(&d_extensionBufferLock);  // LOCK
-        d_extensionBufferEmpty = true;
+        {
+            bslmt::LockGuard<bslmt::Mutex> guard(&d_extensionBufferLock);
+            d_extensionBufferEmpty = true;
 
-        BALL_LOG_INFO << id() << "LWM: Channel is ready for user messages";
-        d_extensionBufferCondition.broadcast();
+            BALL_LOG_INFO << id() << "LWM: Channel is ready for user messages";
+            d_extensionBufferCondition.broadcast();
+        }
+        // any 'post' or 'confirm' call will succeed until write fails in the
+        // same FSM thread .
+        enqueueSessionEvent(bmqt::SessionEventType::e_CHANNEL_LOW_WATERMARK);
     }
 }
 
@@ -4854,10 +4862,11 @@ BrokerSession::enqueueFsmEvent(bsl::shared_ptr<Event>& event)
     return bmqt::GenericResult::e_SUCCESS;
 }
 
-void BrokerSession::doStart(bslmt::Semaphore* semaphore,
-                            int*              status,
-                            BSLA_UNUSED const bsl::shared_ptr<Event>& eventSp,
-                            const bsl::shared_ptr<bmqpi::DTSpan>&     span)
+void BrokerSession::doStart(
+    bslmt::Semaphore*       semaphore,
+    int*                    status,
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<Event>& eventSp,
+    const bsl::shared_ptr<bmqpi::DTSpan>&           span)
 {
     // executed by the FSM thread
     // PRECONDITIONS
@@ -4901,8 +4910,9 @@ void BrokerSession::doStart(bslmt::Semaphore* semaphore,
     semaphore->post();
 }
 
-void BrokerSession::doStop(BSLA_UNUSED const bsl::shared_ptr<Event>& eventSp,
-                           const bsl::shared_ptr<bmqpi::DTSpan>&     span)
+void BrokerSession::doStop(
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<Event>& eventSp,
+    const bsl::shared_ptr<bmqpi::DTSpan>&           span)
 {
     // executed by the FSM thread
     // PRECONDITIONS
@@ -4920,8 +4930,8 @@ void BrokerSession::doOpenQueue(
     const bsl::shared_ptr<Queue>& queue,
     const bsls::TimeInterval      timeout,
     const FsmCallback&            fsmCallback,
-    BSLA_UNUSED const bsl::shared_ptr<Event>& eventSp,
-    const bsl::shared_ptr<bmqpi::DTSpan>&     span)
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<Event>& eventSp,
+    const bsl::shared_ptr<bmqpi::DTSpan>&           span)
 {
     // executed by the FSM thread
     // PRECONDITIONS
@@ -4964,8 +4974,8 @@ void BrokerSession::doConfigureQueue(
     const bmqt::QueueOptions&     options,
     const bsls::TimeInterval      timeout,
     const FsmCallback&            fsmCallback,
-    BSLA_UNUSED const bsl::shared_ptr<Event>& eventSp,
-    const bsl::shared_ptr<bmqpi::DTSpan>&     span)
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<Event>& eventSp,
+    const bsl::shared_ptr<bmqpi::DTSpan>&           span)
 {
     // executed by the FSM thread
     // PRECONDITIONS
@@ -5011,8 +5021,8 @@ void BrokerSession::doCloseQueue(
     const bsl::shared_ptr<Queue>& queue,
     const bsls::TimeInterval      timeout,
     const FsmCallback&            fsmCallback,
-    BSLA_UNUSED const bsl::shared_ptr<Event>& eventSp,
-    const bsl::shared_ptr<bmqpi::DTSpan>&     span)
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<Event>& eventSp,
+    const bsl::shared_ptr<bmqpi::DTSpan>&           span)
 {
     // executed by the FSM thread
     // PRECONDITIONS
@@ -5046,7 +5056,7 @@ void BrokerSession::doCloseQueue(
 
 void BrokerSession::doSetChannel(
     const bsl::shared_ptr<bmqio::Channel> channel,
-    BSLA_UNUSED const bsl::shared_ptr<Event>& eventSp)
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<Event>& eventSp)
 {
     // executed by the FSM thread
     // PRECONDITIONS
@@ -5387,7 +5397,7 @@ void BrokerSession::onHostHealthStateChange(bmqt::HostHealthState::Enum state)
 
 void BrokerSession::doHandleHostHealthStateChange(
     bmqt::HostHealthState::Enum state,
-    BSLA_UNUSED const bsl::shared_ptr<Event>& eventSp)
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<Event>& eventSp)
 {
     // executed by the FSM thread
     // PRECONDITIONS
@@ -6982,13 +6992,19 @@ BrokerSession::lookupQueue(const bmqp::QueueId& queueId) const
     return d_queueManager.lookupQueue(queueId);
 }
 
-bool BrokerSession::acceptUserEvent(const bdlbb::Blob&        eventBlob,
-                                    const bsls::TimeInterval& timeout)
+bool BrokerSession::acceptUserEvent(const bdlbb::Blob& eventBlob)
 {
     // executed by the APPLICATION thread
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!d_extensionBufferEmpty)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+
+        const bsls::TimeInterval& timeout =
+            d_sessionOptions.channelWriteTimeout();
+
+        if (timeout.totalMilliseconds() == 0) {
+            return false;  // RETURN
+        }
 
         const bsls::TimeInterval expireAfter =
             bmqsys::Time::nowMonotonicClock() + timeout;
@@ -7069,8 +7085,7 @@ BrokerSession::createDTSpan(bsl::string_view              operation,
     return result;
 }
 
-int BrokerSession::post(const bdlbb::Blob&        eventBlob,
-                        const bsls::TimeInterval& timeout)
+int BrokerSession::post(const bdlbb::Blob& eventBlob)
 {
     // Prevent send of an empty/invalid blob: when using the
     // MessageEventBuilder, if no messages were added (i.e., 'PackMessage()'
@@ -7128,7 +7143,8 @@ int BrokerSession::post(const bdlbb::Blob&        eventBlob,
                        << "Unable to post event [reason: 'SESSION_STOPPED']";
         return bmqt::PostResult::e_NOT_CONNECTED;  // RETURN
     }
-    bool isAccepted = acceptUserEvent(eventBlob, timeout);
+
+    bool isAccepted = acceptUserEvent(eventBlob);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!isAccepted)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
@@ -7157,8 +7173,7 @@ int BrokerSession::post(const bdlbb::Blob&        eventBlob,
 }
 
 int BrokerSession::confirmMessage(const bsl::shared_ptr<bmqimp::Queue>& queue,
-                                  const bmqt::MessageGUID&  messageId,
-                                  const bsls::TimeInterval& timeout)
+                                  const bmqt::MessageGUID& messageId)
 {
     // PRECONDTIONS
     BSLS_ASSERT(queue && "non-null 'queue' must be specified");
@@ -7215,7 +7230,7 @@ int BrokerSession::confirmMessage(const bsl::shared_ptr<bmqimp::Queue>& queue,
                        << rc;
         return rc;  // RETURN
     }
-    bool isAccepted = acceptUserEvent(*builder.blob(), timeout);
+    bool isAccepted = acceptUserEvent(*builder.blob());
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!isAccepted)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
@@ -7227,8 +7242,7 @@ int BrokerSession::confirmMessage(const bsl::shared_ptr<bmqimp::Queue>& queue,
     return bmqt::GenericResult::e_SUCCESS;
 }
 
-int BrokerSession::confirmMessages(const bdlbb::Blob&        blob,
-                                   const bsls::TimeInterval& timeout)
+int BrokerSession::confirmMessages(const bdlbb::Blob& blob)
 {
     if (blob.length() <= static_cast<int>(sizeof(bmqp::EventHeader))) {
         return bmqt::GenericResult::e_INVALID_ARGUMENT;  // RETURN
@@ -7261,7 +7275,7 @@ int BrokerSession::confirmMessages(const bdlbb::Blob&        blob,
         return bmqt::GenericResult::e_INVALID_ARGUMENT;  // RETURN
     }
 
-    bool isAccepted = acceptUserEvent(blob, timeout);
+    bool isAccepted = acceptUserEvent(blob);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!isAccepted)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 

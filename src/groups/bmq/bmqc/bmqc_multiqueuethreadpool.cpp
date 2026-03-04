@@ -17,36 +17,11 @@
 #include <bmqc_multiqueuethreadpool.h>
 
 #include <bmqscm_version.h>
-// BDE
-#include <bslma_managedptr.h>
 
 namespace BloombergLP {
 namespace bmqc {
 
-// ------------------------------------------
-// class MultiQueueThreadPool_QueueCreatorRet
-// ------------------------------------------
-
-// CREATORS
-MultiQueueThreadPool_QueueCreatorRet::MultiQueueThreadPool_QueueCreatorRet(
-    bslma::Allocator* basicAllocator)
-: d_context_mp()
-, d_name(basicAllocator)
-{
-    // NOTHING
-}
-
-// MANIPULATORS
-bslma::ManagedPtr<void>& MultiQueueThreadPool_QueueCreatorRet::context()
-{
-    return d_context_mp;
-}
-
-// ACCESSORS
-const bsl::string& MultiQueueThreadPool_QueueCreatorRet::name()
-{
-    return d_name;
-}
+// NOTHING
 
 }  // close package namespace
 }  // close enterprise namespace

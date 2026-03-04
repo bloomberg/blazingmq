@@ -130,10 +130,6 @@ class NtcChannelFactory : public bmqio::ChannelFactory {
         const bsl::shared_ptr<bmqio::Channel>&       channel,
         const bmqio::ChannelFactory::ResultCallback& callback);
 
-    /// Process the closure of the channel identified by the specified
-    /// `handle`.
-    void processListenerClosed(int handle);
-
     /// Process the specified `event` having the specified `status` for
     /// the specified `channel` and invoke the specified `callback`.
     void processChannelResult(
@@ -142,9 +138,31 @@ class NtcChannelFactory : public bmqio::ChannelFactory {
         const bsl::shared_ptr<bmqio::Channel>&       channel,
         const bmqio::ChannelFactory::ResultCallback& callback);
 
-    /// Process the closure of the listener identified by the specified
-    /// `handle`.
-    void processChannelClosed(int handle);
+    /// @brief Remove the listener identified by the specified @p handle
+    ///        from the catalog and decrement the resource usage count.
+    ///
+    /// @param handle Catalog handle of the listener to remove.
+    void removeListener(int handle);
+
+    /// @brief Remove the channel identified by the specified @p handle
+    ///        from the catalog and decrement the resource usage count.
+    ///
+    /// @param handle Catalog handle of the channel to remove.
+    void removeChannel(int handle);
+
+    /// @brief Add the specified @p listener to the catalog and increment
+    ///        the resource usage count.
+    ///
+    /// @param listener Shared pointer to the listener to add.
+    /// @return Catalog handle for the added listener.
+    int addListener(const bsl::shared_ptr<bmqio::NtcListener>& listener);
+
+    /// @brief Add the specified @p channel to the catalog and increment
+    ///        the resource usage count.
+    ///
+    /// @param channel Shared pointer to the channel to add.
+    /// @return Catalog handle for the added channel.
+    int addChannel(const bsl::shared_ptr<bmqio::NtcChannel>& channel);
 
   public:
     // PUBLIC TYPES

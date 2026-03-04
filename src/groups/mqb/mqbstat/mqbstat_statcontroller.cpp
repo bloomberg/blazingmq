@@ -28,6 +28,7 @@
 #include <mqbscm_versiontag.h>
 #include <mqbstat_brokerstats.h>
 #include <mqbstat_clusterstats.h>
+#include <mqbstat_dispatcherstats.h>
 #include <mqbstat_domainstats.h>
 #include <mqbstat_queuestats.h>
 
@@ -117,7 +118,7 @@ StatController::StatContextDetails::StatContextDetails(
 
 StatController::StatContextDetails::StatContextDetails(
     const StatContextDetails& rhs,
-    BSLA_UNUSED bslma::Allocator* allocator_p)
+    BSLA_MAYBE_UNUSED bslma::Allocator* allocator_p)
 : d_statContext_sp(rhs.d_statContext_sp)
 , d_managed(rhs.d_managed)
 {
@@ -188,6 +189,17 @@ void StatController::initializeStats()
         StatContextDetails(
             BrokerStatsUtil::initializeStatContext(historySize,
                                                    brokerAllocator),
+            false)));
+
+    // ----------
+    // Dispatcher
+    bslma::Allocator* dispatcherAllocator = d_allocators.get(
+        "DispatcherStats");
+    d_statContextsMap.insert(bsl::make_pair(
+        bsl::string("dispatcher"),
+        StatContextDetails(
+            DispatcherStatsUtil::initializeStatContext(historySize,
+                                                       dispatcherAllocator),
             false)));
 
     // -------

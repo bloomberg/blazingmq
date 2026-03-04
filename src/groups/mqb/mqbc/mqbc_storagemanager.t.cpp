@@ -231,12 +231,13 @@ struct TestHelper {
              cit != d_cluster_mp->_channels().cend();
              ++cit) {
             if (cit->first->nodeId() != selfNodeId) {
-                BMQTST_ASSERT(cit->second->waitFor(1, false));
+                bmqio::TestChannel::WriteCall writeCall;
+                BMQTST_ASSERT(cit->second->getWriteCall(&writeCall, 0));
 
                 bmqp_ctrlmsg::ControlMessage message;
                 mqbc::ClusterUtil::extractMessage(
                     &message,
-                    cit->second->writeCalls()[0].d_blob,
+                    writeCall.d_blob,
                     bmqtst::TestHelperUtil::allocator());
                 BMQTST_ASSERT(message.choice()
                                   .clusterMessage()
@@ -254,7 +255,7 @@ struct TestHelper {
             else {
                 // Make sure that primary node does not end up receiving
                 // replicaStateRequest.
-                BMQTST_ASSERT(!cit->second->waitFor(1, false));
+                BMQTST_ASSERT(!cit->second->waitFor(1));
             }
         }
     }
@@ -281,7 +282,7 @@ struct TestHelper {
                 if (replicaCit->second.sequenceNumber() ==
                     selfSeqNum.sequenceNumber()) {
                     // No data chunk was sent
-                    BMQTST_ASSERT(cit->second->waitFor(1, false));
+                    BMQTST_ASSERT(cit->second->waitFor(1));
 
                     continue;  // CONTINUE
                 }
@@ -289,7 +290,9 @@ struct TestHelper {
                 // Data chunks were sent
                 BMQTST_ASSERT_LT(replicaCit->second.sequenceNumber(),
                                  selfSeqNum.sequenceNumber());
-                BMQTST_ASSERT(cit->second->waitFor(2, false));
+
+                bmqio::TestChannel::WriteCall writeCall;
+                BMQTST_ASSERT(cit->second->getWriteCall(&writeCall, 1));
 
                 // Verify data chunks
                 //
@@ -302,12 +305,11 @@ struct TestHelper {
                 bsl::shared_ptr<bdlbb::Blob> blob_sp;
                 blob_sp.createInplace(bmqtst::TestHelperUtil::allocator(),
                                       bmqtst::TestHelperUtil::allocator());
-                bdlbb::BlobUtil::append(
-                    blob_sp.get(),
-                    cit->second->writeCalls()[1].d_blob,
-                    0,
-                    cit->second->writeCalls()[1].d_blob.length(),
-                    bmqtst::TestHelperUtil::allocator());
+                bdlbb::BlobUtil::append(blob_sp.get(),
+                                        writeCall.d_blob,
+                                        0,
+                                        writeCall.d_blob.length(),
+                                        bmqtst::TestHelperUtil::allocator());
 
                 bmqp::Event event(blob_sp.get(),
                                   bmqtst::TestHelperUtil::allocator());
@@ -394,7 +396,7 @@ struct TestHelper {
             else {
                 // Make sure that primary node does not end up receiving
                 // data chunks or send it to upto date replicas.
-                BMQTST_ASSERT(!cit->second->waitFor(1, false));
+                BMQTST_ASSERT(!cit->second->waitFor(1));
             }
         }
     }
@@ -434,11 +436,10 @@ struct TestHelper {
              cit != d_cluster_mp->_channels().cend();
              ++cit) {
             if (cit->first->nodeId() == primaryNodeId) {
-                BMQTST_ASSERT(
-                    cit->second->waitFor(expectedNumDataChunks, false));
-                // BMQTST_ASSERT(!cit->second->waitFor(expectedNumDataChunks +
-                // 1,
-                //       false));
+                BMQTST_ASSERT(cit->second->waitFor(expectedNumDataChunks));
+                // TODO(kaikulimu): uncomment & update UT
+                // BMQTST_ASSERT(!cit->second->waitFor(
+                //                                 expectedNumDataChunks + 1));
                 /*
                 // Verify data chunks
                 const bdlbb::Blob blob = cit->second->writeCalls()[0].d_blob;
@@ -474,7 +475,7 @@ struct TestHelper {
             else {
                 // Make sure that replica node does not send chunks to anyone
                 // except primary.
-                BMQTST_ASSERT(!cit->second->waitFor(1, false));
+                BMQTST_ASSERT(!cit->second->waitFor(1));
             }
         }
     }
@@ -503,12 +504,13 @@ struct TestHelper {
              cit != d_cluster_mp->_channels().cend();
              ++cit) {
             if (cit->first->nodeId() == highestSeqNumNodeId) {
-                BMQTST_ASSERT(cit->second->waitFor(1, false));
+                bmqio::TestChannel::WriteCall writeCall;
+                BMQTST_ASSERT(cit->second->getWriteCall(&writeCall, 0));
 
                 bmqp_ctrlmsg::ControlMessage message;
                 mqbc::ClusterUtil::extractMessage(
                     &message,
-                    cit->second->writeCalls()[0].d_blob,
+                    writeCall.d_blob,
                     bmqtst::TestHelperUtil::allocator());
                 BMQTST_ASSERT_EQ(message.choice().clusterMessage(),
                                  expectedMessage);
@@ -516,7 +518,7 @@ struct TestHelper {
             else {
                 // Make sure that no other node except highestSeqNumNodeId
                 // receives replicaDataRequest of type PULL.
-                BMQTST_ASSERT(!cit->second->waitFor(1, false));
+                BMQTST_ASSERT(!cit->second->waitFor(1));
             }
         }
     }
@@ -543,12 +545,13 @@ struct TestHelper {
              ++cit) {
             if (destinationReplicas.find(cit->first->nodeId()) !=
                 destinationReplicas.end()) {
-                BMQTST_ASSERT(cit->second->waitFor(1, false));
+                bmqio::TestChannel::WriteCall writeCall;
+                BMQTST_ASSERT(cit->second->getWriteCall(&writeCall, 0));
 
                 bmqp_ctrlmsg::ControlMessage message;
                 mqbc::ClusterUtil::extractMessage(
                     &message,
-                    cit->second->writeCalls()[0].d_blob,
+                    writeCall.d_blob,
                     bmqtst::TestHelperUtil::allocator());
                 replicaDataRequest.beginSequenceNumber() =
                     destinationReplicas.at(cit->first->nodeId());
@@ -558,7 +561,7 @@ struct TestHelper {
             else {
                 // Make sure that primary node does not end up receiving
                 // data chunks or send it to upto date replicas.
-                BMQTST_ASSERT(!cit->second->waitFor(1, false));
+                BMQTST_ASSERT(!cit->second->waitFor(1));
             }
         }
     }
@@ -579,19 +582,20 @@ struct TestHelper {
              cit != d_cluster_mp->_channels().cend();
              ++cit) {
             if (cit->first->nodeId() == rogueNodeId) {
-                BMQTST_ASSERT(cit->second->waitFor(1, false));
+                bmqio::TestChannel::WriteCall writeCall;
+                BMQTST_ASSERT(cit->second->getWriteCall(&writeCall, 0));
 
                 bmqp_ctrlmsg::ControlMessage message;
                 mqbc::ClusterUtil::extractMessage(
                     &message,
-                    cit->second->writeCalls()[0].d_blob,
+                    writeCall.d_blob,
                     bmqtst::TestHelperUtil::allocator());
                 BMQTST_ASSERT_EQ(message, failureMessage);
             }
             else {
                 // Make sure that no other node except the rogue node ends up
                 // receiving failure replicaStateResponse.
-                BMQTST_ASSERT(!cit->second->waitFor(1, false));
+                BMQTST_ASSERT(!cit->second->waitFor(1));
             }
         }
     }
@@ -612,19 +616,20 @@ struct TestHelper {
              cit != d_cluster_mp->_channels().cend();
              ++cit) {
             if (cit->first->nodeId() == rogueNodeId) {
-                BMQTST_ASSERT(cit->second->waitFor(1, false));
+                bmqio::TestChannel::WriteCall writeCall;
+                BMQTST_ASSERT(cit->second->getWriteCall(&writeCall, 0));
 
                 bmqp_ctrlmsg::ControlMessage message;
                 mqbc::ClusterUtil::extractMessage(
                     &message,
-                    cit->second->writeCalls()[0].d_blob,
+                    writeCall.d_blob,
                     bmqtst::TestHelperUtil::allocator());
                 BMQTST_ASSERT_EQ(message, failureMessage);
             }
             else {
                 // Make sure that no other node except the rogue node ends up
                 // receiving failure primaryStateResponse.
-                BMQTST_ASSERT(!cit->second->waitFor(1, false));
+                BMQTST_ASSERT(!cit->second->waitFor(1));
             }
         }
     }
@@ -638,12 +643,13 @@ struct TestHelper {
              cit != d_cluster_mp->_channels().cend();
              ++cit) {
             if (cit->first->nodeId() == primaryNodeId) {
-                BMQTST_ASSERT(cit->second->waitFor(1, false));
+                bmqio::TestChannel::WriteCall writeCall;
+                BMQTST_ASSERT(cit->second->getWriteCall(&writeCall, 0));
 
                 bmqp_ctrlmsg::ControlMessage message;
                 mqbc::ClusterUtil::extractMessage(
                     &message,
-                    cit->second->writeCalls()[0].d_blob,
+                    writeCall.d_blob,
                     bmqtst::TestHelperUtil::allocator());
                 BMQTST_ASSERT(message.choice()
                                   .clusterMessage()
@@ -655,7 +661,7 @@ struct TestHelper {
             else {
                 // Make sure that other replica nodes dont receive
                 // primaryStateRequest.
-                BMQTST_ASSERT(!cit->second->waitFor(1, false));
+                BMQTST_ASSERT(!cit->second->waitFor(1));
             }
         }
     }
@@ -680,12 +686,13 @@ struct TestHelper {
              cit != d_cluster_mp->_channels().cend();
              ++cit) {
             if (cit->first->nodeId() == primaryNodeId) {
-                BMQTST_ASSERT(cit->second->waitFor(1, false));
+                bmqio::TestChannel::WriteCall writeCall;
+                BMQTST_ASSERT(cit->second->getWriteCall(&writeCall, 0));
 
                 bmqp_ctrlmsg::ControlMessage message;
                 mqbc::ClusterUtil::extractMessage(
                     &message,
-                    cit->second->writeCalls()[0].d_blob,
+                    writeCall.d_blob,
                     bmqtst::TestHelperUtil::allocator());
                 BMQTST_ASSERT_EQ(message.choice().clusterMessage(),
                                  expectedMessage);
@@ -693,7 +700,7 @@ struct TestHelper {
             else {
                 // Make sure that other replica nodes dont receive
                 // primaryStateRequest.
-                BMQTST_ASSERT(!cit->second->waitFor(1, false));
+                BMQTST_ASSERT(!cit->second->waitFor(1));
             }
         }
     }
@@ -1146,7 +1153,7 @@ static void test3_unknownDetectSelfReplica()
     BMQTST_ASSERT_EQ(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size(),
                      1U);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
-                     mqbc::PartitionFSM::State::e_REPLICA_HEALING);
+                     mqbc::PartitionFSM::State::e_REPLICA_WAITING);
 
     for (size_t pid = 0; pid < helper.numPartitions(); ++pid) {
         helper.verifyReplicaSendsPrimaryStateRqst(primaryNodeId);
@@ -1837,7 +1844,7 @@ static void test9_primaryHealingStage1QuorumSendsReplicaDataRequestPull()
     helper.d_cluster_mp->stop();
 }
 
-static void test10_replicaHealingDetectSelfPrimary()
+static void test10_replicaWaitingDetectSelfPrimary()
 // ------------------------------------------------------------------------
 // BREATHING TEST
 //
@@ -1847,7 +1854,7 @@ static void test10_replicaHealingDetectSelfPrimary()
 // Plan:
 //  1) Create a StorageManager on the stack
 //  2) Invoke start.
-//  3) Transition to healing Replica and then detect self primary.
+//  3) Transition to waiting Replica and then detect self primary.
 //  4) Verify the actions as per FSM.
 //  5) Invoke stop.
 //
@@ -1857,7 +1864,7 @@ static void test10_replicaHealingDetectSelfPrimary()
 {
     bmqtst::TestHelper::printTestName(
         "BREATHING TEST - "
-        "HEALING REPLICA DETECTS SELF AS PRIMARY");
+        "WAITING REPLICA DETECTS SELF AS PRIMARY");
 
     TestHelper helper;
 
@@ -1899,7 +1906,7 @@ static void test10_replicaHealingDetectSelfPrimary()
     helper.startStorageManager(&storageManager, primaryNode);
 
     BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
-                    mqbc::PartitionFSM::State::e_REPLICA_HEALING);
+                    mqbc::PartitionFSM::State::e_REPLICA_WAITING);
 
     for (size_t pid = 0; pid < helper.numPartitions(); ++pid) {
         helper.verifyReplicaSendsPrimaryStateRqst(primaryNodeId);
@@ -1933,7 +1940,7 @@ static void test10_replicaHealingDetectSelfPrimary()
     helper.d_cluster_mp->stop();
 }
 
-static void test11_replicaHealingReceivesReplicaStateRqst()
+static void test11_replicaWaitingReceivesReplicaStateRqst()
 // ------------------------------------------------------------------------
 // BREATHING TEST
 //
@@ -1943,7 +1950,9 @@ static void test11_replicaHealingReceivesReplicaStateRqst()
 // Plan:
 //  1) Create a StorageManager on the stack
 //  2) Invoke start.
-//  3) Transition to healing Replica.
+//  3) Transition to waiting Replica.
+//  4) Send failure PrimaryStateResponse to this Replica.
+//  5) Verify transition to healing Replica.
 //  4) Send ReplicaStateRqst to this Replica.
 //  5) Check that Replica sends ReplicaStateRspn, stores primarySeqNum.
 //  6) Verify the actions as per FSM.
@@ -1955,7 +1964,7 @@ static void test11_replicaHealingReceivesReplicaStateRqst()
 {
     bmqtst::TestHelper::printTestName(
         "BREATHING TEST - "
-        "HEALING REPLICA RECEIVES REPLICA STATE REQUEST");
+        "WAITING REPLICA RECEIVES REPLICA STATE REQUEST");
 
     TestHelper helper;
 
@@ -1992,7 +2001,7 @@ static void test11_replicaHealingReceivesReplicaStateRqst()
     helper.startStorageManager(&storageManager, primaryNode);
 
     BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
-                    mqbc::PartitionFSM::State::e_REPLICA_HEALING);
+                    mqbc::PartitionFSM::State::e_REPLICA_WAITING);
 
     for (size_t pid = 0; pid < helper.numPartitions(); ++pid) {
         helper.verifyReplicaSendsPrimaryStateRqst(primaryNodeId);
@@ -2004,12 +2013,26 @@ static void test11_replicaHealingReceivesReplicaStateRqst()
 
     BSLS_ASSERT_OPT(nodeToSeqNumCtxMap.size() == 1);
 
+    // Receives failure PrimaryStateResponse from the primary node.
+    static const int             k_PRIMARY_STATE_REQUEST_ID = 1;
+    bmqp_ctrlmsg::ControlMessage responseMessage;
+    responseMessage.rId()          = k_PRIMARY_STATE_REQUEST_ID;
+    bmqp_ctrlmsg::Status& response = responseMessage.choice().makeStatus();
+    response.category()            = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+    response.code()                = mqbi::ClusterErrorCode::e_NOT_PRIMARY;
+    response.message()             = "Not primary";
+
+    helper.d_cluster_mp->requestManager().processResponse(responseMessage);
+
+    BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+                     mqbc::PartitionFSM::State::e_REPLICA_HEALING);
+
     // Receives ReplicaStateRequest from the primary node.
-    static const int             k_PRIMARY_REQUEST_ID = 1;
-    bmqp_ctrlmsg::ControlMessage message;
-    message.rId() = k_PRIMARY_REQUEST_ID;
+    static const int             k_REPLICA_STATE_REQUEST_ID = 1;
+    bmqp_ctrlmsg::ControlMessage requestMessage;
+    requestMessage.rId() = k_REPLICA_STATE_REQUEST_ID;
     bmqp_ctrlmsg::ReplicaStateRequest& replicaStateRequest =
-        message.choice()
+        requestMessage.choice()
             .makeClusterMessage()
             .choice()
             .makePartitionMessage()
@@ -2023,7 +2046,7 @@ static void test11_replicaHealingReceivesReplicaStateRqst()
     replicaStateRequest.partitionId()          = k_PARTITION_ID;
     replicaStateRequest.latestSequenceNumber() = seqNum;
 
-    storageManager.processReplicaStateRequest(message, primaryNode);
+    storageManager.processReplicaStateRequest(requestMessage, primaryNode);
 
     helper.verifyReplicaSendsReplicaStateRspn(k_PARTITION_ID, primaryNodeId);
 
@@ -2038,7 +2061,7 @@ static void test11_replicaHealingReceivesReplicaStateRqst()
     helper.d_cluster_mp->stop();
 }
 
-static void test12_replicaHealingReceivesPrimaryStateRspn()
+static void test12_replicaWaitingReceivesPrimaryStateRspn()
 // ------------------------------------------------------------------------
 // BREATHING TEST
 //
@@ -2048,10 +2071,10 @@ static void test12_replicaHealingReceivesPrimaryStateRspn()
 // Plan:
 //  1) Create a StorageManager on the stack
 //  2) Invoke start.
-//  3) Transition to healing Replica.
+//  3) Transition to waiting Replica.
 //  4) Send PrimaryStateRspn to this Replica.
 //  5) Check that Replica stores primarySeqNum.
-//  6) Verify the actions as per FSM.
+//  6) Verify the actions as per FSM, and transition to healing Replica.
 //  7) Invoke stop.
 //
 // Testing:
@@ -2060,7 +2083,7 @@ static void test12_replicaHealingReceivesPrimaryStateRspn()
 {
     bmqtst::TestHelper::printTestName(
         "BREATHING TEST - "
-        "HEALING REPLICA RECEIVES PRIMARY STATE RESPONSE");
+        "WAITING REPLICA RECEIVES PRIMARY STATE RESPONSE");
 
     TestHelper helper;
 
@@ -2097,7 +2120,7 @@ static void test12_replicaHealingReceivesPrimaryStateRspn()
     helper.startStorageManager(&storageManager, primaryNode);
 
     BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
-                    mqbc::PartitionFSM::State::e_REPLICA_HEALING);
+                    mqbc::PartitionFSM::State::e_REPLICA_WAITING);
 
     for (size_t pid = 0; pid < helper.numPartitions(); ++pid) {
         helper.verifyReplicaSendsPrimaryStateRqst(primaryNodeId);
@@ -2141,7 +2164,7 @@ static void test12_replicaHealingReceivesPrimaryStateRspn()
     helper.d_cluster_mp->stop();
 }
 
-static void test13_replicaHealingReceivesFailedPrimaryStateRspn()
+static void test13_replicaWaitingReceivesFailedPrimaryStateRspn()
 // ------------------------------------------------------------------------
 // BREATHING TEST
 //
@@ -2151,10 +2174,10 @@ static void test13_replicaHealingReceivesFailedPrimaryStateRspn()
 // Plan:
 //  1) Create a StorageManager on the stack
 //  2) Invoke start.
-//  3) Transition to healing Replica.
+//  3) Transition to waiting Replica.
 //  4) Send failed PrimaryStateRspn to this Replica.
 //  5) Check that Replica does not store primarySeqNum.
-//  6) Verify the actions as per FSM.
+//  6) Verify the actions as per FSM, and transition to healing Replica.
 //  7) Invoke stop.
 //
 // Testing:
@@ -2163,7 +2186,7 @@ static void test13_replicaHealingReceivesFailedPrimaryStateRspn()
 {
     bmqtst::TestHelper::printTestName(
         "BREATHING TEST - "
-        "HEALING REPLICA RECEIVES FAILED PRIMARY STATE RESPONSE");
+        "WAITING REPLICA RECEIVES FAILED PRIMARY STATE RESPONSE");
 
     TestHelper helper;
 
@@ -2200,7 +2223,7 @@ static void test13_replicaHealingReceivesFailedPrimaryStateRspn()
     helper.startStorageManager(&storageManager, primaryNode);
 
     BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
-                    mqbc::PartitionFSM::State::e_REPLICA_HEALING);
+                    mqbc::PartitionFSM::State::e_REPLICA_WAITING);
 
     for (size_t pid = 0; pid < helper.numPartitions(); ++pid) {
         helper.verifyReplicaSendsPrimaryStateRqst(primaryNodeId);
@@ -2233,7 +2256,7 @@ static void test13_replicaHealingReceivesFailedPrimaryStateRspn()
     helper.d_cluster_mp->stop();
 }
 
-static void test14_replicaHealingReceivesPrimaryStateRqst()
+static void test14_replicaWaitingReceivesPrimaryStateRqst()
 // ------------------------------------------------------------------------
 // BREATHING TEST
 //
@@ -2243,7 +2266,7 @@ static void test14_replicaHealingReceivesPrimaryStateRqst()
 // Plan:
 //  1) Create a StorageManager on the stack
 //  2) Invoke start.
-//  3) Transition to healing Replica.
+//  3) Transition to waiting Replica.
 //  4) Send PrimaryStateRqst to this Replica.
 //  5) Check that Replica sends failed PrimaryStateRspn.
 //  6) Verify the actions as per FSM.
@@ -2255,7 +2278,7 @@ static void test14_replicaHealingReceivesPrimaryStateRqst()
 {
     bmqtst::TestHelper::printTestName(
         "BREATHING TEST - "
-        "HEALING REPLICA RECEIVES PRIMARY STATE REQUEST");
+        "WAITING REPLICA RECEIVES PRIMARY STATE REQUEST");
 
     TestHelper helper;
 
@@ -2292,7 +2315,7 @@ static void test14_replicaHealingReceivesPrimaryStateRqst()
     helper.startStorageManager(&storageManager, primaryNode);
 
     BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
-                    mqbc::PartitionFSM::State::e_REPLICA_HEALING);
+                    mqbc::PartitionFSM::State::e_REPLICA_WAITING);
 
     for (size_t pid = 0; pid < helper.numPartitions(); ++pid) {
         helper.verifyReplicaSendsPrimaryStateRqst(primaryNodeId);
@@ -2336,7 +2359,7 @@ static void test14_replicaHealingReceivesPrimaryStateRqst()
     BMQTST_ASSERT_EQ(nodeToSeqNumCtxMap.size(), 1U);
     BMQTST_ASSERT_EQ(nodeToSeqNumCtxMap.count(rogueNode), 0U);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
-                     mqbc::PartitionFSM::State::e_REPLICA_HEALING);
+                     mqbc::PartitionFSM::State::e_REPLICA_WAITING);
 
     // Stop the cluster
     storageManager.stopPFSMs();
@@ -2344,7 +2367,7 @@ static void test14_replicaHealingReceivesPrimaryStateRqst()
     helper.d_cluster_mp->stop();
 }
 
-static void test15_replicaHealingReceivesReplicaDataRqstPull()
+static void test15_replicaWaitingReceivesReplicaDataRqstPull()
 // ------------------------------------------------------------------------
 // BREATHING TEST
 //
@@ -2355,13 +2378,16 @@ static void test15_replicaHealingReceivesReplicaDataRqstPull()
 // Plan:
 //  1) Create a StorageManager on the stack
 //  2) Invoke start.
-//  3) Transition to healing Replica.
-//  4) Send ReplicaStateRqst to this Replica.
-//  5) Check that Replica sends ReplicaStateRspn, stores primarySeqNum.
-//  6) Send ReplicaDataRqstPull
-//  7) Check that Replica sends data chunks.
-//  8) Check that Replica sends ReplicaDataRspnPull.
-//  9) Invoke stop.
+//  3) Transition to waiting Replica.
+//  4) Send failure PrimaryStateResponse to this Replica.
+//  5) Verify transition to healing Replica.
+//  6) Send ReplicaStateRqst to this Replica.
+//  7) Check that Replica sends ReplicaStateRspn, stores primarySeqNum, and
+//     transitions to healing Replica.
+//  8) Send ReplicaDataRqstPull
+//  9) Check that Replica sends data chunks.
+// 10) Check that Replica sends ReplicaDataRspnPull.
+// 11) Invoke stop.
 //
 // Testing:
 //   Basic functionality.
@@ -2369,7 +2395,7 @@ static void test15_replicaHealingReceivesReplicaDataRqstPull()
 {
     bmqtst::TestHelper::printTestName(
         "BREATHING TEST - "
-        "HEALING REPLICA RECEIVES REPLICA DATA REQUEST PULL");
+        "WAITING REPLICA RECEIVES REPLICA DATA REQUEST PULL");
 
     // TODO: debug on why the global allocator check fails for fileStore
     // allocating some memory through default allocator.
@@ -2414,7 +2440,7 @@ static void test15_replicaHealingReceivesReplicaDataRqstPull()
     fs.setIgnoreCrc32c(true);
 
     BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
-                    mqbc::PartitionFSM::State::e_REPLICA_HEALING);
+                    mqbc::PartitionFSM::State::e_REPLICA_WAITING);
 
     for (size_t pid = 0; pid < helper.numPartitions(); ++pid) {
         helper.verifyReplicaSendsPrimaryStateRqst(primaryNodeId);
@@ -2426,12 +2452,26 @@ static void test15_replicaHealingReceivesReplicaDataRqstPull()
 
     BSLS_ASSERT_OPT(nodeToSeqNumCtxMap.size() == 1);
 
+    // Receives failure PrimaryStateResponse from the primary node.
+    static const int             k_PRIMARY_STATE_REQUEST_ID = 1;
+    bmqp_ctrlmsg::ControlMessage responseMessage;
+    responseMessage.rId()          = k_PRIMARY_STATE_REQUEST_ID;
+    bmqp_ctrlmsg::Status& response = responseMessage.choice().makeStatus();
+    response.category()            = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+    response.code()                = mqbi::ClusterErrorCode::e_NOT_PRIMARY;
+    response.message()             = "Not primary";
+
+    helper.d_cluster_mp->requestManager().processResponse(responseMessage);
+
+    BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+                     mqbc::PartitionFSM::State::e_REPLICA_HEALING);
+
     // Receives ReplicaStateRequest from the primary node.
     static const int             k_PRIMARY_REQUEST_ID = 1;
-    bmqp_ctrlmsg::ControlMessage message;
-    message.rId() = k_PRIMARY_REQUEST_ID;
+    bmqp_ctrlmsg::ControlMessage requestMessage;
+    requestMessage.rId() = k_PRIMARY_REQUEST_ID;
     bmqp_ctrlmsg::ReplicaStateRequest& replicaStateRequest =
-        message.choice()
+        requestMessage.choice()
             .makeClusterMessage()
             .choice()
             .makePartitionMessage()
@@ -2445,7 +2485,7 @@ static void test15_replicaHealingReceivesReplicaDataRqstPull()
     replicaStateRequest.partitionId()          = k_PARTITION_ID;
     replicaStateRequest.latestSequenceNumber() = k_PRIMARY_SEQ_NUM;
 
-    storageManager.processReplicaStateRequest(message, primaryNode);
+    storageManager.processReplicaStateRequest(requestMessage, primaryNode);
 
     helper.verifyReplicaSendsReplicaStateRspn(k_PARTITION_ID,
                                               primaryNodeId,
@@ -2462,7 +2502,7 @@ static void test15_replicaHealingReceivesReplicaDataRqstPull()
     bmqp_ctrlmsg::ControlMessage dataMessage;
     dataMessage.rId() = k_PRIMARY_REQUEST_ID + 1;
     bmqp_ctrlmsg::ReplicaDataRequest& replicaDataRequest =
-        message.choice()
+        requestMessage.choice()
             .makeClusterMessage()
             .choice()
             .makePartitionMessage()
@@ -2475,7 +2515,7 @@ static void test15_replicaHealingReceivesReplicaDataRqstPull()
     replicaDataRequest.beginSequenceNumber() = k_PRIMARY_SEQ_NUM;
     replicaDataRequest.endSequenceNumber()   = selfSeqNum;
 
-    storageManager.processReplicaDataRequest(message, primaryNode);
+    storageManager.processReplicaDataRequest(requestMessage, primaryNode);
 
     BSLS_ASSERT_OPT(fs.primaryLeaseId() == selfSeqNum.primaryLeaseId());
     BSLS_ASSERT_OPT(fs.sequenceNumber() == selfSeqNum.sequenceNumber());
@@ -2767,12 +2807,12 @@ int main(int argc, char* argv[])
         //      - test19_primaryHealedSendsDataChunks();
     case 17: test17_fileSizesHardLimits(); break;
     case 16: test16_primaryHealingStage1SelfHighestSendsDataChunks(); break;
-    case 15: test15_replicaHealingReceivesReplicaDataRqstPull(); break;
-    case 14: test14_replicaHealingReceivesPrimaryStateRqst(); break;
-    case 13: test13_replicaHealingReceivesFailedPrimaryStateRspn(); break;
-    case 12: test12_replicaHealingReceivesPrimaryStateRspn(); break;
-    case 11: test11_replicaHealingReceivesReplicaStateRqst(); break;
-    case 10: test10_replicaHealingDetectSelfPrimary(); break;
+    case 15: test15_replicaWaitingReceivesReplicaDataRqstPull(); break;
+    case 14: test14_replicaWaitingReceivesPrimaryStateRqst(); break;
+    case 13: test13_replicaWaitingReceivesFailedPrimaryStateRspn(); break;
+    case 12: test12_replicaWaitingReceivesPrimaryStateRspn(); break;
+    case 11: test11_replicaWaitingReceivesReplicaStateRqst(); break;
+    case 10: test10_replicaWaitingDetectSelfPrimary(); break;
     case 9:
         test9_primaryHealingStage1QuorumSendsReplicaDataRequestPull();
         break;

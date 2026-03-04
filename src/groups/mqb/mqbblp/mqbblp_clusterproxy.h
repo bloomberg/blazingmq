@@ -66,6 +66,7 @@
 
 #include <bmqio_status.h>
 #include <bmqst_statcontext.h>
+#include <bmqu_atomicgate.h>
 #include <bmqu_operationchain.h>
 #include <bmqu_throttledaction.h>
 
@@ -240,11 +241,11 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
 
     mqbnet::ClusterNode* d_activeNode_p;
     // Protected by d_gateActiveNode - it is safe to use while
-    // 'mqbc::GateKeeper::Status(d_gateActiveNode).isOpen()'
+    // 'bmqu::GateKeeper::Status(d_gateActiveNode).isOpen()'
     // 'd_activeNodeManager.activeNode()' does not provide such guarantee.
     // Also, updated after 'd_clusterData.electorInfo().setElectorInfo'
 
-    mqbc::GateKeeper d_gateActiveNode;
+    bmqu::GateKeeper d_gateActiveNode;
 
   private:
     // PRIVATE MANIPULATORS
@@ -277,8 +278,8 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     void onActiveNodeDown(const mqbnet::ClusterNode* node);
 
     void onNodeUpDispatched(
-        mqbnet::ClusterNode* node,
-        BSLA_UNUSED const bmqp_ctrlmsg::ClientIdentity& identity);
+        mqbnet::ClusterNode*    node,
+        BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::ClientIdentity& identity);
 
     /// Executed by the dispatcher thread when the specified `node` becomes
     /// unavailable.

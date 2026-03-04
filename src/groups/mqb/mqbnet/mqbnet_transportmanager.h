@@ -61,8 +61,8 @@
 // MQB
 
 #include <mqbcfg_messages.h>
+#include <mqbnet_authenticator.h>
 #include <mqbnet_channel.h>
-#include <mqbnet_initialconnectionhandler.h>
 #include <mqbnet_tcpsessionfactory.h>
 #include <mqbstat_statcontroller.h>
 
@@ -114,10 +114,11 @@ class TransportManager {
     enum ConnectionMode {
         // Enum describing how the cluster should establish connection with the
         // nodes of the cluster.
-        e_CONNECT_ALL = 0  // Connect out to all nodes
-        ,
-        e_MIXED = 1  // Connect out to higher node Ids only, expect
-                     // incoming connection from lower node Ids
+        /// Connect out to all nodes
+        e_CONNECT_ALL = 0,
+        /// Connect out to higher node Ids only, expect incoming connection
+        /// from lower node Ids
+        e_MIXED = 1
     };
 
   private:
@@ -178,8 +179,11 @@ class TransportManager {
     // BlobBufferFactory to use by the
     // sessions
 
-    // Initial Connection to use
-    bslma::ManagedPtr<InitialConnectionHandler> d_initialConnectionHandler_mp;
+    /// Authenticator to use for authenticating a connection.
+    bslma::ManagedPtr<mqbnet::Authenticator> d_authenticator_mp;
+
+    /// Negotiator to use for negotiating and creating a session.
+    bslma::ManagedPtr<mqbnet::Negotiator> d_negotiator_mp;
 
     mqbstat::StatController* d_statController_p;
     // Stat controller
@@ -300,12 +304,12 @@ class TransportManager {
     /// Create a new `TransportManager` using the specified `scheduler`,
     /// `blobBufferFactory`, `negotiator` and `statController` and the
     /// specified `allocator` for any memory allocation.
-    TransportManager(
-        bdlmt::EventScheduler*                       scheduler,
-        bdlbb::BlobBufferFactory*                    blobBufferFactory,
-        bslma::ManagedPtr<InitialConnectionHandler>& initialConnectionHandler,
-        mqbstat::StatController*                     statController,
-        bslma::Allocator*                            allocator);
+    TransportManager(bdlmt::EventScheduler*            scheduler,
+                     bdlbb::BlobBufferFactory*         blobBufferFactory,
+                     bslma::ManagedPtr<Authenticator>& authenticator,
+                     bslma::ManagedPtr<Negotiator>&    negotiator,
+                     mqbstat::StatController*          statController,
+                     bslma::Allocator*                 allocator);
 
     /// Destructor
     virtual ~TransportManager();

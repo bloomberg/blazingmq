@@ -294,7 +294,7 @@ static void appendMessages1(bmqp::EventHeader*        eh,
                             bdlbb::Blob*              blob,
                             const bsl::vector<Data1>& data,
                             bdlbb::BlobBufferFactory* bufferFactory,
-                            BSLA_UNUSED bslma::Allocator* allocator)
+                            BSLA_MAYBE_UNUSED bslma::Allocator* allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(eh);

@@ -116,11 +116,15 @@ class Authenticator {
     // ACESSORS
 
     /// Return the name of the plugin.
+    ///
+    /// This method is valid to call at any time after construction, including
+    /// before `start()` is called.
     virtual bsl::string_view name() const = 0;
 
     /// Return the authentication mechanism supported by this Authenticator.
-    /// Guaranteed to return a valid mechanism once the Authenticator is
-    /// constructed.
+    ///
+    /// This method is valid to call at any time after construction, including
+    /// before `start()` is called.
     virtual bsl::string_view mechanism() const = 0;
 
     /// Authenticate using the data provided in the specified `input`.

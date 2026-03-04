@@ -62,7 +62,7 @@ testResolveFn(bsl::string*                  domainName,
 
 static void testResultCallback(bsl::deque<bsl::shared_ptr<Channel> >* store,
                                ChannelFactoryEvent::Enum              event,
-                               BSLA_UNUSED const Status&              status,
+                               BSLA_MAYBE_UNUSED const Status&        status,
                                const bsl::shared_ptr<Channel>&        channel)
 {
     BMQTST_ASSERT_EQ(event, ChannelFactoryEvent::e_CHANNEL_UP);

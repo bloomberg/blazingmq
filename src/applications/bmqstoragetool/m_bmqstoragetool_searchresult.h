@@ -71,6 +71,7 @@
 #include <bsl_unordered_set.h>
 #include <bsl_utility.h>
 #include <bsl_vector.h>
+#include <bsla_annotations.h>
 #include <bsls_keyword.h>
 
 namespace BloombergLP {
@@ -872,7 +873,7 @@ class SearchOffsetDecorator : public SearchResultDecorator {
     /// List of offsets to search for.
     bsl::vector<bsls::Types::Int64> d_offsets;
     /// If 'true', output detailed result, output short one otherwise.
-    bool d_withDetails;
+    BSLA_MAYBE_UNUSED bool d_withDetails;
 
   public:
     // CREATORS
@@ -929,10 +930,11 @@ class SearchOffsetDecorator : public SearchResultDecorator {
 class SearchSequenceNumberDecorator : public SearchResultDecorator {
   private:
     // PRIVATE DATA
+
+    /// List of composite sequence numbers to search for.
     bsl::vector<CompositeSequenceNumber> d_seqNums;
-    // List of composite sequence numbers to search for.
-    bool d_withDetails;
-    // If 'true', output detailed result, output short one otherwise.
+    /// If 'true', output detailed result, output short one otherwise.
+    BSLA_MAYBE_UNUSED bool d_withDetails;
 
   public:
     // CREATORS

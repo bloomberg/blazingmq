@@ -63,28 +63,26 @@ class TLSBool {
     enum State {
         // Enum representing the state of the value, as stored in the thread
         // local variable.
-        e_UNINITIALIZED = 0  // The 'd_key' failed to be created - must remain
-                             // 0 (see comment in the constructor).
-
-        ,
-        e_FALSE = 1  // The value is false
-
-        ,
-        e_TRUE = 2  // The value is true
+        /// The 'd_key' failed to be created - must remain 0 (see comment in
+        /// the constructor).
+        e_UNINITIALIZED = 0,
+        /// The value is false
+        e_FALSE = 1,
+        /// The value is true
+        e_TRUE = 2
     };
 
     enum BitFlags {
         // Enum representing the index of the bit for the various flags stored
         // in the 'd_flags' member (for efficient memory footprint).
-        e_CREATED = 0  // Has the thread key been successfully created ?
-
-        ,
-        e_INITIAL_VALUE = 1  // Value to use as initial value, if querying
-                             // before setting the value.
-
-        ,
-        e_DEFAULT_VALUE = 2  // Default value to return by default in case the
-                             // thread key failed to be created.
+        /// Has the thread key been successfully created ?
+        e_CREATED = 0,
+        /// Value to use as initial value, if querying before setting the
+        /// value.
+        e_INITIAL_VALUE = 1,
+        /// Default value to return by default in case the thread key failed to
+        /// be created.
+        e_DEFAULT_VALUE = 2
     };
 
     // DATA

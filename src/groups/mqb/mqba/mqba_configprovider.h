@@ -76,17 +76,6 @@ class ConfigProvider {
   private:
     // PRIVATE TYPES
 
-    /// Enum of the various modes at which this component can operate
-    struct Mode {
-        // TYPES
-        enum Enum {
-            /// Use conf service, failover to disk backup.
-            e_NORMAL,
-            /// Skip conf service, only use disk backup.
-            e_FORCE_BACKUP
-        };
-    };
-
     /// Struct to represent a configuration response entry in the cache.
     struct CacheEntry {
         // TRAITS
@@ -120,8 +109,6 @@ class ConfigProvider {
 
   private:
     // DATA
-    Mode::Enum d_mode;
-
     bslmt::Mutex d_mutex;
 
     /// Cache (with a small TTL for its entries).  The key is the `domainName`

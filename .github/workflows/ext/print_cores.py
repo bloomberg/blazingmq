@@ -33,6 +33,14 @@ def is_core(path: str) -> bool:
     return re.match(r".+\.\d+\.\d+\.\d+", str(path)) is not None
 
 
+def is_bmqtool(core_path: Path) -> bool:
+    bmqtool_thread_prefixes = ["bmqEventQueue", "bmqScheduler"]
+    for prefix in bmqtool_thread_prefixes:
+        if prefix in core_path:
+            return True
+    return False
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="python3 print_cores.py",
@@ -49,15 +57,20 @@ def main() -> None:
     )
 
     parser.add_argument(
-        "--bin-path",
+        "--build-dir",
         default=".",
         type=str,
         action="store",
-        metavar="BIN_PATH",
-        help="BIN_PATH path to the executable",
+        metavar="BUILD_DIR",
+        help="BUILD_DIR path to the build directory",
     )
 
     args = parser.parse_args()
+
+    bmqbrkr_path = Path(args.build_dir).joinpath("src/applications/bmqbrkr/bmqbrkr.tsk")
+    bmqtool_path = Path(args.build_dir).joinpath("src/applications/bmqtool/bmqtool.tsk")
+    assert bmqbrkr_path.exists() and bmqbrkr_path.is_file()
+    assert bmqtool_path.exists() and bmqtool_path.is_file()
 
     fpaths = glob.glob(str(Path(args.cores_dir).joinpath("*")), recursive=True)
     fpaths = [path for path in fpaths if is_core(path)]
@@ -77,9 +90,10 @@ def main() -> None:
             "bt full",
             "-ex",
             "thread apply all bt full",
-            args.bin_path,
+            bmqtool_path if is_bmqtool(core_path) else bmqbrkr_path,
             core_path,
         ]
+        cmd = [str(comp) for comp in cmd]
 
         print(f"::group::{core_path}", flush=True)
         print(f"#CORE: {core_path}", flush=True)

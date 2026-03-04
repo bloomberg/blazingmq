@@ -33,6 +33,7 @@
 // BDE
 #include <bdlbb_pooledblobbufferfactory.h>
 #include <bsl_iostream.h>
+#include <bsl_memory.h>
 #include <bsl_utility.h>
 #include <bsla_annotations.h>
 #include <bslmt_semaphore.h>
@@ -237,10 +238,12 @@ Cluster::Cluster(bslma::Allocator*        allocator,
 , d_domain(this, allocator)
 , d_domainFactory(d_domain, allocator)
 , d_channels(allocator)
-, d_initialConnectionHandler_mp()
+, d_authenticator_mp()
+, d_negotiator_mp()
 , d_transportManager(&d_scheduler,
                      &d_bufferFactory,
-                     d_initialConnectionHandler_mp,
+                     d_authenticator_mp,
+                     d_negotiator_mp,
                      0,  // mqbstat::StatController*
                      allocator)
 , d_netCluster_mp(0)
@@ -335,7 +338,7 @@ void Cluster::flush()
 
 // MANIPULATORS
 //   (virtual: mqbi::Cluster)
-int Cluster::start(BSLA_UNUSED bsl::ostream& errorDescription)
+int Cluster::start(BSLA_MAYBE_UNUSED bsl::ostream& errorDescription)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(!d_isStarted &&
@@ -348,7 +351,7 @@ int Cluster::start(BSLA_UNUSED bsl::ostream& errorDescription)
     return 0;
 }
 
-void Cluster::initiateShutdown(BSLA_UNUSED const VoidFunctor& callback)
+void Cluster::initiateShutdown(BSLA_MAYBE_UNUSED const VoidFunctor& callback)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(!d_isStarted &&
@@ -424,20 +427,21 @@ Cluster::sendRequest(const Cluster::RequestManagerType::RequestSp& request,
 }
 
 void Cluster::openQueue(
-    BSLA_UNUSED const bmqt::Uri& uri,
-    BSLA_UNUSED mqbi::Domain* domain,
-    BSLA_UNUSED const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
-    BSLA_UNUSED const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
-                      clientContext,
-    BSLA_UNUSED const mqbi::Cluster::OpenQueueCallback& callback)
+    BSLA_MAYBE_UNUSED const bmqt::Uri& uri,
+    BSLA_MAYBE_UNUSED mqbi::Domain* domain,
+    BSLA_MAYBE_UNUSED const         bmqp_ctrlmsg::QueueHandleParameters&
+                                    handleParameters,
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
+                            clientContext,
+    BSLA_MAYBE_UNUSED const mqbi::Cluster::OpenQueueCallback& callback)
 {
     // NOTHING
 }
 
 void Cluster::configureQueue(
-    BSLA_UNUSED mqbi::Queue*                           queue,
+    BSLA_MAYBE_UNUSED mqbi::Queue*                     queue,
     const bmqp_ctrlmsg::StreamParameters&              streamParameters,
-    BSLA_UNUSED unsigned int                           upstreamSubQueueId,
+    BSLA_MAYBE_UNUSED unsigned int                     upstreamSubQueueId,
     const mqbi::QueueHandle::HandleConfiguredCallback& callback)
 {
     if (callback) {
@@ -450,10 +454,11 @@ void Cluster::configureQueue(
 }
 
 void Cluster::closeQueue(
-    BSLA_UNUSED mqbi::Queue* queue,
-    BSLA_UNUSED const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
-    BSLA_UNUSED unsigned int                               upstreamSubQueueId,
-    const Cluster::HandleReleasedCallback&                 callback)
+    BSLA_MAYBE_UNUSED mqbi::Queue*         queue,
+    BSLA_MAYBE_UNUSED const                bmqp_ctrlmsg::QueueHandleParameters&
+                                           handleParameters,
+    BSLA_MAYBE_UNUSED unsigned int         upstreamSubQueueId,
+    const Cluster::HandleReleasedCallback& callback)
 {
     if (callback) {
         bmqp_ctrlmsg::Status status(d_allocator_p);
@@ -464,20 +469,21 @@ void Cluster::closeQueue(
     }
 }
 
-void Cluster::onQueueHandleCreated(BSLA_UNUSED mqbi::Queue* queue,
-                                   BSLA_UNUSED const bmqt::Uri& uri,
-                                   BSLA_UNUSED bool             handleCreated)
+void Cluster::onQueueHandleCreated(BSLA_MAYBE_UNUSED mqbi::Queue* queue,
+                                   BSLA_MAYBE_UNUSED const bmqt::Uri& uri,
+                                   BSLA_MAYBE_UNUSED bool handleCreated)
 {
 }
 
-void Cluster::onQueueHandleDestroyed(BSLA_UNUSED mqbi::Queue* queue,
-                                     BSLA_UNUSED const bmqt::Uri& uri)
+void Cluster::onQueueHandleDestroyed(BSLA_MAYBE_UNUSED mqbi::Queue* queue,
+                                     BSLA_MAYBE_UNUSED const bmqt::Uri& uri)
 {
 }
 
-void Cluster::onDomainReconfigured(BSLA_UNUSED const mqbi::Domain& domain,
-                                   BSLA_UNUSED const mqbconfm::Domain& oldDefn,
-                                   BSLA_UNUSED const mqbconfm::Domain& newDefn)
+void Cluster::onDomainReconfigured(
+    BSLA_MAYBE_UNUSED const mqbi::Domain& domain,
+    BSLA_MAYBE_UNUSED const mqbconfm::Domain& oldDefn,
+    BSLA_MAYBE_UNUSED const mqbconfm::Domain& newDefn)
 {
 }
 
@@ -495,9 +501,9 @@ void Cluster::loadClusterStatus(mqbcmd::ClusterResult* out)
     out->makeClusterStatus();
 }
 
-mqbi::InlineResult::Enum
-Cluster::sendConfirmInline(BSLA_UNUSED int   partitionId,
-                           BSLA_UNUSED const bmqp::ConfirmMessage& message)
+mqbi::InlineResult::Enum Cluster::sendConfirmInline(
+    BSLA_MAYBE_UNUSED int   partitionId,
+    BSLA_MAYBE_UNUSED const bmqp::ConfirmMessage& message)
 {
     return mqbi::InlineResult::e_UNAVAILABLE;
 }
@@ -521,8 +527,8 @@ Cluster::sendPutInline(int                                       partitionId,
 }
 
 void Cluster::purgeAndGCQueueOnDomain(
-    mqbcmd::ClusterResult* result,
-    BSLA_UNUSED const bsl::string& domainName)
+    mqbcmd::ClusterResult*  result,
+    BSLA_MAYBE_UNUSED const bsl::string& domainName)
 {
     bmqu::MemOutStream os;
     os << "MockCluster::purgeAndGCQueueOnDomain not implemented!";
@@ -581,9 +587,10 @@ const mqbnet::Cluster& Cluster::netCluster() const
     return *(d_clusterData_mp->membership().netCluster());
 }
 
-void Cluster::printClusterStateSummary(bsl::ostream&   out,
-                                       BSLA_UNUSED int level,
-                                       BSLA_UNUSED int spacesPerLevel) const
+void Cluster::printClusterStateSummary(
+    bsl::ostream&         out,
+    BSLA_MAYBE_UNUSED int level,
+    BSLA_MAYBE_UNUSED int spacesPerLevel) const
 {
     out << "MockCluster::printClusterStateSummary not implemented";
 }

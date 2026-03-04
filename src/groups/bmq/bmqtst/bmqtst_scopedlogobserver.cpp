@@ -100,8 +100,8 @@ ScopedLogObserver::setSeverityThreshold(ball::Severity::Level value)
     return *this;
 }
 
-void ScopedLogObserver::publish(const ball::Record& record,
-                                BSLA_UNUSED const ball::Context& context)
+void ScopedLogObserver::publish(const ball::Record&     record,
+                                BSLA_MAYBE_UNUSED const ball::Context& context)
 {
     // Check if the record's severity is higher than the severity threshold
     if (record.fixedFields().severity() > d_severityThreshold) {
@@ -151,7 +151,7 @@ bool ScopedLogObserverUtil::recordMessageMatch(const ball::Record& record,
     BSLS_ASSERT(rc == 0);
     BSLS_ASSERT(regex.isPrepared() == true);
 
-    const bslstl::StringRef& msg = record.fixedFields().message();
+    const bslstl::StringRef msg = record.fixedFields().messageRef();
 
     rc = regex.match(msg.data(), msg.length());
 

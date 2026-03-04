@@ -109,7 +109,7 @@ void ClusterStateManager::do_abort(const EventWithMetadata& event)
 }
 
 void ClusterStateManager::do_startWatchDog(
-    BSLA_UNUSED const EventWithMetadata& event)
+    BSLA_MAYBE_UNUSED const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -123,7 +123,7 @@ void ClusterStateManager::do_startWatchDog(
 }
 
 void ClusterStateManager::do_stopWatchDog(
-    BSLA_UNUSED const EventWithMetadata& event)
+    BSLA_MAYBE_UNUSED const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -137,7 +137,7 @@ void ClusterStateManager::do_stopWatchDog(
 }
 
 void ClusterStateManager::do_triggerWatchDog(
-    BSLA_UNUSED const EventWithMetadata& event)
+    BSLA_MAYBE_UNUSED const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -256,7 +256,7 @@ void ClusterStateManager::do_applyCSLSelf(const EventWithMetadata& event)
 }
 
 void ClusterStateManager::do_initializeQueueKeyInfoMap(
-    BSLA_UNUSED const EventWithMetadata& event)
+    BSLA_MAYBE_UNUSED const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -268,7 +268,7 @@ void ClusterStateManager::do_initializeQueueKeyInfoMap(
 }
 
 void ClusterStateManager::do_stopPFSMs(
-    BSLA_UNUSED const EventWithMetadata& event)
+    BSLA_MAYBE_UNUSED const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -323,7 +323,7 @@ void ClusterStateManager::do_updatePrimaryInPFSMs(
 }
 
 void ClusterStateManager::do_sendFollowerLSNRequests(
-    BSLA_UNUSED const EventWithMetadata& event)
+    BSLA_MAYBE_UNUSED const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -427,7 +427,7 @@ void ClusterStateManager::do_sendFailureFollowerLSNResponse(
 }
 
 void ClusterStateManager::do_findHighestLSN(
-    BSLA_UNUSED const EventWithMetadata& event)
+    BSLA_MAYBE_UNUSED const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -660,7 +660,7 @@ void ClusterStateManager::do_removeFollowerLSN(const EventWithMetadata& event)
 }
 
 void ClusterStateManager::do_checkLSNQuorum(
-    BSLA_UNUSED const EventWithMetadata& event)
+    BSLA_MAYBE_UNUSED const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -692,7 +692,7 @@ void ClusterStateManager::do_checkLSNQuorum(
 }
 
 void ClusterStateManager::do_sendRegistrationRequest(
-    BSLA_UNUSED const EventWithMetadata& event)
+    BSLA_MAYBE_UNUSED const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -803,7 +803,7 @@ void ClusterStateManager::do_sendFailureRegistrationResponse(
 }
 
 void ClusterStateManager::do_logUnexpectedCSLCommit(
-    BSLA_UNUSED const EventWithMetadata& event)
+    BSLA_MAYBE_UNUSED const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -997,7 +997,7 @@ void ClusterStateManager::do_reapplyEvent(const EventWithMetadata& event)
 }
 
 void ClusterStateManager::do_reapplySelectLeader(
-    BSLA_UNUSED const EventWithMetadata& event)
+    BSLA_MAYBE_UNUSED const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1017,7 +1017,7 @@ void ClusterStateManager::do_reapplySelectLeader(
 }
 
 void ClusterStateManager::do_reapplySelectFollower(
-    BSLA_UNUSED const EventWithMetadata& event)
+    BSLA_MAYBE_UNUSED const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1037,7 +1037,7 @@ void ClusterStateManager::do_reapplySelectFollower(
 }
 
 void ClusterStateManager::do_cleanupLSNs(
-    BSLA_UNUSED const EventWithMetadata& event)
+    BSLA_MAYBE_UNUSED const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1048,7 +1048,7 @@ void ClusterStateManager::do_cleanupLSNs(
 }
 
 void ClusterStateManager::do_cancelRequests(
-    BSLA_UNUSED const EventWithMetadata& event)
+    BSLA_MAYBE_UNUSED const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1669,7 +1669,7 @@ ClusterStateManager::updateAppIds(const bsl::vector<bsl::string>& added,
                                            d_allocator_p);
 }
 
-void ClusterStateManager::initiateLeaderSync(BSLA_UNUSED bool wait)
+void ClusterStateManager::initiateLeaderSync(BSLA_MAYBE_UNUSED bool wait)
 {
     // While this method could be invoked by ClusterOrchestrator as part of
     // pre-CSL workflow, we can do a no-op here because the Cluster FSM logic
@@ -1679,16 +1679,16 @@ void ClusterStateManager::initiateLeaderSync(BSLA_UNUSED bool wait)
 }
 
 void ClusterStateManager::processLeaderSyncStateQuery(
-    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLA_UNUSED mqbnet::ClusterNode* source)
+    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* source)
 {
     BSLS_ASSERT_SAFE(false &&
                      "This method should only be invoked in non-CSL mode");
 }
 
 void ClusterStateManager::processLeaderSyncDataQuery(
-    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLA_UNUSED mqbnet::ClusterNode* source)
+    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* source)
 {
     BSLS_ASSERT_SAFE(false &&
                      "This method should only be invoked in non-CSL mode");
@@ -1846,7 +1846,7 @@ void ClusterStateManager::processShutdownEvent()
 }
 
 void ClusterStateManager::onNodeUnavailable(
-    BSLA_UNUSED mqbnet::ClusterNode* node)
+    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* node)
 {
     BSLS_ASSERT_SAFE(false && "NOT IMPLEMENTED!");
 }

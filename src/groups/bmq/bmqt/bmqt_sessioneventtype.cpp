@@ -70,6 +70,8 @@ const char* SessionEventType::toAscii(SessionEventType::Enum value)
         BMQT_CASE(ERROR)
         BMQT_CASE(TIMEOUT)
         BMQT_CASE(CANCELED)
+        BMQT_CASE(CHANNEL_LOW_WATERMARK)
+        BMQT_CASE(CHANNEL_HIGH_WATERMARK)
     default: return "(* UNKNOWN *)";
     }
 
@@ -106,6 +108,8 @@ bool SessionEventType::fromAscii(SessionEventType::Enum*  out,
     BMQT_CHECKVALUE(ERROR)
     BMQT_CHECKVALUE(TIMEOUT)
     BMQT_CHECKVALUE(CANCELED)
+    BMQT_CHECKVALUE(CHANNEL_LOW_WATERMARK)
+    BMQT_CHECKVALUE(CHANNEL_HIGH_WATERMARK)
 
     // Invalid string
     return false;

@@ -44,9 +44,9 @@ int main(int argc, char** argv)
 {
     int              test                = argc > 1 ? atoi(argv[1]) : 0;
     bool             verbose             = argc > 2;
-    BSLA_UNUSED bool veryVerbose         = argc > 3;
-    BSLA_UNUSED bool veryVeryVerbose     = argc > 4;
-    BSLA_UNUSED bool veryVeryVeryVerbose = argc > 5;
+    BSLA_MAYBE_UNUSED bool veryVerbose         = argc > 3;
+    BSLA_MAYBE_UNUSED bool veryVeryVerbose     = argc > 4;
+    BSLA_MAYBE_UNUSED bool veryVeryVeryVerbose = argc > 5;
 
     cout << "TEST " << __FILE__ << " CASE " << test << endl;
     switch (test) {

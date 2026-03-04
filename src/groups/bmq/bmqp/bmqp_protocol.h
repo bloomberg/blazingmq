@@ -546,9 +546,9 @@ struct EncodingType {
     // TYPES
     enum Enum {
         e_UNKNOWN = -1,
-        e_BER     = 0  // For backward compatibility, 'BER' needs to be
-                       // assigned a value of zero.
-        ,
+        /// For backward compatibility, 'BER' needs to be assigned a value of
+        /// zero.
+        e_BER  = 0,
         e_JSON = 1
     };
 
@@ -1622,12 +1622,12 @@ struct PutHeader {
 struct PutHeaderFlags {
     // TYPES
     enum Enum {
-        e_ACK_REQUESTED = (1 << 0)  // Ack for PUT msg is requested
-        ,
-        e_MESSAGE_PROPERTIES = (1 << 1)  // Contains message properties
-        ,
-        e_UNUSED3 = (1 << 2),
-        e_UNUSED4 = (1 << 3)
+        /// Ack for PUT msg is requested
+        e_ACK_REQUESTED = (1 << 0),
+        /// Contains message properties
+        e_MESSAGE_PROPERTIES = (1 << 1),
+        e_UNUSED3            = (1 << 2),
+        e_UNUSED4            = (1 << 3)
     };
 
     // PUBLIC CONSTANTS
@@ -2953,11 +2953,11 @@ struct StorageHeader {
 struct StorageHeaderFlags {
     // TYPES
     enum Enum {
-        e_RECEIPT_REQUESTED = (1 << 0)  // Ack for STORAGE msg is requested
-        ,
-        e_UNUSED2 = (1 << 1),
-        e_UNUSED3 = (1 << 2),
-        e_UNUSED4 = (1 << 3)
+        /// Ack for STORAGE msg is requested
+        e_RECEIPT_REQUESTED = (1 << 0),
+        e_UNUSED2           = (1 << 1),
+        e_UNUSED3           = (1 << 2),
+        e_UNUSED4           = (1 << 3)
     };
 
     // PUBLIC CONSTANTS

@@ -49,15 +49,20 @@ def ensure_message_at_storage_layer(
     for node in nodes:
         node.command(f"CLUSTERS CLUSTER {node.cluster_name} STORAGE SUMMARY")
 
-    time.sleep(2)
-    for node in nodes:
-        assert node.outputs_regex(
+    def check():
+        return node.outputs_regex(
             r"\w{10}\s+%s\s+%s\s+\d+\s+B\s+" % (partition_id, expected_count)
-            + re.escape(queue_uri),
-            timeout=20,
+            + re.escape(queue_uri)
+        )
+
+    for node in nodes:
+        assert wait_until(
+            check,
+            timeout=3,
         ), (
             f"Node {node.name} does not have {expected_count} messages for queue {queue_uri} in partition {partition_id} at storage layer"
         )
+
         # Above regex is to match line:
         # C1E2A44527    0      1      68  B      bmq://bmq.test.mmap.priority.~tst/qqq
         # where columns are: QueueKey, PartitionId, NumMsgs, NumBytes,

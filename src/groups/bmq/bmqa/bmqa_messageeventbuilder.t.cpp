@@ -16,6 +16,9 @@
 // bmqa_messageeventbuilder.t.cpp                                     -*-C++-*-
 #include <bmqa_messageeventbuilder.h>
 
+// BDE
+#include <bsla_annotations.h>
+
 // BMQ
 #include <bmqa_mocksession.h>
 #include <bmqt_queueflags.h>
@@ -142,10 +145,7 @@ static void test2_testMessageEventSizeCount()
 
     // Stage 4: build MessageEvent
     // MessageEventBuilder switches from WRITE mode to READ:
-    {
-        const bmqa::MessageEvent& event = builder.messageEvent();
-        // Avoid holding reference to the 'event' for too long
-    }
+    static_cast<void>(builder.messageEvent());
 
     // We had non-packed Message before, make sure it was not added to the blob
     BMQTST_ASSERT_EQ(messageEventSizeFinal, builder.messageEventSize());

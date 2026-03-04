@@ -447,9 +447,9 @@ void printRecord(bsl::ostream& stream, const mqbs::JournalOpRecord& rec)
     stream << "\n";
 }
 
-void printOption(bsl::ostream&     stream,
-                 BSLA_UNUSED const bmqp::OptionsView*     ov,
-                 const bmqp::OptionsView::const_iterator& cit)
+void printOption(bsl::ostream&           stream,
+                 BSLA_MAYBE_UNUSED const bmqp::OptionsView* ov,
+                 const bmqp::OptionsView::const_iterator&   cit)
 {
     stream << "      " << *cit;
 }

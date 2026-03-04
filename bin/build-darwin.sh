@@ -103,7 +103,7 @@ if [ ! -d "${DIR_THIRDPARTY}/bde" ]; then
     git clone --depth 1 --branch 4.28.0.0 https://github.com/bloomberg/bde.git "${DIR_THIRDPARTY}/bde"
 fi
 if [ ! -d "${DIR_THIRDPARTY}/ntf-core" ]; then
-    git clone --depth 1 --branch 2.4.2 https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"
+    git clone --depth 1 --branch 2.6.10 https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"
 fi
 
 
@@ -114,40 +114,46 @@ fi
 PATH="${DIR_THIRDPARTY}/bde-tools/bin:$PATH"
 
 if [ ! -e "${DIR_BUILD}/bde/.complete" ]; then
-    pushd "${DIR_THIRDPARTY}/bde"
-    eval "$(bbs_build_env -p clang -u opt_64_cpp17 -b "${DIR_BUILD}/bde" -i "${DIR_INSTALL}")"
-    bbs_build configure --prefix="${DIR_INSTALL}"
-    bbs_build build --prefix="${DIR_INSTALL}"
-    bbs_build install --install_dir="/" --prefix="${DIR_INSTALL}"
-    eval "$(bbs_build_env unset)"
-    popd
+    # Build and install BDE
+    (
+        # Suppress warnings from BDE build (scoped to this subshell)
+        # shellcheck disable=SC2030
+        export CXXFLAGS="-w" CFLAGS="-w"
+        cd "${DIR_THIRDPARTY}/bde"
+        eval "$(bbs_build_env -p clang -u opt_64_cpp17 -b "${DIR_BUILD}/bde" -i "${DIR_INSTALL}")"
+        bbs_build configure --prefix="${DIR_INSTALL}"
+        bbs_build build --prefix="${DIR_INSTALL}"
+        bbs_build install --install_dir="/" --prefix="${DIR_INSTALL}"
+        eval "$(bbs_build_env unset)"
+    )
     touch "${DIR_BUILD}/bde/.complete"
 fi
 
 if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
     # Build and install NTF
-    pushd "${DIR_THIRDPARTY}/ntf-core"
-    ./configure --prefix "${DIR_INSTALL}" \
-                --output "${DIR_BUILD}/ntf" \
-                --toolchain "${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem/toolchains/darwin/clang-default.cmake" \
-                --without-warnings-as-errors \
-                --without-usage-examples \
-                --without-applications \
-                --ufid opt_64_cpp17
-    make -j 16
-    make install
-    popd
+    (
+        # Suppress warnings from NTF build (scoped to this subshell)
+        # shellcheck disable=SC2031
+        export CXXFLAGS="-w" CFLAGS="-w"
+        cd "${DIR_THIRDPARTY}/ntf-core"
+        ./configure --prefix "${DIR_INSTALL}"                                                                      \
+                    --output "${DIR_BUILD}/ntf"                                                                    \
+                    --toolchain "${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem/toolchains/darwin/clang-default.cmake" \
+                    --without-warnings-as-errors                                                                   \
+                    --without-usage-examples                                                                       \
+                    --without-applications                                                                         \
+                    --with-zlib                                                                                    \
+                    --without-zstd                                                                                 \
+                    --without-lz4                                                                                  \
+                    --ufid opt_64_cpp17
+        make -j 16
+        make install
+    )
     touch "${DIR_BUILD}/ntf/.complete"
 fi
 
-# Determine paths based on Intel vs Apple Silicon CPU
-if [ "$(uname -p)" == 'arm' ]; then
-    BREW_PKG_CONFIG_PATH="/opt/homebrew/lib/pkgconfig:/opt/homebrew/opt/zlib/lib/pkgconfig:/opt/homebrew/opt/googletest/lib/pkgconfig"
-    FLEX_ROOT="/opt/homebrew/opt/flex"
-else
-    BREW_PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/zlib/lib/pkgconfig:/usr/local/opt/googletest/lib/pkgconfig"
-    FLEX_ROOT="/usr/local/opt/flex"
-fi
+BREW_PKG_CONFIG_PATH="/opt/homebrew/lib/pkgconfig:/opt/homebrew/opt/zlib/lib/pkgconfig:/opt/homebrew/opt/googletest/lib/pkgconfig"
+FLEX_ROOT="/opt/homebrew/opt/flex"
 
 
 # :: Build the BlazingMQ repo :::::::::::::::::::::::::::::::::::::::::::::::::

@@ -901,7 +901,7 @@ void StorageManager::processPartitionSyncDataRequestDispatched(
 }
 
 void StorageManager::processPartitionSyncDataRequestStatusDispatched(
-    BSLA_UNUSED int                     partitionId,
+    BSLA_MAYBE_UNUSED int               partitionId,
     const bmqp_ctrlmsg::ControlMessage& message,
     mqbnet::ClusterNode*                source)
 {
@@ -1108,15 +1108,14 @@ void StorageManager::registerQueueReplica(int                     partitionId,
             &mqbc::StorageUtil::createQueueStorageAsReplica,
             &d_storages[partitionId],
             &d_storagesLock,
-            d_fileStores[partitionId].get(),
+            fs,
             d_domainFactory_p,
             uri,
             queueKey,
             appIdKeyPairs,
             domain));
 
-    d_fileStores[partitionId]->dispatchEvent(
-        bslmf::MovableRefUtil::move(queueEvent));
+    fs->dispatchEvent(bslmf::MovableRefUtil::move(queueEvent));
 }
 
 void StorageManager::unregisterQueueReplica(int              partitionId,
@@ -1422,7 +1421,7 @@ void StorageManager::stop()
 }
 
 void StorageManager::initializeQueueKeyInfoMap(
-    BSLA_UNUSED const mqbc::ClusterState& clusterState)
+    BSLA_MAYBE_UNUSED const mqbc::ClusterState& clusterState)
 {
     // executed by cluster *DISPATCHER* thread
 
@@ -1505,8 +1504,8 @@ void StorageManager::clearPrimaryForPartition(int                  partitionId,
 }
 
 void StorageManager::setPrimaryStatusForPartition(
-    BSLA_UNUSED int partitionId,
-    BSLA_UNUSED bmqp_ctrlmsg::PrimaryStatus::Value value)
+    BSLA_MAYBE_UNUSED int partitionId,
+    BSLA_MAYBE_UNUSED bmqp_ctrlmsg::PrimaryStatus::Value value)
 {
     // executed by cluster *DISPATCHER* thread
 
@@ -1526,7 +1525,7 @@ void StorageManager::stopPFSMs()
     BSLS_ASSERT_OPT(false && "This method should only be invoked in FSM mode");
 }
 
-void StorageManager::detectPrimaryLossInPFSM(BSLA_UNUSED int partitionId)
+void StorageManager::detectPrimaryLossInPFSM(BSLA_MAYBE_UNUSED int partitionId)
 {
     // executed by cluster *DISPATCHER* thread
 
@@ -1537,9 +1536,9 @@ void StorageManager::detectPrimaryLossInPFSM(BSLA_UNUSED int partitionId)
 }
 
 void StorageManager::detectSelfPrimaryInPFSM(
-    BSLA_UNUSED int partitionId,
-    BSLA_UNUSED mqbnet::ClusterNode* primaryNode,
-    BSLA_UNUSED unsigned int         primaryLeaseId)
+    BSLA_MAYBE_UNUSED int partitionId,
+    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* primaryNode,
+    BSLA_MAYBE_UNUSED unsigned int         primaryLeaseId)
 {
     // executed by cluster *DISPATCHER* thread
 
@@ -1550,9 +1549,9 @@ void StorageManager::detectSelfPrimaryInPFSM(
 }
 
 void StorageManager::detectSelfReplicaInPFSM(
-    BSLA_UNUSED int partitionId,
-    BSLA_UNUSED mqbnet::ClusterNode* primaryNode,
-    BSLA_UNUSED unsigned int         primaryLeaseId)
+    BSLA_MAYBE_UNUSED int partitionId,
+    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* primaryNode,
+    BSLA_MAYBE_UNUSED unsigned int         primaryLeaseId)
 {
     // executed by cluster *DISPATCHER* thread
 
@@ -1563,22 +1562,22 @@ void StorageManager::detectSelfReplicaInPFSM(
 }
 
 void StorageManager::processPrimaryStateRequest(
-    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLA_UNUSED mqbnet::ClusterNode* source)
+    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* source)
 {
     BSLS_ASSERT_OPT(false && "This method should only be invoked in FSM mode");
 }
 
 void StorageManager::processReplicaStateRequest(
-    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLA_UNUSED mqbnet::ClusterNode* source)
+    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* source)
 {
     BSLS_ASSERT_OPT(false && "This method should only be invoked in FSM mode");
 }
 
 void StorageManager::processReplicaDataRequest(
-    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLA_UNUSED mqbnet::ClusterNode* source)
+    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* source)
 {
     BSLS_ASSERT_OPT(false && "This method should only be invoked in FSM mode");
 }
@@ -1965,8 +1964,8 @@ void StorageManager::processReceiptEvent(const bmqp::Event&   event,
 }
 
 void StorageManager::bufferPrimaryStatusAdvisory(
-    BSLA_UNUSED const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
-    BSLA_UNUSED mqbnet::ClusterNode* source)
+    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
+    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* source)
 {
     // executed by *ANY* thread
 

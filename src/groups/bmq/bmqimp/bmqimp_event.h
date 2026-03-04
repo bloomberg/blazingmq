@@ -147,15 +147,16 @@ class Event {
     struct EventType {
         // TYPES
         enum Enum {
-            e_UNINITIALIZED  // Uninitialized event
-            ,
-            e_RAW  // Raw event wrapper
-            ,
-            e_SESSION  // Session event
-            ,
-            e_MESSAGE  // Message event
-            ,
-            e_REQUEST  // User request event
+            /// Uninitialized event
+            e_UNINITIALIZED,
+            /// Raw event wrapper
+            e_RAW,
+            /// Session event
+            e_SESSION,
+            /// Message event
+            e_MESSAGE,
+            /// User request event
+            e_REQUEST
         };
     };
 

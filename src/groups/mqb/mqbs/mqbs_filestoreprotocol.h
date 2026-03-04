@@ -606,15 +606,15 @@ struct QlistFileHeader {
 struct DataHeaderFlags {
     // TYPES
     enum Enum {
-        e_MESSAGE_PROPERTIES = (1 << 0)  // Contains message properties
-        ,
-        e_UNUSED2 = (1 << 1),
-        e_UNUSED3 = (1 << 2),
-        e_UNUSED4 = (1 << 3),
-        e_UNUSED5 = (1 << 4),
-        e_UNUSED6 = (1 << 5),
-        e_UNUSED7 = (1 << 6),
-        e_UNUSED8 = (1 << 7)
+        /// Contains message properties
+        e_MESSAGE_PROPERTIES = (1 << 0),
+        e_UNUSED2            = (1 << 1),
+        e_UNUSED3            = (1 << 2),
+        e_UNUSED4            = (1 << 3),
+        e_UNUSED5            = (1 << 4),
+        e_UNUSED6            = (1 << 5),
+        e_UNUSED7            = (1 << 6),
+        e_UNUSED8            = (1 << 7)
     };
 
     // CLASS METHODS
@@ -1636,13 +1636,14 @@ struct QueueOpType {
     // TYPES
     enum Enum {
         e_UNDEFINED = 0,
-        e_PURGE     = 1  // A queue (or a specific appId) is purged
-        ,
-        e_CREATION = 2  // A new queue is created
-        ,
-        e_DELETION = 3  // A queue (or a specific appId) is deleted
-        ,
-        e_ADDITION = 4  // New appId(s) have been added to existing queue
+        /// A queue (or a specific appId) is purged
+        e_PURGE = 1,
+        /// A new queue is created
+        e_CREATION = 2,
+        /// A queue (or a specific appId) is deleted
+        e_DELETION = 3,
+        /// New appId(s) have been added to existing queue
+        e_ADDITION = 4
     };
 
     // CLASS METHODS
@@ -1846,8 +1847,8 @@ struct JournalOpType {
     // TYPES
     enum Enum {
         e_UNDEFINED = 0,
-        e_UNUSED    = 1  // Can be used in future.
-        ,
+        /// Can be used in future.
+        e_UNUSED    = 1,
         e_SYNCPOINT = 2
     };
 

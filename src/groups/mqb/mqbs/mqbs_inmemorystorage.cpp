@@ -101,11 +101,12 @@ InMemoryStorage::~InMemoryStorage()
 
 // MANIPULATORS
 //   (virtual mqbi::Storage)
-int InMemoryStorage::configure(BSLA_UNUSED bsl::ostream& errorDescription,
-                               const mqbconfm::Storage&  config,
-                               const mqbconfm::Limits&   limits,
-                               const bsls::Types::Int64  messageTtl,
-                               const int                 maxDeliveryAttempts)
+int InMemoryStorage::configure(
+    BSLA_MAYBE_UNUSED bsl::ostream& errorDescription,
+    const mqbconfm::Storage&        config,
+    const mqbconfm::Limits&         limits,
+    const bsls::Types::Int64        messageTtl,
+    const int                       maxDeliveryAttempts)
 {
     d_config = config;
     d_capacityMeter.setLimits(limits.messages(), limits.bytes())
@@ -287,8 +288,8 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
 mqbi::StorageResult::Enum
 InMemoryStorage::confirm(const bmqt::MessageGUID& msgGUID,
                          const mqbu::StorageKey&  appKey,
-                         BSLA_UNUSED bsls::Types::Int64 timestamp,
-                         BSLA_UNUSED bool               onReject)
+                         BSLA_MAYBE_UNUSED bsls::Types::Int64 timestamp,
+                         BSLA_MAYBE_UNUSED bool               onReject)
 {
     ItemsMapIter it = d_items.find(msgGUID);
     if (it == d_items.end()) {
@@ -539,7 +540,7 @@ void InMemoryStorage::selectForAutoConfirming(const bmqt::MessageGUID& msgGUID)
 
 mqbi::StorageResult::Enum
 InMemoryStorage::autoConfirm(const mqbu::StorageKey& appKey,
-                             BSLA_UNUSED bsls::Types::Uint64 timestamp)
+                             BSLA_MAYBE_UNUSED bsls::Types::Uint64 timestamp)
 {
     d_autoConfirms.emplace_back(appKey);
 
@@ -582,10 +583,10 @@ InMemoryStorage::get(mqbi::StorageMessageAttributes* attributes,
 // MANIPULATORS
 //   (virtual mqbs::ReplicatedStorage)
 void InMemoryStorage::processMessageRecord(
-    BSLA_UNUSED const bmqt::MessageGUID&     guid,
-    BSLA_UNUSED unsigned int                 msgLen,
-    BSLA_UNUSED unsigned int                 refCount,
-    BSLA_UNUSED const DataStoreRecordHandle& handle)
+    BSLA_MAYBE_UNUSED const bmqt::MessageGUID&     guid,
+    BSLA_MAYBE_UNUSED unsigned int                 msgLen,
+    BSLA_MAYBE_UNUSED unsigned int                 refCount,
+    BSLA_MAYBE_UNUSED const DataStoreRecordHandle& handle)
 {
     // Replicated in-memory storage is not yet supported.
 
@@ -593,10 +594,10 @@ void InMemoryStorage::processMessageRecord(
 }
 
 void InMemoryStorage::processConfirmRecord(
-    BSLA_UNUSED const bmqt::MessageGUID& guid,
-    BSLA_UNUSED const mqbu::StorageKey& appKey,
-    BSLA_UNUSED ConfirmReason::Enum          reason,
-    BSLA_UNUSED const DataStoreRecordHandle& handle)
+    BSLA_MAYBE_UNUSED const bmqt::MessageGUID& guid,
+    BSLA_MAYBE_UNUSED const mqbu::StorageKey& appKey,
+    BSLA_MAYBE_UNUSED ConfirmReason::Enum          reason,
+    BSLA_MAYBE_UNUSED const DataStoreRecordHandle& handle)
 {
     // Replicated in-memory storage is not yet supported.
 
@@ -604,7 +605,7 @@ void InMemoryStorage::processConfirmRecord(
 }
 
 void InMemoryStorage::processDeletionRecord(
-    BSLA_UNUSED const bmqt::MessageGUID& guid)
+    BSLA_MAYBE_UNUSED const bmqt::MessageGUID& guid)
 {
     // Replicated in-memory storage is not yet supported.
 
@@ -623,7 +624,7 @@ void InMemoryStorage::addQueueOpRecordHandle(
     d_queueOpRecordHandles.push_back(handle);
 }
 
-void InMemoryStorage::purge(BSLA_UNUSED const mqbu::StorageKey& appKey)
+void InMemoryStorage::purge(BSLA_MAYBE_UNUSED const mqbu::StorageKey& appKey)
 {
     // Replicated in-memory storage is not yet supported.
 

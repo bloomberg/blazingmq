@@ -187,45 +187,30 @@ int AuthenticationController::createConfiguredAuthenticators(
     for (; configIt != authenticators.cend(); ++configIt) {
         const bsl::string& pluginName = configIt->name();
 
-        // Find the factory for this named plugin among available factories
-        mqbplug::AuthenticatorPluginFactory* factory = 0;
-        AuthenticatorMp                      authenticator;
-
+        // Try to create the authenticator for this plugin name
+        AuthenticatorMp authenticator;
         for (PluginFactories::const_iterator factoryIt =
                  pluginFactories.cbegin();
              factoryIt != pluginFactories.cend();
              ++factoryIt) {
             mqbplug::AuthenticatorPluginFactory* candidateFactory =
                 dynamic_cast<mqbplug::AuthenticatorPluginFactory*>(*factoryIt);
-            if (candidateFactory) {
-                // Try to create authenticator - this will fail if no
-                // matching config
-                AuthenticatorMp testAuth = candidateFactory->create(
-                    d_allocator_p);
-                if (testAuth && testAuth->name() == pluginName) {
-                    // Found the right factory and already have the
-                    // authenticator!
-                    factory       = candidateFactory;
-                    authenticator = bslmf::MovableRefUtil::move(testAuth);
-                    break;
-                }
+            if (!candidateFactory) {
+                continue;
+            }
+            AuthenticatorMp testAuth = candidateFactory->create(d_allocator_p);
+            if (testAuth && testAuth->name() == pluginName) {
+                authenticator = bslmf::MovableRefUtil::move(testAuth);
+                break;
             }
         }
-
-        if (!factory) {
+        if (!authenticator) {
             errorDescription
                 << "Authenticator plugin '" << pluginName
-                << "' not found in available factories. "
-                << "Ensure the plugin is either built-in or listed "
-                << "in plugins.enabled[] if it's external";
+                << "' not found or could not be created."
+                << "Ensure the plugin is either built-in or listed in "
+                << "plugins.enabled[], or its configuration is correct.";
             return rc_PLUGIN_NOT_FOUND;  // RETURN
-        }
-
-        // We already have the authenticator instance from the search above
-        if (!authenticator) {
-            errorDescription << "Failed to create authenticator plugin '"
-                             << pluginName << "'";
-            continue;  // Skip if creation failed
         }
 
         const bsl::string normMech =
@@ -441,6 +426,9 @@ int AuthenticationController::authenticate(
 {
     // executed by an *AUTHENTICATION* thread
 
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(result);
+
     enum RcEnum {
         // Enum for the various RC error categories
         rc_SUCCESS                 = 0,
@@ -460,17 +448,15 @@ int AuthenticationController::authenticate(
         bmqu::MemOutStream errorStream(d_allocator_p);
         const int rc = authenticator->authenticate(errorStream, result, input);
         if (rc != rc_SUCCESS) {
-            errorDescription << "AuthenticationController: failed to "
-                                "authenticate with mechanism '"
+            errorDescription << "Failed to authenticate with mechanism '"
                              << normMech << "'. (rc = " << rc
                              << "). Detailed error: " << errorStream.str();
             return (rc * 10 + rc_AUTHENTICATION_FAILED);
         }
     }
     else {
-        errorDescription
-            << "AuthenticationController: authentication mechanism '"
-            << normMech << "' not supported.";
+        errorDescription << "Authentication mechanism '" << normMech
+                         << "' not supported.";
         return rc_MECHANISM_NOT_SUPPORTED;
     }
 

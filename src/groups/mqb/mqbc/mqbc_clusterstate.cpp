@@ -213,45 +213,45 @@ ClusterStateObserver::~ClusterStateObserver()
 }
 
 void ClusterStateObserver::onPartitionPrimaryAssignment(
-    BSLA_UNUSED int partitionId,
-    BSLA_UNUSED mqbnet::ClusterNode* primary,
-    BSLA_UNUSED unsigned int         leaseId,
-    BSLA_UNUSED bmqp_ctrlmsg::PrimaryStatus::Value status,
-    BSLA_UNUSED mqbnet::ClusterNode* oldPrimary,
-    BSLA_UNUSED unsigned int         oldLeaseId)
+    BSLA_MAYBE_UNUSED int partitionId,
+    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* primary,
+    BSLA_MAYBE_UNUSED unsigned int         leaseId,
+    BSLA_MAYBE_UNUSED bmqp_ctrlmsg::PrimaryStatus::Value status,
+    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* oldPrimary,
+    BSLA_MAYBE_UNUSED unsigned int         oldLeaseId)
 {
     // NOTHING
 }
 
 void ClusterStateObserver::onQueueAssigned(
-    BSLA_UNUSED const bsl::shared_ptr<ClusterStateQueueInfo>& info)
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<ClusterStateQueueInfo>& info)
 {
     // NOTHING
 }
 
 void ClusterStateObserver::onQueueUnassigned(
-    BSLA_UNUSED const bsl::shared_ptr<ClusterStateQueueInfo>& info)
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<ClusterStateQueueInfo>& info)
 {
     // NOTHING
 }
 
 void ClusterStateObserver::onQueueUpdated(
-    BSLA_UNUSED const bmqt::Uri& uri,
-    BSLA_UNUSED const bsl::string& domain,
-    BSLA_UNUSED const AppInfos&    addedAppIds,
-    BSLA_UNUSED const AppInfos&    removedAppIds)
+    BSLA_MAYBE_UNUSED const bmqt::Uri& uri,
+    BSLA_MAYBE_UNUSED const bsl::string& domain,
+    BSLA_MAYBE_UNUSED const AppInfos&    addedAppIds,
+    BSLA_MAYBE_UNUSED const AppInfos&    removedAppIds)
 {
     // NOTHING
 }
 
 void ClusterStateObserver::onPartitionOrphanThreshold(
-    BSLA_UNUSED size_t partitionId)
+    BSLA_MAYBE_UNUSED size_t partitionId)
 {
     // NOTHING
 }
 
 void ClusterStateObserver::onNodeUnavailableThreshold(
-    BSLA_UNUSED mqbnet::ClusterNode* node)
+    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* node)
 {
     // NOTHING
 }

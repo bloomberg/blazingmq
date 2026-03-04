@@ -142,7 +142,7 @@ TablePrinter::TablePrinter(const mqbcfg::StatsConfig& config,
     }
 }
 
-int TablePrinter::start(BSLA_UNUSED bsl::ostream& errorDescription)
+int TablePrinter::start(BSLA_MAYBE_UNUSED bsl::ostream& errorDescription)
 {
     // Setup the print of stats if configured for it
     if (!isEnabled()) {

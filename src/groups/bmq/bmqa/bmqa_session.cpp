@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2014-2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -85,9 +85,6 @@ BSLMF_ASSERT(sizeof(SessionEvent) == sizeof(bsl::shared_ptr<bmqimp::Event>));
 BSLMF_ASSERT(false == bsl::is_polymorphic<SessionEvent>::value);
 
 BSLMF_ASSERT(false == bsl::is_polymorphic<MessageProperties>::value);
-
-// CONSTANTS
-const int k_CHANNEL_WRITE_TIMEOUT = 5;  // sec
 
 // LOG CONFIGURATION
 BALL_LOG_SET_NAMESPACE_CATEGORY("BMQA.SESSION");
@@ -279,6 +276,13 @@ int SessionUtil::createApplication(SessionImpl* sessionImpl)
         }
     }
     ci.sdkLanguage() = bmqp_ctrlmsg::ClientLanguage::E_CPP;
+
+    bsl::string userAgent;
+    if (!sessionImpl->d_sessionOptions.userAgentPrefix().empty()) {
+        userAgent = sessionImpl->d_sessionOptions.userAgentPrefix() + " ";
+    }
+    userAgent += bsl::string("libbmq:") + bmqscm::Version::s_versionDotString;
+    ci.userAgent() = userAgent;
 
     // Create the GUID generator
     sessionImpl->d_guidGenerator_sp.createInplace(sessionImpl->d_allocator_p,
@@ -1504,8 +1508,7 @@ int Session::post(const MessageEvent& event)
     BSLS_ASSERT_SAFE(0 != eventSpRef.get());
 
     return d_impl.d_application_mp->brokerSession().post(
-        *(eventSpRef->rawEvent().blob()),
-        bsls::TimeInterval(k_CHANNEL_WRITE_TIMEOUT));
+        *(eventSpRef->rawEvent().blob()));
 }
 
 int Session::confirmMessage(const MessageConfirmationCookie& cookie)
@@ -1527,8 +1530,7 @@ int Session::confirmMessage(const MessageConfirmationCookie& cookie)
 
     return d_impl.d_application_mp->brokerSession().confirmMessage(
         queue,
-        cookie.messageGUID(),
-        bsls::TimeInterval(k_CHANNEL_WRITE_TIMEOUT));
+        cookie.messageGUID());
 }
 
 int Session::confirmMessages(ConfirmEventBuilder* builder)
@@ -1549,8 +1551,7 @@ int Session::confirmMessages(ConfirmEventBuilder* builder)
     }
 
     const int rc = d_impl.d_application_mp->brokerSession().confirmMessages(
-        *(&builder->blob()),
-        bsls::TimeInterval(k_CHANNEL_WRITE_TIMEOUT));
+        *(&builder->blob()));
 
     if (bmqt::GenericResult::e_SUCCESS == rc) {
         builder->reset();

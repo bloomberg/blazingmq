@@ -9235,28 +9235,46 @@ class AuthenticatorConfig {
     // behavior.  When specified, the broker uses the provided credential with
     // a matching plugin from `authenticators`.  When omitted, the broker
     // defaults to AnonAuthenticator and always passes for anonymous
-    // authentication.
+    // authentication.  minThreads..............: Minimum number of threads in
+    // the authentication thread pool.  maxThreads..............: Maximum
+    // number of threads in the authentication thread pool.
 
     // INSTANCE DATA
     bsl::vector<AuthenticatorPluginConfig>   d_authenticators;
     bdlb::NullableValue<AnonymousCredential> d_anonymousCredential;
+    int                                      d_minThreads;
+    int                                      d_maxThreads;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
+
+    bool isEqualTo(const AuthenticatorConfig& rhs) const;
 
   public:
     // TYPES
     enum {
         ATTRIBUTE_ID_AUTHENTICATORS       = 0,
-        ATTRIBUTE_ID_ANONYMOUS_CREDENTIAL = 1
+        ATTRIBUTE_ID_ANONYMOUS_CREDENTIAL = 1,
+        ATTRIBUTE_ID_MIN_THREADS          = 2,
+        ATTRIBUTE_ID_MAX_THREADS          = 3
     };
 
-    enum { NUM_ATTRIBUTES = 2 };
+    enum { NUM_ATTRIBUTES = 4 };
 
     enum {
         ATTRIBUTE_INDEX_AUTHENTICATORS       = 0,
-        ATTRIBUTE_INDEX_ANONYMOUS_CREDENTIAL = 1
+        ATTRIBUTE_INDEX_ANONYMOUS_CREDENTIAL = 1,
+        ATTRIBUTE_INDEX_MIN_THREADS          = 2,
+        ATTRIBUTE_INDEX_MAX_THREADS          = 3
     };
 
     // CONSTANTS
     static const char CLASS_NAME[];
+
+    static const int DEFAULT_INITIALIZER_MIN_THREADS;
+
+    static const int DEFAULT_INITIALIZER_MAX_THREADS;
 
     static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
@@ -9359,6 +9377,14 @@ class AuthenticatorConfig {
     // Return a reference to the modifiable "AnonymousCredential" attribute
     // of this object.
 
+    int& minThreads();
+    // Return a reference to the modifiable "MinThreads" attribute of this
+    // object.
+
+    int& maxThreads();
+    // Return a reference to the modifiable "MaxThreads" attribute of this
+    // object.
+
     // ACCESSORS
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
@@ -9411,6 +9437,12 @@ class AuthenticatorConfig {
     // Return a reference offering non-modifiable access to the
     // "AnonymousCredential" attribute of this object.
 
+    int minThreads() const;
+    // Return the value of the "MinThreads" attribute of this object.
+
+    int maxThreads() const;
+    // Return the value of the "MaxThreads" attribute of this object.
+
     // HIDDEN FRIENDS
     friend bool operator==(const AuthenticatorConfig& lhs,
                            const AuthenticatorConfig& rhs)
@@ -9418,8 +9450,7 @@ class AuthenticatorConfig {
     // have the same value, and 'false' otherwise.  Two attribute objects
     // have the same value if each respective attribute has the same value.
     {
-        return lhs.authenticators() == rhs.authenticators() &&
-               lhs.anonymousCredential() == rhs.anonymousCredential();
+        return lhs.isEqualTo(rhs);
     }
 
     friend bool operator!=(const AuthenticatorConfig& lhs,
@@ -9445,9 +9476,7 @@ class AuthenticatorConfig {
     // effectively provides a 'bsl::hash' specialization for
     // 'AuthenticatorConfig'.
     {
-        using bslh::hashAppend;
-        hashAppend(hashAlg, object.authenticators());
-        hashAppend(hashAlg, object.anonymousCredential());
+        object.hashAppendImpl(hashAlg);
     }
 };
 
@@ -19095,6 +19124,26 @@ inline const LogController& TaskConfig::logController() const
 // class AuthenticatorConfig
 // -------------------------
 
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void AuthenticatorConfig::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->authenticators());
+    hashAppend(hashAlgorithm, this->anonymousCredential());
+    hashAppend(hashAlgorithm, this->minThreads());
+    hashAppend(hashAlgorithm, this->maxThreads());
+}
+
+inline bool
+AuthenticatorConfig::isEqualTo(const AuthenticatorConfig& rhs) const
+{
+    return this->authenticators() == rhs.authenticators() &&
+           this->anonymousCredential() == rhs.anonymousCredential() &&
+           this->minThreads() == rhs.minThreads() &&
+           this->maxThreads() == rhs.maxThreads();
+}
+
 // CLASS METHODS
 // MANIPULATORS
 template <typename t_MANIPULATOR>
@@ -19111,6 +19160,18 @@ int AuthenticatorConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
     ret = manipulator(
         &d_anonymousCredential,
         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ANONYMOUS_CREDENTIAL]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_minThreads,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MIN_THREADS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_maxThreads,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_THREADS]);
     if (ret) {
         return ret;
     }
@@ -19134,6 +19195,14 @@ int AuthenticatorConfig::manipulateAttribute(t_MANIPULATOR& manipulator,
         return manipulator(
             &d_anonymousCredential,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ANONYMOUS_CREDENTIAL]);
+    }
+    case ATTRIBUTE_ID_MIN_THREADS: {
+        return manipulator(&d_minThreads,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MIN_THREADS]);
+    }
+    case ATTRIBUTE_ID_MAX_THREADS: {
+        return manipulator(&d_maxThreads,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_THREADS]);
     }
     default: return NOT_FOUND;
     }
@@ -19167,6 +19236,16 @@ AuthenticatorConfig::anonymousCredential()
     return d_anonymousCredential;
 }
 
+inline int& AuthenticatorConfig::minThreads()
+{
+    return d_minThreads;
+}
+
+inline int& AuthenticatorConfig::maxThreads()
+{
+    return d_maxThreads;
+}
+
 // ACCESSORS
 template <typename t_ACCESSOR>
 int AuthenticatorConfig::accessAttributes(t_ACCESSOR& accessor) const
@@ -19181,6 +19260,18 @@ int AuthenticatorConfig::accessAttributes(t_ACCESSOR& accessor) const
 
     ret = accessor(d_anonymousCredential,
                    ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ANONYMOUS_CREDENTIAL]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_minThreads,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MIN_THREADS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_maxThreads,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_THREADS]);
     if (ret) {
         return ret;
     }
@@ -19202,6 +19293,14 @@ int AuthenticatorConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
         return accessor(
             d_anonymousCredential,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ANONYMOUS_CREDENTIAL]);
+    }
+    case ATTRIBUTE_ID_MIN_THREADS: {
+        return accessor(d_minThreads,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MIN_THREADS]);
+    }
+    case ATTRIBUTE_ID_MAX_THREADS: {
+        return accessor(d_maxThreads,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_THREADS]);
     }
     default: return NOT_FOUND;
     }
@@ -19233,6 +19332,16 @@ inline const bdlb::NullableValue<AnonymousCredential>&
 AuthenticatorConfig::anonymousCredential() const
 {
     return d_anonymousCredential;
+}
+
+inline int AuthenticatorConfig::minThreads() const
+{
+    return d_minThreads;
+}
+
+inline int AuthenticatorConfig::maxThreads() const
+{
+    return d_maxThreads;
 }
 
 // -----------------------

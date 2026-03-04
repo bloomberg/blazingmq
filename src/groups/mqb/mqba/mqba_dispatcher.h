@@ -50,8 +50,10 @@
 #include <mqbi_dispatcher.h>
 #include <mqbu_loadbalancer.h>
 
+// BMQ
 #include <bmqc_multiqueuethreadpool.h>
 #include <bmqex_executor.h>
+#include <bmqu_atomicgate.h>
 
 // BDE
 #include <ball_log.h>
@@ -72,6 +74,9 @@ namespace BloombergLP {
 // FORWARD DECLARATION
 namespace bdlmt {
 class EventScheduler;
+}
+namespace bmqst {
+class StatContext;
 }
 
 namespace mqba {
@@ -101,6 +106,8 @@ class Dispatcher_Executor {
     bsl::shared_ptr<mqbi::DispatcherEventSource> d_eventSource_sp;
 
     bmqc::MultiQueueThreadPool<mqbi::DispatcherEvent>* d_processorPool_p;
+
+    bmqst::StatContext* d_statContext_p;
 
     mqbi::Dispatcher::ProcessorHandle d_processorHandle;
 
@@ -209,31 +216,6 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
 
     typedef bsl::vector<mqbi::DispatcherClient*> DispatcherClientPtrVector;
 
-    /// The purpose is to avoid memory allocation by bdlf::BindUtil::bind
-    /// when dispatching CONFIRM from Cluster to Queue.
-    class OnNewClientFunctor : public bmqu::ManagedCallback::CallbackFunctor {
-      private:
-        // PRIVATE DATA
-        Dispatcher*                      d_owner_p;
-        mqbi::DispatcherClientType::Enum d_type;
-        int                              d_processorId;
-
-      public:
-        // CREATORS
-        /// This functor is invoked when a new client with the specified `type`
-        /// is registered to the dispatcher, from the thread associated to that
-        /// new client that is mapped to the specified `processorId`.  The
-        /// specified `owner_p` holds pointer to the parent Dispatcher object.
-        explicit OnNewClientFunctor(Dispatcher*                      owner_p,
-                                    mqbi::DispatcherClientType::Enum type,
-                                    int processorId);
-
-        // ACCESSORS
-        /// Updated the data associated with the new client from the
-        /// appropriate thread, using fields stored in this functor.
-        void operator()() const BSLS_KEYWORD_OVERRIDE;
-    };
-
     /// Context for a dispatcher, with threads and pools
     struct DispatcherContext {
       private:
@@ -265,6 +247,13 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
         /// assigned for each processor.
         bsl::vector<bsl::shared_ptr<mqbi::DispatcherEventSource> >
             d_eventSources;
+
+        /// Pointer to stat context for client
+        bslma::ManagedPtr<bmqst::StatContext> d_clientStatContext_mp;
+
+        /// Vector of stat contexts shared pointers, one per client's
+        /// processor.
+        bsl::vector<bsl::shared_ptr<bmqst::StatContext> > d_statContexts;
 
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(DispatcherContext,
@@ -303,6 +292,9 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
     /// The various contexts, one for each `ClientType`.
     bsl::vector<DispatcherContextSp> d_contexts;
 
+    /// Top-level stat context for all dispatcher client types
+    bmqst::StatContext* d_statContext_p;
+
     /// The event source that can be used by any routine that is not called
     /// from a dispatcher thread.
     bsl::shared_ptr<mqbi::DispatcherEventSource> d_defaultEventSource_sp;
@@ -314,6 +306,9 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
 
     /// The mutex for thread-safe access to `d_customEventSources`.
     bslmt::Mutex d_customEventSources_mtx;
+
+    /// @brief Mechanism controlling enabling/disabling of client flushing.
+    bmqu::GateKeeper d_flushClientsGate;
 
     // FRIENDS
     friend class Dispatcher_Executor;
@@ -332,22 +327,18 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
     /// Create a queue for the multi-fixed queue thread pool in charge of
     /// dispatcher client of the specified `type` and using the specified
     /// `config`.  This queue corresponds to the specified `processorId` and
-    /// the specified `allocator` should be used to create it.  The
-    /// specified `ret` can be used to set a context for the queue.
+    /// the specified `allocator` should be used to create it.
     ProcessorPool::Queue*
     queueCreator(mqbi::DispatcherClientType::Enum             type,
                  const mqbcfg::DispatcherProcessorParameters& config,
-                 ProcessorPool::QueueCreatorRet*              ret,
                  int                                          processorId,
                  bslma::Allocator*                            allocator);
 
-    /// Callback when a new object in the specified `event` and having the
-    /// specified associated `context` is dispatched for the queue in charge of
-    /// dispatcher client of the specified `type`, having the specified
-    /// `processorId`.
+    /// Callback when a new object in the specified `event` is dispatched
+    /// for the queue in charge of dispatcher client of the specified `type`,
+    /// having the specified `processorId`.
     void queueEventCb(mqbi::DispatcherClientType::Enum type,
                       int                              processorId,
-                      void*                            context,
                       const ProcessorPool::EventSp&    event);
 
     /// Flush clients of the specified `type` for the specified
@@ -360,10 +351,11 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
 
     // CREATORS
 
-    /// Create a dispatcher using the specified `config` and `scheduler`.
-    /// All memory allocation will be performed using the specified
-    /// `allocator`.
+    /// Create a dispatcher using the specified `config`, `statContext` and
+    /// `scheduler`. All memory allocation will be performed using the
+    /// specified `allocator`.
     Dispatcher(const mqbcfg::DispatcherConfig& config,
+               bmqst::StatContext*             statContext,
                bdlmt::EventScheduler*          scheduler,
                bslma::Allocator*               allocator);
 
@@ -376,6 +368,9 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
     /// populating the specified `errorDescription` with the reason of the
     /// error.
     int start(bsl::ostream& errorDescription);
+
+    /// @brief Stop calling `flush` on idle dispatcher clients.
+    void disableFlushClients();
 
     /// Stop the `Dispatcher`.
     void stop();
@@ -491,6 +486,11 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
     /// dispatcher.
     bmqex::Executor
     executor(const mqbi::DispatcherClient* client) const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return current number of events enqueued for the processor in charge of
+    /// the specified `client`.
+    bsls::Types::Int64 numProcessorEvents(
+        const mqbi::DispatcherClient* client) const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ============================================================================
@@ -530,81 +530,6 @@ Dispatcher::getDefaultEventSource()
     return d_defaultEventSource_sp;
 }
 
-inline void
-Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
-                          mqbi::DispatcherClient*                destination)
-{
-    BALL_LOG_TRACE << "Enqueuing Event to '" << destination->description()
-                   << "': " << *bslmf::MovableRefUtil::access(event);
-
-    bslmf::MovableRefUtil::access(event)->setDestination(destination);
-
-    dispatchEvent(bslmf::MovableRefUtil::move(event),
-                  destination->dispatcherClientData().clientType(),
-                  destination->dispatcherClientData().processorHandle());
-}
-
-inline void
-Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
-                          mqbi::DispatcherClientType::Enum       type,
-                          mqbi::Dispatcher::ProcessorHandle      handle)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(handle != mqbi::Dispatcher::k_INVALID_PROCESSOR_HANDLE);
-
-    BALL_LOG_TRACE << "Enqueuing Event to processor " << handle << " of "
-                   << type << ": " << *bslmf::MovableRefUtil::access(event);
-
-    switch (type) {
-    case mqbi::DispatcherClientType::e_SESSION:
-    case mqbi::DispatcherClientType::e_QUEUE:
-    case mqbi::DispatcherClientType::e_CLUSTER: {
-        d_contexts[type]->d_processorPool_mp->enqueueEvent(
-            bslmf::MovableRefUtil::move(event),
-            handle);
-    } break;
-    case mqbi::DispatcherClientType::e_UNDEFINED:
-    default: {
-        BSLS_ASSERT_OPT(false && "Invalid destination type");
-    }
-    }
-}
-
-inline void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
-                                mqbi::DispatcherClient*              client,
-                                mqbi::DispatcherEventType::Enum      type)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(client);
-    BSLS_ASSERT_SAFE(type == mqbi::DispatcherEventType::e_CALLBACK ||
-                     type == mqbi::DispatcherEventType::e_DISPATCHER);
-    BSLS_ASSERT_SAFE(functor);
-
-    bsl::shared_ptr<mqbi::DispatcherEvent> event =
-        d_defaultEventSource_sp->getEvent();
-    (*event).setType(type).callback().set(functor);
-
-    dispatchEvent(bslmf::MovableRefUtil::move(event), client);
-}
-
-inline void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
-                                const mqbi::DispatcherClientData&    client)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(functor);
-
-    bsl::shared_ptr<mqbi::DispatcherEvent> event =
-        d_defaultEventSource_sp->getEvent();
-    (*event)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .callback()
-        .set(functor);
-
-    dispatchEvent(bslmf::MovableRefUtil::move(event),
-                  client.clientType(),
-                  client.processorHandle());
-}
-
 // ACCESSORS
 inline int
 Dispatcher::numProcessors(mqbi::DispatcherClientType::Enum type) const
@@ -627,6 +552,18 @@ Dispatcher::numProcessors(mqbi::DispatcherClientType::Enum type) const
     }
 
     return 0;
+}
+
+inline bsls::Types::Int64
+Dispatcher::numProcessorEvents(const mqbi::DispatcherClient* client) const
+{
+    BSLS_ASSERT_SAFE(client);
+
+    const mqbi::DispatcherClientData& data    = client->dispatcherClientData();
+    mqbi::DispatcherClientType::Enum  type    = data.clientType();
+    int                               queueId = data.processorHandle();
+
+    return d_contexts[type]->d_processorPool_mp->numElements(queueId);
 }
 
 }  // close package namespace

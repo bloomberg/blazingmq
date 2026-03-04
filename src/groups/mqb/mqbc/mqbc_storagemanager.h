@@ -164,7 +164,7 @@ class StorageManager BSLS_KEYWORD_FINAL
         PrimaryStatusAdvisoryInfosVec;
 
     /// VST representing node's sequence number, first sync point after
-    /// rollover sequence number and flag of whether recovery data is in sync.
+    /// rollover sequence number.
     class NodeSeqNumContext {
       public:
         // DATA
@@ -176,18 +176,13 @@ class StorageManager BSLS_KEYWORD_FINAL
         bmqp_ctrlmsg::PartitionSequenceNumber
             d_firstSyncPointAfterRolloverSeqNum;
 
-        /// Flag of whether recovery data is already sent to that node.
-        /// It, however, does not mean that the node is already healed.
-        bool d_isRecoveryDataSent;
-
         // CREATORS
         NodeSeqNumContext();
 
         explicit NodeSeqNumContext(
             const bmqp_ctrlmsg::PartitionSequenceNumber d_seqNum,
             const bmqp_ctrlmsg::PartitionSequenceNumber
-                 d_firstSyncPointAfterRolloverSeqNum,
-            bool isRecoveryDataSent);
+                d_firstSyncPointAfterRolloverSeqNum);
     };
 
   public:
@@ -598,6 +593,12 @@ class StorageManager BSLS_KEYWORD_FINAL
 
     void do_logFailurePrimaryStateResponse(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
+
+    void do_logUnexpectedPrimaryStateResponse(const EventWithData& event)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_logUnexpectedFailurePrimaryStateResponse(
+        const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
     void
     do_primaryStateRequest(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
@@ -1215,7 +1216,6 @@ inline unsigned int StorageManager::getSeqNumQuorum() const
 inline StorageManager::NodeSeqNumContext::NodeSeqNumContext()
 : d_seqNum()
 , d_firstSyncPointAfterRolloverSeqNum()
-, d_isRecoveryDataSent(false)
 {
     // NOTHING
 }
@@ -1223,11 +1223,9 @@ inline StorageManager::NodeSeqNumContext::NodeSeqNumContext()
 inline StorageManager::NodeSeqNumContext::NodeSeqNumContext(
     const bmqp_ctrlmsg::PartitionSequenceNumber seqNum,
     const bmqp_ctrlmsg::PartitionSequenceNumber
-         firstSyncPointAfterRolloverSeqNum,
-    bool isInSync)
+        firstSyncPointAfterRolloverSeqNum)
 : d_seqNum(seqNum)
 , d_firstSyncPointAfterRolloverSeqNum(firstSyncPointAfterRolloverSeqNum)
-, d_isRecoveryDataSent(isInSync)
 {
     // NOTHING
 }

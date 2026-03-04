@@ -349,16 +349,17 @@ class Channel {
   public:
     // PUBLIC TYPES
     enum EnumState {
-        e_INITIAL = 0  // Not connected
-        ,
-        e_RESET = 1  // Need resetting because of a connection change
-        ,
-        e_CLOSE = 2  // Between 'Channel::close; and 'resetChannel'
-        ,
+        /// Not connected
+        e_INITIAL = 0,
+        /// Need resetting because of a connection change
+        e_RESET = 1,
+        /// Between 'Channel::close; and 'resetChannel'
+        e_CLOSE = 2,
         e_READY = 3,
-        e_LWM   = 4  // LWM
-        ,
-        e_HWM = 5  // HWM
+        /// LWM
+        e_LWM = 4,
+        /// HWM
+        e_HWM = 5
     };
 
   private:
