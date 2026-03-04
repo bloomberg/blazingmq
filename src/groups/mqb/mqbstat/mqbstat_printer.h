@@ -164,7 +164,7 @@ class TablePrinter {
 inline bool TablePrinter::isEnabled() const
 {
     return d_config.printer().encoding() &
-           mqbcfg::StatsPrinterEncodingFormat::Value::TABLE;
+           mqbcfg::StatsPrinterEncodingFormat::TABLE;
 }
 
 }  // close package namespace

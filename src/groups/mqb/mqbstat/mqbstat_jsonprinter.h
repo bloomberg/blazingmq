@@ -143,7 +143,7 @@ class JsonPrinter {
 inline bool JsonPrinter::isEnabled() const
 {
     return d_config.printer().encoding() &
-           mqbcfg::StatsPrinterEncodingFormat::Value::JSON;
+           mqbcfg::StatsPrinterEncodingFormat::JSON;
 }
 
 }  // close package namespace
