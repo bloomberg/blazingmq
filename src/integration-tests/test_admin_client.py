@@ -256,7 +256,11 @@ def check_admin_response(admin, expected: dict, path: str) -> None:
 
     stats = extract_stats(admin_response)
 
-    expect_same_list_of_flat_objects(stats, expected, path)
+    try:
+        expect_same_list_of_flat_objects(stats, expected, path)
+    except TypeError as e:
+        stats_str = json.dumps(stats, indent=2)
+        raise RuntimeError(f"TypeError: {path}, stats: {stats_str}") from e
 
 
 def check_admin_response_too_often(admin):
