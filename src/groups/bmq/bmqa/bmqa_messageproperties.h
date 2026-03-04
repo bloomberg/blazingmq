@@ -66,8 +66,8 @@
 #include <bdlbb_blob.h>
 #include <bsl_cstdint.h>
 #include <bsl_ostream.h>
+#include <bsl_span.h>
 #include <bsl_string.h>
-#include <bsl_vector.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
@@ -237,8 +237,8 @@ class MessageProperties {
     /// case of failure.  Note that if a property with `name` and the same type
     /// exists, it will be updated with the provided `value`, however if the
     /// data type of the existing property differs, an error will be returned.
-    int setPropertyAsBinary(bsl::string_view         name,
-                            const bsl::vector<char>& value);
+    int setPropertyAsBinary(bsl::string_view      name,
+                            bsl::span<const char> value);
 
     /// Populate this instance with its BlazingMQ wire protocol
     /// representation from the specified `blob`.  Return zero on success,

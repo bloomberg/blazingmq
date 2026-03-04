@@ -1252,6 +1252,60 @@ static void test10_empty()
     BMQTST_ASSERT(!p.hasProperty("z"));
 }
 
+static bsl::vector<char> makeBytes(bslma::Allocator* allocator)
+// Return a vector of chars by value, for use in testing rvalue
+// arguments to 'setPropertyAsBinary'.
+{
+    return bsl::vector<char>(10, 'z', allocator);
+}
+
+static void test11_binaryPropertyRvalueTest()
+// ------------------------------------------------------------------------
+// BINARY PROPERTY RVALUE TEST
+//
+// Concerns:
+//   'setPropertyAsBinary' should accept rvalue 'bsl::vector<char>'
+//   arguments, such as temporaries and function return values.
+//   These calling patterns compiled when the parameter type was
+//   'const bsl::vector<char>&' (which binds to rvalues), but may
+//   fail with 'bsl::span<const char>' if span does not construct
+//   from rvalue containers.
+//
+// Plan:
+//   1. Call 'setPropertyAsBinary' with a temporary vector.
+//   2. Call 'setPropertyAsBinary' with a function return value.
+//   3. Verify the properties were set correctly.
+//
+// Testing:
+//   int setPropertyAsBinary(bsl::string_view, bsl::span<const char>);
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("BINARY PROPERTY RVALUE TEST");
+
+    bmqp::MessageProperties p(bmqtst::TestHelperUtil::allocator());
+
+    // Case 1: temporary vector (rvalue)
+    BMQTST_ASSERT_EQ(
+        0,
+        p.setPropertyAsBinary(
+            "rvalue",
+            bsl::vector<char>(5, 'x', bmqtst::TestHelperUtil::allocator())));
+
+    const bsl::vector<char>& out1 = p.getPropertyAsBinary("rvalue");
+    BMQTST_ASSERT_EQ(5u, out1.size());
+    BMQTST_ASSERT_EQ('x', out1[0]);
+
+    // Case 2: return value from function (rvalue)
+    BMQTST_ASSERT_EQ(
+        0,
+        p.setPropertyAsBinary("fromFunc",
+                              makeBytes(bmqtst::TestHelperUtil::allocator())));
+
+    const bsl::vector<char>& out2 = p.getPropertyAsBinary("fromFunc");
+    BMQTST_ASSERT_EQ(10u, out2.size());
+    BMQTST_ASSERT_EQ('z', out2[0]);
+}
+
 #ifdef BMQTST_BENCHMARK_ENABLED
 
 struct MessagePropertiesBenchmark_getPropertyRef {
@@ -1431,6 +1485,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 11: test11_binaryPropertyRvalueTest(); break;
     case 10: test10_empty(); break;
     case 9: test9_copyAssignTest(); break;
     case 8: test8_printTest(); break;
