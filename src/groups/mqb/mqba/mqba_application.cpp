@@ -529,14 +529,12 @@ void Application::stop()
     // any DispatcherClient that might be in the middle of its destruction.
     d_dispatcher_mp->disableFlushClients();
 
-    // Note that clusterCatalog must be stopped before transport manager
-    // because transportManager.stop() blocks until all sessions have been
-    // destroyed, and above code proactively closes only the clientOrProxy
-    // sessions; clusterNode ones are being destroyed by the clusterCatalog
-    // calling stop on each cluster.
-
-    STOP_OBJ(d_clusterCatalog_mp, "ClusterCatalog");
+    // Stop TransportManager since 'Application::initiateShutdown' closed all
+    // client sessions and 'Cluster::initiateShutdown' closes all cluster nodes
+    // sessions.
     STOP_OBJ(d_transportManager_mp, "TransportManager");
+    STOP_OBJ(d_clusterCatalog_mp, "ClusterCatalog");
+
     STOP_OBJ(d_domainManager_mp, "DomainManager");
     STOP_OBJ(d_dispatcher_mp, "Dispatcher");
     STOP_OBJ(d_configProvider_mp, "ConfigProvider");
