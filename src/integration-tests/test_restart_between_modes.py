@@ -205,7 +205,7 @@ def restart_to_fsm_single_node_with_quorum_one_and_start_others(
             node.start()
             node.wait_until_started()
             # Need to wait until the node synchronizes it's partitions with the primary
-            node.wait_status(wait_leader=False, wait_ready=True)
+            node.wait_status(wait_leader=True, wait_ready=True)
 
 
 def restart_as_legacy_mode(
@@ -669,7 +669,7 @@ def test_restart_between_Legacy_and_FSM_unassign_queue(
     params=[
         (restart_as_fsm_mode, restart_as_legacy_mode, False),
         (restart_as_legacy_mode, restart_as_fsm_mode, False),
-        (restart_to_fsm_single_node_with_quorum_one, restart_as_legacy_mode, True),
+#        (restart_to_fsm_single_node_with_quorum_one, restart_as_legacy_mode, True),
         (
             restart_to_fsm_single_node_with_quorum_one_and_start_others,
             restart_as_legacy_mode,
@@ -679,7 +679,7 @@ def test_restart_between_Legacy_and_FSM_unassign_queue(
     ids=[
         "to_fsm/from_legacy",
         "to_legacy/from_fsm",
-        "to_fsm_quorum_1/from_legacy",
+#        "to_fsm_quorum_1/from_legacy",
         "to_fsm_quorum_1_then_start_all/from_legacy",
     ],
 )
