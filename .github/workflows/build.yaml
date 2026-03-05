@@ -131,7 +131,8 @@ jobs:
           # Allow core dumps
           ulimit -c unlimited
 
-          go install github.com/kevwan/tproxy@latest
+          # Pin tproxy of 27 Feb 2026:
+          go install github.com/kevwan/tproxy@d6d45cbbd1b3c5dad6e5043b74120f9ea962826b
           export GOPATH=$HOME/go
           export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
 
@@ -352,7 +353,8 @@ jobs:
 
       - name: Run Pushgateway
         run: |
-          docker pull prom/pushgateway
+          # 30 Oct 2025, v1.11.2:
+          docker pull prom/pushgateway@sha256:c835998819105d84d484918908df132807c78c05f3e0e649df0c0479c6780d98
           docker run -d -p 9091:9091 prom/pushgateway
 
       - name: Run BMQPrometheus plugin integration test in "pull" mode
