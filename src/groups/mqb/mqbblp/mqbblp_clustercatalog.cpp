@@ -532,14 +532,6 @@ void ClusterCatalog::stop()
          ++it) {
         it->second.d_cluster_sp->stop();
     }
-
-    // Clear maps (so that a 'start' called after 'stop' will start 'fresh')
-    {
-        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // d_mutex LOCK
-
-        d_clusters.clear();
-        d_myClusters.clear();
-    }
 }
 
 void ClusterCatalog::setDomainFactory(mqbi::DomainFactory* domainFactory)
