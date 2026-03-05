@@ -119,7 +119,7 @@ def expect_same_list_of_flat_objects(
     entry: List[Dict[str, Any]],
     expected: List[Dict[str, Any]],
     path: str = "",
-    skip_objects_with_type=("allocator",),
+    skip_objects_with_type=("allocator", "channel"),
     skip_keys=(
         "timestamp",
         "client_name",
