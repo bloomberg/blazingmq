@@ -119,7 +119,7 @@ def expect_same_list_of_flat_objects(
     entry: List[Dict[str, Any]],
     expected: List[Dict[str, Any]],
     path: str = "",
-    skip_objects_with_type=("allocator", "channel"),
+    skip_objects_with_type=("allocator", "channel", "client"),
     skip_keys=(
         "timestamp",
         "client_name",
@@ -319,7 +319,7 @@ def test_queue_stats(single_node: Cluster, domain_urls: tc.DomainUrls) -> None:
 
     check_admin_response(
         admin,
-        dt.TEST_QUEUE_STATS_AFTER_POST,
+        dt.TEST_QUEUE_STATS_AFTER_POST(task.domain),
         "after-post",
     )
 
@@ -338,7 +338,7 @@ def test_queue_stats(single_node: Cluster, domain_urls: tc.DomainUrls) -> None:
 
     check_admin_response(
         admin,
-        dt.TEST_QUEUE_STATS_AFTER_CONFIRM_SINGLE_NODE,
+        dt.TEST_QUEUE_STATS_AFTER_CONFIRM_SINGLE_NODE(task.domain),
         "after-confirm",
     )
 
@@ -350,7 +350,7 @@ def test_queue_stats(single_node: Cluster, domain_urls: tc.DomainUrls) -> None:
 
     check_admin_response(
         admin,
-        dt.TEST_QUEUE_STATS_AFTER_PURGE_SINGLE_NODE,
+        dt.TEST_QUEUE_STATS_AFTER_PURGE_SINGLE_NODE(task.domain),
         "after-purge",
     )
 
@@ -445,7 +445,7 @@ def test_app_id_stats(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
 
     check_admin_response(
         admin,
-        dt.TEST_QUEUE_STATS_AFTER_POST,
+        dt.TEST_QUEUE_STATS_AFTER_POST(task.domain),
         "after-post",
     )
 
@@ -473,7 +473,7 @@ def test_app_id_stats(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
 
     check_admin_response(
         admin,
-        dt.TEST_QUEUE_STATS_AFTER_CONFIRM_MULTI_NODE,
+        dt.TEST_QUEUE_STATS_AFTER_CONFIRM_MULTI_NODE(task.domain),
         "after-confirm",
     )
 
@@ -485,7 +485,7 @@ def test_app_id_stats(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
 
     check_admin_response(
         admin,
-        dt.TEST_QUEUE_STATS_AFTER_PURGE_MULTI_NODE,
+        dt.TEST_QUEUE_STATS_AFTER_PURGE_MULTI_NODE(task.domain),
         "after-purge",
     )
 
