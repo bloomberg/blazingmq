@@ -40,8 +40,8 @@ def test_client_timeout_open(multi_node: Cluster, domain_urls: tc.DomainUrls):
 
     # Start a producer with a long timeout and open queue, to ensure the queue
     # is assigned.
-    longTimeoutProducer = leader.create_client("producer_longtimeout")
-    longTimeoutProducer.open(uri_priority, flags=["write,ack"], succeed=True)
+    long_timeout_producer = leader.create_client("producer_long_timeout")
+    long_timeout_producer.open(uri_priority, flags=["write,ack"], succeed=True)
 
     # Start a producer with a short timeout
     producer = producer_broker.create_client("producer", options=["--timeout=1"])
@@ -51,7 +51,7 @@ def test_client_timeout_open(multi_node: Cluster, domain_urls: tc.DomainUrls):
         if broker is not producer_broker:
             broker.suspend()
 
-    # Open a queue while the cluster does not have quorum should timeout.
+    # Open a queue while the cluster does not have quorum should time out.
     assert (
         producer.open(uri_priority, flags=["write,ack"], succeed=False)
         == Client.e_TIMEOUT
@@ -61,7 +61,7 @@ def test_client_timeout_open(multi_node: Cluster, domain_urls: tc.DomainUrls):
     for broker in brokers:
         if broker is not producer_broker:
             broker.resume()
-    producer_broker.capture("is back to healthy state")
+    producer_broker.wait_healthy()
 
     # Post after short timeout should result in failed Ack (open is not
     # retried).
@@ -96,9 +96,9 @@ def test_client_timeout_reopen(multi_node: Cluster, domain_urls: tc.DomainUrls):
 
     # Start a producer with a long timeout and open queue, to ensure the queues
     # are assigned.
-    longTimeoutProducer = leader.create_client("producer_longtimeout")
-    longTimeoutProducer.open(uri_priority, flags=["write,ack"], succeed=True)
-    longTimeoutProducer.open(uri_priority2, flags=["write,ack"], succeed=True)
+    long_timeout_producer = leader.create_client("producer_long_timeout")
+    long_timeout_producer.open(uri_priority, flags=["write,ack"], succeed=True)
+    long_timeout_producer.open(uri_priority2, flags=["write,ack"], succeed=True)
 
     # Start a producer with a short timeout and open several queues
     producer = producer_broker.create_client("producer", options=["--timeout=1"])
@@ -122,7 +122,7 @@ def test_client_timeout_reopen(multi_node: Cluster, domain_urls: tc.DomainUrls):
     for broker in brokers:
         if broker is not producer_broker:
             broker.resume()
-    producer_broker.capture("is back to healthy state")
+    producer_broker.wait_healthy()
 
     # Post after short timeout should result in successful Ack
     assert (
@@ -155,8 +155,8 @@ def test_client_timeout_close(multi_node: Cluster, domain_urls: tc.DomainUrls):
 
     # Start a producer with a long timeout and open queue, to ensure the queues
     # are assigned.
-    longTimeoutProducer = leader.create_client("producer_longtimeout")
-    longTimeoutProducer.open(uri_priority, flags=["write,ack"], succeed=True)
+    long_timeout_producer = leader.create_client("producer_long_timeout")
+    long_timeout_producer.open(uri_priority, flags=["write,ack"], succeed=True)
 
     # Start a producer with a short timeout and open the queue
     producer = producer_broker.create_client("producer", options=["--timeout=1"])
@@ -178,7 +178,7 @@ def test_client_timeout_close(multi_node: Cluster, domain_urls: tc.DomainUrls):
     for broker in brokers:
         if broker is not producer_broker:
             broker.resume()
-    producer_broker.capture("is back to healthy state")
+    producer_broker.wait_healthy()
 
     # Post after short timeout should result in failed Ack
     assert (
