@@ -3542,6 +3542,12 @@ void StorageManager::do_findHighestMaxFileSizes(const EventWithData& event)
             highestPartitionMaxFileSizes);
 
         if (cit->first->nodeId() == selfNode->nodeId()) {
+            // Update self's partition max file sizes in nodeToContextMap
+            // since it is then used in replicaDataRequestResizeIfNeeded()
+            NodeToContextMapIter it = d_nodeToContextMapVec[partitionId].find(
+                selfNode);
+            it->second.d_partitionMaxFileSizes = highestPartitionMaxFileSizes;
+
             // Self needs to resize its partition size.
             dispatchEventToPartition(
                 PartitionFSM::Event::e_SELF_RESIZE_STORAGE,
@@ -3622,7 +3628,11 @@ void StorageManager::do_overrideMaxFileSizes(const EventWithData& event)
     BSLS_ASSERT_SAFE(fs);
     BSLS_ASSERT_SAFE(!fs->isOpen());
 
+    // Override partition max file sizes in FileStore and Recovery Manager.
     fs->overridePartitionMaxFileSizes(highestPartitionMaxFileSizes);
+    d_recoveryManager_mp->overridePartitionMaxFileSizes(
+        highestPartitionMaxFileSizes,
+        partitionId);
 
     BALL_LOG_WARN << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId
