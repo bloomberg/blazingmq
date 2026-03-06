@@ -441,13 +441,15 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// method will be typically preceded by an invocation to `truncate()`.
     /// Note that choice of a reference instead of a pointer for
     /// `fileSetRef` is deliberate, in order to avoid the accidental
-    /// invocation of other flavor of `close`.
-    void close(FileSet& fileSetRef, bool flush);
+    /// invocation of other flavor of `close`.  Return 0 on success and
+    /// non-zero rc on failure.
+    int close(FileSet& fileSetRef, bool flush);
 
     /// Move all files contained in the specified `fileSet` to the archive
     /// location as specified in this instance's configuration provided at
-    /// construction.  Note that files are not truncated or closed.
-    void archive(FileSet* fileSet);
+    /// construction.  Note that files are not truncated or closed.  Return 0
+    /// on success and non-zero rc on failure.
+    int archive(FileSet* fileSet);
 
     /// Garbage-collect the specified `fileSet` by calling a standalone
     /// worker thread to close and archive all files in the `fileSet`.
@@ -912,11 +914,11 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// mqbs::FileStore specific MANIPULATORS
 
     /// Deprecate the active file set.  Behavior is undefined unless this
-    /// instance is closed.
+    /// instance is closed.  Return 0 on success and non-zero rc on failure.
     ///
     /// NOTE: This routine is dangerous and archives storage files. Must be
     /// used with caution.
-    void deprecateFileSet();
+    int deprecateFileSet();
 
     /// Perform complete rollover of this partition and issue necessary sync
     /// points.

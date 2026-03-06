@@ -16,6 +16,7 @@
 // mqbc_recoverymanager.cpp                                           -*-C++-*-
 #include <ball_log.h>
 #include <bsls_assert.h>
+#include <mqbc_partitionfsm.h>
 #include <mqbc_recoverymanager.h>
 #include <mqbs_qlistfileiterator.h>
 
@@ -148,7 +149,7 @@ void RecoveryManager::stop()
     // NOTHING
 }
 
-void RecoveryManager::deprecateFileSet(int partitionId)
+int RecoveryManager::deprecateFileSet(int partitionId)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
@@ -156,6 +157,10 @@ void RecoveryManager::deprecateFileSet(int partitionId)
     BSLS_ASSERT_SAFE(partitionId >= 0 &&
                      partitionId <
                          d_clusterConfig.partitionConfig().numPartitions());
+
+    enum rcEnum { rc_SUCCESS = 0, rc_FAILURE = 1 };
+
+    int rcFinal = rc_SUCCESS;
 
     RecoveryContext&   recoveryCtx = d_recoveryContextVec[partitionId];
     bmqu::MemOutStream errorDesc;
@@ -172,6 +177,7 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                 << "], rc: " << rc << ", error: " << errorDesc.str()
                 << BMQTSK_ALARMLOG_END;
             errorDesc.reset();
+            rcFinal = rc_FAILURE;
         }
         else {
             BALL_LOG_INFO << d_clusterData.identity().description()
@@ -194,6 +200,7 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                 << "], rc: " << rc << ", error: " << errorDesc.str()
                 << BMQTSK_ALARMLOG_END;
             errorDesc.reset();
+            rcFinal = rc_FAILURE;
         }
         else {
             BALL_LOG_INFO << d_clusterData.identity().description()
@@ -211,6 +218,7 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                 << partitionId << "]: " << "Failed to close journal file ["
                 << recoveryCtx.d_recoveryFileSet.journalFile()
                 << "], rc: " << rc << BMQTSK_ALARMLOG_END;
+            rcFinal = rc_FAILURE;
         }
         else {
             BALL_LOG_INFO << d_clusterData.identity().description()
@@ -230,6 +238,7 @@ void RecoveryManager::deprecateFileSet(int partitionId)
             << recoveryCtx.d_recoveryFileSet.journalFile() << "] "
             << "to location [" << d_dataStoreConfig.archiveLocation()
             << "] rc: " << rc << BMQTSK_ALARMLOG_END;
+        rcFinal = rc_FAILURE;
     }
     else {
         BALL_LOG_INFO << d_clusterData.identity().description()
@@ -252,6 +261,7 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                 << recoveryCtx.d_recoveryFileSet.dataFile() << "], rc: " << rc
                 << ", error: " << errorDesc.str() << BMQTSK_ALARMLOG_END;
             errorDesc.reset();
+            rcFinal = rc_FAILURE;
         }
         else {
             BALL_LOG_INFO << d_clusterData.identity().description()
@@ -272,6 +282,7 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                 << recoveryCtx.d_recoveryFileSet.dataFile() << "], rc: " << rc
                 << ", error: " << errorDesc.str() << BMQTSK_ALARMLOG_END;
             errorDesc.reset();
+            rcFinal = rc_FAILURE;
         }
         else {
             BALL_LOG_INFO << d_clusterData.identity().description()
@@ -289,6 +300,7 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                 << partitionId << "]: " << "Failed to close data file ["
                 << recoveryCtx.d_recoveryFileSet.dataFile() << "], rc: " << rc
                 << BMQTSK_ALARMLOG_END;
+            rcFinal = rc_FAILURE;
         }
         else {
             BALL_LOG_INFO << d_clusterData.identity().description()
@@ -306,6 +318,7 @@ void RecoveryManager::deprecateFileSet(int partitionId)
             << recoveryCtx.d_recoveryFileSet.dataFile() << "] "
             << "to location [" << d_dataStoreConfig.archiveLocation()
             << "] rc: " << rc << BMQTSK_ALARMLOG_END;
+        rcFinal = rc_FAILURE;
     }
     else {
         BALL_LOG_INFO << d_clusterData.identity().description()
@@ -328,6 +341,7 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                 << recoveryCtx.d_recoveryFileSet.qlistFile() << "], rc: " << rc
                 << ", error: " << errorDesc.str() << BMQTSK_ALARMLOG_END;
             errorDesc.reset();
+            rcFinal = rc_FAILURE;
         }
         else {
             BALL_LOG_INFO << d_clusterData.identity().description()
@@ -348,6 +362,7 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                 << recoveryCtx.d_recoveryFileSet.qlistFile() << "], rc: " << rc
                 << ", error: " << errorDesc.str() << BMQTSK_ALARMLOG_END;
             errorDesc.reset();
+            rcFinal = rc_FAILURE;
         }
         else {
             BALL_LOG_INFO << d_clusterData.identity().description()
@@ -365,6 +380,7 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                 << partitionId << "]: " << "Failed to close QList file ["
                 << recoveryCtx.d_recoveryFileSet.qlistFile() << "], rc: " << rc
                 << BMQTSK_ALARMLOG_END;
+            rcFinal = rc_FAILURE;
         }
         else {
             BALL_LOG_INFO << d_clusterData.identity().description()
@@ -382,6 +398,7 @@ void RecoveryManager::deprecateFileSet(int partitionId)
             << recoveryCtx.d_recoveryFileSet.qlistFile() << "] "
             << "to location [" << d_dataStoreConfig.archiveLocation()
             << "] rc: " << rc << BMQTSK_ALARMLOG_END;
+        rcFinal = rc_FAILURE;
     }
     else {
         BALL_LOG_INFO << d_clusterData.identity().description()
@@ -394,6 +411,8 @@ void RecoveryManager::deprecateFileSet(int partitionId)
     recoveryCtx.d_qlistFilePosition = 0;
 
     recoveryCtx.d_firstSyncPointAfterRolloverSeqNum.reset();
+
+    return rcFinal;
 }
 
 void RecoveryManager::setExpectedDataChunkRange(
@@ -417,16 +436,16 @@ void RecoveryManager::setExpectedDataChunkRange(
     RecoveryContext&    recoveryCtx    = d_recoveryContextVec[partitionId];
     ReceiveDataContext& receiveDataCtx = recoveryCtx.d_receiveDataContext;
     if (receiveDataCtx.d_expectChunks) {
-        BALL_LOG_ERROR << d_clusterData.identity().description()
-                       << " Partition [" << partitionId << "]: "
-                       << "Got notification to expect chunks when self is "
-                       << "already expecting chunks.  Self's view: "
-                       << "recovery requestId = "
-                       << receiveDataCtx.d_recoveryRequestId
-                       << "; beginSeqNum = " << receiveDataCtx.d_beginSeqNum
-                       << "; endSeqNum = " << receiveDataCtx.d_endSeqNum
-                       << "; currSeqNum = " << receiveDataCtx.d_currSeqNum
-                       << ".  Please review Partition FSM logic.";
+        BMQTSK_ALARMLOG_ALARM(PartitionFSM::k_PFSM_DEFECT_LOG_TAG)
+            << d_clusterData.identity().description() << " Partition ["
+            << partitionId
+            << "]: " << " Got notification to expect chunks when self is "
+            << "already expecting chunks.  Self's view: "
+            << "recovery requestId = " << receiveDataCtx.d_recoveryRequestId
+            << "; beginSeqNum = " << receiveDataCtx.d_beginSeqNum
+            << "; endSeqNum = " << receiveDataCtx.d_endSeqNum
+            << "; currSeqNum = " << receiveDataCtx.d_currSeqNum
+            << ".  Please review Partition FSM logic." << BMQTSK_ALARMLOG_END;
     }
 
     receiveDataCtx.d_recoveryDataSource_p = source;
@@ -476,7 +495,7 @@ void RecoveryManager::resetReceiveDataCtx(int partitionId)
     d_recoveryContextVec[partitionId].d_receiveDataContext.reset();
 }
 
-int RecoveryManager::processSendDataChunks(
+void RecoveryManager::processSendDataChunks(
     int                                          partitionId,
     mqbnet::ClusterNode*                         destination,
     const bmqp_ctrlmsg::PartitionSequenceNumber& beginSeqNum,
@@ -487,6 +506,7 @@ int RecoveryManager::processSendDataChunks(
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
     // PRECONDITIONS
+    BSLS_ASSERT_SAFE(destination);
     BSLS_ASSERT_SAFE(fs.inDispatcherThread());
     BSLS_ASSERT_SAFE(fs.isOpen());
 
@@ -501,13 +521,16 @@ int RecoveryManager::processSendDataChunks(
         rc_INCOMPLETE_REPLAY        = -6
     };
 
-    int rc = rc_SUCCESS;
+    int status = rc_SUCCESS;
 
     bdlb::ScopeExitAny guardDoneDataChunks(
-        bdlf::BindUtil::bind(doneDataChunksCb, partitionId, destination, rc));
+        bdlf::BindUtil::bind(doneDataChunksCb,
+                             partitionId,
+                             destination,
+                             &status));
 
     if (beginSeqNum == endSeqNum) {
-        return rc_SUCCESS;  // RETURN
+        return;  // RETURN
     }
 
     BALL_LOG_INFO << d_clusterData.identity().description() << " Partition ["
@@ -516,7 +539,6 @@ int RecoveryManager::processSendDataChunks(
                   << ". Peer: " << destination->nodeDescription() << ".";
 
     mqbs::FileStoreSet fileSet;
-
     fs.loadCurrentFiles(&fileSet);
 
     bsl::shared_ptr<mqbs::MappedFileDescriptor> mappedJournalFd =
@@ -527,13 +549,23 @@ int RecoveryManager::processSendDataChunks(
     bsl::shared_ptr<mqbs::MappedFileDescriptor> mappedQlistFd =
         bsl::make_shared<mqbs::MappedFileDescriptor>();
 
-    rc = RecoveryUtil::loadFileDescriptors(mappedJournalFd.get(),
-                                           mappedDataFd.get(),
-                                           fileSet,
-                                           d_qListAware ? mappedQlistFd.get()
-                                                        : 0);
+    int rc = RecoveryUtil::loadFileDescriptors(
+        mappedJournalFd.get(),
+        mappedDataFd.get(),
+        fileSet,
+        d_qListAware ? mappedQlistFd.get() : 0);
     if (rc != 0) {
-        return rc * 10 + rc_LOAD_FD_FAILURE;  // RETURN
+        BMQTSK_ALARMLOG_ALARM("FILE_IO")
+            << d_clusterData.identity().description() << " Partition ["
+            << partitionId << "]: "
+            << "While sending data chunks, failed to load file descriptors, "
+               "rc: "
+            << rc << BMQTSK_ALARMLOG_END;
+
+        mqbu::ExitUtil::terminate(mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
+
+        status = rc * 10 + rc_LOAD_FD_FAILURE;
+        return;  // RETURN
     }
 
     bsl::shared_ptr<bsls::AtomicInt> journalChunkDeleterCounter =
@@ -563,13 +595,33 @@ int RecoveryManager::processSendDataChunks(
         mappedJournalFd.get(),
         mqbs::FileStoreProtocolUtil::bmqHeader(*mappedJournalFd.get()));
     if (0 != rc) {
-        return rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
+        BMQTSK_ALARMLOG_ALARM("FILE_IO")
+            << d_clusterData.identity().description() << " Partition ["
+            << partitionId << "]: "
+            << "While sending data chunks, failed to reset journal iterator, "
+               "rc: "
+            << rc << BMQTSK_ALARMLOG_END;
+
+        mqbu::ExitUtil::terminate(mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
+
+        status = rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;
+        return;  // RETURN
     }
 
     // Make initial 'journalIt.nextRecord()' call
     rc = journalIt.nextRecord();
     if (rc != 1) {
-        return rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
+        BMQTSK_ALARMLOG_ALARM("FILE_IO")
+            << d_clusterData.identity().description() << " Partition ["
+            << partitionId << "]: "
+            << "While sending data chunks, failed to advance journal "
+               "iterator,  rc : "
+            << rc << BMQTSK_ALARMLOG_END;
+
+        mqbu::ExitUtil::terminate(mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
+
+        status = rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;
+        return;  // RETURN
     }
 
     bmqp_ctrlmsg::PartitionSequenceNumber currentSeqNum;
@@ -577,7 +629,17 @@ int RecoveryManager::processSendDataChunks(
                                               journalIt,
                                               beginSeqNum);
     if (rc != 0) {
-        return rc * 10 + rc_INVALID_SEQUENCE_NUMBER;  // RETURN
+        BMQTSK_ALARMLOG_ALARM("FILE_IO")
+            << d_clusterData.identity().description() << " Partition ["
+            << partitionId << "]: "
+            << "While sending data chunks, failed to bootstrap the first "
+            << "sequence number to send, rc : " << rc
+            << ".  There is likely data gap between self and "
+            << destination->nodeDescription() << "." << BMQTSK_ALARMLOG_END;
+
+        status = rc * 10 + rc_INVALID_SEQUENCE_NUMBER;
+
+        return;  // RETURN
     }
 
     BALL_LOG_INFO << d_clusterData.identity().description() << " Partition ["
@@ -590,7 +652,7 @@ int RecoveryManager::processSendDataChunks(
                                       d_allocator_p);
 
     // 'bootstrapCurrentSeqNum' has positioned 'currentSeqNum' and 'journalIt'
-    // precisely to the record after 'fromSequenceNum'.
+    // precisely to the record after 'beginSeqNum'.
 
     bool isDone = false;
 
@@ -663,8 +725,14 @@ int RecoveryManager::processSendDataChunks(
         }
 
         if (bmqt::EventBuilderResult::e_SUCCESS != builderRc) {
-            return rc_BUILDER_FAILURE + 10 * static_cast<int>(builderRc);
-            // RETURN
+            BMQTSK_ALARMLOG_ALARM("REPLICATION")
+                << d_clusterData.identity().description() << " Partition ["
+                << partitionId << "]: "
+                << "While sending data chunks, failed to pack message, rc: "
+                << builderRc << "." << BMQTSK_ALARMLOG_END;
+
+            status = rc_BUILDER_FAILURE + 10 * static_cast<int>(builderRc);
+            return;  // RETURN
         }
 
         if (d_clusterConfig.partitionConfig()
@@ -675,8 +743,15 @@ int RecoveryManager::processSendDataChunks(
                 bmqp::EventType::e_PARTITION_SYNC);
 
             if (bmqt::GenericResult::e_SUCCESS != writeRc) {
-                return static_cast<int>(writeRc) * 10 + rc_WRITE_FAILURE;
-                // RETURN
+                BALL_LOG_ERROR
+                    << d_clusterData.identity().description() << " Partition ["
+                    << partitionId << "]: "
+                    << "While sending data chunks, failed to write message, "
+                       "rc: "
+                    << writeRc << ".";
+
+                status = static_cast<int>(writeRc) * 10 + rc_WRITE_FAILURE;
+                return;  // RETURN
             }
 
             builder.reset();
@@ -688,17 +763,36 @@ int RecoveryManager::processSendDataChunks(
         else {
             rc = RecoveryUtil::incrementCurrentSeqNum(&currentSeqNum,
                                                       journalIt);
+            if (rc < 0) {
+                BMQTSK_ALARMLOG_ALARM("FILE_IO")
+                    << d_clusterData.identity().description() << " Partition ["
+                    << partitionId << "]: "
+                    << "While sending data chunks, failed to increment "
+                       "sequence number, rc: "
+                    << rc << "." << BMQTSK_ALARMLOG_END;
+
+                mqbu::ExitUtil::terminate(
+                    mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
+
+                status = rc * 10 + rc_INVALID_SEQUENCE_NUMBER;
+                return;  // RETURN
+            }
         }
     }
 
     if (!isDone) {
-        BALL_LOG_WARN << d_clusterData.identity().description()
-                      << " Partition [" << partitionId
-                      << "]: incomplete replay of partition. Sequence number "
-                      << "of last record sent: " << currentSeqNum
-                      << ", was supposed to send up to: " << endSeqNum
-                      << ". Peer: " << destination->nodeDescription() << ".";
-        return rc_INCOMPLETE_REPLAY;  // RETURN
+        BSLS_ASSERT_SAFE(rc == 1);
+        BMQTSK_ALARMLOG_ALARM(PartitionFSM::k_PFSM_DEFECT_LOG_TAG)
+            << d_clusterData.identity().description() << " Partition ["
+            << partitionId << "]: "
+            << "While sending data chunks, incomplete replay of "
+               "partition. Sequence number "
+            << "of last record sent: " << currentSeqNum
+            << ", was supposed to send up to: " << endSeqNum
+            << ". Peer: " << destination->nodeDescription()
+            << ".  Please review Partition FSM logic." << BMQTSK_ALARMLOG_END;
+        status = rc_INCOMPLETE_REPLAY;
+        return;  // RETURN
     }
 
     if (0 < builder.messageCount()) {
@@ -707,8 +801,15 @@ int RecoveryManager::processSendDataChunks(
             bmqp::EventType::e_PARTITION_SYNC);
 
         if (bmqt::GenericResult::e_SUCCESS != writeRc) {
-            return static_cast<int>(writeRc) * 10 +
-                   rc_WRITE_FAILURE;  // RETURN
+            BALL_LOG_ERROR
+                << d_clusterData.identity().description() << " Partition ["
+                << partitionId << "]: "
+                << "While sending data chunks, failed to write message, "
+                   "rc: "
+                << writeRc << ".";
+
+            status = static_cast<int>(writeRc) * 10 + rc_WRITE_FAILURE;
+            return;  // RETURN
         }
     }
 
@@ -716,8 +817,7 @@ int RecoveryManager::processSendDataChunks(
                   << partitionId << "]: " << "Sent data chunks from "
                   << beginSeqNum << " to " << endSeqNum
                   << " to node: " << destination->nodeDescription() << ".";
-
-    return rc_SUCCESS;
+    BSLS_ASSERT_SAFE(status == rc_SUCCESS);
 }
 
 int RecoveryManager::processReceiveDataChunks(
@@ -1687,6 +1787,99 @@ int RecoveryManager::recoverSeqNum(
         seqNum->reset();
     }
 
+    return rc_SUCCESS;
+}
+
+int RecoveryManager::initHistoricHighestSeqNums(int partitionId)
+{
+    // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(partitionId >= 0 &&
+                     partitionId <
+                         d_clusterConfig.partitionConfig().numPartitions());
+
+    enum rcEnum { rc_SUCCESS = 0, rc_JOURNAL_ITERATOR_FAILURE = -1 };
+
+    RecoveryContext& recoveryCtx = d_recoveryContextVec[partitionId];
+
+    // Return early if already initialized for this partition
+    if (recoveryCtx.d_historicHighestSeqNumsInitialized) {
+        return rc_SUCCESS;  // RETURN
+    }
+
+    {
+        mqbs::JournalFileIterator journalIt;
+        int rc = journalIt.reset(&recoveryCtx.d_mappedJournalFd,
+                                 mqbs::FileStoreProtocolUtil::bmqHeader(
+                                     recoveryCtx.d_mappedJournalFd));
+        if (0 != rc) {
+            return rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
+        }
+
+        // Make initial 'journalIt.nextRecord()' call
+        rc = journalIt.nextRecord();
+        if (rc == 0) {
+            BALL_LOG_INFO << d_clusterData.identity().description()
+                          << " Partition [" << partitionId << "]: "
+                          << "Journal file has no record. No historic "
+                          << "highest sequence number to initialize.";
+            recoveryCtx.d_historicHighestSeqNumsInitialized = true;
+            return rc_SUCCESS;  // RETURN
+        }
+        else if (rc != 1) {
+            return rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
+        }
+
+        unsigned int currPrimaryLeaseId =
+            journalIt.recordHeader().primaryLeaseId();
+        bsls::Types::Uint64 currSeqNum =
+            journalIt.recordHeader().sequenceNumber();
+
+        while (1 == (rc = journalIt.nextRecord())) {
+            const mqbs::RecordHeader& recordHeader = journalIt.recordHeader();
+            if (recordHeader.primaryLeaseId() == currPrimaryLeaseId) {
+                currSeqNum = recordHeader.sequenceNumber();
+            }
+            else {
+                BSLS_ASSERT_SAFE(recordHeader.primaryLeaseId() >
+                                 currPrimaryLeaseId);
+                recoveryCtx.d_historicHighestSeqNums[currPrimaryLeaseId] =
+                    currSeqNum;
+
+                currPrimaryLeaseId = recordHeader.primaryLeaseId();
+                currSeqNum         = recordHeader.sequenceNumber();
+            }
+        }
+
+        if (rc != 0) {
+            return rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
+        }
+        else {
+            // Store the highest sequence number for the last primary lease id
+            recoveryCtx.d_historicHighestSeqNums[currPrimaryLeaseId] =
+                currSeqNum;
+        }
+
+        BALL_LOG_INFO_BLOCK
+        {
+            BALL_LOG_OUTPUT_STREAM
+                << d_clusterData.identity().description() << " Partition ["
+                << partitionId
+                << "]: " << "Initialized historic highest sequence "
+                << "numbers for primary lease ids: { ";
+            for (LeaseIdToSeqNumMap::const_iterator cit =
+                     recoveryCtx.d_historicHighestSeqNums.cbegin();
+                 cit != recoveryCtx.d_historicHighestSeqNums.cend();
+                 ++cit) {
+                BALL_LOG_OUTPUT_STREAM << cit->first << ": " << cit->second
+                                       << ", ";
+            }
+            BALL_LOG_OUTPUT_STREAM << " }";
+        }
+
+        recoveryCtx.d_historicHighestSeqNumsInitialized = true;
+    }
     return rc_SUCCESS;
 }
 
