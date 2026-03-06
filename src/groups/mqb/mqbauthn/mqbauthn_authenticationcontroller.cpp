@@ -68,21 +68,33 @@ int AuthenticationController::setAnonymousCredential(
         anonymousCredential = authenticatorConfig.anonymousCredential();
 
     if (anonymousCredential.isNull()) {
-        // If no anonymous credential is set, we use an empty string
-        BALL_LOG_INFO << "No anonymous credential configured, "
-                         "using ANONYMOUS as mechanism with empty "
-                         "string as the default identity.";
+        // If no anonymous credential is set, unauthenticated clients are
+        // implicitly assigned the default anonymous credential.
+        BALL_LOG_INFO
+            << "No anonymous credential configured: clients that do not "
+               "send an authentication request will be implicitly "
+               "authenticated using "
+               "mechanism '"
+            << mqbauthn::AnonAuthenticator::k_MECHANISM
+            << "' with an empty identity.";
         d_anonymousCredential = mqbcfg::Credential();
         d_anonymousCredential->mechanism() =
             mqbauthn::AnonAuthenticator::k_MECHANISM;
         d_anonymousCredential->identity() = "";
     }
     else if (anonymousCredential->isCredentialValue()) {
-        BALL_LOG_INFO << "Using configured anonymous credential.";
+        BALL_LOG_INFO
+            << "Anonymous credential configured: clients that do not send "
+               "an authentication request will be implicitly authenticated "
+               "using "
+               "mechanism '"
+            << anonymousCredential->credential().mechanism() << "'.";
         d_anonymousCredential = anonymousCredential->credential();
     }
     else if (anonymousCredential->isDisallowValue()) {
-        BALL_LOG_INFO << "Anonymous credential disallowed.";
+        BALL_LOG_INFO
+            << "Anonymous credential disallowed: clients must send an "
+               "authentication request or the connection will be rejected.";
         d_anonymousCredential.reset();
     }
     else {
@@ -132,8 +144,21 @@ int AuthenticationController::initializeAuthenticators(
         return rc * 10 + rc_DEFAULT_AUTHENTICATOR_FAILED;  // RETURN
     }
 
-    BALL_LOG_INFO << "Successfully initialized " << d_authenticators.size()
-                  << " authenticator(s)";
+    BALL_LOG_INFO_BLOCK
+    {
+        BALL_LOG_OUTPUT_STREAM
+            << "Successfully initialized " << d_authenticators.size()
+            << " authenticator plugin(s) with mechanisms: [";
+        for (AuthenticatorMap::const_iterator it = d_authenticators.cbegin();
+             it != d_authenticators.cend();
+             ++it) {
+            BALL_LOG_OUTPUT_STREAM << it->first;
+            if (bsl::next(it) != d_authenticators.cend()) {
+                BALL_LOG_OUTPUT_STREAM << ", ";
+            }
+        }
+        BALL_LOG_OUTPUT_STREAM << "]";
+    }
     return rc_SUCCESS;
 }
 
@@ -186,6 +211,8 @@ int AuthenticationController::createConfiguredAuthenticators(
         authenticators.cbegin();
     for (; configIt != authenticators.cend(); ++configIt) {
         const bsl::string& pluginName = configIt->name();
+        BALL_LOG_INFO << "Attempting to create authenticator plugin '"
+                      << pluginName << "'";
 
         // Try to create the authenticator for this plugin name
         AuthenticatorMp authenticator;
@@ -208,7 +235,7 @@ int AuthenticationController::createConfiguredAuthenticators(
             errorDescription
                 << "Authenticator plugin '" << pluginName
                 << "' not found or could not be created."
-                << "Ensure the plugin is either built-in or listed in "
+                << " Ensure the plugin is either built-in or listed in "
                 << "plugins.enabled[], or its configuration is correct.";
             return rc_PLUGIN_NOT_FOUND;  // RETURN
         }
