@@ -93,12 +93,15 @@ def extract_stats(admin_response: str) -> dict:
     return d2
 
 
-def print_diff(processed1, processed2):
-    c1 = Counter(processed1)
-    c2 = Counter(processed2)
+def print_diff(list1: List[Dict[str, Any]], list2: List[Dict[str, Any]]):
+    """
+    Print the difference between two lists of flat objects
+    """
+    c1 = Counter(list1)
+    c2 = Counter(list2)
 
-    only_in_1 = c1 - c2  # items missing from arr2
-    only_in_2 = c2 - c1  # items missing from arr1
+    only_in_1 = c1 - c2  # items missing from list2
+    only_in_2 = c2 - c1  # items missing from list1
 
     if not only_in_1 and not only_in_2:
         print("Arrays are equivalent after preprocessing.")
@@ -142,27 +145,28 @@ def expect_same_list_of_flat_objects(
     and objects maybe incomparable (e.g. have differnet timestamps, ids or timings)
     """
 
-    def normalize_object(obj, skip_keys):
+    def normalize_object(obj: Dict[str, Any], skip_keys: List[str]) -> tuple:
         # Remove skipped keys
         filtered = {k: v for k, v in obj.items() if k not in skip_keys}
         # Convert to hashable canonical form
         return tuple(sorted(filtered.items()))
 
-    def preprocess_array(arr, skip_keys):
+    def normalize_array(arr: List[Dict[str, Any]], skip_keys: List[str]) -> List[tuple]:
         return [
             normalize_object(obj, skip_keys)
             for obj in arr
             if not obj.get("type") in skip_objects_with_type
         ]
 
-    def compare_json_arrays(arr1, arr2):
-        processed1 = preprocess_array(arr1, skip_keys)
-        processed2 = preprocess_array(arr2, skip_keys)
+    def compare_json_arrays(list1: List[Dict[str, Any]], list2: List[Dict[str, Any]]):
+        norm_list1 = normalize_array(list1, skip_keys)
+        norm_list2 = normalize_array(list2, skip_keys)
 
-        is_equal = Counter(processed1) == Counter(processed2)
+        is_equal = Counter(norm_list1) == Counter(norm_list2)
 
         if not is_equal:
-            print_diff(processed1, processed2)
+            # Print difference to log file for easier debugging
+            print_diff(norm_list1, norm_list2)
 
             raise RuntimeError(f"Path {path}: entry does not match expected")
 
