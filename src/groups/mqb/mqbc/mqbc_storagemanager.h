@@ -604,6 +604,9 @@ class StorageManager BSLS_KEYWORD_FINAL
     void do_logFailurePrimaryStateResponse(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
 
+    void do_logFailureReplicaDataResponseResize(const EventWithData& event)
+        BSLS_KEYWORD_OVERRIDE;
+
     void do_replicaDataRequestResize(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
 
@@ -681,8 +684,8 @@ class StorageManager BSLS_KEYWORD_FINAL
     void
     do_attemptOpenStorage(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
-    void
-    do_findHighestFileSizes(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+    void do_findHighestMaxFileSizes(const EventWithData& event)
+        BSLS_KEYWORD_OVERRIDE;
 
     void
     do_overrideMaxFileSizes(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;

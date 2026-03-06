@@ -1107,9 +1107,9 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
         }
 
         FileStoreSet&            fs              = fileSets[i];
-        const bsls::Types::Int64 journalFileSize = fs.journalFileSize();
-        const bsls::Types::Int64 dataFileSize    = fs.dataFileSize();
-        const bsls::Types::Int64 qlistFileSize   = fs.qlistFileSize();
+        const bsls::Types::Uint64 journalFileSize = fs.journalFileSize();
+        const bsls::Types::Uint64 dataFileSize    = fs.dataFileSize();
+        const bsls::Types::Uint64 qlistFileSize   = fs.qlistFileSize();
 
         BALL_LOG_INFO << "Partition [" << partitionId << "]"
                       << ": Checking file set: " << fs;

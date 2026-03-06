@@ -43,6 +43,7 @@
 #include <bsl_map.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
+#include <bsl_span.h>
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
 #include <bsl_utility.h>
@@ -195,11 +196,6 @@ class MessageProperties {
         rc_DUPLICATE_PROPERTY_NAME          = -14
     };
 
-    template <typename TYPE>
-    struct Storage {
-        typedef TYPE Type;
-    };
-
   public:
     // PUBLIC TYPES
     typedef MessageProperties_Schema      Schema;
@@ -334,6 +330,9 @@ class MessageProperties {
     template <class TYPE>
     bool isCompatible(const PropertyVariant& value) const;
 
+    template <typename TYPE>
+    static void assignTo(Property* p, TYPE value);
+
   public:
     // PUBLIC CONSTANTS
     static const int k_MAX_NUM_PROPERTIES =
@@ -409,8 +408,8 @@ class MessageProperties {
     /// with the `name` and same type exists, it will be updated with
     /// `value`, however if the data type of the existing property differs,
     /// an error will be returned.
-    int setPropertyAsBinary(bsl::string_view         name,
-                            const bsl::vector<char>& value);
+    int setPropertyAsBinary(bsl::string_view      name,
+                            bsl::span<const char> value);
 
     /// Populate this instance with its BlazingMQ wire protocol
     /// representation from the specified `blob`.  If the specified
@@ -603,12 +602,6 @@ class MessagePropertiesIterator {
     const bsl::vector<char>& getAsBinary() const;
 };
 
-/// The storage type for `bsl::string_view` is `bsl::string`
-template <>
-struct MessageProperties::Storage<bsl::string_view> {
-    typedef bsl::string Type;
-};
-
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
@@ -675,7 +668,7 @@ bmqt::GenericResult::Enum MessageProperties::setProperty(bsl::string_view name,
         const PropertyVariant& v        = getPropertyValue(existing);
 
         // The 'existing' can be 'string_view' when 'd_blob' holds the data.
-        if (!isCompatible<typename Storage<TYPE>::Type>(v)) {
+        if (!isCompatible<TYPE>(v)) {
             return bmqt::GenericResult::e_INVALID_ARGUMENT;  // RETURN
         }
 
@@ -712,7 +705,8 @@ bmqt::GenericResult::Enum MessageProperties::setProperty(bsl::string_view name,
     Property& p = insertRc.first->second;
 
     p.d_length  = newPropValueLen;
-    p.d_value.assignTo<typename Storage<TYPE>::Type>(value);
+    assignTo(&p, value);
+
     // This cannot have `bsl::string_view` type.
     p.d_type    = static_cast<bmqt::PropertyType::Enum>(p.d_value.typeIndex());
     p.d_isValid = true;
@@ -762,6 +756,15 @@ inline int
 MessageProperties::getPropertyValueSize(const bsl::vector<char>& value) const
 {
     // Partial specialization for type 'bsl::vector<char>'.
+
+    return static_cast<int>(value.size());
+}
+
+template <>
+inline int MessageProperties::getPropertyValueSize(
+    const bsl::span<const char>& value) const
+{
+    // Partial specialization for type 'bsl::span<const char>'.
 
     return static_cast<int>(value.size());
 }
@@ -906,9 +909,8 @@ inline int MessageProperties::setPropertyAsString(bsl::string_view name,
     return setProperty(name, value);
 }
 
-inline int
-MessageProperties::setPropertyAsBinary(bsl::string_view         name,
-                                       const bsl::vector<char>& value)
+inline int MessageProperties::setPropertyAsBinary(bsl::string_view      name,
+                                                  bsl::span<const char> value)
 {
     return setProperty(name, value);
 }
@@ -931,6 +933,42 @@ inline bool MessageProperties::isCompatible<bsl::string>(
     const PropertyVariant& value) const
 {
     return value.is<bsl::string>() || value.is<bsl::string_view>();
+}
+
+template <>
+inline bool MessageProperties::isCompatible<bsl::string_view>(
+    const PropertyVariant& value) const
+{
+    return value.is<bsl::string>() || value.is<bsl::string_view>();
+}
+
+template <>
+inline bool MessageProperties::isCompatible<bsl::span<const char> >(
+    const PropertyVariant& value) const
+{
+    return value.is<bsl::vector<char> >();
+}
+
+template <typename TYPE>
+inline void MessageProperties::assignTo(Property* p, TYPE value)
+{
+    p->d_value = value;
+}
+
+template <>
+inline void
+MessageProperties::assignTo<bsl::string_view>(Property*        p,
+                                              bsl::string_view value)
+{
+    p->d_value.assignTo<bsl::string>(value);
+}
+
+template <>
+inline void MessageProperties::assignTo<bsl::span<const char> >(
+    Property*             p,
+    bsl::span<const char> value)
+{
+    p->d_value.createInPlace<bsl::vector<char> >(value.begin(), value.end());
 }
 
 inline MessageProperties::SchemaPtr

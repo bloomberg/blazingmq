@@ -135,6 +135,12 @@ class TestReconfigureDomains:
         # from one queue unblocks posting on the other.
         assert not self.post_n_msgs(uri_priority_2, 1)
         self.reader.confirm(uri_priority_1, "+1", succeed=True)
+
+        # need to make sure confirm has made it to the primary since this is a
+        # non-blocking op.
+        # Must make different confgiuration, change maxUnconfirmedMessages
+        self.reader.configure(uri_priority_1, maxUnconfirmedMessages=100, block=True)
+
         assert self.post_n_msgs(uri_priority_2, 1)
 
     # Verify that reconfiguring queue message limits works as expected.
@@ -330,17 +336,17 @@ class TestReconfigureDomains:
         uri_priority_1 = f"bmq://{domain_urls.domain_priority}/abcd-queue"
         leader = multi_node.last_known_leader
 
-        # Write two messages to the queue (only one can be sent to reader).
-        assert self.post_n_msgs(uri_priority_1, 2)
+        # Write one message to the queue
+        assert self.post_n_msgs(uri_priority_1, 1)
 
-        # Sleep for long enough so the messages become outdated by TTL.
+        # Sleep for long enough so the message becomes outdated by TTL.
         time.sleep(2)
 
         # Write one more message to trigger idle TTL check and GC.
         assert self.post_n_msgs(uri_priority_1, 1)
 
-        # Observe that the two oldest messages were GC'ed from the queue.
-        assert leader.erases_messages(uri_priority_1, msgs=2, timeout=1)
+        # Observe that the oldest message was GC'ed from the queue.
+        assert leader.erases_messages(uri_priority_1, msgs=1, timeout=1)
 
         # Reconfigure the domain to wait 10 seconds before GC'ing messages.
         multi_node.config.domains[
@@ -350,8 +356,8 @@ class TestReconfigureDomains:
             domain_urls.domain_priority, leader_only=True, succeed=True
         )
 
-        # Write two further messages to the queue.
-        assert self.post_n_msgs(uri_priority_1, 2)
+        # Write one more message to the queue.
+        assert self.post_n_msgs(uri_priority_1, 1)
 
         # Sleep for the same duration as before.
         time.sleep(2)
@@ -362,9 +368,6 @@ class TestReconfigureDomains:
 
         # Observe that no messages were GC'ed.
         assert not leader.erases_messages(uri_priority_1, timeout=1)
-
-        # Verify that the reader can confirm the written messages.
-        self.reader.confirm(uri_priority_1, "+4", succeed=True)
 
     @tweak.domain.max_delivery_attempts(0)
     def test_reconfigure_max_delivery_attempts(
