@@ -152,10 +152,10 @@ int AuthenticationController::initializeAuthenticators(
         for (AuthenticatorMap::const_iterator it = d_authenticators.cbegin();
              it != d_authenticators.cend();
              ++it) {
-            BALL_LOG_OUTPUT_STREAM << it->first;
-            if (bsl::next(it) != d_authenticators.cend()) {
+            if (it != d_authenticators.cbegin()) {
                 BALL_LOG_OUTPUT_STREAM << ", ";
             }
+            BALL_LOG_OUTPUT_STREAM << it->first;
         }
         BALL_LOG_OUTPUT_STREAM << "]";
     }
