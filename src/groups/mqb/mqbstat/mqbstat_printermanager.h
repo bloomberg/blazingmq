@@ -128,6 +128,9 @@ class PrinterManager {
     /// Stop the printer manager.
     void stop();
 
+    /// Restart the action counter again from the max value.
+    void restartActionCounter();
+
     /// Print the stats to the specified `stream`.
     ///
     /// THREAD: This method is called in the `snapshot` thread.
@@ -177,6 +180,12 @@ inline bool PrinterManager::isEnabled() const
 inline bool PrinterManager::nextSnapshotWillPrint() const
 {
     return d_actionCounter == 1;
+}
+
+inline void PrinterManager::restartActionCounter()
+{
+    d_actionCounter = d_config.printer().printInterval() /
+                      d_config.snapshotInterval();
 }
 
 }  // close package namespace

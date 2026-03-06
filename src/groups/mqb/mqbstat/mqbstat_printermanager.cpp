@@ -90,6 +90,8 @@ int PrinterManager::start(bsl::ostream& errorDescription)
         return 0;  // RETURN
     }
 
+    restartActionCounter();
+
     // Start the table printer
     {
         int rc = d_printer_mp->start(errorDescription);
@@ -164,8 +166,7 @@ void PrinterManager::onSnapshot()
         return;  // RETURN
     }
 
-    d_actionCounter = d_config.printer().printInterval() /
-                      d_config.snapshotInterval();
+    restartActionCounter();
 
     logStats();
 }

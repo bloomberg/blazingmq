@@ -833,7 +833,8 @@ void JsonPrinter::logStats(int lastStatId)
     // Dump stats into bmqbrkr.stats.log
     attributes.clearMessage();
 
-    const bool isCompact = false;
+    const bool isCompact =
+        true;  // Single JSON object per line in stat log file
     printStats(attributes.messageStream(), isCompact, lastStatId, now);
 
     d_statsLogFile.publish(
