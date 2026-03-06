@@ -34,6 +34,7 @@
 
 // BDE
 #include <bsl_iostream.h>
+#include <bsl_limits.h>
 #include <bsl_memory.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>

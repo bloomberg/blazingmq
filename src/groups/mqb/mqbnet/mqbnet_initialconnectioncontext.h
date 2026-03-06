@@ -56,6 +56,7 @@
 #include <bsl_functional.h>
 #include <bsl_memory.h>
 #include <bsl_optional.h>
+#include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bsl_variant.h>
 #include <bslmt_mutex.h>

@@ -35,6 +35,7 @@
 // BDE
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_iostream.h>
+#include <bsl_limits.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bsla_annotations.h>
