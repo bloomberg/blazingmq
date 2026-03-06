@@ -1013,8 +1013,8 @@ void ClusterOrchestrator::processNodeStoppingNotification(
     // about the status of a peer node.  Self may end up issuing a
     // (non-scheduled) sync point to the node.
 
-    // Primary does not have to wait for 'processNodeStoppingNotification';
-    // it is synchronous for primary.
+    // 'processNodeStoppingNotification' is blocking for Ptimary (non-blocking)
+    // for Replicas.
     const bsl::vector<int>& partitions =
         d_clusterData_p->membership().selfNodeSession()->primaryPartitions();
     for (int i = static_cast<int>(partitions.size()) - 1; 0 <= i; --i) {

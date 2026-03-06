@@ -248,8 +248,6 @@ class ClusterOrchestrator {
         mqbc::ClusterNodeSession*           ns,
         const bmqp_ctrlmsg::ControlMessage* request);
 
-    void finishStopSequence(mqbc::ClusterNodeSession* ns);
-
     // PRIVATE ACCESSORS
 
     /// Return true if this is a local cluster.

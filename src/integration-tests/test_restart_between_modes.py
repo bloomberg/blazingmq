@@ -82,10 +82,10 @@ def confirm_only_one_message(
     consumer = consumerMap[queue_with_appid]
     consumer.confirm(queue_with_appid, "+1", succeed=True)
 
-    # need to make sure confirm has made it to the primary since this is a
+    # Need to make sure confirm has made it to the primary since this is a
     # non-blocking op.
     # Cannot open new queue as it will affect partition assignments.
-    # Must make different confgiuration, change maxUnconfirmedMessages
+    # Must make different configuration, change maxUnconfirmedMessages
 
     consumer.configure(queue_with_appid, maxUnconfirmedMessages=100, block=True)
 
@@ -666,10 +666,11 @@ def test_restart_between_Legacy_and_FSM_unassign_queue(
 
 
 @pytest.fixture(
+    # TODO (kaikulimu): revisit restart_to_fsm_single_node_with_quorum_one, restart_as_legacy_mode case
     params=[
         (restart_as_fsm_mode, restart_as_legacy_mode, False),
         (restart_as_legacy_mode, restart_as_fsm_mode, False),
-#        (restart_to_fsm_single_node_with_quorum_one, restart_as_legacy_mode, True),
+        # (restart_to_fsm_single_node_with_quorum_one, restart_as_legacy_mode, True),
         (
             restart_to_fsm_single_node_with_quorum_one_and_start_others,
             restart_as_legacy_mode,
@@ -679,7 +680,7 @@ def test_restart_between_Legacy_and_FSM_unassign_queue(
     ids=[
         "to_fsm/from_legacy",
         "to_legacy/from_fsm",
-#        "to_fsm_quorum_1/from_legacy",
+        # "to_fsm_quorum_1/from_legacy",
         "to_fsm_quorum_1_then_start_all/from_legacy",
     ],
 )
@@ -1024,15 +1025,15 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
     # Purge priority queue
     cluster.last_known_leader.purge(du.domain_priority, test_queue, succeed=True)
 
-    # need to make sure purge is done before stopping nodes.  Otherwise, can
-    # end up with a new primary unware of the purge
+    # Need to make sure purge is done before stopping nodes.
+    # Otherwise, can end up with a new primary unaware of the purge.
     assert cluster.last_known_leader.capture(r"Purged 2 message\(s\)", 5)
 
     # Purge fanout queue app "quux"
     cluster.last_known_leader.purge(du.domain_fanout, test_queue, "quux", succeed=True)
 
-    # need to make sure purge is done before stopping nodes.  Otherwise, can
-    # end up with a new primary unware of the purge
+    # Need to make sure purge is done before stopping nodes.
+    # Otherwise, can end up with a new primary unaware of the purge.
     assert cluster.last_known_leader.capture(r"Purged 3 message\(s\)", 5)
 
     # 5. SWITCH BACK
