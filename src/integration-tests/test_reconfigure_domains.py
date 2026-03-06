@@ -135,6 +135,12 @@ class TestReconfigureDomains:
         # from one queue unblocks posting on the other.
         assert not self.post_n_msgs(uri_priority_2, 1)
         self.reader.confirm(uri_priority_1, "+1", succeed=True)
+
+        # need to make sure confirm has made it to the primary since this is a
+        # non-blocking op.
+        # Must make different confgiuration, change maxUnconfirmedMessages
+        self.reader.configure(uri_priority_1, maxUnconfirmedMessages=100, block=True)
+
         assert self.post_n_msgs(uri_priority_2, 1)
 
     # Verify that reconfiguring queue message limits works as expected.
