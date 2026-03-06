@@ -116,6 +116,7 @@
 // BDE
 #include <ball_log.h>
 #include <bsl_cstddef.h>
+#include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bsla_maybeunused.h>
 #include <bslh_hash.h>

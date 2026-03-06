@@ -24,6 +24,7 @@
 #include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bsl_string_view.h>
+#include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>

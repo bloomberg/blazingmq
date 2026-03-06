@@ -26,6 +26,7 @@
 
 // BDE
 #include <bsl_memory.h>
+#include <bsl_ostream.h>
 #include <bsls_platform.h>
 #include <bsls_protocoltest.h>
 

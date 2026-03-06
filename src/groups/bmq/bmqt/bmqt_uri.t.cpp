@@ -23,6 +23,7 @@
 #include <ball_log.h>
 #include <bdlf_bind.h>
 #include <bdlma_localsequentialallocator.h>
+#include <bsl_functional.h>
 #include <bsl_string.h>
 #include <bsl_utility.h>
 #include <bsl_vector.h>

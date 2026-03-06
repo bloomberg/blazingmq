@@ -39,6 +39,7 @@
 // BDE
 #include <bdlbb_blob.h>
 #include <bsl_iostream.h>
+#include <bsl_memory.h>
 #include <bsl_optional.h>
 #include <bsl_string.h>
 #include <bsl_string_view.h>
