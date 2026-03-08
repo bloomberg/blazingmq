@@ -234,7 +234,7 @@ sed -i 's/fcoroutines-ts/fcoroutines/g' 'repository.cmake'
             --without-warnings-as-errors \
             --without-usage-examples \
             --without-applications \
-            --with-zlib \
+            --without-zlib \
             --without-zstd \
             --without-lz4 \
             --ufid 'dbg_64_safe_cpp20' \
