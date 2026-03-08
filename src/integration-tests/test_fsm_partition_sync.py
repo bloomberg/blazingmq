@@ -249,6 +249,7 @@ def test_sync_after_missed_rollover(
 
 
 @start_cluster(False)
+@tweak.cluster.queue_operations.shutdown_timeout_ms(100)
 @tweak.cluster.partition_config.max_journal_file_size(MAX_JOURNAL_FILE_SIZE)
 def test_sync_after_missed_rollover_after_restart(
     fsm_multi_cluster: Cluster,
@@ -356,6 +357,7 @@ def test_sync_after_missed_rollover_after_restart(
     _stop_cluster_and_compare_journal_files(east1.name, east2.name, cluster)
 
 
+@tweak.cluster.queue_operations.shutdown_timeout_ms(100)
 def test_sync_after_missed_records(
     fsm_multi_cluster: Cluster,
     domain_urls: tc.DomainUrls,
@@ -414,6 +416,7 @@ def test_sync_after_missed_records(
     _stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
 
 
+@tweak.cluster.queue_operations.shutdown_timeout_ms(100)
 def test_sync_if_leader_missed_records(
     fsm_multi_cluster: Cluster,
     domain_urls: tc.DomainUrls,
@@ -492,6 +495,7 @@ def test_sync_if_leader_missed_records(
     _stop_cluster_and_compare_journal_files(next_leader.name, replica.name, cluster)
 
 
+@tweak.cluster.queue_operations.shutdown_timeout_ms(100)
 def test_sync_after_replicas_missed_various_records(
     fsm_multi_cluster: Cluster,
     domain_urls: tc.DomainUrls,
@@ -584,6 +588,7 @@ def test_sync_after_replicas_missed_various_records(
         _stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
 
 
+@tweak.cluster.queue_operations.shutdown_timeout_ms(100)
 def test_sync_after_replicas_missed_or_extra_records(
     fsm_multi_cluster: Cluster,
     domain_urls: tc.DomainUrls,
