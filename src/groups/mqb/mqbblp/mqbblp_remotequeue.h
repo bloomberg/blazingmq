@@ -291,12 +291,6 @@ class RemoteQueue {
     void            cleanPendingMessages(mqbi::QueueHandle* handle);
     Puts::iterator& nack(Puts::iterator& it, bmqp::AckMessage& ackMessage);
 
-    void sendPutMessage(const bmqp::PutHeader&                    putHeader,
-                        const bsl::shared_ptr<bdlbb::Blob>&       appData,
-                        const bsl::shared_ptr<bdlbb::Blob>&       options,
-                        const bsl::shared_ptr<bmqu::AtomicState>& state,
-                        bsls::Types::Uint64                       genCount);
-
     void sendConfirmMessage(const bmqt::MessageGUID& msgGUID,
                             unsigned int             upstreamSubQueueId,
                             mqbi::QueueHandle*       source);
@@ -356,7 +350,8 @@ class RemoteQueue {
     /// result.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    void getHandle(const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
+    void getHandle(const mqbi::OpenQueueConfirmationCookieSp& context,
+                   const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
                                                               clientContext,
                    const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
                    unsigned int upstreamSubQueueId,
@@ -542,8 +537,7 @@ inline mqbi::QueueEngine* RemoteQueue::queueEngine()
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     return d_queueEngine_mp.get();
 }

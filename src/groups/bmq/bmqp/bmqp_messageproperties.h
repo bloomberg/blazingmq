@@ -32,6 +32,9 @@
 #include <bmqt_resultcode.h>
 
 // BDE
+#include <bdlb_transparentequalto.h>
+#include <bdlb_transparenthash.h>
+#include <bdlb_transparentless.h>
 #include <bdlb_variant.h>
 #include <bdlbb_blob.h>
 #include <bdld_datum.h>
@@ -40,6 +43,7 @@
 #include <bsl_map.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
+#include <bsl_span.h>
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
 #include <bsl_utility.h>
@@ -80,7 +84,11 @@ class MessageProperties_Schema BSLS_KEYWORD_FINAL {
     /// HashTable has better performance but an iterator requires
     /// populating `MessageProperties::d_properties` upon `begin()`.
     /// The choice is HashTable.
-    typedef bsl::unordered_map<bsl::string, int> PropertyMap;
+    typedef bsl::unordered_map<bsl::string,
+                               int,
+                               bdlb::TransparentHash,
+                               bdlb::TransparentEqualTo>
+        PropertyMap;
 
   private:
     // PRIVATE DATA
@@ -103,7 +111,7 @@ class MessageProperties_Schema BSLS_KEYWORD_FINAL {
     ~MessageProperties_Schema();
 
     // PUBLIC ACCESSORS
-    bool loadIndex(int* index, const bsl::string& name) const;
+    bool loadIndex(int* index, bsl::string_view name) const;
 };
 
 // =======================
@@ -124,13 +132,14 @@ class MessageProperties {
     /// `bmqt::PropertyType::Enum`.  If it is desired to change one of the
     /// orders, property type must be explicitly maintained as a separate
     /// field in the `d_properties`.
-    typedef bdlb::Variant7<bool,
+    typedef bdlb::Variant8<bool,
                            char,
                            short,
                            int,
                            bsls::Types::Int64,
                            bsl::string,
-                           bsl::vector<char> >
+                           bsl::vector<char>,
+                           bsl::string_view>
         PropertyVariant;
 
     struct Property {
@@ -159,7 +168,7 @@ class MessageProperties {
     /// although property's size can be retrieved from property's value (by
     /// applying a visitor to the variant), size is explicitly maintained to
     /// avoid switch cases during serialization.
-    typedef bsl::map<bsl::string, Property> PropertyMap;
+    typedef bsl::map<bsl::string, Property, bdlb::TransparentLess> PropertyMap;
 
     typedef PropertyMap::iterator PropertyMapIter;
 
@@ -216,16 +225,7 @@ class MessageProperties {
     // use when reading incrementally.
 
     mutable BlobObjectBuffer d_blob;  // Wire representation.
-
-    mutable bool d_isBlobConstructed;
-    // Flag indicating if an instance of
-    // the blob has been constructed in
-    // 'd_blob'.
-
-    mutable bool d_isDirty;
-    // Flag indicating if this instance has
-    // been updated since the previous
-    // invocation of 'streamOut()'.
+    mutable const bdlbb::Blob* d_blob_p;  // Wire representation.
 
     int d_mphSize;
     // Size of MessagePropertyHeader
@@ -244,21 +244,33 @@ class MessageProperties {
     // Incremental reading needs it to
     // recognize last property.
 
+    mutable bool d_isBlobConstructed;
+    // Flag indicating if an instance of
+    // the blob has been constructed in
+    // 'd_blob'.
+
+    mutable bool d_isDirty;
+    // Flag indicating if this instance has
+    // been updated since the previous
+    // invocation of 'streamOut()'.
+
+    bool d_doDeepCopy;
+
   private:
     // PRIVATE CLASS METHODS
 
     /// Return true if the specified `name` represents a valid property
     /// name, and false otherwise.  See `Restrictions on Property Names`
     /// section for what constitutes a valid name.
-    static bool isValidPropertyName(const bsl::string& name);
+    static bool isValidPropertyName(bsl::string_view name);
 
     // PRIVATE MANIPULATORS
 
     /// Set the property with the specified `name` to the specified `value`
     /// and return an enum representing the status of this operation.
     template <class TYPE>
-    bmqt::GenericResult::Enum setProperty(const bsl::string& name,
-                                          const TYPE&        value);
+    bmqt::GenericResult::Enum setProperty(bsl::string_view name,
+                                          const TYPE&      value);
 
     /// Parse just the `MessagePropertiesHeader` out of the specified
     /// `blob`.  Return `0` on success and initialize internal state ready
@@ -275,26 +287,28 @@ class MessageProperties {
     /// Return the value of the specified `property`.
     const PropertyVariant& getPropertyValue(const Property& property) const;
 
+    const PropertyVariant&
+    getPropertyValueAsString(const Property& property) const;
+
     /// Return the value of the property with the specified `name`.
     /// Behavior is undefined unless a property with `name` exists and the
     /// value is of the same `TYPE`.
     template <class TYPE>
-    const TYPE& getProperty(const bsl::string& name) const;
+    const TYPE& getProperty(bsl::string_view name) const;
 
     /// Return the value of the property with the specified `name` if a
     /// property with such name exists, otherwise return the specified
     /// `value`.  Behavior is undefined unless data type of property's value
     /// is same as the specified `TYPE`.
     template <class TYPE>
-    const TYPE& getPropertyOr(const bsl::string& name,
-                              const TYPE&        value) const;
+    const TYPE& getPropertyOr(bsl::string_view name, const TYPE& value) const;
 
     /// Stream into the specified property `p` the value of the property
     /// according to previously parsed length and position.  Return `true`
     /// on success, `false` otherwise.
     bool streamInPropertyValue(const Property& p) const;
 
-    PropertyMapIter findProperty(const bsl::string& name) const;
+    PropertyMapIter findProperty(bsl::string_view name) const;
 
     /// Parse one `MessagePropertyHeader` out of the specified `blob` at the
     /// specified `offset`, at the specified `index`, using the specified
@@ -313,6 +327,11 @@ class MessageProperties {
                                bool         isNewStyleProperties,
                                int          offset,
                                int          index) const;
+    template <class TYPE>
+    bool isCompatible(const PropertyVariant& value) const;
+
+    template <typename TYPE>
+    static void assignTo(Property* p, TYPE value);
 
   public:
     // PUBLIC CONSTANTS
@@ -370,18 +389,18 @@ class MessageProperties {
     /// return true and load into the optionally specified `buffer` the data
     /// type of the property.  Return false if property with `name` does not
     /// exist, and leave `buffer` unchanged.
-    bool remove(const bsl::string& name, bmqt::PropertyType::Enum* buffer = 0);
+    bool remove(bsl::string_view name, bmqt::PropertyType::Enum* buffer = 0);
 
     /// Remove all properties from this instance.  Note that `numProperties`
     /// will return zero after invoking this method.
     void clear();
 
-    int setPropertyAsBool(const bsl::string& name, bool value);
-    int setPropertyAsChar(const bsl::string& name, char value);
-    int setPropertyAsShort(const bsl::string& name, short value);
-    int setPropertyAsInt32(const bsl::string& name, int value);
-    int setPropertyAsInt64(const bsl::string& name, bsls::Types::Int64 value);
-    int setPropertyAsString(const bsl::string& name, const bsl::string& value);
+    int setPropertyAsBool(bsl::string_view name, bool value);
+    int setPropertyAsChar(bsl::string_view name, char value);
+    int setPropertyAsShort(bsl::string_view name, short value);
+    int setPropertyAsInt32(bsl::string_view name, int value);
+    int setPropertyAsInt64(bsl::string_view name, bsls::Types::Int64 value);
+    int setPropertyAsString(bsl::string_view name, bsl::string_view value);
 
     /// Set a property with the specified `name` having the specified
     /// `value` with the corresponding data type.  Return zero on success,
@@ -389,8 +408,8 @@ class MessageProperties {
     /// with the `name` and same type exists, it will be updated with
     /// `value`, however if the data type of the existing property differs,
     /// an error will be returned.
-    int setPropertyAsBinary(const bsl::string&       name,
-                            const bsl::vector<char>& value);
+    int setPropertyAsBinary(bsl::string_view      name,
+                            bsl::span<const char> value);
 
     /// Populate this instance with its BlazingMQ wire protocol
     /// representation from the specified `blob`.  If the specified
@@ -408,6 +427,8 @@ class MessageProperties {
     int streamIn(const bdlbb::Blob&           blob,
                  const MessagePropertiesInfo& info,
                  const SchemaPtr&             schema);
+
+    void setDeepCopy(bool value);
 
     /// Parse and load all previously unparsed properties headers using the
     /// specified `isNewStyleProperties` as an indicator of encoding style.
@@ -430,40 +451,39 @@ class MessageProperties {
     /// Return true if a property with the specified `name` exists and load
     /// into the optionally specified `type` the type of the property.
     /// Return false otherwise.
-    bool hasProperty(const bsl::string&        name,
+    bool hasProperty(bsl::string_view          name,
                      bmqt::PropertyType::Enum* type = 0) const;
 
     /// Return the type of property having the specified `name`.  Behavior
     /// is undefined unless `hasProperty` returns true for the specified
     /// property `name`.
-    bmqt::PropertyType::Enum propertyType(const bsl::string& name) const;
+    bmqt::PropertyType::Enum propertyType(bsl::string_view name) const;
 
-    bool               getPropertyAsBool(const bsl::string& name) const;
-    char               getPropertyAsChar(const bsl::string& name) const;
-    short              getPropertyAsShort(const bsl::string& name) const;
-    int                getPropertyAsInt32(const bsl::string& name) const;
-    bsls::Types::Int64 getPropertyAsInt64(const bsl::string& name) const;
-    const bsl::string& getPropertyAsString(const bsl::string& name) const;
+    bool               getPropertyAsBool(bsl::string_view name) const;
+    char               getPropertyAsChar(bsl::string_view name) const;
+    short              getPropertyAsShort(bsl::string_view name) const;
+    int                getPropertyAsInt32(bsl::string_view name) const;
+    bsls::Types::Int64 getPropertyAsInt64(bsl::string_view name) const;
+    const bsl::string& getPropertyAsString(bsl::string_view name) const;
 
     /// Return the property having the corresponding type and the specified
     /// `name`.  Behavior is undefined unless property with `name` exists.
-    const bsl::vector<char>&
-    getPropertyAsBinary(const bsl::string& name) const;
+    const bsl::vector<char>& getPropertyAsBinary(bsl::string_view name) const;
 
-    bool  getPropertyAsBoolOr(const bsl::string& name, bool value) const;
-    char  getPropertyAsCharOr(const bsl::string& name, char value) const;
-    short getPropertyAsShortOr(const bsl::string& name, short value) const;
-    int   getPropertyAsInt32Or(const bsl::string& name, int value) const;
-    bsls::Types::Int64 getPropertyAsInt64Or(const bsl::string& name,
+    bool  getPropertyAsBoolOr(bsl::string_view name, bool value) const;
+    char  getPropertyAsCharOr(bsl::string_view name, char value) const;
+    short getPropertyAsShortOr(bsl::string_view name, short value) const;
+    int   getPropertyAsInt32Or(bsl::string_view name, int value) const;
+    bsls::Types::Int64 getPropertyAsInt64Or(bsl::string_view   name,
                                             bsls::Types::Int64 value) const;
-    const bsl::string& getPropertyAsStringOr(const bsl::string& name,
+    const bsl::string& getPropertyAsStringOr(bsl::string_view   name,
                                              const bsl::string& value) const;
     const bsl::vector<char>&
-    getPropertyAsBinaryOr(const bsl::string&       name,
+    getPropertyAsBinaryOr(bsl::string_view         name,
                           const bsl::vector<char>& value) const;
 
-    bdld::Datum getPropertyRef(const bsl::string& name,
-                               bslma::Allocator*  basicAllocator) const;
+    bdld::Datum getPropertyRef(bsl::string_view  name,
+                               bslma::Allocator* basicAllocator) const;
 
     // Return a reference to the property with the specified 'name' if
     // property with such a name exists.  Return 'bdld::Datum::createError'
@@ -603,7 +623,7 @@ inline MessageProperties::Property::Property()
 // -----------------------
 
 // PRIVATE CLASS LEVEL METHODS
-inline bool MessageProperties::isValidPropertyName(const bsl::string& name)
+inline bool MessageProperties::isValidPropertyName(bsl::string_view name)
 {
     if (name.empty()) {
         return false;  // RETURN
@@ -620,8 +640,8 @@ inline bool MessageProperties::isValidPropertyName(const bsl::string& name)
 
 // PRIVATE MANIPULATORS
 template <class TYPE>
-bmqt::GenericResult::Enum
-MessageProperties::setProperty(const bsl::string& name, const TYPE& value)
+bmqt::GenericResult::Enum MessageProperties::setProperty(bsl::string_view name,
+                                                         const TYPE& value)
 {
     // PRECONDITIONS
     BSLS_ASSERT(k_MAX_PROPERTIES_AREA_LENGTH >= totalSize());
@@ -643,10 +663,12 @@ MessageProperties::setProperty(const bsl::string& name, const TYPE& value)
     int delta = newPropValueLen;
 
     PropertyMapIter it = findProperty(name);
-    if (it != d_properties.end()) {
-        Property& existing = it->second;
+    if (it != d_properties.cend()) {
+        const Property&        existing = it->second;
+        const PropertyVariant& v        = getPropertyValue(existing);
 
-        if (!getPropertyValue(existing).is<TYPE>()) {
+        // The 'existing' can be 'string_view' when 'd_blob' holds the data.
+        if (!isCompatible<TYPE>(v)) {
             return bmqt::GenericResult::e_INVALID_ARGUMENT;  // RETURN
         }
 
@@ -683,7 +705,9 @@ MessageProperties::setProperty(const bsl::string& name, const TYPE& value)
     Property& p = insertRc.first->second;
 
     p.d_length  = newPropValueLen;
-    p.d_value   = value;
+    assignTo(&p, value);
+
+    // This cannot have `bsl::string_view` type.
     p.d_type    = static_cast<bmqt::PropertyType::Enum>(p.d_value.typeIndex());
     p.d_isValid = true;
     d_isDirty   = true;
@@ -693,15 +717,15 @@ MessageProperties::setProperty(const bsl::string& name, const TYPE& value)
 
 // PRIVATE ACCESSORS
 template <class TYPE>
-inline int
-MessageProperties::getPropertyValueSize(BSLA_UNUSED const TYPE& value) const
+inline int MessageProperties::getPropertyValueSize(
+    BSLA_MAYBE_UNUSED const TYPE& value) const
 {
     return static_cast<int>(sizeof(TYPE));
 }
 
 template <>
-inline int
-MessageProperties::getPropertyValueSize(BSLA_UNUSED const bool& value) const
+inline int MessageProperties::getPropertyValueSize(
+    BSLA_MAYBE_UNUSED const bool& value) const
 {
     // Partial specialization for type 'bool', to return 1.  sizeof(bool)
     // should be one on all platforms, but just in case.
@@ -720,6 +744,15 @@ MessageProperties::getPropertyValueSize(const bsl::string& value) const
 
 template <>
 inline int
+MessageProperties::getPropertyValueSize(const bsl::string_view& value) const
+{
+    // Partial specialization for type 'bsl::string'.
+
+    return static_cast<int>(value.length());
+}
+
+template <>
+inline int
 MessageProperties::getPropertyValueSize(const bsl::vector<char>& value) const
 {
     // Partial specialization for type 'bsl::vector<char>'.
@@ -727,14 +760,22 @@ MessageProperties::getPropertyValueSize(const bsl::vector<char>& value) const
     return static_cast<int>(value.size());
 }
 
-template <class TYPE>
-inline const TYPE&
-MessageProperties::getProperty(const bsl::string& name) const
+template <>
+inline int MessageProperties::getPropertyValueSize(
+    const bsl::span<const char>& value) const
 {
-    PropertyMapConstIter cit = findProperty(name);
-    BSLS_ASSERT((cit != d_properties.end()) && "Property does not exist");
+    // Partial specialization for type 'bsl::span<const char>'.
 
-    const PropertyVariant& value = getPropertyValue(cit->second);
+    return static_cast<int>(value.size());
+}
+
+template <class TYPE>
+inline const TYPE& MessageProperties::getProperty(bsl::string_view name) const
+{
+    PropertyMapIter it = findProperty(name);
+    BSLS_ASSERT((it != d_properties.end()) && "Property does not exist");
+
+    const PropertyVariant& value = getPropertyValue(it->second);
 
     BSLS_ASSERT(value.is<TYPE>() && "Property data type mismatch");
 
@@ -742,7 +783,7 @@ MessageProperties::getProperty(const bsl::string& name) const
 }
 
 template <class TYPE>
-inline const TYPE& MessageProperties::getPropertyOr(const bsl::string& name,
+inline const TYPE& MessageProperties::getPropertyOr(bsl::string_view name,
                                                     const TYPE& value) const
 {
     PropertyMapConstIter cit = findProperty(name);
@@ -762,7 +803,7 @@ inline const TYPE& MessageProperties::getPropertyOr(const bsl::string& name,
 }
 
 inline MessageProperties::PropertyMapIter
-MessageProperties::findProperty(const bsl::string& name) const
+MessageProperties::findProperty(bsl::string_view name) const
 {
     PropertyMapIter cit = d_properties.find(name);
     if (cit == d_properties.end()) {
@@ -781,7 +822,7 @@ MessageProperties::findProperty(const bsl::string& name) const
     BSLS_ASSERT_SAFE(d_schema);
 
     int index;
-    if (d_schema->loadIndex(&index, name.c_str())) {
+    if (d_schema->loadIndex(&index, name)) {
         // Starts with '0'
 
         Property theProperty;
@@ -832,50 +873,103 @@ MessageProperties::findProperty(const bsl::string& name) const
 }
 
 // MANIPULATORS
-inline int MessageProperties::setPropertyAsBool(const bsl::string& name,
-                                                bool               value)
+inline int MessageProperties::setPropertyAsBool(bsl::string_view name,
+                                                bool             value)
 {
     return setProperty(name, value);
 }
 
-inline int MessageProperties::setPropertyAsChar(const bsl::string& name,
-                                                char               value)
+inline int MessageProperties::setPropertyAsChar(bsl::string_view name,
+                                                char             value)
 {
     return setProperty(name, value);
 }
 
-inline int MessageProperties::setPropertyAsShort(const bsl::string& name,
-                                                 short              value)
+inline int MessageProperties::setPropertyAsShort(bsl::string_view name,
+                                                 short            value)
 {
     return setProperty(name, value);
 }
 
-inline int MessageProperties::setPropertyAsInt32(const bsl::string& name,
-                                                 int                value)
+inline int MessageProperties::setPropertyAsInt32(bsl::string_view name,
+                                                 int              value)
 {
     return setProperty(name, value);
 }
 
-inline int MessageProperties::setPropertyAsInt64(const bsl::string& name,
+inline int MessageProperties::setPropertyAsInt64(bsl::string_view   name,
                                                  bsls::Types::Int64 value)
 {
     return setProperty(name, value);
 }
 
-inline int MessageProperties::setPropertyAsString(const bsl::string& name,
-                                                  const bsl::string& value)
+inline int MessageProperties::setPropertyAsString(bsl::string_view name,
+                                                  bsl::string_view value)
 {
     return setProperty(name, value);
 }
 
-inline int
-MessageProperties::setPropertyAsBinary(const bsl::string&       name,
-                                       const bsl::vector<char>& value)
+inline int MessageProperties::setPropertyAsBinary(bsl::string_view      name,
+                                                  bsl::span<const char> value)
 {
     return setProperty(name, value);
+}
+
+inline void MessageProperties::setDeepCopy(bool value)
+{
+    d_doDeepCopy = value;
 }
 
 // ACCESSORS
+
+template <class TYPE>
+inline bool MessageProperties::isCompatible(const PropertyVariant& value) const
+{
+    return value.is<TYPE>();
+}
+
+template <>
+inline bool MessageProperties::isCompatible<bsl::string>(
+    const PropertyVariant& value) const
+{
+    return value.is<bsl::string>() || value.is<bsl::string_view>();
+}
+
+template <>
+inline bool MessageProperties::isCompatible<bsl::string_view>(
+    const PropertyVariant& value) const
+{
+    return value.is<bsl::string>() || value.is<bsl::string_view>();
+}
+
+template <>
+inline bool MessageProperties::isCompatible<bsl::span<const char> >(
+    const PropertyVariant& value) const
+{
+    return value.is<bsl::vector<char> >();
+}
+
+template <typename TYPE>
+inline void MessageProperties::assignTo(Property* p, TYPE value)
+{
+    p->d_value = value;
+}
+
+template <>
+inline void
+MessageProperties::assignTo<bsl::string_view>(Property*        p,
+                                              bsl::string_view value)
+{
+    p->d_value.assignTo<bsl::string>(value);
+}
+
+template <>
+inline void MessageProperties::assignTo<bsl::span<const char> >(
+    Property*             p,
+    bsl::span<const char> value)
+{
+    p->d_value.createInPlace<bsl::vector<char> >(value.begin(), value.end());
+}
 
 inline MessageProperties::SchemaPtr
 MessageProperties::makeSchema(bslma::Allocator* allocator)
@@ -888,85 +982,91 @@ MessageProperties::makeSchema(bslma::Allocator* allocator)
     return d_schema;
 }
 
-inline bool MessageProperties::getPropertyAsBool(const bsl::string& name) const
+inline bool MessageProperties::getPropertyAsBool(bsl::string_view name) const
 {
     return getProperty<bool>(name);
 }
 
-inline char MessageProperties::getPropertyAsChar(const bsl::string& name) const
+inline char MessageProperties::getPropertyAsChar(bsl::string_view name) const
 {
     return getProperty<char>(name);
 }
 
-inline short
-MessageProperties::getPropertyAsShort(const bsl::string& name) const
+inline short MessageProperties::getPropertyAsShort(bsl::string_view name) const
 {
     return getProperty<short>(name);
 }
 
-inline int MessageProperties::getPropertyAsInt32(const bsl::string& name) const
+inline int MessageProperties::getPropertyAsInt32(bsl::string_view name) const
 {
     return getProperty<int>(name);
 }
 
 inline bsls::Types::Int64
-MessageProperties::getPropertyAsInt64(const bsl::string& name) const
+MessageProperties::getPropertyAsInt64(bsl::string_view name) const
 {
     return getProperty<bsls::Types::Int64>(name);
 }
 
 inline const bsl::string&
-MessageProperties::getPropertyAsString(const bsl::string& name) const
+MessageProperties::getPropertyAsString(bsl::string_view name) const
 {
-    return getProperty<bsl::string>(name);
+    PropertyMapIter it = findProperty(name);
+    BSLS_ASSERT((it != d_properties.end()) && "Property does not exist");
+
+    const PropertyVariant& value = getPropertyValueAsString(it->second);
+
+    BSLS_ASSERT(value.is<bsl::string>() && "Property data type mismatch");
+
+    return value.the<bsl::string>();
 }
 
 inline const bsl::vector<char>&
-MessageProperties::getPropertyAsBinary(const bsl::string& name) const
+MessageProperties::getPropertyAsBinary(bsl::string_view name) const
 {
     return getProperty<bsl::vector<char> >(name);
 }
 
-inline bool MessageProperties::getPropertyAsBoolOr(const bsl::string& name,
+inline bool MessageProperties::getPropertyAsBoolOr(bsl::string_view name,
                                                    bool value) const
 {
     return getPropertyOr(name, value);
 }
 
-inline char MessageProperties::getPropertyAsCharOr(const bsl::string& name,
+inline char MessageProperties::getPropertyAsCharOr(bsl::string_view name,
                                                    char value) const
 {
     return getPropertyOr(name, value);
 }
 
-inline short MessageProperties::getPropertyAsShortOr(const bsl::string& name,
+inline short MessageProperties::getPropertyAsShortOr(bsl::string_view name,
                                                      short value) const
 {
     return getPropertyOr(name, value);
 }
 
-inline int MessageProperties::getPropertyAsInt32Or(const bsl::string& name,
+inline int MessageProperties::getPropertyAsInt32Or(bsl::string_view name,
                                                    int value) const
 {
     return getPropertyOr(name, value);
 }
 
 inline bsls::Types::Int64
-MessageProperties::getPropertyAsInt64Or(const bsl::string& name,
+MessageProperties::getPropertyAsInt64Or(bsl::string_view   name,
                                         bsls::Types::Int64 value) const
 {
     return getPropertyOr(name, value);
 }
 
 inline const bsl::string&
-MessageProperties::getPropertyAsStringOr(const bsl::string& name,
+MessageProperties::getPropertyAsStringOr(bsl::string_view   name,
                                          const bsl::string& value) const
 {
     return getPropertyOr(name, value);
 }
 
 inline const bsl::vector<char>&
-MessageProperties::getPropertyAsBinaryOr(const bsl::string&       name,
+MessageProperties::getPropertyAsBinaryOr(bsl::string_view         name,
                                          const bsl::vector<char>& value) const
 {
     return getPropertyOr(name, value);
@@ -1081,7 +1181,7 @@ inline const bsl::string& MessagePropertiesIterator::getAsString() const
     BSLS_ASSERT(d_properties_p);
     BSLS_ASSERT(d_iterator != d_properties_p->d_properties.end());
 
-    return d_properties_p->getPropertyValue(d_iterator->second)
+    return d_properties_p->getPropertyValueAsString(d_iterator->second)
         .the<bsl::string>();
 }
 

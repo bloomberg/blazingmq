@@ -47,6 +47,7 @@
 #include <mqbi_cluster.h>
 #include <mqbi_dispatcher.h>
 #include <mqbmock_dispatcher.h>
+#include <mqbmock_domain.h>
 #include <mqbnet_channel.h>
 #include <mqbnet_cluster.h>
 #include <mqbnet_transportmanager.h>
@@ -101,7 +102,7 @@ class Domain;
 }
 namespace mqbnet {
 class Negotiator;
-class InitialConnectionHandler;
+class Authenticator;
 }
 
 namespace mqbmock {
@@ -120,10 +121,9 @@ class Cluster : public mqbi::Cluster {
     typedef bsl::function<void(const mqbi::DispatcherEvent& event)>
         EventProcessor;
 
-    typedef bslma::ManagedPtr<mqbnet::InitialConnectionHandler>
-        InitialConnectionHandlerMp;
-
     typedef bslma::ManagedPtr<mqbnet::Negotiator> NegotiatorMp;
+
+    typedef bslma::ManagedPtr<mqbnet::Authenticator> AuthenticatorMp;
 
     typedef bslma::ManagedPtr<mqbnet::Cluster> NetClusterMp;
 
@@ -147,6 +147,15 @@ class Cluster : public mqbi::Cluster {
     typedef TestChannelMap::iterator       TestChannelMapIter;
     typedef TestChannelMap::const_iterator TestChannelMapCIter;
 
+    typedef bsl::function<mqbi::InlineResult::Enum(
+        int                                       partitionId,
+        const bmqp::PutHeader&                    putHeader,
+        const bsl::shared_ptr<bdlbb::Blob>&       appData,
+        const bsl::shared_ptr<bdlbb::Blob>&       options,
+        const bsl::shared_ptr<bmqu::AtomicState>& state,
+        bsls::Types::Uint64                       genCount)>
+        PutFunctor;
+
   public:
     // CONSTANTS
 
@@ -157,6 +166,9 @@ class Cluster : public mqbi::Cluster {
     // DATA
     bslma::Allocator* d_allocator_p;
     // Allocator to use
+
+    bsl::string d_name;
+    // Cluster name
 
     bdlbb::PooledBlobBufferFactory d_bufferFactory;
     // Buffer factory to use
@@ -180,11 +192,20 @@ class Cluster : public mqbi::Cluster {
     mqbcfg::ClusterDefinition d_clusterDefinition;
     // Cluster definition
 
+    mqbmock::Domain d_domain;
+    // Domain to be used by the domain factory
+
+    mqbmock::DomainFactory d_domainFactory;
+    // Domain factory
+
     TestChannelMap d_channels;
     // Test channels
 
-    // Initial Connection Handler
-    InitialConnectionHandlerMp d_initialConnectionHandler_mp;
+    // Authenticator
+    AuthenticatorMp d_authenticator_mp;
+
+    // Negotiator
+    NegotiatorMp d_negotiator_mp;
 
     mqbnet::TransportManager d_transportManager;
     // Transport manager
@@ -217,6 +238,8 @@ class Cluster : public mqbi::Cluster {
     // Dispatcher client data
 
     EventProcessor d_processor;
+
+    PutFunctor d_putFunctor;
 
     mqbi::ClusterResources d_resources;
 
@@ -280,6 +303,7 @@ class Cluster : public mqbi::Cluster {
     mqbi::Dispatcher* dispatcher() BSLS_KEYWORD_OVERRIDE;
 
     void _setEventProcessor(const EventProcessor& processor);
+    void _setPutFunctor(const PutFunctor& f);
 
     /// Return a reference to the dispatcherClientData.
     mqbi::DispatcherClientData& dispatcherClientData() BSLS_KEYWORD_OVERRIDE;
@@ -304,13 +328,9 @@ class Cluster : public mqbi::Cluster {
     /// Initiate the shutdown of the cluster and invoke the specified
     /// `callback` upon completion of (asynchronous) shutdown sequence. It
     /// is expected that `stop()` will be called soon after this routine is
-    /// invoked.  If the optional (temporary) specified 'supportShutdownV2' is
-    /// 'true' execute shutdown logic V2 where upstream (not downstream) nodes
-    /// deconfigure  queues and the shutting down node (not downstream) wait
-    /// for CONFIRMS.
-    void
-    initiateShutdown(const VoidFunctor& callback,
-                     bool supportShutdownV2 = false) BSLS_KEYWORD_OVERRIDE;
+    /// invoked.  Execute shutdown logic where upstream (not downstream) nodes
+    /// deconfigure  queues and the shutting down node waits for CONFIRMS.
+    void initiateShutdown(const VoidFunctor& callback) BSLS_KEYWORD_OVERRIDE;
 
     /// Stop the `Cluster`.
     void stop() BSLS_KEYWORD_OVERRIDE;
@@ -368,11 +388,11 @@ class Cluster : public mqbi::Cluster {
     /// Configure the specified `upstreamSubQueueId` subStream of the
     /// specified `queue` with the specified `handleParameters` and invoke
     /// the specified `callback` when finished.
-    void configureQueue(
-        mqbi::Queue*                               queue,
-        const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
-        unsigned int                               upstreamSubQueueId,
-        const HandleReleasedCallback& callback) BSLS_KEYWORD_OVERRIDE;
+    void
+    closeQueue(mqbi::Queue*                               queue,
+               const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
+               unsigned int                               upstreamSubQueueId,
+               const HandleReleasedCallback& callback) BSLS_KEYWORD_OVERRIDE;
 
     void onQueueHandleCreated(mqbi::Queue*     queue,
                               const bmqt::Uri& uri,
@@ -405,6 +425,18 @@ class Cluster : public mqbi::Cluster {
                                  const bsl::string&     domainName)
         BSLS_KEYWORD_OVERRIDE;
 
+    mqbi::InlineResult::Enum sendConfirmInline(
+        int                         partitionId,
+        const bmqp::ConfirmMessage& message) BSLS_KEYWORD_OVERRIDE;
+
+    mqbi::InlineResult::Enum
+    sendPutInline(int                                       partitionId,
+                  const bmqp::PutHeader&                    putHeader,
+                  const bsl::shared_ptr<bdlbb::Blob>&       appData,
+                  const bsl::shared_ptr<bdlbb::Blob>&       options,
+                  const bsl::shared_ptr<bmqu::AtomicState>& state,
+                  bsls::Types::Uint64 genCount) BSLS_KEYWORD_OVERRIDE;
+
     // MANIPULATORS
     //   (specific to mqbmock::Cluster)
 
@@ -432,7 +464,7 @@ class Cluster : public mqbi::Cluster {
     mqbc::ClusterData* _clusterData();
 
     /// Get a modifiable reference to this object's cluster state.
-    mqbc::ClusterState& _state();
+    mqbc::ClusterState* _state();
 
     /// Move the test timer forward the specified `seconds`.
     void advanceTime(int seconds);
@@ -564,7 +596,7 @@ inline mqbi::DispatcherClientData& Cluster::dispatcherClientData()
 
 // MANIPULATORS
 inline void Cluster::processResponse(
-    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& response)
+    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::ControlMessage& response)
 {
     // NOTHING
 }
@@ -572,6 +604,11 @@ inline void Cluster::processResponse(
 inline void Cluster::_setEventProcessor(const EventProcessor& processor)
 {
     d_processor = processor;
+}
+
+inline void Cluster::_setPutFunctor(const PutFunctor& f)
+{
+    d_putFunctor = f;
 }
 
 inline Cluster::BlobSpPool* Cluster::_blobSpPool()
@@ -594,9 +631,9 @@ inline mqbc::ClusterData* Cluster::_clusterData()
     return d_clusterData_mp.get();
 }
 
-inline mqbc::ClusterState& Cluster::_state()
+inline mqbc::ClusterState* Cluster::_state()
 {
-    return d_state;
+    return &d_state;
 }
 
 inline bdlbb::BlobBufferFactory* Cluster::bufferFactory()

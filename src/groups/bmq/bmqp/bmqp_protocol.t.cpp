@@ -222,7 +222,7 @@ static void test1_breathingTest()
         // Create EventHeader with non-default ctor
         bmqp::EventHeader              eh2(bmqp::EventType::e_CONTROL);
         const bmqp::EncodingType::Enum encodingType =
-            bmqp::EventHeaderUtil::controlEventEncodingType(eh2);
+            bmqp::EventHeaderUtil::encodingType(eh2);
 
         BMQTST_ASSERT_EQ(static_cast<size_t>(eh2.length()), sizeof(eh2));
         BMQTST_ASSERT_EQ(eh2.fragmentBit(), 0);
@@ -1754,13 +1754,11 @@ static void test7_eventHeaderUtil()
             PVV(test.d_line
                 << ": Testing: EventHeaderUtil::setControlEventEncodingType("
                 << test.d_value << ")");
-            bmqp::EventHeaderUtil::setControlEventEncodingType(&eventHeader,
-                                                               test.d_value);
+            bmqp::EventHeaderUtil::setEncodingType(&eventHeader, test.d_value);
 
             // 2. Verify that the intended encoding type is set
-            BMQTST_ASSERT_EQ(
-                test.d_value,
-                bmqp::EventHeaderUtil::controlEventEncodingType(eventHeader));
+            BMQTST_ASSERT_EQ(test.d_value,
+                             bmqp::EventHeaderUtil::encodingType(eventHeader));
         }
     }
 }

@@ -587,68 +587,35 @@ bool Tester::isEventDumpEnabled(const bmqp::EventType::Enum& type) const
 {
     bool result = false;
 
-    switch (type) {
-    case bmqp::EventType::e_CONTROL: {
-        result =
-            d_messageDumper.isEventDumpEnabled<bmqp::EventType::e_CONTROL>();
+#define CASE(t)                                                               \
+    case (t): {                                                               \
+        result = d_messageDumper.isEventDumpEnabled<(t)>();                   \
     } break;
-    case bmqp::EventType::e_PUT: {
-        result = d_messageDumper.isEventDumpEnabled<bmqp::EventType::e_PUT>();
-    } break;
-    case bmqp::EventType::e_CONFIRM: {
-        result =
-            d_messageDumper.isEventDumpEnabled<bmqp::EventType::e_CONFIRM>();
-    } break;
-    case bmqp::EventType::e_REJECT: {
-        result =
-            d_messageDumper.isEventDumpEnabled<bmqp::EventType::e_REJECT>();
-    } break;
-    case bmqp::EventType::e_PUSH: {
-        result = d_messageDumper.isEventDumpEnabled<bmqp::EventType::e_PUSH>();
-    } break;
-    case bmqp::EventType::e_ACK: {
-        result = d_messageDumper.isEventDumpEnabled<bmqp::EventType::e_ACK>();
-    } break;
-    case bmqp::EventType::e_CLUSTER_STATE: {
-        result = d_messageDumper
-                     .isEventDumpEnabled<bmqp::EventType::e_CLUSTER_STATE>();
-    } break;
-    case bmqp::EventType::e_ELECTOR: {
-        result =
-            d_messageDumper.isEventDumpEnabled<bmqp::EventType::e_ELECTOR>();
-    } break;
-    case bmqp::EventType::e_STORAGE: {
-        result =
-            d_messageDumper.isEventDumpEnabled<bmqp::EventType::e_STORAGE>();
-    } break;
-    case bmqp::EventType::e_RECOVERY: {
-        result =
-            d_messageDumper.isEventDumpEnabled<bmqp::EventType::e_RECOVERY>();
-    } break;
-    case bmqp::EventType::e_PARTITION_SYNC: {
-        result = d_messageDumper
-                     .isEventDumpEnabled<bmqp::EventType::e_PARTITION_SYNC>();
-    } break;
-    case bmqp::EventType::e_HEARTBEAT_REQ: {
-        result = d_messageDumper
-                     .isEventDumpEnabled<bmqp::EventType::e_HEARTBEAT_REQ>();
 
-    } break;
-    case bmqp::EventType::e_HEARTBEAT_RSP: {
-        result = d_messageDumper
-                     .isEventDumpEnabled<bmqp::EventType::e_HEARTBEAT_RSP>();
-    } break;
-    case bmqp::EventType::e_REPLICATION_RECEIPT: {
-        result =
-            d_messageDumper
-                .isEventDumpEnabled<bmqp::EventType::e_REPLICATION_RECEIPT>();
-    } break;
-    case bmqp::EventType::e_UNDEFINED:
+    switch (type) {
+        CASE(bmqp::EventType::e_CONTROL)
+        CASE(bmqp::EventType::e_PUT)
+        CASE(bmqp::EventType::e_CONFIRM)
+        CASE(bmqp::EventType::e_REJECT)
+        CASE(bmqp::EventType::e_PUSH)
+        CASE(bmqp::EventType::e_ACK)
+        CASE(bmqp::EventType::e_CLUSTER_STATE)
+        CASE(bmqp::EventType::e_ELECTOR)
+        CASE(bmqp::EventType::e_STORAGE)
+        CASE(bmqp::EventType::e_RECOVERY)
+        CASE(bmqp::EventType::e_PARTITION_SYNC)
+        CASE(bmqp::EventType::e_HEARTBEAT_REQ)
+        CASE(bmqp::EventType::e_HEARTBEAT_RSP)
+        CASE(bmqp::EventType::e_REPLICATION_RECEIPT)
+        CASE(bmqp::EventType::e_AUTHENTICATION)
+        CASE(bmqp::EventType::e_UNDEFINED)
     default: {
         result =
             d_messageDumper.isEventDumpEnabled<bmqp::EventType::e_UNDEFINED>();
     } break;
     }
+
+#undef CASE
 
     return result;
 }
@@ -1921,7 +1888,6 @@ int main(int argc, char** argv)
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     switch (_testCase) {
     case 0:
@@ -1940,11 +1906,7 @@ int main(int argc, char** argv)
     } break;
     }
 
-    bmqt::UriParser::shutdown();
     bmqp::ProtocolUtil::shutdown();
 
-    TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
-    // For an unidentified reason, 'e_CHECK_DEF_GBL_ALLOC' fails as a
-    // result of initializing 'bmqsys::Time' in the constructor of
-    // 'Tester'.
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

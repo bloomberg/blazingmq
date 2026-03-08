@@ -33,6 +33,8 @@ def check_pr_title():
     title = title.lower()
     valid_prefixes = [
         "build",
+        "cfg",
+        "config",
         "ci",
         "cleanup",
         "deprecate",

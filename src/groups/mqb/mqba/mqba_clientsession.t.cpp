@@ -427,13 +427,6 @@ bmqp_ctrlmsg::NegotiationMessage client(const ClientType clientType)
     return negotiationMessage;
 }
 
-mqbmock::Dispatcher* setInDispatcherThread(mqbmock::Dispatcher* mockDispatcher)
-// Utility method.  Sets 'MockDispatcher' attribute.
-{
-    mockDispatcher->_setInDispatcherThread(true);
-    return mockDispatcher;
-}
-
 /// Overrides default `MockQueueHandle` behavior with extra functionality.
 class MyMockQueueHandle : public mqbmock::QueueHandle {
   public:
@@ -537,7 +530,7 @@ class MyQueueEngine : public mqbmock::QueueEngine {
 
     // MANIPULATORS
     void configureHandle(
-        BSLA_UNUSED mqbi::QueueHandle*                     handle,
+        BSLA_MAYBE_UNUSED mqbi::QueueHandle*               handle,
         const bmqp_ctrlmsg::StreamParameters&              streamParameters,
         const mqbi::QueueHandle::HandleConfiguredCallback& configuredCb)
         BSLS_KEYWORD_OVERRIDE
@@ -585,7 +578,7 @@ class MyMockDomain : public mqbmock::Domain {
     /// calls the specified `callback` with a new queue handle created
     /// using the specified `handleParameters`.  The specified `uri` and
     /// `clientContext` are ignored.
-    void openQueue(BSLA_UNUSED const bmqt::Uri& uri,
+    void openQueue(const bmqt::Uri& uri,
                    const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
                                                               clientContext,
                    const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
@@ -605,8 +598,15 @@ class MyMockDomain : public mqbmock::Domain {
                                     handleParameters,
                                     d_allocator_p);
 
-        OpenQueueConfirmationCookie confirmationCookie;
-        confirmationCookie.createInplace(d_allocator_p, d_queueHandle.get());
+        mqbi::OpenQueueConfirmationCookieSp confirmationCookie;
+        confirmationCookie.createInplace(d_allocator_p);
+        confirmationCookie->d_handle = d_queueHandle.get();
+
+        confirmationCookie->d_stats_sp.createInplace(d_allocator_p);
+        confirmationCookie->d_stats_sp->initialize(
+            uri,
+            clientContext->statContext().get(),
+            d_allocator_p);
 
         bmqp_ctrlmsg::Status status(d_allocator_p);
         status.category() = bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
@@ -643,23 +643,22 @@ T assertFail()
 class TestBench {
   private:
     // PRIVATE TYPES
-    typedef mqbmock::Dispatcher::EventGuard     EventGuard;
-    typedef const bmqio::TestChannel::WriteCall ConstWriteCall;
+    typedef mqbmock::Dispatcher::EventGuard EventGuard;
 
   public:
     // DATA
-    bdlbb::PooledBlobBufferFactory        d_bufferFactory;
-    BlobSpPool                            d_blobSpPool;
+    bdlbb::PooledBlobBufferFactory            d_bufferFactory;
+    BlobSpPool                                d_blobSpPool;
     bsl::shared_ptr<bmqio::TestChannel>   d_channel;
-    mqbmock::Cluster                      d_cluster;
-    mqbmock::Dispatcher                   d_mockDispatcher;
-    MyMockDomain                          d_domain;
-    mqbmock::DomainFactory                d_mockDomainFactory;
-    bslma::ManagedPtr<bmqst::StatContext> d_clientStatContext_mp;
-    bdlmt::EventScheduler                 d_scheduler;
-    TestClock                             d_testClock;
-    mqba::ClientSession                   d_cs;
-    bslma::Allocator*                     d_allocator_p;
+    mqbmock::Cluster                          d_cluster;
+    mqbmock::Dispatcher                       d_mockDispatcher;
+    MyMockDomain                              d_domain;
+    mqbmock::DomainFactory                    d_mockDomainFactory;
+    const bsl::shared_ptr<bmqst::StatContext> d_clientStatContext_sp;
+    bdlmt::EventScheduler                     d_scheduler;
+    TestClock                                 d_testClock;
+    mqba::ClientSession                       d_cs;
+    bslma::Allocator*                         d_allocator_p;
 
     static const int k_PAYLOAD_LENGTH = 36;
 
@@ -682,18 +681,17 @@ class TestBench {
     , d_mockDispatcher(allocator)
     , d_domain(&d_mockDispatcher, &d_cluster, atMostOnce, allocator)
     , d_mockDomainFactory(d_domain, allocator)
-    , d_clientStatContext_mp(
-          mqbstat::QueueStatsUtil::initializeStatContextClients(10, allocator)
-              .managedPtr())
+    , d_clientStatContext_sp(
+          mqbstat::QueueStatsUtil::initializeStatContextClients(10, allocator))
     , d_scheduler(bsls::SystemClockType::e_MONOTONIC, allocator)
     , d_testClock(d_scheduler)
     , d_cs(d_channel,
            negotiationMessage,
            "sessionDescription",
-           setInDispatcherThread(&d_mockDispatcher),
+           &d_mockDispatcher,
            0,  // ClusterCatalog
            &d_mockDomainFactory,
-           d_clientStatContext_mp,
+           d_clientStatContext_sp,
            &d_blobSpPool,
            &d_bufferFactory,
            &d_scheduler,
@@ -735,7 +733,7 @@ class TestBench {
 
         // Typically done during 'Dispatcher::registerClient()'.
         d_cs.dispatcherClientData().setDispatcher(&d_mockDispatcher);
-        d_mockDispatcher._setInDispatcherThread(true);
+        d_cs.setThreadId(bslmt::ThreadUtil::selfId());
 
         // Setup test time source
         bmqsys::Time::shutdown();
@@ -826,8 +824,10 @@ class TestBench {
             guid,
             queueId);
 
-        mqbi::DispatcherEvent event(d_allocator_p);
-        event.setType(mqbi::DispatcherEventType::e_ACK)
+        mqbi::Dispatcher::DispatcherEventSp event =
+            bsl::allocate_shared<mqbi::DispatcherEvent>(d_allocator_p);
+        (*event)
+            .setType(mqbi::DispatcherEventType::e_ACK)
             .setAckMessage(ackMessage);
 
         dispatch(event);
@@ -870,12 +870,13 @@ class TestBench {
                                       &d_bufferFactory,
                                       cat);
 
-        mqbi::DispatcherEvent event(d_allocator_p);
-        event.setType(mqbi::DispatcherEventType::e_PUT)
+        mqbi::Dispatcher::DispatcherEventSp event =
+            bsl::allocate_shared<mqbi::DispatcherEvent>(d_allocator_p);
+        (*event)
+            .setType(mqbi::DispatcherEventType::e_PUT)
             .setIsRelay(true)  // Relay message
             .setSource(&d_cs)  // DispatcherClient *value
             .setPutHeader(putHeader)
-            .setPartitionId(1)   // d_state_p->partitionId()) // int value
             .setBlob(eventBlob)  // const bsl::shared_ptr<bdlbb::Blob>& value
             .setCompressionAlgorithmType(cat);
 
@@ -911,9 +912,11 @@ class TestBench {
     {
         PVV("Sending PUSH with queueId=" << queueId << ", guid=" << msgGUID);
 
-        mqbi::DispatcherEvent event(d_allocator_p);
+        mqbi::Dispatcher::DispatcherEventSp event =
+            bsl::allocate_shared<mqbi::DispatcherEvent>(d_allocator_p);
 
-        event.setType(mqbi::DispatcherEventType::e_PUSH)
+        (*event)
+            .setType(mqbi::DispatcherEventType::e_PUSH)
             .setSource(&d_cs)  // DispatcherClient *value
             .setQueueId(queueId)
             .setBlob(blob)
@@ -938,8 +941,9 @@ class TestBench {
     /// Asserts that the first event written is an Open Queue Control Event.
     void assertOpenQueueResponse()
     {
-        BMQTST_ASSERT(d_channel->waitFor(1, false));  // isFinal = false
-        ConstWriteCall& openQueueCall = d_channel->writeCalls()[0];
+        bmqio::TestChannel::WriteCall openQueueCall;
+        BMQTST_ASSERT(d_channel->getWriteCall(&openQueueCall, 0));
+
         bmqp::Event     openQueueEvent(&openQueueCall.d_blob,
                                    bmqtst::TestHelperUtil::allocator());
         PVV("Event 1: " << openQueueEvent);
@@ -951,17 +955,17 @@ class TestBench {
     /// is sent downstream in the event specified by `eventIndex`.  Also
     /// check that the event is final or not.
     void assertAckIsSentIfExpected(const AckResult&         ackResult,
-                                   const int                queueId,
+                                   int                      queueId,
                                    const bmqt::MessageGUID& msgGUID,
-                                   const int                correlationId,
-                                   const int                eventIndex = 1,
-                                   const bool               isFinal    = true)
+                                   int                      correlationId,
+                                   size_t                   eventIndex = 1,
+                                   bool                     isFinal    = true)
     {
         if (ackResult == e_AckResultNone) {
             // If no ack expected we shouldn't have more events than
             // 'eventIndex'.
             BMQTST_ASSERT(d_channel->waitFor(eventIndex));
-            BMQTST_ASSERT(d_channel->hasNoMoreWriteCalls());
+            BMQTST_ASSERT_EQ(d_channel->numWriteCalls(), eventIndex);
 
             return;  // RETURN
         }
@@ -974,9 +978,9 @@ class TestBench {
 
         // If we expect acks, then the event with corresponding number
         // should exist and be of type Ack.
-        BMQTST_ASSERT(d_channel->waitFor(eventIndex + 1, isFinal));
+        bmqio::TestChannel::WriteCall ackCall;
+        BMQTST_ASSERT(d_channel->getWriteCall(&ackCall, eventIndex));
 
-        ConstWriteCall& ackCall = d_channel->writeCalls()[eventIndex];
         bmqp::Event     ackEvent(&ackCall.d_blob,
                              bmqtst::TestHelperUtil::allocator());
         PVV("Event " << eventIndex + 1 << ": " << ackEvent);
@@ -1001,28 +1005,29 @@ class TestBench {
         BMQTST_ASSERT(!iter.isValid());
 
         if (isFinal) {
-            BMQTST_ASSERT(d_channel->hasNoMoreWriteCalls());
+            BMQTST_ASSERT_EQ(d_channel->numWriteCalls(), eventIndex + 1);
         }
     }
 
     /// A method that prepares and calls ClientSession's `dispatch()`
     /// using the specified `event`.
-    void dispatch(mqbi::DispatcherEvent& event)
+    void dispatch(mqbi::Dispatcher::DispatcherEventSp event)
     {
-        EventGuard guard(d_mockDispatcher._withEvent(&d_cs, &event));
+        EventGuard guard(d_mockDispatcher._withEvent(&d_cs, event));
 
-        d_cs.onDispatcherEvent(event);
+        d_cs.onDispatcherEvent(*event);
     }
 
     void verifyPush(bmqp::MessageProperties* properties,
+                    size_t                   pushIndex,
                     int                      length = k_PAYLOAD_LENGTH)
     {
-        int last = d_channel->writeCalls().size();
         d_cs.flush();
 
-        BMQTST_ASSERT(d_channel->waitFor(last + 1, false));
+        bmqio::TestChannel::WriteCall writeCall;
+        BMQTST_ASSERT(d_channel->getWriteCall(&writeCall, pushIndex));
 
-        bmqp::Event pushEvent(&d_channel->writeCalls()[last].d_blob,
+        bmqp::Event pushEvent(&writeCall.d_blob,
                               bmqtst::TestHelperUtil::allocator());
 
         BMQTST_ASSERT(pushEvent.isPushEvent());
@@ -1785,13 +1790,15 @@ static void test7_oldStylePut()
     BMQTST_ASSERT(
         tb.validateData(*postMessages[0].d_appData, msgPropsAreaSize));
 
+    const size_t pushIndex = tb.d_channel->numWriteCalls();
+
     // Turn around and send PUSH
     tb.sendPush(queueId,
                 guid,
                 postMessages[0].d_appData,
                 bmqt::CompressionAlgorithmType::e_NONE,
                 logic);
-    tb.verifyPush(&out);
+    tb.verifyPush(&out, pushIndex);
 
     verify(out);
 }
@@ -1868,6 +1875,8 @@ static void test8_oldStyleCompressedPut()
     BMQTST_ASSERT(
         tb.validateData(*postMessages[0].d_appData, msgPropsAreaSize));
 
+    const size_t pushIndex = tb.d_channel->numWriteCalls();
+
     // Turn around and send PUSH
     tb.sendPush(queueId,
                 guid,
@@ -1875,7 +1884,7 @@ static void test8_oldStyleCompressedPut()
                 bmqt::CompressionAlgorithmType::e_NONE,
                 logic);
 
-    tb.verifyPush(&out);
+    tb.verifyPush(&out, pushIndex);
 
     verify(out);
 }
@@ -1934,7 +1943,9 @@ static void test9_newStylePush()
 
     BMQTST_ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS, rc);
 
-    mqbi::DispatcherEvent putEvent(bmqtst::TestHelperUtil::allocator());
+    mqbi::Dispatcher::DispatcherEventSp putEvent =
+        bsl::allocate_shared<mqbi::DispatcherEvent>(
+            bmqtst::TestHelperUtil::allocator());
     bmqp::Event           rawEvent(peb.blob().get(),
                          bmqtst::TestHelperUtil::allocator());
 
@@ -1946,7 +1957,8 @@ static void test9_newStylePush()
     rawEvent.loadPutMessageIterator(&putIt, false);
     BSLS_ASSERT(putIt.next());
 
-    putEvent.setType(mqbi::DispatcherEventType::e_PUT)
+    (*putEvent)
+        .setType(mqbi::DispatcherEventType::e_PUT)
         .setIsRelay(true)     // Relay message
         .setSource(&tb.d_cs)  // DispatcherClient *value
         .setPutHeader(putIt.header())
@@ -1980,13 +1992,15 @@ static void test9_newStylePush()
     BMQTST_ASSERT(
         tb.validateData(*postMessages[0].d_appData, msgPropsAreaSize, 99));
 
+    const size_t pushIndex = tb.d_channel->numWriteCalls();
+
     // Turn around and send PUSH
     tb.sendPush(queueId,
                 guid,
                 postMessages[0].d_appData,
                 bmqt::CompressionAlgorithmType::e_NONE,
                 logic);
-    tb.verifyPush(&out, 99);
+    tb.verifyPush(&out, pushIndex, 99);
 
     verify(out);
 }
@@ -2046,7 +2060,9 @@ static void test10_newStyleCompressedPush()
 
     BMQTST_ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS, rc);
 
-    mqbi::DispatcherEvent putEvent(bmqtst::TestHelperUtil::allocator());
+    mqbi::Dispatcher::DispatcherEventSp putEvent =
+        bsl::allocate_shared<mqbi::DispatcherEvent>(
+            bmqtst::TestHelperUtil::allocator());
     bmqp::Event           rawEvent(peb.blob().get(),
                          bmqtst::TestHelperUtil::allocator());
 
@@ -2058,7 +2074,8 @@ static void test10_newStyleCompressedPush()
     rawEvent.loadPutMessageIterator(&putIt, false);
     BSLS_ASSERT(putIt.next());
 
-    putEvent.setType(mqbi::DispatcherEventType::e_PUT)
+    (*putEvent)
+        .setType(mqbi::DispatcherEventType::e_PUT)
         .setIsRelay(true)     // Relay message
         .setSource(&tb.d_cs)  // DispatcherClient *value
         .setPutHeader(putIt.header())
@@ -2088,13 +2105,17 @@ static void test10_newStyleCompressedPush()
 
     // No payload validation, it is compressed.
 
+    const size_t pushIndex = tb.d_channel->numWriteCalls();
+
     // Turn around and send PUSH
     tb.sendPush(queueId,
                 guid,
                 postMessages[0].d_appData,
                 bmqt::CompressionAlgorithmType::e_ZLIB,
                 logic);
-    tb.verifyPush(&out, 2 * bmqp::Protocol::k_COMPRESSION_MIN_APPDATA_SIZE);
+    tb.verifyPush(&out,
+                  pushIndex,
+                  2 * bmqp::Protocol::k_COMPRESSION_MIN_APPDATA_SIZE);
 
     verify(out);
 }
@@ -2119,16 +2140,11 @@ static void test11_initiateShutdown()
                           bmqtst::TestHelperUtil::allocator());
 
     const int                queueId          = 4;  // A queue number
-    const bool               isAtMostOnce     = false;
-    const bsls::TimeInterval timeout          = bsls::TimeInterval(10);
-    const bsls::TimeInterval semaphoreTimeout = bsls::TimeInterval(
-        0,
-        100000000);  // 100 ms
+    const bool                 isAtMostOnce     = false;
     bslmt::TimedSemaphore      semaphore;
     bmqp::Protocol::MsgGroupId msgGroupId(bmqtst::TestHelperUtil::allocator());
     const unsigned int         subscriptionId =
         bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID;
-    const unsigned int subQueueId = bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID;
 
     bmqp::Protocol::SubQueueInfosArray subQueueInfos(
         1,
@@ -2148,7 +2164,7 @@ static void test11_initiateShutdown()
         mqbi::StorageMessageAttributes d_messageAttributes;
 
         // CREATORS
-        MockStorageIterator(BSLA_UNUSED bslma::Allocator* allocator = 0)
+        MockStorageIterator(BSLA_MAYBE_UNUSED bslma::Allocator* allocator = 0)
         : d_guid(bmqp::MessageGUIDGenerator::testGUID())
         , d_appMessage(bmqp::RdaInfo())
         , d_appData()
@@ -2187,14 +2203,15 @@ static void test11_initiateShutdown()
             return d_guid;
         }
 
-        const mqbi::AppMessage& appMessageView(
-            BSLA_UNUSED unsigned int appOrdinal) const BSLS_KEYWORD_OVERRIDE
+        const mqbi::AppMessage&
+        appMessageView(BSLA_MAYBE_UNUSED unsigned int appOrdinal) const
+            BSLS_KEYWORD_OVERRIDE
         {
             return d_appMessage;
         }
 
-        mqbi::AppMessage& appMessageState(BSLA_UNUSED unsigned int appOrdinal)
-            BSLS_KEYWORD_OVERRIDE
+        mqbi::AppMessage& appMessageState(
+            BSLA_MAYBE_UNUSED unsigned int appOrdinal) BSLS_KEYWORD_OVERRIDE
         {
             return d_appMessage;
         }
@@ -2224,7 +2241,7 @@ static void test11_initiateShutdown()
 
     MockStorageIterator iter(bmqtst::TestHelperUtil::allocator());
 
-    PV("Shutdown without unconfirmed messages");
+    PV("Shutdown");
     {
         TestBench       tb(client(e_FirstHop),
                      isAtMostOnce,
@@ -2244,225 +2261,13 @@ static void test11_initiateShutdown()
         // Initiate client session shutdown
         tb.d_cs.initiateShutdown(bdlf::BindUtil::bind(&onShutdownComplete,
                                                       &callbackCounter,
-                                                      &semaphore),
-                                 timeout);
-
-        // Verify 'Channel::close' call
-        BMQTST_ASSERT_EQ(tb.d_channel->closeCalls().size(), 1UL);
-
-        // Imitate close operation
-        tb.d_cs.tearDown(bsl::shared_ptr<void>(), true);
+                                                      &semaphore));
 
         // Verify that the shutdown callback gets called
         semaphore.wait();
 
-        BMQTST_ASSERT_EQ(callbackCounter, 1);
-    }
-
-    PV("Shutdown with unconfirmed messages and timeout");
-    {
-        TestBench       tb(client(e_FirstHop),
-                     isAtMostOnce,
-                     bmqtst::TestHelperUtil::allocator());
-        bsls::AtomicInt callbackCounter(0);
-
-        // Send an 'OpenQueue` request.
-        tb.openQueue(uri, queueId);
-
-        // Confirm that the OpenQueue response has been sent downstream.
-        tb.d_cs.flush();
-        tb.assertOpenQueueResponse();
-
-        // Emulate sending PUSH.
-        tb.d_domain.d_queueHandle->deliverMessage(iter,
-                                                  msgGroupId,
-                                                  subQueueInfos,
-                                                  false);
-
-        // Verify there are unconfirmed messages in the handle
-        BMQTST_ASSERT_EQ(1, tb.d_domain.d_queueHandle->countUnconfirmed());
-
-        // Initiate client session shutdown
-        tb.d_cs.initiateShutdown(bdlf::BindUtil::bind(&onShutdownComplete,
-                                                      &callbackCounter,
-                                                      &semaphore),
-                                 timeout);
-
-        // No 'Channel::close' call
-        BMQTST_ASSERT_EQ(tb.d_channel->closeCalls().size(), 0UL);
-
-        // Verify that the shutdown callback hasn't been called
-        int rc = semaphore.timedWait(
-            bsls::SystemTime::now(bsls::SystemClockType::e_REALTIME) +
-            semaphoreTimeout);
-
-        BMQTST_ASSERT_NE(rc, 0);
-        BMQTST_ASSERT_EQ(callbackCounter, 0);
-
-        // Advance time to reach the shutdown timeout
-        tb.d_testClock.d_timeSource.advanceTime(timeout);
-
-        // Verify 'Channel::close' call
-        BMQTST_ASSERT_EQ(tb.d_channel->closeCalls().size(), 1UL);
-
         // Imitate close operation
         tb.d_cs.tearDown(bsl::shared_ptr<void>(), true);
-
-        // Verify that the shutdown callback gets called
-        semaphore.wait();
-
-        BMQTST_ASSERT_EQ(callbackCounter, 1);
-    }
-
-    PV("Confirm a messsage while shutting down");
-    {
-        TestBench       tb(client(e_FirstHop),
-                     isAtMostOnce,
-                     bmqtst::TestHelperUtil::allocator());
-        bsls::AtomicInt callbackCounter(0);
-
-        // Send an 'OpenQueue` request.
-        tb.openQueue(uri, queueId);
-
-        // Confirm that the OpenQueue response has been sent downstream.
-        tb.d_cs.flush();
-        tb.assertOpenQueueResponse();
-
-        // Emulate sending PUSH.
-        tb.d_domain.d_queueHandle->deliverMessage(iter,
-                                                  msgGroupId,
-                                                  subQueueInfos,
-                                                  false);
-
-        // Verify there are unconfirmed messages in the handle
-        BMQTST_ASSERT_EQ(1, tb.d_domain.d_queueHandle->countUnconfirmed());
-
-        // Initiate client session shutdown
-        tb.d_cs.initiateShutdown(bdlf::BindUtil::bind(&onShutdownComplete,
-                                                      &callbackCounter,
-                                                      &semaphore),
-                                 timeout + timeout);
-        // Long shutdown timeout
-
-        // No 'Channel::close' call
-        BMQTST_ASSERT_EQ(tb.d_channel->closeCalls().size(), 0UL);
-
-        // Verify that the shutdown callback hasn't been called
-        int rc = semaphore.timedWait(
-            bsls::SystemTime::now(bsls::SystemClockType::e_REALTIME) +
-            semaphoreTimeout);
-
-        BMQTST_ASSERT_NE(rc, 0);
-        BMQTST_ASSERT_EQ(callbackCounter, 0);
-
-        tb.d_domain.d_queueHandle->confirmMessage(iter.guid(), subQueueId);
-
-        // Verify there are no unconfirmed messages in the handle
-        BMQTST_ASSERT_EQ(0, tb.d_domain.d_queueHandle->countUnconfirmed());
-
-        // Advance time less than the shutdown timeout
-        tb.d_testClock.d_timeSource.advanceTime(timeout);
-
-        // Verify 'Channel::close' call
-        BMQTST_ASSERT_EQ(tb.d_channel->closeCalls().size(), 1UL);
-
-        // Imitate close operation
-        tb.d_cs.tearDown(bsl::shared_ptr<void>(), true);
-
-        // Verify that the shutdown callback gets called
-        semaphore.wait();
-
-        BMQTST_ASSERT_EQ(callbackCounter, 1);
-    }
-
-    PV("Confirm multiple messsages while shutting down");
-    {
-        const int                      NUM_MESSAGES = 5;
-        TestBench                      tb(client(e_FirstHop),
-                     isAtMostOnce,
-                     bmqtst::TestHelperUtil::allocator());
-        bsls::AtomicInt                callbackCounter(0);
-        bsl::vector<bmqt::MessageGUID> guids(
-            bmqtst::TestHelperUtil::allocator());
-        guids.reserve(NUM_MESSAGES);
-
-        // Send an 'OpenQueue` request.
-        tb.openQueue(uri, queueId);
-
-        // Confirm that the OpenQueue response has been sent downstream.
-        tb.d_cs.flush();
-        tb.assertOpenQueueResponse();
-
-        // Emulate sending PUSHs.
-        for (int i = 0; i < NUM_MESSAGES; ++i) {
-            iter.advance();
-            tb.d_domain.d_queueHandle->deliverMessage(iter,
-                                                      msgGroupId,
-                                                      subQueueInfos,
-                                                      false);
-            guids.push_back(iter.guid());
-        }
-        // Verify there are unconfirmed messages in the handle
-        BMQTST_ASSERT_EQ(NUM_MESSAGES,
-                         tb.d_domain.d_queueHandle->countUnconfirmed());
-
-        // Initiate client session shutdown
-        tb.d_cs.initiateShutdown(bdlf::BindUtil::bind(&onShutdownComplete,
-                                                      &callbackCounter,
-                                                      &semaphore),
-                                 timeout + timeout + timeout);
-        // Long shutdown timeout
-
-        // No 'Channel::close' call
-        BMQTST_ASSERT_EQ(tb.d_channel->closeCalls().size(), 0UL);
-
-        // Verify that the shutdown callback hasn't been called
-        int rc = semaphore.timedWait(
-            bsls::SystemTime::now(bsls::SystemClockType::e_REALTIME) +
-            semaphoreTimeout);
-
-        BMQTST_ASSERT_NE(rc, 0);
-        BMQTST_ASSERT_EQ(callbackCounter, 0);
-
-        // Confirm NUM_MESSAGES - 1 messages
-        for (int i = 0; i < NUM_MESSAGES - 1; ++i) {
-            tb.d_domain.d_queueHandle->confirmMessage(guids[i], subQueueId);
-        }
-
-        // Verify there is one unconfirmed message in the handle
-        BMQTST_ASSERT_EQ(1, tb.d_domain.d_queueHandle->countUnconfirmed());
-
-        // Advance time less than the shutdown timeout
-        tb.d_testClock.d_timeSource.advanceTime(timeout);
-
-        // No 'Channel::close' call
-        BMQTST_ASSERT_EQ(tb.d_channel->closeCalls().size(), 0UL);
-
-        // Still no callback
-        rc = semaphore.timedWait(
-            bsls::SystemTime::now(bsls::SystemClockType::e_REALTIME) +
-            semaphoreTimeout);
-
-        BMQTST_ASSERT_NE(rc, 0);
-        BMQTST_ASSERT_EQ(callbackCounter, 0);
-
-        // Confirm the last message
-        tb.d_domain.d_queueHandle->confirmMessage(guids[NUM_MESSAGES - 1],
-                                                  subQueueId);
-
-        BMQTST_ASSERT_EQ(0, tb.d_domain.d_queueHandle->countUnconfirmed());
-
-        // Advance time less than the shutdown timeout
-        tb.d_testClock.d_timeSource.advanceTime(timeout);
-
-        // Verify 'Channel::close' call
-        BMQTST_ASSERT_EQ(tb.d_channel->closeCalls().size(), 1UL);
-
-        // Imitate close operation
-        tb.d_cs.tearDown(bsl::shared_ptr<void>(), true);
-
-        // Verify that the shutdown callback gets called
-        semaphore.wait();
 
         BMQTST_ASSERT_EQ(callbackCounter, 1);
     }
@@ -2702,8 +2507,6 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
-
     {
         bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
         bmqsys::Time::initialize(bmqtst::TestHelperUtil::allocator());
@@ -2746,8 +2549,6 @@ int main(int argc, char* argv[])
         bmqsys::Time::shutdown();
         bmqp::ProtocolUtil::shutdown();
     }
-
-    bmqt::UriParser::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
     // Do not check for default/global allocator usage.

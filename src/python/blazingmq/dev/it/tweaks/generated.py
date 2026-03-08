@@ -226,11 +226,6 @@ class TweakFactory:
 
             host_data_center = HostDataCenter()
 
-            class IsRunningOnDev(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[bool, NoneType]) -> Callable: ...
-
-            is_running_on_dev = IsRunningOnDev()
-
             class LogsObserverMaxSize(metaclass=TweakMetaclass):
                 def __call__(self, value: typing.Union[int, NoneType]) -> Callable: ...
 
@@ -721,6 +716,140 @@ class TweakFactory:
                 def __call__(self, value: int) -> Callable: ...
 
             route_command_timeout_ms = RouteCommandTimeoutMs()
+
+            class Authentication(metaclass=TweakMetaclass):
+                class Authenticators(metaclass=TweakMetaclass):
+                    class Name(metaclass=TweakMetaclass):
+                        def __call__(
+                            self, value: typing.Union[str, NoneType]
+                        ) -> Callable: ...
+
+                    name = Name()
+
+                    class Settings(metaclass=TweakMetaclass):
+                        class Key(metaclass=TweakMetaclass):
+                            def __call__(
+                                self, value: typing.Union[str, NoneType]
+                            ) -> Callable: ...
+
+                        key = Key()
+
+                        class Value(metaclass=TweakMetaclass):
+                            class BoolVal(metaclass=TweakMetaclass):
+                                def __call__(
+                                    self, value: typing.Union[bool, NoneType]
+                                ) -> Callable: ...
+
+                            bool_val = BoolVal()
+
+                            class IntVal(metaclass=TweakMetaclass):
+                                def __call__(
+                                    self, value: typing.Union[int, NoneType]
+                                ) -> Callable: ...
+
+                            int_val = IntVal()
+
+                            class LongVal(metaclass=TweakMetaclass):
+                                def __call__(
+                                    self, value: typing.Union[int, NoneType]
+                                ) -> Callable: ...
+
+                            long_val = LongVal()
+
+                            class DoubleVal(metaclass=TweakMetaclass):
+                                def __call__(
+                                    self, value: typing.Union[float, NoneType]
+                                ) -> Callable: ...
+
+                            double_val = DoubleVal()
+
+                            class StringVal(metaclass=TweakMetaclass):
+                                def __call__(
+                                    self, value: typing.Union[str, NoneType]
+                                ) -> Callable: ...
+
+                            string_val = StringVal()
+
+                            def __call__(
+                                self,
+                                value: typing.Union[
+                                    blazingmq.schemas.mqbcfg.PluginSettingValue,
+                                    NoneType,
+                                ],
+                            ) -> Callable: ...
+
+                        value = Value()
+
+                        def __call__(self, value: None) -> Callable: ...
+
+                    settings = Settings()
+
+                    def __call__(self, value: None) -> Callable: ...
+
+                authenticators = Authenticators()
+
+                class AnonymousCredential(metaclass=TweakMetaclass):
+                    class Disallow(metaclass=TweakMetaclass):
+                        def __call__(
+                            self,
+                            value: typing.Union[
+                                blazingmq.schemas.mqbcfg.Disallow, NoneType
+                            ],
+                        ) -> Callable: ...
+
+                    disallow = Disallow()
+
+                    class Credential(metaclass=TweakMetaclass):
+                        class Mechanism(metaclass=TweakMetaclass):
+                            def __call__(
+                                self, value: typing.Union[str, NoneType]
+                            ) -> Callable: ...
+
+                        mechanism = Mechanism()
+
+                        class Identity(metaclass=TweakMetaclass):
+                            def __call__(
+                                self, value: typing.Union[str, NoneType]
+                            ) -> Callable: ...
+
+                        identity = Identity()
+
+                        def __call__(
+                            self,
+                            value: typing.Union[
+                                blazingmq.schemas.mqbcfg.Credential, NoneType
+                            ],
+                        ) -> Callable: ...
+
+                    credential = Credential()
+
+                    def __call__(
+                        self,
+                        value: typing.Union[
+                            blazingmq.schemas.mqbcfg.AnonymousCredential, NoneType
+                        ],
+                    ) -> Callable: ...
+
+                anonymous_credential = AnonymousCredential()
+
+                class MinThreads(metaclass=TweakMetaclass):
+                    def __call__(self, value: int) -> Callable: ...
+
+                min_threads = MinThreads()
+
+                class MaxThreads(metaclass=TweakMetaclass):
+                    def __call__(self, value: int) -> Callable: ...
+
+                max_threads = MaxThreads()
+
+                def __call__(
+                    self,
+                    value: typing.Union[
+                        blazingmq.schemas.mqbcfg.AuthenticatorConfig, NoneType
+                    ],
+                ) -> Callable: ...
+
+            authentication = Authentication()
 
             def __call__(
                 self, value: typing.Union[blazingmq.schemas.mqbcfg.AppConfig, NoneType]

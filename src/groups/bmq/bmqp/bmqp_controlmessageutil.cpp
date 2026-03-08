@@ -49,11 +49,12 @@ int ControlMessageUtil::validate(
 {
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_INVALID_ID = -1  // Invalid id
-        ,
-        rc_INVALID_CHOICE_SELECTION = -2  // Invalid choice selection
+        /// Success
+        rc_SUCCESS = 0,
+        /// Invalid id
+        rc_INVALID_ID = -1,
+        /// Invalid choice selection
+        rc_INVALID_CHOICE_SELECTION = -2
     };
 
     if (controlMessage.choice().isClusterMessageValue()) {

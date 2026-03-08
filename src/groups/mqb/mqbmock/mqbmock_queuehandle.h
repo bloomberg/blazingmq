@@ -229,9 +229,10 @@ class QueueHandle : public mqbi::QueueHandle {
     /// specified `subStreamInfo` by `readCount` and `writeCount` in
     /// the specified `counts`.  Create new context for the `subStreamInfo`
     /// if it is not registered.
+    /// Return an iterator pointing to the context.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    void
+    mqbi::QueueHandle::SubStreams::const_iterator
     registerSubStream(const bmqp_ctrlmsg::SubQueueIdInfo& subStreamInfo,
                       unsigned int                        upstreamSubQueueId,
                       const mqbi::QueueCounts& counts) BSLS_KEYWORD_OVERRIDE;
@@ -278,12 +279,14 @@ class QueueHandle : public mqbi::QueueHandle {
 
     /// Confirm the message with the specified `msgGUID` for the specified
     /// `downstreamSubQueueId` stream of the queue.
+    /// Use the specified `eventSource_p` for event allocations.
     ///
     /// THREAD: this method can be called from any thread and is responsible
     ///         for calling the corresponding method on the `Queue`, on the
     ///         Queue's dispatcher thread.
     void
-    confirmMessage(const bmqt::MessageGUID& msgGUID,
+    confirmMessage(mqbi::DispatcherEventSource* eventSource_p,
+                   const bmqt::MessageGUID&     msgGUID,
                    unsigned int downstreamSubQueueId) BSLS_KEYWORD_OVERRIDE;
 
     /// Reject the message with the specified `msgGUID` for the specified
@@ -315,28 +318,26 @@ class QueueHandle : public mqbi::QueueHandle {
     onAckMessage(const bmqp::AckMessage& ackMessage) BSLS_KEYWORD_OVERRIDE;
 
     /// Called by the `Queue` to deliver a message under the specified `iter`
-    /// with the specified `msgGroupId` for the specified `subscriptions` of
-    /// the queue.  The behavior is undefined unless the queueHandle can send
+    /// for the specified `subscriptions` of the queue.
+    /// The behavior is undefined unless the queueHandle can send
     /// a message at this time for each of the corresponding subStreams (see
     /// `canDeliver(unsigned int subQueueId)` for more details).
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     void
     deliverMessage(const mqbi::StorageIterator&              message,
-                   const bmqp::Protocol::MsgGroupId&         msgGroupId,
                    const bmqp::Protocol::SubQueueInfosArray& subscriptions,
                    bool isOutOfOrder) BSLS_KEYWORD_OVERRIDE;
 
     /// Called by the `Queue` to deliver a message under the specified `iter`
-    /// with the specified `msgGroupId` for the specified `subscriptions` of
-    /// the queue.  This method is identical with `deliverMessage()` but it
+    /// for the specified `subscriptions` of the queue.
+    /// This method is identical with `deliverMessage()` but it
     /// doesn't update any flow-control mechanisms implemented by this handler.
     /// The behavior is undefined unless the queueHandle can send a message at
     /// this time (see `canDeliver(unsigned int subQueueId)` for more details).
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    void deliverMessageNoTrack(const mqbi::StorageIterator&      message,
-                               const bmqp::Protocol::MsgGroupId& msgGroupId,
+    void deliverMessageNoTrack(const mqbi::StorageIterator& message,
                                const bmqp::Protocol::SubQueueInfosArray&
                                    subscriptions) BSLS_KEYWORD_OVERRIDE;
 
@@ -464,6 +465,11 @@ class QueueHandle : public mqbi::QueueHandle {
     /// cluster member, false otherwise.
     bool isClientClusterMember() const BSLS_KEYWORD_OVERRIDE;
 
+    /// Return a pointer offering non-modifiable access to the client
+    /// context associated with this object.
+    const mqbi::QueueHandleRequesterContext*
+    clientContext() const BSLS_KEYWORD_OVERRIDE;
+
     /// Return true if the queueHandle can send a message to the client
     /// which has subscribed to the specified `downstreamSubscriptionId`,
     /// and false otherwise.  Note the queueHandle may or may not be able to
@@ -482,12 +488,8 @@ class QueueHandle : public mqbi::QueueHandle {
     const bsl::vector<const mqbu::ResourceUsageMonitor*>
     unconfirmedMonitors(const bsl::string& appId) const BSLS_KEYWORD_OVERRIDE;
 
-    /// Return number of unconfirmed messages for the optionally specified
-    /// `subId` unless it has the default value `k_UNASSIGNED_SUBQUEUE_ID`,
-    /// in which case return number of unconfirmed messages for all streams.
-    bsls::Types::Int64 countUnconfirmed(
-        unsigned int subId = bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID) const
-        BSLS_KEYWORD_OVERRIDE;
+    /// Return number of unconfirmed messages for all streams.
+    bsls::Types::Int64 countUnconfirmed() const BSLS_KEYWORD_OVERRIDE;
 
     /// Print to the specified `out` object, the internal details about this
     /// queue handle.

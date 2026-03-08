@@ -1,4 +1,4 @@
-# Copyright 2024 Bloomberg Finance L.P.
+# Copyright 2025 Bloomberg Finance L.P.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -135,6 +135,12 @@ class TestReconfigureDomains:
         # from one queue unblocks posting on the other.
         assert not self.post_n_msgs(uri_priority_2, 1)
         self.reader.confirm(uri_priority_1, "+1", succeed=True)
+
+        # need to make sure confirm has made it to the primary since this is a
+        # non-blocking op.
+        # Must make different confgiuration, change maxUnconfirmedMessages
+        self.reader.configure(uri_priority_1, maxUnconfirmedMessages=100, block=True)
+
         assert self.post_n_msgs(uri_priority_2, 1)
 
     # Verify that reconfiguring queue message limits works as expected.
@@ -330,16 +336,19 @@ class TestReconfigureDomains:
         uri_priority_1 = f"bmq://{domain_urls.domain_priority}/abcd-queue"
         leader = multi_node.last_known_leader
 
-        # Write two messages to the queue (only one can be sent to reader).
-        assert self.post_n_msgs(uri_priority_1, 2)
+        # Write one message to the queue
+        assert self.post_n_msgs(uri_priority_1, 1)
 
-        # Sleep for long enough to trigger message GC.
+        # Sleep for long enough so the message becomes outdated by TTL.
         time.sleep(2)
 
-        # Observe that both messages were GC'd from the queue.
-        assert leader.erases_messages(uri_priority_1, msgs=2, timeout=1)
+        # Write one more message to trigger idle TTL check and GC.
+        assert self.post_n_msgs(uri_priority_1, 1)
 
-        # Reconfigure the domain to wait 3 seconds before GC'ing messages.
+        # Observe that the oldest message was GC'ed from the queue.
+        assert leader.erases_messages(uri_priority_1, msgs=1, timeout=1)
+
+        # Reconfigure the domain to wait 10 seconds before GC'ing messages.
         multi_node.config.domains[
             domain_urls.domain_priority
         ].definition.parameters.message_ttl = 10
@@ -347,17 +356,18 @@ class TestReconfigureDomains:
             domain_urls.domain_priority, leader_only=True, succeed=True
         )
 
-        # Write two further messages to the queue.
-        assert self.post_n_msgs(uri_priority_1, 2)
+        # Write one more message to the queue.
+        assert self.post_n_msgs(uri_priority_1, 1)
 
         # Sleep for the same duration as before.
         time.sleep(2)
 
-        # Observe that no messages were GC'd.
-        assert not leader.erases_messages(uri_priority_1, timeout=1)
+        # Write one more message to (possibly) trigger idle TTL check and GC.
+        # However, we changed TTL setting and no GC should happen here
+        assert self.post_n_msgs(uri_priority_1, 1)
 
-        # Verify that the reader can confirm the written messages.
-        self.reader.confirm(uri_priority_1, "+2", succeed=True)
+        # Observe that no messages were GC'ed.
+        assert not leader.erases_messages(uri_priority_1, timeout=1)
 
     @tweak.domain.max_delivery_attempts(0)
     def test_reconfigure_max_delivery_attempts(
@@ -387,6 +397,7 @@ class TestReconfigureDomains:
             client = proxy.create_client("reader-stable")
             client.open(URI, flags=["read"], succeed=True)
             if expect_success:
+                client.wait_push_event(timeout=5)
                 client.confirm(URI, "+1", succeed=True)
             else:
                 assert not client.wait_push_event(timeout=5)
@@ -433,6 +444,7 @@ class TestReconfigureDomains:
             client = proxy.create_client("reader-stable")
             client.open(URI, flags=["read"], succeed=True)
             if expect_success:
+                client.wait_push_event(timeout=5)
                 client.confirm(URI, "+1", succeed=True)
             else:
                 assert not client.wait_push_event(timeout=5)
@@ -532,16 +544,16 @@ class TestReconfigureDomains:
         admin = AdminClient()
         admin.connect(*cluster.admin_endpoint)
 
-        res = admin.send_admin(f"DOMAINS DOMAIN {domain_priority} INFOS")
-        assert '"maxDeliveryAttempts" : 0' in res
+        domain_cfg = admin.get_domain_config(domain_priority)
+        assert domain_cfg["maxDeliveryAttempts"] == 0
 
         cluster.config.domains[
             domain_priority
         ].definition.parameters.max_delivery_attempts = 5
         cluster.reconfigure_domain(domain_priority, succeed=True)
 
-        res = admin.send_admin(f"DOMAINS DOMAIN {domain_priority} INFOS")
-        assert '"maxDeliveryAttempts" : 5' in res
+        domain_cfg = admin.get_domain_config(domain_priority)
+        assert domain_cfg["maxDeliveryAttempts"] == 5
 
         admin.stop()
 

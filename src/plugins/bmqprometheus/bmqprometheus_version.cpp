@@ -1,4 +1,4 @@
-// Copyright 2016-2023 Bloomberg Finance L.P.
+// Copyright 2016-2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,12 +24,19 @@ namespace BloombergLP {
     "BLP_LIB_PROMETHEUS_" STRINGIFY(PROMETHEUS_VERSION_MAJOR) "." STRINGIFY(  \
         PROMETHEUS_VERSION_MINOR) "." STRINGIFY(PROMETHEUS_VERSION_PATCH)
 
+#define PROMETHEUS_VERSION_DOT_STRING                                         \
+    STRINGIFY(PROMETHEUS_VERSION_MAJOR)                                       \
+    "." STRINGIFY(PROMETHEUS_VERSION_MINOR) "." STRINGIFY(                    \
+        PROMETHEUS_VERSION_PATCH)
+
 const char* bmqprometheus::Version::s_ident = "$Id: " PROMETHEUS_VERSION_STRING
                                               " $";
 const char* bmqprometheus::Version::s_what = "@(#)" PROMETHEUS_VERSION_STRING;
 
 const char* bmqprometheus::Version::PROMETHEUS_S_VERSION =
     PROMETHEUS_VERSION_STRING;
+const char* bmqprometheus::Version::s_versionDotString =
+    PROMETHEUS_VERSION_DOT_STRING;
 const char* bmqprometheus::Version::s_dependencies      = "";
 const char* bmqprometheus::Version::s_buildInfo         = "";
 const char* bmqprometheus::Version::s_timestamp         = "";

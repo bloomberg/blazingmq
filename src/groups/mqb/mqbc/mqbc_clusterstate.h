@@ -26,6 +26,7 @@
 /// observers, implementing the @bbref{mqbblp::ClusterStateObserver} interface.
 
 // MQB
+#include <mqbc_clusternodesession.h>
 #include <mqbi_cluster.h>
 #include <mqbi_clusterstatemanager.h>
 #include <mqbnet_cluster.h>
@@ -102,7 +103,7 @@ class ClusterStatePartitionInfo {
 
     /// Pointer to primary node for the partition; null if no primary
     /// associated.
-    mqbnet::ClusterNode* d_primaryNode_p;
+    ClusterNodeSession* d_primaryNodeSession_p;
 
     // Status of the primary.
     bmqp_ctrlmsg::PrimaryStatus::Value d_primaryStatus;
@@ -119,7 +120,8 @@ class ClusterStatePartitionInfo {
     ClusterStatePartitionInfo& setPrimaryNodeId(int value);
     ClusterStatePartitionInfo& setNumQueuesMapped(int value);
     ClusterStatePartitionInfo& setNumActiveQueues(int value);
-    ClusterStatePartitionInfo& setPrimaryNode(mqbnet::ClusterNode* value);
+    ClusterStatePartitionInfo&
+    setPrimaryNodeSession(ClusterNodeSession* value);
 
     /// Set the corresponding member to the specified `value` and return a
     /// reference offering modifiable access to this object.
@@ -132,6 +134,7 @@ class ClusterStatePartitionInfo {
     int                  primaryNodeId() const;
     int                  numQueuesMapped() const;
     int                  numActiveQueues() const;
+    ClusterNodeSession*  primaryNodeSession() const;
     mqbnet::ClusterNode* primaryNode() const;
 
     /// Return the value of the corresponding member of this object.
@@ -213,7 +216,7 @@ class ClusterStateQueueInfo {
     /// Assigned queue key, only if cluster member (null if unassigned).
     mqbu::StorageKey d_key;
 
-    /// Assigned partitionId (@bbref{mqbs::DataStore::k_INVALID_PARTITION_ID}
+    /// Assigned partitionId (@bbref{mqbi::Storage::k_INVALID_PARTITION_ID}
     /// if unassigned).
     int d_partitionId;
 
@@ -445,6 +448,7 @@ class ClusterState {
       private:
         // DATA
         int               d_numAssignedQueues;
+        int               d_numOpenedQueues;
         mqbi::Domain*     d_domain_p;
         UriToQueueInfoMap d_queuesInfo;
 
@@ -473,8 +477,13 @@ class ClusterState {
         /// context.
         void adjustQueueCount(int by);
 
+        /// Adjust number of opened queues, and update domain stat
+        /// context.
+        void adjustOpenedQueueCount(int by);
+
         // ACCESSORS
         int                 numAssignedQueues() const;
+        int                 numOpenedQueues() const;
         const mqbi::Domain* domain() const;
 
         /// Return the value of the corresponding member of this object.
@@ -519,6 +528,8 @@ class ClusterState {
     typedef DomainStates::iterator                         DomainStatesIter;
     typedef DomainStates::const_iterator                   DomainStatesCIter;
 
+    typedef bsl::map<bsl::string, mqbi::Domain*> DomainMap;
+
     typedef bsl::unordered_set<mqbu::StorageKey> QueueKeys;
     typedef QueueKeys::iterator                  QueueKeysIter;
     typedef bsl::pair<QueueKeysIter, bool>       QueueKeysInsertRc;
@@ -538,6 +549,9 @@ class ClusterState {
     /// Allocator to use.
     bslma::Allocator* d_allocator_p;
 
+    /// Whether this cluster state is created merely for temporary use.
+    const bool d_isTemporary;
+
     /// Associated cluster.
     mqbi::Cluster* d_cluster_p;
 
@@ -553,11 +567,17 @@ class ClusterState {
     /// Observers of the cluster state.
     ObserversSet d_observers;
 
-    /// Regexp wrapper used to get partition Id.
+    bsl::vector<bmqu::GateKeeper> d_gatePrimary;
+
     PartitionIdExtractor d_partitionIdExtractor;
 
     /// TODO (FSM); remove after switching to FSM
     Assignments d_doubleAssignments;
+
+    // PRIVATE ACCESSORS
+
+    /// Return the cluster name with temporary suffix if applicable.
+    const bsl::string name() const;
 
   public:
     // TRAITS
@@ -566,10 +586,12 @@ class ClusterState {
     // CREATORS
 
     /// Create a @bbref{mqbc::ClusterState} with the specified `cluster` and
-    /// `partitionsCount`.  Use the specified `allocator` for any memory
-    /// allocation.
+    /// `partitionsCount`.  `isTemporary` indicates whether this cluster state
+    /// is created merely for temporary use.  Use the specified `allocator` for
+    /// any memory allocation.
     explicit ClusterState(mqbi::Cluster*    cluster,
                           int               partitionsCount,
+                          bool              isTemporary,
                           bslma::Allocator* allocator);
 
     // MANIPULATORS
@@ -579,6 +601,12 @@ class ClusterState {
 
     /// Get a modifiable reference to this object's domain states.
     DomainStates& domainStates();
+
+    /// Look for the specified `domain` in the internal `DomainStates` object.
+    /// If it's not found, create a `DomainState` object for the specified
+    /// `domain` and insert it to the internal container. Return a modifiable
+    /// reference to the previously inserted or found `DomainState`.
+    DomainState& getDomainState(const bsl::string& domain);
 
     /// Get a modifiable reference to this object's queue keys.
     QueueKeys& queueKeys();
@@ -602,15 +630,15 @@ class ClusterState {
     // -----------------
 
     /// Update the status of the specified `partitionId`, to indicate that
-    /// the specified `node` is the primary, with the specified `leaseId`.
-    /// If `node` is a null pointer, this means the partition has no
+    /// the node of the specified `ns` is the primary, with the specified
+    /// `leaseId`.  If `ns` is a null pointer, this means the partition has no
     /// primary.  This will notify all active observers by invoking
     /// `onPartitionPrimaryAssignment()` on each of them, with the
     /// `partitionId` and `node` as parameters.  The bahavior is undefined
     /// unless `partitionId >= 0` and `partitionId < partitionsCount`.
-    ClusterState& setPartitionPrimary(int                  partitionId,
-                                      unsigned int         leaseId,
-                                      mqbnet::ClusterNode* node);
+    ClusterState& setPartitionPrimary(int                 partitionId,
+                                      unsigned int        leaseId,
+                                      ClusterNodeSession* ns);
 
     /// Set the status of the primary of the specified `partitionId` to the
     /// specified `value`.
@@ -629,6 +657,10 @@ class ClusterState {
     /// bahavior is undefined unless `partitionId >= 0` and 'partitionId <
     /// partitionsCount'.
     ClusterState& updatePartitionNumActiveQueues(int partitionId, int delta);
+
+    /// Create a `DomainState` object for each of the specified `domains` and
+    /// insert it to the internal container if they are not present.
+    void onDomainsCreated(const DomainMap& domains);
 
     /// Assign the queue with the values (such as `uri`, `key`, `partitionId`)
     /// from the specified `queueInfo`, and register the `appIdInfos` from the
@@ -665,19 +697,20 @@ class ClusterState {
     /// Clear this cluster state object, without firing any observers.
     void clear();
 
+    bmqu::GateKeeper& gatePrimary(int partitionId);
+
     /// TODO (FSM); remove after switching to FSM
     bool cacheDoubleAssignment(const bmqt::Uri& uri, int partitionId);
 
     void iterateDoubleAssignments(int partitionId, AssignmentVisitor& visitor);
 
     // ACCESSORS
+    /// Return the value of the corresponding member of this object.
     const mqbi::Cluster*  cluster() const;
     const PartitionsInfo& partitionsInfo() const;
     const DomainStates&   domainStates() const;
     const QueueKeys&      queueKeys() const;
-
-    /// Return the value of the corresponding member of this object.
-    const ObserversSet& observers() const;
+    const ObserversSet&   observers() const;
 
     // Partition-related
     // -----------------
@@ -749,12 +782,12 @@ class ClusterState {
 
 // CREATORS
 inline ClusterStatePartitionInfo::ClusterStatePartitionInfo()
-: d_partitionId(mqbs::DataStore::k_INVALID_PARTITION_ID)
+: d_partitionId(mqbi::Storage::k_INVALID_PARTITION_ID)
 , d_primaryLeaseId(0)
 , d_primaryNodeId(mqbnet::Cluster::k_INVALID_NODE_ID)
 , d_numQueuesMapped(0)
 , d_numActiveQueues(0)
-, d_primaryNode_p(0)
+, d_primaryNodeSession_p(0)
 , d_primaryStatus(bmqp_ctrlmsg::PrimaryStatus::E_UNDEFINED)
 {
     // NOTHING
@@ -797,9 +830,9 @@ ClusterStatePartitionInfo::setNumActiveQueues(int value)
 }
 
 inline ClusterStatePartitionInfo&
-ClusterStatePartitionInfo::setPrimaryNode(mqbnet::ClusterNode* value)
+ClusterStatePartitionInfo::setPrimaryNodeSession(ClusterNodeSession* value)
 {
-    d_primaryNode_p = value;
+    d_primaryNodeSession_p = value;
     return *this;
 }
 
@@ -838,7 +871,13 @@ inline int ClusterStatePartitionInfo::numActiveQueues() const
 
 inline mqbnet::ClusterNode* ClusterStatePartitionInfo::primaryNode() const
 {
-    return d_primaryNode_p;
+    return d_primaryNodeSession_p ? d_primaryNodeSession_p->clusterNode() : 0;
+}
+
+inline ClusterNodeSession*
+ClusterStatePartitionInfo::primaryNodeSession() const
+{
+    return d_primaryNodeSession_p;
 }
 
 inline bmqp_ctrlmsg::PrimaryStatus::Value
@@ -857,7 +896,7 @@ inline ClusterStateQueueInfo::ClusterStateQueueInfo(
     bslma::Allocator* allocator)
 : d_uri(uri, allocator)
 , d_key()
-, d_partitionId(mqbs::DataStore::k_INVALID_PARTITION_ID)
+, d_partitionId(mqbi::Storage::k_INVALID_PARTITION_ID)
 , d_appInfos(allocator)
 , d_state(State::k_NONE)
 , d_allocator_p(allocator)
@@ -923,7 +962,7 @@ inline void ClusterStateQueueInfo::reset()
     //       given instance of ClusterStateQueueInfo object).
 
     d_key.reset();
-    d_partitionId = mqbs::DataStore::k_INVALID_PARTITION_ID;
+    d_partitionId = mqbi::Storage::k_INVALID_PARTITION_ID;
     d_appInfos.clear();
 }
 
@@ -971,16 +1010,26 @@ ClusterStateQueueInfo::isEquivalent(const ClusterStateQueueInfo& rhs) const
 // class ClusterState
 // ------------------
 
+// PRIVATE ACCESSORS
+
+inline const bsl::string ClusterState::name() const
+{
+    return d_isTemporary ? d_cluster_p->name() + "_TEMP" : d_cluster_p->name();
+}
+
 // CREATORS
 inline ClusterState::ClusterState(mqbi::Cluster*    cluster,
                                   int               partitionsCount,
+                                  bool              isTemporary,
                                   bslma::Allocator* allocator)
 : d_allocator_p(allocator)
+, d_isTemporary(isTemporary)
 , d_cluster_p(cluster)
 , d_partitionsInfo(allocator)
 , d_domainStates(allocator)
 , d_queueKeys(allocator)
 , d_observers(allocator)
+, d_gatePrimary(partitionsCount, allocator)
 , d_partitionIdExtractor(allocator)
 , d_doubleAssignments(allocator)
 {
@@ -993,6 +1042,7 @@ inline ClusterState::ClusterState(mqbi::Cluster*    cluster,
     d_partitionsInfo.resize(partitionsCount);
     for (int i = 0; i < partitionsCount; ++i) {
         d_partitionsInfo[i].setPartitionId(i);
+        d_gatePrimary[i].close();
     }
 }
 
@@ -1010,6 +1060,12 @@ inline ClusterState::DomainStates& ClusterState::domainStates()
 inline ClusterState::QueueKeys& ClusterState::queueKeys()
 {
     return d_queueKeys;
+}
+
+inline bmqu::GateKeeper& ClusterState::gatePrimary(int partitionId)
+{
+    // This assumes thread-safe access to d_gatePrimary vector.
+    return d_gatePrimary[partitionId];
 }
 
 // ACCESSORS
@@ -1048,18 +1104,23 @@ inline bool ClusterState::isSelfPrimary(int partitionId) const
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
     BSLS_ASSERT_SAFE(!cluster()->isRemote());
 
-    if (mqbs::DataStore::k_INVALID_PARTITION_ID == partitionId) {
+    if (mqbi::Storage::k_INVALID_PARTITION_ID == partitionId) {
         return false;  // RETURN
     }
 
     const ClusterStatePartitionInfo& partitionInfo = partition(partitionId);
 
-    return (partitionInfo.primaryNode() &&
-            (partitionInfo.primaryNode()->nodeId() ==
-             cluster()->netCluster().selfNodeId()));
+    if (partitionInfo.primaryNodeSession()) {
+        const mqbnet::ClusterNode* node =
+            partitionInfo.primaryNodeSession()->clusterNode();
+        BSLS_ASSERT_SAFE(node);
+        return node->nodeId() == cluster()->netCluster().selfNodeId();
+    }
+
+    return false;
 }
 
 inline bool ClusterState::isSelfActivePrimary(int partitionId) const
@@ -1067,7 +1128,7 @@ inline bool ClusterState::isSelfActivePrimary(int partitionId) const
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
 
     if (!isSelfPrimary(partitionId)) {
         return false;  // RETURN
@@ -1085,7 +1146,7 @@ inline int ClusterState::partitionsCount() const
 inline bool ClusterState::isSelfPrimary() const
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
 
     for (PartitionsInfo::const_iterator cit = d_partitionsInfo.begin();
          cit != d_partitionsInfo.end();
@@ -1102,7 +1163,7 @@ inline bool ClusterState::isSelfPrimary() const
 inline bool ClusterState::isSelfActivePrimary() const
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
 
     for (PartitionsInfo::const_iterator cit = d_partitionsInfo.begin();
          cit != d_partitionsInfo.end();
@@ -1119,7 +1180,7 @@ inline bool ClusterState::isSelfActivePrimary() const
 
 inline bool ClusterState::hasActivePrimary(int partitionId) const
 {
-    return 0 != partition(partitionId).primaryNode() &&
+    return 0 != partition(partitionId).primaryNodeSession() &&
            bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE ==
                partition(partitionId).primaryStatus();
 }
@@ -1189,6 +1250,7 @@ ClusterState::getAssignedOrUnassigning(const bmqt::Uri& uri) const
 // CREATORS
 inline ClusterState::DomainState::DomainState(bslma::Allocator* allocator)
 : d_numAssignedQueues(0)
+, d_numOpenedQueues(0)
 , d_domain_p(0)
 , d_queuesInfo(allocator)
 {
@@ -1215,6 +1277,11 @@ inline void ClusterState::DomainState::setDomain(mqbi::Domain* domain)
 inline int ClusterState::DomainState::numAssignedQueues() const
 {
     return d_numAssignedQueues;
+}
+
+inline int ClusterState::DomainState::numOpenedQueues() const
+{
+    return d_numOpenedQueues;
 }
 
 inline const mqbi::Domain* ClusterState::DomainState::domain() const

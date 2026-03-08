@@ -25,24 +25,23 @@ with a broker: sending commands, waiting until a leader is elected, etc.
 
 import itertools
 import os
-from pathlib import Path
+import re
 import signal
+from pathlib import Path
+from typing import TYPE_CHECKING, Optional, TypeVar
 
-from typing import Optional, TypeVar
-from typing import TYPE_CHECKING
+import blazingmq.dev.configurator.configurator as cfg
+from blazingmq.dev.it.process.admin import AdminClient
+import blazingmq.dev.it.process.bmqproc
+import blazingmq.dev.it.testconstants as tc
+from blazingmq.dev.it.process import proc
+from blazingmq.dev.it.util import ListContextManager, Queue, internal_use, wait_until
 
 if TYPE_CHECKING:
     from blazingmq.dev.it.cluster import Cluster
 
-from blazingmq.dev.it.process import proc
-import blazingmq.dev.it.process.bmqproc
-import blazingmq.dev.it.testconstants as tc
-import blazingmq.dev.configurator.configurator as cfg
-
-from blazingmq.dev.it.util import internal_use, ListContextManager, Queue
-
-BLOCK_TIMEOUT = 60
-START_TIMEOUT = 120
+BLOCK_TIMEOUT = 20
+START_TIMEOUT = 20
 
 
 def open_non_blocking(path, flags):
@@ -85,6 +84,17 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
             self.last_known_leader = None
             self.last_known_active = None
 
+        # The order of the "broker started successfully" and "cluster is ready"
+        # messages is not guaranteed, so we monitor the standard output
+        # asynchronously, looking for the "started successfully" message. If we
+        # used 'capture' in 'wait_until_ready', we could accidentally skip
+        # "cluster is ready".
+        self.add_async_log_hook(self.__started_successfully_hook)
+
+    def __started_successfully_hook(self, line: str) -> None:
+        if "BMQbrkr started successfully" in line:
+            self._started_successfully = True
+
     def __str__(self):
         return f"Broker({self.name})"
 
@@ -108,14 +118,25 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
         """
         return self._pid
 
+    def start(self):
+        """
+        Set '_started_successfully' to False, then start the broker using
+        'Process.start'.
+        """
+
+        self._started_successfully = False
+        super().start()
+
     def wait_until_started(self):
         """
-        Wait until the broker has started.
+        Wait until the broker has written "started successfully" in its
+        standard output.
         """
+
         with internal_use(self):
-            if not self.outputs_substr(
-                "BMQbrkr started successfully", timeout=START_TIMEOUT
-            ):
+            seen = wait_until(lambda: self._started_successfully, START_TIMEOUT)
+            self.raise_if_exited_in_error()
+            if not seen:
                 raise RuntimeError(f"Failed to start broker on {self.name}: timeout")
 
         with (self._cwd / "bmqbrkr.pid").open("r") as file:
@@ -133,22 +154,33 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
         """
         Send the specified 'string' to the broker.
         """
+
+        # Ensure the broker is running (i.e. "bmqbrkr.ctl" exists).
+        # Otherwise, we might inadvertently create "bmqbrkr.ctl",
+        # which would prevent the broker from restarting later.
+        assert self.is_alive(), (
+            f"Failed to send command: broker {self.name} is not running"
+        )
+
         self._logger.info(f"send {string}")
         with open(str(self._cwd / "bmqbrkr.ctl"), "w", opener=open_non_blocking) as fhw:
             fhw.write(string + "\n")
 
-    def command(self, command, succeed=None, timeout=BLOCK_TIMEOUT):
+    def command(self, command, succeed=None, timeout=BLOCK_TIMEOUT) -> int:
         """
         Send the specified 'cmd' command to the broker, prefixing it with 'CMD '.
+
+        If 'succeed' is None, sends the command without waiting for response and
+        returns 0. If 'succeed' is specified, waits for command completion and
+        returns the command's return code (0 for success, non-zero for failure).
+        If 'succeed' is True, raises an exception if the command fails.
         """
 
-        cmd = "CMD " + command
-        self.send(cmd)
-
-        return (
-            None
-            if succeed is None
-            else self.capture(f"'{cmd}' processed successfully", timeout=timeout)
+        return self._command_helper(
+            f"CMD {command}",
+            block=succeed is not None,
+            succeed=succeed,
+            timeout=timeout,
         )
 
     def get_active_node(self):
@@ -173,7 +205,10 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
             return self.last_known_active
 
     def wait_status(
-        self, wait_leader: bool, wait_ready: bool, cluster: str = "itCluster"
+        self,
+        wait_leader: bool,
+        wait_ready: bool,
+        cluster: str = "itCluster",
     ):
         """
         Wait until this node has an active leader if 'wait_leader' is True, and
@@ -222,6 +257,19 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
             self._logger.error(error)
             raise RuntimeError(error)
 
+    def wait_rollover_complete(self):
+        """
+        Wait until rollover is complete on this broker.
+        """
+
+        self._logger.info(f"Waiting for rollover to complete on broker {self.name}...")
+
+        with internal_use(self):
+            if not self.outputs_substr("ROLLOVER COMPLETE", timeout=BLOCK_TIMEOUT):
+                raise RuntimeError(
+                    f"Rollover did not complete on broker {self.name} within {BLOCK_TIMEOUT}s"
+                )
+
     def dump_queue_internals(self, domain, queue):
         """
         Dump state of the specified 'queue' in the specified 'domain'.
@@ -251,6 +299,30 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
             succeed=succeed,
         )
 
+    def trigger_rollover(self, partitionId: int, succeed=None, timeout=None):
+        """
+        Rollover the partition on a cluster specified by 'partitionId'.
+        """
+
+        return self.command(
+            f"CLUSTERS CLUSTER {self.cluster_name} STORAGE PARTITION {partitionId} ROLLOVER",
+            succeed,
+            timeout=timeout,
+        )
+
+    def get_storage_partition_summary(
+        self, partitionId: int, succeed=None, timeout=None
+    ):
+        """
+        Get storage partition summary for a cluster specified by 'partitionId'.
+        """
+
+        return self.command(
+            f"CLUSTERS CLUSTER {self.cluster_name} STORAGE PARTITION {partitionId} SUMMARY",
+            succeed,
+            timeout=timeout,
+        )
+
     def set_replication_factor(self, quorum, cluster=None, succeed=None):
         """
         Set the replication factor of the specified 'cluster' to the specified
@@ -265,25 +337,85 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
             succeed,
         )
 
-    def force_gc_queues(self, block=None, succeed=None):
+    def open_admin_client(self) -> AdminClient:
+        """
+        Open a new AdminClient connected to this broker.
+        Return this AdminClient.
+        """
+        admin = AdminClient()
+        admin.connect(self.config.host, int(self.config.port))
+        return admin
+
+    def _is_healthy(self, admin: AdminClient) -> bool:
+        """
+        Return 'True' if this broker sees itself in a healthy state,
+        'False' otherwise.
+        This is an implementation function that expects the caller code to
+        manage AdminClient lifetime efficiently.
+        """
+        res = admin.send_admin(f"CLUSTERS CLUSTER {self.cluster_name} STATUS")
+        assert isinstance(res, str)
+        mm = re.search(r"Is Healthy\s*:\s*(\w+)", res)
+        return mm is not None and mm.group(1) == "Yes"
+
+    def is_healthy(self) -> bool:
+        """
+        Return 'True' if this broker sees itself in a healthy state,
+        'False' otherwise.
+        Note that this check actively opens an admin connection to the broker
+        and sends an admin command, altering the state of the broker.
+        """
+        admin = self.open_admin_client()
+        return self._is_healthy(admin)
+
+    def wait_healthy(self) -> None:
+        """
+        Wait up to 'BLOCK_TIMEOUT' until this broker becomes healthy, or raise
+        an exception if it does not.
+        Note that this check actively opens an admin connection to the broker
+        and sends an admin command, altering the state of the broker.
+        """
+        admin = self.open_admin_client()
+        wait_until(
+            lambda: self._is_healthy(admin),
+            timeout=BLOCK_TIMEOUT,
+        )
+
+    def force_gc_queues(self, block=None, succeed=None) -> int:
         """
         Force garbage collection for the specified 'cluster'.  If 'block' is
         specified and set to 'True', wait until the command completes.  If
         'succeed' is specified and set to 'True', raise an exception if the
         command does not succeed.
+
+        Returns the command's return code (0 for success, non-zero for failure)
+        if 'block' or 'succeed' are specified, otherwise returns 0.
         """
 
         return self._command_helper(
             f"CMD CLUSTERS CLUSTER {self.cluster_name} FORCE_GC_QUEUES", block, succeed
         )
 
-    def reconfigure_domain(self, domain: str, succeed: bool = False):
+    def purge(self, domain: str, queue: str, appid="*", succeed=None):
+        """
+        Purge messages from the specified 'queue' in the specified 'domain'.
+        If 'app' is specified, only messages from the specified fanout app
+        are purged. If 'succeed' is specified and set to
+        'True', raise an exception if the command does not succeed.
+        """
+
+        self.command(f"DOMAINS DOMAIN {domain} QUEUE {queue} PURGE {appid}", succeed)
+
+    def reconfigure_domain(
+        self, domain: str, *, succeed: Optional[bool] = False
+    ) -> int:
         """
         Issue a 'DOMAINS RECONFIGURE'
         command for this broker to reload the configuration from disk. Returns
-        'True' if the command was successfully issued. If 'succeed' is 'True',
-        then the function will block until process output confirms that the
-        reconfigure operation completed successfully.
+        the command's return code (0 for success, non-zero for failure).
+        If 'succeed' is True, then the function will block until process output
+        confirms that the reconfigure operation completed successfully and raises
+        an exception if it fails.
 
         Keys in 'kvs' should be rendered as '.'-separated paths (e.g.,
         "storage.domain.messages.quota").
@@ -421,13 +553,16 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
     ###########################################################################
     # Internals
 
-    def _command_helper(self, command, block, succeed):
+    def _command_helper(self, command, block, succeed, timeout=BLOCK_TIMEOUT) -> int:
         """
         Execute the specified 'command'.  If 'block' is true, wait until the
         command completes and return the status.  If 'succeed' is true, wait
         until the command completes and raise an exception if if fails.  If
         either 'block' or 'succeed' are specified, drain the log before
         executing the command.
+
+        Returns the command's return code (0 for success, non-zero for failure)
+        if 'block' or 'succeed' are True, otherwise returns 0.
         """
         block = block or succeed
 
@@ -438,19 +573,27 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
 
         if block:
             with internal_use(self):
+                # Some commands might contain '*' or other symbols conflicting
+                # with regex syntax, make sure to escape
+                escaped_command = re.escape(command)
                 m = self.capture(
-                    f"(?:Command '{command}' processed successfully)|(?:Error processing command.*rc: (?P<rc>-?\\d+))",
-                    timeout=BLOCK_TIMEOUT,
+                    f"(?:Command '{escaped_command}' processed successfully)|(?:Error processing command.*rc: (?P<rc>-?\\d+))",
+                    timeout=timeout,
                 )
                 if not m:
-                    self._error(f"{command} did not complete within {BLOCK_TIMEOUT}s")
+                    self._error(
+                        f"Command '{command}' did not complete within {timeout}s"
+                    )
                 rc = int(m.group("rc")) if m.group("rc") else 0
-                if not (succeed is None):
+                if succeed is not None:
                     if succeed:
                         if rc != 0:
-                            self._error(f"{command} did not succeed")
+                            self._error(f"Command '{command}' did not succeed")
                     else:
                         if rc == 0:
-                            self._error(f"{command} succeed but should have failed")
+                            self._error(
+                                f"Command '{command}' succeed but should have failed"
+                            )
                 self._logger.info(f"{command} -> {rc}")
                 return rc
+        return 0

@@ -840,11 +840,17 @@ int parseStoragePartition(StoragePartition* partition,
         return -1;  // RETURN
     }
 
-    if (parseInt(&partition->partitionId(), partitionIdString)) {
-        *error = "Invalid <partitionId> in command CLUSTERS CLUSTER <name> "
-                 "STORAGE PARTITION <partitionId>: " +
-                 partitionIdString;
-        return -1;  // RETURN
+    if (equalCaseless(partitionIdString, "ALL")) {
+        partition->partitionId() = -1;
+    }
+    else {
+        if (parseInt(&partition->partitionId(), partitionIdString)) {
+            *error =
+                "Invalid <partitionId> in command CLUSTERS CLUSTER <name> "
+                "STORAGE PARTITION <partitionId>: " +
+                partitionIdString;
+            return -1;  // RETURN
+        }
     }
 
     StoragePartitionCommand& command    = partition->command();
@@ -866,6 +872,10 @@ int parseStoragePartition(StoragePartition* partition,
     }
     else if (equalCaseless(subcommand, "SUMMARY")) {
         command.makeSummary();
+        return expectEnd(error, next);  // RETURN
+    }
+    else if (equalCaseless(subcommand, "ROLLOVER")) {
+        command.makeRollover();
         return expectEnd(error, next);  // RETURN
     }
 
@@ -1140,9 +1150,8 @@ int ParseUtil::parse(Command*                 command,
         int rc = decoder.decode(&jsonStreamBuf, command, options);
         if (rc != 0) {
             bmqu::MemOutStream err;
-            err << "Error decoding JSON command "
-                << "[rc: " << rc << ", error: '" << decoder.loggedMessages()
-                << "']";
+            err << "Error decoding JSON command " << "[rc: " << rc
+                << ", error: '" << decoder.loggedMessages() << "']";
             error->assign(err.str().data(), err.str().length());
             return -1;  // RETURN
         }

@@ -241,20 +241,22 @@ class TwoKeyHashMap {
     enum KeyIndex {
         // Defines a numeric type to be used as the key index.
 
-        e_FIRST_KEY = 1  // ALWAYS 1
-        ,
-        e_SECOND_KEY = 2  // ALWAYS 2
+        /// ALWAYS 1
+        e_FIRST_KEY = 1,
+        /// ALWAYS 2
+        e_SECOND_KEY = 2
     };
 
     enum InsertResult {
         // Defines a numeric type to be used as the result of the 'insert()'
         // member function.
 
-        e_INSERTED = 0  // ALWAYS 0
-        ,
-        e_FIRST_KEY_EXISTS = 1  // ALWAYS 1
-        ,
-        e_SECOND_KEY_EXISTS = 2  // ALWAYS 2
+        /// ALWAYS 0
+        e_INSERTED = 0,
+        /// ALWAYS 1
+        e_FIRST_KEY_EXISTS = 1,
+        /// ALWAYS 2
+        e_SECOND_KEY_EXISTS = 2
     };
 
     typedef K1                                first_key_type;

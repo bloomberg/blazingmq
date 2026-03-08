@@ -114,44 +114,49 @@ namespace bmqt {
 struct SessionEventType {
     // TYPES
     enum Enum {
-        e_ERROR = -1  // Generic error
-        ,
-        e_TIMEOUT = -2  // Time out of the operation
-        ,
-        e_CANCELED = -3  // The operation was canceled
-        ,
+        /// Generic error
+        e_ERROR = -1,
+        /// Time out of the operation
+        e_TIMEOUT = -2,
+        /// The operation was canceled
+        e_CANCELED  = -3,
         e_UNDEFINED = 0,
-        e_CONNECTED = 1  // Session started
-        ,
-        e_DISCONNECTED = 2  // Session terminated
-        ,
-        e_CONNECTION_LOST = 3  // Lost connection to the broker
-        ,
-        e_RECONNECTED = 4  // Reconnected with the broker
-        ,
-        e_STATE_RESTORED = 5  // Client's state has been restored
-        ,
-        e_CONNECTION_TIMEOUT = 6  // The connection to broker timedOut
-        ,
-        e_QUEUE_OPEN_RESULT = 7  // Result of openQueue operation
-        ,
-        e_QUEUE_REOPEN_RESULT = 8  // Result of re-openQueue operation
-        ,
-        e_QUEUE_CLOSE_RESULT = 9  // Result of closeQueue operation
-        ,
-        e_SLOWCONSUMER_NORMAL = 10  // EventQueue is at lowWatermark
-        ,
-        e_SLOWCONSUMER_HIGHWATERMARK = 11  // EventQueue is at highWatermark
-        ,
-        e_QUEUE_CONFIGURE_RESULT = 12  // Result of configureQueue
-        ,
-        e_HOST_UNHEALTHY = 13  // Host has become unhealthy
-        ,
-        e_HOST_HEALTH_RESTORED = 14  // Host's health has been restored
-        ,
-        e_QUEUE_SUSPENDED = 15  // Queue has suspended operation
-        ,
-        e_QUEUE_RESUMED = 16  // Queue has resumed operation
+        /// Session started
+        e_CONNECTED = 1,
+        /// Session terminated
+        e_DISCONNECTED = 2,
+        /// Lost connection to the broker
+        e_CONNECTION_LOST = 3,
+        /// Reconnected with the broker
+        e_RECONNECTED = 4,
+        /// Client's state has been restored
+        e_STATE_RESTORED = 5,
+        /// The connection to broker timedOut
+        e_CONNECTION_TIMEOUT = 6,
+        /// Result of openQueue operation
+        e_QUEUE_OPEN_RESULT = 7,
+        /// Result of re-openQueue operation
+        e_QUEUE_REOPEN_RESULT = 8,
+        /// Result of closeQueue operation
+        e_QUEUE_CLOSE_RESULT = 9,
+        /// EventQueue is at lowWatermark
+        e_SLOWCONSUMER_NORMAL = 10,
+        /// EventQueue is at highWatermark
+        e_SLOWCONSUMER_HIGHWATERMARK = 11,
+        /// Result of configureQueue
+        e_QUEUE_CONFIGURE_RESULT = 12,
+        /// Host has become unhealthy
+        e_HOST_UNHEALTHY = 13,
+        /// Host's health has been restored
+        e_HOST_HEALTH_RESTORED = 14,
+        /// Queue has suspended operation
+        e_QUEUE_SUSPENDED = 15,
+        /// Queue has resumed operation
+        e_QUEUE_RESUMED = 16,
+        /// Channel is at the low watermark
+        e_CHANNEL_LOW_WATERMARK = 17,
+        /// Channel is at the high watermark
+        e_CHANNEL_HIGH_WATERMARK = 18
     };
 
     // CLASS METHODS

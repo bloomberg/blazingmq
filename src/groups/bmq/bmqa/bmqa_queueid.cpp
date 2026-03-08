@@ -44,7 +44,8 @@ QueueId::QueueId(bslma::Allocator* allocator)
     d_impl_sp->setCorrelationId(bmqt::CorrelationId::autoValue());
 }
 
-QueueId::QueueId(const QueueId& other, BSLA_UNUSED bslma::Allocator* allocator)
+QueueId::QueueId(const QueueId&    other,
+                 BSLA_MAYBE_UNUSED bslma::Allocator* allocator)
 : d_impl_sp(other.d_impl_sp)
 {
     // NOTHING
@@ -126,12 +127,12 @@ const bmqt::QueueOptions& QueueId::options() const
     return d_impl_sp->options();
 }
 
-bool QueueId::isValid() const
+bool QueueId::isValid(bsl::ostream* reason_p) const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_impl_sp);
 
-    return d_impl_sp->isValid();
+    return d_impl_sp->isValid(reason_p);
 }
 
 bsl::ostream&

@@ -230,7 +230,7 @@ static void consume(bmqa::Session* session)
 //                              MAIN PROGRAM
 //-----------------------------------------------------------------------------
 
-int main(BSLA_UNUSED int argc, BSLA_UNUSED const char* argv[])
+int main(BSLA_MAYBE_UNUSED int argc, BSLA_MAYBE_UNUSED const char* argv[])
 {
     // Start a session with the message broker.  This makes the SDK connect to
     // the local broker by default, unless the 'Session' is created with an

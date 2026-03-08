@@ -102,13 +102,6 @@ bmqp_ctrlmsg::NegotiationMessage client()
     return negotiationMessage;
 }
 
-mqbmock::Dispatcher* setInDispatcherThread(mqbmock::Dispatcher* mockDispatcher)
-// Utility method.  Sets 'MockDispatcher' attribute.
-{
-    mockDispatcher->_setInDispatcherThread(true);
-    return mockDispatcher;
-}
-
 /// Create a new blob at the specified `arena` address, using the specified
 /// `bufferFactory` and `allocator`.
 void createBlob(bdlbb::BlobBufferFactory* bufferFactory,
@@ -123,7 +116,7 @@ struct TestAdminRetranslator {
     TestAdminRetranslator() {}
 
     int enqueueCommand(
-        BSLA_UNUSED const bslstl::StringRef&            source,
+        BSLA_MAYBE_UNUSED const bslstl::StringRef&      source,
         const bsl::string&                              cmd,
         const mqbnet::Session::AdminCommandProcessedCb& onProcessedCb)
     {
@@ -167,7 +160,7 @@ class TestBench {
     , d_as(d_channel,
            negotiationMessage,
            "sessionDescription",
-           setInDispatcherThread(&d_mockDispatcher),
+           &d_mockDispatcher,
            &d_blobSpPool,
            &d_scheduler,
            adminEnqueueCb,
@@ -176,7 +169,7 @@ class TestBench {
     {
         // Typically done during 'Dispatcher::registerClient()'.
         d_as.dispatcherClientData().setDispatcher(&d_mockDispatcher);
-        d_mockDispatcher._setInDispatcherThread(true);
+        d_as.setThreadId(bslmt::ThreadUtil::selfId());
 
         // Setup test time source
         bmqsys::Time::shutdown();
@@ -268,16 +261,18 @@ static void test1_watermark()
     // Send the sample admin event multiple times to the admin session
     for (size_t i = 0; i < numMessages; i++) {
         tb.d_as.processEvent(adminEvent);
-        BSLS_ASSERT(tb.d_channel->waitFor(1, false));
+        BSLS_ASSERT(tb.d_channel->waitFor(i + 1));
     }
 
-    // Check if callback loop delivered admin commands execution results back
-    // to the admin session and it writes the needed number of responses to the
-    // test channel
-    BMQTST_ASSERT_EQ(tb.d_channel->writeCalls().size(), numMessages);
+    // Check that we have the needed number of write calls after all admin
+    // commands were sent.
+    BMQTST_ASSERT(tb.d_channel->waitFor(numMessages));
+
+    bmqio::TestChannel::WriteCall writeCall;
+    BMQTST_ASSERT(tb.d_channel->getWriteCall(&writeCall, 0));
 
     // Sanity check for the first admin response
-    bmqp::Event adminResponseEvent(&tb.d_channel->writeCalls().at(0).d_blob,
+    bmqp::Event adminResponseEvent(&writeCall.d_blob,
                                    bmqtst::TestHelperUtil::allocator());
     BSLS_ASSERT(adminResponseEvent.isValid());
     BSLS_ASSERT(adminResponseEvent.isControlEvent());
@@ -297,8 +292,6 @@ static void test1_watermark()
 int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
-
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     {
         bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
@@ -321,8 +314,6 @@ int main(int argc, char* argv[])
         bmqsys::Time::shutdown();
         bmqp::ProtocolUtil::shutdown();
     }
-
-    bmqt::UriParser::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
     // Do not check for default/global allocator usage.

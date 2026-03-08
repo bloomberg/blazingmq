@@ -202,27 +202,23 @@ static void test3_printQueueStateTest()
     BSLMF_ASSERT(bmqimp::QueueState::e_OPENING_OPN ==
                  bmqimp::QueueState::k_LOWEST_SUPPORTED_QUEUE_STATE);
 
-    BSLMF_ASSERT(bmqimp::QueueState::e_CLOSING_CLS_EXPIRED ==
+    BSLMF_ASSERT(bmqimp::QueueState::e_PENDING ==
                  bmqimp::QueueState::k_HIGHEST_SUPPORTED_QUEUE_STATE);
 
     struct Test {
         bmqimp::QueueState::Enum d_type;
         const char*              d_expected;
-    } k_DATA[] = {
-        {bmqimp::QueueState::e_OPENING_OPN, "OPENING_OPN"},
-        {bmqimp::QueueState::e_OPENING_CFG, "OPENING_CFG"},
-        {bmqimp::QueueState::e_REOPENING_OPN, "REOPENING_OPN"},
-        {bmqimp::QueueState::e_REOPENING_CFG, "REOPENING_CFG"},
-        {bmqimp::QueueState::e_OPENED, "OPENED"},
-        {bmqimp::QueueState::e_CLOSING_CFG, "CLOSING_CFG"},
-        {bmqimp::QueueState::e_CLOSING_CLS, "CLOSING_CLS"},
-        {bmqimp::QueueState::e_CLOSED, "CLOSED"},
-        {bmqimp::QueueState::e_PENDING, "PENDING"},
-        {bmqimp::QueueState::e_OPENING_OPN_EXPIRED, "OPENING_OPN_EXPIRED"},
-        {bmqimp::QueueState::e_OPENING_CFG_EXPIRED, "OPENING_CFG_EXPIRED"},
-        {bmqimp::QueueState::e_CLOSING_CFG_EXPIRED, "CLOSING_CFG_EXPIRED"},
-        {bmqimp::QueueState::e_CLOSING_CLS_EXPIRED, "CLOSING_CLS_EXPIRED"},
-        {static_cast<bmqimp::QueueState::Enum>(-1), "(* UNKNOWN *)"}};
+    } k_DATA[] = {{bmqimp::QueueState::e_OPENING_OPN, "OPENING_OPN"},
+                  {bmqimp::QueueState::e_OPENING_CFG, "OPENING_CFG"},
+                  {bmqimp::QueueState::e_REOPENING_OPN, "REOPENING_OPN"},
+                  {bmqimp::QueueState::e_REOPENING_CFG, "REOPENING_CFG"},
+                  {bmqimp::QueueState::e_OPENED, "OPENED"},
+                  {bmqimp::QueueState::e_CLOSING_CFG, "CLOSING_CFG"},
+                  {bmqimp::QueueState::e_CLOSING_CLS, "CLOSING_CLS"},
+                  {bmqimp::QueueState::e_CLOSED, "CLOSED"},
+                  {bmqimp::QueueState::e_PENDING, "PENDING"},
+                  {static_cast<bmqimp::QueueState::Enum>(-1),
+                   "(* UNKNOWN *)"}};
 
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
@@ -526,8 +522,6 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
-
     switch (_testCase) {
     case 0:
     case 6: test6_statTest(); break;
@@ -541,8 +535,6 @@ int main(int argc, char* argv[])
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
-
-    bmqt::UriParser::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

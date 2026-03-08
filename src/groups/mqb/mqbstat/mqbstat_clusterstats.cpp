@@ -33,6 +33,7 @@
 #include <bsl_ostream.h>
 #include <bsla_annotations.h>
 #include <bslmf_assert.h>
+#include <bslmf_movableref.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {
@@ -50,55 +51,6 @@ static const char k_CLUSTER_NODES_STAT_NAME[] = "clusterNodes";
 /// The default utilization value reported when we cannot
 /// compute utilization.
 const bsls::Types::Int64 k_UNDEFINED_UTILIZATION_VALUE = 0;
-
-//-------------------------
-// struct ClusterStatsIndex
-//-------------------------
-
-/// Namespace for the constants of stat values that applies to the queues
-/// from the clients.
-struct ClusterStatsIndex {
-    enum Enum {
-        // Cluster stats
-
-        /// Value: Health status of cluster, 1 implies healthy and 2 implies
-        ///        un-healthy
-        e_CLUSTER_STATUS = 0,
-        e_LEADER_STATUS
-        // Value: Leader status of cluster, non-zero (1) implies leader
-        //        and 0 implies follower
-        ,
-        e_PARTITION_CFG_DATA_BYTES
-        // Value: Configured size of partitions' data file
-        ,
-        e_PARTITION_CFG_JOURNAL_BYTES
-        // Value: Configured size of partitions' journal file
-        // Per partition stats
-        ,
-        e_PRIMARY_STATUS
-        // Value: The primary status of the partition, from the
-        //        'PrimaryStatus::Enum' values.
-        ,
-        e_PARTITION_ROLLOVER_TIME
-        // Value: Nanoseconds time it took for rolling over the partition.
-        ,
-        e_PARTITION_DATA_BYTES
-        // Value: Outstanding bytes in the data file of the partition.
-        ,
-        e_PARTITION_JOURNAL_BYTES
-        // Value: Outstanding bytes in the journal file of the partition.
-    };
-};
-
-//-------------------------
-// struct ClusterStatsIndex
-//-------------------------
-
-/// Namespace for the constants of stat values that applies to the queues
-/// from the clients
-struct ClusterStatus {
-    enum Enum { e_CLUSTER_STATUS_HEALTHY = 1, e_CLUSTER_STATUS_UNHEALTHY = 2 };
-};
 
 }  // close unnamed namespace
 
@@ -150,6 +102,29 @@ bsls::Types::Int64 ClusterStats::getValue(const bmqst::StatContext& context,
 
         return STAT_RANGE(rangeMax, e_LEADER_STATUS);
     }
+    case Stat::e_CSL_REPLICATION_TIME_NS_AVG: {
+        const bsls::Types::Int64 value = STAT_RANGE(averagePerEvent,
+                                                    e_CSL_REPLICATION_TIME_NS);
+        return value == bsl::numeric_limits<bsls::Types::Int64>::max() ? 0
+                                                                       : value;
+    }
+    case Stat::e_CSL_REPLICATION_TIME_NS_MAX: {
+        const bsls::Types::Int64 value = STAT_RANGE(rangeMax,
+                                                    e_CSL_REPLICATION_TIME_NS);
+        return value == bsl::numeric_limits<bsls::Types::Int64>::min() ? 0
+                                                                       : value;
+    }
+
+    case Stat::e_CSL_LOG_OFFSET_BYTES: {
+        return STAT_SINGLE(value, e_CSL_LOG_OFFSET_BYTES);
+    }
+    case Stat::e_CSL_WRITE_BYTES: {
+        return STAT_RANGE(valueDifference, e_CSL_WRITE_BYTES);
+    }
+    case Stat::e_CSL_CFG_BYTES: {
+        return STAT_SINGLE(value, e_CSL_CFG_BYTES);
+    }
+
     case Stat::e_PARTITION_CFG_JOURNAL_BYTES: {
         return STAT_SINGLE(value, e_PARTITION_CFG_JOURNAL_BYTES);
     }
@@ -158,7 +133,8 @@ bsls::Types::Int64 ClusterStats::getValue(const bmqst::StatContext& context,
     }
     case Stat::e_PARTITION_PRIMARY_STATUS: {
         // Favor primary over replica.
-        BSLMF_ASSERT(PrimaryStatus::e_REPLICA < PrimaryStatus::e_PRIMARY);
+        BSLMF_ASSERT(PartitionStats::PrimaryStatus::e_REPLICA <
+                     PartitionStats::PrimaryStatus::e_PRIMARY);
 
         return STAT_RANGE(rangeMax, e_PRIMARY_STATUS);
     }
@@ -179,6 +155,12 @@ bsls::Types::Int64 ClusterStats::getValue(const bmqst::StatContext& context,
                                                     e_PARTITION_JOURNAL_BYTES);
         return value == bsl::numeric_limits<bsls::Types::Int64>::min() ? 0
                                                                        : value;
+    }
+    case Stat::e_PARTITION_DATA_OFFSET: {
+        return STAT_SINGLE(value, e_PARTITION_DATA_OFFSET_BYTES);
+    }
+    case Stat::e_PARTITION_JOURNAL_OFFSET: {
+        return STAT_SINGLE(value, e_PARTITION_JOURNAL_OFFSET_BYTES);
     }
     case Stat::e_PARTITION_DATA_UTILIZATION_MAX: {
         const bsls::Types::Int64 value = STAT_RANGE(rangeMax,
@@ -202,6 +184,21 @@ bsls::Types::Int64 ClusterStats::getValue(const bmqst::StatContext& context,
         BSLS_ASSERT_SAFE(limit != 0);
         return 100 * value / limit;
     }
+    case Stat::e_PARTITION_SEQUENCE_NUMBER: {
+        return STAT_SINGLE(value, e_PARTITION_SEQUENCE_NUMBER);
+    }
+    case Stat::e_PARTITION_REPLICATION_TIME_NS_AVG: {
+        const bsls::Types::Int64 value =
+            STAT_RANGE(averagePerEvent, e_PARTITION_REPLICATION_TIME_NS);
+        return value == bsl::numeric_limits<bsls::Types::Int64>::max() ? 0
+                                                                       : value;
+    }
+    case Stat::e_PARTITION_REPLICATION_TIME_NS_MAX: {
+        const bsls::Types::Int64 value =
+            STAT_RANGE(rangeMax, e_PARTITION_REPLICATION_TIME_NS);
+        return value == bsl::numeric_limits<bsls::Types::Int64>::min() ? 0
+                                                                       : value;
+    }
 
     default: {
         BSLS_ASSERT_SAFE(false && "Attempting to access an unknown stat");
@@ -213,9 +210,22 @@ bsls::Types::Int64 ClusterStats::getValue(const bmqst::StatContext& context,
 #undef STAT_SINGLE
 }
 
+bsl::shared_ptr<PartitionStats>
+ClusterStats::getPartitionStats(int partitionId) const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_OPT(0 <= partitionId &&
+                    partitionId < static_cast<int>(d_partitionsStats.size()));
+    const bsl::shared_ptr<PartitionStats>& partitionStats_sp =
+        d_partitionsStats[partitionId];
+    BSLS_ASSERT_OPT(partitionStats_sp->statContext() &&
+                    "initialize was not called");
+    return partitionStats_sp;
+}
+
 ClusterStats::ClusterStats(bslma::Allocator* allocator)
 : d_statContext_mp(0)
-, d_partitionsStatContexts(allocator)
+, d_partitionsStats(allocator)
 {
     // NOTHING
 }
@@ -245,52 +255,24 @@ void ClusterStats::initialize(const bsl::string&  name,
     datum->adopt(builder.commit());
 
     // Create one child per partition
-    d_partitionsStatContexts.reserve(partitionsCount);
+    d_partitionsStats.reserve(partitionsCount);
     for (int pId = 0; pId < partitionsCount; ++pId) {
         const bsl::string partitionName = "partition" + bsl::to_string(pId);
-        d_partitionsStatContexts.emplace_back(
-            bsl::shared_ptr<bmqst::StatContext>(
-                d_statContext_mp->addSubcontext(
-                    bmqst::StatContextConfiguration(partitionName,
-                                                    &localAllocator)),
-                allocator));
-        setNodeRoleForPartition(pId, PrimaryStatus::e_UNKNOWN);
+        bsl::shared_ptr<bmqst::StatContext> statContext_sp(
+            d_statContext_mp->addSubcontext(
+                bmqst::StatContextConfiguration(partitionName,
+                                                &localAllocator)),
+            allocator);
+        bsl::shared_ptr<PartitionStats> partitionStats_sp;
+        partitionStats_sp.createInplace(allocator, statContext_sp);
+        partitionStats_sp->setNodeRole(
+            PartitionStats::PrimaryStatus::e_UNKNOWN);
+        d_partitionsStats.emplace_back(
+            bslmf::MovableRefUtil::move(partitionStats_sp));
     }
 }
 
-void ClusterStats::onPartitionEvent(PartitionEventType::Enum type,
-                                    int                      partitionId,
-                                    bsls::Types::Int64       value)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(partitionId >= 0 &&
-                     partitionId <
-                         static_cast<int>(d_partitionsStatContexts.size()));
-    BSLS_ASSERT_SAFE(d_partitionsStatContexts[partitionId] &&
-                     "initialize was not called");
-
-    bmqst::StatContext* sc = d_partitionsStatContexts[partitionId].get();
-
-    switch (type) {
-    case PartitionEventType::e_PARTITION_ROLLOVER: {
-        sc->reportValue(ClusterStatsIndex::e_PARTITION_ROLLOVER_TIME, value);
-    } break;
-    default: {
-        BSLS_ASSERT_SAFE(false && "Unknown event type");
-    } break;
-    }
-}
-
-ClusterStats& ClusterStats::setHealthStatus(bool value)
-{
-    d_statContext_mp->setValue(
-        ClusterStatsIndex::e_CLUSTER_STATUS,
-        value ? ClusterStatus::e_CLUSTER_STATUS_HEALTHY
-              : ClusterStatus::e_CLUSTER_STATUS_UNHEALTHY);
-    return *this;
-}
-
-ClusterStats& ClusterStats::setIsMember(bool value)
+void ClusterStats::setIsMember(bool value)
 {
     bslma::ManagedPtr<bdld::ManagedDatum> datum = d_statContext_mp->datum();
     bslma::Allocator*     alloc = d_statContext_mp->datumAllocator();
@@ -307,11 +289,9 @@ ClusterStats& ClusterStats::setIsMember(bool value)
                          alloc));
 
     datum->adopt(builder.commit());
-
-    return *this;
 }
 
-ClusterStats& ClusterStats::setUpstream(const bsl::string& value)
+void ClusterStats::setUpstream(const bsl::string& value)
 {
     bslma::ManagedPtr<bdld::ManagedDatum> datum = d_statContext_mp->datum();
     bslma::Allocator*     alloc = d_statContext_mp->datumAllocator();
@@ -325,71 +305,39 @@ ClusterStats& ClusterStats::setUpstream(const bsl::string& value)
                          (*datum)->theMap().find("role")->theInteger()));
 
     datum->adopt(builder.commit());
-
-    return *this;
 }
 
-ClusterStats& ClusterStats::setIsLeader(LeaderStatus::Enum value)
-{
-    d_statContext_mp->setValue(ClusterStatsIndex::e_LEADER_STATUS, value);
-    return *this;
-}
-
-ClusterStats&
-ClusterStats::setPartitionCfgBytes(bsls::Types::Int64 dataBytes,
-                                   bsls::Types::Int64 journalBytes)
+void ClusterStats::setPartitionCfgBytes(bsls::Types::Int64 dataBytes,
+                                        bsls::Types::Int64 journalBytes,
+                                        bsls::Types::Int64 cslBytes)
 {
     d_statContext_mp->setValue(ClusterStatsIndex::e_PARTITION_CFG_DATA_BYTES,
                                dataBytes);
     d_statContext_mp->setValue(
         ClusterStatsIndex::e_PARTITION_CFG_JOURNAL_BYTES,
         journalBytes);
-    bsl::vector<bsl::shared_ptr<bmqst::StatContext> >::const_iterator it =
-        d_partitionsStatContexts.cbegin();
-    for (; it != d_partitionsStatContexts.cend(); ++it) {
-        (*it)->setValue(ClusterStatsIndex::e_PARTITION_CFG_DATA_BYTES,
-                        dataBytes);
-        (*it)->setValue(ClusterStatsIndex::e_PARTITION_CFG_JOURNAL_BYTES,
-                        journalBytes);
+    d_statContext_mp->setValue(ClusterStatsIndex::e_CSL_CFG_BYTES, cslBytes);
+    bsl::vector<bsl::shared_ptr<PartitionStats> >::const_iterator it =
+        d_partitionsStats.cbegin();
+    for (; it != d_partitionsStats.cend(); ++it) {
+        (*it)->statContext()->setValue(
+            ClusterStatsIndex::e_PARTITION_CFG_DATA_BYTES,
+            dataBytes);
+        (*it)->statContext()->setValue(
+            ClusterStatsIndex::e_PARTITION_CFG_JOURNAL_BYTES,
+            journalBytes);
     }
-    return *this;
 }
 
-ClusterStats& ClusterStats::setNodeRoleForPartition(int partitionId,
-                                                    PrimaryStatus::Enum value)
+// --------------------
+// class PartitionStats
+// --------------------
+
+PartitionStats::PartitionStats(
+    const bsl::shared_ptr<bmqst::StatContext>& statContext)
+: d_statContext_sp(statContext)
 {
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(partitionId >= 0 &&
-                     partitionId <
-                         static_cast<int>(d_partitionsStatContexts.size()));
-    BSLS_ASSERT_SAFE(d_partitionsStatContexts[partitionId] &&
-                     "initialize was not called");
-
-    d_partitionsStatContexts[partitionId]->setValue(
-        ClusterStatsIndex::e_PRIMARY_STATUS,
-        value);
-    return *this;
-}
-
-ClusterStats&
-ClusterStats::setPartitionOutstandingBytes(int                partitionId,
-                                           bsls::Types::Int64 dataBytes,
-                                           bsls::Types::Int64 journalBytes)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(partitionId >= 0 &&
-                     partitionId <
-                         static_cast<int>(d_partitionsStatContexts.size()));
-    BSLS_ASSERT_SAFE(d_partitionsStatContexts[partitionId] &&
-                     "initialize was not called");
-
-    d_partitionsStatContexts[partitionId]->reportValue(
-        ClusterStatsIndex::e_PARTITION_DATA_BYTES,
-        dataBytes);
-    d_partitionsStatContexts[partitionId]->reportValue(
-        ClusterStatsIndex::e_PARTITION_JOURNAL_BYTES,
-        journalBytes);
-    return *this;
+    // NOTHING
 }
 
 // -------------------------
@@ -427,104 +375,6 @@ const char* ClusterStats::Role::toAscii(Enum value)
 }
 
 // ----------------------
-// class ClusterNodeStats
-// ----------------------
-
-bsls::Types::Int64
-ClusterNodeStats::getValue(const bmqst::StatContext& context,
-                           int                       snapshotId,
-                           const Stat::Enum&         stat)
-
-{
-    // invoked from the SNAPSHOT thread
-
-    const bmqst::StatValue::SnapshotLocation latestSnapshot(0, 0);
-    const bmqst::StatValue::SnapshotLocation oldestSnapshot(0, snapshotId);
-
-#define STAT_SINGLE(OPERATION, STAT)                                          \
-    bmqst::StatUtil::OPERATION(                                               \
-        context.value(bmqst::StatContext::e_DIRECT_VALUE, STAT),              \
-        latestSnapshot)
-
-#define STAT_RANGE(OPERATION, STAT)                                           \
-    bmqst::StatUtil::OPERATION(                                               \
-        context.value(bmqst::StatContext::e_DIRECT_VALUE, STAT),              \
-        latestSnapshot,                                                       \
-        oldestSnapshot)
-
-    switch (stat) {
-    case Stat::e_PUSH_MESSAGES_DELTA: {
-        return STAT_RANGE(incrementsDifference,
-                          ClusterNodeStatsIndex::e_STAT_PUSH);
-    }
-    case Stat::e_PUT_MESSAGES_DELTA: {
-        return STAT_RANGE(incrementsDifference,
-                          ClusterNodeStatsIndex::e_STAT_PUT);
-    }
-    case Stat::e_ACK_DELTA: {
-        return STAT_RANGE(incrementsDifference,
-                          ClusterNodeStatsIndex::e_STAT_ACK);
-    }
-    case Stat::e_CONFIRM_DELTA: {
-        return STAT_RANGE(incrementsDifference,
-                          ClusterNodeStatsIndex::e_STAT_CONFIRM);
-    }
-    case Stat::e_PUSH_BYTES_DELTA: {
-        return STAT_RANGE(valueDifference, ClusterNodeStatsIndex::e_STAT_PUSH);
-    }
-    case Stat::e_PUT_BYTES_DELTA: {
-        return STAT_RANGE(valueDifference, ClusterNodeStatsIndex::e_STAT_PUT);
-    }
-    case Stat::e_PUSH_MESSAGES_ABS: {
-        return STAT_SINGLE(increments, ClusterNodeStatsIndex::e_STAT_PUSH);
-    }
-    case Stat::e_PUT_MESSAGES_ABS: {
-        return STAT_SINGLE(increments, ClusterNodeStatsIndex::e_STAT_PUT);
-    }
-    case Stat::e_ACK_ABS: {
-        return STAT_SINGLE(increments, ClusterNodeStatsIndex::e_STAT_ACK);
-    }
-    case Stat::e_CONFIRM_ABS: {
-        return STAT_SINGLE(increments, ClusterNodeStatsIndex::e_STAT_CONFIRM);
-    }
-    case Stat::e_PUSH_BYTES_ABS: {
-        return STAT_SINGLE(value, ClusterNodeStatsIndex::e_STAT_PUSH);
-    }
-    case Stat::e_PUT_BYTES_ABS: {
-        return STAT_SINGLE(value, ClusterNodeStatsIndex::e_STAT_PUT);
-    }
-    default: {
-        BSLS_ASSERT_SAFE(false && "Attempting to access an unknown stat");
-    }
-    }
-
-    return 0;
-
-#undef STAT_RANGE
-#undef STAT_SINGLE
-}
-
-ClusterNodeStats::ClusterNodeStats()
-: d_statContext_mp(0)
-{
-    // NOTHING
-}
-
-void ClusterNodeStats::initialize(const bmqt::Uri&    uri,
-                                  bmqst::StatContext* clientStatContext,
-                                  bslma::Allocator*   allocator)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!d_statContext_mp && "initialize called twice");
-
-    // Create subContext
-    bdlma::LocalSequentialAllocator<2048> localAllocator(allocator);
-
-    d_statContext_mp = clientStatContext->addSubcontext(
-        bmqst::StatContextConfiguration(uri.asString(), &localAllocator));
-}
-
-// ----------------------
 // class ClusterStatsUtil
 // ----------------------
 
@@ -542,12 +392,20 @@ ClusterStatsUtil::initializeStatContextCluster(int               historySize,
         .storeExpiredSubcontextValues(true)
         .value("cluster_status")
         .value("cluster_leader")
-        .value("cluster.partition.cfg_journal_bytes")
+        .value("cluster_csl_replication_time_ns", bmqst::StatValue::e_DISCRETE)
+        .value("cluster_csl_offset_bytes")
+        .value("cluster_csl_write_bytes")
+        .value("cluster_csl_cfg_bytes")
         .value("cluster.partition.cfg_data_bytes")
+        .value("cluster.partition.cfg_journal_bytes")
         .value("partition_status")
         .value("partition.rollover_time", bmqst::StatValue::e_DISCRETE)
         .value("partition.data_bytes", bmqst::StatValue::e_DISCRETE)
-        .value("partition.journal_bytes", bmqst::StatValue::e_DISCRETE);
+        .value("partition.journal_bytes", bmqst::StatValue::e_DISCRETE)
+        .value("partition.data_offset_bytes")
+        .value("partition.journal_offset_bytes")
+        .value("partition.sequence_number")
+        .value("partition.replication_time_ns", bmqst::StatValue::e_DISCRETE);
 
     // NOTE: For the clusters, the stat context will have two levels of
     //       children, first level is per cluster, and second level is per

@@ -149,8 +149,6 @@ struct ClientSessionState {
     typedef bsl::pair<UnackedMessageInfoMap::iterator, bool>
         UnackedMessageInfoMapInsertRc;
 
-    typedef bslma::ManagedPtr<bmqst::StatContext> StatContextMp;
-
   public:
     // PUBLIC DATA
 
@@ -173,7 +171,7 @@ struct ClientSessionState {
 
     /// Stat context dedicated to this domain, to use as the parent stat
     /// context for any queue in this domain.
-    StatContextMp d_statContext_mp;
+    const bsl::shared_ptr<bmqst::StatContext> d_statContext_sp;
 
     /// Blob buffer factory to use.
     ///
@@ -225,11 +223,11 @@ struct ClientSessionState {
     /// builder will use. Memory allocations are performed using the
     /// specified `allocator`.
     ClientSessionState(
-        bslma::ManagedPtr<bmqst::StatContext>& clientStatContext,
-        BlobSpPool*                            blobSpPool,
-        bdlbb::BlobBufferFactory*              bufferFactory,
-        bmqp::EncodingType::Enum               encodingType,
-        bslma::Allocator*                      allocator);
+        const bsl::shared_ptr<bmqst::StatContext>& clientStatContext,
+        BlobSpPool*                                blobSpPool,
+        bdlbb::BlobBufferFactory*                  bufferFactory,
+        bmqp::EncodingType::Enum                   encodingType,
+        bslma::Allocator*                          allocator);
 };
 
 // ===================
@@ -254,16 +252,10 @@ class ClientSession : public mqbnet::Session,
 
     typedef ClientSessionState::StreamsMap StreamsMap;
 
-    typedef bsl::function<void(void)> VoidFunctor;
-
     /// Enum to signify the session's operation state.
     enum OperationState {
         /// Running normally.
         e_RUNNING,
-        /// Shutting down due to `initiateShutdown` request.
-        // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest
-        // V2.
-        e_SHUTTING_DOWN,
         /// Shutting down due to `initiateShutdown` request.
         e_DISCONNECTING,
         /// The session is disconnected and no longer valid.
@@ -361,11 +353,6 @@ class ClientSession : public mqbnet::Session,
     /// execution of the queue handle deconfigure callbacks.
     bmqu::OperationChain d_shutdownChain;
 
-    /// If present, call when `tearDownAllQueuesDone`.  This is the callback
-    /// given in `initiateShutdown`.
-    // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest V2.
-    ShutdownCb d_shutdownCallback;
-
   private:
     // NOT IMPLEMENTED
 
@@ -447,54 +434,10 @@ class ClientSession : public mqbnet::Session,
         const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger);
 
     /// Initiate the shutdown of the session and invoke the specified
-    /// `callback` upon completion of (asynchronous) shutdown sequence or
-    /// if the specified `timeout` is expired.
-    void initiateShutdownDispatched(const ShutdownCb&         callback,
-                                    const bsls::TimeInterval& timeout,
-                                    bool supportShutdownV2);
+    /// `callback` upon completion of (asynchronous) shutdown sequence.
+    void initiateShutdownDispatched(const ShutdownCb& callback);
 
     void invalidateDispatched();
-
-    // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest
-    // V2.
-    void deconfigureAndWait(ShutdownContextSp& context);
-
-    void checkUnconfirmed(const ShutdownContextSp& shutdownCtx,
-                          const VoidFunctor&       completionCb);
-
-    /// Initiate checking of the unconfirmed messages for each open queue
-    /// handle unless the current time is greater than the stop time from
-    /// the specified `shutdownCtx`.  In this case invoke the shutdown
-    /// callback from the `shutdownCtx`.
-    /// Always call the specified `completionCb` before return.
-    void checkUnconfirmedDispatched(const ShutdownContextSp& shutdownCtx,
-                                    const VoidFunctor&       completionCb);
-
-    void finishCheckUnconfirmed(const ShutdownContextSp& shutdownCtx,
-                                const VoidFunctor&       completionCb);
-
-    /// Invoked when all the queue handles have reported their number of the
-    /// unconfirmed messages.  The sum of those numbers is stored in the
-    /// counter located in the specified `shutdownCtx`.  Schedule the next
-    /// check of the unconfirmed messages unless the counter is already zero
-    /// or the next check time is greater than stop time value from
-    /// `shutdownCtx`.  In this case invoke shutdown callback from the
-    /// context and return without scheduling the next check.
-    /// Always call the specified `completionCb` before return.
-    void finishCheckUnconfirmedDispatched(const ShutdownContextSp& shutdownCtx,
-                                          const VoidFunctor& completionCb);
-
-    void countUnconfirmed(mqbi::QueueHandle*       handle,
-                          const ShutdownContextSp& shutdownCtx,
-                          const VoidFunctor&       completionCb);
-
-    /// Called from the queue dispatcher context to get the number of the
-    /// unconfirmed messages that the specified `handle` has and add this
-    /// number to the atomic counter stored in the specified `shutdownCtx`.
-    /// Always call the specified `completionCb` before return.
-    void countUnconfirmedDispatched(mqbi::QueueHandle*       handle,
-                                    const ShutdownContextSp& shutdownCtx,
-                                    const VoidFunctor&       completionCb);
 
     void processClusterMessage(const bmqp_ctrlmsg::ControlMessage& message);
     void processStopRequest(ShutdownContextSp& context);
@@ -632,11 +575,11 @@ class ClientSession : public mqbnet::Session,
                   mqbi::Dispatcher*                       dispatcher,
                   mqbblp::ClusterCatalog*                 clusterCatalog,
                   mqbi::DomainFactory*                    domainFactory,
-                  bslma::ManagedPtr<bmqst::StatContext>&  clientStatContext,
-                  ClientSessionState::BlobSpPool*         blobSpPool,
-                  bdlbb::BlobBufferFactory*               bufferFactory,
-                  bdlmt::EventScheduler*                  scheduler,
-                  bslma::Allocator*                       allocator);
+                  const bsl::shared_ptr<bmqst::StatContext>& clientStatContext,
+                  ClientSessionState::BlobSpPool*            blobSpPool,
+                  bdlbb::BlobBufferFactory*                  bufferFactory,
+                  bdlmt::EventScheduler*                     scheduler,
+                  bslma::Allocator*                          allocator);
 
     /// Destructor
     ~ClientSession() BSLS_KEYWORD_OVERRIDE;
@@ -646,7 +589,8 @@ class ClientSession : public mqbnet::Session,
 
     /// Process the specified `event` received from the optionally specified
     /// `source` node.  Note that this method is the entry point for all
-    /// incoming events coming from the remote peer.
+    /// incoming events coming from the remote peer.  The behavior is undefined
+    /// unless `event` is not `AuthenticationEvent`.
     void processEvent(const bmqp::Event&   event,
                       mqbnet::ClusterNode* source = 0) BSLS_KEYWORD_OVERRIDE;
 
@@ -663,16 +607,8 @@ class ClientSession : public mqbnet::Session,
                   bool isBrokerShutdown) BSLS_KEYWORD_OVERRIDE;
 
     /// Initiate the shutdown of the session and invoke the specified
-    /// `callback` upon completion of (asynchronous) shutdown sequence or
-    /// if the specified `timeout` is expired.  If the optional (temporary)
-    /// specified 'supportShutdownV2' is 'true' execute shutdown logic V2
-    /// where upstream (not downstream) nodes deconfigure  queues and the
-    /// shutting down node (not downstream) waits for CONFIRMS.
-    /// The shutdown is complete when 'tearDownAllQueuesDone'.
-    void
-    initiateShutdown(const ShutdownCb&         callback,
-                     const bsls::TimeInterval& timeout,
-                     bool supportShutdownV2 = false) BSLS_KEYWORD_OVERRIDE;
+    /// `callback` upon completion of (asynchronous) shutdown sequence.
+    void initiateShutdown(const ShutdownCb& callback) BSLS_KEYWORD_OVERRIDE;
 
     /// Make the session abandon any work it has.
     void invalidate() BSLS_KEYWORD_OVERRIDE;

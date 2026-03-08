@@ -66,6 +66,7 @@
 
 #include <bmqio_status.h>
 #include <bmqst_statcontext.h>
+#include <bmqu_atomicgate.h>
 #include <bmqu_operationchain.h>
 #include <bmqu_throttledaction.h>
 
@@ -191,14 +192,6 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
                                         bsl::shared_ptr<mqbnet::Session> >
         StopRequestManagerType;
 
-    /// Vector of shared_ptrs to Sessoin objects.
-    typedef bsl::vector<bsl::shared_ptr<mqbnet::Session> > SessionSpVec;
-
-    /// Type of the stop request callback.
-    typedef bsl::function<void(
-        const StopRequestManagerType::RequestContextSp& contextSp)>
-        StopRequestCompletionCallback;
-
     // DATA
 
     /// Allocator to use.
@@ -230,9 +223,6 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// Throttling parameters for failed ACK messages.
     bmqu::ThrottledActionParams d_throttledFailedAckMessages;
 
-    /// Throttling parameters for skipped PUT messages.
-    bmqu::ThrottledActionParams d_throttledSkippedPutMessages;
-
     /// Cluster state monitor.
     ClusterStateMonitor d_clusterMonitor;
 
@@ -249,6 +239,14 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// @note Should be part of `ClusterResources`.
     StopRequestManagerType* d_stopRequestsManager_p;
 
+    mqbnet::ClusterNode* d_activeNode_p;
+    // Protected by d_gateActiveNode - it is safe to use while
+    // 'bmqu::GateKeeper::Status(d_gateActiveNode).isOpen()'
+    // 'd_activeNodeManager.activeNode()' does not provide such guarantee.
+    // Also, updated after 'd_clusterData.electorInfo().setElectorInfo'
+
+    bmqu::GateKeeper d_gateActiveNode;
+
   private:
     // PRIVATE MANIPULATORS
 
@@ -258,8 +256,7 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// Initiate the shutdown of the cluster.  The specified `callback` will
     /// be called when the shutdown is completed.  This routine is invoked
     /// in the cluster-dispatcher thread.
-    void initiateShutdownDispatched(const VoidFunctor& callback,
-                                    bool supportShutdownV2 = false);
+    void initiateShutdownDispatched(const VoidFunctor& callback);
 
     /// Stop the `Cluster`.
     void stopDispatched();
@@ -281,8 +278,8 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     void onActiveNodeDown(const mqbnet::ClusterNode* node);
 
     void onNodeUpDispatched(
-        mqbnet::ClusterNode* node,
-        BSLA_UNUSED const bmqp_ctrlmsg::ClientIdentity& identity);
+        mqbnet::ClusterNode*    node,
+        BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::ClientIdentity& identity);
 
     /// Executed by the dispatcher thread when the specified `node` becomes
     /// unavailable.
@@ -309,25 +306,9 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     // PRIVATE MANIPULATORS
     //   (Event processing)
 
-    /// Generate a NACK with the specified `status` for a PUT message having
-    /// the specified `putHeader` from the specified `source`.  The nack is
-    /// replied to the `source`.  Log the specified `rc` as a reason for the
-    /// NACK.
-    void generateNack(bmqt::AckResult::Enum               status,
-                      const bmqp::PutHeader&              putHeader,
-                      DispatcherClient*                   source,
-                      const bsl::shared_ptr<bdlbb::Blob>& appData,
-                      const bsl::shared_ptr<bdlbb::Blob>& options,
-                      bmqt::GenericResult::Enum           rc);
-
     void onPushEvent(const mqbi::DispatcherPushEvent& event);
 
     void onAckEvent(const mqbi::DispatcherAckEvent& event);
-
-    void onRelayPutEvent(const mqbi::DispatcherPutEvent& event,
-                         mqbi::DispatcherClient*         source);
-
-    void onRelayConfirmEvent(const mqbi::DispatcherConfirmEvent& event);
 
     void onRelayRejectEvent(const mqbi::DispatcherRejectEvent& event);
 
@@ -366,7 +347,8 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
                 bsls::TimeInterval timeout) BSLS_KEYWORD_OVERRIDE;
 
     /// Process the specified `response` message as a response to previously
-    /// transmitted request.
+    /// transmitted request.  This method is invoked in the cluster-dispatcher
+    /// thread.
     void processResponse(const bmqp_ctrlmsg::ControlMessage& response)
         BSLS_KEYWORD_OVERRIDE;
     void processPeerStopResponse(const bmqp_ctrlmsg::ControlMessage& response);
@@ -390,13 +372,6 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// is invoked in the cluster-dispatcher thread.
     void
     processResponseDispatched(const bmqp_ctrlmsg::ControlMessage& response);
-
-    // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest V2.
-    /// Send stop request to proxies specified in `sessions` using the
-    /// specified `stopCb` as a callback to be called once all the requests
-    /// get responses.
-    void sendStopRequest(const SessionSpVec&                  sessions,
-                         const StopRequestCompletionCallback& stopCb);
 
     // PRIVATE ACCESSORS
 
@@ -447,13 +422,9 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// Initiate the shutdown of the cluster and invoke the specified
     /// `callback` upon completion of (asynchronous) shutdown sequence. It
     /// is expected that `stop()` will be called soon after this routine is
-    /// invoked.  If the optional (temporary) specified 'supportShutdownV2' is
-    /// 'true' execute shutdown logic V2 where upstream (not downstream) nodes
-    /// deconfigure  queues and the shutting down node (not downstream) wait
-    /// for CONFIRMS.
-    void
-    initiateShutdown(const VoidFunctor& callback,
-                     bool supportShutdownV2 = false) BSLS_KEYWORD_OVERRIDE;
+    /// invoked.  Execute shutdown logic where upstream (not downstream) nodes
+    /// deconfigure queues and the shutting down node waits for CONFIRMS.
+    void initiateShutdown(const VoidFunctor& callback) BSLS_KEYWORD_OVERRIDE;
 
     /// Stop the `Cluster`.
     void stop() BSLS_KEYWORD_OVERRIDE;
@@ -488,10 +459,10 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// specified `queue` with the specified `handleParameters` and invoke
     /// the specified `callback` when finished.
     void
-    configureQueue(mqbi::Queue*                               queue,
-                   const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
-                   unsigned int upstreamSubQueueId,
-                   const mqbi::Cluster::HandleReleasedCallback& callback)
+    closeQueue(mqbi::Queue*                                 queue,
+               const bmqp_ctrlmsg::QueueHandleParameters&   handleParameters,
+               unsigned int                                 upstreamSubQueueId,
+               const mqbi::Cluster::HandleReleasedCallback& callback)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Invoked whenever an attempt was made to create a queue handle for
@@ -522,6 +493,25 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
 
     /// Load the cluster state in the specified `out` object.
     void loadClusterStatus(mqbcmd::ClusterResult* out) BSLS_KEYWORD_OVERRIDE;
+
+    /// Send the specified CONFIRM 'message' for the specified 'partitionId'
+    /// without switching thread context.
+    /// 'onRelayConfirmEvent' replacement.
+    mqbi::InlineResult::Enum sendConfirmInline(
+        int                         partitionId,
+        const bmqp::ConfirmMessage& message) BSLS_KEYWORD_OVERRIDE;
+
+    /// Send PUT message for the specified 'partitionId' using the specified
+    /// 'putHeader', 'appData', 'options', 'state', 'genCount' without
+    /// switching thread context.
+    /// 'onRelayPutEvent' replacement.
+    mqbi::InlineResult::Enum
+    sendPutInline(int                                       partitionId,
+                  const bmqp::PutHeader&                    putHeader,
+                  const bsl::shared_ptr<bdlbb::Blob>&       appData,
+                  const bsl::shared_ptr<bdlbb::Blob>&       options,
+                  const bsl::shared_ptr<bmqu::AtomicState>& state,
+                  bsls::Types::Uint64 genCount) BSLS_KEYWORD_OVERRIDE;
 
     /// Purge and force GC queues in this cluster on a given domain.
     void purgeAndGCQueueOnDomain(mqbcmd::ClusterResult* result,

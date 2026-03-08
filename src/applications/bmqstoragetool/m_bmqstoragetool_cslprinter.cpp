@@ -368,8 +368,8 @@ class JsonCslPrinter : public CslPrinter {
     void printCompositesNotFound(const CompositesVec& seqNums) const
         BSLS_KEYWORD_OVERRIDE;
 
-    void printFooter(const CslRecordCount& recordCount,
-                     BSLA_UNUSED const     Parameters::ProcessCslRecordTypes&
+    void printFooter(const CslRecordCount&   recordCount,
+                     BSLA_MAYBE_UNUSED const Parameters::ProcessCslRecordTypes&
                          processCslRecordTypes) const BSLS_KEYWORD_OVERRIDE;
 };
 
@@ -455,9 +455,9 @@ void JsonCslPrinter::printCompositesNotFound(
 }
 
 void JsonCslPrinter::printFooter(
-    const CslRecordCount& recordCount,
-    BSLA_UNUSED const Parameters::ProcessCslRecordTypes& processCslRecordTypes)
-    const
+    const CslRecordCount&   recordCount,
+    BSLA_MAYBE_UNUSED const Parameters::ProcessCslRecordTypes&
+                            processCslRecordTypes) const
 {
     closeBraceIfOpen();
     d_ostream << "  \"SnapshotRecords\": \"" << recordCount.d_snapshotCount
@@ -491,13 +491,13 @@ class JsonPrettyCslPrinter : public JsonCslPrinter {
                            const mqbsi::LedgerRecordId& recordId) const
         BSLS_KEYWORD_OVERRIDE;
 
-    void
-    printSummaryResult(const CslRecordCount&     recordCount,
-                       const CslUpdateChoiceMap& updateChoiceMap,
-                       const QueueMap&           queueMap,
-                       BSLA_UNUSED const Parameters::ProcessCslRecordTypes&
-                                         processCslRecordTypes,
-                       unsigned int queuesLimit) const BSLS_KEYWORD_OVERRIDE;
+    void printSummaryResult(
+        const CslRecordCount&     recordCount,
+        const CslUpdateChoiceMap& updateChoiceMap,
+        const QueueMap&           queueMap,
+        BSLA_MAYBE_UNUSED const   Parameters::ProcessCslRecordTypes&
+                                  processCslRecordTypes,
+        unsigned int              queuesLimit) const BSLS_KEYWORD_OVERRIDE;
 };
 
 // CREATORS
@@ -554,8 +554,9 @@ void JsonPrettyCslPrinter::printSummaryResult(
     const CslRecordCount&     recordCount,
     const CslUpdateChoiceMap& updateChoiceMap,
     const QueueMap&           queueMap,
-    BSLA_UNUSED const Parameters::ProcessCslRecordTypes& processCslRecordTypes,
-    unsigned int                                         queuesLimit) const
+    BSLA_MAYBE_UNUSED const   Parameters::ProcessCslRecordTypes&
+                              processCslRecordTypes,
+    unsigned int              queuesLimit) const
 {
     d_ostream << "    \"Summary\":\n";
 
@@ -589,13 +590,13 @@ class JsonLineCslPrinter : public JsonCslPrinter {
                            const mqbsi::LedgerRecordId& recordId) const
         BSLS_KEYWORD_OVERRIDE;
 
-    void
-    printSummaryResult(const CslRecordCount&     recordCount,
-                       const CslUpdateChoiceMap& updateChoiceMap,
-                       const QueueMap&           queueMap,
-                       BSLA_UNUSED const Parameters::ProcessCslRecordTypes&
-                                         processCslRecordTypes,
-                       unsigned int queuesLimit) const BSLS_KEYWORD_OVERRIDE;
+    void printSummaryResult(
+        const CslRecordCount&     recordCount,
+        const CslUpdateChoiceMap& updateChoiceMap,
+        const QueueMap&           queueMap,
+        BSLA_MAYBE_UNUSED const   Parameters::ProcessCslRecordTypes&
+                                  processCslRecordTypes,
+        unsigned int              queuesLimit) const BSLS_KEYWORD_OVERRIDE;
 };
 
 // CREATORS
@@ -649,8 +650,9 @@ void JsonLineCslPrinter::printSummaryResult(
     const CslRecordCount&     recordCount,
     const CslUpdateChoiceMap& updateChoiceMap,
     const QueueMap&           queueMap,
-    BSLA_UNUSED const Parameters::ProcessCslRecordTypes& processCslRecordTypes,
-    unsigned int                                         queuesLimit) const
+    BSLA_MAYBE_UNUSED const   Parameters::ProcessCslRecordTypes&
+                              processCslRecordTypes,
+    unsigned int              queuesLimit) const
 {
     d_ostream << "    \"Summary\": ";
 

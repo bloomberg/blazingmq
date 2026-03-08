@@ -130,6 +130,10 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     /// Allocator store to spawn new allocators for sub-components.
     bmqma::CountingAllocatorStore d_allocators;
 
+    /// Whether to trust CSL as the source of truth.  At startup, do *not*
+    /// trust CSL.  Only trust CSL after the first CSL advisory commit.
+    bool d_trustCSL;
+
     bool d_isStarted;
 
     /// Cluster configuration to use.

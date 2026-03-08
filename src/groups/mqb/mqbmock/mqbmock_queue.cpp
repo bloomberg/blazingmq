@@ -104,14 +104,15 @@ void Queue::flush()
 
 // MANIPULATORS
 //   (virtual: mqbi::Queue)
-int Queue::configure(BSLA_UNUSED bsl::ostream* errorDescription_p,
-                     BSLA_UNUSED bool          isReconfigure,
-                     BSLA_UNUSED bool          wait)
+int Queue::configure(BSLA_MAYBE_UNUSED bsl::ostream* errorDescription_p,
+                     BSLA_MAYBE_UNUSED bool          isReconfigure,
+                     BSLA_MAYBE_UNUSED bool          wait)
 {
     return 0;
 }
 
 void Queue::getHandle(
+    const mqbi::OpenQueueConfirmationCookieSp&                context,
     const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>& clientContext,
     const bmqp_ctrlmsg::QueueHandleParameters&                handleParameters,
     unsigned int                                upstreamSubQueueId,
@@ -121,9 +122,10 @@ void Queue::getHandle(
 
     // PRECONDITIONS
     BSLS_ASSERT_OPT(d_queueEngine_p && "Queue Engine has not been set");
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
-    d_queueEngine_p->getHandle(clientContext,
+    d_queueEngine_p->getHandle(context,
+                               clientContext,
                                handleParameters,
                                upstreamSubQueueId,
                                callback);
@@ -137,7 +139,7 @@ void Queue::configureHandle(
     // executed by the *QUEUE_DISPATCHER* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(d_queueEngine_p && "Queue Engine has not been set");
 
     d_queueEngine_p->configureHandle(handle, streamParameters, configuredCb);
@@ -161,8 +163,7 @@ void Queue::dropHandle(mqbi::QueueHandle* handle, bool doDeconfigure)
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(handle);
-    BSLS_ASSERT_SAFE(
-        handle->queue()->dispatcher()->inDispatcherThread(handle->queue()));
+    BSLS_ASSERT_SAFE(handle->queue()->inDispatcherThread());
     BSLS_ASSERT_SAFE(d_queueEngine_p && "Queue Engine has not been set");
 
     // Since the handle is being dropped (which typically occurs if a client is
@@ -246,24 +247,25 @@ Queue::setStats(const bsl::shared_ptr<mqbstat::QueueStatsDomain>& stats)
     d_stats_sp = stats;
 }
 
-bsls::Types::Int64 Queue::countUnconfirmed(BSLA_UNUSED unsigned int subId)
+bsls::Types::Int64 Queue::countUnconfirmed() const
 {
     // NOT IMPLENTED
     return 0;
 }
 
-void Queue::stopPushing()
+void Queue::setStopping()
 {
     // NOT IMPLENTED
 }
 
 void Queue::onPushMessage(
-    BSLA_UNUSED const bmqt::MessageGUID& msgGUID,
-    BSLA_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,
-    BSLA_UNUSED const bsl::shared_ptr<bdlbb::Blob>& options,
-    BSLA_UNUSED const bmqp::MessagePropertiesInfo& hasMessageProperties,
-    BSLA_UNUSED bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
-    BSLA_UNUSED bool                                 isOutOfOrder)
+    BSLA_MAYBE_UNUSED const bmqt::MessageGUID& msgGUID,
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<bdlbb::Blob>& options,
+    BSLA_MAYBE_UNUSED const bmqp::MessagePropertiesInfo& hasMessageProperties,
+    BSLA_MAYBE_UNUSED      bmqt::CompressionAlgorithmType::Enum
+                           compressionAlgorithmType,
+    BSLA_MAYBE_UNUSED bool isOutOfOrder)
 {
     // NOTHING
 }
@@ -277,7 +279,7 @@ void Queue::confirmMessage(const bmqt::MessageGUID& msgGUID,
 //       have an if statement below.
 {
     // PRECONDITIONS
-    BSLS_ASSERT_OPT(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_OPT(inDispatcherThread());
     BSLS_ASSERT_OPT(d_queueEngine_p && "Queue Engine has not been set");
 
     BALL_LOG_TRACE << "confirmMessage [queue: '" << description()
@@ -325,7 +327,7 @@ int Queue::rejectMessage(const bmqt::MessageGUID& msgGUID,
 //       have an if statement below.
 {
     // PRECONDITIONS
-    BSLS_ASSERT_OPT(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_OPT(inDispatcherThread());
     BSLS_ASSERT_OPT(d_queueEngine_p && "Queue Engine has not been set");
     BSLS_ASSERT_OPT(d_storage_p && "Storage has not been set");
 
@@ -340,7 +342,7 @@ int Queue::rejectMessage(const bmqt::MessageGUID& msgGUID,
     return rc;
 }
 
-void Queue::onAckMessage(BSLA_UNUSED const bmqp::AckMessage& ackMessage)
+void Queue::onAckMessage(BSLA_MAYBE_UNUSED const bmqp::AckMessage& ackMessage)
 {
     // NOTHING
 }
@@ -350,28 +352,27 @@ void Queue::onLostUpstream()
     // NOTHING
 }
 
-void Queue::onOpenUpstream(BSLA_UNUSED bsls::Types::Uint64 genCount,
-                           BSLA_UNUSED unsigned int        subQueueId,
-                           BSLA_UNUSED bool                isWriterOnly)
+void Queue::onOpenUpstream(BSLA_MAYBE_UNUSED bsls::Types::Uint64 genCount,
+                           BSLA_MAYBE_UNUSED unsigned int        subQueueId,
+                           BSLA_MAYBE_UNUSED bool                isWriterOnly)
 {
     // NOTHING
 }
 
-void Queue::onOpenFailure(BSLA_UNUSED unsigned int subQueueId)
+void Queue::onOpenFailure(BSLA_MAYBE_UNUSED unsigned int subQueueId)
 {
     // NOTHING
 }
 
-void Queue::onReceipt(BSLA_UNUSED const bmqt::MessageGUID& msgGUID,
-                      BSLA_UNUSED mqbi::QueueHandle* qH,
-                      BSLA_UNUSED const bsls::Types::Int64& arrivalTimepoint)
+void Queue::onReceipt(BSLA_MAYBE_UNUSED const bmqt::MessageGUID& msgGUID,
+                      BSLA_MAYBE_UNUSED mqbi::QueueHandle* qH)
 {
     // NOTHING
 }
 
-void Queue::onRemoval(BSLA_UNUSED const bmqt::MessageGUID& msgGUID,
-                      BSLA_UNUSED mqbi::QueueHandle* qH,
-                      BSLA_UNUSED bmqt::AckResult::Enum result)
+void Queue::onRemoval(BSLA_MAYBE_UNUSED const bmqt::MessageGUID& msgGUID,
+                      BSLA_MAYBE_UNUSED mqbi::QueueHandle* qH,
+                      BSLA_MAYBE_UNUSED bmqt::AckResult::Enum result)
 {
     // NOTHING
 }
@@ -512,7 +513,7 @@ const bmqp_ctrlmsg::QueueHandleParameters& Queue::handleParameters() const
 
 bool Queue::getUpstreamParameters(
     bmqp_ctrlmsg::StreamParameters* value,
-    BSLA_UNUSED unsigned int        upstreamSubQueueId) const
+    BSLA_MAYBE_UNUSED unsigned int  upstreamSubQueueId) const
 {
     *value = d_streamParameters;
     return true;

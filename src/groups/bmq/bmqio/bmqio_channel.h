@@ -221,6 +221,14 @@ class Channel {
     virtual const bmqvt::PropertyBag& properties() const = 0;
 };
 
+// FREE OPERATORS
+
+/// Format the specified `channel` to the specified output `stream` and
+/// return a reference to the modifiable `stream`.  The output includes the
+/// channel's `peerUri` followed by the channel's address for easy tracking
+/// and matching of logs.
+bsl::ostream& operator<<(bsl::ostream& stream, const Channel* channel);
+
 }  // close package namespace
 
 // ============================================================================
@@ -235,6 +243,19 @@ inline bsl::ostream& bmqio::operator<<(bsl::ostream& stream,
                                        bmqio::ChannelWatermarkType::Enum value)
 {
     return bmqio::ChannelWatermarkType::print(stream, value, 0, -1);
+}
+
+inline bsl::ostream& bmqio::operator<<(bsl::ostream&         stream,
+                                       const bmqio::Channel* channel)
+{
+    if (channel) {
+        stream << channel->peerUri() << "#"
+               << static_cast<const void*>(channel);
+    }
+    else {
+        stream << "*null*";
+    }
+    return stream;
 }
 
 }  // close enterprise namespace

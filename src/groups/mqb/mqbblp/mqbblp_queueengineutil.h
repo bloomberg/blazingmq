@@ -111,8 +111,7 @@ struct QueueEngineUtil {
     static int
     validateUri(const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
                 mqbi::QueueHandle*                         handle,
-                const mqbi::QueueHandleRequesterContext&   clientContext =
-                    mqbi::QueueHandleRequesterContext());
+                const mqbi::QueueHandleRequesterContext*   clientContext = 0);
 
     /// Return true is the specified `queue` is of the broadcast type.
     static bool isBroadcastMode(const mqbi::Queue* queue);
@@ -332,6 +331,13 @@ struct QueueEngineUtil_AppState {
     /// Set of alive consumers
     typedef Routers::Consumers Consumers;
 
+    class VirtualIterator {
+      public:
+        virtual ~VirtualIterator();
+
+        virtual const mqbi::StorageIterator* next() = 0;
+    };
+
   private:
     // PRIVATE DATA
 
@@ -404,17 +410,14 @@ struct QueueEngineUtil_AppState {
     /// While doing so, load the message delay into the specified `delay` and
     /// throttle the redelivery as in the case of a Poisonous message.
     /// If the Redelivery List is empty, attempt to deliver data starting from
-    /// `start` (the resumePoint or the beginning of the stream) to the `end`.
+    /// `start` (the resumePoint or the beginning of the stream) to the `stop`.
     /// This is what any QueueEngine calls whenever there is a chance for the
     /// App to make progress: any configuration change, capacity availability.
     /// Note that depending upon queue's mode, messages are delivered either
     /// to all consumers (broadcast mode), or in a round-robin manner (every
     /// other mode).
     /// Use the specified `reader` to read data for delivery.
-    size_t catchUp(bsls::TimeInterval*          delay,
-                   mqbi::StorageIterator*       reader,
-                   mqbi::StorageIterator*       start,
-                   const mqbi::StorageIterator* end);
+    size_t catchUp(bsls::TimeInterval* delay, VirtualIterator* start);
 
     /// Try to deliver to the next available consumer the specified `message`.
     /// If poisonous message handling requires a delay in the delivery, iterate
@@ -423,16 +426,18 @@ struct QueueEngineUtil_AppState {
     /// to send the `message` to a highest priority consumer with matching
     /// subscription.  Return corresponding result: `e_SUCCESS`,
     /// `e_NO_SUBSCRIPTION`, `e_NO_CAPACITY`. or `e_NO_CAPACITY_ALL`.
+    /// NOTE: the messages sent by this routine are out of order.
     Routers::Result tryDeliverOneMessage(bsls::TimeInterval*          delay,
-                                         const mqbi::StorageIterator* message,
-                                         bool isOutOfOrder);
+                                         const mqbi::StorageIterator* message);
 
     /// Broadcast to all available consumers, the message having specified
     /// `appData`, `options`, `guid` and `attributes`.  Behavior is
     /// undefined unless `appData` is non-null.
     void broadcastOneMessage(const mqbi::StorageIterator* storageIter);
     bool visitBroadcast(const mqbi::StorageIterator* message,
-                        const Routers::Subscription* subscription);
+                        mqbi::QueueHandle*           handle,
+                        Routers::Consumer*           consumer,
+                        unsigned int                 downstreamSubscriptionId);
 
     size_t processDeliveryLists(bsls::TimeInterval*    delay,
                                 mqbi::StorageIterator* reader);
@@ -608,7 +613,7 @@ struct QueueEngineUtil_AppsDeliveryContext {
     Consumers                         d_consumers;
     int                               d_numApps;
     int                               d_numStops;  // Apps not moving
-    mqbi::StorageIterator*            d_currentMessage;
+    mqbi::StorageIterator*            d_currentMessage_p;
     mqbi::Queue*                      d_queue_p;
     bsl::optional<bsls::Types::Int64> d_timeDelta;
 
@@ -617,7 +622,7 @@ struct QueueEngineUtil_AppsDeliveryContext {
     const mqbi::AppMessage* d_currentAppView_p;
 
     /// Cached functor to `QueueEngineUtil_AppsDeliveryContext::visit`
-    const Routers::Visitor d_visitVisitor;
+    const Routers::Visitor d_fanoutVisitor;
 
     /// Cached functor to `QueueEngineUtil_AppsDeliveryContext::visitBroadcast`
     const Routers::Visitor d_broadcastVisitor;
@@ -668,8 +673,12 @@ struct QueueEngineUtil_AppsDeliveryContext {
                     bool                      putAsideReturnValue);
 
     /// Collect and prepare data for the subsequent `deliverMessage` call.
-    bool visit(const Routers::Subscription* subscription);
-    bool visitBroadcast(const Routers::Subscription* subscription);
+    bool visit(mqbi::QueueHandle* handle,
+               Routers::Consumer* consumer,
+               unsigned int       downstreamSubscriptionId);
+    bool visitBroadcast(mqbi::QueueHandle* handle,
+                        Routers::Consumer* consumer,
+                        unsigned int       downstreamSubscriptionId);
 
     /// Deliver message to the previously processed handles.
     void deliverMessage();

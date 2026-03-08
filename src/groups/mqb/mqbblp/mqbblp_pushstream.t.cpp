@@ -57,16 +57,15 @@ static void test1_basic()
     bsl::shared_ptr<mqbblp::RelayQueueEngine_AppState> app;  // unused
     bmqp::SubQueueInfo                                 subscription;
 
-    mqbblp::PushStream::iterator itGuid = ps.findOrAppendMessage(
-        bmqp::MessageGUIDGenerator::testGUID());
+    mqbblp::PushStream::iterator itGuid;
+    ps.findOrAddLast(&itGuid, bmqp::MessageGUIDGenerator::testGUID());
 
     mqbblp::PushStream::Apps::iterator itApp =
         ps.d_apps.emplace(subQueueId, app).first;
 
     mqbblp::PushStream::Element* element =
-        ps.create(subscription.rdaInfo(), subscription.id(), itGuid, itApp);
+        ps.add(subscription.rdaInfo(), subscription.id(), itGuid, itApp);
 
-    ps.add(element);
     ps.remove(element, true);
 }
 
@@ -92,45 +91,30 @@ static void test2_iterations()
     bmqp::SubQueueInfo subscription1(1);
     bmqp::SubQueueInfo subscription2(2);
 
-    mqbblp::PushStream::iterator itGuid1 = ps.findOrAppendMessage(
-        bmqp::MessageGUIDGenerator::testGUID());
+    mqbblp::PushStream::iterator itGuid1;
+
+    ps.findOrAddLast(&itGuid1, bmqp::MessageGUIDGenerator::testGUID());
 
     mqbblp::PushStream::Apps::iterator itApp1 =
         ps.d_apps.emplace(subQueueId1, unused).first;
 
-    mqbblp::PushStream::Element* element1 = ps.create(subscription1.rdaInfo(),
-                                                      subscription1.id(),
-                                                      itGuid1,
-                                                      itApp1);
+    mqbblp::PushStream::Element* element1 =
+        ps.add(subscription1.rdaInfo(), subscription1.id(), itGuid1, itApp1);
 
-    ps.add(element1);
-
-    mqbblp::PushStream::iterator itGuid2 = ps.findOrAppendMessage(
-        bmqp::MessageGUIDGenerator::testGUID());
+    mqbblp::PushStream::iterator itGuid2;
+    ps.findOrAddLast(&itGuid2, bmqp::MessageGUIDGenerator::testGUID());
 
     mqbblp::PushStream::Apps::iterator itApp2 =
         ps.d_apps.emplace(subQueueId2, unused).first;
 
-    mqbblp::PushStream::Element* element2 = ps.create(subscription2.rdaInfo(),
-                                                      subscription2.id(),
-                                                      itGuid2,
-                                                      itApp2);
+    mqbblp::PushStream::Element* element2 =
+        ps.add(subscription2.rdaInfo(), subscription2.id(), itGuid2, itApp2);
 
-    ps.add(element2);
+    mqbblp::PushStream::Element* element3 =
+        ps.add(subscription2.rdaInfo(), subscription2.id(), itGuid1, itApp2);
 
-    mqbblp::PushStream::Element* element3 = ps.create(subscription2.rdaInfo(),
-                                                      subscription2.id(),
-                                                      itGuid1,
-                                                      itApp2);
-
-    ps.add(element3);
-
-    mqbblp::PushStream::Element* element4 = ps.create(subscription1.rdaInfo(),
-                                                      subscription1.id(),
-                                                      itGuid2,
-                                                      itApp1);
-
-    ps.add(element4);
+    mqbblp::PushStream::Element* element4 =
+        ps.add(subscription1.rdaInfo(), subscription1.id(), itGuid2, itApp1);
 
     mqbu::CapacityMeter dummyCapacityMeter(
         "dummy",
@@ -142,10 +126,11 @@ static void test2_iterations()
                                 bmqtst::TestHelperUtil::allocator());
     mqbconfm::Domain dummyDomainConfig(bmqtst::TestHelperUtil::allocator());
 
-    mqbs::InMemoryStorage dummyStorage(dummyUri,
+    mqbs::InMemoryStorage dummyStorage(0,  // No FileStore
+                                       dummyUri,
                                        mqbu::StorageKey::k_NULL_KEY,
                                        &dummyDomain,
-                                       mqbs::DataStore::k_INVALID_PARTITION_ID,
+                                       mqbi::Storage::k_INVALID_PARTITION_ID,
                                        dummyDomainConfig,
                                        &dummyCapacityMeter,
                                        bmqtst::TestHelperUtil::allocator());
@@ -186,10 +171,7 @@ static void test2_iterations()
     }
 
     {
-        mqbblp::VirtualPushStreamIterator vit(subQueueId1,
-                                              &dummyStorage,
-                                              &ps,
-                                              ps.d_stream.begin());
+        mqbblp::VirtualPushStreamIterator vit(subQueueId1, &dummyStorage, &ps);
 
         BMQTST_ASSERT(!vit.atEnd());
         BMQTST_ASSERT_EQ(vit.numApps(), 1u);
@@ -220,8 +202,6 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
-
     switch (_testCase) {
     case 0:
     case 1: test1_basic(); break;
@@ -231,8 +211,6 @@ int main(int argc, char* argv[])
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
-
-    bmqt::UriParser::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

@@ -41,7 +41,7 @@ def _verify_delivery(consumer, uri, messages, timeout=2):
 def _verify_delivery_to_new_consumer(proxy, uri, messages, timeout=2):
     consumer = proxy.create_client("consumer")
     consumer.open(uri, flags=["read"], succeed=True)
-    _verify_delivery(consumer, uri, ["msg1", "masg2"], timeout=2)
+    _verify_delivery(consumer, uri, ["msg1", "msg2"], timeout=2)
     consumer.exit_gracefully()
 
 
@@ -112,7 +112,7 @@ def test_dead_leader(
 
     # post new message and verify delivery
     producer.post(tc.URI_FANOUT_SC, ["msg2"], succeed=True, wait_ack=True)
-    _verify_delivery(consumer, tc.URI_FANOUT_SC_FOO, ["msg1", "masg2"], timeout=2)
+    _verify_delivery(consumer, tc.URI_FANOUT_SC_FOO, ["msg1", "msg2"], timeout=2)
 
     # since the leader is still suspended (see above), kill it to stop the
     # cluster gracefully
@@ -123,7 +123,7 @@ def test_dead_leader(
     consumer.exit_gracefully()
 
     _verify_delivery_to_new_consumer(
-        proxy, tc.URI_FANOUT_SC_FOO, ["msg1", "masg2"], timeout=2
+        proxy, tc.URI_FANOUT_SC_FOO, ["msg1", "msg2"], timeout=2
     )
 
     producer.exit_gracefully()
@@ -174,14 +174,14 @@ def test_dead_proxy(
     producer.capture(r"RECONNECTED", 5)
     consumer.capture(r"RECONNECTED", 5)
 
-    _verify_delivery(consumer, tc.URI_FANOUT_SC_FOO, ["msg1", "masg2"], timeout=2)
+    _verify_delivery(consumer, tc.URI_FANOUT_SC_FOO, ["msg1", "msg2"], timeout=2)
 
     consumer.exit_gracefully()
     consumer.wait()
 
     # verify delivery for a new consumer
     _verify_delivery_to_new_consumer(
-        proxy, tc.URI_FANOUT_SC_FOO, ["msg1", "masg2"], timeout=2
+        proxy, tc.URI_FANOUT_SC_FOO, ["msg1", "msg2"], timeout=2
     )
 
     producer.exit_gracefully()
@@ -232,14 +232,14 @@ def test_dead_replica(
 
     producer.post(tc.URI_FANOUT_SC, ["msg2"], succeed=True, wait_ack=True)
 
-    _verify_delivery(consumer, tc.URI_FANOUT_SC_FOO, ["msg1", "masg2"], timeout=2)
+    _verify_delivery(consumer, tc.URI_FANOUT_SC_FOO, ["msg1", "msg2"], timeout=2)
 
     consumer.exit_gracefully()
     consumer.wait()
 
     # verify delivery for a new consumer
     _verify_delivery_to_new_consumer(
-        proxy, tc.URI_FANOUT_SC_FOO, ["msg1", "masg2"], timeout=2
+        proxy, tc.URI_FANOUT_SC_FOO, ["msg1", "msg2"], timeout=2
     )
 
     producer.exit_gracefully()

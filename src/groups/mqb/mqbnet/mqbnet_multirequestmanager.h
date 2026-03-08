@@ -525,8 +525,8 @@ inline void MultiRequestManager<REQUEST, RESPONSE, TARGET>::setGroupId(
 
 template <class REQUEST, class RESPONSE, class TARGET>
 inline void MultiRequestManager<REQUEST, RESPONSE, TARGET>::setGroupId(
-    BSLA_UNUSED typename RequestManagerType::RequestSp& context,
-    BSLA_UNUSED const bsl::shared_ptr<mqbnet::Session>& target) const
+    BSLA_MAYBE_UNUSED typename RequestManagerType::RequestSp& context,
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<mqbnet::Session>& target) const
 {
     // NOTHING
 }

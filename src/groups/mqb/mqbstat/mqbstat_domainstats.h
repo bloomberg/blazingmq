@@ -59,14 +59,24 @@ class DomainStats {
     /// are monitored.
     struct EventType {
         // TYPES
-        enum Enum { e_CFG_MSGS, e_CFG_BYTES, e_QUEUE_COUNT };
+        enum Enum {
+            e_CFG_MSGS,
+            e_CFG_BYTES,
+            e_QUEUE_COUNT,
+            e_QUEUE_COUNT_OPEN
+        };
     };
 
     /// Enum representing the various type of stats that can be obtained
     /// from this object.
     struct Stat {
         // TYPES
-        enum Enum { e_CFG_MSGS, e_CFG_BYTES, e_QUEUE_COUNT };
+        enum Enum {
+            e_CFG_MSGS,
+            e_CFG_BYTES,
+            e_QUEUE_COUNT,
+            e_QUEUE_COUNT_OPEN
+        };
     };
 
   private:
@@ -80,7 +90,12 @@ class DomainStats {
     /// Namespace for the constants of stat values that applies to the queues
     /// from the clients
     struct DomainStatsIndex {
-        enum Enum { e_STAT_CFG_MSGS, e_STAT_CFG_BYTES, e_STAT_QUEUE_COUNT };
+        enum Enum {
+            e_STAT_CFG_MSGS,
+            e_STAT_CFG_BYTES,
+            e_STAT_QUEUE_COUNT,
+            e_STAT_QUEUE_COUNT_OPEN
+        };
     };
 
   private:
@@ -179,6 +194,15 @@ inline void DomainStats::onEvent<DomainStats::EventType::e_QUEUE_COUNT>(
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
     d_statContext_mp->setValue(DomainStatsIndex::e_STAT_QUEUE_COUNT, value);
+}
+
+template <>
+inline void DomainStats::onEvent<DomainStats::EventType::e_QUEUE_COUNT_OPEN>(
+    bsls::Types::Int64 value)
+{
+    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+    d_statContext_mp->setValue(DomainStatsIndex::e_STAT_QUEUE_COUNT_OPEN,
+                               value);
 }
 
 }  // close package namespace

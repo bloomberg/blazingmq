@@ -79,23 +79,20 @@ const bsls::Types::Int64 k_UNDEFINED_UTILIZATION_VALUE = 0;
 struct ClientStats {
     enum Enum {
         /// Value:      Number of ack messages delivered to the client
-        e_STAT_ACK
+        e_STAT_ACK,
 
-        ,
         /// Value:      Number of confirm messages delivered to the client
-        e_STAT_CONFIRM
+        e_STAT_CONFIRM,
 
-        ,
+        /// Value:      Accumulated bytes of all messages ever received from
+        ///             the client
+        /// Increments: Number of messages ever received from the client
+        e_STAT_PUT,
+
         /// Value:      Accumulated bytes of all messages ever pushed to
         ///             the client
         /// Increments: Number of messages ever pushed to the client
         e_STAT_PUSH
-
-        ,
-        /// Value:      Accumulated bytes of all messages ever received from
-        ///             the client
-        /// Increments: Number of messages ever received from the client
-        e_STAT_PUT
     };
 };
 

@@ -128,7 +128,7 @@ void AdminSession::sendPacket()
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     bdlb::ScopeExitAny resetBlobScopeGuard(
         bdlf::BindUtil::bind(&bmqp::SchemaEventBuilder::reset,
@@ -176,7 +176,7 @@ void AdminSession::initiateShutdownDispatched(const ShutdownCb& callback)
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(callback);
 
     d_running = false;
@@ -190,7 +190,7 @@ void AdminSession::finalizeAdminCommand(
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(adminCommandCtrlMsg.choice().isAdminCommandValue());
     BSLS_ASSERT_SAFE(d_state.d_schemaEventBuilder.blob()->length() == 0);
 
@@ -226,7 +226,7 @@ void AdminSession::finalizeAdminCommand(
 
 void AdminSession::onProcessedAdminCommand(
     const bmqp_ctrlmsg::ControlMessage& adminCommandCtrlMsg,
-    BSLA_UNUSED int                     rc,
+    BSLA_MAYBE_UNUSED int               rc,
     const bsl::string&                  commandExecResults)
 {
     // executed by the *ANY* thread
@@ -245,7 +245,7 @@ void AdminSession::enqueueAdminCommand(
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(adminCommandCtrlMsg.choice().isAdminCommandValue());
 
     bmqp_ctrlmsg::AdminCommand req =
@@ -313,7 +313,7 @@ AdminSession::~AdminSession()
 // MANIPULATORS
 //   (virtual: mqbnet::Session)
 void AdminSession::processEvent(const bmqp::Event& event,
-                                BSLA_UNUSED mqbnet::ClusterNode* source)
+                                BSLA_MAYBE_UNUSED mqbnet::ClusterNode* source)
 {
     // executed by the *IO* thread
 
@@ -374,7 +374,7 @@ void AdminSession::tearDownImpl(bslmt::Semaphore* semaphore)
 {
     // executed by the *CLIENT* dispatcher thread
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     d_self.invalidate();
 
@@ -382,13 +382,11 @@ void AdminSession::tearDownImpl(bslmt::Semaphore* semaphore)
     semaphore->post();
 }
 
-void AdminSession::tearDown(BSLA_UNUSED const bsl::shared_ptr<void>& session,
-                            BSLA_UNUSED bool isBrokerShutdown)
+void AdminSession::tearDown(
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<void>& session,
+    BSLA_MAYBE_UNUSED bool                         isBrokerShutdown)
 {
     // executed by the *IO* thread
-
-    // Cancel the reads on the channel
-    d_channel_sp->cancelRead();
 
     // Enqueue an event to the client dispatcher thread and wait for it to
     // finish; only after this will we have the guarantee that no method will
@@ -410,10 +408,7 @@ void AdminSession::tearDown(BSLA_UNUSED const bsl::shared_ptr<void>& session,
     // 'session' go out of scope.
 }
 
-void AdminSession::initiateShutdown(
-    const ShutdownCb& callback,
-    BSLA_UNUSED const bsls::TimeInterval& timeout,
-    BSLA_UNUSED bool                      supportShutdownV2)
+void AdminSession::initiateShutdown(const ShutdownCb& callback)
 {
     // executed by the *ANY* thread
 
@@ -436,7 +431,7 @@ void AdminSession::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     // NOTE: We don't perform 'd_operationState' check in this method because
     //       it might be desirable to dispatch certain callbacks to the client
@@ -481,7 +476,7 @@ void AdminSession::flush()
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     // No pending events are expected for admin session.
 }

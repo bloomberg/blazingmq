@@ -29,6 +29,7 @@
 #include <bslim_printer.h>
 #include <bslma_allocator.h>
 #include <bsls_assert.h>
+#include <bsls_timeinterval.h>
 #include <bsls_types.h>
 
 namespace BloombergLP {
@@ -307,6 +308,7 @@ Parameters::print(bsl::ostream& stream, int level, int spacesPerLevel) const
                            d_sequentialMessagePattern);
     printer.printAttribute("messageProperties", d_messageProperties);
     printer.printAttribute("subscriptions", d_subscriptions);
+    printer.printAttribute("timeout", d_timeout);
     printer.end();
 
     return stream;
@@ -382,6 +384,12 @@ bool Parameters::from(bsl::ostream&                stream,
         return false;  // RETURN
     }
 
+    if (params.timeoutSec() < 0) {
+        stream << "Negative timeout vaules are not supported" << "\n";
+        return false;  // RETURN
+    }
+    bsls::TimeInterval timeout(params.timeoutSec(), 0);
+
     // Populate output parameters struct
     setVerbosity(paramVerbosity);
     setLogFormat(params.logFormat());
@@ -410,6 +418,7 @@ bool Parameters::from(bsl::ostream&                stream,
     setMessageProperties(params.messageProperties());
     setSubscriptions(params.subscriptions());
     setAutoPubSubModulo(params.autoPubSubModulo());
+    setTimeout(timeout);
 
     return true;
 }

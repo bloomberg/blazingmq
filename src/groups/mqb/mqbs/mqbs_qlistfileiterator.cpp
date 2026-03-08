@@ -43,17 +43,18 @@ int QlistFileIterator::reset(const MappedFileDescriptor* mfd,
     BSLS_ASSERT_SAFE(mfd);
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_NO_FILE_HEADER = -1  // Not enough bytes for FileHeader
-        ,
-        rc_CORRUPT_FILE_HEADER = -2  // Corrupt FileHeader
-        ,
-        rc_NO_QLIST_HEADER = -3  // Not enough bytes for QlistFileHeader
-        ,
-        rc_CORRUPT_QLIST_HEADER = -4  // Corrupt QlistFileHeader
-        ,
-        rc_NOT_ENOUGH_BYTES = -5  // Not enough bytes
+        /// Success
+        rc_SUCCESS = 0,
+        /// Not enough bytes for FileHeader
+        rc_NO_FILE_HEADER = -1,
+        /// Corrupt FileHeader
+        rc_CORRUPT_FILE_HEADER = -2,
+        /// Not enough bytes for QlistFileHeader
+        rc_NO_QLIST_HEADER = -3,
+        /// Corrupt QlistFileHeader
+        rc_CORRUPT_QLIST_HEADER = -4,
+        /// Not enough bytes
+        rc_NOT_ENOUGH_BYTES = -5
     };
 
     // Clear earlier state
@@ -135,19 +136,18 @@ int QlistFileIterator::nextRecord()
 {
     enum RcEnum {
         // Value for the various RC error categories
-        rc_HAS_NEXT = 1  // There is another message after this
-                         // one
-        ,
-        rc_AT_END = 0  // This is the last message
-        ,
-        rc_INVALID = -1  // The Iterator is an invalid state
-        ,
-        rc_MAGIC_MISMATCH = -2  // Magic mismatch
-        ,
-        rc_NOT_ENOUGH_BYTES = -3  // Not enough bytes for QueueRecordHeader
-                                  // and QueueRecord
-        ,
-        rc_CORRUPT_RECORD_HEADER = -4  // Queue record header is corrupt
+        /// There is another message after this one
+        rc_HAS_NEXT = 1,
+        /// This is the last message
+        rc_AT_END = 0,
+        /// The Iterator is an invalid state
+        rc_INVALID = -1,
+        /// Magic mismatch
+        rc_MAGIC_MISMATCH = -2,
+        /// Not enough bytes for QueueRecordHeader and QueueRecord
+        rc_NOT_ENOUGH_BYTES = -3,
+        /// Queue record header is corrupt
+        rc_CORRUPT_RECORD_HEADER = -4
     };
 
     if (!isValid()) {

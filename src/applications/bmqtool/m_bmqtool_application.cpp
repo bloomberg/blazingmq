@@ -556,8 +556,14 @@ int Application::initialize()
     int                  rc = 0;
     bmqt::SessionOptions options;
     options.setBrokerUri(d_parameters.broker())
+        .setConnectTimeout(d_parameters.timeout())
+        .setDisconnectTimeout(d_parameters.timeout())
+        .setOpenQueueTimeout(d_parameters.timeout())
+        .setConfigureQueueTimeout(d_parameters.timeout())
+        .setCloseQueueTimeout(d_parameters.timeout())
         .setNumProcessingThreads(d_parameters.numProcessingThreads())
-        .configureEventQueue(1000, 10 * 1000);
+        .configureEventQueue(1000, 10 * 1000)
+        .setUserAgentPrefix("bmqtool");
 
     // Create the session
     if (d_parameters.noSessionEventHandler()) {
@@ -778,13 +784,17 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
                         BuildConfirmOverflowFunctor(*d_session_mp.get(),
                                                     confirmBuilder));
 
-                BSLS_ASSERT_SAFE(rc == 0);
-
-                // Write to log file
-                d_fileLogger.writeConfirmMessage(message);
-                // Note that we add to the fileLogger here, despite sending
-                // the batched confirm event out of this loop because we
-                // need to access each individual's message details.
+                if (rc == 0) {
+                    // Write to log file
+                    d_fileLogger.writeConfirmMessage(message);
+                    // Note that we add to the fileLogger here, despite sending
+                    // the batched confirm event out of this loop because we
+                    // need to access each individual's message details.
+                }
+                else {
+                    BALL_LOG_ERROR << "Failed to confirm [" << message
+                                   << "]: " << rc << ".";
+                }
             }
 
             // Try to compute and record end-to-end latency, or break early
@@ -873,7 +883,6 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
         if (rc != 0) {
             BALL_LOG_ERROR << "Failed to send " << msgId << " confirms for "
                            << event << " [rc: " << rc << "]";
-            BSLS_ASSERT_SAFE(!d_isRunning);
         }
     }
 }
@@ -919,12 +928,10 @@ int Application::syschk(const m_bmqtool::Parameters& parameters)
     // Initialize session options
     bmqt::SessionOptions options;
     options.setBrokerUri(parameters.broker())
-        .setConnectTimeout(
-            bsls::TimeInterval(3 * bdlt::TimeUnitRatio::k_SECONDS_PER_MINUTE));
-    // NOTE: We use a 3 minutes timeout because sometimes the sysqc script may
-    //       execute right after the broker was started, and the broker may not
-    //       be able to accept/process the bmqtool connection request in due
-    //       time.
+        .setConnectTimeout(parameters.timeout());
+    // NOTE: A longer timeout may be needed when syschk runs right after broker
+    //       startup, as the broker may not immediately accept connections.
+    //       Use --timeoutSec to configure (default: 300s).
 
     // Create the session
     bmqa::Session session(options);
@@ -943,7 +950,7 @@ int Application::syschk(const m_bmqtool::Parameters& parameters)
             parameters.queueUri(),
             bmqt::QueueFlags::e_WRITE,
             bmqt::QueueOptions(),
-            bsls::TimeInterval(300));
+            parameters.timeout());
 
         if (!result) {
             BALL_LOG_ERROR << "Error while opening queue: [result: " << result
@@ -951,7 +958,7 @@ int Application::syschk(const m_bmqtool::Parameters& parameters)
             return result.result();  // RETURN
         }
 
-        session.closeQueueSync(&queueId, bsls::TimeInterval(300));
+        session.closeQueueSync(&queueId, parameters.timeout());
     }
 
     // Stop the connection

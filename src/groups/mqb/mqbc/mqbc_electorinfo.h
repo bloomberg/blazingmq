@@ -410,8 +410,7 @@ inline bool ElectorInfo::isSelfLeaderImpl() const
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
     if (d_cluster_p->isRemote()) {
         return false;  // RETURN
@@ -433,8 +432,7 @@ inline bool ElectorInfo::isSelfActiveLeader() const
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
     if (!isSelfLeader()) {
         return false;  // RETURN

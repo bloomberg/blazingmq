@@ -48,6 +48,7 @@
 #include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bsl_vector.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bsls_assert.h>
@@ -277,7 +278,11 @@ struct Tester {
         for (mqbnet::Cluster::NodesList::iterator iter = nodes.begin();
              iter != nodes.end();
              ++iter) {
-            d_cluster_mp->_state().setPartitionPrimary(pid, 1, *iter);
+            mqbc::ClusterNodeSession* ns = d_cluster_mp->_clusterData()
+                                               ->membership()
+                                               .getClusterNodeSession(*iter);
+            BSLS_ASSERT_OPT(ns);
+            d_cluster_mp->_state()->setPartitionPrimary(pid, 1, ns);
             ++pid;
         }
 
@@ -285,9 +290,8 @@ struct Tester {
             new (*bmqtst::TestHelperUtil::allocator())
                 mqbc::IncoreClusterStateLedger(
                     d_cluster_mp->_clusterDefinition(),
-                    mqbc::ClusterStateLedgerConsistency::e_STRONG,
                     d_cluster_mp->_clusterData(),
-                    &d_cluster_mp->_state(),
+                    d_cluster_mp->_state(),
                     d_cluster_mp->_blobSpPool(),
                     bmqtst::TestHelperUtil::allocator()),
             bmqtst::TestHelperUtil::allocator());
@@ -316,7 +320,7 @@ struct Tester {
         ++d_commitCounter;
 
         if (status == mqbc::ClusterStateLedgerCommitStatus::e_SUCCESS) {
-            mqbc::ClusterUtil::apply(&d_cluster_mp->_state(),
+            mqbc::ClusterUtil::apply(d_cluster_mp->_state(),
                                      advisory.choice().clusterMessage(),
                                      *d_cluster_mp->_clusterData());
         }
@@ -390,7 +394,9 @@ struct Tester {
     }
 
     // ACCESSORS
-    bool hasNoMoreBroadcastedMessages() const
+    /// Return true if we observe no more than the `number` of write calls
+    /// in each channel, return false otherwise.
+    bool hasNoMoreBroadcastedMessages(size_t number) const
     {
         // PRECONDITIONS
         BSLS_ASSERT_OPT(d_cluster_mp->_channels().size() > 0);
@@ -398,7 +404,7 @@ struct Tester {
         for (TestChannelMapCIter citer = d_cluster_mp->_channels().cbegin();
              citer != d_cluster_mp->_channels().cend();
              ++citer) {
-            if (!citer->second->hasNoMoreWriteCalls()) {
+            if (number < citer->second->numWriteCalls()) {
                 return false;
             }
         }
@@ -409,7 +415,7 @@ struct Tester {
     /// Return true if we the follower has sent `number` messages to the
     /// leader, false otherwise.  Behavior is undefined unless the caller is a
     /// follower node.
-    bool hasSentMessagesToLeader(int number) const
+    bool hasSentMessagesToLeader(size_t number) const
     {
         // PRECONDITIONS
         BSLS_ASSERT_OPT(d_cluster_mp->_channels().size() > 0);
@@ -422,21 +428,21 @@ struct Tester {
                 if (!citer->second->waitFor(number)) {
                     return false;  // RETURN
                 }
-                BSLS_ASSERT_OPT(citer->second->writeCalls().size() >=
-                                static_cast<size_t>(number));
+                BMQTST_ASSERT_LE(number, citer->second->numWriteCalls());
             }
             else {
-                BSLS_ASSERT_OPT((!citer->second->waitFor(1)));
-                BSLS_ASSERT_OPT(citer->second->writeCalls().empty());
+                BMQTST_ASSERT(!citer->second->waitFor(1));
+                BMQTST_ASSERT_EQ(citer->second->numWriteCalls(), 0u);
             }
         }
 
         return true;
     }
 
-    /// Return true if we the leader has broadcast `number` messages, false
-    /// otherwise.  Behavior is undefined unless the caller is the leader node.
-    bool hasBroadcastedMessages(int number) const
+    /// Return true if we the leader has at least `number` broadcast messages,
+    /// and false otherwise.
+    /// Behavior is undefined unless the caller is the leader node.
+    bool hasBroadcastedMessages(size_t number) const
     {
         // PRECONDITIONS
         BSLS_ASSERT_OPT(d_cluster_mp->_channels().size() > 0);
@@ -455,8 +461,7 @@ struct Tester {
             if (!citer->second->waitFor(number)) {
                 return false;  // RETURN
             }
-            BSLS_ASSERT_OPT(citer->second->writeCalls().size() >=
-                            static_cast<size_t>(number));
+            BSLS_ASSERT_OPT(number <= citer->second->numWriteCalls());
         }
 
         return true;
@@ -464,12 +469,13 @@ struct Tester {
 
     size_t numCommittedMessages() const { return d_committedMessages.size(); }
 
-    bmqp_ctrlmsg::ControlMessage broadcastedMessage(int index)
+    bmqp_ctrlmsg::ControlMessage broadcastedMessage(size_t index)
     {
         // PRECONDITIONS
         BSLS_ASSERT_OPT(d_cluster_mp->_channels().size() > 0);
 
-        bdlbb::Blob* blob = 0;
+        bool        blobFound = false;
+        bdlbb::Blob blob;
         for (TestChannelMapCIter citer = d_cluster_mp->_channels().cbegin();
              citer != d_cluster_mp->_channels().cend();
              ++citer) {
@@ -480,24 +486,26 @@ struct Tester {
                 continue;  // CONTINUE
             }
 
-            BSLS_ASSERT_OPT(citer->second->waitFor(index + 1, false));
+            BSLS_ASSERT_OPT(citer->second->waitFor(index + 1));
 
-            if (!blob) {
-                blob = &citer->second->writeCalls()[index].d_blob;
+            bmqio::TestChannel::WriteCall writeCall;
+            BMQTST_ASSERT(citer->second->getWriteCall(&writeCall, index));
+
+            if (!blobFound) {
+                blob      = writeCall.d_blob;
+                blobFound = true;
             }
             else {
                 BSLS_ASSERT_OPT(
-                    bdlbb::BlobUtil::compare(
-                        *blob,
-                        citer->second->writeCalls()[index].d_blob) == 0);
+                    bdlbb::BlobUtil::compare(blob, writeCall.d_blob) == 0);
             }
         }
 
-        BSLS_ASSERT_OPT(blob);
+        BSLS_ASSERT_OPT(blobFound);
 
         bdlbb::Blob record(d_cluster_mp->bufferFactory(),
                            bmqtst::TestHelperUtil::allocator());
-        bdlbb::BlobUtil::append(&record, *blob, sizeof(bmqp::EventHeader));
+        bdlbb::BlobUtil::append(&record, blob, sizeof(bmqp::EventHeader));
 
         bmqp_ctrlmsg::ControlMessage  controlMessage;
         bmqp_ctrlmsg::ClusterMessage& clusterMessage =
@@ -560,8 +568,9 @@ static void test1_breathingTest()
 
     BMQTST_ASSERT_EQ(tester.numCommittedMessages(), 0U);
     BMQTST_ASSERT(tester.hasBroadcastedMessages(0));
+
     BMQTST_ASSERT_EQ(obj->close(), 0);
-    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages());
+    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages(0));
 }
 
 static void test2_apply_PartitionPrimaryAdvisory()
@@ -613,8 +622,8 @@ static void test2_apply_PartitionPrimaryAdvisory()
     BMQTST_ASSERT_EQ(tester.committedMessage(0), expected);
     BMQTST_ASSERT(tester.hasBroadcastedMessages(2));
 
-    BSLS_ASSERT_OPT(obj->close() == 0);
-    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages());
+    BMQTST_ASSERT_EQ(obj->close(), 0);
+    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages(2));
 }
 
 static void test3_apply_QueueAssignmentAdvisory()
@@ -670,8 +679,8 @@ static void test3_apply_QueueAssignmentAdvisory()
     BMQTST_ASSERT_EQ(tester.committedMessage(0), expected);
     BMQTST_ASSERT(tester.hasBroadcastedMessages(2));
 
-    BSLS_ASSERT_OPT(obj->close() == 0);
-    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages());
+    BMQTST_ASSERT_EQ(obj->close(), 0);
+    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages(2));
 }
 
 static void test4_apply_QueueUnassignedAdvisory()
@@ -723,8 +732,8 @@ static void test4_apply_QueueUnassignedAdvisory()
     BMQTST_ASSERT_EQ(tester.committedMessage(0), expected);
     BMQTST_ASSERT(tester.hasBroadcastedMessages(2));
 
-    BSLS_ASSERT_OPT(obj->close() == 0);
-    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages());
+    BMQTST_ASSERT_EQ(obj->close(), 0);
+    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages(2));
 }
 
 static void test5_apply_QueueUpdateAdvisory()
@@ -794,7 +803,7 @@ static void test5_apply_QueueUpdateAdvisory()
     BMQTST_ASSERT(tester.hasBroadcastedMessages(2));
 
     BSLS_ASSERT_OPT(obj->close() == 0);
-    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages());
+    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages(2));
 }
 
 static void test6_apply_LeaderAdvisory()
@@ -853,7 +862,7 @@ static void test6_apply_LeaderAdvisory()
     BMQTST_ASSERT(tester.hasBroadcastedMessages(2));
 
     BSLS_ASSERT_OPT(obj->close() == 0);
-    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages());
+    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages(2));
 }
 
 static void test7_apply_ClusterStateRecord()
@@ -1081,7 +1090,7 @@ static void test8_apply_ClusterStateRecordCommit()
     BMQTST_ASSERT_EQ(tester.numCommittedMessages(), 1U);
 
     BSLS_ASSERT_OPT(obj->close() == 0);
-    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages());
+    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages(1));
 }
 
 static void test9_persistanceLeader()
@@ -1388,7 +1397,7 @@ static void test10_persistanceFollower()
                                    mqbmock::Cluster::k_LEADER_NODE_ID)) == 0);
 
     // Apply 'QueueUnAssignmentAdvisory'
-    bmqp_ctrlmsg::ClusterMessage           qUnassignedAdvisoryMsg;
+    bmqp_ctrlmsg::ClusterMessage             qUnassignedAdvisoryMsg;
     bmqp_ctrlmsg::QueueUnAssignmentAdvisory& qUnassignedAdvisory =
         qUnassignedAdvisoryMsg.choice().makeQueueUnAssignmentAdvisory();
     tester.d_cluster_mp->_clusterData()
@@ -1597,6 +1606,7 @@ static void test10_persistanceFollower()
     BMQTST_ASSERT(!cslIter->isValid());
 }
 
+BSLA_MAYBE_UNUSED
 static void test11_persistanceAcrossRolloverLeader()
 // ------------------------------------------------------------------------
 // PERSISTENCE ACROSS ROLLOVER LEADER
@@ -1663,7 +1673,7 @@ static void test11_persistanceAcrossRolloverLeader()
     BSLS_ASSERT_OPT(tester.broadcastedMessage(0) == expectedPmAdvisory);
 
     // Apply 'QueueUnAssignmentAdvisory'
-    bmqp_ctrlmsg::ClusterMessage           qUnassignedAdvisoryMsg;
+    bmqp_ctrlmsg::ClusterMessage             qUnassignedAdvisoryMsg;
     bmqp_ctrlmsg::QueueUnAssignmentAdvisory& qUnassignedAdvisory =
         qUnassignedAdvisoryMsg.choice().makeQueueUnAssignmentAdvisory();
     tester.d_cluster_mp->_clusterData()
@@ -2013,6 +2023,79 @@ static void test11_persistanceAcrossRolloverLeader()
     BSLS_ASSERT_OPT(obj->close() == 0);
 }
 
+static void test12_quorumChangeCb()
+// ------------------------------------------------------------------------
+// QUORUM CHANGE CALLBACK
+//
+// Concerns:
+//   Bump up the quorum to unreachable value. Apply 'QueueAssignmentAdvisory'
+//   (only at leader) receive acks from all nodes. Check that the advisory is
+//   not commited. Set the quorum back, then commit the advisory.
+//
+// Testing:
+//   void onQuorumChangeCb(const unsigned int ackQuorum);
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("QUORUM CHANGE CALLBACK");
+
+    Tester                          tester;
+    mqbc::IncoreClusterStateLedger* obj = tester.d_clusterStateLedger_mp.get();
+    BSLS_ASSERT_OPT(obj->open() == 0);
+
+    const unsigned int oldQuorum =
+        tester.d_cluster_mp->_clusterData()->quorumManager().quorum();
+    const unsigned int nodesCount =
+        tester.d_cluster_mp->clusterConfig()->nodes().size();
+
+    // Bump up the quorum to unreachable value.
+    tester.d_cluster_mp->_clusterData()->quorumManager().setQuorum(
+        2 * oldQuorum,
+        nodesCount);
+
+    // Apply 'QueueAssignmentAdvisory'
+    bmqp_ctrlmsg::QueueAssignmentAdvisory qadvisory;
+    tester.d_cluster_mp->_clusterData()
+        ->electorInfo()
+        .nextLeaderMessageSequence(&qadvisory.sequenceNumber());
+
+    bmqp_ctrlmsg::QueueInfo qinfo;
+    qinfo.uri()         = "bmq://bmq.test.mmap.priority/q1";
+    qinfo.partitionId() = 1U;
+
+    mqbu::StorageKey key(mqbu::StorageKey::BinaryRepresentation(), "7777");
+    key.loadBinary(&qinfo.key());
+
+    qadvisory.queues().push_back(qinfo);
+
+    BMQTST_ASSERT_EQ(obj->apply(qadvisory), 0);
+
+    // Receive a `oldQuorum` of acks. It's not enough, so we're not expecting a
+    // commit.
+    tester.receiveAck(obj, qadvisory.sequenceNumber(), oldQuorum);
+
+    bmqp_ctrlmsg::ControlMessage expected;
+    expected.choice()
+        .makeClusterMessage()
+        .choice()
+        .makeQueueAssignmentAdvisory(qadvisory);
+
+    BMQTST_ASSERT_EQ(tester.numCommittedMessages(), 0U);
+    BMQTST_ASSERT(tester.hasBroadcastedMessages(1));
+    BMQTST_ASSERT_EQ(tester.broadcastedMessage(0), expected);
+
+    // Set the quorum back to adequate value.
+    tester.d_cluster_mp->_clusterData()->quorumManager().setQuorum(oldQuorum,
+                                                                   nodesCount);
+
+    // The advisory should be committed after `onQuorumChangeCb` call
+    BMQTST_ASSERT_EQ(tester.numCommittedMessages(), 1U);
+    BMQTST_ASSERT_EQ(tester.committedMessage(0), expected);
+    BMQTST_ASSERT(tester.hasBroadcastedMessages(2));
+
+    BSLS_ASSERT_OPT(obj->close() == 0);
+    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages(2));
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -2023,15 +2106,15 @@ int main(int argc, char* argv[])
 
     bmqsys::Time::initialize(bmqtst::TestHelperUtil::allocator());
     bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     switch (_testCase) {
     case 0:
-        // @TODO RENABLE AND FIX THIS TEST
-        //
-        // The following test consistently fails in CI.  It should be fixed,
-        // but until then we want to avoid the noise.
-        //    case 11: test11_persistanceAcrossRolloverLeader(); break;
+    case 12: test12_quorumChangeCb(); break;
+    // @TODO RENABLE AND FIX THIS TEST
+    //
+    // The following test consistently fails in CI.  It should be fixed,
+    // but until then we want to avoid the noise.
+    //    case 11: test11_persistanceAcrossRolloverLeader(); break;
     case 10: test10_persistanceFollower(); break;
     case 9: test9_persistanceLeader(); break;
     case 8: test8_apply_ClusterStateRecordCommit(); break;
@@ -2048,7 +2131,6 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    bmqt::UriParser::shutdown();
     bmqp::ProtocolUtil::shutdown();
     bmqsys::Time::shutdown();
 

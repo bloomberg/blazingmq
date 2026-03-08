@@ -95,7 +95,7 @@ namespace mqbi {
 class Domain;
 }
 namespace mqbstat {
-class ClusterStats;
+class PartitionStats;
 }
 
 namespace mqbs {
@@ -285,9 +285,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     // Dispatcher client data associated
     // with this instance.
 
-    mqbstat::ClusterStats* d_clusterStats_p;
+    bsl::shared_ptr<mqbstat::PartitionStats> d_partitionStats_sp;
     // Stat object associated to the
-    // Cluster this FileStore belongs to,
+    // Partition this FileStore belongs to,
     // used to report partition level
     // metrics.
 
@@ -406,6 +406,12 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     bmqp::StorageEventBuilder d_storageEventBuilder;
     // Storage event builder to use.
 
+    bmqp_ctrlmsg::PartitionSequenceNumber d_firstSyncPointAfterRolloverSeqNum;
+    // First sync point after rollover sequence number, it is set at the last
+    // step of rollover, together with journal file header
+    // `firstSyncPointOffsetWords`. It is used to determine if cluster node
+    // missed rollover.
+
   private:
     // NOT IMPLEMENTED
     FileStore(const FileStore&) BSLS_CPP11_DELETED;
@@ -510,7 +516,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// and make rolled over file set the new active file set.  Return zero
     /// on success, non-zero value otherwise.  Note that in its *current*
     /// implementation, this routine has no side-effect in case of failure.
-    int rollover(bsls::Types::Uint64 timestamp);
+    int rolloverImpl(bsls::Types::Uint64 timestamp);
 
     /// If the specified `file` of specified `fileType` having specified
     /// `currentSize` and `fileName` cannot accommodate additional
@@ -683,18 +689,14 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                       bsl::shared_ptr<bdlbb::Blob>* options,
                       const DataStoreRecord&        record) const;
 
-    /// Attempt to garbage-collect messages for which TTL has expired where
-    /// the specified `currentTimeUtc` is the current timestamp (UTC).
-    /// Return `true`, if there are expired items unprocessed because of the
-    /// batch size limitation.   Note that this routine is no-op unless at
-    /// the primary node".
-    bool gcExpiredMessages(const bdlt::Datetime& currentTimeUtc);
+    /// Attempt to garbage-collect messages for which TTL has expired.
+    /// Note that this routine is no-op unless at the primary node.
+    void gcExpiredMessages();
 
     /// Delete an history of guids or messages maintained by this data
-    /// store.  Return `true`, if there are expired items unprocessed
-    /// because of the batch size limitation.  Note that this routine is
-    /// invoked at primary as well as replica nodes.
-    bool gcHistory();
+    /// store.  Note that this routine is invoked at primary as well as
+    /// replica nodes.
+    void gcHistory();
 
   public:
     // TRAITS
@@ -706,13 +708,13 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// `dispatcher`, `cluster`, `clusterStats`, `blobSpPool`,
     /// `miscWorkThreadPool`, `isCSLModeEnabled`, `isFSMWorkflow` and
     /// `allocator`.
-    FileStore(const DataStoreConfig&  config,
-              int                     processorId,
-              mqbi::Dispatcher*       dispatcher,
-              mqbnet::Cluster*        cluster,
-              mqbstat::ClusterStats*  clusterStats,
-              BlobSpPool*             blobSpPool,
-              StateSpPool*            statePool,
+    FileStore(const DataStoreConfig&                          config,
+              int                                             processorId,
+              mqbi::Dispatcher*                               dispatcher,
+              mqbnet::Cluster*                                cluster,
+              const bsl::shared_ptr<mqbstat::PartitionStats>& partitionStats,
+              BlobSpPool*                                     blobSpPool,
+              StateSpPool*                                    statePool,
               bdlmt::FixedThreadPool* miscWorkThreadPool,
               bool                    isCSLModeEnabled,
               bool                    isFSMWorkflow,
@@ -736,7 +738,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     void flush() BSLS_KEYWORD_OVERRIDE;
 
     /// Iterate over all storages and run garbage collection.
-    void gcStorage();
+    /// Regularily invoked from the scheduler and executed from the dispatcher
+    /// thread.
+    void scheduledCleanupStorages();
 
     /// Return a pointer to the dispatcher this client is associated with.
     mqbi::Dispatcher* dispatcher() BSLS_KEYWORD_OVERRIDE;
@@ -744,7 +748,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Return a reference to the dispatcherClientData.
     mqbi::DispatcherClientData& dispatcherClientData() BSLS_KEYWORD_OVERRIDE;
 
-    void dispatchEvent(mqbi::DispatcherEvent* event);
+    void dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event);
 
     /// Execute the specified `functor`, using the `e_CALLBACK` event
     /// type, in the processor associated to this object.
@@ -914,8 +918,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// used with caution.
     void deprecateFileSet();
 
-    /// Initiate a forced rollover of this partition.
-    void forceRollover();
+    /// Perform complete rollover of this partition and issue necessary sync
+    /// points.
+    int rollover();
 
     void registerStorage(ReplicatedStorage* storage);
 
@@ -936,7 +941,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// set this to true during testing.
     void setIgnoreCrc32c(bool value);
 
-    // This will be used as Implicit Receipt
+    /// This will be used as Implicit Receipt
     void setLastStrongConsistency(unsigned int        primaryLeaseId,
                                   bsls::Types::Uint64 sequenceNum);
 
@@ -1033,10 +1038,12 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Return the current sequence number for this partition.
     bsls::Types::Uint64 sequenceNumber() const;
 
-    bool inDispatcherThread() const;
-
     /// Return the replication factor for strong consistency.
     int replicationFactor() const;
+
+    /// Return the first sync point after rollover sequence number.
+    const bmqp_ctrlmsg::PartitionSequenceNumber&
+    firstSyncPointAfterRolloverSeqNum() const;
 };
 
 // =======================
@@ -1195,9 +1202,10 @@ inline bool FileStore::needRollover(const MappedFileDescriptor& file,
     return file.fileSize() < (position + length);
 }
 
-inline void FileStore::dispatchEvent(mqbi::DispatcherEvent* event)
+inline void
+FileStore::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event)
 {
-    dispatcher()->dispatchEvent(event, this);
+    dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(event), this);
 }
 
 inline void FileStore::execute(const mqbi::Dispatcher::VoidFunctor& functor)
@@ -1205,11 +1213,6 @@ inline void FileStore::execute(const mqbi::Dispatcher::VoidFunctor& functor)
     dispatcher()->execute(functor,
                           this,
                           mqbi::DispatcherEventType::e_CALLBACK);
-}
-
-inline bool FileStore::inDispatcherThread() const
-{
-    return dispatcher()->inDispatcherThread(this);
 }
 
 // MANIPULATORS
@@ -1301,6 +1304,12 @@ inline bsls::Types::Uint64 FileStore::sequenceNumber() const
 inline int FileStore::replicationFactor() const
 {
     return d_replicationFactor;
+}
+
+inline const bmqp_ctrlmsg::PartitionSequenceNumber&
+FileStore::firstSyncPointAfterRolloverSeqNum() const
+{
+    return d_firstSyncPointAfterRolloverSeqNum;
 }
 
 // -----------------------

@@ -108,16 +108,65 @@ int validateConfig(bsl::ostream& errorDescription,
 {
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS              = 0,
-        rc_NON_BLOOMBERG_CFG    = -1,
-        rc_CHANGED_DOMAIN_MODE  = -2,
-        rc_CHANGED_STORAGE_TYPE = -3,
-        rc_INVALID_SUBSCRIPTION = -4
+        rc_SUCCESS               = 0,
+        rc_WRONG_WATERMARK_RATIO = -1,
+        rc_CHANGED_DOMAIN_MODE   = -2,
+        rc_CHANGED_STORAGE_TYPE  = -3,
+        rc_INVALID_SUBSCRIPTION  = -4
     };
 
+    // 1. Validate new configuration only
+
+    // Check watermark ratios
+    {
+        bool failed = false;
+
+        const mqbconfm::Limits& limits = newConfig.storage().domainLimits();
+
+        if (!(0 <= limits.messagesWatermarkRatio() &&
+              limits.messagesWatermarkRatio() <= 1.0)) {
+            errorDescription
+                << "'messagesWatermarkRatio' must be in range [0; 1], got: "
+                << limits.messagesWatermarkRatio();
+            failed = true;
+        }
+        if (!(0 <= limits.bytesWatermarkRatio() &&
+              limits.bytesWatermarkRatio() <= 1.0)) {
+            if (failed)
+                errorDescription << bsl::endl;
+            errorDescription
+                << "'bytesWatermarkRatio' must be in range [0; 1], got: "
+                << limits.bytesWatermarkRatio();
+            failed = true;
+        }
+
+        if (failed) {
+            return rc_WRONG_WATERMARK_RATIO;  // RETURN
+        }
+    }
+
+    // Validate newConfig.subscriptions()
+    bsl::size_t numSubscriptions         = newConfig.subscriptions().size();
+    bool        allSubscriptionsAreValid = true;
+
+    for (bsl::size_t i = 0; i < numSubscriptions; ++i) {
+        if (!validateSubscriptionExpression(
+                errorDescription,
+                newConfig.subscriptions()[i].expression(),
+                allocator)) {
+            allSubscriptionsAreValid = false;
+        }
+    }
+
+    if (!allSubscriptionsAreValid) {
+        return rc_INVALID_SUBSCRIPTION;  // RETURN
+    }
+
+    // 2. Check compatibility between old/new configurations,
+    // if old configuration exists
     if (previousDefn.isNull()) {
         // First time configure, nothing more to validate
-        return 0;  // RETURN
+        return rc_SUCCESS;  // RETURN
     }
 
     // Validate properties of new configurations relative to old ones.
@@ -142,21 +191,7 @@ int validateConfig(bsl::ostream& errorDescription,
         return rc_CHANGED_STORAGE_TYPE;  // RETURN
     }
 
-    // Validate newConfig.subscriptions()
-
-    bsl::size_t size                     = newConfig.subscriptions().size();
-    bool        allSubscriptionsAreValid = true;
-
-    for (bsl::size_t i = 0; i < size; ++i) {
-        if (!validateSubscriptionExpression(
-                errorDescription,
-                newConfig.subscriptions()[i].expression(),
-                allocator)) {
-            allSubscriptionsAreValid = false;
-        }
-    }
-
-    return allSubscriptionsAreValid ? 0 : rc_INVALID_SUBSCRIPTION;
+    return rc_SUCCESS;
 }
 
 /// Given a definition `defn` for `domain`, ensures that the values provided
@@ -194,11 +229,11 @@ int normalizeConfig(mqbconfm::Domain* defn,
 // ------------
 
 void Domain::onOpenQueueResponse(
-    const bmqp_ctrlmsg::Status&                       status,
-    mqbi::QueueHandle*                                queuehandle,
-    const bmqp_ctrlmsg::OpenQueueResponse&            openQueueResponse,
-    const mqbi::Cluster::OpenQueueConfirmationCookie& confirmationCookie,
-    const mqbi::Domain::OpenQueueCallback&            callback)
+    const bmqp_ctrlmsg::Status&                status,
+    mqbi::QueueHandle*                         queuehandle,
+    const bmqp_ctrlmsg::OpenQueueResponse&     openQueueResponse,
+    const mqbi::OpenQueueConfirmationCookieSp& confirmationCookie,
+    const mqbi::Domain::OpenQueueCallback&     callback)
 {
     // executed by *ANY* thread
 
@@ -451,10 +486,11 @@ void Domain::openQueue(
                 status.message()  = k_NODE_IS_STOPPING;
             }
 
+            mqbi::OpenQueueConfirmationCookieSp temp;
             callback(status,
                      static_cast<mqbi::QueueHandle*>(0),
                      bmqp_ctrlmsg::OpenQueueResponse(),
-                     mqbi::Cluster::OpenQueueConfirmationCookie());
+                     temp);
             return;  // RETURN
         }
 
@@ -480,8 +516,7 @@ int Domain::registerQueue(const bsl::shared_ptr<mqbi::Queue>& queueSp)
     // executed by the associated CLUSTER's DISPATCHER thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_cluster_sp->dispatcher()->inDispatcherThread(d_cluster_sp.get()));
+    BSLS_ASSERT_SAFE(d_cluster_sp->inDispatcherThread());
 
     enum RcEnum {
         // Value for the various RC error categories
@@ -532,8 +567,7 @@ void Domain::unregisterQueue(mqbi::Queue* queue)
     // executed by the associated CLUSTER's DISPATCHER thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_cluster_sp->dispatcher()->inDispatcherThread(d_cluster_sp.get()));
+    BSLS_ASSERT_SAFE(d_cluster_sp->inDispatcherThread());
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
@@ -821,8 +855,7 @@ void Domain::loadRoutingConfiguration(
     // executed by the associated CLUSTER's DISPATCHER thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_cluster_sp->dispatcher()->inDispatcherThread(d_cluster_sp.get()));
+    BSLS_ASSERT_SAFE(d_cluster_sp->inDispatcherThread());
     BSLS_ASSERT_SAFE(config);
 
     bmqp::RoutingConfigurationUtils::clear(config);

@@ -370,12 +370,18 @@ class Routers {
 
         unsigned int d_downstreamSubQueueId;
 
+        /// If `true`, this Consumer is 1) broadcast; 2) non-SDK
+        /// Meaning, can defer broadcast subscriptions to this Consumer.
+        const bool d_isBroadcastBroker;
+
         // CREATORS
 
         /// Creates a new `Consumer` using the specified
-        /// `queueStreamParameters`.
+        /// `streamParameters`, `subQueueId`, `isBroadcastBroker`, and
+        /// `allocator`.
         Consumer(const bmqp_ctrlmsg::StreamParameters& streamParameters,
                  unsigned int                          subQueueId,
+                 bool                                  isBroadcastBroker,
                  bslma::Allocator*                     allocator);
         Consumer(const Consumer& other, bslma::Allocator* allocator = 0);
 
@@ -409,8 +415,8 @@ class Routers {
     struct SubscriptionId {
         /// The Expression.
         const Expressions::SharedItem d_itExpression;
-        const unsigned int            d_upstreamSubQueueId;
         PriorityGroup*                d_priorityGroup;
+        const unsigned int            d_upstreamSubQueueId;
 
         SubscriptionId(const Expressions::SharedItem& itExpression,
                        const unsigned int             upstreamSubQueueId);
@@ -568,15 +574,14 @@ class Routers {
         const mqbi::StorageIterator* d_currentMessage_p;
         bsl::shared_ptr<bdlbb::Blob> d_appData;
         bmqp::MessagePropertiesInfo  d_messagePropertiesInfo;
-        bool                         d_isDirty;
+        bool                         d_needData;
+        unsigned int                 d_numHits;
 
       public:
         MessagePropertiesReader(bmqp::SchemaLearner& schemaLearner,
                                 bslma::Allocator*    allocator);
 
         ~MessagePropertiesReader() BSLS_KEYWORD_OVERRIDE;
-
-        void _set(bmqp::MessageProperties& properties);
 
         bdld::Datum get(const bsl::string& name,
                         bslma::Allocator*  allocator) BSLS_KEYWORD_OVERRIDE;
@@ -592,6 +597,8 @@ class Routers {
 
         /// Reset the reader to the state of empty properties.
         void clear();
+
+        unsigned int numHits() const;
     };
 
     /// Mechanism to assist `Expression`s evaluation optimization to avoid
@@ -633,7 +640,10 @@ class Routers {
         void loadInternals(mqbcmd::Routing* out) const;
     };
 
-    typedef bsl::function<bool(const Routers::Subscription*)> Visitor;
+    typedef bsl::function<bool(mqbi::QueueHandle* handle,
+                               Routers::Consumer* consumer,
+                               unsigned int       downstreamSubscriptionId)>
+        Visitor;
 
     enum Result {
         /// Found Subscription and there is capacity.
@@ -807,12 +817,14 @@ class Routers {
 inline Routers::Consumer::Consumer(
     const bmqp_ctrlmsg::StreamParameters& streamParameters,
     unsigned int                          subQueueId,
+    bool                                  isBroadcastBroker,
     bslma::Allocator*                     allocator)
 : d_streamParameters(streamParameters, allocator)
 , d_timeLastMessageSent(0)
 , d_lastSentMessage()
 , d_highestSubscriptions(allocator)
 , d_downstreamSubQueueId(subQueueId)
+, d_isBroadcastBroker(isBroadcastBroker)
 {
     // NOTHING
 }
@@ -824,6 +836,7 @@ inline Routers::Consumer::Consumer(const Consumer&   other,
 , d_lastSentMessage(other.d_lastSentMessage)
 , d_highestSubscriptions(other.d_highestSubscriptions, allocator)
 , d_downstreamSubQueueId(other.d_downstreamSubQueueId)
+, d_isBroadcastBroker(other.d_isBroadcastBroker)
 {
     // NOTHING
 }
@@ -1000,8 +1013,8 @@ inline Routers::SubscriptionId::SubscriptionId(
     const Expressions::SharedItem& itExpression,
     const unsigned int             upstreamSubQueueId)
 : d_itExpression(itExpression)
-, d_upstreamSubQueueId(upstreamSubQueueId)
 , d_priorityGroup(0)
+, d_upstreamSubQueueId(upstreamSubQueueId)
 {
     // NOTHING
 }
@@ -1050,7 +1063,10 @@ inline bool Routers::PriorityGroup::add(const Subscription* subscription)
     const bsls::Types::Int64 k_int64Max =
         bsl::numeric_limits<bsls::Types::Int64>::max();
 
-    // This relies on the order (priority) of calling 'add'
+    // This relies on the order of calling 'add' by priority from high to low.
+    // This group can correspond to an expression which is used by another
+    // subscription with higher priority in which case 'd_ci' is not empty.
+
     size_t                            n     = d_ci.size();
     bool                              isNew = true;
     const bmqp_ctrlmsg::ConsumerInfo& inCi  = subscription->d_ci;

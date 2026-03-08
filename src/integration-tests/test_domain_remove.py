@@ -600,7 +600,7 @@ def test_purge_then_remove(cluster: Cluster, domain_urls: tc.DomainUrls):
     producer.close(uri=uri, succeed=True)
 
     res = admin.send_admin(f"DOMAINS DOMAIN {domain_urls.domain_priority} PURGE")
-    assert f"Purged 5 message(s)" in res
+    assert "Purged 5 message(s)" in res
 
     res = admin.send_admin(f"DOMAINS REMOVE {domain_urls.domain_priority}")
     assert "Purged 0 message(s) for a total of 0  B from 1 queue(s)" in res

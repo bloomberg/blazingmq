@@ -144,7 +144,7 @@ Printer::Printer(const mqbcfg::StatsConfig& config,
     }
 }
 
-int Printer::start(BSLA_UNUSED bsl::ostream& errorDescription)
+int Printer::start(BSLA_MAYBE_UNUSED bsl::ostream& errorDescription)
 {
     // Setup the print of stats if configured for it
     if (!isEnabled()) {
@@ -270,10 +270,6 @@ void Printer::printStats(bsl::ostream& stream)
 void Printer::logStats()
 {
     ++d_lastStatId;
-
-    // Put a 'reference' in the main log file. We do that first in case it
-    // crashes/hangs in dump stat, this will help figuring it
-    BALL_LOG_INFO << "Stats dumped [id: " << d_lastStatId << "]";
 
     // Dump to statslog file
     // Prepare the log record and associated attributes

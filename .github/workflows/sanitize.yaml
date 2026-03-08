@@ -39,4 +39,4 @@ jobs:
       - name: IT [c++,${{ github.job }}]
         if: ${{ matrix.fuzz == 'off' }}
         run: |
-          docker run --rm sanitizer-${{ github.job }} /blazingmq/cmake.bld/Linux/run-it.sh -k breathing --reruns=3 --bmq-tolerate-dirty-shutdown
+          docker run --rm sanitizer-${{ github.job }} /blazingmq/cmake.bld/Linux/run-it.sh -k breathing --reruns=2 --bmq-tolerate-dirty-shutdown

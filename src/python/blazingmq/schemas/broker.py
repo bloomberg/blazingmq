@@ -1,4 +1,4 @@
-# Copyright 2024 Bloomberg Finance L.P.
+# Copyright 2024-2025 Bloomberg Finance L.P.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -47,6 +47,7 @@ class EventType(IntEnum):
     HEARTBEAT_RSP = 12
     REJECT = 13
     REPLICATION_RECEIPT = 14
+    AUTHENTICATION = 15
 
 
 class TypeSpecific(IntEnum):
@@ -97,6 +98,7 @@ CLIENT_IDENTITY_SCHEMA: SchemaDescription = {
         "clusterName": "",
         "clusterNodeId": -1,
         "sdkLanguage": "E_CPP",
+        "userAgent": "",
         "guidInfo": {"clientId": "fuzztest", "nanoSecondsFromEpoch": 0},
     }
 }
@@ -151,4 +153,8 @@ DISCONNECT_SCHEMA: SchemaDescription = {"rId": 0, "disconnect": {}}
 ADMIN_COMMAND_SCHEMA: SchemaDescription = {
     "rId": 0,
     "adminCommand": {"command": "help"},
+}
+
+AUTHENTICATION_REQUEST_SCHEMA: SchemaDescription = {
+    "authenticationRequest": {"mechanism": "ANONYMOUS", "data": ""}
 }

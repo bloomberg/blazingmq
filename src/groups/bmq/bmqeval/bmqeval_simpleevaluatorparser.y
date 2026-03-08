@@ -65,30 +65,30 @@
 %token END 0 "end of expression"
 %token <char> INVALID "invalid character"
 %token <bsl::string> OVERFLOW "overflow"
-%token <bsl::string> PROPERTY "property";
-%token <bsl::string> STRING "string";
-%token <uint64_t> INTEGER "integer";
-%token TRUE "true";
-%token FALSE "false";
-%token LPAR "(";
-%token RPAR ")";
-%token PLUS "+" MINUS "-";
-%token TIMES "*" DIVIDES "/" MODULUS "%";
-%token EQ "=" NE "<>" LT "<" LE "<=" GE ">=" GT ">";
-%token NOT "!";
-%token <bsl::string> EXISTS "exists";
+%token <bsl::string> PROPERTY "property"
+%token <bsl::string> STRING "string"
+%token <uint64_t> INTEGER "integer"
+%token TRUE "true"
+%token FALSE "false"
+%token LPAR "("
+%token RPAR ")"
+%token NOT "!"
+%token PLUS "+" MINUS "-"
+%token TIMES "*" DIVIDES "/" MODULUS "%"
+%token EQ "=" NE "<>" LT "<" LE "<=" GE ">=" GT ">"
+%token <bsl::string> EXISTS "exists"
 
-%left OR;
-%left AND;
-%left EQ NE
-%left LT LE GE GT;
-%left PLUS MINUS;
-%left TIMES DIVIDES MODULUS;
-%precedence NOT;
+%left OR
+%left AND
+%nonassoc EQ NE
+%nonassoc LT LE GE GT
+%left PLUS MINUS
+%left TIMES DIVIDES MODULUS
+%precedence NOT
 
-%type<bsl::string> variable;
-%type<SimpleEvaluator::ExpressionPtr> expression;
-%type<SimpleEvaluator::ExpressionPtr> predicate;
+%type<bsl::string> variable
+%type<SimpleEvaluator::ExpressionPtr> expression
+%type<SimpleEvaluator::ExpressionPtr> predicate
 %start predicate
 
 %%

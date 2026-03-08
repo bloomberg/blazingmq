@@ -86,6 +86,9 @@ namespace BloombergLP {
 namespace bmqt {
 class Uri;
 }
+namespace bmqst {
+class StatContext;
+}
 namespace mqbcmd {
 class QueueCommand;
 }
@@ -107,6 +110,9 @@ class ResourceUsageMonitor;
 namespace mqbstat {
 class QueueStatsDomain;
 }
+namespace mqbstat {
+class QueueStatsClient;
+}
 
 namespace mqbi {
 
@@ -115,6 +121,58 @@ class DispatcherClient;
 class Domain;
 class Queue;
 class QueueEngine;
+
+// ===================
+// struct InlineResult
+// ===================
+struct InlineResult {
+    enum Enum {
+        e_SUCCESS           = 0,
+        e_UNAVAILABLE       = 1,
+        e_INVALID_PRIMARY   = 2,
+        e_INVALID_GEN_COUNT = 3,
+        e_CHANNEL_ERROR     = 4,
+        e_INVALID_PARTITION = 5,
+        e_SELF_PRIMARY      = 6
+    };
+    // CLASS METHODS
+    static const char*           toAscii(InlineResult::Enum value);
+    static bool                  isPermanentError(InlineResult::Enum value);
+    static bmqt::AckResult::Enum toAckResult(InlineResult::Enum value);
+};
+
+// ==================
+// class InlineClient
+// ==================
+class InlineClient {
+    // Interface for PUSH and ACK.
+
+  public:
+    // CREATORS
+    virtual ~InlineClient();
+
+    virtual mqbi::InlineResult::Enum
+    sendPush(const bmqt::MessageGUID&                  msgGUID,
+             int                                       queueId,
+             const bsl::shared_ptr<bdlbb::Blob>&       message,
+             const mqbi::StorageMessageAttributes&     attributes,
+             const bmqp::MessagePropertiesInfo&        mps,
+             const bmqp::Protocol::SubQueueInfosArray& subQueues,
+             bool                                      isOutOfOrder) = 0;
+    // Called by the 'queueId' to deliver the specified 'message' with the
+    // specified 'message', 'msgGUID', 'attributes' and 'mps' for the
+    // specified 'subQueues' streams of the queue.
+    // Return 'InlineResult::Enum'.
+    //
+    // THREAD: This method is called from the Queue's dispatcher thread.
+
+    virtual mqbi::InlineResult::Enum
+    sendAck(int queueId, const bmqp::AckMessage& ackMessage) = 0;
+    // Called by the 'Queue' to send the specified 'ackMessage'.
+    // Return 'InlineResult::Enum'.
+    //
+    // THREAD: This method is called from the Queue's dispatcher thread.
+};
 
 // =================================
 // class QueueHandleRequesterContext
@@ -170,6 +228,18 @@ class QueueHandleRequesterContext {
     // Unique ID associated with the requester
     // of a queue handle.
 
+    bsl::shared_ptr<bmqst::StatContext> d_statContext_sp;
+
+    InlineClient* d_inlineClient_p;
+
+    // NOT IMPLEMENTED
+    QueueHandleRequesterContext(const QueueHandleRequesterContext&)
+        BSLS_CPP11_DELETED;
+
+    /// Copy constructor and assignment operator are not implemented.
+    QueueHandleRequesterContext&
+    operator=(const QueueHandleRequesterContext&) BSLS_CPP11_DELETED;
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(QueueHandleRequesterContext,
@@ -186,12 +256,6 @@ class QueueHandleRequesterContext {
     /// Default constructor
     explicit QueueHandleRequesterContext(bslma::Allocator* allocator = 0);
 
-    /// Create a `QueueHandleRequesterContext` object having the same value
-    /// as the specified `original` object, and using the specified
-    /// `allocator`.
-    QueueHandleRequesterContext(const QueueHandleRequesterContext& original,
-                                bslma::Allocator*                  allocator);
-
     // MANIPULATORS
     QueueHandleRequesterContext& setClient(DispatcherClient* value);
     QueueHandleRequesterContext&
@@ -202,6 +266,10 @@ class QueueHandleRequesterContext {
     /// Set the corresponding data member to the specified `value` and
     /// return a reference offering modifiable access to this object.
     QueueHandleRequesterContext& setRequesterId(RequesterId value);
+    QueueHandleRequesterContext&
+    setStatContext(const bsl::shared_ptr<bmqst::StatContext>& value);
+
+    QueueHandleRequesterContext& setInlineClient(InlineClient* inlineClient);
 
     // ACCESSORS
     DispatcherClient*                   client() const;
@@ -211,6 +279,10 @@ class QueueHandleRequesterContext {
 
     /// Return the corresponding data member's value.
     RequesterId requesterId() const;
+
+    const bsl::shared_ptr<bmqst::StatContext>& statContext() const;
+
+    InlineClient* inlineClient() const;
 
     /// Return true if the requester node is first hop after the client (or
     /// last hop before the client).
@@ -236,6 +308,30 @@ class QueueHandleRequester {
     virtual const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
     handleRequesterContext() const = 0;
 };
+
+// =======================
+// struct OpenQueueContext
+// =======================
+
+struct OpenQueueContext {
+    // Type of a 'cookie' provided in the 'OpenQueueCallback' to confirm
+    // processing of the 'openQueue' response by the requester.  Opening a
+    // queue is fully async, and it could happen that the requester went
+    // down before the 'openQueue' response got delivered to it.  In this
+    // case, we must rollback upstream state.  This cookie is used for
+    // that: it is initialized to zero (in the 'Cluster' implementation),
+    // and carried over to the original requester of the 'openQueue'.  If
+    // the requester is not able to process the openQueue response, it
+    // needs to set this cookie to the queue handle which it received, so
+    // that the operation can be rolled back.
+
+    QueueHandle*                               d_handle;
+    bsl::shared_ptr<mqbstat::QueueStatsClient> d_stats_sp;
+
+    OpenQueueContext();
+};
+
+typedef bsl::shared_ptr<OpenQueueContext> OpenQueueConfirmationCookieSp;
 
 // ==================
 // struct QueueCounts
@@ -271,26 +367,21 @@ struct QueueHandleReleaseResult {
     enum ReleaseResultFlags {
         // Handle release event processing
 
-        e_NONE = 0
+        e_NONE = 0,
 
         /// no more consumers or producers for all subStream for this handle
-        ,
-        e_NO_HANDLE_CLIENTS = (1 << 0)
+        e_NO_HANDLE_CLIENTS = (1 << 0),
 
         /// no more consumers for this subStream for this handle
-        ,
-        e_NO_HANDLE_STREAM_CONSUMERS = (1 << 1)
+        e_NO_HANDLE_STREAM_CONSUMERS = (1 << 1),
 
         /// no more producers for this subStream for this handle
-        ,
-        e_NO_HANDLE_STREAM_PRODUCERS = (1 << 2)
+        e_NO_HANDLE_STREAM_PRODUCERS = (1 << 2),
 
         /// no more consumers for this subStream across all handles
-        ,
-        e_NO_QUEUE_STREAM_CONSUMERS = (1 << 3)
+        e_NO_QUEUE_STREAM_CONSUMERS = (1 << 3),
 
         /// no more producers for this subStream across all handles
-        ,
         e_NO_QUEUE_STREAM_PRODUCERS = (1 << 4)
     };
 
@@ -447,6 +538,8 @@ class QueueHandle {
         unsigned int                   d_upstreamSubQueueId;
         bmqp_ctrlmsg::StreamParameters d_streamParameters;
 
+        bsl::shared_ptr<mqbstat::QueueStatsClient> d_clientStats_sp;
+
         StreamInfo(const QueueCounts& counts,
                    unsigned int       downstreamSubQueueId,
                    unsigned int       upstreamSubQueueId,
@@ -476,9 +569,10 @@ class QueueHandle {
     /// the specified `counts`.  Create new context for the `subStreamInfo`
     /// if it is not registered.  Associate the subStream with the specified
     /// `upstreamSubQueueId`.
+    /// Return an iterator pointing to the context.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    virtual void
+    virtual SubStreams::const_iterator
     registerSubStream(const bmqp_ctrlmsg::SubQueueIdInfo& subStreamInfo,
                       unsigned int                        upstreamSubQueueId,
                       const mqbi::QueueCounts&            counts) = 0;
@@ -523,13 +617,15 @@ class QueueHandle {
                              const bsl::shared_ptr<bdlbb::Blob>& options) = 0;
 
     /// Confirm the message with the specified `msgGUID` for the specified
-    /// `subQueueId` stream of the queue.
+    /// `downstreamSubQueueId` stream of the queue.
+    /// Use the specified `eventSource_p` for event allocations.
     ///
     /// THREAD: this method can be called from any thread and is responsible
     ///         for calling the corresponding method on the `Queue`, on the
     ///         Queue's dispatcher thread.
-    virtual void confirmMessage(const bmqt::MessageGUID& msgGUID,
-                                unsigned int             subQueueId) = 0;
+    virtual void confirmMessage(mqbi::DispatcherEventSource* eventSource_p,
+                                const bmqt::MessageGUID&     msgGUID,
+                                unsigned int downstreamSubQueueId) = 0;
 
     /// Reject the message with the specified `msgGUID` for the specified
     /// `subQueueId` stream of the queue.
@@ -558,21 +654,20 @@ class QueueHandle {
     virtual void onAckMessage(const bmqp::AckMessage& ackMessage) = 0;
 
     /// Called by the `Queue` to deliver a message under the specified `iter`
-    /// with the specified `msgGroupId` for the specified `subscriptions` of
-    /// the queue.  The behavior is undefined unless the queueHandle can send
+    /// for the specified `subscriptions` of the queue.
+    /// The behavior is undefined unless the queueHandle can send
     /// a message at this time for each of the corresponding subStreams (see
     /// `canDeliver(unsigned int subQueueId)` for more details).
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual void
     deliverMessage(const mqbi::StorageIterator&              iter,
-                   const bmqp::Protocol::MsgGroupId&         msgGroupId,
                    const bmqp::Protocol::SubQueueInfosArray& subscriptions,
                    bool                                      isOutOfOrder) = 0;
 
     /// Called by the `Queue` to deliver a message under the specified `iter`
-    /// with the specified `msgGroupId` for the specified `subscriptions` of
-    /// the queue.  This method is identical with `deliverMessage()` but it
+    /// for the specified `subscriptions` of the queue.
+    /// This method is identical with `deliverMessage()` but it
     /// doesn't update any flow-control mechanisms implemented by this handler.
     /// The behavior is undefined unless the queueHandle can send a message at
     /// this time (see `canDeliver(unsigned int subQueueId)` for more details).
@@ -580,7 +675,6 @@ class QueueHandle {
     /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual void deliverMessageNoTrack(
         const mqbi::StorageIterator&              iter,
-        const bmqp::Protocol::MsgGroupId&         msgGroupId,
         const bmqp::Protocol::SubQueueInfosArray& subscriptions) = 0;
 
     /// Used by the client to configure a given queue handle with the
@@ -680,6 +774,10 @@ class QueueHandle {
     /// cluster member, false otherwise.
     virtual bool isClientClusterMember() const = 0;
 
+    /// Return a pointer offering non-modifiable access to the client
+    /// context associated with this object.
+    virtual const QueueHandleRequesterContext* clientContext() const = 0;
+
     /// Return true if the queueHandle can send a message to the client
     /// which has subscribed to the specified `downstreamSubscriptionId`,
     /// and false otherwise.  Note the queueHandle may or may not be able to
@@ -697,12 +795,8 @@ class QueueHandle {
     virtual const bsl::vector<const mqbu::ResourceUsageMonitor*>
     unconfirmedMonitors(const bsl::string& appId) const = 0;
 
-    /// Return number of unconfirmed messages for the optionally specified
-    /// `subId` unless it has the default value `k_UNASSIGNED_SUBQUEUE_ID`,
-    /// in which case return number of unconfirmed messages for all streams.
-    virtual bsls::Types::Int64
-    countUnconfirmed(unsigned int subId =
-                         bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID) const = 0;
+    /// Return number of unconfirmed messages for all streams.
+    virtual bsls::Types::Int64 countUnconfirmed() const = 0;
 
     /// Load in the specified `out` object, the internal details about this
     /// queue handle.
@@ -746,9 +840,11 @@ class Queue : public DispatcherClient {
 
     /// Obtain a handle to this queue, for the client represented by the
     /// specified `clientContext` and using the specified `handleParameters`
-    /// and `upstreamSubQueueId`.  Invoke the specified `callback` with the
-    /// result.
+    /// and `upstreamSubQueueId`.  Load a reference to the corresponding
+    /// `mqbstat::QueueStatsClient` into the specified `context`.
+    /// Invoke the specified `callback` with the result.
     virtual void getHandle(
+        const mqbi::OpenQueueConfirmationCookieSp&          context,
         const bsl::shared_ptr<QueueHandleRequesterContext>& clientContext,
         const bmqp_ctrlmsg::QueueHandleParameters&          handleParameters,
         unsigned int                                        upstreamSubQueueId,
@@ -794,13 +890,15 @@ class Queue : public DispatcherClient {
     virtual void
     setStats(const bsl::shared_ptr<mqbstat::QueueStatsDomain>& stats) = 0;
 
-    /// Return number of unconfirmed messages across all handles with the
-    /// `specified `subId'.
-    virtual bsls::Types::Int64 countUnconfirmed(unsigned int subId) = 0;
+    /// Return number of unconfirmed messages across all handles.
+    virtual bsls::Types::Int64 countUnconfirmed() const = 0;
 
-    /// Stop sending PUSHes but continue receiving CONFIRMs, receiving and
-    /// sending PUTs and ACKs.
-    virtual void stopPushing() = 0;
+    /// Set the state of this queue to "stopping".
+    /// This is a one-way step before shutting down the broker.
+    /// In this state, the queue will:
+    /// - Continue receiving CONFIRMs, receiving and sending PUTs and ACKs.
+    /// - Stop sending PUSHes and stop idle GC.
+    virtual void setStopping() = 0;
 
     /// Called when a message with the specified `msgGUID`, `appData`,
     /// `options`, `compressionAlgorithmType` payload is pushed to this
@@ -869,13 +967,11 @@ class Queue : public DispatcherClient {
 
     /// Invoked by the Data Store when it receives quorum Receipts for the
     /// specified `msgGUID`.  Send ACK to the specified `queueHandle` if it
-    /// is present in the queue handle catalog.  Update AVK time stats using
-    /// the specified `arrivalTimepoint`.
+    /// is present in the queue handle catalog.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    virtual void onReceipt(const bmqt::MessageGUID&  msgGUID,
-                           mqbi::QueueHandle*        queueHandle,
-                           const bsls::Types::Int64& arrivalTimepoint) = 0;
+    virtual void onReceipt(const bmqt::MessageGUID& msgGUID,
+                           mqbi::QueueHandle*       queueHandle) = 0;
 
     /// Invoked by the Data Store when it removes (times out waiting for
     /// quorum Receipts for) a message with the specified `msgGUID`.  Send
@@ -985,6 +1081,57 @@ class QueueHandleFactory {
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
+
+inline const char* InlineResult::toAscii(InlineResult::Enum value)
+{
+#define CASE(X)                                                               \
+    case e_##X: return #X;
+
+    switch (value) {
+        CASE(SUCCESS)
+        CASE(UNAVAILABLE)
+        CASE(CHANNEL_ERROR)
+        CASE(INVALID_PARTITION)
+        CASE(INVALID_PRIMARY)
+        CASE(INVALID_GEN_COUNT)
+        CASE(SELF_PRIMARY)
+    default: return "(* UNKNOWN *)";
+    }
+#undef CASE
+}
+
+inline bool InlineResult::isPermanentError(InlineResult::Enum value)
+{
+    return (value == InlineResult::e_INVALID_PARTITION ||
+            value == InlineResult::e_SELF_PRIMARY);
+}
+
+inline bmqt::AckResult::Enum
+InlineResult::toAckResult(InlineResult::Enum value)
+{
+    switch (value) {
+    case InlineResult::e_SUCCESS: return bmqt::AckResult::e_SUCCESS;
+    case InlineResult::e_INVALID_PARTITION:
+    case InlineResult::e_INVALID_GEN_COUNT:
+        return bmqt::AckResult::e_INVALID_ARGUMENT;
+    case InlineResult::e_UNAVAILABLE:
+    case InlineResult::e_INVALID_PRIMARY:
+    case InlineResult::e_CHANNEL_ERROR:
+    case InlineResult::e_SELF_PRIMARY:
+    default: return bmqt::AckResult::e_UNKNOWN;
+    }
+}
+
+// -----------------------
+// struct OpenQueueContext
+// -----------------------
+
+inline OpenQueueContext::OpenQueueContext()
+: d_handle()
+, d_stats_sp()
+{
+    // NOTHING
+}
 
 // ------------------
 // struct QueueCounts
@@ -1126,18 +1273,8 @@ inline QueueHandleRequesterContext::QueueHandleRequesterContext(
 , d_description(allocator)
 , d_isClusterMember(false)
 , d_requesterId(k_INVALID_REQUESTER_ID)
-{
-    // NOTHING
-}
-
-inline QueueHandleRequesterContext::QueueHandleRequesterContext(
-    const QueueHandleRequesterContext& original,
-    bslma::Allocator*                  allocator)
-: d_client_p(original.d_client_p)
-, d_identity(original.d_identity, allocator)
-, d_description(original.d_description, allocator)
-, d_isClusterMember(original.d_isClusterMember)
-, d_requesterId(original.d_requesterId)
+, d_statContext_sp()
+, d_inlineClient_p(0)
 {
     // NOTHING
 }
@@ -1177,6 +1314,23 @@ QueueHandleRequesterContext::setRequesterId(RequesterId value)
     return *this;
 }
 
+inline QueueHandleRequesterContext&
+QueueHandleRequesterContext::setStatContext(
+    const bsl::shared_ptr<bmqst::StatContext>& value)
+{
+    d_statContext_sp = value;
+    return *this;
+}
+
+inline QueueHandleRequesterContext&
+QueueHandleRequesterContext::setInlineClient(InlineClient* inlineClient)
+{
+    BSLS_ASSERT_SAFE(inlineClient);
+
+    d_inlineClient_p = inlineClient;
+    return *this;
+}
+
 inline DispatcherClient* QueueHandleRequesterContext::client() const
 {
     return d_client_p;
@@ -1207,6 +1361,17 @@ inline QueueHandleRequesterContext::RequesterId
 QueueHandleRequesterContext::requesterId() const
 {
     return d_requesterId;
+}
+
+inline const bsl::shared_ptr<bmqst::StatContext>&
+QueueHandleRequesterContext::statContext() const
+{
+    return d_statContext_sp;
+}
+
+inline InlineClient* QueueHandleRequesterContext::inlineClient() const
+{
+    return d_inlineClient_p;
 }
 
 }  // close package namespace

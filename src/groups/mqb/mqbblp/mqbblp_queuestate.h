@@ -164,9 +164,11 @@ class QueueState {
 
     QueueHandleCatalog d_handleCatalog;
 
-    Routers::QueueRoutingContext d_context;
+    Routers::QueueRoutingContext d_routingContext;
 
     SubQueues d_subStreams;
+
+    bool d_isStopping;
 
   private:
     // NOT IMPLEMENTED
@@ -230,6 +232,13 @@ class QueueState {
 
     /// Set the corresponding attribute to the specified `stats`.
     void setStats(const bsl::shared_ptr<mqbstat::QueueStatsDomain>& stats);
+
+    /// Set this queue state to "stopping".
+    /// This is a one-way step before shutting down the broker.
+    /// In this state, the queue will:
+    /// - Continue receiving CONFIRMs, receiving and sending PUTs and ACKs.
+    /// - Stop sending PUSHes and stop idle GC.
+    void setStopping();
 
     /// Add read, write, and admin counters from the specified `params` to
     /// cumulative values per queue and per appId.
@@ -321,6 +330,9 @@ class QueueState {
     /// priority-consumers semantics or `false` otherwise.
     bool isDeliverConsumerPriority() const;
 
+    /// @return Whether the queue is in the "stopping" state.
+    bool isStopping() const;
+
     /// Return `true` if the configuration for this queue requires
     /// has-multiple-sub-streams semantics or `false` otherwise.
     bool hasMultipleSubStreams() const;
@@ -328,6 +340,14 @@ class QueueState {
     /// Return non-modifiable access reference to the collection of cached
     /// references to subStreams.
     const SubQueues& subQueues() const;
+
+    /// @brief Check whether this queue can be extended with the provided
+    ///        handle parameters.  The behaviour is undefined unless handle
+    ///        parameters are valid (counters are non-negative).
+    /// @param handleParameters Handle parameters to add.
+    /// @return bool True if the queue can be extended, false otherwise.
+    bool canMerge(
+        const bmqp_ctrlmsg::QueueHandleParameters& handleParameters) const;
 };
 
 // ============================================================================
@@ -460,6 +480,11 @@ QueueState::setStats(const bsl::shared_ptr<mqbstat::QueueStatsDomain>& stats)
     d_stats_sp = stats;
 }
 
+inline void QueueState::setStopping()
+{
+    d_isStopping = true;
+}
+
 inline void
 QueueState::adopt(const bsl::shared_ptr<QueueEngineUtil_AppState>& app)
 {
@@ -486,7 +511,7 @@ inline void QueueState::abandon(unsigned int upstreamSubQueueId)
 
 inline Routers::QueueRoutingContext& QueueState::routingContext()
 {
-    return d_context;
+    return d_routingContext;
 }
 
 // ACCESSORS
@@ -606,6 +631,11 @@ QueueState::stats() const
 inline const QueueState::SubQueues& QueueState::subQueues() const
 {
     return d_subStreams;
+}
+
+inline bool QueueState::isStopping() const
+{
+    return d_isStopping;
 }
 
 /// Format the specified `rhs` to the specified output `os` and return a

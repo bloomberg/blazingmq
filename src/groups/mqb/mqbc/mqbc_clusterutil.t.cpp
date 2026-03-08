@@ -72,7 +72,7 @@ struct Tester {
         const bsl::string&      uriString,
         const mqbu::StorageKey& key,
         int                     partitionId,
-        BSLA_UNUSED const mqbc::ClusterState::AppInfos& appIdInfos)
+        BSLA_MAYBE_UNUSED const mqbc::ClusterState::AppInfos& appIdInfos)
     {
         bmqp_ctrlmsg::QueueInfo advisory(bmqtst::TestHelperUtil::allocator());
 
@@ -110,8 +110,14 @@ static void test1_validateState()
 
     // We need to generate two different states and make sure we have the
     // expected outputs
-    mqbc::ClusterState original(tester.cluster(), 5, tester.allocator());
-    mqbc::ClusterState reference(tester.cluster(), 5, tester.allocator());
+    mqbc::ClusterState original(tester.cluster(),
+                                5,
+                                false,  // isTemporary
+                                tester.allocator());
+    mqbc::ClusterState reference(tester.cluster(),
+                                 5,
+                                 false,  // isTemporary
+                                 tester.allocator());
 
     // 0. Generate different and same primary lease Id
     original.setPartitionPrimary(0, 10, 0);
@@ -393,8 +399,6 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
-
     switch (_testCase) {
     case 0:
     case 1: test1_validateState(); break;
@@ -403,8 +407,6 @@ int main(int argc, char* argv[])
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
-
-    bmqt::UriParser::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
     // Can't ensure no default memory is allocated because

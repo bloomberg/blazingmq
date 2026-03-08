@@ -83,18 +83,18 @@ int IncoreClusterStateLedgerIterator::next()
 {
     enum RcEnum {
         // Value for the various RC error categories
-        rc_END_OF_LEDGER = 1  // End of ledger is reached
-        ,
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_RECORD_ALIAS_FAILURE = -1  // Failure to alias a record
-        ,
-        rc_INVALID_FILE_HEADER = -2  // Invalid file header
-        ,
-        rc_INVALID_RECORD_HEADER = -3  // Invalid record header
-        ,
-        rc_OUT_OF_LEDGER_RANGE = -4  // An offset outside of the ledger's
-                                     // range is reached
+        /// End of ledger is reached
+        rc_END_OF_LEDGER = 1,
+        /// Success
+        rc_SUCCESS = 0,
+        /// Failure to alias a record
+        rc_RECORD_ALIAS_FAILURE = -1,
+        /// Invalid file header
+        rc_INVALID_FILE_HEADER = -2,
+        /// Invalid record header
+        rc_INVALID_RECORD_HEADER = -3,
+        /// An offset outside of the ledger's range is reached
+        rc_OUT_OF_LEDGER_RANGE = -4
     };
 
     bdlb::ScopeExitAny guard(bdlf::BindUtil::bind(onInvalidNext, &d_isValid));

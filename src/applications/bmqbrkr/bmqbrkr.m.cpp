@@ -456,8 +456,9 @@ static void shutdownTask(TaskEnvironment* taskEnv)
 /// `taskEnv`.  Return 0 on success, or a non-zero error code and populate
 /// the specified `errorDescription` with a description of the error
 /// otherwise.
-static int initializeApplication(BSLA_UNUSED bsl::ostream& errorDescription,
-                                 TaskEnvironment*          taskEnv)
+static int
+initializeApplication(BSLA_MAYBE_UNUSED bsl::ostream& errorDescription,
+                      TaskEnvironment*                taskEnv)
 {
     // Dump the generated config file
     BALL_LOG_INFO << "Configuration: " << '\n' << taskEnv->d_configJson;
@@ -681,11 +682,6 @@ int main(int argc, const char* argv[])
     int rc = ::sigaction(SIGINT, &sa, NULL);
     if (rc != 0) {
         bsl::cerr << "Failed to install SIGINT handler  (rc: " << rc << ")\n"
-                  << bsl::flush;
-    }
-    rc = ::sigaction(SIGQUIT, &sa, NULL);
-    if (rc != 0) {
-        bsl::cerr << "Failed to install SIGQUIT handler  (rc: " << rc << ")\n"
                   << bsl::flush;
     }
     rc = ::sigaction(SIGTERM, &sa, NULL);

@@ -52,6 +52,7 @@
 #include <bsl_string.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
+#include <bslmf_movableref.h>
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bsls_assert.h>
 #include <bsls_performancehint.h>
@@ -102,9 +103,9 @@ class Event {
     // PRIVATE ACCESSORS
 
     /// Load into the specified `message`, the decoded message contained in
-    /// this event.  The behavior is undefined unless `isControlEvent()` or
-    /// 'isElectorEvent() returns true.  Return 0 on success, and a non-zero
-    /// return code on error.
+    /// this event.  The behavior is undefined unless `isControlEvent()`,
+    /// `isElectorEvent()`, or `isAuthenticationEvent()` returns true.  Return
+    /// 0 on success, and a non-zero return code on error.
     template <class TYPE>
     int loadSchemaEvent(TYPE* message) const;
 
@@ -133,10 +134,20 @@ class Event {
     /// specified `allocator`.
     Event(const Event& src, bslma::Allocator* allocator = 0);
 
+    /// Create a new `bmqp::Event` instance having the same contents as the
+    /// specified `original` object, leaving `original` in a valid but
+    /// unspecified state.  Optionally specify an `allocator` used to supply
+    /// memory.  If `allocator` is 0, the default memory allocator is used.
+    Event(bslmf::MovableRef<Event> src, bslma::Allocator* allocator = 0);
+
     // MANIPULATORS
 
     /// Assignment operator of the specified `rhs`.
     Event& operator=(const Event& rhs);
+
+    /// Replace the contents of `*this` with those of `rhs`, leaving `rhs` in a
+    /// valid but unspecified state.  Return `*this`.
+    Event& operator=(bslmf::MovableRef<Event> rhs);
 
     /// Reset this Event to use the specified `blob`.  If the optionally
     /// specified `clone` is true, this object will clone the blob into its
@@ -161,10 +172,16 @@ class Event {
     /// returns true.
     Event clone(bslma::Allocator* allocator) const;
 
+    /// Return the encoding type of this Authentication event.  The
+    /// behavior is undefined unless `isAuthenticationEvent()` returns true.
+    EncodingType::Enum authenticationEventEncodingType() const;
+
     /// Return the type of this event.  The behavior is undefined unless
     /// `isValid()` returns true.
     EventType::Enum type() const;
 
+    /// Return true if this event is of the corresponding type.  The
+    /// behavior is undefined unless `isValid()` returns true.
     bool isControlEvent() const;
     bool isPutEvent() const;
     bool isConfirmEvent() const;
@@ -178,10 +195,8 @@ class Event {
     bool isHeartbeatReqEvent() const;
     bool isHeartbeatRspEvent() const;
     bool isRejectEvent() const;
-
-    /// Return true if this event is of the corresponding type.  The
-    /// behavior is undefined unless `isValid()` returns true.
     bool isReceiptEvent() const;
+    bool isAuthenticationEvent() const;
 
     /// Load into the specified `message`, the decoded message contained in
     /// this event.  The behavior is undefined unless `isControlEvent()`
@@ -196,6 +211,13 @@ class Event {
     /// error.
     template <class TYPE>
     int loadElectorEvent(TYPE* message) const;
+
+    /// Load into the specified `message`, the decoded message contained in
+    /// this event.  The behavior is undefined unless `isAuthenticationEvent()`
+    /// returns true.  Return 0 on success, and a non-zero return code on
+    /// error.
+    template <class TYPE>
+    int loadAuthenticationEvent(TYPE* message) const;
 
     void loadAckMessageIterator(AckMessageIterator* iterator) const;
     void loadConfirmMessageIterator(ConfirmMessageIterator* iterator) const;
@@ -315,7 +337,8 @@ template <class TYPE>
 int Event::loadSchemaEvent(TYPE* message) const
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(isControlEvent() || isElectorEvent());
+    BSLS_ASSERT_SAFE(isControlEvent() || isElectorEvent() ||
+                     isAuthenticationEvent());
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!isValid())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -325,8 +348,9 @@ int Event::loadSchemaEvent(TYPE* message) const
     }
 
     EncodingType::Enum encodingType = EncodingType::e_BER;
-    if (d_header->type() == EventType::e_CONTROL) {
-        encodingType = EventHeaderUtil::controlEventEncodingType(*d_header);
+    if (d_header->type() == EventType::e_CONTROL ||
+        d_header->type() == EventType::e_AUTHENTICATION) {
+        encodingType = EventHeaderUtil::encodingType(*d_header);
     }
 
     bmqu::MemOutStream os;
@@ -377,12 +401,39 @@ inline Event::Event(const Event& src, bslma::Allocator* allocator)
     initialize(src.d_blob_p, false);
 }
 
+inline Event::Event(bslmf::MovableRef<Event> src, bslma::Allocator* allocator)
+: d_allocator_p(allocator)
+, d_clonedBlob_sp(0, allocator)
+, d_blob_p(0)
+{
+    d_clonedBlob_sp = bslmf::MovableRefUtil::access(src).d_clonedBlob_sp;
+    initialize(bslmf::MovableRefUtil::access(src).d_blob_p, false);
+}
+
 inline Event& Event::operator=(const Event& rhs)
 {
-    if (this != &rhs) {
-        d_clonedBlob_sp = rhs.d_clonedBlob_sp;  // src could be a clone
-        initialize(rhs.d_blob_p, false);
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(this == &rhs)) {
+        // Return early on self-assignment.
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return *this;
     }
+
+    d_clonedBlob_sp = rhs.d_clonedBlob_sp;  // src could be a clone
+    initialize(rhs.d_blob_p, false);
+    return *this;
+}
+
+inline Event& Event::operator=(bslmf::MovableRef<Event> rhs)
+{
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+            this == &bslmf::MovableRefUtil::access(rhs))) {
+        // Return early on self-assignment.
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return *this;
+    }
+
+    d_clonedBlob_sp = bslmf::MovableRefUtil::access(rhs).d_clonedBlob_sp;
+    initialize(bslmf::MovableRefUtil::access(rhs).d_blob_p, false);
     return *this;
 }
 
@@ -418,6 +469,14 @@ inline Event Event::clone(bslma::Allocator* allocator) const
     BSLS_ASSERT_SAFE(allocator);
 
     return Event(d_blob_p, allocator, true /* clone == true */);
+}
+
+inline EncodingType::Enum Event::authenticationEventEncodingType() const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(isAuthenticationEvent());
+
+    return EventHeaderUtil::encodingType(*d_header);
 }
 
 inline EventType::Enum Event::type() const
@@ -540,6 +599,14 @@ inline bool Event::isReceiptEvent() const
     return d_header->type() == EventType::e_REPLICATION_RECEIPT;
 }
 
+inline bool Event::isAuthenticationEvent() const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(isValid());
+
+    return d_header->type() == EventType::e_AUTHENTICATION;
+}
+
 template <class TYPE>
 int Event::loadControlEvent(TYPE* message) const
 {
@@ -554,6 +621,15 @@ int Event::loadElectorEvent(TYPE* message) const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(isElectorEvent());
+
+    return loadSchemaEvent(message);
+}
+
+template <class TYPE>
+int Event::loadAuthenticationEvent(TYPE* message) const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(isAuthenticationEvent());
 
     return loadSchemaEvent(message);
 }

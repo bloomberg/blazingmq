@@ -103,55 +103,47 @@ class Domain;
 struct ClusterErrorCode {
     // TYPES
     enum Enum {
-        // Generic
-        // - - - -
+        /// Generic
+        /// - - - -
         e_OK = 0,
 
-        e_UNKNOWN = -10
-        // Operation failed for unknown reason
-        ,
-        e_STOPPING = -11
-        // The node (either current or remote) is being stopped
+        /// Operation failed for unknown reason
+        e_UNKNOWN = -10,
+        /// The node (either current or remote) is being stopped
+        e_STOPPING = -11,
 
         // ClusterProxy specific
         // - - - - - - - - - - -
-        ,
-        e_ACTIVE_LOST = -100
-        // The connection to the active node was lost
+        /// The connection to the active node was lost
+        e_ACTIVE_LOST = -100,
 
         // Cluster specific
         // - - - - - - - -
-        ,
-        e_NOT_LEADER = -200
-        // The node is not the leader of the cluster
-        ,
-        e_NOT_PRIMARY = -201
-        // The node is not the primary of the partition
-        ,
-        e_NO_PARTITION = -202
-        // Unable to find a partition for the queue
-        ,
-        e_NODE_DOWN = -203
-        // The connection with the remote node went down
-        ,
-        e_UNKNOWN_QUEUE = -204
-        // The node is not aware of that queue
-        ,
-        e_LIMIT = -205
-        // A limit has been reached, currently:
-        //: o too many active queues in the domain
-        ,
-        e_NOT_FOLLOWER = -206
-        // The node is not a follower in the cluster
-        ,
-        e_NOT_REPLICA = -207
-        // The node is not a replica of the partition
-        ,
-        e_CSL_FAILURE = -208
-        // Failure to apply to the CSL
-        ,
-        e_STORAGE_FAILURE = -209
-        // Storage failure other than CSL failure
+        /// The node is not the leader of the cluster
+        e_NOT_LEADER = -200,
+        /// The node is not the primary of the partition
+        e_NOT_PRIMARY = -201,
+        /// Unable to find a partition for the queue
+        e_NO_PARTITION = -202,
+        /// The connection with the remote node went down
+        e_NODE_DOWN = -203,
+        /// The node is not aware of that queue
+        e_UNKNOWN_QUEUE = -204,
+        /// A limit has been reached, currently:
+        ///   - too many active queues in the domain
+        e_LIMIT = -205,
+        /// The node is not a follower in the cluster
+        e_NOT_FOLLOWER = -206,
+        /// The node is not a replica of the partition
+        e_NOT_REPLICA = -207,
+        /// Failure to apply to the CSL
+        e_CSL_FAILURE = -208,
+        /// Storage failure other than CSL failure
+        e_STORAGE_FAILURE = -209,
+        /// Self is replica waiting for PrimaryStateResponse, and **must**
+        /// reject the ReplicaStateRequest to prevent primary from healing us
+        /// twice in a row, leading to duplicate work.
+        e_REPLICA_WAITING = -210
     };
 
     // CLASS METHODS
@@ -206,18 +198,6 @@ class Cluster : public DispatcherClient {
   public:
     // TYPES
 
-    /// Type of a `cookie` provided in the `OpenQueueCallback` to confirm
-    /// processing of the `openQueue` response by the requester.  Opening a
-    /// queue is fully async, and it could happen that the requester went
-    /// down before the `openQueue` response got delivered to it.  In this
-    /// case, we must rollback upstream state.  This cookie is used for
-    /// that: it is initialized to zero (in the `Cluster` implementation),
-    /// and carried over to the original requester of the `openQueue`.  If
-    /// the requester is not able to process the openQueue response, it
-    /// needs to set this cookie to the queue handle which it received, so
-    /// that the operation can be rolled back.
-    typedef bsl::shared_ptr<QueueHandle*> OpenQueueConfirmationCookie;
-
     /// Signature of the callback passed to the `openQueue()` method: if the
     /// specified `status` is SUCCESS, the operation was a success and the
     /// specified `queueHandle` contains the queue handle, and the specified
@@ -232,7 +212,7 @@ class Cluster : public DispatcherClient {
         const bmqp_ctrlmsg::Status&            status,
         QueueHandle*                           queueHandle,
         const bmqp_ctrlmsg::OpenQueueResponse& openQueueResponse,
-        const OpenQueueConfirmationCookie&     confirmationCookie)>
+        const OpenQueueConfirmationCookieSp&   confirmationCookie)>
         OpenQueueCallback;
 
     // TYPES
@@ -272,12 +252,9 @@ class Cluster : public DispatcherClient {
     /// Initiate the shutdown of the cluster and invoke the specified
     /// `callback` upon completion of (asynchronous) shutdown sequence. It
     /// is expected that `stop()` will be called soon after this routine is
-    /// invoked.  If the optional (temporary) specified 'supportShutdownV2' is
-    /// 'true' execute shutdown logic V2 where upstream (not downstream) nodes
-    /// deconfigure  queues and the shutting down node (not downstream) wait
-    /// for CONFIRMS.
-    virtual void initiateShutdown(const VoidFunctor& callback,
-                                  bool supportShutdownV2 = false) = 0;
+    /// invoked.  Execute shutdown logic where upstream (not downstream) nodes
+    /// deconfigure  queues and the shutting down node waits for CONFIRMS.
+    virtual void initiateShutdown(const VoidFunctor& callback) = 0;
 
     /// Stop the `Cluster`; this is the counterpart of the `start()`
     /// operation.
@@ -291,8 +268,8 @@ class Cluster : public DispatcherClient {
     /// used by this cluster.
     virtual RequestManagerType& requestManager() = 0;
 
-    // Return a reference offering a modifiable access to the multi request
-    // manager used by this cluster.
+    /// Return a reference offering a modifiable access to the multi request
+    /// manager used by this cluster.
     virtual MultiRequestManagerType& multiRequestManager() = 0;
 
     /// Send the specified `request` with the specified `timeout` to the
@@ -335,10 +312,10 @@ class Cluster : public DispatcherClient {
     /// specified `queue` with the specified `handleParameters` and invoke
     /// the specified `callback` when finished.
     virtual void
-    configureQueue(Queue*                                     queue,
-                   const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
-                   unsigned int                  upstreamSubQueueId,
-                   const HandleReleasedCallback& callback) = 0;
+    closeQueue(Queue*                                     queue,
+               const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
+               unsigned int                               upstreamSubQueueId,
+               const HandleReleasedCallback&              callback) = 0;
 
     /// Invoked whenever an attempt was made to create a queue handle for
     /// the specified `queue` having the specified `uri`, with
@@ -366,6 +343,25 @@ class Cluster : public DispatcherClient {
 
     /// Load the cluster state to the specified `out` object.
     virtual void loadClusterStatus(mqbcmd::ClusterResult* out) = 0;
+
+    /// Send the specified CONFIRM 'message' for the specified 'partitionId'
+    /// without switching thread context.
+    /// 'onRelayConfirmEvent' replacement.
+    virtual mqbi::InlineResult::Enum
+    sendConfirmInline(int                         partitionId,
+                      const bmqp::ConfirmMessage& message) = 0;
+
+    /// Send PUT message for the specified 'partitionId' using the specified
+    /// 'putHeader', 'appData', 'options', 'state', 'genCount' without
+    /// switching thread context.
+    /// 'onRelayPutEvent' replacement.
+    virtual mqbi::InlineResult::Enum
+    sendPutInline(int                                       partitionId,
+                  const bmqp::PutHeader&                    putHeader,
+                  const bsl::shared_ptr<bdlbb::Blob>&       appData,
+                  const bsl::shared_ptr<bdlbb::Blob>&       options,
+                  const bsl::shared_ptr<bmqu::AtomicState>& state,
+                  bsls::Types::Uint64                       genCount) = 0;
 
     /// Purge and force GC queues in this cluster on a given domain.
     virtual void purgeAndGCQueueOnDomain(mqbcmd::ClusterResult* result,

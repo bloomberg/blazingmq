@@ -23,6 +23,7 @@
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcmd_messages.h>
 #include <mqbnet_cluster.h>
+#include <mqbnet_negotiationcontext.h>
 #include <mqbnet_negotiator.h>
 #include <mqbnet_transportmanager.h>
 
@@ -646,10 +647,10 @@ mqbnet::ClusterNode* ClusterCatalog::onNegotiationForClusterSession(
             errorDescription << "Cluster '" << clusterName << "' not found";
             return 0;  // RETURN
         }
-        context->negotiationContext()->d_cluster_p =
-            &it->second.d_cluster_sp->netCluster();
-        context->negotiationContext()->d_eventProcessor_p =
-            it->second.d_eventProcessor_p;
+        context->negotiationContext()->setCluster(
+            &it->second.d_cluster_sp->netCluster());
+        context->negotiationContext()->setEventProcessor(
+            it->second.d_eventProcessor_p);
     }
 
     // 2. Lookup the nodeId and populate resultState

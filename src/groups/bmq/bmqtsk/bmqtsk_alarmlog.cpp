@@ -65,8 +65,8 @@ AlarmLog::~AlarmLog()
     // NOTHING (required because of virtual class)
 }
 
-void AlarmLog::publish(const ball::Record& record,
-                       BSLA_UNUSED const ball::Context& context)
+void AlarmLog::publish(const ball::Record&     record,
+                       BSLA_MAYBE_UNUSED const ball::Context& context)
 {
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(
             (record.fixedFields().severity() > ball::Severity::e_ERROR) ||
@@ -88,7 +88,7 @@ void AlarmLog::publish(const ball::Record& record,
         // string.
         const bslstl::StringRef categoryStr(alarmType.c_str() + 4,
                                             alarmType.length() - 4);
-        generateAlarm(categoryStr, record.fixedFields().message());
+        generateAlarm(categoryStr, record.fixedFields().messageRef());
         return;  // RETURN
     }
 
@@ -105,7 +105,7 @@ void AlarmLog::publish(const ball::Record& record,
         ((now - last) >=
          k_ALARM_INTERVAL * bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND)) {
         last = now;  // Update alarm last time
-        generateAlarm(alarmType, record.fixedFields().message());
+        generateAlarm(alarmType, record.fixedFields().messageRef());
     }
 }
 

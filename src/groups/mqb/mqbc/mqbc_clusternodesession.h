@@ -28,13 +28,14 @@
 #include <mqbi_dispatcher.h>
 #include <mqbi_queue.h>
 #include <mqbnet_cluster.h>
-#include <mqbstat_clusterstats.h>
+#include <mqbstat_queuestats.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_protocolutil.h>
 #include <bmqp_queueid.h>
 #include <bmqst_statcontextuserdata.h>
+#include <bmqu_atomicgate.h>
 
 // BDE
 #include <ball_log.h>
@@ -51,16 +52,14 @@
 namespace BloombergLP {
 namespace mqbc {
 
-// FORWARD DECLARATION
-class ClusterState;
-
 // ========================
 // class ClusterNodeSession
 // ========================
 
 /// Provide a session for interaction with BlazingMQ cluster node.
 class ClusterNodeSession : public mqbi::DispatcherClient,
-                           public mqbi::QueueHandleRequester {
+                           public mqbi::QueueHandleRequester,
+                           public mqbi::InlineClient {
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBC.CLUSTERNODESESSION");
@@ -72,13 +71,17 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     /// opened in this session.
     struct SubQueueInfo {
         /// Stats of this SubQueue, with regards to the client.
-        bsl::shared_ptr<mqbstat::ClusterNodeStats> d_clientStats;
+        bsl::shared_ptr<mqbstat::QueueStatsClient> d_clientStats_sp;
 
         // CREATORS
 
         /// Constructor of a new object, initializes all data members to
         /// default values.
         SubQueueInfo();
+
+        // ACCESSORS
+        void onEvent(mqbstat::QueueStatsClient::EventType::Enum type,
+                     bsls::Types::Int64                         value) const;
     };
 
     /// Struct holding the state associated to a queue opened in by the
@@ -129,8 +132,6 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
 
     typedef QueueHandleMap::const_iterator QueueHandleMapConstIter;
 
-    typedef bsl::shared_ptr<bmqst::StatContext> StatContextSp;
-
     typedef QueueState::StreamsMap StreamsMap;
 
   private:
@@ -160,13 +161,19 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     /// Node status.
     bmqp_ctrlmsg::NodeStatus::Value d_nodeStatus;
 
-    StatContextSp d_statContext_sp;
-
+    // Extra reference to the stat context
+    bsl::shared_ptr<bmqst::StatContext> d_statContext_sp;
     /// PartitionIds for which this node is the primary.
     bsl::vector<int> d_primaryPartitions;
 
     /// List of queue handles opened on this node by `d_clusterNode_p`.
     QueueHandleMap d_queueHandles;
+
+    /// Gates controlling sending messages inline (from multiple threads).
+    bmqu::GateKeeper d_gatePush;
+    bmqu::GateKeeper d_gateAck;
+    bmqu::GateKeeper d_gatePut;
+    bmqu::GateKeeper d_gateConfirm;
 
   private:
     // NOT IMPLEMENTED
@@ -179,11 +186,13 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
                                    bslma::UsesBslmaAllocator)
 
     // CREATORS
-    explicit ClusterNodeSession(mqbi::DispatcherClient* cluster,
-                                mqbnet::ClusterNode*    netNode,
-                                const bsl::string&      clusterName,
-                                const bmqp_ctrlmsg::ClientIdentity& identity,
-                                bslma::Allocator*                   allocator);
+    explicit ClusterNodeSession(
+        mqbi::DispatcherClient*                    cluster,
+        mqbnet::ClusterNode*                       netNode,
+        const bsl::string&                         clusterName,
+        const bmqp_ctrlmsg::ClientIdentity&        identity,
+        const bsl::shared_ptr<bmqst::StatContext>& statContext,
+        bslma::Allocator*                          allocator);
 
     /// Destructor.
     ~ClusterNodeSession() BSLS_KEYWORD_OVERRIDE;
@@ -211,12 +220,13 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     /// Return a reference to the dispatcherClientData.
     mqbi::DispatcherClientData& dispatcherClientData() BSLS_KEYWORD_OVERRIDE;
 
-    void setNodeStatus(bmqp_ctrlmsg::NodeStatus::Value value);
+    /// @brief Update the status of this node session.
+    /// @param other Node status of the node this session is connected to.
+    /// @param self Node status of the node this session belongs to.
+    void setNodeStatus(bmqp_ctrlmsg::NodeStatus::Value other,
+                       bmqp_ctrlmsg::NodeStatus::Value self);
 
     void setPeerInstanceId(int value);
-
-    /// Return the associated stat context.
-    StatContextSp& statContext();
 
     /// Return a reference to the modifiable list of queue handles.
     QueueHandleMap& queueHandles();
@@ -239,6 +249,31 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     /// Remove all partitions from the list of partitions for which this
     /// node is the primary.
     void removeAllPartitions();
+
+    //   (virtual: mqbi::InlineClient)
+    mqbi::InlineResult::Enum
+    sendPush(const bmqt::MessageGUID&                  msgGUID,
+             int                                       queueId,
+             const bsl::shared_ptr<bdlbb::Blob>&       message,
+             const mqbi::StorageMessageAttributes&     attributes,
+             const bmqp::MessagePropertiesInfo&        mps,
+             const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
+             bool isOutOfOrder) BSLS_KEYWORD_OVERRIDE;
+    // Called by the 'queueId' to deliver the specified 'message' with the
+    // specified 'message', 'msgGUID', 'attributes' and 'mps' for the
+    // specified 'subQueueInfos' streams of the queue.
+    //
+    // THREAD: This method is called from the Queue's dispatcher thread.
+
+    mqbi::InlineResult::Enum
+    sendAck(int                     queueId,
+            const bmqp::AckMessage& ackMessage) BSLS_KEYWORD_OVERRIDE;
+    // Called by the 'queueId' to send the specified 'ackMessage'.
+    //
+    // THREAD: This method is called from the Queue's dispatcher thread.
+
+    bmqu::GateKeeper& gatePut();
+    bmqu::GateKeeper& gateConfirm();
 
     // ACCESSORS
 
@@ -265,7 +300,7 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     int peerInstanceId() const;
 
     /// Return the associated stat context.
-    const StatContextSp& statContext() const;
+    const bsl::shared_ptr<bmqst::StatContext>& statContext() const;
 
     /// Return a reference to the non-modifiable list of partitions for
     /// which this cluster node is the primary.
@@ -296,9 +331,18 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
 // ---------------------------------------
 
 inline ClusterNodeSession::SubQueueInfo::SubQueueInfo()
-: d_clientStats()
+: d_clientStats_sp()
 {
-    d_clientStats.createInplace();
+}
+
+// ACCESSORS
+inline void ClusterNodeSession::SubQueueInfo::onEvent(
+    mqbstat::QueueStatsClient::EventType::Enum type,
+    bsls::Types::Int64                         value) const
+{
+    if (d_clientStats_sp) {
+        d_clientStats_sp->onEvent(type, value);
+    }
 }
 
 // ------------------------------------
@@ -340,9 +384,50 @@ inline mqbi::DispatcherClientData& ClusterNodeSession::dispatcherClientData()
 }
 
 inline void
-ClusterNodeSession::setNodeStatus(bmqp_ctrlmsg::NodeStatus::Value value)
+ClusterNodeSession::setNodeStatus(bmqp_ctrlmsg::NodeStatus::Value other,
+                                  bmqp_ctrlmsg::NodeStatus::Value self)
 {
-    d_nodeStatus = value;
+    // executed by the *DISPATCHER* thread
+
+    d_nodeStatus = other;
+
+    if ((other != bmqp_ctrlmsg::NodeStatus::E_AVAILABLE &&
+         other != bmqp_ctrlmsg::NodeStatus::E_STOPPING) ||
+        (self != bmqp_ctrlmsg::NodeStatus::E_AVAILABLE &&
+         self != bmqp_ctrlmsg::NodeStatus::E_STOPPING)) {
+        d_gatePush.close();
+        d_gateAck.close();
+        d_gatePut.close();
+        d_gateConfirm.close();
+    }
+    else {
+        // Both are either E_AVAILABLE or E_STOPPING
+        d_gateAck.open();
+        d_gateConfirm.open();
+
+        if (other == bmqp_ctrlmsg::NodeStatus::E_AVAILABLE) {
+            // Even if self is E_STOPPING, do allow PUTs.
+            // Otherwise, broadcast PUTs can be lost in the following scenario:
+            // This node sends StopRequest to a downstream while some broadcast
+            // PUTs "cross" the StopRequest.
+
+            d_gatePut.open();
+            if (self == bmqp_ctrlmsg::NodeStatus::E_AVAILABLE) {
+                d_gatePush.open();
+            }
+            else {
+                // Do NOT process PUSH in the E_STOPPING state.
+                d_gatePush.close();
+            }
+        }
+        else {
+            // But do NOT send to E_STOPPING upstream.
+            d_gatePut.close();
+
+            // Do NOT send PUSH to E_STOPPING upstream.
+            d_gatePush.close();
+        }
+    }
 }
 
 inline void ClusterNodeSession::setPeerInstanceId(int value)
@@ -369,11 +454,6 @@ ClusterNodeSession::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     d_cluster_p->onDispatcherEvent(event);
 }
 
-inline ClusterNodeSession::StatContextSp& ClusterNodeSession::statContext()
-{
-    return d_statContext_sp;
-}
-
 inline ClusterNodeSession::QueueHandleMap& ClusterNodeSession::queueHandles()
 {
     return d_queueHandles;
@@ -383,6 +463,16 @@ inline ClusterNodeSession::QueueHandleMap& ClusterNodeSession::queueHandles()
 inline mqbi::Dispatcher* ClusterNodeSession::dispatcher()
 {
     return d_cluster_p->dispatcher();
+}
+
+inline bmqu::GateKeeper& ClusterNodeSession::gatePut()
+{
+    return d_gatePut;
+}
+
+inline bmqu::GateKeeper& ClusterNodeSession::gateConfirm()
+{
+    return d_gateConfirm;
 }
 
 inline const mqbi::Dispatcher* ClusterNodeSession::dispatcher() const
@@ -429,7 +519,7 @@ inline int ClusterNodeSession::peerInstanceId() const
     return d_peerInstanceId;
 }
 
-inline const ClusterNodeSession::StatContextSp&
+inline const bsl::shared_ptr<bmqst::StatContext>&
 ClusterNodeSession::statContext() const
 {
     return d_statContext_sp;

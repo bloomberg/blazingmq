@@ -259,8 +259,8 @@ ConsoleObserver::setCategoryColor(const bslstl::StringRef& category,
     return *this;
 }
 
-void ConsoleObserver::publish(const ball::Record& record,
-                              BSLA_UNUSED const ball::Context& context)
+void ConsoleObserver::publish(const ball::Record&     record,
+                              BSLA_MAYBE_UNUSED const ball::Context& context)
 {
     // Check if the record's severity is higher than the severity threshold
     if (record.fixedFields().severity() > d_severityThreshold) {

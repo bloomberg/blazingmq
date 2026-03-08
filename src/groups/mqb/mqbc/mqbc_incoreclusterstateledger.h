@@ -81,7 +81,8 @@ class ClusterNode;
 namespace mqbc {
 
 /// Struct holding a cluster message and its associated state in the cluster
-/// state ledger (record id, number of acknowledgements received, etc.).
+/// state ledger (replication timestamp, number of acknowledgements received,
+/// etc.).
 struct IncoreClusterStateLedger_ClusterMessageInfo {
     /// Cluster message, one of:
     ///   - `PartitionPrimaryAdvisory`,
@@ -90,8 +91,12 @@ struct IncoreClusterStateLedger_ClusterMessageInfo {
     ///   - `QueueUnAssignmentAdvisory`.
     bmqp_ctrlmsg::ClusterMessage d_clusterMessage;
 
+    /// Timestamp in nanoseconds at the moment when the replication of this
+    /// `ClusterMessage` started.
+    bsls::Types::Uint64 d_timestampNs;
+
     /// Number of ACKs received for this `ClusterMessage`.
-    int d_ackCount;
+    unsigned int d_ackCount;
 
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(IncoreClusterStateLedger_ClusterMessageInfo,
@@ -138,22 +143,24 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     // TYPES
     typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
 
+    typedef IncoreClusterStateLedger_ClusterMessageInfo ClusterMessageInfo;
+
+    /// Map from a `LeaderMessageSequence` to cluster message and its
+    /// associated information.
+    ///
+    /// `sequenceNumber -> {clusterMessage, replicationTimestamp, ackCount}`
+    typedef bmqc::OrderedHashMap<bmqp_ctrlmsg::LeaderMessageSequence,
+                                 ClusterMessageInfo>
+                                          AdvisoriesMap;
+    typedef AdvisoriesMap::const_iterator AdvisoriesMapCIter;
+    typedef AdvisoriesMap::iterator       AdvisoriesMapIter;
+
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBC.INCORECLUSTERSTATELEDGER");
 
     // TYPES
-    typedef IncoreClusterStateLedger_ClusterMessageInfo ClusterMessageInfo;
-    typedef ClusterStateLedgerCommitStatus              CommitStatus;
-
-    /// Map from a `LeaderMessageSequence` to cluster message and its
-    /// associated information.
-    ///
-    /// `sequenceNumber -> {clusterMessage, recordId, ackCount}`
-    typedef bmqc::OrderedHashMap<bmqp_ctrlmsg::LeaderMessageSequence,
-                                 ClusterMessageInfo>
-                                    AdvisoriesMap;
-    typedef AdvisoriesMap::iterator AdvisoriesMapIter;
+    typedef ClusterStateLedgerCommitStatus CommitStatus;
 
   private:
     // DATA
@@ -179,13 +186,6 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
 
     /// Cluster's state.
     const ClusterState* d_clusterState_p;
-
-    /// Desired consistency level (eventual vs. strong), configured by the
-    /// user.
-    ClusterStateLedgerConsistency::Enum d_consistencyLevel;
-
-    /// Number of nodes required to achieve consistency level.
-    int d_ackQuorum;
 
     /// Ledger configuration.
     mqbsi::LedgerConfig d_ledgerConfig;
@@ -219,6 +219,10 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     /// non-zero error value otherwise.
     int onLogRolloverCb(const mqbu::StorageKey& oldLogId,
                         const mqbu::StorageKey& newLogId);
+
+    /// Callback invoked when the cluster's quorum changes to the specified new
+    /// value `ackQuorum`.
+    void onQuorumChangeCb(unsigned int ackQuorum);
 
     /// Internal helper method to apply the advisory in the specified
     /// `clusterMessage`, of the specified `recordType` and identified by
@@ -257,9 +261,24 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
         const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
         ClusterStateRecordType::Enum               recordType);
 
+    /// Internal helper method to apply commit for the advisory with the
+    /// specified `sequenceNumber` as the specified `ackQuorum` is reached.
+    int applyCommit(const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
+                    unsigned int                               ackQuorum);
+
     /// Cancel all uncommitted advisories.  Called upon new leader or term,
     /// or when this ledger is closed.
+    ///
+    /// THREAD: This method can be invoked only in the associated cluster's
+    ///         dispatcher thread.
     void cancelUncommittedAdvisories();
+
+    /// Review all uncommitted advisories and commit those which have more acks
+    /// then the new `ackQuorum`. Called upon quorum change.
+    ///
+    /// THREAD: This method can be invoked only in the associated cluster's
+    ///         dispatcher thread.
+    void reviewUncommittedAdvisories(unsigned int ackQuorum);
 
     /// Apply the specified raw cluster state record `event` received from
     /// the specified `source` node.  Note that while a replica node may
@@ -278,6 +297,9 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     ///         dispatcher thread.
     bool isSelfLeader() const;
 
+    /// Return the acknowledgment quorum required for this ledger.
+    unsigned int getAckQuorum() const;
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(IncoreClusterStateLedger,
@@ -286,33 +308,18 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     // CREATORS
 
     /// Create a new @bbref{mqbc::IncoreClusterStateLedger} with the specified
-    /// `clusterDefinition`, `consistencyLevel`, `clusterData` and
+    /// `clusterDefinition`, `clusterData` and
     /// `clusterState`, and using the specified `bufferFactory` and `allocator`
     /// to supply memory.
     IncoreClusterStateLedger(
-        const mqbcfg::ClusterDefinition&    clusterDefinition,
-        ClusterStateLedgerConsistency::Enum consistencyLevel,
-        ClusterData*                        clusterData,
-        ClusterState*                       clusterState,
-        BlobSpPool*                         blobSpPool_p,
-        bslma::Allocator*                   allocator);
+        const mqbcfg::ClusterDefinition& clusterDefinition,
+        ClusterData*                     clusterData,
+        ClusterState*                    clusterState,
+        BlobSpPool*                      blobSpPool_p,
+        bslma::Allocator*                allocator);
 
     /// Destructor.
     ~IncoreClusterStateLedger() BSLS_KEYWORD_OVERRIDE;
-
-    // MANIPULATORS
-    //   (virtual mqbc::ElectorInfoObserver)
-
-    /// Callback invoked when the cluster's leader changes to the specified
-    /// `node` with specified `status`.  Note that null is a valid value for
-    /// the `node`, and it implies that the cluster has transitioned to a
-    /// state of no leader, and in this case, `status` will be `UNDEFINED`.
-    ///
-    /// THREAD: This method can be invoked only in the associated cluster's
-    ///         dispatcher thread.
-    void onClusterLeader(mqbnet::ClusterNode*          node,
-                         ElectorInfoLeaderStatus::Enum status)
-        BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
     //   (virtual mqbc::ClusterStateLedger)
@@ -393,6 +400,13 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     bslma::ManagedPtr<ClusterStateLedgerIterator>
     getIterator() const BSLS_KEYWORD_OVERRIDE;
 
+    /// Load into `out` the list of uncommitted advisories as const references.
+    ///
+    /// THREAD: This method can be invoked only in the associated cluster's
+    ///         dispatcher thread.
+    void uncommittedAdvisories(ClusterMessageCRefList* out) const
+        BSLS_KEYWORD_OVERRIDE;
+
     // ACCESSORS
 
     /// Return a brief description of the ClusterStateLedger for logging
@@ -418,6 +432,7 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
 inline IncoreClusterStateLedger_ClusterMessageInfo ::
     IncoreClusterStateLedger_ClusterMessageInfo(bslma::Allocator* allocator)
 : d_clusterMessage(bslma::Default::allocator(allocator))
+, d_timestampNs(0)
 , d_ackCount(0)
 {
     // NOTHING
@@ -428,6 +443,7 @@ inline IncoreClusterStateLedger_ClusterMessageInfo ::
         const IncoreClusterStateLedger_ClusterMessageInfo& other,
         bslma::Allocator*                                  allocator)
 : d_clusterMessage(other.d_clusterMessage, allocator)
+, d_timestampNs(other.d_timestampNs)
 , d_ackCount(other.d_ackCount)
 {
     // NOTHING
@@ -443,11 +459,14 @@ inline bool IncoreClusterStateLedger::isSelfLeader() const
     // executed by the *CLUSTER DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
-            &d_clusterData_p->cluster()));
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
 
     return d_clusterData_p->electorInfo().isSelfLeader();
+}
+
+inline unsigned int IncoreClusterStateLedger::getAckQuorum() const
+{
+    return d_clusterData_p->quorumManager().quorum();
 }
 
 // MANIPULATORS
@@ -464,9 +483,7 @@ inline bool IncoreClusterStateLedger::isOpen() const
     // executed by the *CLUSTER DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
-            &d_clusterData_p->cluster()));
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
 
     return d_isOpen;
 }
@@ -482,9 +499,7 @@ inline const mqbsi::Ledger* IncoreClusterStateLedger::ledger() const
     // executed by the *CLUSTER DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
-            &d_clusterData_p->cluster()));
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
 
     return d_ledger_mp.get();
 }

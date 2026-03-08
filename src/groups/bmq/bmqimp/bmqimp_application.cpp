@@ -85,15 +85,18 @@ statContextConfiguration(const bmqt::SessionOptions& options,
 {
     bmqst::StatContextConfiguration config("stats", allocator);
     if (options.statsDumpInterval() != bsls::TimeInterval()) {
+        // statsDumpInterval().seconds() must be < 60 minutes, which can safely
+        // be stored in an `int`.
+        const int statsDumpSeconds = static_cast<int>(
+            options.statsDumpInterval().seconds());
+
         // Stats configuration:
         //   we snapshot every second
         //   first level keeps 30s of history
         //   second level keeps enough for the dump interval
         // Because some stats require range computation, second level actually
         // has to be of size 1 more than the dump interval
-        config.defaultHistorySize(
-            30,
-            (options.statsDumpInterval().seconds() / 30) + 1);
+        config.defaultHistorySize(30, statsDumpSeconds / 30 + 1);
     }
     else {
         config.defaultHistorySize(2);
@@ -288,6 +291,9 @@ void Application::channelStateCallback(
         BALL_LOG_ERROR << id() << "Could not establish session with '"
                        << endpoint << "' [event: " << event
                        << ", status: " << status << "]";
+        if (channel) {
+            channel->close(status);
+        }
     } break;  // BREAK
     default: {
         BALL_LOG_ERROR << id() << "Session with '" << endpoint << "' is now"
@@ -298,8 +304,8 @@ void Application::channelStateCallback(
 }
 
 bslma::ManagedPtr<bmqst::StatContext> Application::channelStatContextCreator(
-    BSLA_UNUSED const bsl::shared_ptr<bmqio::Channel>&      channel,
-    const bsl::shared_ptr<bmqio::StatChannelFactoryHandle>& handle)
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<bmqio::Channel>& channel,
+    const bsl::shared_ptr<bmqio::StatChannelFactoryHandle>&  handle)
 {
     // The SDK only connects
     BSLS_ASSERT_SAFE(handle->options().is<bmqio::ConnectOptions>());
@@ -653,9 +659,7 @@ Application::Application(
         bmqsys::Time::initialize();
     }
 
-    // UriParser and ProtocolUtil initialization/shutdown are thread-safe and
-    // refcounted
-    bmqt::UriParser::initialize();
+    // ProtocolUtil initialization/shutdown is thread-safe and refcounted
     bmqp::ProtocolUtil::initialize();
 
     // Start the EventScheduler.  We do this here in constructor and not in
@@ -677,9 +681,13 @@ Application::Application(
     bmqst::StatValue::SnapshotLocation start;
     bmqst::StatValue::SnapshotLocation end;
     if (d_sessionOptions.statsDumpInterval() != bsls::TimeInterval()) {
+        // statsDumpInterval().seconds() must be < 60 minutes, which can safely
+        // be stored in an `int`.
+        const int statsDumpSeconds = static_cast<int>(
+            d_sessionOptions.statsDumpInterval().seconds());
+
         start.setLevel(1).setIndex(0);
-        end.setLevel(1).setIndex(
-            d_sessionOptions.statsDumpInterval().seconds() / 30);
+        end.setLevel(1).setIndex(statsDumpSeconds / 30);
     }
     else {
         start.setLevel(0).setIndex(0);
@@ -708,7 +716,6 @@ Application::~Application()
 
     // ProtocolUtil::shutdown is thread-safe and ref-counted
     bmqp::ProtocolUtil::shutdown();
-    bmqt::UriParser::shutdown();
 }
 
 int Application::start(const bsls::TimeInterval& timeout)

@@ -44,7 +44,7 @@ using namespace bsl;
 namespace {
 
 static void
-printSummary(bslstl::StringRef desc, bsls::Types::Int64 dt, size_t iters)
+printSummary(bsl::string_view desc, bsls::Types::Int64 dt, size_t iters)
 {
     bsl::cout << desc << ":" << bsl::endl;
     bsl::cout << "       total: " << bmqu::PrintUtil::prettyTimeInterval(dt)
@@ -77,15 +77,15 @@ struct IncrementCallback : public bmqu::ManagedCallback::CallbackFunctor {
     void operator()() const BSLS_KEYWORD_OVERRIDE { ++(*d_calls_p); }
 };
 
-void complexFunction(size_t*     calls,
-                     BSLA_UNUSED bsls::Types::Uint64 arg1,
-                     BSLA_UNUSED bsls::Types::Uint64 arg2,
-                     BSLA_UNUSED bsls::Types::Uint64 arg3,
-                     BSLA_UNUSED bsls::Types::Uint64 arg4,
-                     BSLA_UNUSED bsls::Types::Uint64 arg5,
-                     BSLA_UNUSED bsls::Types::Uint64 arg6,
-                     BSLA_UNUSED bsls::Types::Uint64 arg7,
-                     BSLA_UNUSED bsls::Types::Uint64 arg8)
+void complexFunction(size_t*           calls,
+                     BSLA_MAYBE_UNUSED bsls::Types::Uint64 arg1,
+                     BSLA_MAYBE_UNUSED bsls::Types::Uint64 arg2,
+                     BSLA_MAYBE_UNUSED bsls::Types::Uint64 arg3,
+                     BSLA_MAYBE_UNUSED bsls::Types::Uint64 arg4,
+                     BSLA_MAYBE_UNUSED bsls::Types::Uint64 arg5,
+                     BSLA_MAYBE_UNUSED bsls::Types::Uint64 arg6,
+                     BSLA_MAYBE_UNUSED bsls::Types::Uint64 arg7,
+                     BSLA_MAYBE_UNUSED bsls::Types::Uint64 arg8)
 {
     ++(*calls);
 }

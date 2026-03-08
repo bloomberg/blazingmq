@@ -22,17 +22,23 @@
 // BDE
 #include <ball_log.h>
 #include <bdlf_bind.h>
+#include <bdlma_localsequentialallocator.h>
 #include <bsl_string.h>
 #include <bsl_utility.h>
 #include <bsl_vector.h>
 #include <bslh_defaulthashalgorithm.h>
 #include <bslh_hash.h>
 #include <bslmt_barrier.h>
+#include <bslmt_latch.h>
 #include <bslmt_threadgroup.h>
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
-#include <bsl_functional.h>
+
+// BENCHMARKING LIBRARY
+#ifdef BMQTST_BENCHMARK_ENABLED
+#include <benchmark/benchmark.h>
+#endif
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -62,8 +68,6 @@ static void test1_breathingTest()
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
-
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     int         rc = 0;
     bsl::string error(bmqtst::TestHelperUtil::allocator());
@@ -243,25 +247,53 @@ static void test1_breathingTest()
         } k_DATA[] = {
             // input                                     rc
             // ----------------------------------------- --
-            {L_, "", -1},
-            {L_, "foobar", -1},
-            {L_, "bb://", -1},
-            {L_, "bmq://", -1},
-            {L_, "bmq://a/", -4},
-            {L_, "bmq://$%@/ts.trades.myapp/queue@sss", -1},
-            {L_, "bb:///ts.trades.myapp/myqueue", -1},
-            {L_, "bmq://ts.trades.myapp/", -4},
-            {L_, "bmq://ts.trades.myapp/queue?id=", -1},
-            {L_, "bmq://ts.trades.myapp/queue?bs=a", -1},
-            {L_, "bmq://ts.trades.myapp/queue?", -1},
-            {L_, "bmq://ts.trades.myapp/queue?id=", -1},
-            {L_, "bmq://ts.trades.myapp/queue&id==", -1},
-            {L_, "bmq://ts.trades.myapp/queue&id=foo", -1},
-            {L_, "bmq://ts.trades.myapp/queue?id=foo&", -1},
-            {L_, "bmq://ts.trades.myapp/queue?pid=foo", -1},
-            {L_, "bmq://ts.trades.myapp.~/queue", -5},
-            {L_, "bmq://ts.trades~myapp/queue", -1},
-            {L_, "bmq://ts.trades.myapp.~a_b/queue", -1},
+            {L_, "", bmqt::UriParser::UriParseResult::e_INVALID_SCHEME},
+            {L_, "foobar", bmqt::UriParser::UriParseResult::e_INVALID_SCHEME},
+            {L_, "bb://", bmqt::UriParser::UriParseResult::e_INVALID_SCHEME},
+            {L_, "bmq://", bmqt::UriParser::UriParseResult::e_MISSING_DOMAIN},
+            {L_, "bmq://a/", bmqt::UriParser::UriParseResult::e_MISSING_QUEUE},
+            {L_,
+             "bmq://$%@/ts.trades.myapp/queue@sss",
+             bmqt::UriParser::UriParseResult::e_UNSUPPORTED_CHAR},
+            {L_,
+             "bb:///ts.trades.myapp/myqueue",
+             bmqt::UriParser::UriParseResult::e_INVALID_SCHEME},
+            {L_,
+             "bmq://ts.trades.myapp/",
+             bmqt::UriParser::UriParseResult::e_MISSING_QUEUE},
+            {L_,
+             "bmq://ts.trades.myapp/queue?id=",
+             bmqt::UriParser::UriParseResult::e_BAD_QUERY},
+            {L_,
+             "bmq://ts.trades.myapp/queue?bs=a",
+             bmqt::UriParser::UriParseResult::e_BAD_QUERY},
+            {L_,
+             "bmq://ts.trades.myapp/queue?",
+             bmqt::UriParser::UriParseResult::e_BAD_QUERY},
+            {L_,
+             "bmq://ts.trades.myapp/queue?id=",
+             bmqt::UriParser::UriParseResult::e_BAD_QUERY},
+            {L_,
+             "bmq://ts.trades.myapp/queue&id==",
+             bmqt::UriParser::UriParseResult::e_UNSUPPORTED_CHAR},
+            {L_,
+             "bmq://ts.trades.myapp/queue&id=foo",
+             bmqt::UriParser::UriParseResult::e_UNSUPPORTED_CHAR},
+            {L_,
+             "bmq://ts.trades.myapp/queue?id=foo&",
+             bmqt::UriParser::UriParseResult::e_UNSUPPORTED_CHAR},
+            {L_,
+             "bmq://ts.trades.myapp/queue?pid=foo",
+             bmqt::UriParser::UriParseResult::e_BAD_QUERY},
+            {L_,
+             "bmq://ts.trades.myapp.~/queue",
+             bmqt::UriParser::UriParseResult::e_EMPTY_TIER},
+            {L_,
+             "bmq://ts.trades~myapp/queue",
+             bmqt::UriParser::UriParseResult::e_UNSUPPORTED_CHAR},
+            {L_,
+             "bmq://ts.trades.myapp.~a_b/queue",
+             bmqt::UriParser::UriParseResult::e_UNSUPPORTED_CHAR},
         };
 
         const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
@@ -280,15 +312,11 @@ static void test1_breathingTest()
             BMQTST_ASSERT_EQ_D(test.d_line, obj.isValid(), false);
         }
     }
-
-    bmqt::UriParser::shutdown();
 }
 
 static void test2_URIBuilder()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
-
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     bmqt::UriBuilder builder(bmqtst::TestHelperUtil::allocator());
 
@@ -376,14 +404,14 @@ static void test2_URIBuilder()
         builder.reset();
 
         BMQTST_ASSERT_EQ(builder.uri(&uri, &errorMessage),
-                         -3);  // -3: MISSING DOMAIN
-        BMQTST_ASSERT_EQ(errorMessage, "missing domain");
+                         bmqt::UriParser::UriParseResult::e_MISSING_DOMAIN);
+        BMQTST_ASSERT_EQ(errorMessage, "Missing domain");
         builder.setDomain("my.domain");
         BMQTST_ASSERT_EQ(uri.isValid(), false);
 
         BMQTST_ASSERT_EQ(builder.uri(&uri, &errorMessage),
-                         -4);  // -4: MISSING QUEUE
-        BMQTST_ASSERT_EQ(errorMessage, "missing queue");
+                         bmqt::UriParser::UriParseResult::e_MISSING_QUEUE);
+        BMQTST_ASSERT_EQ(errorMessage, "Missing queue");
         builder.setQueue("myQueue");
         BMQTST_ASSERT_EQ(builder.uri(&uri, 0), 0);
         BMQTST_ASSERT_EQ(uri.asString(), "bmq://my.domain/myQueue");
@@ -411,8 +439,6 @@ static void test2_URIBuilder()
         BMQTST_ASSERT_EQ(uriBuilder.uri(&tmpUri, 0), 0);
         BMQTST_ASSERT_EQ(tmpUri.asString(), "bmq://my.domain/yourQueue");
     }
-
-    bmqt::UriParser::shutdown();
 }
 
 /// Test same `UriBuilder` object to match various patterns concurrently
@@ -420,8 +446,6 @@ static void test2_URIBuilder()
 static void test3_URIBuilderMultiThreaded()
 {
     bmqtst::TestHelper::printTestName("MULTI-THREADED URI BUILDER TEST");
-
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     const size_t k_NUM_THREADS    = 6;
     const size_t k_NUM_ITERATIONS = 10000;
@@ -497,49 +521,12 @@ static void test3_URIBuilderMultiThreaded()
             BMQTST_ASSERT_EQ_D(i << ", " << j, uris[j], expectedUri);
         }
     }
-
-    bmqt::UriParser::shutdown();
-}
-
-static void test4_initializeShutdown()
-// ------------------------------------------------------------------------
-// Testing:
-//   'UriParser' initialize and shutdown.  Should be able to call
-//   '.initialize()' and '.shutdown()' after the instance has already
-//   started or shutdown, and have no effect.  Shutting down the
-//   'UriParser' without a call to 'initialize' should assert.
-//
-// Plan:
-//   Initialize the 'UriParser' again.  Initialize the 'UriParser' again.
-//   Shutdown the 'UriParser'.  Shutdown the 'UriParser' again.
-//   Shutdown the 'UriParser', destroying it.  Shutdown the 'UriParser'
-//   again.
-//   ----------------------------------------------------------------------
-{
-    bmqtst::TestHelper::printTestName("INITIALIZE / SHUTDOWN");
-
-    // Initialize the 'UriParser'.
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
-
-    // Initialize should be a no-op.
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
-
-    // Shutdown the parser is a no-op.
-    bmqt::UriParser::shutdown();
-
-    // Shut down the parser is a no-op.
-    bmqt::UriParser::shutdown();
-
-    // Shutdown again should assert
-    BMQTST_ASSERT_SAFE_FAIL(bmqt::UriParser::shutdown());
 }
 
 /// Test Uri print method.
-static void test5_testPrint()
+static void test4_testPrint()
 {
     bmqtst::TestHelper::printTestName("PRINT");
-
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     PV("Testing print");
 
@@ -561,11 +548,9 @@ static void test5_testPrint()
     stream.clear(bsl::ios_base::badbit);
     stream << obj;
     BMQTST_ASSERT_EQ(stream.str(), "NO LAYOUT");
-
-    bmqt::UriParser::shutdown();
 }
 
-static void test6_hashAppend()
+static void test5_hashAppend()
 // ------------------------------------------------------------------------
 // TEST HASH APPEND
 //
@@ -585,8 +570,6 @@ static void test6_hashAppend()
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("HASH APPEND");
-
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     PV("HASH FUNCTION DETERMINISTIC");
 
@@ -612,11 +595,9 @@ static void test6_hashAppend()
         PVVV("[" << i << "] hash: " << currHash);
         BMQTST_ASSERT_EQ_D(i, currHash, firstHash);
     }
-
-    bmqt::UriParser::shutdown();
 }
 
-static void test7_testLongUri()
+static void test6_testLongUri()
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Disable the default allocator check. When 'bmqt::Uri'
@@ -625,8 +606,6 @@ static void test7_testLongUri()
     // the default allocator.
 
     bmqtst::TestHelper::printTestName("LONG URI TEST");
-
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     bmqtst::ScopedLogObserver observer(ball::Severity::e_WARN,
                                        bmqtst::TestHelperUtil::allocator());
@@ -642,20 +621,122 @@ static void test7_testLongUri()
 
     bmqt::Uri obj(stream.str(), bmqtst::TestHelperUtil::allocator());
 
-    BMQTST_ASSERT_EQ(observer.records().size(), 1U);
-
-    BMQTST_ASSERT_EQ(observer.records()[0].fixedFields().severity(),
-                     ball::Severity::e_ERROR);
-
-    BMQTST_ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
-        observer.records()[0],
-        pathStr.data(),
-        bmqtst::TestHelperUtil::allocator()));
-
-    BMQTST_ASSERT_EQ(obj.isValid(), true);
-
-    bmqt::UriParser::shutdown();
+    BMQTST_ASSERT_EQ(obj.isValid(), false);
 }
+
+#ifdef BMQTST_BENCHMARK_ENABLED
+
+struct UriParserBenchmark {
+    static void bench(bslmt::Latch*   initLatch_p,
+                      bslmt::Barrier* startBarrier_p,
+                      bslmt::Latch*   finishLatch_p)
+    {
+        // PRECONDITIONS
+        BSLS_ASSERT_OPT(initLatch_p);
+        BSLS_ASSERT_OPT(startBarrier_p);
+        BSLS_ASSERT_OPT(finishLatch_p);
+
+        const size_t      k_NUM_ITERATIONS = 100000;
+        const bsl::string k_SAMPLE_URI(
+            "bmq://my.sample.domain.~dev/my-queue-name?id=consumer123",
+            bmqtst::TestHelperUtil::allocator());
+
+        bmqt::Uri   uri(bmqtst::TestHelperUtil::allocator());
+        bsl::string error(bmqtst::TestHelperUtil::allocator());
+
+        initLatch_p->arrive();
+        startBarrier_p->wait();
+
+        for (size_t i = 0; i < k_NUM_ITERATIONS; ++i) {
+            bmqt::UriParser::parse(&uri, &error, k_SAMPLE_URI);
+        }
+
+        finishLatch_p->arrive();
+    }
+};
+
+struct UriConstructorBenchmark {
+    static void bench(bslmt::Latch*   initLatch_p,
+                      bslmt::Barrier* startBarrier_p,
+                      bslmt::Latch*   finishLatch_p)
+    {
+        // PRECONDITIONS
+        BSLS_ASSERT_OPT(initLatch_p);
+        BSLS_ASSERT_OPT(startBarrier_p);
+        BSLS_ASSERT_OPT(finishLatch_p);
+
+        const size_t      k_NUM_ITERATIONS = 100000;
+        const bsl::string k_SAMPLE_URI(
+            "bmq://my.sample.domain.~dev/my-queue-name?id=consumer123",
+            bmqtst::TestHelperUtil::allocator());
+
+        // Test allocator is slow and might skew the benchmarks
+        bdlma::LocalSequentialAllocator<256> lsa(
+            bmqtst::TestHelperUtil::allocator());
+
+        initLatch_p->arrive();
+        startBarrier_p->wait();
+
+        for (size_t i = 0; i < k_NUM_ITERATIONS; ++i) {
+            bmqt::Uri uri(k_SAMPLE_URI, &lsa);
+            (void)uri;
+        }
+
+        finishLatch_p->arrive();
+    }
+};
+
+template <size_t NUM_THREADS, typename BENCHMARK>
+static void testN1_benchmark(benchmark::State& state)
+// ------------------------------------------------------------------------
+// URI PERFORMANCE TEST
+//
+// Plan: spawn NUM_THREADS and measure the time taken for BENCHMARK::bench
+//
+// Testing:
+//  Performance
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("URI PERFORMANCE TEST");
+
+    bslmt::Latch   initThreadLatch(NUM_THREADS);
+    bslmt::Barrier startBenchmarkBarrier(NUM_THREADS + 1);
+    bslmt::Latch   finishBenchmarkLatch(NUM_THREADS);
+
+    bslmt::ThreadGroup threadGroup(bmqtst::TestHelperUtil::allocator());
+    for (size_t i = 0; i < NUM_THREADS; ++i) {
+        const int rc = threadGroup.addThread(
+            bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
+                                  &(BENCHMARK::bench),
+                                  &initThreadLatch,
+                                  &startBenchmarkBarrier,
+                                  &finishBenchmarkLatch));
+        BMQTST_ASSERT_EQ_D(i, rc, 0);
+    }
+
+    initThreadLatch.wait();
+
+    size_t iter = 0;
+    for (auto _ : state) {
+        // Benchmark time start
+
+        // We don't support running multi-iteration benchmarks because we
+        // prepare and start complex tasks in separate threads.
+        // Once these tasks are finished, we cannot simply re-run them without
+        // reinitialization, and it goes against benchmark library design.
+        // Make sure we run this only once.
+        BSLS_ASSERT_OPT(0 == iter++ && "Must be run only once");
+
+        startBenchmarkBarrier.wait();
+        finishBenchmarkLatch.wait();
+
+        // Benchmark time end
+    }
+
+    threadGroup.joinAll();
+}
+
+#endif  // BMQTST_BENCHMARK_ENABLED
 
 // ============================================================================
 //                                 MAIN PROGRAM
@@ -667,13 +748,56 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
-    case 7: test7_testLongUri(); break;
-    case 6: test6_hashAppend(); break;
-    case 5: test5_testPrint(); break;
-    case 4: test4_initializeShutdown(); break;
+    case 6: test6_testLongUri(); break;
+    case 5: test5_hashAppend(); break;
+    case 4: test4_testPrint(); break;
     case 3: test3_URIBuilderMultiThreaded(); break;
     case 2: test2_URIBuilder(); break;
     case 1: test1_breathingTest(); break;
+    case -1: {
+#ifdef BMQTST_BENCHMARK_ENABLED
+        BENCHMARK(testN1_benchmark<1, UriParserBenchmark>)
+            ->Name("bmqt::UriParser::parse threads=1")
+            ->Iterations(1)
+            ->Unit(benchmark::kMillisecond);
+        BENCHMARK(testN1_benchmark<2, UriParserBenchmark>)
+            ->Name("bmqt::UriParser::parse threads=2")
+            ->Iterations(1)
+            ->Unit(benchmark::kMillisecond);
+        BENCHMARK(testN1_benchmark<4, UriParserBenchmark>)
+            ->Name("bmqt::UriParser::parse threads=4")
+            ->Iterations(1)
+            ->Unit(benchmark::kMillisecond);
+        BENCHMARK(testN1_benchmark<8, UriParserBenchmark>)
+            ->Name("bmqt::UriParser::parse threads=8")
+            ->Iterations(1)
+            ->Unit(benchmark::kMillisecond);
+
+        BENCHMARK(testN1_benchmark<1, UriConstructorBenchmark>)
+            ->Name("bmqt::Uri::Uri         threads=1")
+            ->Iterations(1)
+            ->Unit(benchmark::kMillisecond);
+        BENCHMARK(testN1_benchmark<2, UriConstructorBenchmark>)
+            ->Name("bmqt::Uri::Uri         threads=2")
+            ->Iterations(1)
+            ->Unit(benchmark::kMillisecond);
+        BENCHMARK(testN1_benchmark<4, UriConstructorBenchmark>)
+            ->Name("bmqt::Uri::Uri         threads=4")
+            ->Iterations(1)
+            ->Unit(benchmark::kMillisecond);
+        BENCHMARK(testN1_benchmark<8, UriConstructorBenchmark>)
+            ->Name("bmqt::Uri::Uri         threads=8")
+            ->Iterations(1)
+            ->Unit(benchmark::kMillisecond);
+
+        benchmark::Initialize(&argc, argv);
+        benchmark::RunSpecifiedBenchmarks();
+#else
+        cerr << "WARNING: BENCHMARK '" << _testCase
+             << "' IS NOT SUPPORTED ON THIS PLATFORM." << endl;
+        bmqtst::TestHelperUtil::testStatus() = -1;
+#endif  // BMQTST_BENCHMARK_ENABLED
+    } break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         bmqtst::TestHelperUtil::testStatus() = -1;

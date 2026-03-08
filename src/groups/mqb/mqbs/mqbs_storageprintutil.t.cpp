@@ -147,6 +147,7 @@ struct Tester {
 
         const bsl::string uri("my.domain/myqueue", d_allocator_p);
         d_storage_mp.load(new (*d_allocator_p) mqbs::InMemoryStorage(
+                              0,  // No FileStore
                               bmqt::Uri(uri, d_allocator_p),
                               k_QUEUE_KEY,
                               &d_domain,
@@ -314,8 +315,6 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
-
     switch (_testCase) {
     case 0:
     case 2: test2_listMessages(); break;
@@ -325,8 +324,6 @@ int main(int argc, char* argv[])
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
-
-    bmqt::UriParser::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

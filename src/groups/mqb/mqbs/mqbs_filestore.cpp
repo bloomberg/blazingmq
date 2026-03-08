@@ -364,8 +364,8 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
     BSLS_ASSERT_SAFE(inDispatcherThread());
 
     enum {
-        rc_NO_FILES_TO_RECOVER = 1  // Reserved rc
-        ,
+        /// Reserved rc
+        rc_NO_FILES_TO_RECOVER                 = 1,
         rc_SUCCESS                             = 0,
         rc_RECOVERY_FILE_SET_RETRIEVAL_FAILURE = -1,
         rc_FILE_ITERATOR_FAILURE               = -2,
@@ -441,6 +441,22 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
         }
 
         return 100 * rc + rc_FILE_ITERATOR_FAILURE;  // RETURN
+    }
+
+    // Get first sync point after rollover.
+    if (jit.firstSyncPointAfterRolloverPosition() > 0) {
+        const RecordHeader& recHeader =
+            jit.firstSyncPointAfterRolloverHeader();
+
+        d_firstSyncPointAfterRolloverSeqNum.primaryLeaseId() =
+            recHeader.primaryLeaseId();
+        d_firstSyncPointAfterRolloverSeqNum.sequenceNumber() =
+            recHeader.sequenceNumber();
+
+        BALL_LOG_INFO << partitionDesc()
+                      << "First sync point after rollover sequence number: "
+                      << d_firstSyncPointAfterRolloverSeqNum
+                      << ", Timestamp (epoch): " << recHeader.timestamp();
     }
 
     // Print last sync point in the journal, if available.
@@ -604,10 +620,10 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
 
                 BALL_LOG_WARN
                     << partitionDesc()
-                    << "JOURNAL's last record is not SyncPt record,"
+                    << "JOURNAL's last record is not sync point record,"
                     << " in a multi-node cluster.  Last record "
                     << "offset: " << jit.lastRecordPosition()
-                    << ", SyncPt offset: " << jit.lastSyncPointPosition()
+                    << ", sync point offset: " << jit.lastSyncPointPosition()
                     << ".";
             }
             else {
@@ -653,12 +669,11 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
                     rc = ::truncate(recoveryFileSet.qlistFile().c_str(),
                                     qlistOffset);
                     if (0 != rc) {
-                        BALL_LOG_ERROR << partitionDesc()
-                                       << "Failed to truncate QLIST file "
-                                       << "at offset " << qlistOffset
-                                       << ", rc: " << rc << ", errno: ["
-                                       << errno << " [" << bsl::strerror(errno)
-                                       << "].";
+                        BALL_LOG_ERROR
+                            << partitionDesc()
+                            << "Failed to truncate QLIST file at offset "
+                            << qlistOffset << ", rc: " << rc << ", errno: ["
+                            << errno << " [" << bsl::strerror(errno) << "].";
                         FileSystemUtil::close(&journalFd);
                         FileSystemUtil::close(&qlistFd);
                         FileSystemUtil::close(&dataFd);
@@ -982,11 +997,12 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
     if (1 == clusterSize() && appendSyncPoint) {
         BSLS_ASSERT_SAFE(!d_isFSMWorkflow);
 
-        BALL_LOG_INFO << partitionDesc() << "Appending a SyncPt with "
-                      << "(primaryLeaseId, sequenceNum): (" << d_primaryLeaseId
-                      << ", " << (d_sequenceNum + 1)
-                      << ") since journal does not end with a SyncPt for this "
-                      << "partition belonging to a 1-node cluster.";
+        BALL_LOG_INFO
+            << partitionDesc() << "Appending a sync point with "
+            << "(primaryLeaseId, sequenceNum): (" << d_primaryLeaseId << ", "
+            << (d_sequenceNum + 1)
+            << ") since journal does not end with a sync point for this "
+            << "partition belonging to a 1-node cluster.";
 
         BSLS_ASSERT_SAFE(0 == fileSetSp->d_dataFilePosition %
                                   bmqp::Protocol::k_DWORD_SIZE);
@@ -1472,7 +1488,8 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
 
     BALL_LOG_INFO << partitionDesc() << "Completed first pass over the journal"
                   << " with rc: " << rc
-                  << ". Offset of 1st SyncPt: " << firstSyncPtOffset << ".";
+                  << ". Offset of 1st sync point: " << firstSyncPtOffset
+                  << ".";
 
     typedef bsl::unordered_set<bmqt::MessageGUID,
                                bslh::Hash<bmqt::MessageGUIDHashAlgo> >
@@ -1569,12 +1586,11 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
             // Perform basic sanity check for as many fields as possible.
 
             if (SyncPointType::e_UNDEFINED == rec.syncPointType()) {
-                BALL_LOG_ERROR
-                    << partitionDesc()
-                    << "Encountered a SyncPt during backward journal iteration"
-                    << " with invalid sub-type. Record offset: "
-                    << jit->recordOffset()
-                    << ", record index: " << jit->recordIndex();
+                BALL_LOG_ERROR << partitionDesc()
+                               << "Encountered a sync point during backward "
+                               << "journal iteration  with invalid sub-type. "
+                               << "Record offset:" << jit->recordOffset()
+                               << ", record index: " << jit->recordIndex();
 
                 return rc_INVALID_SYNC_PT_SUB_TYPE;  // RETURN
             }
@@ -1582,9 +1598,9 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
             if (0 == rec.dataFileOffsetDwords()) {
                 BALL_LOG_ERROR
                     << partitionDesc()
-                    << "Encountered a SyncPt during backward journal iteration"
-                    << " with invalid DATA file offset field. Record offset: "
-                    << jit->recordOffset()
+                    << "Encountered a sync point during backward journal "
+                    << "iteration with invalid DATA file offset field. Record "
+                    << "offset: " << jit->recordOffset()
                     << ", record index: " << jit->recordIndex();
 
                 return rc_INVALID_DATA_OFFSET;  // RETURN
@@ -1595,8 +1611,8 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                  bmqp::Protocol::k_DWORD_SIZE)) {
                 BALL_LOG_ERROR
                     << partitionDesc()
-                    << "Encountered a SyncPt during backward journal iteration"
-                    << " with DATA file offset field ["
+                    << "Encountered a sync point during backward "
+                    << "journal iteration with DATA file offset field ["
                     << (static_cast<bsls::Types::Uint64>(
                             rec.dataFileOffsetDwords()) *
                         bmqp::Protocol::k_DWORD_SIZE)
@@ -1611,7 +1627,8 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
             if (d_qListAware && 0 == rec.qlistFileOffsetWords()) {
                 BALL_LOG_ERROR
                     << partitionDesc()
-                    << "Encountered a SyncPt during backward journal iteration"
+                    << "Encountered a sync point during backward journal "
+                       "iteration"
                     << " with invalid QLIST file offset field. Record offset: "
                     << jit->recordOffset()
                     << ", record index: " << jit->recordIndex();
@@ -1623,17 +1640,17 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 qlistFd->fileSize() < (static_cast<bsls::Types::Uint64>(
                                            rec.qlistFileOffsetWords()) *
                                        bmqp::Protocol::k_WORD_SIZE)) {
-                BALL_LOG_ERROR
-                    << partitionDesc()
-                    << "Encountered a SyncPt during backward journal iteration"
-                    << " with QLIST file offset field ["
-                    << (static_cast<bsls::Types::Uint64>(
-                            rec.qlistFileOffsetWords()) *
-                        bmqp::Protocol::k_WORD_SIZE)
-                    << "], which is greater than QLIST file size ["
-                    << qlistFd->fileSize()
-                    << "]. Record offset: " << jit->recordOffset()
-                    << ", record index: " << jit->recordIndex();
+                BALL_LOG_ERROR << partitionDesc()
+                               << "Encountered a sync point during backward "
+                                  "journal iteration"
+                               << " with QLIST file offset field ["
+                               << (static_cast<bsls::Types::Uint64>(
+                                       rec.qlistFileOffsetWords()) *
+                                   bmqp::Protocol::k_WORD_SIZE)
+                               << "], which is greater than QLIST file size ["
+                               << qlistFd->fileSize()
+                               << "]. Record offset: " << jit->recordOffset()
+                               << ", record index: " << jit->recordIndex();
 
                 return rc_INVALID_QLIST_OFFSET;  // RETURN
             }
@@ -1641,7 +1658,8 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
             if (0 == rec.primaryLeaseId()) {
                 BALL_LOG_ERROR
                     << partitionDesc()
-                    << "Encountered a SyncPt during backward journal iteration"
+                    << "Encountered a sync point during backward journal "
+                       "iteration"
                     << " with zero primaryLeaseId, current primaryLeaseId: "
                     << primaryLeaseId
                     << ". Record offset: " << jit->recordOffset()
@@ -1653,7 +1671,8 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
             if (0 == rec.sequenceNum()) {
                 BALL_LOG_ERROR
                     << partitionDesc()
-                    << "Encountered a SyncPt during backward journal iteration"
+                    << "Encountered a sync point during backward journal "
+                       "iteration"
                     << " with zero sequenceNum, current sequenceNum: "
                     << sequenceNum
                     << ". Record offset: " << jit->recordOffset()
@@ -1671,7 +1690,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
             if (rec.primaryLeaseId() > primaryLeaseId) {
                 BMQTSK_ALARMLOG_ALARM("RECOVERY")
                     << partitionDesc()
-                    << "Encountered a SyncPt during backward journal "
+                    << "Encountered a sync point during backward journal "
                     << "iteration with higher primaryLeaseId: "
                     << rec.primaryLeaseId()
                     << ", current primaryLeaseId: " << primaryLeaseId
@@ -1686,7 +1705,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 if (rec.sequenceNum() != sequenceNum) {
                     BMQTSK_ALARMLOG_ALARM("RECOVERY")
                         << partitionDesc()
-                        << "Encountered a Syncpt during backward journal "
+                        << "Encountered a sync point during backward journal "
                         << "iteration with incorrect sequence number: "
                         << rec.sequenceNum()
                         << ", expected sequence number: " << sequenceNum
@@ -2259,8 +2278,8 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 if (d_isFSMWorkflow) {
                     BALL_LOG_ERROR
                         << partitionDesc()
-                        << "Encountered a DELETION record for "
-                        << "queueKey [" << rec.queueKey()
+                        << "Encountered a DELETION record for queueKey ["
+                        << rec.queueKey()
                         << "], offset: " << jit->recordOffset()
                         << ", index: " << jit->recordIndex()
                         << ", but the queueKey is not present in cluster "
@@ -2649,7 +2668,7 @@ int FileStore::create(FileSetSp* fileSetSp)
                                  d_allocator_p);
 }
 
-int FileStore::rollover(bsls::Types::Uint64 timestamp)
+int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
@@ -2809,19 +2828,26 @@ int FileStore::rollover(bsls::Types::Uint64 timestamp)
     rJournalFilePos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
 
     // Update first sync point of JournalFileHeader of new active file set with
-    // 'syncPointOffset'.  A non-zero JournalFileHeader.d_firstSyncPointOffset
-    // implies that rollover was successfully finished (this may help during
-    // recovery after crash) ** NOTE ** Updating
-    // JournalFileHeader.d_firstSyncPointOffset must be the last operation to
-    // occur in rolling over file store.
+    // 'syncPointOffset'.  A non-zero
+    // JournalFileHeader.d_firstSyncPointAfterRolloverOffset implies that
+    // rollover was successfully finished (this may help during recovery after
+    // crash) ** NOTE ** Updating
+    // JournalFileHeader.d_firstSyncPointAfterRolloverOffset must be the last
+    // operation to occur in rolling over file store.
 
     OffsetPtr<const FileHeader>  fhJ(rJournalFile.block(), 0);
     OffsetPtr<JournalFileHeader> jfh(rJournalFile.block(),
                                      fhJ->headerWords() *
                                          bmqp::Protocol::k_WORD_SIZE);
 
-    jfh->setFirstSyncPointOffsetWords(spoPair.offset() /
-                                      bmqp::Protocol::k_WORD_SIZE);
+    jfh->setFirstSyncPointAfterRolloverOffsetWords(
+        spoPair.offset() / bmqp::Protocol::k_WORD_SIZE);
+
+    // Initialize first sync point after rollover sequence number.
+    d_firstSyncPointAfterRolloverSeqNum.primaryLeaseId() =
+        syncPoint.primaryLeaseId();
+    d_firstSyncPointAfterRolloverSeqNum.sequenceNumber() =
+        syncPoint.sequenceNum();
 
     // Now clear the 'd_syncPoints' as the rollover is complete, and make the
     // previous newest sync point the first new sync point.
@@ -2963,10 +2989,7 @@ int FileStore::rollover(bsls::Types::Uint64 timestamp)
         statRecorder.print(BALL_LOG_OUTPUT_STREAM, "ROLLOVER COMPLETE");
     }
 
-    d_clusterStats_p->onPartitionEvent(
-        mqbstat::ClusterStats::PartitionEventType::e_PARTITION_ROLLOVER,
-        d_config.partitionId(),
-        statRecorder.totalElapsed());
+    d_partitionStats_sp->setRoloverTime(statRecorder.totalElapsed());
 
     return 0;
 }
@@ -2989,9 +3012,7 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
         rc_JOURNAL_ROLLOVER_POLICY_FAILURE = -1,
         rc_DATA_ROLLOVER_POLICY_FAILURE    = -2,
         rc_QLIST_ROLLOVER_POLICY_FAILURE   = -3,
-        rc_SYNC_POINT_FAILURE              = -4,
-        rc_ROLLOVER_FAILURE                = -5,
-        rc_SYNC_POINT_FORCE_ISSUE_FAILURE  = -6
+        rc_ROLLOVER_FAILURE                = -4
     };
 
     // Note: QList file will be deprecated in FSM workflow.
@@ -3015,29 +3036,34 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
         activeFileSet->d_journalFileAvailable = false;
     }
 
-    bmqu::MemOutStream out;
-    out << partitionDesc() << "Rollover is required due to " << fileType
-        << " file [" << fileName << "] reaching capacity. Current size: "
-        << bmqu::PrintUtil::prettyNumber(
-               static_cast<bsls::Types::Int64>(currentSize))
-        << ", capacity: "
-        << bmqu::PrintUtil::prettyNumber(
-               static_cast<bsls::Types::Int64>(file.fileSize()))
-        << ". Checking if JOURNAL" << (d_qListAware ? ", QLIST" : "")
-        << " and DATA files satisfy "
-        << "rollover criteria. Minimum required available space in each file: "
-        << "[" << k_MIN_AVAILABLE_SPACE_PERCENT << "%]. "
-        << "Requested record length: " << requestedSpace
-        << ". Outstanding bytes in each file:" << "\nJOURNAL: "
-        << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
-               activeFileSet->d_outstandingBytesJournal))
-        << "\nDATA: "
-        << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
-               activeFileSet->d_outstandingBytesData));
-    if (d_qListAware) {
-        out << "\nQLIST: "
+    BALL_LOG_INFO_BLOCK
+    {
+        BALL_LOG_OUTPUT_STREAM
+            << partitionDesc() << "Rollover is required due to " << fileType
+            << " file [" << fileName << "] reaching capacity. Current size: "
+            << bmqu::PrintUtil::prettyNumber(
+                   static_cast<bsls::Types::Int64>(currentSize))
+            << ", capacity: "
+            << bmqu::PrintUtil::prettyNumber(
+                   static_cast<bsls::Types::Int64>(file.fileSize()))
+            << ". Checking if JOURNAL" << (d_qListAware ? ", QLIST" : "")
+            << " and DATA files satisfy rollover criteria. "
+            << "Minimum required available space in each file: ["
+            << k_MIN_AVAILABLE_SPACE_PERCENT
+            << "%]. Requested record length: " << requestedSpace
+            << ". Outstanding bytes in each file:\nJOURNAL: "
             << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
-                   activeFileSet->d_outstandingBytesQlist));
+                   activeFileSet->d_outstandingBytesJournal))
+            << "\nDATA: "
+            << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
+                   activeFileSet->d_outstandingBytesData));
+        if (d_qListAware) {
+            BALL_LOG_OUTPUT_STREAM
+                << "\nQLIST: "
+                << bmqu::PrintUtil::prettyNumber(
+                       static_cast<bsls::Types::Int64>(
+                           activeFileSet->d_outstandingBytesQlist));
+        }
     }
 
     // All 3 files must satisfy the rollover policy before we can initiate the
@@ -3134,7 +3160,7 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
             availableSpacePercent = availableSpacePercentData;
         }
 
-        out.reset();
+        bmqu::MemOutStream out(d_allocator_p);
         out << partitionDesc() << "[" << fileType
             << "] file is full but partition cannot be "
             << "rolled over because rolled over [" << cannotRolloverFileType
@@ -3191,6 +3217,34 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
     activeFileSet->d_journalFileAvailable = true;
     // Set the availability flag back to true.
 
+    rc = rollover();
+    if (0 != rc) {
+        return 10 * rc + rc_ROLLOVER_FAILURE;  // RETURN
+    }
+
+    return rc_SUCCESS;
+}
+
+int FileStore::rollover()
+{
+    enum {
+        rc_SUCCESS                        = 0,
+        rc_SYNC_POINT_FAILURE             = -1,
+        rc_ROLLOVER_FAILURE               = -2,
+        rc_SYNC_POINT_FORCE_ISSUE_FAILURE = -3
+    };
+
+    int rc = rc_SUCCESS;
+
+    FileSet* activeFileSet = d_fileSets[0].get();
+    BSLS_ASSERT_SAFE(activeFileSet);
+
+    BSLS_ASSERT_SAFE(activeFileSet->d_journalFileAvailable);
+    // If JOURNAL is full, it must be marked so, and this routine should
+    // not be invoked.
+
+    BALL_LOG_INFO << partitionDesc() << "Start rollover.";
+
     // Issue sync point first.
 
     bmqp_ctrlmsg::SyncPoint syncPt;
@@ -3216,7 +3270,8 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
 
     // Then initiate rollover.
 
-    rc = rollover(bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()));
+    rc = rolloverImpl(
+        bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()));
     if (0 != rc) {
         return 10 * rc + rc_ROLLOVER_FAILURE;  // RETURN
     }
@@ -3353,20 +3408,30 @@ void FileStore::archive(FileSet* fileSet)
                                   d_config.archiveLocation());
     if (0 != rc) {
         BMQTSK_ALARMLOG_ALARM("FILE_IO")
-            << partitionDesc() << "Failed to move file ["
+            << partitionDesc() << "Failed to move data file ["
             << fileSet->d_dataFileName << "] " << "to location ["
             << d_config.archiveLocation() << "] rc: " << rc
             << BMQTSK_ALARMLOG_END;
+    }
+    else {
+        BALL_LOG_INFO << partitionDesc() << "Moved data file ["
+                      << fileSet->d_dataFileName << "] to location ["
+                      << d_config.archiveLocation() << "].";
     }
 
     rc = FileSystemUtil::move(fileSet->d_journalFileName,
                               d_config.archiveLocation());
     if (0 != rc) {
         BMQTSK_ALARMLOG_ALARM("FILE_IO")
-            << partitionDesc() << "Failed to move file ["
+            << partitionDesc() << "Failed to move journal file ["
             << fileSet->d_journalFileName << "] " << "to location ["
             << d_config.archiveLocation() << "] rc: " << rc
             << BMQTSK_ALARMLOG_END;
+    }
+    else {
+        BALL_LOG_INFO << partitionDesc() << "Moved journal file ["
+                      << fileSet->d_journalFileName << "] to location ["
+                      << d_config.archiveLocation() << "].";
     }
 
     if (d_qListAware) {
@@ -3374,10 +3439,15 @@ void FileStore::archive(FileSet* fileSet)
                                   d_config.archiveLocation());
         if (0 != rc) {
             BMQTSK_ALARMLOG_ALARM("FILE_IO")
-                << partitionDesc() << "Failed to move file ["
+                << partitionDesc() << "Failed to move qlistfile ["
                 << fileSet->d_qlistFileName << "] " << "to location ["
                 << d_config.archiveLocation() << "] rc: " << rc
                 << BMQTSK_ALARMLOG_END;
+        }
+        else {
+            BALL_LOG_INFO << partitionDesc() << "Moved qlist file ["
+                          << fileSet->d_qlistFileName << "] to location ["
+                          << d_config.archiveLocation() << "].";
         }
     }
 }
@@ -3648,7 +3718,12 @@ void FileStore::writeRolledOverRecord(DataStoreRecord*    record,
         QueueKeyCounterMapIter qit = queueKeyCounterMap->find(
             toRec->queueKey());
 
-        BSLS_ASSERT_SAFE(queueKeyCounterMap->end() != qit);
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(queueKeyCounterMap->end() ==
+                                                  qit)) {
+            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+            BALL_LOG_ERROR << "Message with unexpected queueKey: " << *toRec;
+            BSLS_ASSERT_OPT(false && "Message with unexpected queueKey");
+        }
 
         ++(qit->second.first);
         qit->second.second += dataMsgSize;
@@ -3713,8 +3788,16 @@ void FileStore::writeRolledOverRecord(DataStoreRecord*    record,
         else {
             BSLS_ASSERT_SAFE(QueueOpType::e_PURGE == fromRec->type() ||
                              QueueOpType::e_DELETION == fromRec->type());
-            BSLS_ASSERT_SAFE(queueKeyCounterMap->end() !=
-                             queueKeyCounterMap->find(fromRec->queueKey()));
+
+            if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+                    queueKeyCounterMap->end() ==
+                    queueKeyCounterMap->find(fromRec->queueKey()))) {
+                BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+                BALL_LOG_ERROR << "Message with unexpected queueKey: "
+                               << *fromRec;
+                BSLS_ASSERT_OPT(false && "Message with unexpected queueKey");
+            }
+
             bsl::memcpy(rJournal.block().base() + rJournalPos,
                         aJournal.block().base() + record->d_recordOffset,
                         FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
@@ -3851,11 +3934,11 @@ void FileStore::alarmHighwatermarkIfNeededDispatched()
     }
 }
 
-void FileStore::issueSyncPointDispatched(BSLA_UNUSED int partitionId)
+void FileStore::issueSyncPointDispatched(BSLA_MAYBE_UNUSED int partitionId)
 {
     // executed by the *DISPATCHER* thread
 
-    if (!d_isOpen || !d_isPrimary) {
+    if (!d_isOpen || !d_isPrimary || d_isStopping) {
         return;  // RETURN
     }
 
@@ -3864,7 +3947,7 @@ void FileStore::issueSyncPointDispatched(BSLA_UNUSED int partitionId)
     // means that there must be space for at least 2 journal records.
 
     issueSyncPointInternal(SyncPointType::e_REGULAR,
-                           false);  // ImmediateFlush flag
+                           true);  // ImmediateFlush flag
 }
 
 int FileStore::issueSyncPointInternal(SyncPointType::Enum type,
@@ -3942,6 +4025,8 @@ int FileStore::issueSyncPointInternal(SyncPointType::Enum type,
         return 10 * rc + rc_WRITE_FAILURE;  // RETURN
     }
 
+    BALL_LOG_INFO << partitionDesc() << "Issued a sync point: " << *spptr;
+
     // Retrieve sync point's offset.
     bsls::Types::Uint64 syncPointJournalOffset =
         d_fileSets[0]->d_journalFilePosition -
@@ -3960,10 +4045,11 @@ int FileStore::issueSyncPointInternal(SyncPointType::Enum type,
                     immediateFlush);
 
     // Report cluster's partition stats
-    d_clusterStats_p->setPartitionOutstandingBytes(
-        d_config.partitionId(),
-        fs->d_outstandingBytesData,
-        fs->d_outstandingBytesJournal);
+    d_partitionStats_sp->setPartitionBytes(fs->d_outstandingBytesData,
+                                           fs->d_outstandingBytesJournal,
+                                           fs->d_dataFilePosition,
+                                           fs->d_journalFilePosition,
+                                           d_sequenceNum);
 
     return rc_SUCCESS;
 }
@@ -4033,8 +4119,15 @@ void FileStore::processReceiptEvent(unsigned int         primaryLeaseId,
         }
         if (++(from->second.d_count) >= d_replicationFactor) {
             from->second.d_handle->second.d_hasReceipt = true;
-            // notify the queue
 
+            // Calculate time it took for the message to be stored and
+            // replicated.
+            const bsls::Types::Int64 timeDelta =
+                bmqsys::Time::highResolutionTimer() -
+                from->second.d_handle->second.d_arrivalTimepoint;
+            d_partitionStats_sp->setReplicationTime(timeDelta);
+
+            // notify the queue
             const mqbu::StorageKey& queueKey  = from->second.d_queueKey;
             bool                    haveQueue = (queueKey == lastKey);
             if (!haveQueue) {
@@ -4044,16 +4137,12 @@ void FileStore::processReceiptEvent(unsigned int         primaryLeaseId,
                     lastKey   = queueKey;
                     lastQueue = sit->second->queue();
                     BSLS_ASSERT_SAFE(lastQueue);
-
                     affectedQueues.insert(lastQueue);
                 }
                 // else the queue and its storage are gone; ignore the receipt
             }
             if (haveQueue) {
-                lastQueue->onReceipt(
-                    from->second.d_guid,
-                    from->second.d_qH,
-                    from->second.d_handle->second.d_arrivalTimepoint);
+                lastQueue->onReceipt(from->second.d_guid, from->second.d_qH);
             }  // else the queue is gone
             from = d_unreceipted.erase(from);
         }
@@ -4311,10 +4400,10 @@ int FileStore::writeQueueCreationRecord(
     // Create in-memory record.
     DataStoreRecordHandle handle;
     DataStoreRecord       record(RecordType::e_QUEUE_OP,
-                                 recordOffset,
-                                 queueRecLength);
+                           recordOffset,
+                           queueRecLength);
     DataStoreRecordKey    key(recHeader.sequenceNumber(),
-                              recHeader.primaryLeaseId());
+                           recHeader.primaryLeaseId());
 
     insertDataStoreRecord(&handle, key, record);
 
@@ -4629,11 +4718,13 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
             if (SyncPointType::e_ROLLOVER == jOpRec->syncPointType()) {
                 BALL_LOG_INFO
                     << partitionDesc()
-                    << "Received SyncPt indicating rollover: " << syncPoint
+                    << "Received sync point indicating rollover: " << syncPoint
                     << ", at journal offset: " << recordOffset
                     << ". Initiating rollover.";
 
-                int rc = rollover(jOpRec->header().timestamp());
+                // We can call rolloverImpl() directly here instead of
+                // rollover() because there is no need to issue sync points.
+                int rc = rolloverImpl(jOpRec->header().timestamp());
 
                 if (0 != rc) {
                     BMQTSK_ALARMLOG_ALARM("REPLICATION")
@@ -4644,6 +4735,14 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
                         << BMQTSK_ALARMLOG_END;
                     return 10 * rc + rc_ROLLOVER_FAILURE;  // RETURN
                 }
+            }
+            else {
+                BSLS_ASSERT_SAFE(SyncPointType::e_REGULAR ==
+                                 jOpRec->syncPointType());
+                BALL_LOG_INFO << partitionDesc()
+                              << "Received regular sync point: " << syncPoint
+                              << ", at journal offset: " << recordOffset
+                              << ".";
             }
 
             // If self is stopping, update the flag which indicates that self
@@ -4656,7 +4755,8 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
 
                 BALL_LOG_INFO
                     << partitionDesc()
-                    << "Received last SyncPt from the primary while shutting "
+                    << "Received last sync point from the primary while "
+                       "shutting "
                     << "down. No further storage events will be processed by "
                     << "self. Current seqNum: (" << d_primaryLeaseId << ", "
                     << d_sequenceNum << ").";
@@ -4823,12 +4923,8 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
     BSLS_ASSERT_SAFE(activeFileSet);
     BSLS_ASSERT_SAFE(0 != journalOffset);
 
-    const unsigned int journalOffsetWords = journalOffset /
-                                            bmqp::Protocol::k_WORD_SIZE;
-
-    bmqt::EventBuilderResult::Enum buildRc;
-    MappedFileDescriptor&          journal = activeFileSet->d_journalFile;
-    AliasedBufferDeleterSp         deleterSp =
+    MappedFileDescriptor&  journal = activeFileSet->d_journalFile;
+    AliasedBufferDeleterSp deleterSp =
         d_aliasedBufferDeleterSpPool.getObject();
     deleterSp->setFileSet(activeFileSet);
 
@@ -4836,7 +4932,7 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
                                                 journal.mapping() +
                                                     journalOffset);
     bdlbb::BlobBuffer     journalRecordBlobBuffer(
-        journalRecordBufferSp,
+        bslmf::MovableRefUtil::move(journalRecordBufferSp),
         FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
 
     bdlbb::BlobBuffer dataBlobBuffer;
@@ -4848,9 +4944,13 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
 
         bsl::shared_ptr<char> dataBufferSp(deleterSp,  // reuse same deleter
                                            mfd.mapping() + dataOffset);
-        dataBlobBuffer.reset(dataBufferSp, totalDataLen);
+        dataBlobBuffer.reset(bslmf::MovableRefUtil::move(dataBufferSp),
+                             totalDataLen);
     }
 
+    bmqt::EventBuilderResult::Enum buildRc;
+    const unsigned int             journalOffsetWords = journalOffset /
+                                            bmqp::Protocol::k_WORD_SIZE;
     bool flushAndRetry = false;
     do {
         if (bmqp::StorageMessageType::e_DATA == type) {
@@ -5053,26 +5153,27 @@ void FileStore::flushIfNeeded(bool immediateFlush)
 }
 
 // CREATORS
-FileStore::FileStore(const DataStoreConfig&  config,
-                     int                     processorId,
-                     mqbi::Dispatcher*       dispatcher,
-                     mqbnet::Cluster*        cluster,
-                     mqbstat::ClusterStats*  clusterStats,
-                     BlobSpPool*             blobSpPool,
-                     StateSpPool*            statePool,
-                     bdlmt::FixedThreadPool* miscWorkThreadPool,
-                     bool                    isCSLModeEnabled,
-                     bool                    isFSMWorkflow,
-                     bool                    doesFSMwriteQLIST,
-                     int                     replicationFactor,
-                     bslma::Allocator*       allocator)
+FileStore::FileStore(
+    const DataStoreConfig&                          config,
+    int                                             processorId,
+    mqbi::Dispatcher*                               dispatcher,
+    mqbnet::Cluster*                                cluster,
+    const bsl::shared_ptr<mqbstat::PartitionStats>& partitionStats,
+    BlobSpPool*                                     blobSpPool,
+    StateSpPool*                                    statePool,
+    bdlmt::FixedThreadPool*                         miscWorkThreadPool,
+    bool                                            isCSLModeEnabled,
+    bool                                            isFSMWorkflow,
+    bool                                            doesFSMwriteQLIST,
+    int                                             replicationFactor,
+    bslma::Allocator*                               allocator)
 : d_allocator_p(allocator)
 , d_allocators(allocator)
 , d_storageAllocatorStore(d_allocators.get("QueueStorage"))
 , d_config(config)
 , d_partitionDescription(allocator)
 , d_dispatcherClientData()
-, d_clusterStats_p(clusterStats)
+, d_partitionStats_sp(partitionStats)
 , d_blobSpPool_p(blobSpPool)
 , d_statePool_p(statePool)
 , d_aliasedBufferDeleterSpPool(1024, d_allocators.get("AliasedBufferDeleters"))
@@ -5106,9 +5207,11 @@ FileStore::FileStore(const DataStoreConfig&  config,
                         bmqp::EventType::e_STORAGE,
                         d_blobSpPool_p,
                         allocator)
+, d_firstSyncPointAfterRolloverSeqNum()
 {
     // PRECONDITIONS
     BSLS_ASSERT(allocator);
+    BSLS_ASSERT(dispatcher);
     BSLS_ASSERT(d_cluster_p);
     BSLS_ASSERT(1 <= clusterSize());
     if (d_isFSMWorkflow) {
@@ -5194,16 +5297,21 @@ int FileStore::open(const QueueKeyInfoMap& queueKeyInfoMap)
     BSLS_ASSERT_SAFE(d_isOpen);
 
     // Report cluster's partition stats
-    d_clusterStats_p->setPartitionOutstandingBytes(
-        d_config.partitionId(),
-        d_fileSets[0].get()->d_outstandingBytesData,
-        d_fileSets[0].get()->d_outstandingBytesJournal);
+    const FileSet* fs = d_fileSets[0].get();
+    d_partitionStats_sp->setPartitionBytes(fs->d_outstandingBytesData,
+                                           fs->d_outstandingBytesJournal,
+                                           fs->d_dataFilePosition,
+                                           fs->d_journalFilePosition,
+                                           d_sequenceNum);
 
     return rc_SUCCESS;
 }
 
 void FileStore::close(bool flush)
 {
+    // The FileStore might be not opened by the time we call `close()`
+    cancelTimersAndWait();
+
     if (!d_isOpen) {
         return;  // RETURN
     }
@@ -5212,11 +5320,6 @@ void FileStore::close(bool flush)
     d_isStopping         = false;
     d_flushWhenClosing   = flush;
     d_lastSyncPtReceived = false;
-
-    d_config.scheduler()->cancelEventAndWait(&d_syncPointEventHandle);
-    d_config.scheduler()->cancelEventAndWait(
-        &d_partitionHighwatermarkEventHandle);
-    // Ok to ignore rc above
 
     BALL_LOG_INFO << partitionDesc() << "Closing partition. ";
 
@@ -5280,7 +5383,8 @@ void FileStore::createStorage(bsl::shared_ptr<ReplicatedStorage>* storageSp,
     bslma::Allocator* storageAlloc = d_storageAllocatorStore.baseAllocator();
     if (storageCfg.isInMemoryValue()) {
         storageSp->reset(new (*storageAlloc)
-                             InMemoryStorage(queueUri,
+                             InMemoryStorage(this,
+                                             queueUri,
                                              queueKey,
                                              domain,
                                              config().partitionId(),
@@ -6009,11 +6113,12 @@ int FileStore::removeRecord(const DataStoreRecordHandle& handle)
 {
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_INVALID_HANDLE = -1  // Invalid handle
-        ,
-        rc_HANDLE_NOT_FOUND = -2  // Handle not found
+        /// Success
+        rc_SUCCESS = 0,
+        /// Invalid handle
+        rc_INVALID_HANDLE = -1,
+        /// Handle not found
+        rc_HANDLE_NOT_FOUND = -2
     };
 
     if (!handle.isValid()) {
@@ -6577,12 +6682,9 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
 
     if (primaryNode->nodeId() != d_config.nodeId()) {
         d_isPrimary = false;
-        d_clusterStats_p->setNodeRoleForPartition(
-            d_config.partitionId(),
-            mqbstat::ClusterStats::PrimaryStatus::e_REPLICA);
-        d_config.scheduler()->cancelEvent(&d_syncPointEventHandle);
-        d_config.scheduler()->cancelEvent(
-            &d_partitionHighwatermarkEventHandle);
+        d_partitionStats_sp->setNodeRole(
+            mqbstat::PartitionStats::PrimaryStatus::e_REPLICA);
+        cancelTimersAndWait();
 
         if (d_lastRecoveredStrongConsistency.d_primaryLeaseId ==
             d_primaryLeaseId) {
@@ -6601,9 +6703,8 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
     }
 
     d_isPrimary = true;
-    d_clusterStats_p->setNodeRoleForPartition(
-        d_config.partitionId(),
-        mqbstat::ClusterStats::PrimaryStatus::e_PRIMARY);
+    d_partitionStats_sp->setNodeRole(
+        mqbstat::PartitionStats::PrimaryStatus::e_PRIMARY);
 
     for (StorageMapIter sIt = d_storages.begin(); sIt != d_storages.end();
          ++sIt) {
@@ -6691,7 +6792,7 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
 
     if (issueOldSyncPt) {
         BALL_LOG_INFO << partitionDesc() << "New primary (self) will "
-                      << "issue a SyncPt with old (leaseId, seqNum): ("
+                      << "issue a sync point with old (leaseId, seqNum): ("
                       << lastRecordLeaseId << ", " << (lastRecordSeqNum + 1)
                       << "), because last JOURNAL record, at offset: "
                       << lastRecordOffset << ", is of type [" << lastRecordType
@@ -6715,7 +6816,8 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
             BMQTSK_ALARMLOG_ALARM("REPLICATION")
                 << partitionDesc()
                 << "Not enough space in journal for new primary to issue a "
-                << "SyncPt on behalf of previous primary. Max journal file "
+                << "sync point on behalf of previous primary. Max journal "
+                   "file "
                 << "size: " << fs->d_journalFile.fileSize()
                 << ", current journal file offset: "
                 << fs->d_journalFilePosition << ", minimum required space: "
@@ -6760,18 +6862,19 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
         if (0 != rc) {
             BMQTSK_ALARMLOG_ALARM("REPLICATION")
                 << partitionDesc()
-                << "New primary failed to issue SyncPt on behalf of previous "
+                << "New primary failed to issue sync point on behalf of "
+                   "previous "
                 << "primary, rc: " << rc << BMQTSK_ALARMLOG_END;
             return;  // RETURN
         }
 
-        BALL_LOG_INFO << partitionDesc()
-                      << "New primary successfully issued SyncPt on behalf of "
-                      << "previous primary: " << syncPoint
-                      << ", at journal offset: "
-                      << (fs->d_journalFilePosition -
-                          FileStoreProtocol::k_JOURNAL_RECORD_SIZE)
-                      << ".";
+        BALL_LOG_INFO
+            << partitionDesc()
+            << "New primary successfully issued sync point on behalf of "
+            << "previous primary: " << syncPoint << ", at journal offset: "
+            << (fs->d_journalFilePosition -
+                FileStoreProtocol::k_JOURNAL_RECORD_SIZE)
+            << ".";
     }
 
     // Issue one SyncPt right away.  Note that we invoke the 'higher' level
@@ -6782,7 +6885,7 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
     if (0 != rc) {
         BMQTSK_ALARMLOG_ALARM("REPLICATION")
             << partitionDesc()
-            << "New primary failed to issue SyncPt , rc: " << rc
+            << "New primary failed to issue sync point , rc: " << rc
             << BMQTSK_ALARMLOG_END;
         return;  // RETURN
     }
@@ -6907,14 +7010,19 @@ void FileStore::notifyQueuesOnReplicatedBatch()
     }
 }
 
-bool FileStore::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc)
+void FileStore::gcExpiredMessages()
 {
     if (!d_isOpen) {
-        return false;  // RETURN
+        return;  // RETURN
     }
 
     if (!d_isPrimary) {
-        return false;  // RETURN
+        return;  // RETURN
+    }
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_isStopping)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return;  // RETURN
     }
 
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
@@ -6922,56 +7030,25 @@ bool FileStore::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc)
     BSLS_ASSERT_SAFE(activeFileSet);
 
     if (!activeFileSet->d_journalFileAvailable) {
-        return false;  // RETURN
+        return;  // RETURN
     }
 
     // Go over each file-backed storage registered with this partition and
     // indicate it to GC any applicable messages.
 
+    const bdlt::Datetime      currentTimeUtc = bdlt::CurrentTime::utc();
     const bsls::Types::Uint64 currentSecondsFromEpoch =
         static_cast<bsls::Types::Uint64>(
             bdlt::EpochUtil::convertToTimeT64(currentTimeUtc));
-    bool haveMore    = false;
-    bool needToFlush = false;
 
+    bool needToFlush = false;
     for (StorageMapIter it = d_storages.begin(); it != d_storages.end();
          ++it) {
-        ReplicatedStorage*  rs                        = it->second;
-        bsls::Types::Uint64 latestMsgTimestamp        = 0;
-        bsls::Types::Int64  configuredTtlValueSeconds = 0;
-        int numMsgsGc = rs->gcExpiredMessages(&latestMsgTimestamp,
-                                              &configuredTtlValueSeconds,
-                                              currentSecondsFromEpoch);
-        if (numMsgsGc <= 0) {
-            // No messages GC'd or error.
-
-            continue;  // CONTINUE
-        }
-        else {
+        ReplicatedStorage* rs        = it->second;
+        const int          numMsgsGc = rs->gcExpiredMessages(currentTimeUtc,
+                                                    currentSecondsFromEpoch);
+        if (numMsgsGc > 0) {
             needToFlush = true;
-        }
-
-        BALL_LOG_INFO << partitionDesc() << "For storage for queue ["
-                      << rs->queueUri() << "] and queueKey [" << it->first
-                      << "] configured with TTL value of ["
-                      << configuredTtlValueSeconds
-                      << "] seconds, garbage-collected [" << numMsgsGc
-                      << "] messages due to TTL expiration. "
-                      << "Timestamp (UTC) of the latest encountered message: "
-                      << bdlt::EpochUtil::convertFromTimeT64(
-                             latestMsgTimestamp)
-                      << " (Epoch: " << latestMsgTimestamp
-                      << "). Current time (UTC): " << currentTimeUtc
-                      << " (Epoch: " << currentSecondsFromEpoch << ")."
-                      << " Num messages remaining in the storage: "
-                      << rs->numMessages(mqbu::StorageKey::k_NULL_KEY)
-                      << ". Storage type: "
-                      << (rs->isPersistent() ? "persistent." : "in-memory.");
-
-        if (!rs->isEmpty() &&
-            (latestMsgTimestamp + configuredTtlValueSeconds) <=
-                currentSecondsFromEpoch) {
-            haveMore = true;
         }
     }
 
@@ -6983,25 +7060,27 @@ bool FileStore::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc)
 
         flushStorage();
     }
-
-    return haveMore;
 }
 
-bool FileStore::gcHistory()
+void FileStore::gcHistory()
 {
     if (!d_isOpen) {
-        return false;  // RETURN
+        return;  // RETURN
     }
-    const bsls::Types::Int64 now = bmqsys::Time::highResolutionTimer();
 
-    bool haveMore = false;
+    // We try to remove at most k_GC_MESSAGES_BATCH_SIZE items in history.
+    // If there are more items ready to remove, the container's state changes,
+    // so any additional `insert` operation to the container will cause
+    // additional GC, until all old items are removed.
+    // If we don't balance adding new elements to the history with GC history,
+    // we might lose a lot of time on allocations of new items to the history,
+    // as well as get OOM due to uncontrollable history size increase.
+
+    const bsls::Types::Int64 now = bmqsys::Time::highResolutionTimer();
     for (StorageMapIter it = d_storages.begin(); it != d_storages.end();
          ++it) {
-        if (it->second->gcHistory(now) < 0) {
-            haveMore = true;
-        }
+        it->second->gcHistory(now);
     }
-    return haveMore;
 }
 
 void FileStore::applyForEachQueue(const QueueFunctor& functor) const
@@ -7036,25 +7115,6 @@ void FileStore::deprecateFileSet()
     archive(d_fileSets[0].get());
 }
 
-void FileStore::forceRollover()
-{
-    // executed by the *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(inDispatcherThread());
-
-    if (!d_isOpen || !d_isPrimary) {
-        return;  // RETURN
-    }
-
-    const int rc = rollover(
-        bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()));
-    if (rc != 0) {
-        BALL_LOG_ERROR << partitionDesc()
-                       << "Forced partition rollover failed with rc: " << rc;
-    }
-}
-
 void FileStore::registerStorage(ReplicatedStorage* storage)
 {
     BSLS_ASSERT_SAFE(storage);
@@ -7077,6 +7137,7 @@ void FileStore::unregisterStorage(const ReplicatedStorage* storage)
 
 void FileStore::cancelTimersAndWait()
 {
+    // Thread: *ANY*
     d_config.scheduler()->cancelEventAndWait(&d_syncPointEventHandle);
     d_config.scheduler()->cancelEventAndWait(
         &d_partitionHighwatermarkEventHandle);
@@ -7156,24 +7217,9 @@ void FileStore::flush()
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
-
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_isStopping)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return;  // RETURN
-    }
-
-    // Iterate over messages for TTL on primary only
-    const bool haveMore = gcExpiredMessages(bdlt::CurrentTime::utc());
-
-    if (haveMore) {
-        // Explicitly schedule 'flush()'
-        dispatcher()->execute(bdlf::BindUtil::bind(&FileStore::flush, this),
-                              this,
-                              mqbi::DispatcherEventType::e_CALLBACK);
-    }
 }
 
-void FileStore::gcStorage()
+void FileStore::scheduledCleanupStorages()
 {
     // executed by the *DISPATCHER* thread
     // This is scheduled for execution every k_GC_MESSAGES_INTERVAL_SECONDS
@@ -7187,16 +7233,8 @@ void FileStore::gcStorage()
         return;  // RETURN
     }
 
-    const bool haveMore        = gcExpiredMessages(bdlt::CurrentTime::utc());
-    const bool haveMoreHistory = gcHistory();
-
-    if (haveMore || haveMoreHistory) {
-        // Explicitly schedule 'gcStorage()'
-        dispatcher()->execute(bdlf::BindUtil::bind(&FileStore::gcStorage,
-                                                   this),
-                              this,
-                              mqbi::DispatcherEventType::e_CALLBACK);
-    }
+    gcExpiredMessages();
+    gcHistory();
 }
 
 void FileStore::setReplicationFactor(int value)
@@ -7224,8 +7262,15 @@ void FileStore::setReplicationFactor(int value)
     while (it != d_unreceipted.end()) {
         if (it->second.d_count >= d_replicationFactor) {
             it->second.d_handle->second.d_hasReceipt = true;
-            // notify the queue.
 
+            // Calculate time it took for the message to be stored and
+            // replicated.
+            const bsls::Types::Int64 timeDelta =
+                bmqsys::Time::highResolutionTimer() -
+                it->second.d_handle->second.d_arrivalTimepoint;
+            d_partitionStats_sp->setReplicationTime(timeDelta);
+
+            // notify the queue.
             const mqbu::StorageKey& queueKey  = it->second.d_queueKey;
             bool                    haveQueue = (queueKey == lastKey);
             if (!haveQueue) {
@@ -7235,16 +7280,12 @@ void FileStore::setReplicationFactor(int value)
                     lastKey   = queueKey;
                     lastQueue = sit->second->queue();
                     BSLS_ASSERT_SAFE(lastQueue);
-
                     affectedQueues.insert(lastQueue);
                 }
                 // else the queue and its storage are gone; ignore the receipt
             }
             if (haveQueue) {
-                lastQueue->onReceipt(
-                    it->second.d_guid,
-                    it->second.d_qH,
-                    it->second.d_handle->second.d_arrivalTimepoint);
+                lastQueue->onReceipt(it->second.d_guid, it->second.d_qH);
             }  // else the queue is gone
             it = d_unreceipted.erase(it);
         }

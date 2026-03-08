@@ -235,7 +235,7 @@ class StorageManager {
     /// THREAD: Executed by the Client's dispatcher thread.
     virtual void unregisterQueue(const bmqt::Uri& uri, int partitionId) = 0;
 
-    /// Configure the fanout queue having specified `uri` and `queueKey`,
+    /// Configure the fanout queue having specified `uri` and
     /// assigned to the specified `partitionId` to have the specified
     /// `addedIdKeyPairs` appId/appKey pairs added and `removedIdKeyPairs`
     /// appId/appKey pairs removed.  Return zero on success, and non-zero
@@ -244,11 +244,10 @@ class StorageManager {
     /// queue is configured in fanout mode.
     ///
     /// THREAD: Executed by the Queue's dispatcher thread.
-    virtual int updateQueuePrimary(const bmqt::Uri&        uri,
-                                   const mqbu::StorageKey& queueKey,
-                                   int                     partitionId,
-                                   const AppInfos&         addedIdKeyPairs,
-                                   const AppInfos& removedIdKeyPairs) = 0;
+    virtual int updateQueuePrimary(const bmqt::Uri& uri,
+                                   int              partitionId,
+                                   const AppInfos&  addedIdKeyPairs,
+                                   const AppInfos&  removedIdKeyPairs) = 0;
 
     virtual void registerQueueReplica(int                     partitionId,
                                       const bmqt::Uri&        uri,
@@ -267,20 +266,13 @@ class StorageManager {
                                     const AppInfos&         appIdKeyPairs,
                                     mqbi::Domain*           domain = 0) = 0;
 
-    /// Set the queue instance associated with the file-backed storage for
+    /// Reset the queue instance associated with the file-backed storage for
     /// the specified `uri` mapped to the specified `partitionId` to the
-    /// specified `queue` value.  Note that this method *does* *not*
-    /// synchronize on the queue-dispatcher thread.
-    virtual void
-    setQueue(mqbi::Queue* queue, const bmqt::Uri& uri, int partitionId) = 0;
-
-    /// Set the queue instance associated with the file-backed storage for
-    /// the specified `uri` mapped to the specified `partitionId` to the
-    /// specified `queue` value.  Behavior is undefined unless `queue` is
-    /// non-null or unless this routine is invoked from the dispatcher
-    /// thread associated with the `partitionId`.
-    virtual void
-    setQueueRaw(mqbi::Queue* queue, const bmqt::Uri& uri, int partitionId) = 0;
+    /// specified `queue` value.  The specified `queue_sp` keeps the queue
+    /// until the reset is complete.
+    virtual void resetQueue(const bmqt::Uri&                    uri,
+                            int                                 partitionId,
+                            const bsl::shared_ptr<mqbi::Queue>& queue_sp) = 0;
 
     /// Behavior is undefined unless the specified 'partitionId' is in range
     /// and the specified 'primaryNode' is not null.
@@ -305,6 +297,33 @@ class StorageManager {
     setPrimaryStatusForPartition(int partitionId,
                                  bmqp_ctrlmsg::PrimaryStatus::Value value) = 0;
 
+    /// Stop all Partition FSMs.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
+    virtual void stopPFSMs() = 0;
+
+    /// Apply `RST_UNKNOWN` event to the PartitionFSM for the specified
+    /// `partitionId`.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
+    virtual void detectPrimaryLossInPFSM(int partitionId) = 0;
+
+    /// Apply DETECT_SelfPrimary event to Partition FSM using the specified
+    /// `partitionId`, `primaryNode`, `primaryLeaseId`.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
+    virtual void detectSelfPrimaryInPFSM(int                  partitionId,
+                                         mqbnet::ClusterNode* primaryNode,
+                                         unsigned int primaryLeaseId) = 0;
+
+    /// Apply DETECT_SelfReplica event to Partition FSM using the specified
+    /// `partitionId`, `primaryNode` and `primaryLeaseId`.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
+    virtual void detectSelfReplicaInPFSM(int                  partitionId,
+                                         mqbnet::ClusterNode* primaryNode,
+                                         unsigned int primaryLeaseId) = 0;
+
     /// Process primary state request received from the specified `source`
     /// with the specified `message`.
     virtual void
@@ -323,14 +342,15 @@ class StorageManager {
     processReplicaDataRequest(const bmqp_ctrlmsg::ControlMessage& message,
                               mqbnet::ClusterNode*                source) = 0;
 
-    virtual int makeStorage(bsl::ostream&                   errorDescription,
-                            bsl::shared_ptr<mqbi::Storage>* out,
-                            const bmqt::Uri&                uri,
-                            const mqbu::StorageKey&         queueKey,
-                            int                             partitionId,
-                            const bsls::Types::Int64        messageTtl,
-                            const int maxDeliveryAttempts,
-                            const mqbconfm::StorageDefinition& storageDef) = 0;
+    virtual int
+    configureStorage(bsl::ostream&                      errorDescription,
+                     bsl::shared_ptr<mqbi::Storage>*    out,
+                     const bmqt::Uri&                   uri,
+                     const mqbu::StorageKey&            queueKey,
+                     int                                partitionId,
+                     const bsls::Types::Int64           messageTtl,
+                     const int                          maxDeliveryAttempts,
+                     const mqbconfm::StorageDefinition& storageDef) = 0;
 
     /// Executed in cluster dispatcher thread.
     virtual void
@@ -423,7 +443,7 @@ class StorageManager {
     /// Return partition corresponding to the specified `partitionId`.  The
     /// behavior is undefined if `partitionId` does not represent a valid
     /// partition id.
-    virtual const mqbs::FileStore& fileStore(int partitionId) const = 0;
+    virtual mqbs::FileStore& fileStore(int partitionId) const = 0;
 
     /// Return a StorageManagerIterator for the specified `partitionId`.
     virtual bslma::ManagedPtr<StorageManagerIterator>

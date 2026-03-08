@@ -19,6 +19,7 @@
 // MQB
 #include <mqbcfg_messages.h>
 #include <mqbmock_dispatcher.h>
+#include <mqbstat_dispatcherstats.h>
 
 #include <bmqex_bindutil.h>
 #include <bmqex_executionpolicy.h>
@@ -34,6 +35,7 @@
 #include <bslmt_threadutil.h>
 #include <bsls_assert.h>
 #include <bsls_systemclocktype.h>
+#include <bsls_timeutil.h>
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
@@ -46,6 +48,41 @@ using namespace bsl;
 //                            TEST HELPERS UTILITY
 // ----------------------------------------------------------------------------
 namespace {
+
+static void
+printSummary(bsl::string_view desc, bsls::Types::Int64 dt, size_t iters)
+{
+    bsl::cout << desc << ":" << bsl::endl;
+    bsl::cout << "       total: " << bmqu::PrintUtil::prettyTimeInterval(dt)
+              << " (" << iters << " iterations)" << bsl::endl;
+    bsl::cout << "    per call: "
+              << bmqu::PrintUtil::prettyTimeInterval((dt) / iters)
+              << bsl::endl;
+    bsl::cout << bsl::endl;
+}
+
+static mqbcfg::DispatcherConfig makeConfig()
+{
+    mqbcfg::DispatcherConfig config;
+
+    // Configure to have only one client of each type
+    config.sessions().numProcessors()                            = 1;
+    config.sessions().processorConfig().queueSize()              = 100;
+    config.sessions().processorConfig().queueSizeLowWatermark()  = 0;
+    config.sessions().processorConfig().queueSizeHighWatermark() = 100;
+
+    config.queues().numProcessors()                            = 1;
+    config.queues().processorConfig().queueSize()              = 100;
+    config.queues().processorConfig().queueSizeLowWatermark()  = 0;
+    config.queues().processorConfig().queueSizeHighWatermark() = 100;
+
+    config.clusters().numProcessors()                            = 1;
+    config.clusters().processorConfig().queueSize()              = 100;
+    config.clusters().processorConfig().queueSizeLowWatermark()  = 0;
+    config.clusters().processorConfig().queueSizeHighWatermark() = 100;
+
+    return config;
+}
 
 // ==================
 // struct Synchronize
@@ -88,6 +125,93 @@ struct LoadSelfThreadId {
     }
 };
 
+struct TestDispatcherClient : public mqbi::DispatcherClient {
+  private:
+    // DATA
+    mqbi::Dispatcher* d_dispatcher_p;
+
+    mqbi::DispatcherClientData d_data;
+
+    const bsl::string d_description;
+
+  private:
+    // NOT IMPLEMENTED
+    /// Should not allow copy/assignment because dispatcher clients are
+    /// registered in Dispatcher by raw pointers.
+    TestDispatcherClient(const TestDispatcherClient&) BSLS_KEYWORD_DELETED;
+    TestDispatcherClient&
+    operator=(const TestDispatcherClient&) BSLS_KEYWORD_DELETED;
+
+  public:
+    // CREATORS
+    explicit TestDispatcherClient(mqbi::Dispatcher* dispatcher)
+    : d_dispatcher_p(dispatcher)
+    , d_data()
+    , d_description()
+    {
+        // NOTHING
+    }
+
+    ~TestDispatcherClient() BSLS_KEYWORD_OVERRIDE
+    {
+        // NOTHING
+    }
+
+    // MANIPULATORS
+
+    /// Return a pointer to the dispatcher this client is associated with.
+    mqbi::Dispatcher* dispatcher() BSLS_KEYWORD_OVERRIDE
+    {
+        return d_dispatcher_p;
+    }
+
+    /// Return a reference offering modifiable access to the
+    /// DispatcherClientData of this client.
+    mqbi::DispatcherClientData& dispatcherClientData() BSLS_KEYWORD_OVERRIDE
+    {
+        return d_data;
+    }
+
+    /// Called by the `Dispatcher` when it has the specified `event` to
+    /// deliver to the client.
+    void
+    onDispatcherEvent(const mqbi::DispatcherEvent& event) BSLS_KEYWORD_OVERRIDE
+    {
+        if (event.type() == mqbi::DispatcherEventType::e_CALLBACK) {
+            event.asCallbackEvent()->callback()();
+        }
+    }
+
+    /// Called by the dispatcher to flush any pending operation; mainly
+    /// used to provide batch and nagling mechanism.
+    void flush() BSLS_KEYWORD_OVERRIDE
+    {
+        // NOTHING
+    }
+
+    // ACCESSORS
+
+    /// Return a pointer to the dispatcher this client is associated with.
+    const mqbi::Dispatcher* dispatcher() const BSLS_KEYWORD_OVERRIDE
+    {
+        return d_dispatcher_p;
+    }
+
+    /// Return a reference not offering modifiable access to the
+    /// DispatcherClientData of this client.
+    const mqbi::DispatcherClientData&
+    dispatcherClientData() const BSLS_KEYWORD_OVERRIDE
+    {
+        return d_data;
+    }
+
+    /// Return a printable description of the client (e.g., for logging).
+    const bsl::string& description() const BSLS_KEYWORD_OVERRIDE
+    {
+        return d_description;
+    }
+};
+
 }  // close unnamed namespace
 
 // ============================================================================
@@ -107,20 +231,22 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    // Create Dispatcher
-    mqbcfg::DispatcherConfig dispatcherConfig;
-    dispatcherConfig.sessions().numProcessors() = 1;
-    dispatcherConfig.queues().numProcessors()   = 1;
-    dispatcherConfig.clusters().numProcessors() = 1;
-
+    // Create and start scheduler
     bdlmt::EventScheduler eventScheduler(bsls::SystemClockType::e_MONOTONIC,
                                          bmqtst::TestHelperUtil::allocator());
     eventScheduler.start();
 
     {
-        mqba::Dispatcher obj(dispatcherConfig,
-                             &eventScheduler,
-                             bmqtst::TestHelperUtil::allocator());
+        // Create Dispatcher
+        bsl::shared_ptr<bmqst::StatContext> statContext =
+            mqbstat::DispatcherStatsUtil::initializeStatContext(
+                0,
+                bmqtst::TestHelperUtil::allocator());
+        mqbcfg::DispatcherConfig dispatcherConfig = makeConfig();
+        mqba::Dispatcher         dispatcher(dispatcherConfig,
+                                    statContext.get(),
+                                    &eventScheduler,
+                                    bmqtst::TestHelperUtil::allocator());
     }
 
     eventScheduler.stop();
@@ -164,14 +290,9 @@ static void test3_executorsSupport()
 // Plan:
 //   - Create and start a dispatcher having one processor per client type.
 //   - Register several clients.
-//   - Check that the 'executor' and 'clientExecutor' functions both return
+//   - Check that the 'executor' function returns
 //     a valid executor object, given a valid client registered on the
 //     dispatcher.
-//   - Check comparison operations on returned executor objects,
-//     specifically that two executors compare equal only if both of them
-//     refer to the same processor (for executors returned by the
-//     'executor' function), or if they both refer to the same client (for
-//     executors returned by the 'clientExecutor' function).
 //   - Check the correct behavior of 'post' and 'dispatch' functions on
 //     returned executors, specifically that 'post' does not block the
 //     calling thread pending completion of the submitted functor, and
@@ -191,28 +312,13 @@ static void test3_executorsSupport()
     BSLS_ASSERT_OPT(rc == 0);
 
     // create the dispatcher
-    mqbcfg::DispatcherConfig dispatcherConfig;
-
-    // configure the dispatched in a way that there is only one processor for
-    // client of each type
-    dispatcherConfig.sessions().numProcessors()               = 1;
-    dispatcherConfig.sessions().processorConfig().queueSize() = 100;
-    dispatcherConfig.sessions().processorConfig().queueSizeLowWatermark() = 0;
-    dispatcherConfig.sessions().processorConfig().queueSizeHighWatermark() =
-        100;
-
-    dispatcherConfig.queues().numProcessors()                            = 1;
-    dispatcherConfig.queues().processorConfig().queueSize()              = 100;
-    dispatcherConfig.queues().processorConfig().queueSizeLowWatermark()  = 0;
-    dispatcherConfig.queues().processorConfig().queueSizeHighWatermark() = 100;
-
-    dispatcherConfig.clusters().numProcessors()               = 1;
-    dispatcherConfig.clusters().processorConfig().queueSize() = 100;
-    dispatcherConfig.clusters().processorConfig().queueSizeLowWatermark() = 0;
-    dispatcherConfig.clusters().processorConfig().queueSizeHighWatermark() =
-        100;
-
-    mqba::Dispatcher dispatcher(dispatcherConfig,
+    bsl::shared_ptr<bmqst::StatContext> statContext =
+        mqbstat::DispatcherStatsUtil::initializeStatContext(
+            0,
+            bmqtst::TestHelperUtil::allocator());
+    mqbcfg::DispatcherConfig dispatcherConfig = makeConfig();
+    mqba::Dispatcher         dispatcher(dispatcherConfig,
+                                statContext.get(),
                                 &eventScheduler,
                                 bmqtst::TestHelperUtil::allocator());
 
@@ -359,129 +465,188 @@ static void test3_executorsSupport()
         BMQTST_ASSERT(threadId1 != bslmt::ThreadUtil::selfId());
     }
 
-    // test client executor
-    {
-        // obtain executor for first client
-        bmqex::Executor executor1 = dispatcher.clientExecutor(&client1);
-        BMQTST_ASSERT(static_cast<bool>(executor1));
-
-        // obtain executor for second client
-        bmqex::Executor executor2 = dispatcher.clientExecutor(&client2);
-        BMQTST_ASSERT(static_cast<bool>(executor2));
-
-        // executors for the first and the second client do not compare equal
-        // as ther refer to different clients
-        BMQTST_ASSERT(executor1 != executor2);
-
-        // obtain executor for second client again
-        bmqex::Executor executor3 = dispatcher.clientExecutor(&client2);
-        BMQTST_ASSERT(static_cast<bool>(executor3));
-
-        // executors for the same (second) client do compare equal
-        BMQTST_ASSERT(executor2 == executor3);
-
-        // create utility semaphores
-        bslmt::Semaphore startedSignal,  // used to sync. with async op.
-            continueSignal;              // used to sync. with async op.
-
-        // submit a functor on a processor using the executor's 'post'
-        // function, check that 'post' does not block the calling thread
-        executor1.post(bdlf::BindUtil::bind(Synchronize(),
-                                            &startedSignal,
-                                            &continueSignal));
-
-        startedSignal.wait();   // wait for the job to start executing
-        continueSignal.post();  // allow the job to complete
-
-        // storages to save thread ids in
-        bslmt::ThreadUtil::Id threadId1 = bslmt::ThreadUtil::selfId();
-        bslmt::ThreadUtil::Id threadId2 = bslmt::ThreadUtil::selfId();
-
-        // submit two functors to be executed on the same processor and by the
-        // same client using the executor's 'post' function, and wait for the
-        // completion of submitted functors
-        bmqex::ExecutionUtil::execute(
-            bmqex::ExecutionPolicyUtil::twoWay()
-                .neverBlocking()
-                .useExecutor(executor1)
-                .useAllocator(bmqtst::TestHelperUtil::allocator()),
-            bdlf::BindUtil::bind(LoadSelfThreadId(), &threadId1))
-            .wait();
-
-        bmqex::ExecutionUtil::execute(
-            bmqex::ExecutionPolicyUtil::twoWay()
-                .neverBlocking()
-                .useExecutor(executor1)
-                .useAllocator(bmqtst::TestHelperUtil::allocator()),
-            bdlf::BindUtil::bind(LoadSelfThreadId(), &threadId2))
-            .wait();
-
-        // both functors were invoked in the same thread that is not this
-        // thread
-        BMQTST_ASSERT(threadId1 == threadId2);
-        BMQTST_ASSERT(threadId1 != bslmt::ThreadUtil::selfId());
-
-        // submit a functor on a processor using the executor's 'dispatch'
-        // function, check that 'dispatch' does not block the calling thread
-        executor1.dispatch(bdlf::BindUtil::bind(Synchronize(),
-                                                &startedSignal,
-                                                &continueSignal));
-
-        startedSignal.wait();   // wait for the job to start executing
-        continueSignal.post();  // allow the job to complete
-
-        // reset thread ids
-        threadId1 = bslmt::ThreadUtil::selfId();
-        threadId2 = bslmt::ThreadUtil::selfId();
-
-        // submit two functors to be executed on the same processor and by the
-        // same client using the executor's 'dispatch' function, and wait for
-        // the completion of submitted functors
-        bmqex::ExecutionUtil::execute(
-            bmqex::ExecutionPolicyUtil::twoWay()
-                .possiblyBlocking()
-                .useExecutor(executor2)
-                .useAllocator(bmqtst::TestHelperUtil::allocator()),
-            bdlf::BindUtil::bind(LoadSelfThreadId(), &threadId1))
-            .wait();
-
-        bmqex::ExecutionUtil::execute(
-            bmqex::ExecutionPolicyUtil::twoWay()
-                .possiblyBlocking()
-                .useExecutor(executor2)
-                .useAllocator(bmqtst::TestHelperUtil::allocator()),
-            bdlf::BindUtil::bind(LoadSelfThreadId(), &threadId2))
-            .wait();
-
-        // both functors were invoked in the same thread that is not this
-        // thread
-        BMQTST_ASSERT(threadId1 == threadId2);
-        BMQTST_ASSERT(threadId1 != bslmt::ThreadUtil::selfId());
-
-        // submit a functor that, when invoked, will submit another functor
-        // via the executor's 'dispatch' function and block the calling thread
-        // until the nested functor completes
-        bmqex::ExecutionUtil::execute(
-            bmqex::ExecutionPolicyUtil::oneWay()
-                .alwaysBlocking()
-                .useExecutor(executor1)
-                .useAllocator(bmqtst::TestHelperUtil::allocator()),
-            bmqex::BindUtil::bindExecute(
-                bmqex::ExecutionPolicyUtil::oneWay()
-                    .alwaysBlocking()
-                    .useExecutor(executor2)
-                    .useAllocator(bmqtst::TestHelperUtil::allocator()),
-                bdlf::BindUtil::bind(LoadSelfThreadId(), &threadId1)));
-
-        // the nested functor was invoked in-place (we know that because
-        // otherwise the operation above would not complete)
-        BMQTST_ASSERT(threadId1 != bslmt::ThreadUtil::selfId());
-    }
-
     // stop the dispatcher
     dispatcher.stop();
 
     // stop the scheduler
+    eventScheduler.stop();
+}
+
+static void test4_eventSource()
+// ------------------------------------------------------------------------
+// EVENT SOURCE
+//
+// Concerns:
+//   - mqbi::DispatcherClient::getEvent works after registering a client
+//   - mqba::Dispatcher::getDefaultEventSource::getEvent works
+//   - mqba::Dispatcher::createEventSource creates an instance of event
+//     source that allows to get events
+//
+// Testing:
+//   mqbi::DispatcherEventSource support
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("EVENT SOURCE");
+
+    bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
+
+    struct Local {
+        static void callbackFn(bslmt::Semaphore* done_p)
+        {
+            // PRECONDITIONS
+            BSLS_ASSERT(done_p);
+            done_p->post();
+        }
+    };
+
+    // Create and start scheduler
+    bdlmt::EventScheduler eventScheduler(bsls::SystemClockType::e_MONOTONIC,
+                                         alloc);
+    eventScheduler.start();
+
+    {
+        // Create Dispatcher
+        bsl::shared_ptr<bmqst::StatContext> statContext =
+            mqbstat::DispatcherStatsUtil::initializeStatContext(0, alloc);
+        mqbcfg::DispatcherConfig dispatcherConfig = makeConfig();
+        mqba::Dispatcher         dispatcher(dispatcherConfig,
+                                    statContext.get(),
+                                    &eventScheduler,
+                                    alloc);
+
+        // Start the dispatcher
+        bsl::stringstream startErr(alloc);
+        const int         rc = dispatcher.start(startErr);
+        BMQTST_ASSERT(rc == 0);
+
+        // Register a client
+        mqbmock::DispatcherClient client(alloc);
+        dispatcher.registerClient(&client,
+                                  mqbi::DispatcherClientType::e_SESSION);
+
+        // 1. Enqueue an event to a client using its own event source
+        {
+            bslmt::Semaphore done;
+
+            bsl::shared_ptr<mqbi::DispatcherEvent> event = client.getEvent();
+            event->setType(mqbi::DispatcherEventType::e_CALLBACK);
+            event->setCallback(
+                bdlf::BindUtil::bindS(alloc, &Local::callbackFn, &done));
+
+            dispatcher.dispatchEvent(bslmf::MovableRefUtil::move(event),
+                                     &client);
+            done.wait();
+        }
+
+        // 2. Enqueue an event to a client using the default event source
+        {
+            bslmt::Semaphore done;
+
+            bsl::shared_ptr<mqbi::DispatcherEvent> event =
+                dispatcher.getDefaultEventSource()->getEvent();
+            event->setType(mqbi::DispatcherEventType::e_CALLBACK);
+            event->setCallback(
+                bdlf::BindUtil::bindS(alloc, &Local::callbackFn, &done));
+
+            dispatcher.dispatchEvent(bslmf::MovableRefUtil::move(event),
+                                     &client);
+            done.wait();
+        }
+
+        // 3. Enqueue an event to a client using the cached event source
+        {
+            bsl::shared_ptr<mqbi::DispatcherEventSource> eventSource_sp =
+                dispatcher.createEventSource();
+
+            bslmt::Semaphore done;
+
+            bsl::shared_ptr<mqbi::DispatcherEvent> event =
+                eventSource_sp->getEvent();
+            event->setType(mqbi::DispatcherEventType::e_CALLBACK);
+            event->setCallback(
+                bdlf::BindUtil::bindS(alloc, &Local::callbackFn, &done));
+
+            dispatcher.dispatchEvent(bslmf::MovableRefUtil::move(event),
+                                     &client);
+            done.wait();
+        }
+
+        dispatcher.stop();
+    }
+
+    eventScheduler.stop();
+}
+
+static void testN1_inDispatcherThread()
+{
+    const size_t k_ITERS_NUM = 10000000;
+
+    struct Local {
+        static void callbackFn(bsls::Types::Int64*           dt,
+                               bslmt::Semaphore*             done_p,
+                               const mqbi::DispatcherClient* client_p)
+        {
+            // PRECONDITIONS
+            BSLS_ASSERT_SAFE(dt);
+            BSLS_ASSERT_SAFE(done_p);
+            BSLS_ASSERT_SAFE(client_p);
+
+            const bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
+            for (size_t i = 0; i < k_ITERS_NUM; i++) {
+                BSLS_ASSERT_OPT(client_p->inDispatcherThread());
+            }
+            const bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
+
+            *dt = end - begin;
+            done_p->post();
+        }
+    };
+
+    // Create and start scheduler
+    bdlmt::EventScheduler eventScheduler(bsls::SystemClockType::e_MONOTONIC,
+                                         bmqtst::TestHelperUtil::allocator());
+    eventScheduler.start();
+
+    {
+        // Create dispatcher
+        bsl::shared_ptr<bmqst::StatContext> statContext =
+            mqbstat::DispatcherStatsUtil::initializeStatContext(
+                0,
+                bmqtst::TestHelperUtil::allocator());
+        mqbcfg::DispatcherConfig dispatcherConfig = makeConfig();
+        mqba::Dispatcher         obj(dispatcherConfig,
+                             statContext.get(),
+                             &eventScheduler,
+                             bmqtst::TestHelperUtil::allocator());
+
+        bsl::stringstream startErr(bmqtst::TestHelperUtil::allocator());
+        const int         rc = obj.start(startErr);
+        BMQTST_ASSERT(rc == 0);
+
+        TestDispatcherClient cli(&obj);
+
+        // Register with 0 index (e_SESSION)
+        obj.registerClient(&cli, mqbi::DispatcherClientType::e_SESSION);
+
+        bsls::Types::Int64 dt = 0;
+        bslmt::Semaphore   doneSemaphore;
+
+        obj.execute(bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
+                                          &Local::callbackFn,
+                                          &dt,
+                                          &doneSemaphore,
+                                          &cli),
+                    &cli,
+                    mqbi::DispatcherEventType::e_CALLBACK);
+
+        doneSemaphore.wait();
+
+        printSummary("inDispatcherThread()", dt, k_ITERS_NUM);
+
+        obj.unregisterClient(&cli);
+        obj.stop();
+    }
+
     eventScheduler.stop();
 }
 
@@ -497,9 +662,11 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 4: test4_eventSource(); break;
     case 3: test3_executorsSupport(); break;
     case 2: test2_clientTypeEnumValues(); break;
     case 1: test1_breathingTest(); break;
+    case -1: testN1_inDispatcherThread(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         bmqtst::TestHelperUtil::testStatus() = -1;

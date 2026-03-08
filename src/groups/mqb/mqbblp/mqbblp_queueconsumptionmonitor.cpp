@@ -188,16 +188,25 @@ void QueueConsumptionMonitor::registerSubStream(const bsl::string& appId)
     d_subStreamInfos.insert(bsl::make_pair(appId, SubStreamInfo()));
 }
 
+/*
+ * 	unreg, reg, timer
+ */
 void QueueConsumptionMonitor::unregisterSubStream(const bsl::string& appId)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
-    SubStreamInfoMapConstIter iter = d_subStreamInfos.find(appId);
+    SubStreamInfoMapIter iter = d_subStreamInfos.find(appId);
     BSLS_ASSERT_SAFE(iter != d_subStreamInfos.end());
+    SubStreamInfo& info = iter->second;
+
+    cancelIdleEvents(&info);
+
+    // The logic allows 'idleEventDispatched' to run after 'appId' removal
+    // (and re-insertion).
+
     d_subStreamInfos.erase(iter);
 }
 
@@ -226,8 +235,7 @@ void QueueConsumptionMonitor::onMessagePosted()
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     if (d_alarmEventHandle || isMonitoringDisabled()) {
         return;  // RETURN
@@ -243,8 +251,7 @@ void QueueConsumptionMonitor::onMessageSent(const bsl::string& appId)
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(isMonitoringDisabled())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -287,8 +294,7 @@ void QueueConsumptionMonitor::onTransitionToAlive(SubStreamInfo* subStreamInfo,
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
     BSLS_ASSERT_SAFE(subStreamInfo->d_state == State::e_IDLE);
 
     if (subStreamInfo->d_idleEventHandle) {
@@ -323,8 +329,7 @@ void QueueConsumptionMonitor::scheduleAlarmEvent(
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
     BSLS_ASSERT_SAFE(!d_alarmEventHandle);
 
     d_scheduledAlarmTime = alarmTime;
@@ -343,8 +348,7 @@ void QueueConsumptionMonitor::scheduleOrRescheduleAlarmEventIfNeeded(
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     if (d_alarmEventHandle) {
         // If the event is already scheduled, reschedule it only if the new
@@ -367,8 +371,7 @@ void QueueConsumptionMonitor::scheduleIdleEvent(SubStreamInfo* subStreamInfo,
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
     BSLS_ASSERT_SAFE(!subStreamInfo->d_idleEventHandle);
     BSLS_ASSERT_SAFE(subStreamInfo->d_state == State::e_IDLE);
 
@@ -423,14 +426,7 @@ void QueueConsumptionMonitor::cancelIdleEvents(bool resetStates)
          iter != last;
          ++iter) {
         SubStreamInfo& info = iter->second;
-        if (info.d_idleEventHandle) {
-            // Cancel the event if it was scheduled.
-            int rc = d_queueState_p->scheduler()->cancelEventAndWait(
-                &info.d_idleEventHandle);
-            if (rc == 0) {
-                info.d_idleEventHandle.release();
-            }
-        }
+        cancelIdleEvents(&info);
 
         if (resetStates) {
             // Reset the substream state to default.
@@ -439,13 +435,26 @@ void QueueConsumptionMonitor::cancelIdleEvents(bool resetStates)
     }
 }
 
+void QueueConsumptionMonitor::cancelIdleEvents(SubStreamInfo* info)
+{
+    BSLS_ASSERT_SAFE(info);
+
+    if (info->d_idleEventHandle) {
+        // Cancel the event if it was scheduled.
+        d_queueState_p->scheduler()->cancelEventAndWait(
+            &info->d_idleEventHandle);
+
+        // "it is guaranteed that `*handle` will be released whether this call
+        // is successful or not."
+    }
+}
+
 void QueueConsumptionMonitor::alarmEventDispatched()
 {
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     if (d_alarmEventHandle) {
         d_alarmEventHandle.release();
@@ -514,10 +523,16 @@ void QueueConsumptionMonitor::idleEventDispatched(const bsl::string& appId)
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
-    SubStreamInfo& info = subStreamInfo(appId);
+    SubStreamInfoMapIter iter = d_subStreamInfos.find(appId);
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(iter ==
+                                              d_subStreamInfos.end())) {
+        return;  // RETURN
+    }
+
+    SubStreamInfo& info = iter->second;
 
     if (info.d_idleEventHandle) {
         info.d_idleEventHandle.release();

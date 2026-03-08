@@ -68,7 +68,7 @@ namespace BloombergLP {
 namespace mqbc {
 
 void RecoveryManager::ChunkDeleter::operator()(
-    BSLA_UNUSED const void* ptr) const
+    BSLA_MAYBE_UNUSED const void* ptr) const
 {
     // executed by *ANY* thread
     // PRECONDITIONS
@@ -137,7 +137,7 @@ RecoveryManager::~RecoveryManager()
 }
 
 // MANIPULATORS
-int RecoveryManager::start(BSLA_UNUSED bsl::ostream& errorDescription)
+int RecoveryManager::start(BSLA_MAYBE_UNUSED bsl::ostream& errorDescription)
 {
     // NOTHING
     return 0;
@@ -173,6 +173,14 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                 << BMQTSK_ALARMLOG_END;
             errorDesc.reset();
         }
+        else {
+            BALL_LOG_INFO << d_clusterData.identity().description()
+                          << " Partition [" << partitionId
+                          << "]: " << "Truncated journal file ["
+                          << recoveryCtx.d_recoveryFileSet.journalFile()
+                          << "] to position ["
+                          << recoveryCtx.d_journalFilePosition << "].";
+        }
 
         rc = mqbs::FileSystemUtil::flush(
             recoveryCtx.d_mappedJournalFd.mapping(),
@@ -187,6 +195,14 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                 << BMQTSK_ALARMLOG_END;
             errorDesc.reset();
         }
+        else {
+            BALL_LOG_INFO << d_clusterData.identity().description()
+                          << " Partition [" << partitionId
+                          << "]: " << "Flushed journal file ["
+                          << recoveryCtx.d_recoveryFileSet.journalFile()
+                          << "] up to position ["
+                          << recoveryCtx.d_journalFilePosition << "].";
+        }
 
         rc = mqbs::FileSystemUtil::close(&recoveryCtx.d_mappedJournalFd);
         if (rc != 0) {
@@ -195,6 +211,13 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                 << partitionId << "]: " << "Failed to close journal file ["
                 << recoveryCtx.d_recoveryFileSet.journalFile()
                 << "], rc: " << rc << BMQTSK_ALARMLOG_END;
+        }
+        else {
+            BALL_LOG_INFO << d_clusterData.identity().description()
+                          << " Partition [" << partitionId
+                          << "]: " << "Closed journal file ["
+                          << recoveryCtx.d_recoveryFileSet.journalFile()
+                          << "].";
         }
     }
     rc = mqbs::FileSystemUtil::move(
@@ -207,6 +230,14 @@ void RecoveryManager::deprecateFileSet(int partitionId)
             << recoveryCtx.d_recoveryFileSet.journalFile() << "] "
             << "to location [" << d_dataStoreConfig.archiveLocation()
             << "] rc: " << rc << BMQTSK_ALARMLOG_END;
+    }
+    else {
+        BALL_LOG_INFO << d_clusterData.identity().description()
+                      << " Partition [" << partitionId
+                      << "]: " << "Moved journal file ["
+                      << recoveryCtx.d_recoveryFileSet.journalFile()
+                      << "] to location ["
+                      << d_dataStoreConfig.archiveLocation() << "].";
     }
     recoveryCtx.d_journalFilePosition = 0;
 
@@ -222,6 +253,14 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                 << ", error: " << errorDesc.str() << BMQTSK_ALARMLOG_END;
             errorDesc.reset();
         }
+        else {
+            BALL_LOG_INFO << d_clusterData.identity().description()
+                          << " Partition [" << partitionId
+                          << "]: " << "Truncated data file ["
+                          << recoveryCtx.d_recoveryFileSet.dataFile()
+                          << "] to position ["
+                          << recoveryCtx.d_dataFilePosition << "].";
+        }
 
         rc = mqbs::FileSystemUtil::flush(recoveryCtx.d_mappedDataFd.mapping(),
                                          recoveryCtx.d_dataFilePosition,
@@ -234,6 +273,14 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                 << ", error: " << errorDesc.str() << BMQTSK_ALARMLOG_END;
             errorDesc.reset();
         }
+        else {
+            BALL_LOG_INFO << d_clusterData.identity().description()
+                          << " Partition [" << partitionId
+                          << "]: " << "Flushed data file ["
+                          << recoveryCtx.d_recoveryFileSet.dataFile()
+                          << "] up to position ["
+                          << recoveryCtx.d_dataFilePosition << "].";
+        }
 
         rc = mqbs::FileSystemUtil::close(&recoveryCtx.d_mappedDataFd);
         if (rc != 0) {
@@ -242,6 +289,12 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                 << partitionId << "]: " << "Failed to close data file ["
                 << recoveryCtx.d_recoveryFileSet.dataFile() << "], rc: " << rc
                 << BMQTSK_ALARMLOG_END;
+        }
+        else {
+            BALL_LOG_INFO << d_clusterData.identity().description()
+                          << " Partition [" << partitionId
+                          << "]: " << "Closed data file ["
+                          << recoveryCtx.d_recoveryFileSet.dataFile() << "].";
         }
     }
     rc = mqbs::FileSystemUtil::move(recoveryCtx.d_recoveryFileSet.dataFile(),
@@ -253,6 +306,14 @@ void RecoveryManager::deprecateFileSet(int partitionId)
             << recoveryCtx.d_recoveryFileSet.dataFile() << "] "
             << "to location [" << d_dataStoreConfig.archiveLocation()
             << "] rc: " << rc << BMQTSK_ALARMLOG_END;
+    }
+    else {
+        BALL_LOG_INFO << d_clusterData.identity().description()
+                      << " Partition [" << partitionId
+                      << "]: " << "Moved data file ["
+                      << recoveryCtx.d_recoveryFileSet.dataFile()
+                      << "] to location ["
+                      << d_dataStoreConfig.archiveLocation() << "].";
     }
     recoveryCtx.d_dataFilePosition = 0;
 
@@ -268,6 +329,14 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                 << ", error: " << errorDesc.str() << BMQTSK_ALARMLOG_END;
             errorDesc.reset();
         }
+        else {
+            BALL_LOG_INFO << d_clusterData.identity().description()
+                          << " Partition [" << partitionId
+                          << "]: " << "Truncated QList file ["
+                          << recoveryCtx.d_recoveryFileSet.qlistFile()
+                          << "] to position ["
+                          << recoveryCtx.d_qlistFilePosition << "].";
+        }
 
         rc = mqbs::FileSystemUtil::flush(recoveryCtx.d_mappedQlistFd.mapping(),
                                          recoveryCtx.d_qlistFilePosition,
@@ -280,6 +349,14 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                 << ", error: " << errorDesc.str() << BMQTSK_ALARMLOG_END;
             errorDesc.reset();
         }
+        else {
+            BALL_LOG_INFO << d_clusterData.identity().description()
+                          << " Partition [" << partitionId
+                          << "]: " << "Flushed QList file ["
+                          << recoveryCtx.d_recoveryFileSet.qlistFile()
+                          << "] up to position ["
+                          << recoveryCtx.d_qlistFilePosition << "].";
+        }
 
         rc = mqbs::FileSystemUtil::close(&recoveryCtx.d_mappedQlistFd);
         if (rc != 0) {
@@ -288,6 +365,12 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                 << partitionId << "]: " << "Failed to close QList file ["
                 << recoveryCtx.d_recoveryFileSet.qlistFile() << "], rc: " << rc
                 << BMQTSK_ALARMLOG_END;
+        }
+        else {
+            BALL_LOG_INFO << d_clusterData.identity().description()
+                          << " Partition [" << partitionId
+                          << "]: " << "Closed QList file ["
+                          << recoveryCtx.d_recoveryFileSet.qlistFile() << "].";
         }
     }
     rc = mqbs::FileSystemUtil::move(recoveryCtx.d_recoveryFileSet.qlistFile(),
@@ -300,7 +383,17 @@ void RecoveryManager::deprecateFileSet(int partitionId)
             << "to location [" << d_dataStoreConfig.archiveLocation()
             << "] rc: " << rc << BMQTSK_ALARMLOG_END;
     }
+    else {
+        BALL_LOG_INFO << d_clusterData.identity().description()
+                      << " Partition [" << partitionId
+                      << "]: " << "Moved QList file ["
+                      << recoveryCtx.d_recoveryFileSet.qlistFile()
+                      << "] to location ["
+                      << d_dataStoreConfig.archiveLocation() << "].";
+    }
     recoveryCtx.d_qlistFilePosition = 0;
+
+    recoveryCtx.d_firstSyncPointAfterRolloverSeqNum.reset();
 }
 
 void RecoveryManager::setExpectedDataChunkRange(
@@ -417,6 +510,11 @@ int RecoveryManager::processSendDataChunks(
         return rc_SUCCESS;  // RETURN
     }
 
+    BALL_LOG_INFO << d_clusterData.identity().description() << " Partition ["
+                  << partitionId << "]: sending data chunks from "
+                  << beginSeqNum << " to " << endSeqNum
+                  << ". Peer: " << destination->nodeDescription() << ".";
+
     mqbs::FileStoreSet fileSet;
 
     fs.loadCurrentFiles(&fileSet);
@@ -468,6 +566,12 @@ int RecoveryManager::processSendDataChunks(
         return rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
     }
 
+    // Make initial 'journalIt.nextRecord()' call
+    rc = journalIt.nextRecord();
+    if (rc != 1) {
+        return rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
+    }
+
     bmqp_ctrlmsg::PartitionSequenceNumber currentSeqNum;
     rc = RecoveryUtil::bootstrapCurrentSeqNum(&currentSeqNum,
                                               journalIt,
@@ -476,36 +580,28 @@ int RecoveryManager::processSendDataChunks(
         return rc * 10 + rc_INVALID_SEQUENCE_NUMBER;  // RETURN
     }
 
+    BALL_LOG_INFO << d_clusterData.identity().description() << " Partition ["
+                  << partitionId << "]: starting data chunks from "
+                  << currentSeqNum << ".";
+
     bmqp::StorageEventBuilder builder(mqbs::FileStoreProtocol::k_VERSION,
                                       bmqp::EventType::e_PARTITION_SYNC,
                                       d_blobSpPool_p,
                                       d_allocator_p);
 
-    // Note that partition has to be replayed from the record *after*
-    // 'beginSeqNum'.  So move forward by one record in the JOURNAL.
-    while (currentSeqNum < endSeqNum) {
-        char* journalRecordBase = 0;
+    // 'bootstrapCurrentSeqNum' has positioned 'currentSeqNum' and 'journalIt'
+    // precisely to the record after 'fromSequenceNum'.
+
+    bool isDone = false;
+
+    while (!isDone && rc == 0) {
+        char* journalRecordBase = mappedJournalFd->block().base() +
+                                  journalIt.recordOffset();
         int journalRecordLen = mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
         char*                          payloadRecordBase = 0;
         int                            payloadRecordLen  = 0;
         bmqp::StorageMessageType::Enum storageMsgType =
             bmqp::StorageMessageType::e_UNDEFINED;
-
-        rc = RecoveryUtil::incrementCurrentSeqNum(
-            &currentSeqNum,
-            &journalRecordBase,
-            *mappedJournalFd,
-            endSeqNum,
-            partitionId,
-            *destination,
-            d_clusterData.identity().description(),
-            journalIt);
-        if (rc == 1) {
-            break;
-        }
-        else if (rc < 0) {
-            return rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
-        }
 
         RecoveryUtil::processJournalRecord(&storageMsgType,
                                            &payloadRecordBase,
@@ -585,9 +681,17 @@ int RecoveryManager::processSendDataChunks(
 
             builder.reset();
         }
+
+        if (currentSeqNum == endSeqNum) {
+            isDone = true;
+        }
+        else {
+            rc = RecoveryUtil::incrementCurrentSeqNum(&currentSeqNum,
+                                                      journalIt);
+        }
     }
 
-    if (currentSeqNum != endSeqNum) {
+    if (!isDone) {
         BALL_LOG_WARN << d_clusterData.identity().description()
                       << " Partition [" << partitionId
                       << "]: incomplete replay of partition. Sequence number "
@@ -620,7 +724,9 @@ int RecoveryManager::processReceiveDataChunks(
     const bsl::shared_ptr<bdlbb::Blob>& blob,
     mqbnet::ClusterNode*                source,
     mqbs::FileStore*                    fs,
-    int                                 partitionId)
+    int                                 partitionId,
+    const bmqp_ctrlmsg::PartitionSequenceNumber&
+        firstSyncPointAfterRolloverSeqNum)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
@@ -780,8 +886,10 @@ int RecoveryManager::processReceiveDataChunks(
             BMQTSK_ALARMLOG_ALARM("REPLICATION")
                 << d_clusterData.identity().description() << " Partition ["
                 << partitionId << "]: " << "Received journal record of type ["
-                << header.messageType() << "] with journal offset mismatch. "
-                << "Source's journal offset: " << sourceJournalOffset
+                << header.messageType()
+                << "] with journal offset mismatch from "
+                << source->nodeDescription()
+                << ". Source's journal offset: " << sourceJournalOffset
                 << ", self journal offset: " << journalPos
                 << ", msg sequence number (" << recHeader->primaryLeaseId()
                 << ", " << recHeader->sequenceNumber()
@@ -843,6 +951,22 @@ int RecoveryManager::processReceiveDataChunks(
                 journal.fileSize() >=
                 (journalPos +
                  mqbs::FileStoreProtocol ::k_JOURNAL_RECORD_SIZE));
+
+            // Update journal header with first sync point after rollover
+            // offset
+            if (header.messageType() ==
+                    bmqp::StorageMessageType::e_JOURNAL_OP &&
+                firstSyncPointAfterRolloverSeqNum == recordSeqNum) {
+                mqbs::OffsetPtr<const mqbs::FileHeader>  fhJ(journal.block(),
+                                                            0);
+                mqbs::OffsetPtr<mqbs::JournalFileHeader> jfh(
+                    journal.block(),
+                    fhJ->headerWords() * bmqp::Protocol::k_WORD_SIZE);
+
+                // Set offset in JournalFileHeader
+                jfh->setFirstSyncPointAfterRolloverOffsetWords(
+                    journalPos / bmqp::Protocol::k_WORD_SIZE);
+            }
 
             // Keep track of journal record's offset.
 
@@ -960,15 +1084,15 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_NO_FILE_SETS_TO_RECOVER = 1  // Special rc, do not change
-        ,
-        rc_SUCCESS               = 0,
-        rc_OPEN_FILE_SET_FAILURE = -1,
-        rc_INVALID_FILE_SET      = -2,
-        rc_FILE_ITERATOR_FAILURE = -3,
-        rc_INVALID_DATA_OFFSET   = -4,
-        rc_INVALID_QLIST_OFFSET  = -5,
-        rc_INVALID_QLIST_RECORD  = -6
+        /// Special rc, do not change
+        rc_NO_FILE_SETS_TO_RECOVER = 1,
+        rc_SUCCESS                 = 0,
+        rc_OPEN_FILE_SET_FAILURE   = -1,
+        rc_INVALID_FILE_SET        = -2,
+        rc_FILE_ITERATOR_FAILURE   = -3,
+        rc_INVALID_DATA_OFFSET     = -4,
+        rc_INVALID_QLIST_OFFSET    = -5,
+        rc_INVALID_QLIST_RECORD    = -6
     };
 
     const int        k_MAX_NUM_FILE_SETS_TO_CHECK = 2;
@@ -1057,6 +1181,22 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
         return 10 * rc + rc_FILE_ITERATOR_FAILURE;  // RETURN
     }
 
+    // Get first syncpoint after rollover sequence number.
+    if (jit.firstSyncPointAfterRolloverPosition() > 0) {
+        const mqbs::RecordHeader& recHeader =
+            jit.firstSyncPointAfterRolloverHeader();
+
+        BALL_LOG_INFO << d_clusterData.identity().description()
+                      << " Partition [" << partitionId << "]: "
+                      << "Get first sync point after rollover sequence number "
+                      << recHeader.partitionSequenceNumber()
+                      << " from journal file ["
+                      << recoveryCtx.d_recoveryFileSet.journalFile() << "].";
+
+        recoveryCtx.d_firstSyncPointAfterRolloverSeqNum =
+            recHeader.partitionSequenceNumber();
+    }
+
     mqbs::FileStoreUtil::setFileHeaderOffsets(
         &recoveryCtx.d_journalFilePosition,
         &recoveryCtx.d_dataFilePosition,
@@ -1143,7 +1283,6 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
             unsigned int        queueRecLength    = 0;
             unsigned int        queueRecHeaderLen = 0;
             unsigned int        paddedUriLen      = 0;
-            unsigned int        numAppIds         = 0;
             BSLS_ASSERT_SAFE(0 != rec.queueUriRecordOffsetWords());
 
             queueUriRecOffset = static_cast<bsls::Types::Uint64>(
@@ -1288,8 +1427,6 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
                     << recHeader.sequenceNumber() << ")";
                 return rc_INVALID_QLIST_RECORD;  // RETURN
             }
-
-            numAppIds = queueRecHeader->numAppIds();
 
             // Only QueueOp.CREATION & QueueOp.ADDITION records have
             // corresponding record in the QLIST file.
@@ -1478,12 +1615,15 @@ int RecoveryManager::closeRecoveryFileSet(int partitionId)
     }
     recoveryCtx.d_qlistFilePosition = 0;
 
+    recoveryCtx.d_firstSyncPointAfterRolloverSeqNum.reset();
+
     return rc_SUCCESS;
 }
 
 int RecoveryManager::recoverSeqNum(
     bmqp_ctrlmsg::PartitionSequenceNumber* seqNum,
-    int                                    partitionId)
+    int                                    partitionId,
+    bool                                   firstSyncPointAfterRolllover)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
@@ -1504,6 +1644,12 @@ int RecoveryManager::recoverSeqNum(
     RecoveryContext&   recoveryCtx = d_recoveryContextVec[partitionId];
     int                rc          = rc_UNKNOWN;
 
+    // Retrieve first sync point after rolllover sequence number.
+    if (firstSyncPointAfterRolllover) {
+        *seqNum = recoveryCtx.d_firstSyncPointAfterRolloverSeqNum;
+        return rc_SUCCESS;  // RETURN
+    }
+
     BSLS_ASSERT_SAFE(recoveryCtx.d_mappedJournalFd.isValid());
 
     mqbs::JournalFileIterator jit;
@@ -1519,6 +1665,7 @@ int RecoveryManager::recoverSeqNum(
         return 10 * rc + rc_FILE_ITERATOR_FAILURE;  // RETURN
     }
 
+    // Retrieve last record sequence number.
     if (jit.hasRecordSizeRemaining()) {
         const mqbs::RecordHeader& lastRecordHeader = jit.lastRecordHeader();
 
@@ -1644,6 +1791,22 @@ int RecoveryManager::loadBufferedStorageEvents(
     recoveryCtx.d_bufferedEvents.clear();
 
     return rc_SUCCESS;
+}
+
+void RecoveryManager::clearBufferedStorageEvent(int partitionId)
+{
+    // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(0 <= partitionId);
+
+    RecoveryContext& recoveryCtx       = d_recoveryContextVec[partitionId];
+    const size_t     numBufferedEvents = recoveryCtx.d_bufferedEvents.size();
+    recoveryCtx.d_bufferedEvents.clear();
+
+    BALL_LOG_INFO << d_clusterData.identity().description() << " Partition ["
+                  << partitionId << "]: " << "Cleared all "
+                  << numBufferedEvents << " buffered storage events.";
 }
 
 // ACCESSORS

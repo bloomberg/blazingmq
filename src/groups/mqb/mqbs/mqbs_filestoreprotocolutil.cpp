@@ -134,7 +134,8 @@ int FileStoreProtocolUtil::hasValidFirstRolloverSyncPointRecord(
     }
 
     bsls::Types::Uint64 firstSyncPointOffset =
-        jfh->firstSyncPointOffsetWords() * bmqp::Protocol::k_WORD_SIZE;
+        jfh->firstSyncPointAfterRollloverOffsetWords() *
+        bmqp::Protocol::k_WORD_SIZE;
     if (0 == firstSyncPointOffset) {
         return rc_NO_SYNC_POINT_RECORD;  // RETURN
     }

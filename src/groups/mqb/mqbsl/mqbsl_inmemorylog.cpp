@@ -232,7 +232,7 @@ mqbsi::Log::Offset InMemoryLog::write(const bdlbb::Blob&       entry,
     return write(entry, section.start(), length);
 }
 
-int InMemoryLog::flush(BSLA_UNUSED Offset offset)
+int InMemoryLog::flush(BSLA_MAYBE_UNUSED Offset offset)
 {
     return LogOpResult::e_SUCCESS;
 }
@@ -270,9 +270,9 @@ int InMemoryLog::read(bdlbb::Blob* entry, int length, Offset offset) const
     return LogOpResult::e_SUCCESS;
 }
 
-int InMemoryLog::alias(BSLA_UNUSED void** entry,
-                       BSLA_UNUSED int    length,
-                       BSLA_UNUSED Offset offset) const
+int InMemoryLog::alias(BSLA_MAYBE_UNUSED void** entry,
+                       BSLA_MAYBE_UNUSED int    length,
+                       BSLA_MAYBE_UNUSED Offset offset) const
 {
     return LogOpResult::e_UNSUPPORTED_OPERATION;
 }

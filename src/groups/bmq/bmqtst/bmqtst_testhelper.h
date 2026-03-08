@@ -885,16 +885,14 @@ class TestHelper_Printer {
 /// Namespace for a set of utilities.
 struct TestHelper {
     // TYPES
+    /// Flags to provide to `TEST_PROLOG` and `TEST_EPILOG` macros.
     enum e_FLAGS {
-        /// Flags to provide to `TEST_PROLOG` and `TEST_EPILOG` macros.
-        e_DEFAULT = 0
+        e_DEFAULT = 0,
 
         // PROLOG FLAGS
-        ,
-        e_USE_STACKTRACE_ALLOCATOR = 1 << 0
+        e_USE_STACKTRACE_ALLOCATOR = 1 << 0,
 
         // EPILOG FLAGS
-        ,
         e_CHECK_DEF_ALLOC     = 1 << 0,
         e_CHECK_GBL_ALLOC     = 1 << 1,
         e_CHECK_DEF_GBL_ALLOC = e_CHECK_DEF_ALLOC | e_CHECK_GBL_ALLOC

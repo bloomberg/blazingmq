@@ -213,45 +213,45 @@ ClusterStateObserver::~ClusterStateObserver()
 }
 
 void ClusterStateObserver::onPartitionPrimaryAssignment(
-    BSLA_UNUSED int partitionId,
-    BSLA_UNUSED mqbnet::ClusterNode* primary,
-    BSLA_UNUSED unsigned int         leaseId,
-    BSLA_UNUSED bmqp_ctrlmsg::PrimaryStatus::Value status,
-    BSLA_UNUSED mqbnet::ClusterNode* oldPrimary,
-    BSLA_UNUSED unsigned int         oldLeaseId)
+    BSLA_MAYBE_UNUSED int partitionId,
+    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* primary,
+    BSLA_MAYBE_UNUSED unsigned int         leaseId,
+    BSLA_MAYBE_UNUSED bmqp_ctrlmsg::PrimaryStatus::Value status,
+    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* oldPrimary,
+    BSLA_MAYBE_UNUSED unsigned int         oldLeaseId)
 {
     // NOTHING
 }
 
 void ClusterStateObserver::onQueueAssigned(
-    BSLA_UNUSED const bsl::shared_ptr<ClusterStateQueueInfo>& info)
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<ClusterStateQueueInfo>& info)
 {
     // NOTHING
 }
 
 void ClusterStateObserver::onQueueUnassigned(
-    BSLA_UNUSED const bsl::shared_ptr<ClusterStateQueueInfo>& info)
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<ClusterStateQueueInfo>& info)
 {
     // NOTHING
 }
 
 void ClusterStateObserver::onQueueUpdated(
-    BSLA_UNUSED const bmqt::Uri& uri,
-    BSLA_UNUSED const bsl::string& domain,
-    BSLA_UNUSED const AppInfos&    addedAppIds,
-    BSLA_UNUSED const AppInfos&    removedAppIds)
+    BSLA_MAYBE_UNUSED const bmqt::Uri& uri,
+    BSLA_MAYBE_UNUSED const bsl::string& domain,
+    BSLA_MAYBE_UNUSED const AppInfos&    addedAppIds,
+    BSLA_MAYBE_UNUSED const AppInfos&    removedAppIds)
 {
     // NOTHING
 }
 
 void ClusterStateObserver::onPartitionOrphanThreshold(
-    BSLA_UNUSED size_t partitionId)
+    BSLA_MAYBE_UNUSED size_t partitionId)
 {
     // NOTHING
 }
 
 void ClusterStateObserver::onNodeUnavailableThreshold(
-    BSLA_UNUSED mqbnet::ClusterNode* node)
+    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* node)
 {
     // NOTHING
 }
@@ -276,11 +276,10 @@ ClusterState& ClusterState::registerObserver(ClusterStateObserver* observer)
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
-    BALL_LOG_INFO << "Cluster [" << d_cluster_p->name() << "]: "
-                  << "Registered 1 new state observer.";
+    BALL_LOG_INFO << "Cluster [" << name()
+                  << "]: " << "Registered 1 new state observer.";
 
     d_observers.insert(observer);
     return *this;
@@ -291,10 +290,10 @@ ClusterState& ClusterState::unregisterObserver(ClusterStateObserver* observer)
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
 
-    BALL_LOG_INFO << "Cluster [" << d_cluster_p->name() << "]: "
-                  << "Unregistered 1 state observer.";
+    BALL_LOG_INFO << "Cluster [" << name()
+                  << "]: " << "Unregistered 1 state observer.";
 
     d_observers.erase(observer);
     return *this;
@@ -302,31 +301,35 @@ ClusterState& ClusterState::unregisterObserver(ClusterStateObserver* observer)
 
 ClusterState& ClusterState::setPartitionPrimary(int          partitionId,
                                                 unsigned int leaseId,
-                                                mqbnet::ClusterNode* node)
+                                                ClusterNodeSession* ns)
 {
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
     BSLS_ASSERT_SAFE(partitionId >= 0);
     BSLS_ASSERT_SAFE(partitionId < static_cast<int>(d_partitionsInfo.size()));
 
     ClusterStatePartitionInfo& pinfo      = d_partitionsInfo[partitionId];
-    mqbnet::ClusterNode*       oldPrimary = pinfo.primaryNode();
+    ClusterNodeSession*        oldPrimary = pinfo.primaryNodeSession();
     const unsigned int         oldLeaseId = pinfo.primaryLeaseId();
 
     BSLS_ASSERT_SAFE(leaseId >= oldLeaseId);
 
-    pinfo.setPrimaryNode(node);
-    if (node) {
+    mqbnet::ClusterNode* node           = 0;
+    mqbnet::ClusterNode* oldPrimaryNode = oldPrimary
+                                              ? oldPrimary->clusterNode()
+                                              : 0;
+    if (ns) {
+        node = ns->clusterNode();
+        BSLS_ASSERT_SAFE(node);
         pinfo.setPrimaryNodeId(node->nodeId());
     }
     else {
         pinfo.setPrimaryNodeId(mqbnet::Cluster::k_INVALID_NODE_ID);
     }
-    pinfo.setPrimaryLeaseId(leaseId);
 
-    if (node == oldPrimary) {
+    if (ns == oldPrimary) {
         // We are being notified about the same primary.  Check leaseId.  Note
         // that leader can bump up just the leaseId while keeping the primary
         // node unchanged.
@@ -339,21 +342,30 @@ ClusterState& ClusterState::setPartitionPrimary(int          partitionId,
         }
     }
 
+    BALL_LOG_INFO << "Cluster [" << d_cluster_p->name()
+                  << "]: closing the gate " << partitionId;
+    d_gatePrimary[partitionId].close();
+
+    pinfo.setPrimaryNodeSession(ns);
+
+    pinfo.setPrimaryLeaseId(leaseId);
+
     bmqp_ctrlmsg::PrimaryStatus::Value primaryStatus =
         bmqp_ctrlmsg::PrimaryStatus::E_UNDEFINED;
-    if (node) {
+    if (ns) {
         // By default, a new primary is PASSIVE.
         primaryStatus = bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE;
     }
     pinfo.setPrimaryStatus(primaryStatus);
 
-    BALL_LOG_INFO << "Cluster [" << d_cluster_p->name() << "]: "
-                  << "Setting primary of Partition [" << partitionId << "] to "
-                  << "[" << (node ? node->nodeDescription() : "** NULL **")
+    BALL_LOG_INFO << "Cluster [" << name()
+                  << "]: " << "Setting primary of Partition [" << partitionId
+                  << "] to " << "["
+                  << (node ? node->nodeDescription() : "** NULL **")
                   << "], leaseId: [" << leaseId << "], primaryStatus: ["
                   << primaryStatus << "], oldPrimary: ["
-                  << (oldPrimary ? oldPrimary->nodeDescription()
-                                 : "** NULL **")
+                  << (oldPrimaryNode ? oldPrimaryNode->nodeDescription()
+                                     : "** NULL **")
                   << "], oldLeaseId: [" << oldLeaseId << "].";
 
     for (ObserversSetIter it = d_observers.begin(); it != d_observers.end();
@@ -362,7 +374,7 @@ ClusterState& ClusterState::setPartitionPrimary(int          partitionId,
                                             node,
                                             leaseId,
                                             pinfo.primaryStatus(),
-                                            oldPrimary,
+                                            oldPrimaryNode,
                                             oldLeaseId);
     }
 
@@ -376,13 +388,13 @@ ClusterState& ClusterState::setPartitionPrimaryStatus(
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
     BSLS_ASSERT_SAFE(partitionId >= 0);
     BSLS_ASSERT_SAFE(partitionId < static_cast<int>(d_partitionsInfo.size()));
 
     ClusterStatePartitionInfo& pinfo = d_partitionsInfo[partitionId];
-    if (0 == pinfo.primaryNode()) {
-        BALL_LOG_ERROR << "Cluster [" << d_cluster_p->name() << "]: "
+    if (0 == pinfo.primaryNodeSession()) {
+        BALL_LOG_ERROR << "Cluster [" << name() << "]: "
                        << "Failed to set the primary status of Partition ["
                        << partitionId << "] to [" << value
                        << "], reason: primary node is ** NULL **.";
@@ -393,13 +405,17 @@ ClusterState& ClusterState::setPartitionPrimaryStatus(
     BSLS_ASSERT_SAFE(bmqp_ctrlmsg::PrimaryStatus::E_UNDEFINED !=
                      pinfo.primaryStatus());
 
+    mqbnet::ClusterNode* node = pinfo.primaryNode();
+
+    BSLS_ASSERT_SAFE(node);
+
     bmqp_ctrlmsg::PrimaryStatus::Value oldStatus = pinfo.primaryStatus();
     pinfo.setPrimaryStatus(value);
 
-    BALL_LOG_INFO << "Cluster [" << d_cluster_p->name() << "]: "
-                  << "Setting status of primary ["
-                  << pinfo.primaryNode()->nodeDescription()
-                  << "] of Partition [" << partitionId << "] to [" << value
+    BALL_LOG_INFO << "Cluster [" << name()
+                  << "]: " << "Setting status of primary ["
+                  << node->nodeDescription() << "] of Partition ["
+                  << partitionId << "] to [" << value
                   << "], oldPrimaryStatus: [" << oldStatus << "], leaseId: ["
                   << pinfo.primaryLeaseId() << "].";
 
@@ -411,12 +427,27 @@ ClusterState& ClusterState::setPartitionPrimaryStatus(
              it != d_observers.end();
              ++it) {
             (*it)->onPartitionPrimaryAssignment(partitionId,
-                                                pinfo.primaryNode(),
+                                                node,
                                                 pinfo.primaryLeaseId(),
                                                 value,
-                                                pinfo.primaryNode(),
+                                                node,
                                                 pinfo.primaryLeaseId());
         }
+    }
+
+    // TODO: this code assumes that it is safe to send PUTs and CONFIRMS at
+    // this point if the status is E_ACTIVE or close the gate otherwise.
+    // May need to open the gate later/close earlier by a separate call.
+
+    if (bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE == value) {
+        BALL_LOG_INFO << "Cluster [" << d_cluster_p->name()
+                      << "]: opening the gate " << partitionId;
+        d_gatePrimary[partitionId].open();
+    }
+    else {
+        BALL_LOG_INFO << "Cluster [" << d_cluster_p->name()
+                      << "]: closing the gate " << partitionId;
+        d_gatePrimary[partitionId].close();
     }
 
     return *this;
@@ -428,7 +459,7 @@ ClusterState& ClusterState::updatePartitionQueueMapped(int partitionId,
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
     BSLS_ASSERT_SAFE(partitionId >= 0);
     BSLS_ASSERT_SAFE(partitionId < static_cast<int>(d_partitionsInfo.size()));
 
@@ -447,7 +478,7 @@ ClusterState& ClusterState::updatePartitionNumActiveQueues(int partitionId,
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
     BSLS_ASSERT_SAFE(partitionId >= 0);
     BSLS_ASSERT_SAFE(partitionId < static_cast<int>(d_partitionsInfo.size()));
 
@@ -463,36 +494,57 @@ ClusterState& ClusterState::updatePartitionNumActiveQueues(int partitionId,
     return *this;
 }
 
+ClusterState::DomainState&
+ClusterState::getDomainState(const bsl::string& domain)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
+
+    DomainStatesIter domIt = d_domainStates.find(domain);
+    if (domIt == d_domainStates.end()) {
+        DomainStateSp domainState;
+        domainState.createInplace(d_allocator_p, d_allocator_p);
+        domIt = d_domainStates.emplace(domain, domainState).first;
+    }
+    return *domIt->second;
+}
+
+void ClusterState::onDomainsCreated(const DomainMap& domains)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
+
+    DomainMap::const_iterator it = domains.cbegin();
+    for (; it != domains.cend(); ++it) {
+        if (it->second != 0) {
+            DomainState& domState = getDomainState(it->first);
+            domState.setDomain(it->second);
+            domState.adjustQueueCount(0);
+        }
+    }
+}
+
 void ClusterState::assignQueue(const bmqp_ctrlmsg::QueueInfo& advisory)
 {
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
 
-    const bmqt::Uri& uri         = advisory.uri();
+    const bmqt::Uri&      uri         = advisory.uri();
     const int             partitionId = advisory.partitionId();
-    DomainStatesIter      domIt = domainStates().find(uri.qualifiedDomain());
-    UriToQueueInfoMapIter queueIt;
+    DomainState&          domState    = getDomainState(uri.qualifiedDomain());
+    UriToQueueInfoMapIter queueIt     = domState.queuesInfo().find(uri);
     QueueInfoSp           newQueueInfo;
     QueueInfoSp&          queue = newQueueInfo;
 
-    if (domIt == domainStates().end()) {
-        ClusterState::DomainStateSp domainState;
-        domainState.createInplace(d_allocator_p, d_allocator_p);
-        domIt =
-            domainStates().emplace(uri.qualifiedDomain(), domainState).first;
-
-        queueIt = domIt->second->queuesInfo().end();
-    }
-    else {
-        queueIt = domIt->second->queuesInfo().find(uri);
-    }
-
-    if (queueIt == domIt->second->queuesInfo().end()) {
+    if (queueIt == domState.queuesInfo().end()) {
         newQueueInfo.createInplace(d_allocator_p, advisory, d_allocator_p);
-
-        queueIt = domIt->second->queuesInfo().emplace(uri, queue).first;
+        queueIt = domState.queuesInfo().emplace(uri, queue).first;
     }
     else {
         queue = queueIt->second;
@@ -506,7 +558,7 @@ void ClusterState::assignQueue(const bmqp_ctrlmsg::QueueInfo& advisory)
             }
         }
 
-        if (queue->partitionId() != mqbs::DataStore::k_INVALID_PARTITION_ID) {
+        if (queue->partitionId() != mqbi::Storage::k_INVALID_PARTITION_ID) {
             updatePartitionQueueMapped(queue->partitionId(), -1);
         }
 
@@ -521,8 +573,8 @@ void ClusterState::assignQueue(const bmqp_ctrlmsg::QueueInfo& advisory)
 
     bmqu::Printer<bsl::vector<bmqp_ctrlmsg::AppIdInfo> > printer(
         &advisory.appIds());
-    BALL_LOG_INFO << "Cluster [" << d_cluster_p->name()
-                  << "]: Assigning queue [" << uri << "], queueKey: ["
+    BALL_LOG_INFO << "Cluster [" << name() << "]: Assigning queue [" << uri
+                  << "], queueKey: ["
                   << mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
                                       advisory.key().data())
                   << "] to Partition [" << partitionId
@@ -546,7 +598,7 @@ bool ClusterState::unassignQueue(const bmqt::Uri& uri)
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
 
     const DomainStatesIter domIt = d_domainStates.find(uri.qualifiedDomain());
     if (domIt == d_domainStates.end()) {
@@ -562,9 +614,9 @@ bool ClusterState::unassignQueue(const bmqt::Uri& uri)
     const int               partitionId = cit->second->partitionId();
     updatePartitionQueueMapped(partitionId, -1);
 
-    BALL_LOG_INFO << "Cluster [" << d_cluster_p->name() << "]: "
-                  << "Unassigning queue [" << uri << "], queueKey: [" << key
-                  << "] from Partition [" << partitionId << "].";
+    BALL_LOG_INFO << "Cluster [" << name() << "]: " << "Unassigning queue ["
+                  << uri << "], queueKey: [" << key << "] from Partition ["
+                  << partitionId << "].";
 
     for (ObserversSetIter it = d_observers.begin(); it != d_observers.end();
          ++it) {
@@ -592,11 +644,10 @@ void ClusterState::clearQueues()
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
 
-    BALL_LOG_INFO << "Cluster [" << d_cluster_p->name() << "]: "
-                  << "Clearing all " << d_domainStates.size()
-                  << " domain states from state.";
+    BALL_LOG_INFO << "Cluster [" << name() << "]: " << "Clearing all "
+                  << d_domainStates.size() << " domain states from state.";
 
     for (DomainStatesCIter domCit = d_domainStates.cbegin();
          domCit != d_domainStates.cend();
@@ -615,7 +666,7 @@ int ClusterState::updateQueue(const bmqp_ctrlmsg::QueueInfoUpdate& update)
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
 
     enum RcEnum {
         // Value for the various RC error categories
@@ -683,10 +734,9 @@ int ClusterState::updateQueue(const bmqp_ctrlmsg::QueueInfoUpdate& update)
             &update.addedAppIds());
         bmqu::Printer<bsl::vector<bmqp_ctrlmsg::AppIdInfo> > printer2(
             &update.removedAppIds());
-        BALL_LOG_INFO << "Cluster [" << d_cluster_p->name() << "]: "
-                      << "Updating queue [" << uri << "], queueKey: ["
-                      << iter->second->key() << "], partitionId: ["
-                      << iter->second->partitionId()
+        BALL_LOG_INFO << "Cluster [" << name() << "]: " << "Updating queue ["
+                      << uri << "], queueKey: [" << iter->second->key()
+                      << "], partitionId: [" << iter->second->partitionId()
                       << "], addedAppIds: " << printer1
                       << ", removedAppIds: " << printer2 << ".";
     }
@@ -697,9 +747,8 @@ int ClusterState::updateQueue(const bmqp_ctrlmsg::QueueInfoUpdate& update)
             &update.addedAppIds());
         bmqu::Printer<bsl::vector<bmqp_ctrlmsg::AppIdInfo> > printer2(
             &update.removedAppIds());
-        BALL_LOG_INFO << "Cluster [" << d_cluster_p->name() << "]: "
-                      << "Updating domain: [" << domain
-                      << "], addedAppIds: " << printer1
+        BALL_LOG_INFO << "Cluster [" << name() << "]: " << "Updating domain: ["
+                      << domain << "], addedAppIds: " << printer1
                       << ", removedAppIds: " << printer2 << ".";
     }
 
@@ -731,7 +780,7 @@ bool ClusterState::cacheDoubleAssignment(const bmqt::Uri& uri, int partitionId)
 void ClusterState::iterateDoubleAssignments(int                partitionId,
                                             AssignmentVisitor& visitor)
 {
-    if (mqbs::DataStore::k_ANY_PARTITION_ID == partitionId) {
+    if (mqbi::Storage::k_ANY_PARTITION_ID == partitionId) {
         for (Assignments::const_iterator cit = d_doubleAssignments.cbegin();
              cit != d_doubleAssignments.cend();
              ++cit) {
@@ -761,7 +810,7 @@ void ClusterState::iterateDoubleAssignments(
         const bmqt::Uri& problematicUri   = *cit;
         const int        wrongPartitionId = partitionAssignments->first;
 
-        BALL_LOG_WARN << "Cluster [" << d_cluster_p->name()
+        BALL_LOG_WARN << "Cluster [" << name()
                       << "]: attempting to repair double assignment of queue '"
                       << problematicUri
                       << "' by unregistering it from the partition ["
@@ -777,13 +826,25 @@ void ClusterState::iterateDoubleAssignments(
 
 void ClusterState::DomainState::adjustQueueCount(int by)
 {
+    // executed by the cluster *DISPATCHER* thread
     d_numAssignedQueues += by;
 
     if (d_domain_p != 0) {
         d_domain_p->domainStats()
             ->onEvent<mqbstat::DomainStats::EventType::e_QUEUE_COUNT>(
-
                 d_numAssignedQueues);
+    }
+}
+
+void ClusterState::DomainState::adjustOpenedQueueCount(int by)
+{
+    // executed by the cluster *DISPATCHER* thread
+    d_numOpenedQueues += by;
+
+    if (d_domain_p != 0) {
+        d_domain_p->domainStats()
+            ->onEvent<mqbstat::DomainStats::EventType::e_QUEUE_COUNT_OPEN>(
+                d_numOpenedQueues);
     }
 }
 

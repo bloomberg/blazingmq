@@ -65,26 +65,22 @@ class Flattener {
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // No error
-        ,
-        rc_ITERATION_ERROR = -1  // An error was encountered while
-                                 // iterating
-        ,
-        rc_OPTIONS_LOAD_ERROR = -2  // An error occurred while loading
-                                    // the options of a message
-        ,
-        rc_SUB_QUEUE_IDS_LOAD_ERROR = -3  // An error occurred while loading a
-                                          // SubQueueId option
-        ,
-        rc_APP_DATA_LOAD_ERROR = -4  // An error occurred while loading
-                                     // application data
-        ,
-        rc_ADD_OPTION_ERROR = -5  // Failed to add an option
-        ,
-        rc_PACK_MESSAGE_ERROR = -6  // Failed to pack a message
-        ,
-        rc_SUBSEQUENT_RETRIES_ERROR =
-            -7  // Too many subsequent failed attempts
+        /// No error
+        rc_SUCCESS = 0,
+        /// An error was encountered while iterating
+        rc_ITERATION_ERROR = -1,
+        /// An error occurred while loading the options of a message
+        rc_OPTIONS_LOAD_ERROR = -2,
+        /// An error occurred while loading a SubQueueId option
+        rc_SUB_QUEUE_IDS_LOAD_ERROR = -3,
+        /// An error occurred while loading application data
+        rc_APP_DATA_LOAD_ERROR = -4,
+        /// Failed to add an option
+        rc_ADD_OPTION_ERROR = -5,
+        /// Failed to pack a message
+        rc_PACK_MESSAGE_ERROR = -6,
+        /// Too many subsequent failed attempts
+        rc_SUBSEQUENT_RETRIES_ERROR = -7
     };
 
     /// Convenience alias of type type

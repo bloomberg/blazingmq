@@ -68,9 +68,7 @@ struct SessionTestImp : bsls::ProtocolTestImp<mqbnet::Session> {
         markDone();
     }
 
-    void initiateShutdown(const ShutdownCb&         callback,
-                          const bsls::TimeInterval& timeout,
-                          bool supportShutdownV2 = false) BSLS_KEYWORD_OVERRIDE
+    void initiateShutdown(const ShutdownCb& callback) BSLS_KEYWORD_OVERRIDE
     {
         markDone();
     }

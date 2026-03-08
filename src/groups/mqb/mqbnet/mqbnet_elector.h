@@ -63,6 +63,7 @@
 
 // MQB
 
+#include <mqbcfg_clusterquorummanager.h>
 #include <mqbcfg_messages.h>
 #include <mqbi_cluster.h>
 #include <mqbi_dispatcher.h>
@@ -294,10 +295,9 @@ struct ElectorTransitionReason {
     // TYPES
     enum Enum {
         // Valid with all 4 ElectorStates
-        e_NONE = 0
+        e_NONE = 0,
 
         // Valid only with ElectorState::e_FOLLOWER
-        ,
         e_STARTED             = 1,
         e_LEADER_NO_HEARTBEAT = 2,
         e_LEADER_UNAVAILABLE  = 3,
@@ -487,9 +487,9 @@ class ElectorStateMachine {
 
     bsls::Types::Uint64 d_term;
 
-    int d_quorum;
+    mqbcfg::ClusterQuorumManager* d_quorumManager_p;
 
-    int d_numTotalPeers;
+    size_t d_numTotalPeers;
 
     int d_selfId;
 
@@ -671,6 +671,9 @@ class ElectorStateMachine {
     /// source node and false otherwise.
     bool isValidSourceNode(int sourceNodeId) const;
 
+    /// Return the quorum required for winning an election.
+    unsigned int getQuorum() const;
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(ElectorStateMachine,
@@ -698,10 +701,10 @@ class ElectorStateMachine {
     /// enabled.  Behavior is undefined unless `selfId` !=
     /// k_INVALID_NODE_ID, `quorum` > 0 and `leaderInactivityIntervalMs` >
     /// 0 or `numTotalPeers < quorum`.
-    void enable(int selfId,
-                int quorum,
-                int numTotalPeers,
-                int leaderInactivityIntervalMs);
+    void enable(int                           selfId,
+                mqbcfg::ClusterQuorumManager* quorumManager,
+                size_t                        numTotalPeers,
+                int                           leaderInactivityIntervalMs);
 
     /// Disable this state machine by moving it to `DORMANT` state, such
     /// that `isEnabled` returns false.  This method has no effect if the
@@ -839,6 +842,8 @@ class Elector : public SessionEventProcessor {
     BlobSpPool* d_blobSpPool_p;
 
     mqbi::Cluster* d_cluster_p;
+
+    mqbcfg::ClusterQuorumManager* d_quorumManager_p;
 
     Cluster* d_netCluster_p;
 
@@ -1011,14 +1016,16 @@ class Elector : public SessionEventProcessor {
     /// Create an elector instance with the specified `config`, invoking the
     /// specified `callback` whenever elector state changes, using the
     /// specified `cluster` for emitting I/O events, using the specified
-    /// `initalTerm` and using the specified `blobSpPool_p` for blobs
+    /// `quorumManager` for reading quorum, using the specified
+    /// `initialTerm` and using the specified `blobSpPool_p` for blobs
     /// allocation and `allocator` for memory allocation.
-    Elector(mqbcfg::ElectorConfig&      config,
-            mqbi::Cluster*              cluster,
-            const ElectorStateCallback& callback,
-            bsls::Types::Uint64         initialTerm,
-            BlobSpPool*                 blobSpPool_p,
-            bslma::Allocator*           allocator);
+    Elector(mqbcfg::ElectorConfig&        config,
+            mqbi::Cluster*                cluster,
+            mqbcfg::ClusterQuorumManager* quorumManager,
+            const ElectorStateCallback&   callback,
+            bsls::Types::Uint64           initialTerm,
+            BlobSpPool*                   blobSpPool_p,
+            bslma::Allocator*             allocator);
 
     /// Destroy this instance.  Behavior is undefined unless this instance
     /// is not stopped.
@@ -1283,12 +1290,19 @@ inline bool ElectorStateMachine::isValidSourceNode(int sourceNodeId) const
     return true;
 }
 
+inline unsigned int ElectorStateMachine::getQuorum() const
+{
+    BSLS_ASSERT_SAFE(d_quorumManager_p);
+
+    return d_quorumManager_p->quorum();
+}
+
 // CREATORS
 inline ElectorStateMachine::ElectorStateMachine(bslma::Allocator* allocator)
 : d_state(ElectorState::e_DORMANT)
 , d_reason(ElectorTransitionReason::e_NONE)
 , d_term(ElectorStateMachine::k_INVALID_TERM)
-, d_quorum(0)
+, d_quorumManager_p(0)
 , d_numTotalPeers(0)
 , d_selfId(k_INVALID_NODE_ID)
 , d_leaderNodeId(ElectorStateMachine::k_INVALID_NODE_ID)
@@ -1307,7 +1321,7 @@ inline ElectorStateMachine::ElectorStateMachine(
 : d_state(other.d_state)
 , d_reason(other.d_reason)
 , d_term(other.d_term)
-, d_quorum(other.d_quorum)
+, d_quorumManager_p(other.d_quorumManager_p)
 , d_selfId(other.d_selfId)
 , d_leaderNodeId(other.d_leaderNodeId)
 , d_tentativeLeaderNodeId(other.d_tentativeLeaderNodeId)
@@ -1320,10 +1334,6 @@ inline ElectorStateMachine::ElectorStateMachine(
 }
 
 // MANIPULATORS
-inline void ElectorStateMachine::setQuorum(int quorum)
-{
-    d_quorum = quorum;
-}
 
 inline void ElectorStateMachine::setTerm(bsls::Types::Uint64 term)
 {

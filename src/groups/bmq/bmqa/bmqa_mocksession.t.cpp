@@ -247,9 +247,9 @@ struct EventHandler : public bmqa::SessionEventHandler {
         return result;
     }
 
-    void incrementAsserts(BSLA_UNUSED const char* desc,
-                          BSLA_UNUSED const char* file,
-                          BSLA_UNUSED int         line)
+    void incrementAsserts(BSLA_MAYBE_UNUSED const char* desc,
+                          BSLA_MAYBE_UNUSED const char* file,
+                          BSLA_MAYBE_UNUSED int         line)
     {
         ++d_assertsInvoked;
     }
@@ -1433,8 +1433,6 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
-
     switch (_testCase) {
     case 0:
     case 8: test8_postBlockedToSuspendedQueue(); break;
@@ -1450,8 +1448,6 @@ int main(int argc, char* argv[])
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
-
-    bmqt::UriParser::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
 }

@@ -19,6 +19,7 @@ import collections
 import contextlib
 import inspect
 import itertools
+import json
 import logging
 import shutil
 import signal
@@ -303,8 +304,10 @@ class Cluster(contextlib.AbstractContextManager):
 
         self.wait_status(wait_leader, wait_ready)
 
-    def stop_nodes(self, prevent_leader_bounce=False):
-        """Stop the nodes in the cluster.
+    def stop_nodes(
+        self, prevent_leader_bounce=False, exclude: Optional[List[Broker]] = None
+    ):
+        """Stop the nodes in the cluster, except for the nodes in `exclude`.
 
         If 'prevent_leader_bounce' is 'True', prevent leader bounce during
         shutdown by setting quorum of all non-leader nodes to 100.
@@ -312,10 +315,20 @@ class Cluster(contextlib.AbstractContextManager):
         NOTE: this method does *not* stop the proxies.
         """
 
-        self._logger.info("stopping all nodes")
+        if exclude:
+            excluded_names = [node.name for node in exclude]
+            self._logger.info(
+                "stopping all nodes except: %s", ", ".join(excluded_names)
+            )
+        else:
+            self._logger.info("stopping all nodes")
+
+        nodes_to_stop = (
+            node for node in self.nodes() if (exclude is None or node not in exclude)
+        )
 
         if prevent_leader_bounce:
-            if self.last_known_leader is not None:
+            if self.last_known_leader is not None and self.last_known_leader.is_alive():
                 # Setting leader's quorum to 1, so it does not lose its leadership
                 # while supporting nodes shutting down.
                 # In case of 7-node cluster (with default quorum of 4),
@@ -323,27 +336,28 @@ class Cluster(contextlib.AbstractContextManager):
                 self.last_known_leader.set_quorum(QUORUM_TO_ENSURE_LEADER)
 
             # Stop all non-leader nodes
-            for node in self.nodes():
+            for node in nodes_to_stop:
                 if node is not self.last_known_leader:
                     with internal_use(node):
                         node.stop()
 
             # Make sure all non-leader nodes are stopped
-            for node in self.nodes():
+            for node in nodes_to_stop:
                 if node is not self.last_known_leader:
                     self.make_sure_node_stopped(node)
 
             # Finally stop the leader node
             if self.last_known_leader is not None:
-                with internal_use(self.last_known_leader):
-                    self.last_known_leader.stop()
-                    self.make_sure_node_stopped(self.last_known_leader)
+                if exclude is None or self.last_known_leader not in exclude:
+                    with internal_use(self.last_known_leader):
+                        self.last_known_leader.stop()
+                        self.make_sure_node_stopped(self.last_known_leader)
         else:
-            for node in self.nodes():
+            for node in nodes_to_stop:
                 with internal_use(node):
                     node.stop()
 
-            for node in self.nodes():
+            for node in nodes_to_stop:
                 self.make_sure_node_stopped(node)
 
         self.last_known_leader = None
@@ -829,17 +843,18 @@ class Cluster(contextlib.AbstractContextManager):
     def reconfigure_domain(
         self,
         domain_name: str,
+        *,
         leader_only: bool = False,
         write_only: bool = False,
-        succeed: bool = False,
-    ):
+        succeed: Optional[bool] = False,
+    ) -> bool:
         """
         Overwrites the domains config files to use the key-value pairs in
         'kvs' for 'qualified_domain', and thereafter issues a 'DOMAINS
         RECONFIGURE' command, first to the leader, then to the other nodes,
-        unless 'leader_only' is True. If 'succeed' is 'True', then the
+        unless 'leader_only' is True. If 'succeed' is True, then the
         function will block until process output confirms that the reconfigure
-        operation completed successfully. Returns 'True' if the command was
+        operation completed successfully. Returns True if the command was
         successfully issued to all nodes. Keys in 'kvs' should be rendered as
         '.'-separated paths (e.g., "storage.domain.messages.quota").
         """
@@ -852,17 +867,35 @@ class Cluster(contextlib.AbstractContextManager):
         if write_only:
             return True
 
+        nodes_order = [self.last_known_leader]
+        if not leader_only:
+            nodes_order += [
+                node for node in self.nodes() if node is not self.last_known_leader
+            ]
+
         with internal_use(self):
-            if not self.last_known_leader.reconfigure_domain(domain_name, succeed):
-                return False
+            for node in nodes_order:
+                rc = node.reconfigure_domain(domain_name, succeed=succeed)
+                if succeed is not None and rc != 0:
+                    self._logger.warning(
+                        f"Failed to reconfigure domain {domain_name} on node {node.name}"
+                    )
+                    return False
 
-            if not leader_only:
-                for node in self.nodes():
-                    if node is not self.last_known_leader:
-                        if not node.reconfigure_domain(domain_name, succeed):
-                            return False
-
+        self._logger.info(
+            f"Successfully reconfigured domain {domain_name} on all nodes"
+        )
         return True
+
+    def set_app_ids(
+        self, app_ids: List[str], du: tc.DomainUrls, leader_only: bool = False
+    ):  # noqa: F811
+        """
+        Set the app ids for the fanout domain to the specified list of app ids."""
+        self.config.domains[
+            du.domain_fanout
+        ].definition.parameters.mode.fanout.app_ids = app_ids  # type: ignore
+        self.reconfigure_domain(du.domain_fanout, leader_only=leader_only, succeed=True)
 
     ###########################################################################
     # Internals
@@ -944,3 +977,42 @@ class Cluster(contextlib.AbstractContextManager):
         if is_alive:
             error = f"node {process.name} refused to stop"
             self._error(error)
+
+    def lower_leader_startup_wait(self):
+        """
+        Modify cluster config for the leader node "east1".
+        Set startupWaitDurationMs to smaller value then default 60000 ms
+        to make "east1" the source of truth during partitions recovery.
+        """
+
+        for broker_name, broker_config in self.config.nodes.items():
+            if broker_name != "east1":
+                continue
+
+            LEADER_STARTUP_WAIT_DURATION_MS = 5000
+            path = self.work_dir.joinpath(broker_config.config_dir, "clusters.json")
+
+            with open(
+                path,
+                "r+",
+                encoding="utf-8",
+            ) as f:
+                data = json.load(f)
+                data["myClusters"][0]["partitionConfig"]["syncConfig"][
+                    "startupWaitDurationMs"
+                ] = LEADER_STARTUP_WAIT_DURATION_MS
+                f.seek(0)
+                json.dump(data, f, indent=4)
+                f.truncate()
+
+    def disable_exit_code_check(self):
+        """Disable exit code check for all nodes in the cluster."""
+
+        # Non-FSM mode has poor healing mechanism, and can have flaky dirty
+        # shutdowns, so it often makes sense to disable checking exit code.
+        #
+        # To give an example, an in-sync node might attempt to syncrhonize with
+        # an out-of-sync node, and become out-of-sync too.  FSM mode is
+        # determined to eliminate these kinds of defects.
+        for node in self.nodes():
+            node.check_exit_code = False

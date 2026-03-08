@@ -44,15 +44,16 @@ namespace bmqt {
 struct QueueFlags {
     // TYPES
     enum Enum {
-        e_ADMIN = (1 << 0)  // The queue is opened in admin mode (Valid only
-                            // for BlazingMQ admin tasks)
-        ,
-        e_READ = (1 << 1)  // The queue is opened for consuming messages
-        ,
-        e_WRITE = (1 << 2)  // The queue is opened for posting messages
-        ,
-        e_ACK = (1 << 3)  // Set to indicate interested in receiving
-                          // 'ACK' events for all message posted
+        /// The queue is opened in admin mode (Valid only for BlazingMQ admin
+        /// tasks)
+        e_ADMIN = (1 << 0),
+        /// The queue is opened for consuming messages
+        e_READ = (1 << 1),
+        /// The queue is opened for posting messages
+        e_WRITE = (1 << 2),
+        /// Set to indicate interested in receiving 'ACK' events for all
+        /// message posted
+        e_ACK = (1 << 3)
     };
 
     // PUBLIC CONSTANTS

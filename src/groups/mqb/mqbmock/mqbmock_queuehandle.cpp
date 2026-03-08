@@ -87,9 +87,9 @@ QueueHandle::subscription2downstreamSubQueueId(unsigned int sId) const
 QueueHandle::QueueHandle(
     const bsl::shared_ptr<mqbi::Queue>&                       queueSp,
     const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>& clientContext,
-    BSLA_UNUSED mqbstat::QueueStatsDomain*     domainStats,
-    const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
-    bslma::Allocator*                          allocator)
+    BSLA_MAYBE_UNUSED mqbstat::QueueStatsDomain* domainStats,
+    const bmqp_ctrlmsg::QueueHandleParameters&   handleParameters,
+    bslma::Allocator*                            allocator)
 : d_handleParameters(allocator)
 , d_downstreams(allocator)
 , d_subStreamInfos(allocator)
@@ -127,9 +127,10 @@ mqbi::DispatcherClient* QueueHandle::client()
     return d_client_p;
 }
 
-void QueueHandle::registerSubStream(const bmqp_ctrlmsg::SubQueueIdInfo& stream,
-                                    unsigned int upstreamSubQueueId,
-                                    const mqbi::QueueCounts& counts)
+mqbi::QueueHandle::SubStreams::const_iterator
+QueueHandle::registerSubStream(const bmqp_ctrlmsg::SubQueueIdInfo& stream,
+                               unsigned int             upstreamSubQueueId,
+                               const mqbi::QueueCounts& counts)
 {
     assertConsistentSubStreamInfo(stream.appId(), stream.subId());
 
@@ -138,15 +139,19 @@ void QueueHandle::registerSubStream(const bmqp_ctrlmsg::SubQueueIdInfo& stream,
     if (it == d_subStreamInfos.end()) {
         d_downstreams.emplace(stream.subId(),
                               Downstream(upstreamSubQueueId, d_allocator_p));
-        d_subStreamInfos.insert(bsl::make_pair(stream.appId(),
-                                               StreamInfo(counts,
-                                                          stream.subId(),
-                                                          upstreamSubQueueId,
-                                                          d_allocator_p)));
-        return;  // RETURN
+        it = d_subStreamInfos
+                 .insert(bsl::make_pair(stream.appId(),
+                                        StreamInfo(counts,
+                                                   stream.subId(),
+                                                   upstreamSubQueueId,
+                                                   d_allocator_p)))
+                 .first;
+    }
+    else {
+        it->second.d_counts += counts;
     }
 
-    it->second.d_counts += counts;
+    return it;
 }
 
 void QueueHandle::registerSubscription(unsigned int downstreamSubId,
@@ -198,21 +203,23 @@ bool QueueHandle::unregisterSubStream(const bmqp_ctrlmsg::SubQueueIdInfo& info,
 }
 
 mqbi::QueueHandle*
-QueueHandle::setIsClientClusterMember(BSLA_UNUSED bool value)
+QueueHandle::setIsClientClusterMember(BSLA_MAYBE_UNUSED bool value)
 {
     return this;
 }
 
 void QueueHandle::postMessage(
-    BSLA_UNUSED const bmqp::PutHeader& putHeader,
-    BSLA_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,
-    BSLA_UNUSED const bsl::shared_ptr<bdlbb::Blob>& options)
+    BSLA_MAYBE_UNUSED const bmqp::PutHeader& putHeader,
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<bdlbb::Blob>& options)
 {
     // NOTHING
 }
 
-void QueueHandle::confirmMessage(const bmqt::MessageGUID& msgGUID,
-                                 unsigned int             downstreamSubQueueId)
+void QueueHandle::confirmMessage(
+    BSLA_MAYBE_UNUSED mqbi::DispatcherEventSource* eventSource_p,
+    const bmqt::MessageGUID&                       msgGUID,
+    unsigned int                                   downstreamSubQueueId)
 {
     // Update unconfirmed messages collection
     Downstreams::iterator mapIter = d_downstreams.find(downstreamSubQueueId);
@@ -245,9 +252,19 @@ void QueueHandle::rejectMessage(const bmqt::MessageGUID& msgGUID,
     Downstream&             downstream = mapIter->second;
     GUIDMap&                guids      = downstream.d_unconfirmedMessages;
     GUIDMap::const_iterator msgCiter   = guids.find(msgGUID);
-    if (msgCiter != guids.end()) {
-        guids.erase(msgCiter);
+
+    if (msgCiter == guids.end()) {
+        // This can happen when switching primaries and the new Primary did not
+        // get a chance to PUSH the 'msgGUID' (which the old Primary did)
+        // _before_ the Downstream generated the Reject.
+
+        // The logic of QueueEngine(s) throttles (re)delivery for messages in
+        // redelivery lists only and asserts otherwise.
+
+        return;  // RETURN
     }
+
+    guids.erase(msgCiter);
 
     unsigned int upstreamSubQueueId = downstream.d_upstreamSubQueueId;
     // Inform the queue about that reject.
@@ -271,16 +288,16 @@ void QueueHandle::rejectMessage(const bmqt::MessageGUID& msgGUID,
     }
 }
 
-void QueueHandle::onAckMessage(BSLA_UNUSED const bmqp::AckMessage& ackMessage)
+void QueueHandle::onAckMessage(
+    BSLA_MAYBE_UNUSED const bmqp::AckMessage& ackMessage)
 {
     // NOTHING
 }
 
 void QueueHandle::deliverMessage(
-    const mqbi::StorageIterator& message,
-    BSLA_UNUSED const bmqp::Protocol::MsgGroupId& msgGroupId,
-    const bmqp::Protocol::SubQueueInfosArray&     subscriptions,
-    BSLA_UNUSED bool                              isOutOfOrder)
+    const mqbi::StorageIterator&              message,
+    const bmqp::Protocol::SubQueueInfosArray& subscriptions,
+    BSLA_MAYBE_UNUSED bool                    isOutOfOrder)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(
@@ -304,17 +321,16 @@ void QueueHandle::deliverMessage(
             guids.insert(
                 bsl::make_pair(message.guid(),
                                bsl::make_pair(message.appData(), sId)));
-        BSLS_ASSERT_OPT(insertRC.second);
+        BSLS_ASSERT_OPT(insertRC.second || isOutOfOrder);
     }
 }
 
 void QueueHandle::deliverMessageNoTrack(
     const mqbi::StorageIterator&              message,
-    const bmqp::Protocol::MsgGroupId&         msgGroupId,
     const bmqp::Protocol::SubQueueInfosArray& subscriptions)
 {
     // Delegate, from a simplified mock perspective.
-    deliverMessage(message, msgGroupId, subscriptions, false);
+    deliverMessage(message, subscriptions, false);
 }
 
 void QueueHandle::configure(
@@ -342,9 +358,10 @@ void QueueHandle::deconfigureAll(
 }
 
 void QueueHandle::release(
-    BSLA_UNUSED const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
-    BSLA_UNUSED bool                                       isFinal,
-    BSLA_UNUSED const HandleReleasedCallback&              releasedCb)
+    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::QueueHandleParameters&
+                            handleParameters,
+    BSLA_MAYBE_UNUSED bool  isFinal,
+    BSLA_MAYBE_UNUSED const HandleReleasedCallback& releasedCb)
 {
     // NOTHING
 }
@@ -522,6 +539,12 @@ bool QueueHandle::isClientClusterMember() const
     return false;
 }
 
+inline const mqbi::QueueHandleRequesterContext*
+QueueHandle::clientContext() const
+{
+    return 0;
+}
+
 bool QueueHandle::canDeliver(unsigned int downstreamSubscriptionId) const
 {
     unsigned int downstreamSubQueueId = subscription2downstreamSubQueueId(
@@ -534,28 +557,23 @@ bool QueueHandle::canDeliver(unsigned int downstreamSubscriptionId) const
 }
 
 const bsl::vector<const mqbu::ResourceUsageMonitor*>
-QueueHandle::unconfirmedMonitors(BSLA_UNUSED const bsl::string& appId) const
+QueueHandle::unconfirmedMonitors(
+    BSLA_MAYBE_UNUSED const bsl::string& appId) const
 {
     bsl::vector<const mqbu::ResourceUsageMonitor*> out(d_allocator_p);
     out.push_back(&d_unconfirmedMessageMonitor);
     return out;
 }
 
-bsls::Types::Int64 QueueHandle::countUnconfirmed(unsigned int subId) const
+bsls::Types::Int64 QueueHandle::countUnconfirmed() const
 {
     bsls::Types::Int64 result = 0;
-    if (subId == bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID) {
-        for (Downstreams::const_iterator itStream = d_downstreams.begin();
-             itStream != d_downstreams.end();
-             ++itStream) {
-            const Downstream& downstream = itStream->second;
-            result += downstream.d_unconfirmedMessages.size();
-        }
-    }
-    else {
-        Downstreams::const_iterator cit = d_downstreams.find(subId);
-        BSLS_ASSERT_OPT(cit != d_downstreams.end());
-        result += cit->second.d_unconfirmedMessages.size();
+
+    for (Downstreams::const_iterator itStream = d_downstreams.begin();
+         itStream != d_downstreams.end();
+         ++itStream) {
+        const Downstream& downstream = itStream->second;
+        result += downstream.d_unconfirmedMessages.size();
     }
     return result;
 }

@@ -1,0 +1,31 @@
+/**
+
+\mainpage BlazingMQ C++ SDK API Documentation
+
+\image html blazingmq_logo_label.svg width=50%
+
+[BlazingMQ](https://bloomberg.github.io/blazingmq) is an open source
+distributed message queueing framework, which focuses on efficiency,
+reliability, and a rich feature set for modern-day workflows.
+
+At its core, BlazingMQ provides durable, fault-tolerant, highly performant, and
+highly available queues, along with features like various message routing
+strategies (e.g., work queues, priority, fan-out, broadcast, etc.),
+compression, strong consistency, poison pill detection, etc.
+
+These pages are the API documentation for the BlazingMQ C++ SDK for client
+applications and plugins.
+
+\section mainpage-license License
+
+The BlazingMQ C++ SDK and documentation are Apache 2.0 licensed.
+
+\section mainpage-quickstart Quickstart
+
+Authors of client application should look in the \ref src/groups/bmq/bmqa "bmqa"
+package for an API with which to build producers and consumers.
+
+Plugin authors should look in the \ref src/groups/bmq/bmqpi "bmqpi" package for
+the pure abstract interfaces which broker plugins need to implement.
+
+*/

@@ -33,7 +33,6 @@
         "hostName": "earth",
         "hostTags": "",
         "hostDataCenter": "UNUSED",
-        "isRunningOnDev": false,
         "logsObserverMaxSize": 1000,
         "dispatcherConfig": {
             "sessions": {

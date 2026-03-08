@@ -86,7 +86,7 @@ bool ClusterStateMonitor::notifyObserversIfNeededHelper(
     bsls::TimeInterval                                      now)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(dispatcherClient()));
+    BSLS_ASSERT_SAFE(dispatcherClient()->inDispatcherThread());
     BSLS_ASSERT_SAFE(state);
 
     if (state->d_state == e_THRESHOLD || state->d_state == e_ALARMING) {
@@ -117,7 +117,7 @@ void ClusterStateMonitor::notifyObserversIfNeeded()
     // invoked in the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(dispatcherClient()));
+    BSLS_ASSERT_SAFE(dispatcherClient()->inDispatcherThread());
 
     const bsls::TimeInterval now = bmqsys::Time::nowMonotonicClock();
 
@@ -234,7 +234,7 @@ ClusterStateMonitor::checkAndUpdateState(State*             state,
     // invoked in the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(dispatcherClient()));
+    BSLS_ASSERT_SAFE(dispatcherClient()->inDispatcherThread());
 
     const StateType previousState = state->d_state;
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(isValid)) {
@@ -294,7 +294,7 @@ void ClusterStateMonitor::verifyAllStatesDispatched()
     // invoked in the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(dispatcherClient()));
+    BSLS_ASSERT_SAFE(dispatcherClient()->inDispatcherThread());
 
     const bsls::TimeInterval now = bmqsys::Time::nowMonotonicClock();
 
@@ -393,7 +393,7 @@ mqbi::DispatcherClient* ClusterStateMonitor::dispatcherClient()
 void ClusterStateMonitor::onMonitorStateChangeToThreshold()
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(dispatcherClient()));
+    BSLS_ASSERT_SAFE(dispatcherClient()->inDispatcherThread());
 
     bmqu::MemOutStream os;
     os << "'" << d_clusterData_p->identity().name() << "' has been in "
@@ -407,7 +407,7 @@ void ClusterStateMonitor::onMonitorStateChangeToAlarming(
     const bmqu::MemOutStream& alarmOs)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(dispatcherClient()));
+    BSLS_ASSERT_SAFE(dispatcherClient()->inDispatcherThread());
 
     bmqu::MemOutStream os;
     os << "'" << d_clusterData_p->identity().name() << "' is in a bad "
@@ -432,7 +432,7 @@ void ClusterStateMonitor::onMonitorStateChangeToAlarming(
 void ClusterStateMonitor::onMonitorStateChangeToValid()
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(dispatcherClient()));
+    BSLS_ASSERT_SAFE(dispatcherClient()->inDispatcherThread());
 
     BALL_LOG_INFO << "'" << d_clusterData_p->identity().name() << "' "
                   << "is back to healthy state.";
@@ -548,7 +548,7 @@ void ClusterStateMonitor::registerObserver(
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(dispatcherClient()));
+    BSLS_ASSERT_SAFE(dispatcherClient()->inDispatcherThread());
 
     d_observers.insert(observer);
 }
@@ -559,7 +559,7 @@ void ClusterStateMonitor::unregisterObserver(
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(dispatcherClient()));
+    BSLS_ASSERT_SAFE(dispatcherClient()->inDispatcherThread());
 
     d_observers.erase(observer);
 }

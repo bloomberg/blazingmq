@@ -84,9 +84,10 @@ class ShutdownContext {
     // CREATORS
     ShutdownContext()
     : d_appSemaphore(0)
-    , d_shutdownCount(0){
-          // NOTHING
-      };
+    , d_shutdownCount(0)
+    {
+        // NOTHING
+    }
 };
 
 static ShutdownContext* s_shutdownContext_p = 0;
@@ -339,6 +340,11 @@ static bool parseArgs(Parameters* parameters, int argc, const char* argv[])
          "autoPubSubModulo",
          "autoPubSubModulo",
          balcl::TypeInfo(&params.autoPubSubModulo()),
+         balcl::OccurrenceInfo::e_OPTIONAL},
+        {"timeout",
+         "timeout",
+         "The timeout to use for session operations with the broker",
+         balcl::TypeInfo(&params.timeoutSec()),
          balcl::OccurrenceInfo::e_OPTIONAL}};
 
     balcl::CommandLine commandLine(specTable);
@@ -427,9 +433,6 @@ int main(int argc, const char* argv[])
 
     // Make TimeUtil thread-safe by calling initialize
     bsls::TimeUtil::initialize();
-
-    // Prepare the UriParser regexp
-    bmqt::UriParser::initialize();
 
     // Test allocator
     balst::StackTraceTestAllocator stta;

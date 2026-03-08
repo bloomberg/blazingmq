@@ -37,17 +37,18 @@ int DataFileIterator::reset(const MappedFileDescriptor* mfd,
     BSLS_ASSERT_SAFE(mfd);
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_NO_FILE_HEADER = -1  // Not enough bytes for FileHeader
-        ,
-        rc_CORRUPT_FILE_HEADER = -2  // Corrupt FileHeader
-        ,
-        rc_NO_DATA_HEADER = -3  // Not enough bytes for DataFileHeader
-        ,
-        rc_CORRUPT_DATA_HEADER = -4  // Corrupt DataFileHeader
-        ,
-        rc_NOT_ENOUGH_BYTES = -5  // Not enough bytes
+        /// Success
+        rc_SUCCESS = 0,
+        /// Not enough bytes for FileHeader
+        rc_NO_FILE_HEADER = -1,
+        /// Corrupt FileHeader
+        rc_CORRUPT_FILE_HEADER = -2,
+        /// Not enough bytes for DataFileHeader
+        rc_NO_DATA_HEADER = -3,
+        /// Corrupt DataFileHeader
+        rc_CORRUPT_DATA_HEADER = -4,
+        /// Not enough bytes
+        rc_NOT_ENOUGH_BYTES = -5
     };
 
     // Clear earlier state.
@@ -138,17 +139,18 @@ int DataFileIterator::nextRecord()
 {
     enum RcEnum {
         // Value for the various RC error categories
-        rc_HAS_NEXT = 1  // Another message exists
-        ,
-        rc_AT_END = 0  // This is the last message
-        ,
-        rc_INVALID = -1  // The Iterator is an invalid state
-        ,
-        rc_NOT_ENOUGH_BYTES_FOR_HDR = -2  // Not enough bytes for DataHeader
-        ,
-        rc_NOT_ENOUGH_BYTES_FOR_MSG = -3  // Not enough bytes for the payload
-        ,
-        rc_CORRUPT_HEADER = -4  // Corrupt DataHeader
+        /// Another message exists
+        rc_HAS_NEXT = 1,
+        /// This is the last message
+        rc_AT_END = 0,
+        /// The Iterator is an invalid state
+        rc_INVALID = -1,
+        /// Not enough bytes for DataHeader
+        rc_NOT_ENOUGH_BYTES_FOR_HDR = -2,
+        /// Not enough bytes for the payload
+        rc_NOT_ENOUGH_BYTES_FOR_MSG = -3,
+        /// Corrupt DataHeader
+        rc_CORRUPT_HEADER = -4
     };
 
     if (!isValid()) {

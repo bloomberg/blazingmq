@@ -67,6 +67,8 @@ mqbc::ClusterDataIdentity clusterIdentity(const bslstl::StringRef& name,
             identity.processName() = "** UNKNOWN **";
         }
         identity.sdkLanguage() = bmqp_ctrlmsg::ClientLanguage::E_CPP;
+        identity.userAgent()   = bsl::string("bmqbrkr:", allocator) +
+                               mqbscm::Version::s_versionDotString;
     }
 
     // Create and set description
@@ -107,6 +109,8 @@ ClusterData::ClusterData(
 , d_clusterConfig(clusterConfig)
 , d_clusterProxyConfig(clusterProxyConfig)
 , d_electorInfo(cluster)
+, d_quorumManager(clusterConfig.elector().quorum(),
+                  static_cast<unsigned int>(clusterConfig.nodes().size()))
 , d_membership(netCluster, allocator)
 , d_identity(
       clusterIdentity(name,

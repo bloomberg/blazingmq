@@ -69,7 +69,7 @@
                     "partitionSyncEventSize": 4194304,
                     "partitionSyncStateReqTimeoutMs": 120000,
                     "startupRecoveryMaxDurationMs": 1200000,
-                    "startupWaitDurationMs": 60000,
+                    "startupWaitDurationMs": 0,
                     "storageSyncReqTimeoutMs": 300000
                 }
             },

@@ -303,7 +303,7 @@ class Client(BMQProcess):
         self,
         uri: str,
         /,
-        payload: List[str] = None,
+        payload: str = None,
         msg_size: int = 1024,
         event_size: int = 1,
         events_count: int = 0,
@@ -597,7 +597,7 @@ class Client(BMQProcess):
             extra_matches = matches[1:]
 
             error_code = self._parse_command_result(
-                command, result, succeed, no_except, timeout
+                command, result, succeed, no_except, timeout or blocktimeout
             )
             self._logger.info("%s -> %s", command, error_code)
 

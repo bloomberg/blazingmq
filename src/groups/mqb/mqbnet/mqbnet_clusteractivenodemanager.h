@@ -96,7 +96,7 @@
 //                                       // executed by the *DISPATCHER* thread
 //
 //    // PRECONDITIONS
-//    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+//    BSLS_ASSERT_SAFE(inDispatcherThread());
 //
 //    d_clusterData.membership().netCluster()->registerObserver(this);
 //
@@ -116,7 +116,7 @@
 //                                       // executed by the *DISPATCHER* thread
 //
 //    // PRECONDITIONS
-//    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+//    BSLS_ASSERT_SAFE(inDispatcherThread());
 //
 //    int result = d_activeNodeManager.refresh();
 //
@@ -144,7 +144,7 @@
 //                                       // executed by the *DISPATCHER* thread
 //
 //    // PRECONDITIONS
-//    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+//    BSLS_ASSERT_SAFE(inDispatcherThread());
 //
 //    int result = d_activeNodeManager.onNodeStateChange(node, session);
 //
@@ -157,7 +157,7 @@
 //                                       // executed by the *DISPATCHER* thread
 //
 //    // PRECONDITIONS
-//    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+//    BSLS_ASSERT_SAFE(inDispatcherThread());
 //
 //    if (result & mqbnet::ClusterActiveNodeManager::e_LOST_ACTIVE) {
 //        // we lost our active node
@@ -219,7 +219,7 @@ namespace mqbnet {
 /// Mechanism to manage an active node from an associated cluster.
 class ClusterActiveNodeManager {
   public:
-    // public TYPES
+    // PUBLIC TYPES
 
     enum eResult {
         e_NO_CHANGE   = 0,
@@ -236,38 +236,35 @@ class ClusterActiveNodeManager {
     struct NodeContext {
         bmqp_ctrlmsg::NodeStatus::Value d_status;
 
+        /// Current session description
         bsl::string d_sessionDescription;
-        // Current session description
     };
 
     typedef bsl::map<mqbnet::ClusterNode*, NodeContext> NodesMap;
 
   private:
     // DATA
+
+    /// A description string, used while printing logs.
     bsl::string d_description;
-    // A description string, used while
-    // printing logs.
 
+    /// The dataCenter the current machine resides in.
     bsl::string d_dataCenter;
-    // The dataCenter the current machine
-    // resides in.
 
+    /// Cached nodes status and sessions.
     NodesMap d_nodes;
-    // Cached nodes status and sessions.
 
+    /// Pointer to the currently active node and its context.
     NodesMap::const_iterator d_activeNodeIt;
-    // Pointer to the currently active node
-    // and its context.
 
     /// If true, remove the data center requirement when selecting active
     /// node.  Set to true when the cluster does not have any nodes in the
     /// current machine's data center.
     bool d_ignoreDataCenter;
 
+    /// If true, drop the same data center requirement when selecting active
+    /// node.
     bool d_useExtendedSelection;
-    // If true, drop the same data center
-    // requirement when selecting active
-    // node.
 
   private:
     // PRIVATE MANIPULATORS

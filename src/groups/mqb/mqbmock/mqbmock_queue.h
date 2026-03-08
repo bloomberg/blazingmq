@@ -199,7 +199,8 @@ class Queue : public mqbi::Queue {
     /// specified `clientContext` and using the specified `handleParameters`
     /// and `upstreamSubQueueId`.  Invoke the specified `callback` with the
     /// result.
-    void getHandle(const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
+    void getHandle(const mqbi::OpenQueueConfirmationCookieSp& context,
+                   const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
                                                               clientContext,
                    const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
                    unsigned int upstreamSubQueueId,
@@ -246,14 +247,12 @@ class Queue : public mqbi::Queue {
     void setStats(const bsl::shared_ptr<mqbstat::QueueStatsDomain>& stats)
         BSLS_KEYWORD_OVERRIDE;
 
-    /// Return number of unconfirmed messages across all handles with the
-    /// `specified `subId'.
-    bsls::Types::Int64
-    countUnconfirmed(unsigned int subId) BSLS_KEYWORD_OVERRIDE;
-
-    /// Stop sending PUSHes but continue receiving CONFIRMs, receiving and
-    /// sending PUTs and ACKs.
-    void stopPushing() BSLS_KEYWORD_OVERRIDE;
+    /// Set the state of this queue to "stopping".
+    /// This is a one-way step before shutting down the broker.
+    /// In this state, the queue will:
+    /// - Continue receiving CONFIRMs, receiving and sending PUTs and ACKs.
+    /// - Stop sending PUSHes and stop idle GC.
+    void setStopping() BSLS_KEYWORD_OVERRIDE;
 
     /// Called when a message with the specified `msgGUID`, `appData`,
     /// `options` and compressionAlgorithmType payload is pushed to this
@@ -324,10 +323,8 @@ class Queue : public mqbi::Queue {
     /// Invoked by the Data Store when it receives quorum Receipts.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    void onReceipt(const bmqt::MessageGUID&  msgGUID,
-                   mqbi::QueueHandle*        qH,
-                   const bsls::Types::Int64& arrivalTimepoint)
-        BSLS_KEYWORD_OVERRIDE;
+    void onReceipt(const bmqt::MessageGUID& msgGUID,
+                   mqbi::QueueHandle*       qH) BSLS_KEYWORD_OVERRIDE;
 
     /// Invoked by the Data Store when it removes (times out waiting for
     /// quorum Receipts for) a message with the specified `msgGUID`.  Send
@@ -432,6 +429,9 @@ class Queue : public mqbi::Queue {
 
     /// Return the Schema Leaner associated with this queue.
     bmqp::SchemaLearner& schemaLearner() const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return number of unconfirmed messages across all handles.
+    bsls::Types::Int64 countUnconfirmed() const BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
     //   (specific to mqbi::MockQueue)

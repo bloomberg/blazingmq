@@ -66,9 +66,9 @@ class StatConsumer {
         StatContextsMap;
     // Map of StatContext names to StatContext
 
-    typedef bsl::function<int(const bslstl::StringRef& source,
-                              const bsl::string&       cmd,
-                              bsl::ostream&            os)>
+    typedef bsl::function<int(const bsl::string_view& source,
+                              const bsl::string&      cmd,
+                              bsl::ostream&           os)>
         CommandProcessorFn;
 
     // CREATORS
@@ -79,7 +79,7 @@ class StatConsumer {
     // ACESSORS
 
     /// Return the name of the plugin.
-    virtual bslstl::StringRef name() const = 0;
+    virtual bsl::string_view name() const = 0;
 
     /// Return true if the stats reporting is enabled, false otherwise.
     virtual bool isEnabled() const = 0;
@@ -140,7 +140,7 @@ struct StatConsumerUtil {
 
     /// Find consumer config with the specified `name`
     static const mqbcfg::StatPluginConfig*
-    findConsumerConfig(bslstl::StringRef name);
+    findConsumerConfig(bsl::string_view name);
 };
 
 }  // close package namespace

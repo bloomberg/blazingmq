@@ -33,22 +33,22 @@ PartitionFSMObserver::~PartitionFSMObserver()
 }
 
 void PartitionFSMObserver::onTransitionToPrimaryHealed(
-    BSLA_UNUSED int partitionId,
-    BSLA_UNUSED PartitionStateTableState::Enum oldState)
+    BSLA_MAYBE_UNUSED int partitionId,
+    BSLA_MAYBE_UNUSED PartitionStateTableState::Enum oldState)
 {
     // NOTHING
 }
 
 void PartitionFSMObserver::onTransitionToReplicaHealed(
-    BSLA_UNUSED int partitionId,
-    BSLA_UNUSED PartitionStateTableState::Enum oldState)
+    BSLA_MAYBE_UNUSED int partitionId,
+    BSLA_MAYBE_UNUSED PartitionStateTableState::Enum oldState)
 {
     // NOTHING
 }
 
 void PartitionFSMObserver::onTransitionToUnknown(
-    BSLA_UNUSED int partitionId,
-    BSLA_UNUSED PartitionStateTableState::Enum oldState)
+    BSLA_MAYBE_UNUSED int partitionId,
+    BSLA_MAYBE_UNUSED PartitionStateTableState::Enum oldState)
 {
     // NOTHING
 }

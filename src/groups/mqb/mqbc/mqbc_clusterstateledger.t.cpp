@@ -108,7 +108,8 @@ struct ClusterStateLedgerTestImp
     }
 
     // ACCESSORS
-    void setCommitCb(BSLA_UNUSED const CommitCb& value) BSLS_KEYWORD_OVERRIDE
+    void
+    setCommitCb(BSLA_MAYBE_UNUSED const CommitCb& value) BSLS_KEYWORD_OVERRIDE
     {
         markDone();
     }
@@ -120,6 +121,13 @@ struct ClusterStateLedgerTestImp
     {
         markDone();
         return bslma::ManagedPtr<mqbc::ClusterStateLedgerIterator>();
+    }
+
+    void uncommittedAdvisories(ClusterMessageCRefList* out) const
+        BSLS_KEYWORD_OVERRIDE
+    {
+        markDone();
+        return;
     }
 };
 

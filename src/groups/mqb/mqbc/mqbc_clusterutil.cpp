@@ -14,6 +14,8 @@
 // limitations under the License.
 
 // mqbc_clusterutil.cpp                                               -*-C++-*-
+#include "mqbc_clusterstateledger.h"
+#include <ball_log.h>
 #include <mqbc_clusterutil.h>
 
 #include <mqbscm_version.h>
@@ -81,17 +83,36 @@ typedef mqbc::ClusterUtil::NumNewPartitionsMapCIter NumNewPartitionsMapCIter;
 void applyPartitionPrimary(
     mqbc::ClusterState*                                    clusterState,
     const bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>& partitions,
-    const mqbc::ClusterData&                               clusterData)
+    const mqbc::ClusterData&                               clusterData,
+    bsl::vector<int>* modifiedPartitions = 0)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(clusterState);
+
     for (int i = 0; i < static_cast<int>(partitions.size()); ++i) {
         const bmqp_ctrlmsg::PartitionPrimaryInfo& info = partitions[i];
 
         mqbnet::ClusterNode* proposedPrimaryNode =
             clusterData.membership().netCluster()->lookupNode(
                 info.primaryNodeId());
+        ClusterNodeSession* ns =
+            clusterData.membership().getClusterNodeSession(
+                proposedPrimaryNode);
+
+        // Check if there is a change in primary or leaseId
+        const mqbc::ClusterStatePartitionInfo& partitionInfo =
+            clusterState->partition(info.partitionId());
+        const bool modified = (partitionInfo.primaryNodeId() !=
+                               info.primaryNodeId()) ||
+                              (partitionInfo.primaryLeaseId() !=
+                               info.primaryLeaseId());
+        if (modified && modifiedPartitions) {
+            modifiedPartitions->push_back(info.partitionId());
+        }
+
         clusterState->setPartitionPrimary(info.partitionId(),
                                           info.primaryLeaseId(),
-                                          proposedPrimaryNode);
+                                          ns);
     }
 }
 
@@ -201,7 +222,7 @@ void applyQueueUpdate(mqbc::ClusterState* clusterState,
             // queue.
             BSLS_ASSERT_SAFE(queueKey == mqbu::StorageKey::k_NULL_KEY);
             BSLS_ASSERT_SAFE(partitionId ==
-                             mqbs::DataStore::k_INVALID_PARTITION_ID);
+                             mqbi::Storage::k_INVALID_PARTITION_ID);
         }
 
         const int rc = clusterState->updateQueue(queueUpdate);
@@ -233,8 +254,7 @@ void getNextPrimarys(NumNewPartitionsMap* numNewPartitions,
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(clusterData.cluster().dispatcher()->inDispatcherThread(
-        &clusterData.cluster()));
+    BSLS_ASSERT_SAFE(clusterData.cluster().inDispatcherThread());
     BSLS_ASSERT_SAFE(mqbnet::ElectorState::e_LEADER ==
                      clusterData.electorInfo().electorState());
     BSLS_ASSERT_SAFE(numNewPartitions && numNewPartitions->empty());
@@ -417,20 +437,16 @@ void ClusterUtil::assignPartitions(
     bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>* partitions,
     ClusterState*                                    clusterState,
     mqbcfg::MasterAssignmentAlgorithm::Value         assignmentAlgo,
-    const ClusterData&                               clusterData,
-    bool                                             isCSLMode)
+    const ClusterData&                               clusterData)
 {
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(clusterData.cluster().dispatcher()->inDispatcherThread(
-        &clusterData.cluster()));
+    BSLS_ASSERT_SAFE(clusterData.cluster().inDispatcherThread());
     BSLS_ASSERT_SAFE(partitions && partitions->empty());
     BSLS_ASSERT_SAFE(mqbnet::ElectorState::e_LEADER ==
                      clusterData.electorInfo().electorState());
-    if (!isCSLMode) {
-        BSLS_ASSERT_SAFE(mqbc::ElectorInfoLeaderStatus::e_ACTIVE ==
-                         clusterData.electorInfo().leaderStatus());
+    if (!clusterData.clusterConfig().clusterAttributes().isFSMWorkflow()) {
         BSLS_ASSERT_SAFE(bmqp_ctrlmsg::NodeStatus::E_AVAILABLE ==
                          clusterData.membership().selfNodeStatus());
     }
@@ -587,8 +603,7 @@ void ClusterUtil::onPartitionPrimaryAssignment(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(clusterData);
-    BSLS_ASSERT_SAFE(clusterData->cluster().dispatcher()->inDispatcherThread(
-        &clusterData->cluster()));
+    BSLS_ASSERT_SAFE(clusterData->cluster().inDispatcherThread());
     BSLS_ASSERT_SAFE(storageManager);
     BSLS_ASSERT_SAFE(0 <= partitionId);
     if (primary) {
@@ -663,7 +678,7 @@ void ClusterUtil::processQueueAssignmentRequest(
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster->dispatcher()->inDispatcherThread(cluster));
+    BSLS_ASSERT_SAFE(cluster->inDispatcherThread());
     BSLS_ASSERT_SAFE(!cluster->isRemote());
     BSLS_ASSERT_SAFE(clusterState);
     BSLS_ASSERT_SAFE(clusterData);
@@ -827,7 +842,7 @@ bool ClusterUtil::assignQueue(ClusterState*         clusterState,
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster->dispatcher()->inDispatcherThread(cluster));
+    BSLS_ASSERT_SAFE(cluster->inDispatcherThread());
     BSLS_ASSERT_SAFE(!cluster->isRemote());
     BSLS_ASSERT_SAFE(clusterState);
     BSLS_ASSERT_SAFE(clusterData);
@@ -1067,7 +1082,7 @@ void ClusterUtil::registerQueueInfo(ClusterState*        clusterState,
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(cluster);
-    BSLS_ASSERT_SAFE(cluster->dispatcher()->inDispatcherThread(cluster));
+    BSLS_ASSERT_SAFE(cluster->inDispatcherThread());
     BSLS_ASSERT_SAFE(!cluster->isRemote());
     BSLS_ASSERT_SAFE(clusterState);
 
@@ -1280,7 +1295,7 @@ ClusterUtil::updateAppIds(ClusterData*                    clusterData,
 
         bmqp_ctrlmsg::QueueInfoUpdate queueUpdate;
         queueUpdate.uri()         = "";
-        queueUpdate.partitionId() = mqbs::DataStore::k_INVALID_PARTITION_ID;
+        queueUpdate.partitionId() = mqbi::Storage::k_INVALID_PARTITION_ID;
         mqbu::StorageKey::k_NULL_KEY.loadBinary((&queueUpdate.key()));
         queueUpdate.domain() = domainName;
 
@@ -1394,32 +1409,47 @@ void ClusterUtil::sendClusterState(
     const ClusterState&  clusterState,
     bool                 sendPartitionPrimaryInfo,
     bool                 sendQueuesInfo,
+    bool                 trustCSL,
+    bslma::Allocator*    allocator,
     mqbnet::ClusterNode* node,
-    const bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>& partitions)
+    const bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>& newlyAssigned)
 {
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(clusterData);
-    BSLS_ASSERT_SAFE(clusterData->cluster().dispatcher()->inDispatcherThread(
-        &clusterData->cluster()));
+    BSLS_ASSERT_SAFE(clusterData->cluster().inDispatcherThread());
     BSLS_ASSERT_SAFE(mqbnet::ElectorState::e_LEADER ==
                      clusterData->electorInfo().electorState());
     BSLS_ASSERT_SAFE(ledger && ledger->isOpen());
-
-    if (sendPartitionPrimaryInfo) {
-        BSLS_ASSERT_SAFE(partitions.size() ==
+    if (!sendPartitionPrimaryInfo) {
+        BSLS_ASSERT_SAFE(newlyAssigned.empty());
+    }
+    else if (!newlyAssigned.empty()) {
+        BSLS_ASSERT_SAFE(newlyAssigned.size() ==
                          clusterState.partitions().size());
     }
-    else {
-        BSLS_ASSERT_SAFE(partitions.empty());
-    };
+
+    if (clusterData->clusterConfig().clusterAttributes().isFSMWorkflow()) {
+        // In FSM mode, the *only* possible caller of this method is
+        // `onNodeUnavailable()`.  In all other cases, the Cluster FSM is
+        // responsible for sending the cluster state updates to followers.
+        BSLS_ASSERT_SAFE(sendPartitionPrimaryInfo && !sendQueuesInfo);
+
+        BSLS_ASSERT_SAFE(trustCSL);
+    }
 
     if (bmqp_ctrlmsg::NodeStatus::E_STOPPING ==
         clusterData->membership().selfNodeStatus()) {
         // No need to send cluster state since self is stopping.  After self
         // has stopped, a new leader will be elected whom will take care of
         // this duty,
+        BALL_LOG_INFO << clusterData->identity().description()
+                      << ": Not doing 'sendClusterState' to "
+                      << (node ? node->nodeDescription()
+                               : "all follower nodes")
+                      << " since self is stopping.";
+
         return;  // RETURN
     }
 
@@ -1438,8 +1468,95 @@ void ClusterUtil::sendClusterState(
         clusterData->electorInfo().nextLeaderMessageSequence(
             &advisory.sequenceNumber());
 
-        advisory.partitions() = partitions;
-        loadQueuesInfo(&advisory.queues(), clusterState);
+        if (trustCSL) {
+            // We construct a "merged state" of current cluster state and
+            // information from uncommitted CSL advisories, before sending over
+            // to follower(s).
+            //
+            // NOTE: This code path is *only* reachable in non-FSM mode.
+            ClusterState tempState(
+                &clusterData->cluster(),
+                clusterData->clusterConfig().partitionConfig().numPartitions(),
+                true,  // isTemporary
+                allocator);
+            const int rc = load(&tempState,
+                                ledger->getIterator().get(),
+                                *clusterData,
+                                allocator);
+            if (rc != 0) {
+                BALL_LOG_ERROR
+                    << clusterData->identity().description()
+                    << ": Failed to load CSL content to temp cluster "
+                    << "state as part of 'sendClusterState', rc: " << rc;
+
+                return;  // RETURN
+            }
+
+            ClusterStateLedger::ClusterMessageCRefList uncommittedAdvisories;
+            ledger->uncommittedAdvisories(&uncommittedAdvisories);
+            for (ClusterStateLedger::ClusterMessageCRefList::const_iterator
+                     cit = uncommittedAdvisories.begin();
+                 cit != uncommittedAdvisories.end();
+                 ++cit) {
+                apply(&tempState, *cit, *clusterData);
+            }
+
+            if (!newlyAssigned.empty()) {
+                advisory.partitions() = newlyAssigned;
+
+                for (bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>::iterator
+                         pit = advisory.partitions().begin();
+                     pit != advisory.partitions().end();
+                     ++pit) {
+                    const int          pid = pit->partitionId();
+                    const unsigned int leaseIdInCSL =
+                        tempState.partition(pit->partitionId())
+                            .primaryLeaseId();
+                    if (leaseIdInCSL == pit->primaryLeaseId() &&
+                        tempState.partition(pit->partitionId())
+                                .primaryNodeId() == pit->primaryNodeId()) {
+                        // For this partition, existing primary is preserved.
+                        // All good.
+                        continue;  // CONTINUE
+                    }
+                    if (leaseIdInCSL >= pit->primaryLeaseId()) {
+                        BALL_LOG_WARN
+                            << clusterData->identity().description()
+                            << " Partition [" << pid
+                            << "]: Self leader sees that CSL has recorded a "
+                               "leaseId of "
+                            << leaseIdInCSL
+                            << ", while self was about to assign a leaseId of "
+                            << pit->primaryLeaseId() << ".  Bumping up to "
+                            << leaseIdInCSL + 1
+                            << " to avoid potential conflict.";
+                        pit->primaryLeaseId() = leaseIdInCSL + 1;
+                    }
+                }
+            }
+            else {
+                loadPartitionsInfo(&advisory.partitions(), tempState);
+            }
+            loadQueuesInfo(&advisory.queues(), tempState);
+
+            BALL_LOG_INFO_BLOCK
+            {
+                BALL_LOG_OUTPUT_STREAM
+                    << clusterData->identity().description()
+                    << ": As part of 'sendClusterState', loaded merged state "
+                       "of CSL content and uncommitted advisories to temp "
+                       "cluster state.";
+                if (!newlyAssigned.empty()) {
+                    BALL_LOG_OUTPUT_STREAM << "  In addition, assigned new "
+                                              "partition primaries.";
+                }
+                BALL_LOG_OUTPUT_STREAM << "  Ready to send now.";
+            }
+        }
+        else {
+            advisory.partitions() = newlyAssigned;
+            loadQueuesInfo(&advisory.queues(), clusterState);
+        }
     }
     else if (sendPartitionPrimaryInfo) {
         bmqp_ctrlmsg::PartitionPrimaryAdvisory& advisory =
@@ -1448,7 +1565,7 @@ void ClusterUtil::sendClusterState(
         clusterData->electorInfo().nextLeaderMessageSequence(
             &advisory.sequenceNumber());
 
-        advisory.partitions() = partitions;
+        advisory.partitions() = newlyAssigned;
     }
     else {
         BSLS_ASSERT_SAFE(sendQueuesInfo);
@@ -1510,7 +1627,8 @@ void ClusterUtil::appendClusterNode(bsl::vector<mqbcfg::ClusterNode>* out,
 
 void ClusterUtil::apply(mqbc::ClusterState*                 clusterState,
                         const bmqp_ctrlmsg::ClusterMessage& clusterMessage,
-                        const mqbc::ClusterData&            clusterData)
+                        const mqbc::ClusterData&            clusterData,
+                        bsl::vector<int>*                   modifiedPartitions)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(clusterState);
@@ -1520,12 +1638,18 @@ void ClusterUtil::apply(mqbc::ClusterState*                 clusterState,
     case MsgChoice::SELECTION_ID_PARTITION_PRIMARY_ADVISORY: {
         const bmqp_ctrlmsg::PartitionPrimaryAdvisory& adv =
             clusterMessage.choice().partitionPrimaryAdvisory();
-        applyPartitionPrimary(clusterState, adv.partitions(), clusterData);
+        applyPartitionPrimary(clusterState,
+                              adv.partitions(),
+                              clusterData,
+                              modifiedPartitions);
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_LEADER_ADVISORY: {
         const bmqp_ctrlmsg::LeaderAdvisory& adv =
             clusterMessage.choice().leaderAdvisory();
-        applyPartitionPrimary(clusterState, adv.partitions(), clusterData);
+        applyPartitionPrimary(clusterState,
+                              adv.partitions(),
+                              clusterData,
+                              modifiedPartitions);
         applyQueueAssignment(clusterState, adv.queues());
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_QUEUE_ASSIGNMENT_ADVISORY: {
@@ -1536,7 +1660,6 @@ void ClusterUtil::apply(mqbc::ClusterState*                 clusterState,
     case MsgChoice::SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY: {
         const bmqp_ctrlmsg::QueueUnAssignmentAdvisory& queueAdvisory =
             clusterMessage.choice().queueUnAssignmentAdvisory();
-
         applyQueueUnassignment(clusterState, queueAdvisory.queues());
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_QUEUE_UPDATE_ADVISORY: {
@@ -1806,9 +1929,7 @@ void ClusterUtil::validateClusterStateLedger(mqbi::Cluster*            cluster,
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(cluster);
-    BSLS_ASSERT_SAFE(
-        clusterData.dispatcherClientData().dispatcher()->inDispatcherThread(
-            cluster));
+    BSLS_ASSERT_SAFE(cluster->inDispatcherThread());
 
     if (!ledger.isOpen()) {
         BALL_LOG_INFO << clusterData.identity().description()
@@ -1820,6 +1941,7 @@ void ClusterUtil::validateClusterStateLedger(mqbi::Cluster*            cluster,
     // Compare contents of cluster state and CSL contents on disk
     ClusterState tempState(cluster,
                            clusterState.partitions().size(),
+                           true,  // isTemporary
                            allocator);
 
     int rc =
@@ -1852,8 +1974,7 @@ int ClusterUtil::load(ClusterState*               state,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(state);
     BSLS_ASSERT_SAFE(iterator);
-    BSLS_ASSERT_SAFE(clusterData.cluster().dispatcher()->inDispatcherThread(
-        &clusterData.cluster()));
+    BSLS_ASSERT_SAFE(clusterData.cluster().inDispatcherThread());
 
     /// Value for the various RC error categories
     enum RcEnum {
@@ -1953,7 +2074,7 @@ void ClusterUtil::loadPartitionsInfo(
     const ClusterState&                              state)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(out);
+    BSLS_ASSERT_SAFE(out && out->empty());
 
     for (int pid = 0; pid < static_cast<int>(state.partitions().size());
          ++pid) {
@@ -2046,9 +2167,10 @@ int ClusterUtil::latestLedgerLSN(bmqp_ctrlmsg::LeaderMessageSequence* out,
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // No error
-        ,
-        rc_LEDGER_NOT_OPENED = -1  // The ledger is not opened
+        /// No error
+        rc_SUCCESS = 0,
+        /// The ledger is not opened
+        rc_LEDGER_NOT_OPENED = -1
     };
 
     if (!ledger.isOpen()) {

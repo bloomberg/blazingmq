@@ -943,10 +943,10 @@ WARN_LOGFILE           =
 # spaces. See also FILE_PATTERNS and EXTENSION_MAPPING
 # Note: If this tag is empty the current directory is searched.
 
-INPUT                  = src/groups/bmq/bmqa \
+INPUT                  = docs/mainpage.dox \
+                         src/groups/bmq/bmqa \
                          src/groups/bmq/bmqt \
-                         src/groups/bmq/bmqpi \
-                         README.md
+                         src/groups/bmq/bmqpi
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
@@ -1032,6 +1032,7 @@ EXCLUDE_PATTERNS       = *.t.cpp \
 
 EXCLUDE_SYMBOLS        = BloombergLP::bmqimp \
                          BloombergLP::bmqp \
+                         BloombergLP::bmqst \
                          BloombergLP::bslmt
 
 # The EXAMPLE_PATH tag can be used to specify one or more files or directories
@@ -1119,7 +1120,7 @@ FILTER_SOURCE_PATTERNS =
 # (index.html). This can be useful if you have a project on for instance GitHub
 # and want to reuse the introduction page also for the doxygen output.
 
-USE_MDFILE_AS_MAINPAGE = ./README.md
+USE_MDFILE_AS_MAINPAGE =
 
 # The Fortran standard specifies that for fixed formatted Fortran code all
 # characters from position 72 are to be considered as comment. A common

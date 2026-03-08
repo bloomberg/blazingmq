@@ -79,8 +79,8 @@ ElectorInfoObserver::~ElectorInfoObserver()
 }
 
 void ElectorInfoObserver::onClusterLeader(
-    BSLA_UNUSED mqbnet::ClusterNode* node,
-    BSLA_UNUSED ElectorInfoLeaderStatus::Enum status)
+    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* node,
+    BSLA_MAYBE_UNUSED ElectorInfoLeaderStatus::Enum status)
 {
     // NOTHING
 }
@@ -195,7 +195,7 @@ ElectorInfo& ElectorInfo::setElectorInfo(mqbnet::ElectorState::Enum    state,
 
     mqbnet::ClusterNode* oldLeader = d_leaderNode_p;
 
-    BALL_LOG_INFO << "#ELECTOR_INFO: tranisition old leader: "
+    BALL_LOG_INFO << "#ELECTOR_INFO: transition old leader: "
                   << (oldLeader ? oldLeader->nodeDescription() : "** NULL **")
                   << ", status: " << d_leaderStatus
                   << ", LSN: " << d_leaderMessageSequence << " to new leader: "
@@ -230,6 +230,10 @@ void ElectorInfo::onSelfActiveLeader()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_electorState == mqbnet::ElectorState::e_LEADER);
     BSLS_ASSERT_SAFE(d_leaderNode_p);
+
+    if (d_leaderStatus == ElectorInfoLeaderStatus::e_ACTIVE) {
+        return;  // RETURN
+    }
 
     BALL_LOG_INFO << "#ELECTOR_INFO: onSelfActiveLeader(): "
                   << "leader = " << d_leaderNode_p->nodeDescription()

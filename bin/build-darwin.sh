@@ -4,27 +4,82 @@
 #
 # Required tools:
 # - Clang
-# - CMake
 # - git
 # - Homebrew
-# - ninja
 # - Perl
-# - pkg-config
 # - Python3
-
-echo -e "Before running this script, install the following prerequisites, if not present yet," \
-        "by executing the following commands:\n"                                               \
-        "brew install flex bison google-benchmark googletest zlib"
+#
+# Options:
+#   -h, --help          Show this help and exit
+#       --install-deps  Install required Homebrew packages before building
 
 set -e
 set -u
 [ -z "$BASH" ] || shopt -s expand_aliases
+
+print_help() {
+    cat <<'USAGE'
+BlazingMQ Build Script
+
+Usage:
+  bin/$(basename "$0") [OPTIONS]
+
+Options:
+  -h, --help          Show this help and exit
+      --install-deps  Install required Homebrew packages via Homebrew
+
+What it does:
+  • Optionally installs prerequisites using Homebrew:
+      brew install cmake flex bison google-benchmark googletest ninja pkg-config zlib
+  • Clones third-party deps (bde-tools, bde, ntf-core)
+  • Builds and installs BDE and NTF
+  • Configures and builds BlazingMQ
+
+Notes:
+  • Run this script from the root of the BlazingMQ repository.
+USAGE
+}
+
+INSTALL_DEPS=false
+
+# Parse args (simple, portable long-option handling)
+for arg in "$@"; do
+    case "$arg" in
+        -h|--help)
+            print_help
+            exit 0
+            ;;
+        --install-deps)
+            INSTALL_DEPS=true
+            ;;
+        *)
+            echo "Unknown option: $arg" >&2
+            echo "Try '--help' for usage." >&2
+            exit 2
+            ;;
+    esac
+done
 
 script_path="bin/$(basename "$0")"
 
 if [ ! -f "$script_path" ] || [ "$(realpath "$0")" != "$(realpath "$script_path")" ]; then
     echo 'This script must be run from the root of the BlazingMQ repository.'
     exit 1
+fi
+
+# :: Optionally install prerequisites :::::::::::::::::::::::::::::::::::::::::
+
+REQ_PKGS=(cmake flex bison google-benchmark googletest ninja pkg-config zlib)
+
+if $INSTALL_DEPS; then
+    if ! command -v brew >/dev/null 2>&1; then
+        echo "Homebrew is required for '--install-deps' but was not found on PATH." >&2
+        echo "Install Homebrew from https://brew.sh/ and re-run with --install-deps." >&2
+        exit 1
+    fi
+    echo "Installing prerequisites via Homebrew..."
+    brew install "${REQ_PKGS[@]}"
+    echo "Prerequisites installed."
 fi
 
 # :: Set some initial constants :::::::::::::::::::::::::::::::::::::::::::::::
@@ -42,13 +97,13 @@ mkdir -p "${DIR_INSTALL}"
 
 # :: Clone dependencies :::::::::::::::::::::::::::::::::::::::::::::::::::::::
 if [ ! -d "${DIR_THIRDPARTY}/bde-tools" ]; then
-    git clone --depth 1 --branch 4.23.0.0 https://github.com/bloomberg/bde-tools "${DIR_THIRDPARTY}/bde-tools"
+    git clone --depth 1 --branch 4.28.0.0 https://github.com/bloomberg/bde-tools "${DIR_THIRDPARTY}/bde-tools"
 fi
 if [ ! -d "${DIR_THIRDPARTY}/bde" ]; then
-    git clone --depth 1 --branch 4.23.0.0 https://github.com/bloomberg/bde.git "${DIR_THIRDPARTY}/bde"
+    git clone --depth 1 --branch 4.28.0.0 https://github.com/bloomberg/bde.git "${DIR_THIRDPARTY}/bde"
 fi
 if [ ! -d "${DIR_THIRDPARTY}/ntf-core" ]; then
-    git clone --depth 1 --branch 2.4.2 https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"
+    git clone --depth 1 --branch 2.6.10 https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"
 fi
 
 
@@ -59,39 +114,46 @@ fi
 PATH="${DIR_THIRDPARTY}/bde-tools/bin:$PATH"
 
 if [ ! -e "${DIR_BUILD}/bde/.complete" ]; then
-    pushd "${DIR_THIRDPARTY}/bde"
-    eval "$(bbs_build_env -u opt_64_cpp17 -b "${DIR_BUILD}/bde" -i "${DIR_INSTALL}")"
-    bbs_build configure --prefix="${DIR_INSTALL}"
-    bbs_build build --prefix="${DIR_INSTALL}"
-    bbs_build install --install_dir="/" --prefix="${DIR_INSTALL}"
-    eval "$(bbs_build_env unset)"
-    popd
+    # Build and install BDE
+    (
+        # Suppress warnings from BDE build (scoped to this subshell)
+        # shellcheck disable=SC2030
+        export CXXFLAGS="-w" CFLAGS="-w"
+        cd "${DIR_THIRDPARTY}/bde"
+        eval "$(bbs_build_env -p clang -u opt_64_cpp17 -b "${DIR_BUILD}/bde" -i "${DIR_INSTALL}")"
+        bbs_build configure --prefix="${DIR_INSTALL}"
+        bbs_build build --prefix="${DIR_INSTALL}"
+        bbs_build install --install_dir="/" --prefix="${DIR_INSTALL}"
+        eval "$(bbs_build_env unset)"
+    )
     touch "${DIR_BUILD}/bde/.complete"
 fi
 
 if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
     # Build and install NTF
-    pushd "${DIR_THIRDPARTY}/ntf-core"
-    ./configure --prefix "${DIR_INSTALL}" \
-                --output "${DIR_BUILD}/ntf" \
-                --without-warnings-as-errors \
-                --without-usage-examples \
-                --without-applications \
-                --ufid opt_64_cpp17
-    make -j 16
-    make install
-    popd
+    (
+        # Suppress warnings from NTF build (scoped to this subshell)
+        # shellcheck disable=SC2031
+        export CXXFLAGS="-w" CFLAGS="-w"
+        cd "${DIR_THIRDPARTY}/ntf-core"
+        ./configure --prefix "${DIR_INSTALL}"                                                                      \
+                    --output "${DIR_BUILD}/ntf"                                                                    \
+                    --toolchain "${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem/toolchains/darwin/clang-default.cmake" \
+                    --without-warnings-as-errors                                                                   \
+                    --without-usage-examples                                                                       \
+                    --without-applications                                                                         \
+                    --with-zlib                                                                                    \
+                    --without-zstd                                                                                 \
+                    --without-lz4                                                                                  \
+                    --ufid opt_64_cpp17
+        make -j 16
+        make install
+    )
     touch "${DIR_BUILD}/ntf/.complete"
 fi
 
-# Determine paths based on Intel vs Apple Silicon CPU
-if [ "$(uname -p)" == 'arm' ]; then
-    BREW_PKG_CONFIG_PATH="/opt/homebrew/lib/pkgconfig:/opt/homebrew/opt/zlib/lib/pkgconfig:/opt/homebrew/opt/googletest/lib/pkgconfig"
-    FLEX_ROOT="/opt/homebrew/opt/flex"
-else
-    BREW_PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/zlib/lib/pkgconfig:/usr/local/opt/googletest/lib/pkgconfig"
-    FLEX_ROOT="/usr/local/opt/flex"
-fi
+BREW_PKG_CONFIG_PATH="/opt/homebrew/lib/pkgconfig:/opt/homebrew/opt/zlib/lib/pkgconfig:/opt/homebrew/opt/googletest/lib/pkgconfig"
+FLEX_ROOT="/opt/homebrew/opt/flex"
 
 
 # :: Build the BlazingMQ repo :::::::::::::::::::::::::::::::::::::::::::::::::

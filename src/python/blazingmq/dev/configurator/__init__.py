@@ -355,7 +355,6 @@ class Proto:
                 config_version=999999,
                 host_name="",  # overwritten
                 host_data_center="",  # overwritten
-                is_running_on_dev=False,
                 logs_observer_max_size=1000,
                 dispatcher_config=mqbcfg.DispatcherConfig(
                     sessions=mqbcfg.DispatcherProcessorConfig(
@@ -422,6 +421,10 @@ class Proto:
                     advertise_v2_support=True,
                     min_cpp_sdk_version=11207,
                     min_java_sdk_version=10,
+                ),
+                authentication=mqbcfg.AuthenticatorConfig(
+                    authenticators=[],
+                    anonymous_credential=None,
                 ),
             ),
         )

@@ -18,11 +18,12 @@
 
 #include <mqbscm_version.h>
 // MQB
+#include <mqba_authenticator.h>
 #include <mqba_configprovider.h>
 #include <mqba_dispatcher.h>
 #include <mqba_domainmanager.h>
-#include <mqba_initialconnectionhandler.h>
 #include <mqba_sessionnegotiator.h>
+#include <mqbauthn_authenticationcontroller.h>
 #include <mqbblp_clustercatalog.h>
 #include <mqbblp_relayqueueengine.h>
 #include <mqbcfg_brokerconfig.h>
@@ -46,9 +47,9 @@
 
 #include <bmqscm_version.h>
 #include <bmqst_statcontext.h>
+#include <bmqsys_operationlogger.h>
 #include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
-#include <bmqu_operationchain.h>
 
 // BDE
 #include <baljsn_encoder.h>
@@ -59,6 +60,7 @@
 #include <bdls_memoryutil.h>
 #include <bdls_osutil.h>
 #include <bdls_processutil.h>
+#include <bdlt_currenttime.h>
 #include <bsl_cstddef.h>
 #include <bsl_cstdlib.h>
 #include <bsl_ctime.h>
@@ -119,7 +121,6 @@ void Application::oneTimeInit()
         // Make MessageGUID generation thread-safe by calling initialize
         mqbu::MessageGUIDUtil::initialize();
 
-        bmqt::UriParser::initialize();
         bmqp::ProtocolUtil::initialize();
     }
 }
@@ -129,7 +130,6 @@ void Application::oneTimeShutdown()
     BSLMT_ONCE_DO
     {
         bmqp::ProtocolUtil::shutdown();
-        bmqt::UriParser::shutdown();
         bmqsys::Time::shutdown();
     }
 }
@@ -169,6 +169,7 @@ Application::Application(bdlmt::EventScheduler* scheduler,
 , d_allocatorsStatContext_p(allocatorsStatContext)
 , d_pluginManager_mp()
 , d_statController_mp()
+, d_authenticationController_mp()
 , d_configProvider_mp()
 , d_dispatcher_mp()
 , d_transportManager_mp()
@@ -256,7 +257,8 @@ int Application::start(bsl::ostream& errorDescription)
         rc_DOMAINMANAGER                     = -8,
         rc_TRANSPORTMANAGER_LISTEN           = -9,
         rc_ADMIN_POOL_START_FAILURE          = -10,
-        rc_PLUGINMANAGER                     = -11
+        rc_PLUGINMANAGER                     = -11,
+        rc_AUTHENTICATIONCONTROLLER          = -12,
     };
 
     int rc = rc_SUCCESS;
@@ -298,6 +300,17 @@ int Application::start(bsl::ostream& errorDescription)
         return (rc * 100) + rc_STATCONTROLLER;  // RETURN
     }
 
+    // Start the AuthenticationController
+    d_authenticationController_mp.load(
+        new (*d_allocator_p) mqbauthn::AuthenticationController(
+            d_pluginManager_mp.get(),
+            d_allocators.get("AuthenticationController")),
+        d_allocator_p);
+    rc = d_authenticationController_mp->start(errorDescription);
+    if (rc != 0) {
+        return (rc * 100) + rc_AUTHENTICATIONCONTROLLER;  // RETURN
+    }
+
     // Start the config provider
     d_configProvider_mp.load(new (*d_allocator_p) ConfigProvider(
                                  d_allocators.get("ConfigProvider")),
@@ -310,6 +323,7 @@ int Application::start(bsl::ostream& errorDescription)
     // Start dispatcher
     d_dispatcher_mp.load(new (*d_allocator_p) Dispatcher(
                              mqbcfg::BrokerConfig::get().dispatcherConfig(),
+                             d_statController_mp->dispatcherStatContext(),
                              d_scheduler_p,
                              d_allocators.get("Dispatcher")),
                          d_allocator_p);
@@ -319,6 +333,13 @@ int Application::start(bsl::ostream& errorDescription)
     }
 
     // Start the transport manager
+    bslma::ManagedPtr<mqbnet::Authenticator> authenticatorMp(
+        new (*d_allocator_p) Authenticator(d_authenticationController_mp.get(),
+                                           &d_blobSpPool,
+                                           d_scheduler_p,
+                                           d_allocators.get("Authenticator")),
+        d_allocator_p);
+
     SessionNegotiator* sessionNegotiator = new (*d_allocator_p)
         SessionNegotiator(&d_bufferFactory,
                           d_dispatcher_mp.get(),
@@ -339,17 +360,11 @@ int Application::start(bsl::ostream& errorDescription)
     bslma::ManagedPtr<mqbnet::Negotiator> negotiatorMp(sessionNegotiator,
                                                        d_allocator_p);
 
-    bslma::ManagedPtr<mqbnet::InitialConnectionHandler>
-        initialConnectionHandlerMp(
-            new (*d_allocator_p) InitialConnectionHandler(
-                negotiatorMp,
-                d_allocators.get("InitialConnectionHandler")),
-            d_allocator_p);
-
     d_transportManager_mp.load(new (*d_allocator_p) mqbnet::TransportManager(
                                    d_scheduler_p,
                                    &d_bufferFactory,
-                                   initialConnectionHandlerMp,
+                                   authenticatorMp,
+                                   negotiatorMp,
                                    d_statController_mp.get(),
                                    d_allocators.get("TransportManager")),
                                d_allocator_p);
@@ -453,6 +468,8 @@ void Application::stop()
                   << bsl::endl
                   << "========== ============================== ==========";
 
+    bsls::TimeInterval startTime = bdlt::CurrentTime::now();
+
 #define STOP_OBJ(OBJ, NAME)                                                   \
     if (OBJ) {                                                                \
         BALL_LOG_INFO << "Stopping " NAME "...";                              \
@@ -473,13 +490,9 @@ void Application::stop()
 
     bool supportShutdownV2 = initiateShutdown();
 
-    if (supportShutdownV2) {
-        BALL_LOG_INFO << ": Executing GRACEFUL_SHUTDOWN_V2";
-    }
-    else {
-        BALL_LOG_INFO << ": Peers do not support "
-                      << "GRACEFUL_SHUTDOWN_V2. Retreat to V1";
-    }
+    BSLS_ASSERT_SAFE(supportShutdownV2);
+
+    BALL_LOG_INFO << ": Executing GRACEFUL_SHUTDOWN_V2";
 
     // For each cluster in cluster catalog, inform peers about this shutdown.
     int          count = d_clusterCatalog_mp->count();
@@ -491,8 +504,7 @@ void Application::stop()
          count > 0;
          ++clusterIt, --count) {
         clusterIt.cluster()->initiateShutdown(
-            bdlf::BindUtil::bind(&bslmt::Latch::arrive, &latch),
-            supportShutdownV2);
+            bdlf::BindUtil::bind(&bslmt::Latch::arrive, &latch));
     }
     latch.wait();
 
@@ -512,6 +524,11 @@ void Application::stop()
 
     // STOP everything.
 
+    // Dispatcher is running while some other components are being stopped
+    // and destructed, make sure that Dispatcher will not call `flush` for
+    // any DispatcherClient that might be in the middle of its destruction.
+    d_dispatcher_mp->disableFlushClients();
+
     // Note that clusterCatalog must be stopped before transport manager
     // because transportManager.stop() blocks until all sessions have been
     // destroyed, and above code proactively closes only the clientOrProxy
@@ -523,6 +540,7 @@ void Application::stop()
     STOP_OBJ(d_domainManager_mp, "DomainManager");
     STOP_OBJ(d_dispatcher_mp, "Dispatcher");
     STOP_OBJ(d_configProvider_mp, "ConfigProvider");
+    STOP_OBJ(d_authenticationController_mp, "AuthenticationController");
     STOP_OBJ(d_statController_mp, "StatController");
     STOP_OBJ(d_pluginManager_mp, "PluginManager");
 
@@ -532,10 +550,14 @@ void Application::stop()
     DESTROY_OBJ(d_transportManager_mp, "TransportManager");
     DESTROY_OBJ(d_dispatcher_mp, "Dispatcher");
     DESTROY_OBJ(d_configProvider_mp, "ConfigProvider");
+    DESTROY_OBJ(d_authenticationController_mp, "AuthenticationController");
     DESTROY_OBJ(d_statController_mp, "StatController");
     DESTROY_OBJ(d_pluginManager_mp, "PluginManager");
 
-    BALL_LOG_INFO << "BMQbrkr stopped";
+    bsls::TimeInterval elapsedTime = bdlt::CurrentTime::now() - startTime;
+
+    BALL_LOG_INFO << "BMQbrkr stopped (shutdown took "
+                  << elapsedTime.totalSecondsAsDouble() << " seconds)";
 
 #undef DESTROY_OBJ
 #undef STOP_OBJ
@@ -622,10 +644,8 @@ bool Application::initiateShutdown()
 
     for (Sessions::const_iterator cit = clients.begin(); cit != clients.end();
          ++cit) {
-        (*cit)->initiateShutdown(bdlf::BindUtil::bind(&bslmt::Latch::arrive,
-                                                      &latchDownstreams),
-                                 shutdownTimeout,
-                                 true);
+        (*cit)->initiateShutdown(
+            bdlf::BindUtil::bind(&bslmt::Latch::arrive, &latchDownstreams));
     }
 
     // Need to wait for peers to update this node status to guarantee no new
@@ -638,18 +658,18 @@ bool Application::initiateShutdown()
 
     {
         bslmt::Latch latch(1);
-        d_dispatcher_mp->execute(mqbi::Dispatcher::VoidFunctor(),
-                                 mqbi::DispatcherClientType::e_QUEUE,
-                                 bdlf::BindUtil::bind(&bslmt::Latch::arrive,
-                                                      &latch));
+        d_dispatcher_mp->executeOnAllQueues(
+            mqbi::Dispatcher::VoidFunctor(),
+            mqbi::DispatcherClientType::e_QUEUE,
+            bdlf::BindUtil::bind(&bslmt::Latch::arrive, &latch));
         latch.wait();
     }
     {
         bslmt::Latch latch(1);
-        d_dispatcher_mp->execute(mqbi::Dispatcher::VoidFunctor(),
-                                 mqbi::DispatcherClientType::e_CLUSTER,
-                                 bdlf::BindUtil::bind(&bslmt::Latch::arrive,
-                                                      &latch));
+        d_dispatcher_mp->executeOnAllQueues(
+            mqbi::Dispatcher::VoidFunctor(),
+            mqbi::DispatcherClientType::e_CLUSTER,
+            bdlf::BindUtil::bind(&bslmt::Latch::arrive, &latch));
         latch.wait();
     }
 
@@ -979,11 +999,18 @@ int Application::processCommandCb(
     const bsl::function<void(int, const bsl::string&)>& onProcessedCb,
     bool                                                fromReroute)
 {
-    bmqu::MemOutStream os;
-    int                rc = processCommand(source, cmd, os, fromReroute);
+    bmqsys::OperationLogger opLogger(d_allocator_p);
+    // Set operation name later when we have a return code
+    opLogger.start();
+
+    bmqu::MemOutStream os(d_allocator_p);
+    const int          rc = processCommand(source, cmd, os, fromReroute);
+    opLogger.operation() << "Process command '" << cmd << "' (rc = " << rc
+                         << ")";
 
     onProcessedCb(rc, os.str());
 
+    // `opLogger` logs execution time on destruction
     return rc;  // RETURN
 }
 

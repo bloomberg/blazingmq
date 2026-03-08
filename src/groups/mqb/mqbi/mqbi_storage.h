@@ -88,13 +88,13 @@ struct StorageResult {
         e_GUID_NOT_FOUND    = -3,
         e_LIMIT_MESSAGES    = -4,
         e_LIMIT_BYTES       = -5,
-        e_ZERO_REFERENCES   = -6  // Reference count has gone to zero
-        ,
-        e_NON_ZERO_REFERENCES = -7  // Reference count is not yet zero
-        ,
-        e_WRITE_FAILURE    = -8,
-        e_APPKEY_NOT_FOUND = -9,
-        e_DUPLICATE        = -10
+        /// Reference count has gone to zero
+        e_ZERO_REFERENCES = -6,
+        /// Reference count is not yet zero
+        e_NON_ZERO_REFERENCES = -7,
+        e_WRITE_FAILURE       = -8,
+        e_APPKEY_NOT_FOUND    = -9,
+        e_DUPLICATE           = -10
     };
 
     // CLASS METHODS
@@ -354,8 +354,8 @@ class StorageIterator {
     virtual bool advance() = 0;
 
     /// If the specified `atEnd` is `true`, reset the iterator to point to the
-    /// to the end of the underlying storage.  Otherwise, reset the iterator to
-    /// point first item, if any, in the underlying storage.
+    /// end of the underlying storage.  Otherwise, reset the iterator to point
+    /// to the first item, if any, in the underlying storage.
     virtual void
     reset(const bmqt::MessageGUID& where = bmqt::MessageGUID()) = 0;
 
@@ -409,6 +409,15 @@ class StorageIterator {
 /// Interface for a Storage.
 class Storage {
   public:
+    // PUBLIC CONSTANTS
+    static const int k_INVALID_PARTITION_ID = -1;
+
+    /// A constant representing any (but not invalid) partitionId.  This is
+    /// useful in certain APIs.
+    static const int k_ANY_PARTITION_ID = 2147483647;  // INT_MAX
+
+    static const size_t k_INVALID_ORDINAL = 999999;
+
     // PUBLIC TYPES
 
     /// `AppInfos` is an alias for an ordered hashtable [appId] -> appKey
@@ -420,8 +429,6 @@ class Storage {
     typedef bmqc::Array<mqbu::StorageKey,
                         bmqp::Protocol::k_SUBID_ARRAY_STATIC_LEN>
         StorageKeys;
-
-    static const size_t k_INVALID_ORDINAL = 999999;
 
   public:
     // CREATORS
@@ -552,24 +559,19 @@ class Storage {
     /// Return the resource capacity meter associated to this storage.
     virtual mqbu::CapacityMeter* capacityMeter() = 0;
 
-    /// Attempt to garbage-collect messages for which TTL has expired, and
-    /// return the number of messages garbage-collected.  Populate the
-    /// specified `latestGcMsgTimestampEpoch` with the timestamp, as seconds
-    /// from epoch, of the oldest encountered message, and the specified
-    /// `configuredTtlValue` with the TTL value (in seconds) with which this
-    /// storage instance is configured.
-    virtual int gcExpiredMessages(bsls::Types::Uint64* latestMsgTimestampEpoch,
-                                  bsls::Types::Int64*  configuredTtlValue,
-                                  bsls::Types::Uint64  secondsFromEpoch) = 0;
+    /// Attempt to garbage-collect messages for which TTL has expired.
+    /// @param currentTimeUtc The current time.
+    /// @param secondsFromEpoch The time in seconds from the epoch start.
+    /// @param limit The maximum number of messages to expire, negative value
+    /// means "no limit".
+    /// @return The number of expired messages.
+    virtual int gcExpiredMessages(const bdlt::Datetime& currentTimeUtc,
+                                  bsls::Types::Uint64   secondsFromEpoch,
+                                  int                   limit = -1) = 0;
 
     /// Garbage collect a batch of expired messages from the deduplication
     /// history, using the specified `now` as the current timestamp.
-    /// Return rc == 0, if no messages were GCed.
-    /// Return rc > 0, if all the needed messages were GCed and there is
-    ///                nothing more to do now.
-    /// Return rc < 0, if the maximum batch of elements was GCed, but there
-    ///                are more messages to GC.
-    virtual int gcHistory(bsls::Types::Int64 now) = 0;
+    virtual void gcHistory(bsls::Types::Int64 now) = 0;
 
     /// Create, if it doesn't exist already, a virtual storage instance with
     /// the specified `appId` and `appKey`.  Return zero upon success and a

@@ -354,7 +354,7 @@ class VirtualStorageCatalog BSLS_KEYWORD_FINAL {
 
     /// Return the number of messages in the virtual storage associated with
     /// the specified 'appKey'.  Behavior is undefined unless a virtual
-    /// storage associated with the 'appKey' exists in this'og.
+    /// storage associated with the 'appKey' exists in this catalog.
     bsls::Types::Int64 numMessages(const mqbu::StorageKey& appKey) const;
 
     /// Return the number of bytes in the virtual storage associated with

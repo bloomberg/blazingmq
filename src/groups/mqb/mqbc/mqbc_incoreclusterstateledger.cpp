@@ -59,10 +59,10 @@
 #include <bdlt_epochutil.h>
 #include <bsl_cstring.h>
 #include <bsl_ctime.h>
+#include <bsl_functional.h>
 #include <bsl_memory.h>
 #include <bsl_unordered_set.h>
 #include <bsl_utility.h>
-#include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bslmf_allocatorargt.h>
 #include <bsls_keyword.h>
@@ -213,9 +213,10 @@ int IncoreClusterStateLedger::cleanupLog(const bsl::string& logPath)
 {
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_REMOVE_FILE_FAILURE = -1  // Fail to remove log file
+        /// Success
+        rc_SUCCESS = 0,
+        /// Fail to remove log file
+        rc_REMOVE_FILE_FAILURE = -1
     };
 
     const bsl::string& cluster = d_clusterData_p->cluster().name();
@@ -243,14 +244,14 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_WRITE_HEADER_FAILURE = -1  // Fail to write CSL file header to
-                                      // ledger
-        ,
-        rc_CREATE_RECORD_FAILURE = -2  // Fail to create record
-        ,
-        rc_WRITE_RECORD_FAILURE = -3  // Fail to write record to ledger
+        /// Success
+        rc_SUCCESS = 0,
+        /// Fail to write CSL file header to ledger
+        rc_WRITE_HEADER_FAILURE = -1,
+        /// Fail to create record
+        rc_CREATE_RECORD_FAILURE = -2,
+        /// Fail to write record to ledger
+        rc_WRITE_RECORD_FAILURE = -3
     };
 
     BALL_LOG_INFO << description() << ": Rolling over from log with logId ["
@@ -262,6 +263,8 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
     if (rc != 0) {
         return 10 * rc + rc_WRITE_HEADER_FAILURE;  // RETURN
     }
+    d_clusterData_p->stats().setCslOffsetBytes(
+        d_ledger_mp->currentLog()->currentOffset());
 
     if (oldLogId.isNull()) {
         // If this is a brand new ledger
@@ -308,6 +311,7 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
     if (rc != 0) {
         return 10 * rc + rc_WRITE_RECORD_FAILURE;  // RETURN
     }
+    d_clusterData_p->stats().addCslOffsetBytes(snapshotRecord->length());
 
     // Write uncommitted advisories into ledger
     for (AdvisoriesMapIter advisoryIt = d_uncommittedAdvisories.begin();
@@ -341,9 +345,32 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
         if (rc != 0) {
             return 10 * rc + rc_WRITE_RECORD_FAILURE;  // RETURN
         }
+        d_clusterData_p->stats().addCslOffsetBytes(record->length());
     }
 
     return rc_SUCCESS;
+}
+
+void IncoreClusterStateLedger::onQuorumChangeCb(unsigned int ackQuorum)
+{
+    // Currently we know that the callback will be executed only by the
+    // *CLUSTER DISPATCHER* thread. However there is no such obligation for
+    // `ClusterQuorumManager`, so we support calls from *ANY* thread.
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(
+            d_clusterData_p->cluster().inDispatcherThread())) {
+        reviewUncommittedAdvisories(ackQuorum);
+    }
+    else {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        d_clusterData_p->cluster().dispatcher()->execute(
+            bdlf::BindUtil::bindS(
+                d_allocator_p,
+                &IncoreClusterStateLedger::reviewUncommittedAdvisories,
+                this,
+                ackQuorum),
+            &d_clusterData_p->cluster());
+    }
 }
 
 int IncoreClusterStateLedger::applyAdvisoryInternal(
@@ -365,15 +392,16 @@ int IncoreClusterStateLedger::applyAdvisoryInternal(
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_ADVISORY_STALE = -1  // Advisory is stale
-        ,
-        rc_ADVISORY_ALREADY_APPLIED = -2  // Advisory was already applied
-        ,
-        rc_CREATE_RECORD_FAILURE = -3  // Fail to create advisory record
-        ,
-        rc_APPLY_RECORD_FAILURE = -4  // Fail to apply advisory record
+        /// Success
+        rc_SUCCESS = 0,
+        /// Advisory is stale
+        rc_ADVISORY_STALE = -1,
+        /// Advisory was already applied
+        rc_ADVISORY_ALREADY_APPLIED = -2,
+        /// Fail to create advisory record
+        rc_CREATE_RECORD_FAILURE = -3,
+        /// Fail to apply advisory record
+        rc_APPLY_RECORD_FAILURE = -4
     };
 
     if (sequenceNumber <
@@ -428,25 +456,22 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
 {
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_UNKNOWN = -1  // Unknown result
-        ,
-        rc_WRITE_FAILURE = -2  // Fail to write record to ledger
-        ,
-        rc_CREATE_ACK_FAILURE = -3  // Fail to create leader advisory ack
-        ,
-        rc_CREATE_COMMIT_FAILURE = -4  // Fail to create leader advisory
-                                       // commit
-        ,
-        rc_APPLY_ACK_FAILURE = -5  // Fail to apply leader advisory ack
-        ,
-        rc_APPLY_COMMIT_FAILURE = -6  // Fail to apply leader advisory commit
-        ,
-        rc_SEND_ACK_FAILURE = -7  // Fail to send leader advisory ack
-                                  // back to leader
-        ,
-        rc_ADVISORY_NOT_FOUND = -8  // Advisory not found
+        /// Success
+        rc_SUCCESS = 0,
+        /// Unknown result
+        rc_UNKNOWN = -1,
+        /// Fail to write record to ledger
+        rc_WRITE_FAILURE = -2,
+        /// Fail to create leader advisory ack
+        rc_CREATE_ACK_FAILURE = -3,
+        /// Fail to create leader advisory commit
+        rc_COMMIT_FAILURE = -4,
+        /// Fail to apply leader advisory ack
+        rc_APPLY_ACK_FAILURE = -5,
+        /// Fail to send leader advisory ack back to leader
+        rc_SEND_ACK_FAILURE = -6,
+        /// Advisory not found
+        rc_ADVISORY_NOT_FOUND = -7
     };
 
     int rc = rc_UNKNOWN;
@@ -486,11 +511,16 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
                            << ", rc: " << rc << "]";
             return rc * 10 + rc_WRITE_FAILURE;  // RETURN
         }
+        d_clusterData_p->stats().addCslOffsetBytes(record.length() -
+                                                   recordOffset);
 
         ClusterMessageInfo info;
         info.d_clusterMessage = clusterMessage;
         info.d_ackCount       = 0;
-        d_uncommittedAdvisories.insert(bsl::make_pair(sequenceNumber, info));
+        const AdvisoriesMap::iterator advIt =
+            d_uncommittedAdvisories
+                .insert(bsl::make_pair(sequenceNumber, info))
+                .first;
 
         if (isSelfLeader()) {
             // TBD: How/if to handle timeout for this message?
@@ -508,6 +538,10 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
             // record offset should be 0.
             BSLS_ASSERT_SAFE(recordOffset == 0);
 
+            // Save the replication start time
+            advIt->second.d_timestampNs =
+                bdlt::CurrentTime::now().totalNanoseconds();
+
             bsl::shared_ptr<bdlbb::Blob> advisoryEvent =
                 d_blobSpPool_p->getObject();
 
@@ -518,12 +552,6 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
 
             BALL_LOG_INFO << "Broadcasted message '" << clusterMessage
                           << "' to all cluster nodes";
-        }
-
-        // A follower does not reply Ack under eventual consistency
-        if (!isSelfLeader() &&
-            d_consistencyLevel == ClusterStateLedgerConsistency::e_EVENTUAL) {
-            return rc_SUCCESS;  // RETURN
         }
 
         bmqp_ctrlmsg::ClusterMessage ackMessage;
@@ -620,8 +648,15 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
                            << ", rc: " << rc << "]";
             return rc * 10 + rc_WRITE_FAILURE;  // RETURN
         }
+        d_clusterData_p->stats().addCslOffsetBytes(record.length() -
+                                                   recordOffset);
 
         if (isSelfLeader()) {
+            bsls::Types::Int64 replicationTimeNs =
+                bdlt::CurrentTime::now().totalNanoseconds() -
+                iter->second.d_timestampNs;
+            d_clusterData_p->stats().setCslReplicationTime(replicationTimeNs);
+
             bsl::shared_ptr<bdlbb::Blob> commitEvent =
                 d_blobSpPool_p->getObject();
 
@@ -644,12 +679,11 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
         //       the commit callback should be enqueued to be invoked from the
         //       cluster dispatcher thread.
         // TODO: In phase 2 of IncoreCSL, this can return to enqueueing on
-        // the
-        //       cluster dispatcher thread
+        //       the cluster dispatcher thread.
         d_commitCb(committedControlMessage,
                    ClusterStateLedgerCommitStatus::e_SUCCESS);
 
-        d_uncommittedAdvisories.erase(commit.sequenceNumberCommitted());
+        d_uncommittedAdvisories.erase(iter);
     } break;  // BREAK
     case (ClusterStateRecordType::e_ACK): {
         // PRECONDITIONS
@@ -669,44 +703,15 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
         }
 
         iter->second.d_ackCount += 1;
-        if (iter->second.d_ackCount == d_ackQuorum) {
+
+        const unsigned int ackQuorum = getAckQuorum();
+
+        if (iter->second.d_ackCount == ackQuorum) {
             // Consistency level reached. Apply a commit message for the
             // advisory, broadcast it, and invoke the 'CommitCb'.
-            bmqp_ctrlmsg::ClusterMessage        commitMessage;
-            bmqp_ctrlmsg::LeaderAdvisoryCommit& commitAdvisory =
-                commitMessage.choice().makeLeaderAdvisoryCommit();
-            d_clusterData_p->electorInfo().nextLeaderMessageSequence(
-                &commitAdvisory.sequenceNumber());
-            commitAdvisory.sequenceNumberCommitted() =
-                ack.sequenceNumberAcked();
-            BSLS_ASSERT_SAFE(commitAdvisory.sequenceNumber() >
-                             commitAdvisory.sequenceNumberCommitted());
-
-            BALL_LOG_INFO << description() << "Quorum of " << d_ackQuorum
-                          << " acks is achieved for advisory of seqNum "
-                          << ack.sequenceNumberAcked()
-                          << ", creating and applying commit advisory: "
-                          << commitMessage << ".";
-
-            bsl::shared_ptr<bdlbb::Blob> commitRecord =
-                d_blobSpPool_p->getObject();
-            rc = ClusterStateLedgerUtil::appendRecord(
-                commitRecord.get(),
-                commitMessage,
-                commitAdvisory.sequenceNumber(),
-                currentTime(),
-                ClusterStateRecordType::e_COMMIT);
-            if (rc != 0) {
-                return 10 * rc + rc_CREATE_COMMIT_FAILURE;  // RETURN
-            }
-
-            rc = applyRecordInternal(*commitRecord,
-                                     0,
-                                     commitMessage,
-                                     commitAdvisory.sequenceNumber(),
-                                     ClusterStateRecordType::e_COMMIT);
-            if (rc != 0) {
-                return 10 * rc + rc_APPLY_COMMIT_FAILURE;  // RETURN
+            rc = applyCommit(ack.sequenceNumberAcked(), ackQuorum);
+            if (0 != rc) {
+                return 10 * rc + rc_COMMIT_FAILURE;
             }
         }
     } break;  // BREAK
@@ -764,8 +769,68 @@ int IncoreClusterStateLedger::applyRecordInternal(
                                    recordType);
 }
 
+int IncoreClusterStateLedger::applyCommit(
+    const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
+    unsigned int                               ackQuorum)
+{
+    enum RcEnum {
+        // Value for the various RC error categories
+        /// Success
+        rc_SUCCESS = 0,
+        /// Fail to create leader advisory
+        rc_CREATE_COMMIT_FAILURE = -1,
+        /// Fail to apply leader advisory commit
+        rc_APPLY_COMMIT_FAILURE = -2
+    };
+
+    // Consistency level reached. Apply a commit message for the
+    // advisory, broadcast it, and invoke the 'CommitCb'.
+
+    bmqp_ctrlmsg::ClusterMessage        commitMessage;
+    bmqp_ctrlmsg::LeaderAdvisoryCommit& commitAdvisory =
+        commitMessage.choice().makeLeaderAdvisoryCommit();
+    d_clusterData_p->electorInfo().nextLeaderMessageSequence(
+        &commitAdvisory.sequenceNumber());
+    commitAdvisory.sequenceNumberCommitted() = sequenceNumber;
+    BSLS_ASSERT_SAFE(commitAdvisory.sequenceNumber() >
+                     commitAdvisory.sequenceNumberCommitted());
+
+    BALL_LOG_INFO << description() << " Quorum of " << ackQuorum
+                  << " acks is achieved for advisory of seqNum "
+                  << sequenceNumber
+                  << ", creating and applying commit advisory: "
+                  << commitMessage << ".";
+
+    bsl::shared_ptr<bdlbb::Blob> commitRecord = d_blobSpPool_p->getObject();
+    int                          rc = ClusterStateLedgerUtil::appendRecord(
+        commitRecord.get(),
+        commitMessage,
+        commitAdvisory.sequenceNumber(),
+        currentTime(),
+        ClusterStateRecordType::e_COMMIT);
+    if (rc != 0) {
+        return 10 * rc + rc_CREATE_COMMIT_FAILURE;  // RETURN
+    }
+
+    rc = applyRecordInternal(*commitRecord,
+                             0,
+                             commitMessage,
+                             commitAdvisory.sequenceNumber(),
+                             ClusterStateRecordType::e_COMMIT);
+    if (rc != 0) {
+        return 10 * rc + rc_APPLY_COMMIT_FAILURE;  // RETURN
+    }
+
+    return rc_SUCCESS;
+}
+
 void IncoreClusterStateLedger::cancelUncommittedAdvisories()
 {
+    // executed by the *CLUSTER DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+
     AdvisoriesMapIter iter = d_uncommittedAdvisories.begin();
     if (iter != d_uncommittedAdvisories.end()) {
         const bmqp_ctrlmsg::LeaderMessageSequence& seqNum = iter->first;
@@ -791,41 +856,75 @@ void IncoreClusterStateLedger::cancelUncommittedAdvisories()
     d_uncommittedAdvisories.clear();
 }
 
+void IncoreClusterStateLedger::reviewUncommittedAdvisories(
+    unsigned int ackQuorum)
+{
+    // executed by the *CLUSTER DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+
+    if (isSelfLeader()) {
+        bsl::vector<bmqp_ctrlmsg::LeaderMessageSequence> advisoriesToCommit(
+            d_allocator_p);
+        AdvisoriesMapCIter iter = d_uncommittedAdvisories.cbegin();
+        for (; iter != d_uncommittedAdvisories.cend(); ++iter) {
+            const ClusterMessageInfo& info = iter->second;
+            if (info.d_ackCount >= ackQuorum) {
+                // We have quorum, so we can commit this advisory. However we
+                // can't call `applyCommit()` from this for-loop, as inside
+                // this method the element of `d_uncommittedAdvisories` pointed
+                // by `iter` will be erased from the container, hence the
+                // iterator will be invalidated. So we just store the sequence
+                // numbers in the vector and run over it again.
+                advisoriesToCommit.push_back(iter->first);
+            }
+        }
+        bsl::vector<bmqp_ctrlmsg::LeaderMessageSequence>::const_iterator
+            secNumIter = advisoriesToCommit.cbegin();
+        for (; secNumIter != advisoriesToCommit.cend(); ++secNumIter) {
+            int rc = applyCommit(*secNumIter, ackQuorum);
+            if (rc != 0) {
+                BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                               << ": Failed to commit advisory, rc: " << rc;
+            }
+        }
+    }
+}
+
 int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
                                         mqbnet::ClusterNode* source)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
-            &d_clusterData_p->cluster()));
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
     BSLS_ASSERT_SAFE(source);
     BSLS_ASSERT_SAFE(source->nodeId() !=
                      d_clusterData_p->membership().selfNode()->nodeId());
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_INVALID_SOURCE = -1  // Source is not leader
-        ,
-        rc_MISSING_HEADER = -2  // Event or record header is missing
-        ,
-        rc_INVALID_HEADER = -3  // Event or record header is invalid
-        ,
-        rc_UNEXPECTED_RECORD_TYPE = -4  // Unexpected record type
-        ,
-        rc_RECORD_ALREADY_APPLIED = -5  // Record was already applied
-        ,
-        rc_RECORD_STALE = -6  // Record is stale
-        ,
-        rc_LOAD_MESSAGE_FAILURE = -7  // Fail to load cluster message
-        ,
-        rc_ADVISORY_INVALID = -8  // Advisory is invalid, as determined
-                                  // by type-specific validation
-        ,
-        rc_APPLY_RECORD_FAILURE = -9  // Fail to apply record
+        /// Success
+        rc_SUCCESS = 0,
+        /// Source is not leader
+        rc_INVALID_SOURCE = -1,
+        /// Event or record header is missing
+        rc_MISSING_HEADER = -2,
+        /// Event or record header is invalid
+        rc_INVALID_HEADER = -3,
+        /// Unexpected record type
+        rc_UNEXPECTED_RECORD_TYPE = -4,
+        /// Record was already applied
+        rc_RECORD_ALREADY_APPLIED = -5,
+        /// Record is stale
+        rc_RECORD_STALE = -6,
+        /// Fail to load cluster message
+        rc_LOAD_MESSAGE_FAILURE = -7,
+        /// Advisory is invalid, as determined by type-specific validation
+        rc_ADVISORY_INVALID = -8,
+        /// Fail to apply record
+        rc_APPLY_RECORD_FAILURE = -9
     };
 
     BALL_LOG_INFO << "Applying cluster state record event from node '"
@@ -1138,12 +1237,11 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
 
 // CREATORS
 IncoreClusterStateLedger::IncoreClusterStateLedger(
-    const mqbcfg::ClusterDefinition&    clusterDefinition,
-    ClusterStateLedgerConsistency::Enum consistencyLevel,
-    ClusterData*                        clusterData,
-    ClusterState*                       clusterState,
-    BlobSpPool*                         blobSpPool_p,
-    bslma::Allocator*                   allocator)
+    const mqbcfg::ClusterDefinition& clusterDefinition,
+    ClusterData*                     clusterData,
+    ClusterState*                    clusterState,
+    BlobSpPool*                      blobSpPool_p,
+    bslma::Allocator*                allocator)
 : d_allocator_p(allocator)
 , d_isOpen(false)
 , d_blobSpPool_p(blobSpPool_p)
@@ -1151,10 +1249,6 @@ IncoreClusterStateLedger::IncoreClusterStateLedger(
 , d_commitCb()
 , d_clusterData_p(clusterData)
 , d_clusterState_p(clusterState)
-, d_consistencyLevel(consistencyLevel)
-, d_ackQuorum(consistencyLevel == ClusterStateLedgerConsistency::e_STRONG
-                  ? (clusterDefinition.nodes().size() / 2) + 1
-                  : 1)
 , d_ledgerConfig(allocator)
 , d_ledger_mp(0)
 , d_uncommittedAdvisories(allocator)
@@ -1200,29 +1294,18 @@ IncoreClusterStateLedger::IncoreClusterStateLedger(
             bdlf::BindUtil::bind(&IncoreClusterStateLedger::cleanupLog,
                                  this,
                                  bdlf::PlaceHolders::_1));  // logPath
+
+    // At the moment the cluster and its *CLUSTER DISPATCHER* thread are not
+    // started yet.
+    d_clusterData_p->quorumManager().setCallback(
+        bdlf::BindUtil::bind(&IncoreClusterStateLedger::onQuorumChangeCb,
+                             this,
+                             bdlf::PlaceHolders::_1));  // ackQuorum
 }
 
 IncoreClusterStateLedger::~IncoreClusterStateLedger()
 {
-    // NOTHING
-}
-
-// MANIPULATORS
-//   (virtual mqbc::ElectorInfoObserver)
-void IncoreClusterStateLedger::onClusterLeader(
-    BSLA_UNUSED mqbnet::ClusterNode* node,
-    ElectorInfoLeaderStatus::Enum    status)
-{
-    // executed by the *CLUSTER DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
-            &d_clusterData_p->cluster()));
-
-    if (status == ElectorInfoLeaderStatus::e_UNDEFINED) {
-        cancelUncommittedAdvisories();
-    }
+    d_clusterData_p->quorumManager().setCallback(0);
 }
 
 // MANIPULATORS
@@ -1232,22 +1315,21 @@ int IncoreClusterStateLedger::open()
     // executed by the *CLUSTER DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
-            &d_clusterData_p->cluster()));
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
 
     BALL_LOG_INFO << description()
                   << ": Opening IncoreCSL with config: " << d_ledgerConfig;
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_ALREADY_OPENED = -1  // CSL Already opened
-        ,
-        rc_OPEN_FAILURE = -2  // Failure to open ledger
-        ,
-        rc_INTERNAL_LEDGER_ERROR = -3  // Internal ledger error
+        /// Success
+        rc_SUCCESS = 0,
+        /// CSL Already opened
+        rc_ALREADY_OPENED = -1,
+        /// Failure to open ledger
+        rc_OPEN_FAILURE = -2,
+        /// Internal ledger error
+        rc_INTERNAL_LEDGER_ERROR = -3
     };
 
     if (d_isOpen) {
@@ -1278,6 +1360,8 @@ int IncoreClusterStateLedger::open()
     if (rc != 0) {
         return 10 * rc + rc_INTERNAL_LEDGER_ERROR;  // RETURN
     }
+    d_clusterData_p->stats().setCslOffsetBytes(
+        d_ledger_mp->currentLog()->currentOffset());
 
     d_isOpen = true;
 
@@ -1289,17 +1373,16 @@ int IncoreClusterStateLedger::close()
     // executed by the *CLUSTER DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
-            &d_clusterData_p->cluster()));
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS = 0  // Success
-        ,
-        rc_NOT_OPENED = -1  // CSL is not opened
-        ,
-        rc_CLOSE_FAILURE = -2  // Failure to close ledger
+        /// Success
+        rc_SUCCESS = 0,
+        /// CSL is not opened
+        rc_NOT_OPENED = -1,
+        /// Failure to close ledger
+        rc_CLOSE_FAILURE = -2
     };
 
     if (!d_isOpen) {
@@ -1324,9 +1407,7 @@ int IncoreClusterStateLedger::apply(
     // executed by the *CLUSTER DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
-            &d_clusterData_p->cluster()));
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
     BSLS_ASSERT_SAFE(isSelfLeader());
 
     bmqp_ctrlmsg::ClusterMessage clusterMessage;
@@ -1343,9 +1424,7 @@ int IncoreClusterStateLedger::apply(
     // executed by the *CLUSTER DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
-            &d_clusterData_p->cluster()));
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
     BSLS_ASSERT_SAFE(isSelfLeader());
 
     bmqp_ctrlmsg::ClusterMessage clusterMessage;
@@ -1362,9 +1441,7 @@ int IncoreClusterStateLedger::apply(
     // executed by the *CLUSTER DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
-            &d_clusterData_p->cluster()));
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
     BSLS_ASSERT_SAFE(isSelfLeader());
 
     bmqp_ctrlmsg::ClusterMessage clusterMessage;
@@ -1381,9 +1458,7 @@ int IncoreClusterStateLedger::apply(
     // executed by the *CLUSTER DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
-            &d_clusterData_p->cluster()));
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
     BSLS_ASSERT_SAFE(isSelfLeader());
 
     bmqp_ctrlmsg::ClusterMessage clusterMessage;
@@ -1400,9 +1475,7 @@ int IncoreClusterStateLedger::apply(
     // executed by the *CLUSTER DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
-            &d_clusterData_p->cluster()));
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
     BSLS_ASSERT_SAFE(isSelfLeader());
 
     bmqp_ctrlmsg::ClusterMessage clusterMessage;
@@ -1419,9 +1492,7 @@ int IncoreClusterStateLedger::apply(
     // executed by the *CLUSTER DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
-            &d_clusterData_p->cluster()));
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
     BSLS_ASSERT_SAFE(isSelfLeader());
 
     const bmqp_ctrlmsg::ClusterMessageChoice& choice = clusterMessage.choice();
@@ -1462,9 +1533,7 @@ int IncoreClusterStateLedger::apply(const bdlbb::Blob&   event,
     // executed by the *CLUSTER DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
-            &d_clusterData_p->cluster()));
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
 
     return applyImpl(event, source);
 }
@@ -1477,9 +1546,7 @@ IncoreClusterStateLedger::getIterator() const
     // executed by the *CLUSTER DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
-            &d_clusterData_p->cluster()));
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
 
     bslma::ManagedPtr<ClusterStateLedgerIterator> mp(
         new (*d_allocator_p)
@@ -1487,6 +1554,23 @@ IncoreClusterStateLedger::getIterator() const
         d_allocator_p);
 
     return mp;
+}
+
+void IncoreClusterStateLedger::uncommittedAdvisories(
+    ClusterMessageCRefList* out) const
+{
+    // executed by the *CLUSTER DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+    BSLS_ASSERT_SAFE(out);
+
+    for (AdvisoriesMapCIter iter = d_uncommittedAdvisories.begin();
+         iter != d_uncommittedAdvisories.end();
+         ++iter) {
+        const ClusterMessageInfo& info = iter->second;
+        out->push_back(bsl::cref(info.d_clusterMessage));
+    }
 }
 
 }  // close package namespace

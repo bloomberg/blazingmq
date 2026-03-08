@@ -223,7 +223,7 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
 
     mqbc::ClusterData* d_clusterData_p;
 
-    const mqbc::ClusterState& d_clusterState;
+    mqbc::ClusterState* d_clusterState_p;
 
     /// Recovery manager.  Empty if this is a local cluster.
     RecoveryManagerMp d_recoveryManager_mp;
@@ -406,7 +406,7 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
     StorageManager(const mqbcfg::ClusterDefinition& clusterConfig,
                    mqbi::Cluster*                   cluster,
                    mqbc::ClusterData*               clusterData,
-                   const mqbc::ClusterState&        clusterState,
+                   mqbc::ClusterState*              clusterState,
                    const RecoveryStatusCb&          recoveryStatusCb,
                    const PartitionPrimaryStatusCb&  partitionPrimaryStatusCb,
                    mqbi::DomainFactory*             domainFactory,
@@ -464,11 +464,10 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
     /// queue is configured in fanout mode.
     ///
     /// THREAD: Executed by the Queue's dispatcher thread.
-    int updateQueuePrimary(const bmqt::Uri&        uri,
-                           const mqbu::StorageKey& queueKey,
-                           int                     partitionId,
-                           const AppInfos&         addedIdKeyPairs,
-                           const AppInfos&         removedIdKeyPairs)
+    int updateQueuePrimary(const bmqt::Uri& uri,
+                           int              partitionId,
+                           const AppInfos&  addedIdKeyPairs,
+                           const AppInfos&  removedIdKeyPairs)
         BSLS_KEYWORD_OVERRIDE;
 
     void registerQueueReplica(int                     partitionId,
@@ -489,22 +488,14 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
                             const AppInfos&         appIdKeyPairs,
                             mqbi::Domain* domain = 0) BSLS_KEYWORD_OVERRIDE;
 
-    /// Set the queue instance associated with the file-backed storage for
+    /// Reset the queue instance associated with the file-backed storage for
     /// the specified `uri` mapped to the specified `partitionId` to the
-    /// specified `queue` value.  Note that this method *does* *not*
-    /// synchronize on the queue-dispatcher thread.
-    void setQueue(mqbi::Queue*     queue,
-                  const bmqt::Uri& uri,
-                  int              partitionId) BSLS_KEYWORD_OVERRIDE;
-
-    /// Set the queue instance associated with the file-backed storage for
-    /// the specified `uri` mapped to the specified `partitionId` to the
-    /// specified `queue` value.  Behavior is undefined unless `queue` is
-    /// non-null or unless this routine is invoked from the dispatcher
-    /// thread associated with the `partitionId`.
-    void setQueueRaw(mqbi::Queue*     queue,
-                     const bmqt::Uri& uri,
-                     int              partitionId) BSLS_KEYWORD_OVERRIDE;
+    /// specified `queue` value.  The specified `queue_sp` keeps the queue
+    /// until the reset is complete.
+    void resetQueue(const bmqt::Uri&                    uri,
+                    int                                 partitionId,
+                    const bsl::shared_ptr<mqbi::Queue>& queue_sp)
+        BSLS_KEYWORD_OVERRIDE;
 
     /// Behavior is undefined unless the specified 'partitionId' is in range
     /// and the specified 'primaryNode' is not null.
@@ -531,6 +522,35 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
                                       bmqp_ctrlmsg::PrimaryStatus::Value value)
         BSLS_KEYWORD_OVERRIDE;
 
+    /// Stop all Partition FSMs.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
+    void stopPFSMs() BSLS_KEYWORD_OVERRIDE;
+
+    /// Apply `RST_UNKNOWN` event to the Partition FSM for the specified
+    /// `partitionId`.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
+    void detectPrimaryLossInPFSM(int partitionId) BSLS_KEYWORD_OVERRIDE;
+
+    /// Apply DETECT_SelfPrimary event to Partition FSM using the specified
+    /// `partitionId`, `primaryNode`, `primaryLeaseId`.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
+    void
+    detectSelfPrimaryInPFSM(int                  partitionId,
+                            mqbnet::ClusterNode* primaryNode,
+                            unsigned int primaryLeaseId) BSLS_KEYWORD_OVERRIDE;
+
+    /// Apply DETECT_SelfReplica event to Partition FSM using the specified
+    /// `partitionId`, `primaryNode` and `primaryLeaseId`.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
+    void
+    detectSelfReplicaInPFSM(int                  partitionId,
+                            mqbnet::ClusterNode* primaryNode,
+                            unsigned int primaryLeaseId) BSLS_KEYWORD_OVERRIDE;
+
     /// Process primary state request received from the specified `source`
     /// with the specified `message`.
     void processPrimaryStateRequest(
@@ -547,14 +567,14 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
                                    mqbnet::ClusterNode*                source)
         BSLS_KEYWORD_OVERRIDE;
 
-    int makeStorage(bsl::ostream&                      errorDescription,
-                    bsl::shared_ptr<mqbi::Storage>*    out,
-                    const bmqt::Uri&                   uri,
-                    const mqbu::StorageKey&            queueKey,
-                    int                                partitionId,
-                    const bsls::Types::Int64           messageTtl,
-                    const int                          maxDeliveryAttempts,
-                    const mqbconfm::StorageDefinition& storageDef)
+    int configureStorage(bsl::ostream&                   errorDescription,
+                         bsl::shared_ptr<mqbi::Storage>* out,
+                         const bmqt::Uri&                uri,
+                         const mqbu::StorageKey&         queueKey,
+                         int                             partitionId,
+                         const bsls::Types::Int64        messageTtl,
+                         const int                       maxDeliveryAttempts,
+                         const mqbconfm::StorageDefinition& storageDef)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Executed in cluster dispatcher thread.
@@ -652,8 +672,7 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
     /// Return partition corresponding to the specified `partitionId`.  The
     /// behavior is undefined if `partitionId` does not represent a valid
     /// partition id.
-    const mqbs::FileStore&
-    fileStore(int partitionId) const BSLS_KEYWORD_OVERRIDE;
+    mqbs::FileStore& fileStore(int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
     bslma::ManagedPtr<mqbi::StorageManagerIterator>
     getIterator(int partitionId) const BSLS_KEYWORD_OVERRIDE;
@@ -749,7 +768,7 @@ StorageManager::processorForPartition(int partitionId) const
     return d_fileStores[partitionId]->processorId();
 }
 
-inline const mqbs::FileStore& StorageManager::fileStore(int partitionId) const
+inline mqbs::FileStore& StorageManager::fileStore(int partitionId) const
 {
     // executed by *ANY* thread
 

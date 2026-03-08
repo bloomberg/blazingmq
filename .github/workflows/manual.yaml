@@ -25,6 +25,8 @@ jobs:
   get_dependencies:
     name: "Dependencies"
     uses: ./.github/workflows/dependencies.yaml
+    with:
+      cxx_standard: cpp17
 
   build1:
     name: "Build ref ${{ github.event.inputs.ref1 }}"
@@ -36,7 +38,7 @@ jobs:
       target: "bmqbrkr bmqtool"
       save_build_as_artifacts: true
       run_unit_tests: false
-  
+
   build2:
     name: "Build ref ${{ github.event.inputs.ref2 }}"
     needs: get_dependencies
@@ -49,7 +51,7 @@ jobs:
       run_unit_tests: false
 
   integration_tests_ubuntu_upgrade_version:
-    name: IT [${{ matrix.cluster }}/${{ matrix.mode }}/${{ matrix.consistency }}]
+    name: Test 7-node cluster upgrade [${{ matrix.cluster }}/${{ matrix.mode }}/${{ matrix.consistency }}]
     strategy:
       matrix:
         mode: ["legacy_mode"]
@@ -111,6 +113,9 @@ jobs:
 
           # Broker path to be used after version upgrade
           BLAZINGMQ_BROKER_NEW_VERSION: "${{ github.workspace }}/repo2/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
+
+          # Store all info about cluster in cluster.json
+          BLAZINGMQ_CLUSTER_CONFIG_COMPATIBILITY_MODE: "true"
         run: |
           pip install -r ./src/python/requirements.txt
 
@@ -123,7 +128,7 @@ jobs:
             --bmq-log-level=INFO                \
             --junitxml=integration-tests.xml    \
             --tb long                           \
-            --reruns=3                          \
+            --reruns=2                          \
             -n 0                                \
             -v
 
@@ -204,8 +209,12 @@ jobs:
           # Brokers to use repo2:
           BLAZINGMQ_BROKER_EAST2: "${{ github.workspace }}/repo2/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
           BLAZINGMQ_BROKER_WEST1: "${{ github.workspace }}/repo2/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
+
+          # Store all info about cluster in cluster.json
+          BLAZINGMQ_CLUSTER_CONFIG_COMPATIBILITY_MODE: "true"
         run: |
-          go install github.com/kevwan/tproxy@latest
+          # Pin tproxy of 27 Feb 2026:
+          go install github.com/kevwan/tproxy@d6d45cbbd1b3c5dad6e5043b74120f9ea962826b
           export GOPATH=$HOME/go
           export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
 
@@ -213,6 +222,7 @@ jobs:
 
           ./src/integration-tests/run-tests \
             "${{ matrix.mode }} and ${{ matrix.cluster }} and ${{ matrix.consistency }}" \
+            -k "breathing" \
             --log-level ERROR                   \
             --log-file-level=info               \
             --bmq-tolerate-dirty-shutdown       \
@@ -220,7 +230,7 @@ jobs:
             --bmq-log-level=INFO                \
             --junitxml=integration-tests.xml    \
             --tb long                           \
-            --reruns=3                          \
+            --reruns=2                          \
             -n logical -v
 
       - name: Upload failure-logs as artifacts

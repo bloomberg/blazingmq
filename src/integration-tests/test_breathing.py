@@ -217,6 +217,32 @@ def test_open_queue(cartesian_product_cluster: Cluster, domain_urls: tc.DomainUr
     assert msgs[0].payload == "foo"
 
 
+def test_client_user_agent(cluster: Cluster):
+    """
+    Connect a producer to one proxy and a consumer to another, and ensure each
+    broker logs the expected user agent.
+    """
+    proxies = cluster.proxy_cycle()
+
+    proxy = next(proxies)
+    proxy.create_client("producer")
+    assert proxy.capture("bmqtool libbmq:\\d+.\\d+.\\d+")
+
+    proxy = next(proxies)
+    proxy.create_client("consumer")
+    assert proxy.capture("bmqtool libbmq:\\d+.\\d+.\\d+")
+
+
+def test_broker_user_agent(multi_node: Cluster):
+    """
+    Make sure that brokers connecting to one another log the expected user
+    agent.
+    """
+    node = multi_node.last_known_leader
+    multi_node.restart_nodes(wait_leader=False)
+    assert node.capture("bmqbrkr:\\d+.\\d+.\\d+")
+
+
 def test_verify_priority(cluster: Cluster, domain_urls: tc.DomainUrls):
     uri_priority = domain_urls.uri_priority
     proxies = cluster.proxy_cycle()
@@ -835,6 +861,26 @@ def test_queue_purge_command(multi_node: Cluster, domain_urls: tc.DomainUrls):
         assert not consumer.wait_push_event(timeout=2, quiet=True)
         msgs = consumer.list(block=True)
         assert len(msgs) == 0
+
+
+def test_wrong_domain(cluster: Cluster, domain_urls: tc.DomainUrls):
+    """
+    Test that opening a queue in a non-existent domain fails, while opening
+    a queue in an existing domain succeeds.
+    """
+
+    proxies = cluster.proxy_cycle()
+    producer = next(proxies).create_client("producer")
+
+    assert Client.e_SUCCESS is producer.open(
+        domain_urls.uri_fanout, flags=["write"], block=True
+    )
+    assert Client.e_SUCCESS is not producer.open(
+        "bmq://domain.does.not.exist/qqq",
+        flags=["write"],
+        block=True,
+        no_except=True,
+    )
 
 
 def test_message_properties(cluster: Cluster, domain_urls: tc.DomainUrls):

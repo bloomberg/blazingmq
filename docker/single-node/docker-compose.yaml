@@ -13,9 +13,6 @@ services:
   bmqtool:
     image: bmqbrkr:latest
     platform: linux/amd64
-    build: 
-      context: ../..
-      dockerfile: docker/Dockerfile
     hostname: earth
     depends_on:
       bmqbrkr:

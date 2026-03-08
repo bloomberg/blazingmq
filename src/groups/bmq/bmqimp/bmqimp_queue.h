@@ -68,31 +68,24 @@ namespace bmqimp {
 struct QueueState {
     // TYPES
     enum Enum {
-        e_OPENING_OPN = 1  // The queue is being opened, 1st phase
-        ,
-        e_OPENING_CFG = 2  // The queue is being opened, 2nd phase
-        ,
-        e_REOPENING_OPN = 3  // The queue is being reopened, 1st phase
-        ,
-        e_REOPENING_CFG = 4  // The queue is being reopened, 2nd phase
-        ,
-        e_OPENED = 5  // The queue is fully opened
-        ,
-        e_CLOSING_CFG = 6  // The queue is being closed, 1st phase
-        ,
-        e_CLOSING_CLS = 7  // The queue is being closed, 2nd phase
-        ,
-        e_CLOSED = 8  // The queue is fully closed
-        ,
-        e_PENDING = 9  // The queue is pending, channel is down
-        ,
-        e_OPENING_OPN_EXPIRED = 10  // The queue open request has timed out
-        ,
-        e_OPENING_CFG_EXPIRED = 11  // The queue config request has timed out
-        ,
-        e_CLOSING_CFG_EXPIRED = 12  // The queue deconfig request has timed out
-        ,
-        e_CLOSING_CLS_EXPIRED = 13  // The queue close request has timed out
+        /// The queue is being opened, 1st phase
+        e_OPENING_OPN = 1,
+        /// The queue is being opened, 2nd phase
+        e_OPENING_CFG = 2,
+        /// The queue is being reopened, 1st phase
+        e_REOPENING_OPN = 3,
+        /// The queue is being reopened, 2nd phase
+        e_REOPENING_CFG = 4,
+        /// The queue is fully opened
+        e_OPENED = 5,
+        /// The queue is being closed, 1st phase
+        e_CLOSING_CFG = 6,
+        /// The queue is being closed, 2nd phase
+        e_CLOSING_CLS = 7,
+        /// The queue is fully closed
+        e_CLOSED = 8,
+        /// The queue is pending, channel is down
+        e_PENDING = 9
     };
 
     // PUBLIC CONSTANTS
@@ -105,7 +98,7 @@ struct QueueState {
     /// NOTE: This value must always be equal to the highest *supported*
     /// type in the enum because it is being used to verify a QueueState
     /// field is a supported type.
-    static const int k_HIGHEST_SUPPORTED_QUEUE_STATE = e_CLOSING_CLS_EXPIRED;
+    static const int k_HIGHEST_SUPPORTED_QUEUE_STATE = e_PENDING;
 
     // CLASS METHODS
 
@@ -381,9 +374,12 @@ class Queue {
 
     bmqp::SchemaGenerator& schemaGenerator();
 
-    /// Return whether this Queue is valid, i.e., is associated to an
-    /// initialized queue.
-    bool isValid() const;
+    /// @brief Return whether this Queue is valid, i.e., is associated to an
+    ///        opened queue.
+    /// @param reason_p The optionally specified stream that is used to report
+    ///                 the reason why this Queue is not valid.
+    /// @return bool True if this Queue is valid, false otherwise.
+    bool isValid(bsl::ostream* reason_p = 0) const;
 
     /// Return whether this Queue is valid, i.e., is associated to an opened
     /// queue.
@@ -677,15 +673,26 @@ inline bmqp::SchemaGenerator& Queue::schemaGenerator()
     return d_schemaGenerator;
 }
 
-inline bool Queue::isValid() const
+inline bool Queue::isValid(bsl::ostream* reason_p) const
 {
     const QueueState::Enum queueState = state();
-    return ((d_handleParameters.qId() !=
-             static_cast<unsigned int>(k_INVALID_QUEUE_ID)) &&
-            (queueState == QueueState::e_OPENED ||
-             queueState == QueueState::e_PENDING ||
-             queueState == QueueState::e_REOPENING_OPN ||
-             queueState == QueueState::e_REOPENING_CFG));
+    if (d_handleParameters.qId() ==
+        static_cast<unsigned int>(k_INVALID_QUEUE_ID)) {
+        if (reason_p) {
+            (*reason_p) << "Invalid QueueId: " << d_handleParameters.qId();
+        }
+        return false;  // RETURN
+    }
+    const bool queueStateIsValid = (queueState == QueueState::e_OPENED ||
+                                    queueState == QueueState::e_PENDING ||
+                                    queueState ==
+                                        QueueState::e_REOPENING_OPN ||
+                                    queueState == QueueState::e_REOPENING_CFG);
+
+    if (!queueStateIsValid && reason_p) {
+        (*reason_p) << "Invalid queue state: " << queueState;
+    }
+    return queueStateIsValid;
 }
 
 inline bool Queue::isOpened() const

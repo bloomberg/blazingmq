@@ -196,8 +196,6 @@ int main(int argc, char* argv[])
     }
 
     TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
-    // Global:  The global allocator is used to initialize the
-    //          bmqt::URIParser RegEx.
     // Default: EventQueue uses bmqc::MonitoredFixedQueue, which uses
     //          'bdlcc::SharedObjectPool' which uses bslmt::Semaphore which
     //          generates a unique name using an ostringstream, hence the

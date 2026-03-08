@@ -278,6 +278,7 @@ class QueueConsumptionMonitor {
     /// Cancel all idle events (for all substreams) if they were scheduled.
     /// If the specified `resetStates` is true, reset substreams states.
     void cancelIdleEvents(bool resetStates);
+    void cancelIdleEvents(SubStreamInfo* info);
 
   protected:
     /// Alarm event dispatcher, executed in queue dispatcher thread.
@@ -394,8 +395,7 @@ QueueConsumptionMonitor::subStreamInfo(const bsl::string& appId)
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     SubStreamInfoMapIter iter = d_subStreamInfos.find(appId);
     BSLS_ASSERT_SAFE(iter != d_subStreamInfos.end());
@@ -408,8 +408,7 @@ QueueConsumptionMonitor::subStreamInfo(const bsl::string& appId) const
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     SubStreamInfoMapConstIter iter = d_subStreamInfos.find(appId);
     BSLS_ASSERT_SAFE(iter != d_subStreamInfos.end());
@@ -422,8 +421,7 @@ QueueConsumptionMonitor::state(const bsl::string& appId) const
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     return subStreamInfo(appId).d_state;
 }

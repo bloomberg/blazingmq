@@ -100,7 +100,7 @@ using namespace bsl;
 namespace {
 
 // CONSTANTS
-const int  k_PROXY_PARTITION_ID = mqbs::DataStore::k_INVALID_PARTITION_ID;
+const int  k_PROXY_PARTITION_ID = mqbi::Storage::k_INVALID_PARTITION_ID;
 const char k_HEX_QUEUE[]        = "ABCDEF1234";
 
 const bsls::Types::Int64 k_DEFAULT_MSG          = 20;
@@ -220,10 +220,10 @@ class MockDataStore : public mqbs::DataStore {
 
     int writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
                            mqbs::DataStoreRecordHandle*    handle,
-                           BSLA_UNUSED const bmqt::MessageGUID& guid,
-                           const bsl::shared_ptr<bdlbb::Blob>&  appData,
-                           const bsl::shared_ptr<bdlbb::Blob>&  options,
-                           BSLA_UNUSED const mqbu::StorageKey& queueKey)
+                           BSLA_MAYBE_UNUSED const bmqt::MessageGUID& guid,
+                           const bsl::shared_ptr<bdlbb::Blob>&        appData,
+                           const bsl::shared_ptr<bdlbb::Blob>&        options,
+                           BSLA_MAYBE_UNUSED const mqbu::StorageKey& queueKey)
         BSLS_KEYWORD_OVERRIDE
     {
         d_messageCounter++;
@@ -1756,34 +1756,28 @@ BMQTST_TEST(garbageCollect)
     BMQTST_ASSERT_EQ(tester.addMessages(&guids, k_MSG_COUNT, 1),
                      mqbi::StorageResult::e_SUCCESS);
 
-    bsls::Types::Uint64 latestMsgTimestamp;
-    bsls::Types::Int64  configuredTtlValue;
+    const bdlt::Datetime currentTimeUtc;
     bsls::Types::Uint64 secondsFromEpoch = 5;
 
     mqbs::ReplicatedStorage& storage = tester.storage();
 
     // Case 1: Remove Zero messages (secondsFromEpoch = Low Value)
     // Such that '0 < seccondsFromEpoch - msgTimeStamp <= TTL'
-    BMQTST_ASSERT_EQ(storage.gcExpiredMessages(&latestMsgTimestamp,
-                                               &configuredTtlValue,
+    BMQTST_ASSERT_EQ(storage.gcExpiredMessages(currentTimeUtc,
                                                secondsFromEpoch),
                      0);
-
-    BMQTST_ASSERT_EQ(configuredTtlValue, k_TTL);
 
     // Case 2: Remove half the messages (secondsFromEpoch = 26).
     // Here Half the messages fail the condition TTL check condition.
     secondsFromEpoch = 26;  // Since TTL is 20 half the messages expire
-    BMQTST_ASSERT_EQ(storage.gcExpiredMessages(&latestMsgTimestamp,
-                                               &configuredTtlValue,
+    BMQTST_ASSERT_EQ(storage.gcExpiredMessages(currentTimeUtc,
                                                secondsFromEpoch),
                      k_MSG_COUNT / 2);
 
     // Case 3: Remove all messages (secondsFromEpoch = HighValue).
     // Here all messages expire in the check condition.
     secondsFromEpoch = 100;
-    BMQTST_ASSERT_EQ(storage.gcExpiredMessages(&latestMsgTimestamp,
-                                               &configuredTtlValue,
+    BMQTST_ASSERT_EQ(storage.gcExpiredMessages(currentTimeUtc,
                                                secondsFromEpoch),
                      k_MSG_COUNT / 2);
 
@@ -1920,7 +1914,6 @@ int main(int argc, char* argv[])
 
     TEST_PROLOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
     bmqsys::Time::initialize(bmqtst::TestHelperUtil::allocator());
 
     mqbu::MessageGUIDUtil::initialize();
@@ -1938,7 +1931,6 @@ int main(int argc, char* argv[])
     }
 
     bmqsys::Time::shutdown();
-    bmqt::UriParser::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

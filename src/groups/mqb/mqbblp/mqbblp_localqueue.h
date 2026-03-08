@@ -125,11 +125,13 @@ class LocalQueue BSLS_CPP11_FINAL {
     /// result.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    void getHandle(const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
-                                                              clientContext,
-                   const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
-                   unsigned int upstreamSubQueueId,
-                   const mqbi::QueueHandle::GetHandleCallback& callback);
+    void
+    getHandle(const mqbi::OpenQueueConfirmationCookieSp& confirmationCookie,
+              const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
+                                                          clientContext,
+              const bmqp_ctrlmsg::QueueHandleParameters&  handleParameters,
+              unsigned int                                upstreamSubQueueId,
+              const mqbi::QueueHandle::GetHandleCallback& callback);
 
     /// Configure the specified `handle` with the specified
     /// `streamParameters`, and invoke the specified `configuredCb` callback
@@ -180,13 +182,10 @@ class LocalQueue BSLS_CPP11_FINAL {
 
     /// Invoked by the Data Store when it receives quorum Receipts for the
     /// specified `msgGUID`.  Send ACK to the specified `qH` if it is
-    /// present in the queue handle catalog.  Update ACK time stats using
-    /// the specified `arrivalTimepoint`.
+    /// present in the queue handle catalog.
     ///
     /// THREAD: This method is called from the Storage dispatcher thread.
-    void onReceipt(const bmqt::MessageGUID&  msgGUID,
-                   mqbi::QueueHandle*        qH,
-                   const bsls::Types::Int64& arrivalTimepoint);
+    void onReceipt(const bmqt::MessageGUID& msgGUID, mqbi::QueueHandle* qH);
 
     /// Invoked by the Data Store when it removes (times out waiting for
     /// quorum Receipts for) a message with the specified `msgGUID`.  Send
@@ -249,8 +248,7 @@ inline mqbi::QueueEngine* LocalQueue::queueEngine()
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     return d_queueEngine_mp.get();
 }

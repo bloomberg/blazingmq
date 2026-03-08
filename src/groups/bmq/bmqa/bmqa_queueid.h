@@ -128,9 +128,12 @@ class QueueId {
     /// Return the options used when opening this queue.
     const bmqt::QueueOptions& options() const;
 
-    /// Return whether this QueueId is valid, i.e., is associated to an
-    /// opened queue.
-    bool isValid() const;
+    /// @brief Return whether this QueueId is valid, i.e., is associated to an
+    ///        opened queue.
+    /// @param reason_p The optionally specified stream that is used to report
+    ///                 the reason why this QueueId is not valid.
+    /// @return bool True if this QueueId is valid, false otherwise.
+    bool isValid(bsl::ostream* reason_p = 0) const;
 
     /// Format this object to the specified output `stream` at the (absolute
     /// value of) the optionally specified indentation `level` and return a

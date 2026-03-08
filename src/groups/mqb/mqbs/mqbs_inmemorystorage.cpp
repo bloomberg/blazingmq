@@ -39,8 +39,8 @@ namespace mqbs {
 
 namespace {
 
-const int k_GC_MESSAGES_BATCH_SIZE = 1000;  // how many to process in one run
-
+/// The number of messages to remove from history on idle.
+const int k_GC_HISTORY_BATCH_SIZE = 1000;
 }
 
 // ---------------------
@@ -48,7 +48,8 @@ const int k_GC_MESSAGES_BATCH_SIZE = 1000;  // how many to process in one run
 // ---------------------
 
 // CREATORS
-InMemoryStorage::InMemoryStorage(const bmqt::Uri&        uri,
+InMemoryStorage::InMemoryStorage(DataStore*              dataStore_p,
+                                 const bmqt::Uri&        uri,
                                  const mqbu::StorageKey& queueKey,
                                  mqbi::Domain*           domain,
                                  int                     partitionId,
@@ -57,6 +58,7 @@ InMemoryStorage::InMemoryStorage(const bmqt::Uri&        uri,
                                  bslma::Allocator*       allocator,
                                  bmqma::CountingAllocatorStore* allocatorStore)
 : d_allocator_p(allocator)
+, d_store_p(dataStore_p)
 , d_key(queueKey)
 , d_uri(uri, d_allocator_p)
 , d_partitionId(partitionId)
@@ -99,11 +101,12 @@ InMemoryStorage::~InMemoryStorage()
 
 // MANIPULATORS
 //   (virtual mqbi::Storage)
-int InMemoryStorage::configure(BSLA_UNUSED bsl::ostream& errorDescription,
-                               const mqbconfm::Storage&  config,
-                               const mqbconfm::Limits&   limits,
-                               const bsls::Types::Int64  messageTtl,
-                               const int                 maxDeliveryAttempts)
+int InMemoryStorage::configure(
+    BSLA_MAYBE_UNUSED bsl::ostream& errorDescription,
+    const mqbconfm::Storage&        config,
+    const mqbconfm::Limits&         limits,
+    const bsls::Types::Int64        messageTtl,
+    const int                       maxDeliveryAttempts)
 {
     d_config = config;
     d_capacityMeter.setLimits(limits.messages(), limits.bytes())
@@ -118,12 +121,9 @@ int InMemoryStorage::configure(BSLA_UNUSED bsl::ostream& errorDescription,
 
 void InMemoryStorage::setConsistency(const mqbconfm::Consistency& value)
 {
-    BALL_LOG_WARN_BLOCK
-    {
-        if (value.isStrongValue()) {
-            BALL_LOG_OUTPUT_STREAM << "Trying to configure strong consistency "
-                                   << "for in-memory storage";
-        }
+    if (value.isStrongValue()) {
+        BALL_LOG_WARN << "Trying to configure strong consistency "
+                      << "for in-memory storage";
     }
 }
 
@@ -288,8 +288,8 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
 mqbi::StorageResult::Enum
 InMemoryStorage::confirm(const bmqt::MessageGUID& msgGUID,
                          const mqbu::StorageKey&  appKey,
-                         BSLA_UNUSED bsls::Types::Int64 timestamp,
-                         BSLA_UNUSED bool               onReject)
+                         BSLA_MAYBE_UNUSED bsls::Types::Int64 timestamp,
+                         BSLA_MAYBE_UNUSED bool               onReject)
 {
     ItemsMapIter it = d_items.find(msgGUID);
     if (it == d_items.end()) {
@@ -451,25 +451,25 @@ void InMemoryStorage::flushStorage()
     // NOTHING
 }
 
-int InMemoryStorage::gcExpiredMessages(
-    bsls::Types::Uint64* latestMsgTimestampEpoch,
-    bsls::Types::Int64*  configuredTtlValue,
-    bsls::Types::Uint64  secondsFromEpoch)
+int InMemoryStorage::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc,
+                                       bsls::Types::Uint64   secondsFromEpoch,
+                                       int                   limit)
 {
-    *configuredTtlValue = d_ttlSeconds;
-
+    bsls::Types::Uint64      latestMsgTimestampEpoch = 0;
     int                      numMsgsDeleted = 0;
-    const bsls::Types::Int64 now   = bmqsys::Time::highResolutionTimer();
-    int                      limit = k_GC_MESSAGES_BATCH_SIZE;
+    const bsls::Types::Int64 now = bmqsys::Time::highResolutionTimer();
 
-    for (ItemsMapIter next = d_items.begin(), cit;
-         --limit && next != d_items.end();) {
+    for (ItemsMapIter next = d_items.begin(), cit; next != d_items.end();) {
+        if (0 == limit--) {
+            // Will never be triggered if provided `limit` is negative
+            break;  // BREAK
+        }
         cit = next++;
 
         const mqbi::StorageMessageAttributes& attribs =
             cit->second.attributes();
-        *latestMsgTimestampEpoch = attribs.arrivalTimestamp();
 
+        latestMsgTimestampEpoch = attribs.arrivalTimestamp();
         if ((secondsFromEpoch - attribs.arrivalTimestamp()) <=
             static_cast<bsls::Types::Uint64>(d_ttlSeconds)) {
             break;  // BREAK
@@ -498,6 +498,21 @@ int InMemoryStorage::gcExpiredMessages(
         d_virtualStorageCatalog.stats()
             ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
                 d_items.historySize());
+
+        BALL_LOG_INFO
+            << (d_store_p ? d_store_p->description() : "Partition [Unknown]: ")
+            << "For storage for queue [" << queueUri() << "] and queueKey ["
+            << queueKey() << "] configured with TTL value of [" << d_ttlSeconds
+            << "] seconds, garbage-collected [" << numMsgsDeleted
+            << "] messages due to TTL expiration. "
+            << "Timestamp (UTC) of the latest encountered message: "
+            << bdlt::EpochUtil::convertFromTimeT64(latestMsgTimestampEpoch)
+            << " (Epoch: " << latestMsgTimestampEpoch
+            << "). Current time (UTC): " << currentTimeUtc
+            << " (Epoch: " << secondsFromEpoch << ")."
+            << " Num messages remaining in the storage: "
+            << numMessages(mqbu::StorageKey::k_NULL_KEY) << ". Storage type: "
+            << (isPersistent() ? "persistent." : "in-memory.");
     }
 
     if (d_items.empty()) {
@@ -507,15 +522,14 @@ int InMemoryStorage::gcExpiredMessages(
     return numMsgsDeleted;
 }
 
-int InMemoryStorage::gcHistory(bsls::Types::Int64 now)
+void InMemoryStorage::gcHistory(bsls::Types::Int64 now)
 {
-    const int rc = d_items.gc(now, k_GC_MESSAGES_BATCH_SIZE);
+    const int rc = d_items.gc(now, k_GC_HISTORY_BATCH_SIZE);
     if (0 != rc) {
         d_virtualStorageCatalog.stats()
             ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
                 d_items.historySize());
     }
-    return rc;
 }
 
 void InMemoryStorage::selectForAutoConfirming(const bmqt::MessageGUID& msgGUID)
@@ -526,7 +540,7 @@ void InMemoryStorage::selectForAutoConfirming(const bmqt::MessageGUID& msgGUID)
 
 mqbi::StorageResult::Enum
 InMemoryStorage::autoConfirm(const mqbu::StorageKey& appKey,
-                             BSLA_UNUSED bsls::Types::Uint64 timestamp)
+                             BSLA_MAYBE_UNUSED bsls::Types::Uint64 timestamp)
 {
     d_autoConfirms.emplace_back(appKey);
 
@@ -569,10 +583,10 @@ InMemoryStorage::get(mqbi::StorageMessageAttributes* attributes,
 // MANIPULATORS
 //   (virtual mqbs::ReplicatedStorage)
 void InMemoryStorage::processMessageRecord(
-    BSLA_UNUSED const bmqt::MessageGUID&     guid,
-    BSLA_UNUSED unsigned int                 msgLen,
-    BSLA_UNUSED unsigned int                 refCount,
-    BSLA_UNUSED const DataStoreRecordHandle& handle)
+    BSLA_MAYBE_UNUSED const bmqt::MessageGUID&     guid,
+    BSLA_MAYBE_UNUSED unsigned int                 msgLen,
+    BSLA_MAYBE_UNUSED unsigned int                 refCount,
+    BSLA_MAYBE_UNUSED const DataStoreRecordHandle& handle)
 {
     // Replicated in-memory storage is not yet supported.
 
@@ -580,10 +594,10 @@ void InMemoryStorage::processMessageRecord(
 }
 
 void InMemoryStorage::processConfirmRecord(
-    BSLA_UNUSED const bmqt::MessageGUID& guid,
-    BSLA_UNUSED const mqbu::StorageKey& appKey,
-    BSLA_UNUSED ConfirmReason::Enum          reason,
-    BSLA_UNUSED const DataStoreRecordHandle& handle)
+    BSLA_MAYBE_UNUSED const bmqt::MessageGUID& guid,
+    BSLA_MAYBE_UNUSED const mqbu::StorageKey& appKey,
+    BSLA_MAYBE_UNUSED ConfirmReason::Enum          reason,
+    BSLA_MAYBE_UNUSED const DataStoreRecordHandle& handle)
 {
     // Replicated in-memory storage is not yet supported.
 
@@ -591,7 +605,7 @@ void InMemoryStorage::processConfirmRecord(
 }
 
 void InMemoryStorage::processDeletionRecord(
-    BSLA_UNUSED const bmqt::MessageGUID& guid)
+    BSLA_MAYBE_UNUSED const bmqt::MessageGUID& guid)
 {
     // Replicated in-memory storage is not yet supported.
 
@@ -610,7 +624,7 @@ void InMemoryStorage::addQueueOpRecordHandle(
     d_queueOpRecordHandles.push_back(handle);
 }
 
-void InMemoryStorage::purge(BSLA_UNUSED const mqbu::StorageKey& appKey)
+void InMemoryStorage::purge(BSLA_MAYBE_UNUSED const mqbu::StorageKey& appKey)
 {
     // Replicated in-memory storage is not yet supported.
 

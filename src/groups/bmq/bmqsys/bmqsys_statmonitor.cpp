@@ -65,50 +65,37 @@ enum {
     // Constants for the index of each stat value in their respective context
 
     // SYSTEM (top-level)
-    k_STAT_SYSTEM_UPTIME = 0
+    k_STAT_SYSTEM_UPTIME = 0,
 
     // CPU (in percent times k_CPU_MULTIPLIER, for example, if value is 5.13%,
     // stat will hold '5.13 * k_CPU_MULTIPLIER')
-    ,
     k_STAT_CPU_SYSTEM = 0,
     k_STAT_CPU_USER   = 1,
-    k_STAT_CPU_ALL    = 2
+    k_STAT_CPU_ALL    = 2,
 
     // MEM (in bytes)
-    ,
     k_STAT_MEM_RESIDENT = 0,
-    k_STAT_MEM_VIRTUAL  = 1
+    k_STAT_MEM_VIRTUAL  = 1,
 
     // OPERATING-SYSTEM (in absolute number)
-    ,
-    k_STAT_OS_MINOR_PAGE_FAULTS = 0
-    // Number of page faults serviced without any
-    // I/O activity.  In this case, I/O activity is
-    // avoided by reclaiming a page frame from the
-    // list of pages awaiting reallocation.
+    /// Number of page faults serviced without any I/O activity.  In this case,
+    /// I/O activity is avoided by reclaiming a page frame from the list of
+    /// pages awaiting reallocation.
+    k_STAT_OS_MINOR_PAGE_FAULTS = 0,
 
-    ,
-    k_STAT_OS_MAJOR_PAGE_FAULTS = 1
-    // Number of page faults serviced that required
-    // I/O activity
+    /// Number of page faults serviced that required I/O activity
+    k_STAT_OS_MAJOR_PAGE_FAULTS = 1,
 
-    ,
-    k_STAT_OS_NUM_SWAPS = 2
-    // Number of times process was swapped out of
-    // main memory
+    /// Number of times process was swapped out of main memory
+    k_STAT_OS_NUM_SWAPS = 2,
 
-    ,
-    k_STAT_OS_VOLUNTARY_CTX_SWITCHES = 3
-    // Number of times a context switch resulted
-    // because a process voluntarily gave up the
-    // processor before its time slice was completed
+    /// Number of times a context switch resulted because a process voluntarily
+    /// gave up the processor before its time slice was completed
+    k_STAT_OS_VOLUNTARY_CTX_SWITCHES = 3,
 
-    ,
+    /// Number of times a context switch resulted because a higher priority
+    /// process ran or because the current process exceeded its time slice
     k_STAT_OS_INVOLUNTARY_CTX_SWITCHES = 4
-    // Number of times a context switch resulted
-    // because a higher priority process ran or
-    // because the current process exceeded its time
-    // slice
 };
 
 typedef bsl::function<
@@ -270,25 +257,26 @@ void StatMonitor::snapshot()
     // Convenient macro to retrieve the value 'T' applying a multiplier 'M'
 #define PERFVAL(T, M)                                                         \
     (static_cast<bsls::Types::Int64>(                                         \
-        it->latestValue(balb::PerformanceMonitor::BAEA_##T) * M))
+        it->latestValue(balb::PerformanceMonitor::T) * M))
 
     // CPU: report CPU values * k_STAT_MULTIPLIER because statContext only
     // handles Int64, not float, so multiply by k_STAT_MULTIPLIER to keep some
     // decimal digits, and we'll divide by k_STAT_MULTIPLIER before reporting
     // the stats
     d_cpuStatContext_mp->reportValue(k_STAT_CPU_SYSTEM,
-                                     PERFVAL(CPU_UTIL_SYSTEM,
+                                     PERFVAL(e_CPU_UTIL_SYSTEM,
                                              k_CPU_MULTIPLIER));
     d_cpuStatContext_mp->reportValue(k_STAT_CPU_USER,
-                                     PERFVAL(CPU_UTIL_USER, k_CPU_MULTIPLIER));
+                                     PERFVAL(e_CPU_UTIL_USER,
+                                             k_CPU_MULTIPLIER));
     d_cpuStatContext_mp->reportValue(k_STAT_CPU_ALL,
-                                     PERFVAL(CPU_UTIL, k_CPU_MULTIPLIER));
+                                     PERFVAL(e_CPU_UTIL, k_CPU_MULTIPLIER));
 
     // Memory: report in bytes
     d_memStatContext_mp->reportValue(k_STAT_MEM_RESIDENT,
-                                     PERFVAL(RESIDENT_SIZE, 1024 * 1024));
+                                     PERFVAL(e_RESIDENT_SIZE, 1024 * 1024));
     d_memStatContext_mp->reportValue(k_STAT_MEM_VIRTUAL,
-                                     PERFVAL(VIRTUAL_SIZE, 1024 * 1024));
+                                     PERFVAL(e_VIRTUAL_SIZE, 1024 * 1024));
 
 #undef PERFVAL
 

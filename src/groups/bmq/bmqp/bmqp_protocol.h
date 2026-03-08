@@ -460,9 +460,8 @@ struct Protocol {
 struct EventType {
     // TYPES
     enum Enum {
-        e_UNDEFINED = 0,
-        e_CONTROL   = 1  // Protocol event (schema-based choice)
-        ,
+        e_UNDEFINED           = 0,
+        e_CONTROL             = 1,  // Protocol event (schema-based choice)
         e_PUT                 = 2,
         e_CONFIRM             = 3,
         e_PUSH                = 4,
@@ -475,7 +474,10 @@ struct EventType {
         e_HEARTBEAT_REQ       = 11,
         e_HEARTBEAT_RSP       = 12,
         e_REJECT              = 13,
-        e_REPLICATION_RECEIPT = 14
+        e_REPLICATION_RECEIPT = 14,
+
+        // Authentication event
+        e_AUTHENTICATION = 15,
     };
 
     // CONSTANTS
@@ -544,9 +546,9 @@ struct EncodingType {
     // TYPES
     enum Enum {
         e_UNKNOWN = -1,
-        e_BER     = 0  // For backward compatibility, 'BER' needs to be
-                       // assigned a value of zero.
-        ,
+        /// For backward compatibility, 'BER' needs to be assigned a value of
+        /// zero.
+        e_BER  = 0,
         e_JSON = 1
     };
 
@@ -921,14 +923,13 @@ struct EventHeaderUtil {
     // CLASS METHODS
 
     /// Set the appropriate bits in the specified `eventHeader` to represent
-    /// the specified encoding `type` for a control event.
-    static void setControlEventEncodingType(EventHeader*       eventHeader,
-                                            EncodingType::Enum type);
+    /// the specified encoding `type` for a control or an authentication event.
+    static void setEncodingType(EventHeader*       eventHeader,
+                                EncodingType::Enum type);
 
-    /// Return the encoding type for a control event represented by the
-    /// appropriate bits in the specified `eventHeader`.
-    static EncodingType::Enum
-    controlEventEncodingType(const EventHeader& eventHeader);
+    /// Return the encoding type for a control event or an authentication event
+    /// represented by the appropriate bits in the specified `eventHeader`.
+    static EncodingType::Enum encodingType(const EventHeader& eventHeader);
 };
 
 // ===================
@@ -1621,12 +1622,12 @@ struct PutHeader {
 struct PutHeaderFlags {
     // TYPES
     enum Enum {
-        e_ACK_REQUESTED = (1 << 0)  // Ack for PUT msg is requested
-        ,
-        e_MESSAGE_PROPERTIES = (1 << 1)  // Contains message properties
-        ,
-        e_UNUSED3 = (1 << 2),
-        e_UNUSED4 = (1 << 3)
+        /// Ack for PUT msg is requested
+        e_ACK_REQUESTED = (1 << 0),
+        /// Contains message properties
+        e_MESSAGE_PROPERTIES = (1 << 1),
+        e_UNUSED3            = (1 << 2),
+        e_UNUSED4            = (1 << 3)
     };
 
     // PUBLIC CONSTANTS
@@ -2952,11 +2953,11 @@ struct StorageHeader {
 struct StorageHeaderFlags {
     // TYPES
     enum Enum {
-        e_RECEIPT_REQUESTED = (1 << 0)  // Ack for STORAGE msg is requested
-        ,
-        e_UNUSED2 = (1 << 1),
-        e_UNUSED3 = (1 << 2),
-        e_UNUSED4 = (1 << 3)
+        /// Ack for STORAGE msg is requested
+        e_RECEIPT_REQUESTED = (1 << 0),
+        e_UNUSED2           = (1 << 1),
+        e_UNUSED3           = (1 << 2),
+        e_UNUSED4           = (1 << 3)
     };
 
     // PUBLIC CONSTANTS
@@ -3832,12 +3833,12 @@ inline unsigned char EventHeader::typeSpecific() const
 // struct EventHeaderUtil
 // ----------------------
 
-inline void
-EventHeaderUtil::setControlEventEncodingType(EventHeader*       eventHeader,
+inline void EventHeaderUtil::setEncodingType(EventHeader*       eventHeader,
                                              EncodingType::Enum type)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(eventHeader->type() == EventType::e_CONTROL);
+    BSLS_ASSERT_SAFE(eventHeader->type() == EventType::e_CONTROL ||
+                     eventHeader->type() == EventType::e_AUTHENTICATION);
     BSLS_ASSERT_SAFE(type != EncodingType::e_UNKNOWN);
 
     unsigned char typeSpecific = eventHeader->typeSpecific();
@@ -3853,10 +3854,11 @@ EventHeaderUtil::setControlEventEncodingType(EventHeader*       eventHeader,
 }
 
 inline EncodingType::Enum
-EventHeaderUtil::controlEventEncodingType(const EventHeader& eventHeader)
+EventHeaderUtil::encodingType(const EventHeader& eventHeader)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(eventHeader.type() == EventType::e_CONTROL);
+    BSLS_ASSERT_SAFE(eventHeader.type() == EventType::e_CONTROL ||
+                     eventHeader.type() == EventType::e_AUTHENTICATION);
 
     const unsigned char typeSpecific = eventHeader.typeSpecific();
     const int encodingType = (typeSpecific & k_CONTROL_EVENT_ENCODING_MASK) >>

@@ -70,9 +70,9 @@ typedef mqbmock::Cluster::TestChannelMapCIter TestChannelMapCIter;
 typedef mqbc::ClusterStateManager::NodeToLSNMap      NodeToLSNMap;
 typedef mqbc::ClusterStateManager::NodeToLSNMapCIter NodeToLSNMapCIter;
 
-typedef mqbmock::ClusterStateLedger::Advisories Advisories;
-
 typedef mqbc::ClusterStateManager::ClusterStateLedgerMp ClusterStateLedgerMp;
+typedef mqbc::ClusterStateLedger::ClusterMessageCRefList
+    ClusterMessageCRefList;
 
 // CLASSES
 // =============
@@ -172,12 +172,17 @@ struct Tester {
                 mqbc::ClusterStateManager(d_cluster_mp->_clusterDefinition(),
                                           d_cluster_mp.get(),
                                           d_cluster_mp->_clusterData(),
-                                          &d_cluster_mp->_state(),
+                                          d_cluster_mp->_state(),
                                           clusterStateLedger_mp,
                                           k_WATCHDOG_TIMEOUT_DURATION,
                                           bmqtst::TestHelperUtil::allocator()),
             bmqtst::TestHelperUtil::allocator());
         d_clusterStateManager_mp->setStorageManager(&d_storageManager);
+
+        // In some UTs, operations with cluster might be executed either
+        // from the main thread or from the scheduler thread.
+        // To pass `inDispatcherThread` checks (allow ANY thread):
+        d_cluster_mp->setThreadId(mqbi::DispatcherClient::k_ANY_THREAD_ID);
 
         // Start the cluster and the cluster state manager
         bmqu::MemOutStream errorDescription;
@@ -296,16 +301,17 @@ struct Tester {
              ++cit) {
             if (cit->first->nodeId() ==
                 d_cluster_mp->netCluster().selfNodeId()) {
-                BMQTST_ASSERT(!cit->second->waitFor(1, false));
+                BMQTST_ASSERT(!cit->second->waitFor(1));
                 continue;  // CONTINUE
             }
 
-            BMQTST_ASSERT(cit->second->waitFor(1, false));
+            bmqio::TestChannel::WriteCall writeCall;
+            BMQTST_ASSERT(cit->second->getWriteCall(&writeCall, 0));
 
             bmqp_ctrlmsg::ControlMessage message;
             mqbc::ClusterUtil::extractMessage(
                 &message,
-                cit->second->writeCalls()[0].d_blob,
+                writeCall.d_blob,
                 bmqtst::TestHelperUtil::allocator());
             BMQTST_ASSERT_EQ(message.choice().clusterMessage(),
                              expectedMessage);
@@ -333,17 +339,18 @@ struct Tester {
              ++cit) {
             if (cit->first->nodeId() ==
                 d_cluster_mp->_clusterData()->electorInfo().leaderNodeId()) {
-                BMQTST_ASSERT(cit->second->waitFor(1, false));
+                bmqio::TestChannel::WriteCall writeCall;
+                BMQTST_ASSERT(cit->second->getWriteCall(&writeCall, 0));
 
                 bmqp_ctrlmsg::ControlMessage message;
                 mqbc::ClusterUtil::extractMessage(
                     &message,
-                    cit->second->writeCalls()[0].d_blob,
+                    writeCall.d_blob,
                     bmqtst::TestHelperUtil::allocator());
                 BMQTST_ASSERT_EQ(message, expectedMessage);
             }
             else {
-                BMQTST_ASSERT(!cit->second->waitFor(1, false));
+                BMQTST_ASSERT(!cit->second->waitFor(1));
             }
         }
     }
@@ -364,17 +371,18 @@ struct Tester {
              cit != d_cluster_mp->_channels().cend();
              ++cit) {
             if (cit->first->nodeId() == destination.nodeId()) {
-                BMQTST_ASSERT(cit->second->waitFor(1, false));
+                bmqio::TestChannel::WriteCall writeCall;
+                BMQTST_ASSERT(cit->second->getWriteCall(&writeCall, 0));
 
                 bmqp_ctrlmsg::ControlMessage message;
                 mqbc::ClusterUtil::extractMessage(
                     &message,
-                    cit->second->writeCalls()[0].d_blob,
+                    writeCall.d_blob,
                     bmqtst::TestHelperUtil::allocator());
                 BMQTST_ASSERT_EQ(message, expectedMessage);
             }
             else {
-                BMQTST_ASSERT(!cit->second->waitFor(1, false));
+                BMQTST_ASSERT(!cit->second->waitFor(1));
             }
         }
     }
@@ -401,18 +409,19 @@ struct Tester {
              ++cit) {
             if (cit->first->nodeId() ==
                 d_cluster_mp->_clusterData()->electorInfo().leaderNodeId()) {
-                BMQTST_ASSERT(cit->second->waitFor(1, false));
+                bmqio::TestChannel::WriteCall writeCall;
+                BMQTST_ASSERT(cit->second->getWriteCall(&writeCall, 0));
 
                 bmqp_ctrlmsg::ControlMessage message;
                 mqbc::ClusterUtil::extractMessage(
                     &message,
-                    cit->second->writeCalls()[0].d_blob,
+                    writeCall.d_blob,
                     bmqtst::TestHelperUtil::allocator());
                 BMQTST_ASSERT_EQ(message.choice().clusterMessage(),
                                  expectedMessage);
             }
             else {
-                BMQTST_ASSERT(!cit->second->waitFor(1, false));
+                BMQTST_ASSERT(!cit->second->waitFor(1));
             }
         }
     }
@@ -435,17 +444,18 @@ struct Tester {
              cit != d_cluster_mp->_channels().cend();
              ++cit) {
             if (cit->first->nodeId() == destination.nodeId()) {
-                BMQTST_ASSERT(cit->second->waitFor(1, false));
+                bmqio::TestChannel::WriteCall writeCall;
+                BMQTST_ASSERT(cit->second->getWriteCall(&writeCall, 0));
 
                 bmqp_ctrlmsg::ControlMessage message;
                 mqbc::ClusterUtil::extractMessage(
                     &message,
-                    cit->second->writeCalls()[0].d_blob,
+                    writeCall.d_blob,
                     bmqtst::TestHelperUtil::allocator());
                 BMQTST_ASSERT_EQ(message, expectedMessage);
             }
             else {
-                BMQTST_ASSERT(!cit->second->waitFor(1, false));
+                BMQTST_ASSERT(!cit->second->waitFor(1));
             }
         }
     }
@@ -487,18 +497,19 @@ struct Tester {
              cit != d_cluster_mp->_channels().cend();
              ++cit) {
             if (cit->first->nodeId() == highestLSNFollower->nodeId()) {
-                BSLS_ASSERT_OPT(cit->second->waitFor(1, false));
+                bmqio::TestChannel::WriteCall writeCall;
+                BMQTST_ASSERT(cit->second->getWriteCall(&writeCall, 0));
 
                 bmqp_ctrlmsg::ControlMessage message;
                 mqbc::ClusterUtil::extractMessage(
                     &message,
-                    cit->second->writeCalls()[0].d_blob,
+                    writeCall.d_blob,
                     bmqtst::TestHelperUtil::allocator());
                 BSLS_ASSERT_OPT(message.choice().clusterMessage() ==
                                 expectedFollowerClusterStateRequest);
             }
             else {
-                BSLS_ASSERT_OPT(!cit->second->waitFor(1, false));
+                BSLS_ASSERT_OPT(!cit->second->waitFor(1));
             }
         }
     }
@@ -521,27 +532,28 @@ struct Tester {
         // Load (empty) cluster state into the response
         mqbc::ClusterUtil::loadPartitionsInfo(
             &response.clusterStateSnapshot().partitions(),
-            d_cluster_mp->_state());
+            *d_cluster_mp->_state());
         mqbc::ClusterUtil::loadQueuesInfo(
             &response.clusterStateSnapshot().queues(),
-            d_cluster_mp->_state());
+            *d_cluster_mp->_state());
 
         for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
              cit != d_cluster_mp->_channels().cend();
              ++cit) {
             if (cit->first->nodeId() ==
                 d_cluster_mp->_clusterData()->electorInfo().leaderNodeId()) {
-                BMQTST_ASSERT(cit->second->waitFor(1, false));
+                bmqio::TestChannel::WriteCall writeCall;
+                BMQTST_ASSERT(cit->second->getWriteCall(&writeCall, 0));
 
                 bmqp_ctrlmsg::ControlMessage message;
                 mqbc::ClusterUtil::extractMessage(
                     &message,
-                    cit->second->writeCalls()[0].d_blob,
+                    writeCall.d_blob,
                     bmqtst::TestHelperUtil::allocator());
                 BMQTST_ASSERT_EQ(message, expectedMessage);
             }
             else {
-                BMQTST_ASSERT(!cit->second->waitFor(1, false));
+                BMQTST_ASSERT(!cit->second->waitFor(1));
             }
         }
     }
@@ -1207,13 +1219,13 @@ static void test11_leaderHighestLeaderHealed()
                     mqbc::ClusterStateTableState::e_LDR_HEALING_STG2);
 
     // Verify that a cluster state snapshot is applied to the CSL
-    const Advisories& advisories =
-        tester.d_clusterStateLedger_p->_uncommittedAdvisories();
+    ClusterMessageCRefList advisories;
+    tester.d_clusterStateLedger_p->uncommittedAdvisories(&advisories);
     BMQTST_ASSERT_EQ(advisories.size(), 1U);
-    BMQTST_ASSERT(advisories.front().choice().isLeaderAdvisoryValue());
+    BMQTST_ASSERT(advisories.front().get().choice().isLeaderAdvisoryValue());
 
     const bmqp_ctrlmsg::LeaderAdvisory& advisory =
-        advisories.front().choice().leaderAdvisory();
+        advisories.front().get().choice().leaderAdvisory();
     BMQTST_ASSERT_EQ(advisory.sequenceNumber().electorTerm(), 2U);
     BMQTST_ASSERT_EQ(advisory.sequenceNumber().sequenceNumber(), 1U);
 
@@ -1321,7 +1333,7 @@ static void test12_followerHighestLeaderHealed()
     clusterStateSnapshot.sequenceNumber().electorTerm()    = 1U;
     clusterStateSnapshot.sequenceNumber().sequenceNumber() = 8U;
     clusterStateSnapshot.partitions().resize(
-        tester.d_cluster_mp->_state().partitions().size());
+        tester.d_cluster_mp->_state()->partitions().size());
     for (size_t i = 0; i < clusterStateSnapshot.partitions().size(); ++i) {
         clusterStateSnapshot.partitions()[i].partitionId() = i;
     }
@@ -1332,13 +1344,13 @@ static void test12_followerHighestLeaderHealed()
                      mqbc::ClusterStateTableState::e_LDR_HEALING_STG2);
 
     // Verify that a cluster state snapshot is applied to the CSL
-    const Advisories& advisories =
-        tester.d_clusterStateLedger_p->_uncommittedAdvisories();
+    ClusterMessageCRefList advisories;
+    tester.d_clusterStateLedger_p->uncommittedAdvisories(&advisories);
     BMQTST_ASSERT_EQ(advisories.size(), 1U);
-    BMQTST_ASSERT(advisories.front().choice().isLeaderAdvisoryValue());
+    BMQTST_ASSERT(advisories.front().get().choice().isLeaderAdvisoryValue());
 
     const bmqp_ctrlmsg::LeaderAdvisory& advisory =
-        advisories.front().choice().leaderAdvisory();
+        advisories.front().get().choice().leaderAdvisory();
     BMQTST_ASSERT_EQ(advisory.sequenceNumber().electorTerm(), 2U);
     BMQTST_ASSERT_EQ(advisory.sequenceNumber().sequenceNumber(), 1U);
 
@@ -1599,13 +1611,13 @@ static void test16_followerClusterStateRespFailureLeaderNext()
     //    to healed via applying to CSL
     //
     // Verify that a cluster state snapshot is applied to the CSL
-    const Advisories& advisories =
-        tester.d_clusterStateLedger_p->_uncommittedAdvisories();
+    ClusterMessageCRefList advisories;
+    tester.d_clusterStateLedger_p->uncommittedAdvisories(&advisories);
     BMQTST_ASSERT_EQ(advisories.size(), 1U);
-    BMQTST_ASSERT(advisories.front().choice().isLeaderAdvisoryValue());
+    BMQTST_ASSERT(advisories.front().get().choice().isLeaderAdvisoryValue());
 
     const bmqp_ctrlmsg::LeaderAdvisory& advisory =
-        advisories.front().choice().leaderAdvisory();
+        advisories.front().get().choice().leaderAdvisory();
     BMQTST_ASSERT_EQ(advisory.sequenceNumber().electorTerm(), 2U);
     BMQTST_ASSERT_EQ(advisory.sequenceNumber().sequenceNumber(), 1U);
 
@@ -1739,7 +1751,7 @@ static void test17_followerClusterStateRespFailureFollowerNext()
     clusterStateSnapshot.sequenceNumber().electorTerm()    = 1U;
     clusterStateSnapshot.sequenceNumber().sequenceNumber() = 5U;
     clusterStateSnapshot.partitions().resize(
-        tester.d_cluster_mp->_state().partitions().size());
+        tester.d_cluster_mp->_state()->partitions().size());
     for (size_t i = 0; i < clusterStateSnapshot.partitions().size(); ++i) {
         clusterStateSnapshot.partitions()[i].partitionId() = i;
     }
@@ -1750,13 +1762,13 @@ static void test17_followerClusterStateRespFailureFollowerNext()
                      mqbc::ClusterStateTableState::e_LDR_HEALING_STG2);
 
     // Verify that a cluster state snapshot is applied to the CSL
-    const Advisories& advisories =
-        tester.d_clusterStateLedger_p->_uncommittedAdvisories();
+    ClusterMessageCRefList advisories;
+    tester.d_clusterStateLedger_p->uncommittedAdvisories(&advisories);
     BMQTST_ASSERT_EQ(advisories.size(), 1U);
-    BMQTST_ASSERT(advisories.front().choice().isLeaderAdvisoryValue());
+    BMQTST_ASSERT(advisories.front().get().choice().isLeaderAdvisoryValue());
 
     const bmqp_ctrlmsg::LeaderAdvisory& advisory =
-        advisories.front().choice().leaderAdvisory();
+        advisories.front().get().choice().leaderAdvisory();
     BMQTST_ASSERT_EQ(advisory.sequenceNumber().electorTerm(), 2U);
     BMQTST_ASSERT_EQ(advisory.sequenceNumber().sequenceNumber(), 1U);
 
@@ -1900,7 +1912,7 @@ static void test19_stopNode()
     tester1.d_clusterStateManager_mp->stop();
 
     BMQTST_ASSERT_EQ(tester1.d_clusterStateManager_mp->healthState(),
-                     mqbc::ClusterStateTableState::e_STOPPING);
+                     mqbc::ClusterStateTableState::e_STOPPED);
 
     // 2.) Stopping from Follower Healing state
     Tester tester2(false);  // isLeader
@@ -1914,7 +1926,7 @@ static void test19_stopNode()
     tester2.d_clusterStateManager_mp->stop();
 
     BMQTST_ASSERT_EQ(tester2.d_clusterStateManager_mp->healthState(),
-                     mqbc::ClusterStateTableState::e_STOPPING);
+                     mqbc::ClusterStateTableState::e_STOPPED);
 
     // 3.) Stopping from Follower Healed state
     Tester tester3(false);  // isLeader
@@ -1937,7 +1949,7 @@ static void test19_stopNode()
     tester3.d_clusterStateManager_mp->stop();
 
     BMQTST_ASSERT_EQ(tester3.d_clusterStateManager_mp->healthState(),
-                     mqbc::ClusterStateTableState::e_STOPPING);
+                     mqbc::ClusterStateTableState::e_STOPPED);
 
     // 4.) Stopping from Leader Healing Stage 1 state
     Tester tester4(true);  // isLeader
@@ -1951,7 +1963,7 @@ static void test19_stopNode()
     tester4.d_clusterStateManager_mp->stop();
 
     BMQTST_ASSERT_EQ(tester4.d_clusterStateManager_mp->healthState(),
-                     mqbc::ClusterStateTableState::e_STOPPING);
+                     mqbc::ClusterStateTableState::e_STOPPED);
 
     // 5.) Stopping from Leader Healing Stage 2 state
     Tester tester5(true);  // isLeader
@@ -1988,7 +2000,7 @@ static void test19_stopNode()
     tester5.d_clusterStateManager_mp->stop();
 
     BMQTST_ASSERT_EQ(tester5.d_clusterStateManager_mp->healthState(),
-                     mqbc::ClusterStateTableState::e_STOPPING);
+                     mqbc::ClusterStateTableState::e_STOPPED);
 
     // 6.) Stopping from Leader Healed state
     Tester tester6(true);  // isLeader
@@ -2022,7 +2034,7 @@ static void test19_stopNode()
     tester6.d_clusterStateManager_mp->stop();
 
     BMQTST_ASSERT_EQ(tester6.d_clusterStateManager_mp->healthState(),
-                     mqbc::ClusterStateTableState::e_STOPPING);
+                     mqbc::ClusterStateTableState::e_STOPPED);
 }
 
 static void test20_resetUnknownLeader()
@@ -2425,19 +2437,19 @@ static void test23_selectLeaderFromFollower()
 
 static void test24_watchDogLeader()
 // ------------------------------------------------------------------------
-// WATCH DOG LEADER
+// WATCHDOG LEADER
 //
 // Concerns:
 //   Verify that the watchdog triggers upon timeout when the leader is
 //   healing.
 //
 // Testing:
-//   Watch dog for healing leader
+//   Watchdog for healing leader
 // ------------------------------------------------------------------------
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
-                                      "WATCH DOG LEADER");
+                                      "WATCHDOG LEADER");
 
     Tester tester(true);  // isLeader
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
@@ -2456,11 +2468,11 @@ static void test24_watchDogLeader()
     tester.verifyFollowerLSNRequestsSent();
     tester.clearChannels();
 
-    // 1.b.) Trigger watch dog via timeout
+    // 1.b.) Trigger watchdog via timeout
     tester.d_cluster_mp->advanceTime(k_WATCHDOG_TIMEOUT_DURATION);
     tester.d_cluster_mp->waitForScheduler();
 
-    // Verify that the watch dog triggers re-transition to Leader Healing
+    // Verify that the watchdog triggers re-transition to Leader Healing
     // Stage 1, where we send follower LSN requests again.
     BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
                      mqbc::ClusterStateTableState::e_LDR_HEALING_STG1);
@@ -2494,11 +2506,11 @@ static void test24_watchDogLeader()
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
                     mqbc::ClusterStateTableState::e_LDR_HEALING_STG2);
 
-    // 2.b.) Trigger watch dog via timeout
+    // 2.b.) Trigger watchdog via timeout
     tester.d_cluster_mp->advanceTime(k_WATCHDOG_TIMEOUT_DURATION);
     tester.d_cluster_mp->waitForScheduler();
 
-    // Verify that the watch dog triggers re-transition to Leader Healing
+    // Verify that the watchdog triggers re-transition to Leader Healing
     // Stage 1, where we send follower LSN requests again.
     BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
                      mqbc::ClusterStateTableState::e_LDR_HEALING_STG1);
@@ -2520,30 +2532,30 @@ static void test24_watchDogLeader()
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
                     mqbc::ClusterStateTableState::e_LDR_HEALED);
 
-    // 3.b.) Attempt to trigger watch dog via timeout, but should fail
+    // 3.b.) Attempt to trigger watchdog via timeout, but should fail
     tester.d_cluster_mp->advanceTime(k_WATCHDOG_TIMEOUT_DURATION);
     tester.d_cluster_mp->waitForScheduler();
 
-    // Verify that watch dog did not trigger
+    // Verify that watchdog did not trigger
     BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
                      mqbc::ClusterStateTableState::e_LDR_HEALED);
 }
 
 static void test25_watchDogFollower()
 // ------------------------------------------------------------------------
-// WATCH DOG FOLLOWER
+// WATCHDOG FOLLOWER
 //
 // Concerns:
 //   Verify that the watchdog triggers upon timeout when the follower is
 //   healing.
 //
 // Testing:
-//   Watch dog for healing follower
+//   Watchdog for healing follower
 // ------------------------------------------------------------------------
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
-                                      "WATCH DOG FOLLOWER");
+                                      "WATCHDOG FOLLOWER");
 
     Tester tester(false);  // isLeader
 
