@@ -118,6 +118,32 @@ class DispatcherStats {
         };
     };
 
+    /// Namespace for the constants of stat values that applies to the
+    /// dispatcher queues from the clients.
+    struct DispatcherStatsIndex {
+        enum Enum {
+            e_STAT_QUEUE = -2,  // Queue/Dequeue
+            e_STAT_TIME  = -1,  // Event queued time
+
+            /// Processing times for each event type.
+            /// Each enum value MUST be equal to the corresponding
+            /// event type value in mqbi::DispatcherEventType
+            e_STAT_PROCESSING_TIME_UNDEFINED           = 0,
+            e_STAT_PROCESSING_TIME_DISPATCHER          = 1,
+            e_STAT_PROCESSING_TIME_CALLBACK            = 2,
+            e_STAT_PROCESSING_TIME_CONTROL_MSG         = 3,
+            e_STAT_PROCESSING_TIME_CONFIRM             = 4,
+            e_STAT_PROCESSING_TIME_REJECT              = 5,
+            e_STAT_PROCESSING_TIME_PUSH                = 6,
+            e_STAT_PROCESSING_TIME_PUT                 = 7,
+            e_STAT_PROCESSING_TIME_ACK                 = 8,
+            e_STAT_PROCESSING_TIME_CLUSTER_STATE       = 9,
+            e_STAT_PROCESSING_TIME_STORAGE             = 10,
+            e_STAT_PROCESSING_TIME_RECOVERY            = 11,
+            e_STAT_PROCESSING_TIME_REPLICATION_RECEIPT = 12
+        };
+    };
+
     // CLASS METHODS
 
     /// Get the value of the specified `stat` reported to the dispatcher
@@ -146,40 +172,6 @@ class DispatcherStats {
                           bsls::Types::Int64  processedTime);
 
   private:
-    // PRIVATE TYPES
-
-    /// Namespace for the constants of stat values that applies to the
-    /// dispatcher queues from the clients.
-    struct DispatcherStatsIndex {
-        enum Enum {
-            e_STAT_QUEUE                 = -2,  // Queue/Dequeue
-            e_STAT_TIME                  = -1,  // Event queued time
-
-            /// Processing times for each event type.
-            /// Each enum value MUST be equal to the corresponding
-            /// event type value in mqbi::DispatcherEventType
-            e_STAT_PROCESSING_TIME_UNDEFINED = 0,
-            e_STAT_PROCESSING_TIME_DISPATCHER = 1,
-            e_STAT_PROCESSING_TIME_CALLBACK = 2,
-            e_STAT_PROCESSING_TIME_CONTROL_MSG = 3,
-            e_STAT_PROCESSING_TIME_CONFIRM = 4,
-            e_STAT_PROCESSING_TIME_REJECT = 5,
-            e_STAT_PROCESSING_TIME_PUSH = 6,
-            e_STAT_PROCESSING_TIME_PUT = 7,
-            e_STAT_PROCESSING_TIME_ACK = 8,
-            e_STAT_PROCESSING_TIME_CLUSTER_STATE = 9,
-            e_STAT_PROCESSING_TIME_STORAGE = 10,
-            e_STAT_PROCESSING_TIME_RECOVERY = 11,
-            e_STAT_PROCESSING_TIME_REPLICATION_RECEIPT = 12
-        };
-    };
-
-    // PRIVATE CONSTANTS
-
-    static const int k_EVENT_TYPES_NUMBER =
-        DispatcherStatsIndex::e_STAT_PROCESSING_TIME_END -
-        DispatcherStatsIndex::e_STAT_PROCESSING_TIME_START;
-
     // NOT IMPLEMENTED
     DispatcherStats(const DispatcherStats&) BSLS_CPP11_DELETED;
 
@@ -255,11 +247,8 @@ inline void DispatcherStats::onProcess(bmqst::StatContext* queueStatContext,
                                        bsls::Types::Int64  processedTime)
 {
     BSLS_ASSERT_SAFE(queueStatContext && "Stat context is not initialized");
-    BSLS_ASSERT_SAFE(eventType >= 0 && eventType <= k_EVENT_TYPES_NUMBER);
 
-    queueStatContext->reportValue(
-        DispatcherStatsIndex::e_STAT_PROCESSING_TIME_START + eventType,
-        processedTime);
+    queueStatContext->reportValue(eventType, processedTime);
 }
 
 }  // close package namespace

@@ -16,6 +16,9 @@
 // mqbstat_dispatcherstats.cpp                                        -*-C++-*-
 #include <mqbstat_dispatcherstats.h>
 
+// MQB
+#include <mqbi_dispatcher.h>
+
 // BMQ
 #include <bmqst_statcontext.h>
 #include <bmqst_statutil.h>
@@ -31,6 +34,31 @@ namespace {
 
 /// Name of the stat context to create (holding all dispatcher's statistics)
 static const char k_DISPATCHER_STAT_NAME[] = "dispatcher";
+
+// Compile-time asserts to keep stat enums
+// 'mqbstat::DispatcherStats::DispatcherStatsIndex' in sync with
+// 'mqbi::DispatcherEventType'.
+#define STAT_ENUM_SYNC(EVENT_NAME)                                            \
+    BSLMF_ASSERT(                                                             \
+        static_cast<int>(DispatcherStats::DispatcherStatsIndex::              \
+                             e_STAT_PROCESSING_TIME_##EVENT_NAME) ==          \
+        static_cast<int>(mqbi::DispatcherEventType::e_##EVENT_NAME));
+
+STAT_ENUM_SYNC(UNDEFINED)
+STAT_ENUM_SYNC(DISPATCHER)
+STAT_ENUM_SYNC(CALLBACK)
+STAT_ENUM_SYNC(CONTROL_MSG)
+STAT_ENUM_SYNC(CONFIRM)
+STAT_ENUM_SYNC(REJECT)
+STAT_ENUM_SYNC(PUSH)
+STAT_ENUM_SYNC(PUT)
+STAT_ENUM_SYNC(ACK)
+STAT_ENUM_SYNC(CLUSTER_STATE)
+STAT_ENUM_SYNC(STORAGE)
+STAT_ENUM_SYNC(RECOVERY)
+STAT_ENUM_SYNC(REPLICATION_RECEIPT)
+
+#undef STAT_ENUM_SYNC
 
 }  // close unnamed namespace
 
