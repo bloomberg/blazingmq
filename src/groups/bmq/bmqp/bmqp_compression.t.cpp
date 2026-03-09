@@ -249,7 +249,7 @@ static void populateData(bsl::vector<bsl::string>* data)
 }
 
 template <typename D>
-static void eAnyCompressDecompressHelper(
+static void eCompressDecompressHelper(
     bsls::Types::Int64*                         compressionTime,
     bsls::Types::Int64*                         decompressionTime,
     const D&                                    data,
@@ -570,12 +570,11 @@ static void test1_breathingTest()
             bsls::Types::Int64 decompressionTime = 0;
             bsl::string        inputString(test.d_data,
                                     bmqtst::TestHelperUtil::allocator());
-            eAnyCompressDecompressHelper(
-                &compressionTime,
-                &decompressionTime,
-                inputString,
-                test.d_expected,
-                bmqt::CompressionAlgorithmType::e_ZLIB);
+            eCompressDecompressHelper(&compressionTime,
+                                      &decompressionTime,
+                                      inputString,
+                                      test.d_expected,
+                                      bmqt::CompressionAlgorithmType::e_ZLIB);
         }
     }
 
@@ -586,11 +585,11 @@ static void test1_breathingTest()
         const bsl::string  data("", bmqtst::TestHelperUtil::allocator());
         bsls::Types::Int64 compressionTime   = 0;
         bsls::Types::Int64 decompressionTime = 0;
-        eAnyCompressDecompressHelper(&compressionTime,
-                                     &decompressionTime,
-                                     data,
-                                     "\x78\x9c\x3\x0\x0\x0\x0\x1",
-                                     bmqt::CompressionAlgorithmType::e_ZLIB);
+        eCompressDecompressHelper(&compressionTime,
+                                  &decompressionTime,
+                                  data,
+                                  "\x78\x9c\x3\x0\x0\x0\x0\x1",
+                                  bmqt::CompressionAlgorithmType::e_ZLIB);
     }
 
     {
@@ -829,12 +828,11 @@ static void test3_compression_decompression_none()
             bsls::Types::Int64 decompressionTime = 0;
             bsl::string        inputString(test.d_data,
                                     bmqtst::TestHelperUtil::allocator());
-            eAnyCompressDecompressHelper(
-                &compressionTime,
-                &decompressionTime,
-                inputString,
-                test.d_expected,
-                bmqt::CompressionAlgorithmType::e_NONE);
+            eCompressDecompressHelper(&compressionTime,
+                                      &decompressionTime,
+                                      inputString,
+                                      test.d_expected,
+                                      bmqt::CompressionAlgorithmType::e_NONE);
         }
     }
 }
@@ -871,12 +869,11 @@ static void test3_compression_decompression_zstd()
             bsls::Types::Int64 decompressionTime = 0;
             bsl::string        inputString(test.d_data,
                                     bmqtst::TestHelperUtil::allocator());
-            eAnyCompressDecompressHelper(
-                &compressionTime,
-                &decompressionTime,
-                inputString,
-                test.d_expected,
-                bmqt::CompressionAlgorithmType::e_ZSTD);
+            eCompressDecompressHelper(&compressionTime,
+                                      &decompressionTime,
+                                      inputString,
+                                      test.d_expected,
+                                      bmqt::CompressionAlgorithmType::e_ZSTD);
 
             //=====================================================================
             //                            Report
@@ -956,13 +953,12 @@ static void test3_compression_decompression_zstd()
             bsls::Types::Int64 decompressionTime = 0;
             bsl::string        inputString(test.d_data,
                                     bmqtst::TestHelperUtil::allocator());
-            eAnyCompressDecompressHelper(
-                &compressionTime,
-                &decompressionTime,
-                inputString,
-                test.d_expected,
-                bmqt::CompressionAlgorithmType::e_ZSTD,
-                test.d_compressedBuffersNum);
+            eCompressDecompressHelper(&compressionTime,
+                                      &decompressionTime,
+                                      inputString,
+                                      test.d_expected,
+                                      bmqt::CompressionAlgorithmType::e_ZSTD,
+                                      test.d_compressedBuffersNum);
 
             //=====================================================================
             //                            Report
@@ -1348,7 +1344,7 @@ static void testN2_calculateThroughputZstd()
          << endl;
 }
 
-static void testN3_performanceCompressionRatio()
+static void testN3_performanceCompressionRatioZlib()
 // ------------------------------------------------------------------------
 // BENCHMARK: COMPRESSION RATIO
 //
@@ -1370,7 +1366,7 @@ static void testN3_performanceCompressionRatio()
     // The default allocator check fails in this test case because the
     // printTable method utilizes the global allocator.
 
-    bmqtst::TestHelper::printTestName("BENCHMARK: COMPRESSION RATIO");
+    bmqtst::TestHelper::printTestName("BENCHMARK: ZLIB COMPRESSION RATIO");
 
     bsl::vector<bsl::string> data(bmqtst::TestHelperUtil::allocator());
     populateData(&data);
@@ -1453,7 +1449,7 @@ static void testN3_performanceCompressionRatioZstd()
     // The default allocator check fails in this test case because the
     // printTable method utilizes the global allocator.
 
-    bmqtst::TestHelper::printTestName("BENCHMARK: COMPRESSION RATIO");
+    bmqtst::TestHelper::printTestName("BENCHMARK: ZSTD COMPRESSION RATIO");
 
     bsl::vector<bsl::string> data(bmqtst::TestHelperUtil::allocator());
     populateData(&data);
@@ -1540,7 +1536,7 @@ static void testN1_performanceCompressionDecompressionZlib_GoogleBenchmark(
     // The default allocator check fails in this test case because the
     // printTable method utilizes the global allocator.
 
-    bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK PERFORMANCE: "
+    bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK ZLIB PERFORMANCE: "
                                       "COMPRESS/DECOMPRESS ON BUFFER");
     const int   length = state.range(0);
     bsl::string str("", bmqtst::TestHelperUtil::allocator());
@@ -1566,7 +1562,7 @@ static void testN1_performanceCompressionDecompressionZstd_GoogleBenchmark(
     // The default allocator check fails in this test case because the
     // printTable method utilizes the global allocator.
 
-    bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK PERFORMANCE: "
+    bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK ZSTD PERFORMANCE: "
                                       "COMPRESS/DECOMPRESS ON BUFFER");
     const int   length = state.range(0);
     bsl::string str("", bmqtst::TestHelperUtil::allocator());
@@ -1604,15 +1600,14 @@ testN2_calculateThroughputZlib_GoogleBenchmark(benchmark::State& state)
 //   implementation in a single thread environment.
 // ------------------------------------------------------------------------
 {
-    bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK THROUGHPUT: "
+    bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK ZLIB THROUGHPUT: "
                                       "COMPRESS/DECOMPRESS ON BUFFER");
     size_t length = 1024;  // 1 Ki
 
     bsl::string buffer_data("", bmqtst::TestHelperUtil::allocator());
     generateRandomString(&buffer_data, length);
     // <time>
-    // for (unsigned int l = 0; l < state.range(0); ++l)
-    {
+    for (unsigned int l = 0; l < state.range(0); ++l) {
         bsls::Types::Int64 compressionTotal = 0, decompressionTotal = 0;
         for (auto _ : state) {
             eZlibCompressDecompressHelper(&compressionTotal,
@@ -1642,15 +1637,14 @@ testN2_calculateThroughputZstd_GoogleBenchmark(benchmark::State& state)
 //   implementation in a single thread environment.
 // ------------------------------------------------------------------------
 {
-    bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK THROUGHPUT: "
+    bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK ZSTD THROUGHPUT: "
                                       "COMPRESS/DECOMPRESS ON BUFFER");
     size_t length = 1024;  // 1 Ki
 
     bsl::string buffer_data("", bmqtst::TestHelperUtil::allocator());
     generateRandomString(&buffer_data, length);
     // <time>
-    // for (unsigned int l = 0; l < state.range(0); ++l)
-    {
+    for (unsigned int l = 0; l < state.range(0); ++l) {
         bsls::Types::Int64 compressionTotal = 0, decompressionTotal = 0;
         for (auto _ : state) {
             eZstdCompressDecompressHelper(&compressionTotal,
@@ -1703,7 +1697,7 @@ int main(int argc, char* argv[])
 
         break;
     case -3:
-        testN3_performanceCompressionRatio();
+        testN3_performanceCompressionRatioZlib();
         testN3_performanceCompressionRatioZstd();
         break;
 
