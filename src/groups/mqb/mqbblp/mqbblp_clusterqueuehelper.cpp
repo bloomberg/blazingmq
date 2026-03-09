@@ -5469,7 +5469,8 @@ void ClusterQueueHelper::sendErrorResponse(
     d_clusterData_p->messageTransmitter().sendMessage(response, destination);
 }
 
-void ClusterQueueHelper::processNodeStoppingNotification(
+bsl::shared_ptr<ClusterQueueHelper::StopContext>
+ClusterQueueHelper::processNodeStoppingNotification(
     mqbnet::ClusterNode*                clusterNode,
     const bmqp_ctrlmsg::ControlMessage* request,
     mqbc::ClusterNodeSession*           ns,
@@ -5668,6 +5669,8 @@ void ClusterQueueHelper::processNodeStoppingNotification(
                       << clusterNode->nodeDescription()
                       << " to the previous one";
     }
+
+    return contextSp;
 }
 
 void ClusterQueueHelper::onLeaderAvailable()
