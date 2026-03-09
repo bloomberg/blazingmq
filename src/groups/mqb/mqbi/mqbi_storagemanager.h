@@ -443,7 +443,7 @@ class StorageManager {
     /// Return partition corresponding to the specified `partitionId`.  The
     /// behavior is undefined if `partitionId` does not represent a valid
     /// partition id.
-    virtual const mqbs::FileStore& fileStore(int partitionId) const = 0;
+    virtual mqbs::FileStore& fileStore(int partitionId) const = 0;
 
     /// Return a StorageManagerIterator for the specified `partitionId`.
     virtual bslma::ManagedPtr<StorageManagerIterator>

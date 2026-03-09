@@ -31,6 +31,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Optional, TypeVar
 
 import blazingmq.dev.configurator.configurator as cfg
+from blazingmq.dev.it.process.admin import AdminClient
 import blazingmq.dev.it.process.bmqproc
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.process import proc
@@ -334,6 +335,50 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
         return self.command(
             f"CLUSTERS CLUSTER {cluster} STORAGE REPLICATION SET quorum {quorum}",
             succeed,
+        )
+
+    def open_admin_client(self) -> AdminClient:
+        """
+        Open a new AdminClient connected to this broker.
+        Return this AdminClient.
+        """
+        admin = AdminClient()
+        admin.connect(self.config.host, int(self.config.port))
+        return admin
+
+    def _is_healthy(self, admin: AdminClient) -> bool:
+        """
+        Return 'True' if this broker sees itself in a healthy state,
+        'False' otherwise.
+        This is an implementation function that expects the caller code to
+        manage AdminClient lifetime efficiently.
+        """
+        res = admin.send_admin(f"CLUSTERS CLUSTER {self.cluster_name} STATUS")
+        assert isinstance(res, str)
+        mm = re.search(r"Is Healthy\s*:\s*(\w+)", res)
+        return mm is not None and mm.group(1) == "Yes"
+
+    def is_healthy(self) -> bool:
+        """
+        Return 'True' if this broker sees itself in a healthy state,
+        'False' otherwise.
+        Note that this check actively opens an admin connection to the broker
+        and sends an admin command, altering the state of the broker.
+        """
+        admin = self.open_admin_client()
+        return self._is_healthy(admin)
+
+    def wait_healthy(self) -> None:
+        """
+        Wait up to 'BLOCK_TIMEOUT' until this broker becomes healthy, or raise
+        an exception if it does not.
+        Note that this check actively opens an admin connection to the broker
+        and sends an admin command, altering the state of the broker.
+        """
+        admin = self.open_admin_client()
+        wait_until(
+            lambda: self._is_healthy(admin),
+            timeout=BLOCK_TIMEOUT,
         )
 
     def force_gc_queues(self, block=None, succeed=None) -> int:

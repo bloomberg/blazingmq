@@ -312,8 +312,7 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
     /// Return partition corresponding to the specified `partitionId`.  The
     /// behavior is undefined if `partitionId` does not represent a valid
     /// partition id.
-    const mqbs::FileStore&
-    fileStore(int partitionId) const BSLS_KEYWORD_OVERRIDE;
+    mqbs::FileStore& fileStore(int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
     /// Return a StorageManagerIterator for the specified `partitionId`.
     bslma::ManagedPtr<mqbi::StorageManagerIterator>
