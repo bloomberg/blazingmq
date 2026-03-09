@@ -177,7 +177,7 @@ void QueueHandle::confirmMessageDispatched(const bmqt::MessageGUID& msgGUID,
         BMQ_LOGTHROTTLE_WARN
             << "#CLIENT_IMPROPER_BEHAVIOR "
             << "Received a CONFIRM message from client '"
-            << d_clientContext_sp->client()->description() << "' for queue '"
+            << d_clientDescription << "' for queue '"
             << d_queue_sp->description()
             << "' which doesn't have the READ "
                "flag; this usually indicates that the client is confirming "
@@ -197,7 +197,7 @@ void QueueHandle::confirmMessageDispatched(const bmqt::MessageGUID& msgGUID,
         BMQ_LOGTHROTTLE_WARN
             << "#CLIENT_IMPROPER_BEHAVIOR "
             << "Received a CONFIRM message from client '"
-            << d_clientContext_sp->client()->description() << "' for queue '"
+            << d_clientDescription << "' for queue '"
             << d_queue_sp->description()
             << "' which doesn't have the subQueue: " << downstreamSubQueueId;
         return;
@@ -243,8 +243,8 @@ void QueueHandle::rejectMessageDispatched(const bmqt::MessageGUID& msgGUID,
         //       opened with READ flag.
         BMQ_LOGTHROTTLE_WARN << "#CLIENT_IMPROPER_BEHAVIOR "
                              << "Received a REJECT message from client '"
-                             << d_clientContext_sp->client()->description()
-                             << "' for queue '" << d_queue_sp->description()
+                             << d_clientDescription << "' for queue '"
+                             << d_queue_sp->description()
                              << "' which doesn't have the READ flags";
         // NOTE: This is fine to return here and not do anything because there
         //       was supposed to be a rejection when the queue closed.
@@ -257,9 +257,8 @@ void QueueHandle::rejectMessageDispatched(const bmqt::MessageGUID& msgGUID,
 
         BMQ_LOGTHROTTLE_WARN
             << "#CLIENT_IMPROPER_BEHAVIOR "
-            << "Received a REJECT message from client '"
-            << d_clientContext_sp->client()->description() << "' for queue '"
-            << d_queue_sp->description()
+            << "Received a REJECT message from client '" << d_clientDescription
+            << "' for queue '" << d_queue_sp->description()
             << "' which doesn't have the subQueue: " << downstreamSubQueueId;
         return;
     }
@@ -282,9 +281,8 @@ void QueueHandle::rejectMessageDispatched(const bmqt::MessageGUID& msgGUID,
 
         BMQ_LOGTHROTTLE_WARN
             << "#UNEXPECTED_REJECT "
-            << "Received a REJECT message from client '"
-            << d_clientContext_sp->client()->description() << "' for queue '"
-            << d_queue_sp->description()
+            << "Received a REJECT message from client '" << d_clientDescription
+            << "' for queue '" << d_queue_sp->description()
             << "' for a message not in pending unconfirmed: " << msgGUID
             << ".";
     }
@@ -366,8 +364,8 @@ QueueHandle::updateMonitor(const bsl::shared_ptr<Downstream>& subStream,
             BALL_LOG_OUTPUT_STREAM
                 << "[THROTTLED] Received a " << eventType
                 << " message for guid [" << msgGUID << "] from client '"
-                << d_clientContext_sp->client()->description()
-                << "' for queue '" << d_queue_sp->description()
+                << d_clientDescription << "' for queue '"
+                << d_queue_sp->description()
                 << "' for a message not in pending unconfirmed.";
             if (msgSize == -1) {
                 BALL_LOG_OUTPUT_STREAM
@@ -548,6 +546,11 @@ void QueueHandle::deliverMessageImpl(
     BSLS_ASSERT_SAFE(subscriptions.size() >= 1 &&
                      subscriptions.size() <= d_subscriptions.size());
 
+    if (!d_clientContext_sp) {
+        // This client is gone
+        return;  // RETURN
+    }
+
     d_domainStats_p->onEvent<mqbstat::QueueStatsDomain::EventType::e_PUSH>(
         attributes.appDataLen());
 
@@ -644,10 +647,12 @@ QueueHandle::QueueHandle(
 , d_schemaLearnerPushContext(
       d_queue_sp ? d_queue_sp->schemaLearner().createContext() : 0)
 , d_producerStats()
+, d_clientDescription(allocator)
 , d_allocator_p(allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queue_sp);
+    BSLS_ASSERT_SAFE(d_clientContext_sp);
     BSLS_ASSERT_SAFE(d_clientContext_sp->client());
 
     d_throttledFailedAckMessages.initialize(
@@ -657,6 +662,8 @@ QueueHandle::QueueHandle(
         1,
         5 * bdlt::TimeUnitRatio::k_NS_PER_S);
     // One maximum log per 5 seconds
+
+    d_clientDescription = d_clientContext_sp->client()->description();
 
     setHandleParameters(handleParameters);
 }
@@ -1023,8 +1030,7 @@ void QueueHandle::deliverMessage(
             BMQ_LOGTHROTTLE_INFO
                 << "Queue '" << d_queue_sp->description()
                 << "' with subscription [" << subscriptions[i] << "]"
-                << " of client '"
-                << d_clientContext_sp->client()->description()
+                << " of client '" << d_clientDescription
                 << "' has too many outstanding data ["
                 << bmqu::PrintUtil::prettyNumber(
                        subscription->d_unconfirmedMonitor.messages())
@@ -1103,7 +1109,7 @@ void QueueHandle::configureDispatched(
     BSLS_ASSERT_SAFE(d_queue_sp->inDispatcherThread());
     BSLS_ASSERT_SAFE(d_clientContext_sp);
 
-    BALL_LOG_INFO << "Client [" << d_clientContext_sp->client()->description()
+    BALL_LOG_INFO << "Client [" << d_clientDescription
                   << "] requested to configure queue [" << d_queue_sp->uri()
                   << ", id: " << id()
                   << ", appId: " << streamParameters.appId()
@@ -1335,8 +1341,7 @@ void QueueHandle::onAckMessage(const bmqp::AckMessage& ackMessage)
             BALL_LOG_INFO << "Queue '" << d_queue_sp->description()
                           << "' NACK [status: " << status
                           << ", GUID: " << ackMessage.messageGUID()
-                          << ", node '" << d_clientContext_sp->description()
-                          << "']";
+                          << ", node '" << d_clientDescription << "']";
         }
     }
 
@@ -1344,7 +1349,7 @@ void QueueHandle::onAckMessage(const bmqp::AckMessage& ackMessage)
     BALL_LOG_TRACE << "Queue '" << d_queue_sp->description()
                    << "' sending ACK [status: " << status
                    << ", GUID: " << ackMessage.messageGUID() << ", node '"
-                   << d_clientContext_sp->description() << "']";
+                   << d_clientDescription << "']";
 
     mqbi::InlineResult::Enum result = inlineClient->sendAck(id(), ackMessage);
     // Override with correct downstream queueId
