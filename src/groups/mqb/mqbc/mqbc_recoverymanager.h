@@ -206,6 +206,13 @@ class RecoveryManager {
         bmqp_ctrlmsg::PartitionSequenceNumber
             d_firstSyncPointAfterRolloverSeqNum;
 
+        /// Overriden (by storage manager) max file sizes for journal,
+        /// data and qlist files.
+        /// If they are not set, max file sizes from file headers
+        /// should be used.
+        bsl::optional<bmqp_ctrlmsg::PartitionMaxFileSizes>
+            d_overridenPartitionMaxFileSizes;
+
       public:
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(RecoveryContext,
@@ -414,6 +421,26 @@ class RecoveryManager {
                       int                                    partitionId,
                       bool firstSyncPointAfterRolllover = false);
 
+    /// Recover partition max file sizes from the file headers
+    /// for the specified `partitionId` and populate the output
+    /// in the specified `maxFileSizes`.
+    ///
+    /// THREAD: Executed in the dispatcher thread associated with the
+    /// specified `partitionId`.
+    void recoverPartitionMaxFileSizes(
+        bmqp_ctrlmsg::PartitionMaxFileSizes* maxFileSizes,
+        int                                  partitionId);
+
+    /// Override partition max file sizes with the specified `maxFileSizes`
+    /// for the specified `partitionId`.  Overridden partition max file sizes
+    /// will be used in the subsequent open recovery file set.
+    ///
+    /// THREAD: Executed in the dispatcher thread associated with the
+    /// specified `partitionId`.
+    void overridePartitionMaxFileSizes(
+        bmqp_ctrlmsg::PartitionMaxFileSizes& maxFileSizes,
+        int                                  partitionId);
+
     /// Set the live data source of the specified 'partitionId' to the
     /// specified 'source', and clear any existing buffered storage events.
     ///
@@ -535,6 +562,7 @@ inline RecoveryManager::RecoveryContext::RecoveryContext(
 , d_bufferedEvents(basicAllocator)
 , d_receiveDataContext()
 , d_firstSyncPointAfterRolloverSeqNum()
+, d_overridenPartitionMaxFileSizes()
 {
     // NOTHING
 }
@@ -554,6 +582,7 @@ inline RecoveryManager::RecoveryContext::RecoveryContext(
 , d_receiveDataContext(other.d_receiveDataContext)
 , d_firstSyncPointAfterRolloverSeqNum(
       other.d_firstSyncPointAfterRolloverSeqNum)
+, d_overridenPartitionMaxFileSizes(other.d_overridenPartitionMaxFileSizes)
 {
     // NOTHING
 }
@@ -561,6 +590,22 @@ inline RecoveryManager::RecoveryContext::RecoveryContext(
 // ---------------------
 // class RecoveryManager
 // ---------------------
+
+// MANIPULATORS
+inline void RecoveryManager::overridePartitionMaxFileSizes(
+    bmqp_ctrlmsg::PartitionMaxFileSizes& maxFileSizes,
+    int                                  partitionId)
+{
+    // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(partitionId >= 0 &&
+                     partitionId <
+                         d_clusterConfig.partitionConfig().numPartitions());
+
+    d_recoveryContextVec[partitionId].d_overridenPartitionMaxFileSizes =
+        maxFileSizes;
+}
 
 // ACCESSORS
 inline bool RecoveryManager::expectedDataChunks(int partitionId) const
