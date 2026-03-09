@@ -2774,13 +2774,7 @@ void StorageManager::do_processLiveData(const EventWithData& event)
     const int                    partitionId = eventData.partitionId();
     mqbnet::ClusterNode*         source      = eventData.source();
 
-    if (d_cluster_p->isStopping()) {
-        BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << " Partition [" << partitionId << "]: "
-                      << "Cluster is stopping; skipping processing of "
-                      << "live data.";
-        return;  // RETURN
-    }
+    // Do process events while Stopping, otherwise can miss sync point.
 
     bmqp::Event rawEvent(eventData.storageEvent().get(), d_allocator_p);
     BSLS_ASSERT_SAFE(rawEvent.isStorageEvent());
@@ -5338,7 +5332,7 @@ bool StorageManager::isStorageEmpty(const bmqt::Uri& uri,
                                        uri);
 }
 
-const mqbs::FileStore& StorageManager::fileStore(int partitionId) const
+mqbs::FileStore& StorageManager::fileStore(int partitionId) const
 {
     // executed by *ANY* thread
 

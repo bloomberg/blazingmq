@@ -38,7 +38,7 @@ jobs:
       target: "bmqbrkr bmqtool"
       save_build_as_artifacts: true
       run_unit_tests: false
-  
+
   build2:
     name: "Build ref ${{ github.event.inputs.ref2 }}"
     needs: get_dependencies
@@ -213,7 +213,8 @@ jobs:
           # Store all info about cluster in cluster.json
           BLAZINGMQ_CLUSTER_CONFIG_COMPATIBILITY_MODE: "true"
         run: |
-          go install github.com/kevwan/tproxy@latest
+          # Pin tproxy of 27 Feb 2026:
+          go install github.com/kevwan/tproxy@d6d45cbbd1b3c5dad6e5043b74120f9ea962826b
           export GOPATH=$HOME/go
           export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
 

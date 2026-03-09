@@ -20,7 +20,6 @@ go to the relevant section in the README.md, in this directory.
 """
 
 import queue
-import re
 from time import sleep
 from typing import List
 
@@ -30,7 +29,6 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     order,
     multi_node,
 )
-from blazingmq.dev.it.process.admin import AdminClient
 from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.util import wait_until
 
@@ -316,18 +314,8 @@ class TestClusterNodeShutdown:
         # 10 seconds is enough. The request has got stuck
         assert res != Client.e_SUCCESS
 
-        # Check that the cluster is still in healthy state
-        admin = AdminClient()
-        admin.connect(primary.config.host, int(primary.config.port))
-        res = admin.send_admin(f"CLUSTERS CLUSTER {cluster.config.name} STATUS")
-        healthy = False
-        for line in res.splitlines():
-            mm = re.search(r"Is Healthy.*\s+(\w+)", line)
-            if mm:
-                if mm.group(1) == "Yes":
-                    healthy = True
-                break
-        assert healthy
+        # The cluster must still be in a healthy state
+        assert primary.is_healthy()
 
         # Set quorum back to its default value (nodes_count/2 + 1)
         primary.set_quorum(3, cluster.config.name, True)
