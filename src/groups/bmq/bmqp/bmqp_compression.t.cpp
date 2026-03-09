@@ -349,7 +349,6 @@ eZlibCompressDecompressHelper(bsls::Types::Int64* compressionTime,
     BMQTST_ASSERT_EQ(bdlbb::BlobUtil::compare(decompressed, input), 0);
 }
 
-
 template <typename D>
 static void
 eZstdCompressDecompressHelper(bsls::Types::Int64* compressionTime,
@@ -1086,7 +1085,6 @@ static void testN1_performanceCompressionDecompressionZlib()
     printTable(bsl::cout, headerCols, tableRecords);
 }
 
-
 BSLA_MAYBE_UNUSED
 static void testN1_performanceCompressionDecompressionZstd()
 // ------------------------------------------------------------------------
@@ -1587,7 +1585,8 @@ static void testN1_performanceCompressionDecompressionZstd_GoogleBenchmark(
     // </time>
 }
 
-static void testN2_calculateThroughputZlib_GoogleBenchmark(benchmark::State& state)
+static void
+testN2_calculateThroughputZlib_GoogleBenchmark(benchmark::State& state)
 // ------------------------------------------------------------------------
 // BENCHMARK: PERFORM COMPRESSION DECOMPRESSION
 //
@@ -1612,7 +1611,7 @@ static void testN2_calculateThroughputZlib_GoogleBenchmark(benchmark::State& sta
     bsl::string buffer_data("", bmqtst::TestHelperUtil::allocator());
     generateRandomString(&buffer_data, length);
     // <time>
-    // for (unsigned int l = 0; l < state.range(0); ++l) 
+    // for (unsigned int l = 0; l < state.range(0); ++l)
     {
         bsls::Types::Int64 compressionTotal = 0, decompressionTotal = 0;
         for (auto _ : state) {
@@ -1624,8 +1623,8 @@ static void testN2_calculateThroughputZlib_GoogleBenchmark(benchmark::State& sta
     // </time>
 }
 
-
-static void testN2_calculateThroughputZstd_GoogleBenchmark(benchmark::State& state)
+static void
+testN2_calculateThroughputZstd_GoogleBenchmark(benchmark::State& state)
 // ------------------------------------------------------------------------
 // BENCHMARK: PERFORM COMPRESSION DECOMPRESSION
 //
@@ -1650,7 +1649,7 @@ static void testN2_calculateThroughputZstd_GoogleBenchmark(benchmark::State& sta
     bsl::string buffer_data("", bmqtst::TestHelperUtil::allocator());
     generateRandomString(&buffer_data, length);
     // <time>
-    // for (unsigned int l = 0; l < state.range(0); ++l) 
+    // for (unsigned int l = 0; l < state.range(0); ++l)
     {
         bsls::Types::Int64 compressionTotal = 0, decompressionTotal = 0;
         for (auto _ : state) {
@@ -1674,9 +1673,9 @@ int main(int argc, char* argv[])
     case 0:
     case 1: test1_breathingTest(); break;
     case 2: test2_compression_cluster_message(); break;
-    case 3: 
-        test3_compression_decompression_none(); 
-        test3_compression_decompression_zstd(); 
+    case 3:
+        test3_compression_decompression_none();
+        test3_compression_decompression_zstd();
         break;
     case -1:
         BMQTST_BENCHMARK_WITH_ARGS(
@@ -1703,11 +1702,11 @@ int main(int argc, char* argv[])
                                        ->Unit(benchmark::kMillisecond));
 
         break;
-    case -3: 
-        testN3_performanceCompressionRatio(); 
-        testN3_performanceCompressionRatioZstd(); 
+    case -3:
+        testN3_performanceCompressionRatio();
+        testN3_performanceCompressionRatioZstd();
         break;
-    
+
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         bmqtst::TestHelperUtil::testStatus() = -1;
