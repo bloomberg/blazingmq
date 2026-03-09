@@ -152,26 +152,25 @@ class DispatcherStats {
     /// dispatcher queues from the clients.
     struct DispatcherStatsIndex {
         enum Enum {
-            e_STAT_QUEUE                 = 0,  // Queue/Dequeue
-            e_STAT_TIME                  = 1,  // Event queued time
-            e_STAT_PROCESSING_TIME_START = 2,
-            /// Processing time for each event type. MUST be in the same order
-            /// as mqbi::DispatcherEventType
-            e_STAT_PROCESSING_TIME_UNDEFINED = e_STAT_PROCESSING_TIME_START,
-            e_STAT_PROCESSING_TIME_DISPATCHER,
-            e_STAT_PROCESSING_TIME_CALLBACK,
-            e_STAT_PROCESSING_TIME_CONTROL_MSG,
-            e_STAT_PROCESSING_TIME_CONFIRM,
-            e_STAT_PROCESSING_TIME_REJECT,
-            e_STAT_PROCESSING_TIME_PUSH,
-            e_STAT_PROCESSING_TIME_PUT,
-            e_STAT_PROCESSING_TIME_ACK,
-            e_STAT_PROCESSING_TIME_CLUSTER_STATE,
-            e_STAT_PROCESSING_TIME_STORAGE,
-            e_STAT_PROCESSING_TIME_RECOVERY,
-            e_STAT_PROCESSING_TIME_REPLICATION_RECEIPT,
-            e_STAT_PROCESSING_TIME_END =
-                e_STAT_PROCESSING_TIME_REPLICATION_RECEIPT
+            e_STAT_QUEUE                 = -2,  // Queue/Dequeue
+            e_STAT_TIME                  = -1,  // Event queued time
+
+            /// Processing times for each event type.
+            /// Each enum value MUST be equal to the corresponding
+            /// event type value in mqbi::DispatcherEventType
+            e_STAT_PROCESSING_TIME_UNDEFINED = 0,
+            e_STAT_PROCESSING_TIME_DISPATCHER = 1,
+            e_STAT_PROCESSING_TIME_CALLBACK = 2,
+            e_STAT_PROCESSING_TIME_CONTROL_MSG = 3,
+            e_STAT_PROCESSING_TIME_CONFIRM = 4,
+            e_STAT_PROCESSING_TIME_REJECT = 5,
+            e_STAT_PROCESSING_TIME_PUSH = 6,
+            e_STAT_PROCESSING_TIME_PUT = 7,
+            e_STAT_PROCESSING_TIME_ACK = 8,
+            e_STAT_PROCESSING_TIME_CLUSTER_STATE = 9,
+            e_STAT_PROCESSING_TIME_STORAGE = 10,
+            e_STAT_PROCESSING_TIME_RECOVERY = 11,
+            e_STAT_PROCESSING_TIME_REPLICATION_RECEIPT = 12
         };
     };
 
