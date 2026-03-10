@@ -481,9 +481,9 @@ static void test1_breathingTest()
 
         BMQTST_ASSERT_EQ(fh.flags(), 1000U);
         BMQTST_ASSERT_EQ(fh.type(), JournalOpType::e_RESIZE_STORAGE);
-        BMQTST_ASSERT_EQ(rsd.maxJournalFileSize(), 0x12345678);
-        BMQTST_ASSERT_EQ(rsd.maxDataFileSize(), 0x87654321);
-        BMQTST_ASSERT_EQ(rsd.maxQlistFileSize(), 0x12348765);
+        BMQTST_ASSERT_EQ(rsd.maxJournalFileSize(), 0x12345678UL);
+        BMQTST_ASSERT_EQ(rsd.maxDataFileSize(), 0x87654321UL);
+        BMQTST_ASSERT_EQ(rsd.maxQlistFileSize(), 0x12348765UL);
         BMQTST_ASSERT_EQ(fh.magic(), 0xdeadbeef);
     }
 }
