@@ -71,6 +71,18 @@ def _stop_cluster(cluster: Cluster) -> None:
     cluster.stop_nodes()
 
 
+def _clean_output(input: str) -> str:
+    """
+    Clean the output by removing any non-deterministic parts, such as timestamps.
+    """
+    data = json.loads(input)
+    for record in data["Records"]:
+        if "Timestamp" in record:
+            del record["Timestamp"]
+
+    return json.dumps(data)
+
+
 def _stop_cluster_and_compare_journal_files(
     leader_name: str, replica_name: str, cluster: Cluster
 ) -> None:
@@ -116,7 +128,7 @@ def _stop_cluster_and_compare_journal_files(
         )
 
         # Check that content of leader and replica journal files is equal
-        assert leader_res.stdout == replica_res.stdout, (
+        assert _clean_output(leader_res.stdout) == _clean_output(replica_res.stdout), (
             f"Leader and replica journal file contents differ for {leader_file} and {replica_file}"
         )
 
@@ -992,7 +1004,9 @@ def test_no_rollover_if_grow_limit_unset(
 
     # Assert that rollover is skipped because
     # rollover policy is not met and no growth limit
-    assert leader.outputs_substr("cannot be rolled over", 1)
+    assert leader.outputs_substr("cannot be rolled over", 1), (
+        "Rollover was not skipped as expected"
+    )
 
 
 @tweak.cluster.partition_config.max_journal_file_size(MAX_JOURNAL_FILE_SIZE)
@@ -1034,7 +1048,9 @@ def test_no_rollover_if_grow_limit_reached(
 
     # Assert that rollover is skipped because
     # rollover policy is not met and growth limit reached
-    assert leader.outputs_substr("cannot be rolled over", 1)
+    assert leader.outputs_substr("cannot be rolled over", 1), (
+        "Rollover was not skipped as expected"
+    )
 
 
 @tweak.cluster.partition_config.max_journal_file_size(MAX_JOURNAL_FILE_SIZE)
@@ -1070,7 +1086,9 @@ def test_rollover_no_file_size_change(
         i += 1
 
     # Assert that primary NOT issued `resize storage` record
-    assert not leader.outputs_substr("Issued a resize storage record", 0.1)
+    assert not leader.outputs_substr("Issued a resize storage record", 0.1), (
+        "`Resize storage` record was not issued as expected"
+    )
 
 
 @tweak.cluster.partition_config.max_journal_file_size(MAX_JOURNAL_FILE_SIZE)
@@ -1161,7 +1179,7 @@ def test_rollover_with_file_size_increase_and_decrease(
     )
 
     # Stop cluster before changing config
-    cluster.stop_nodes(prevent_leader_bounce=True)
+    _stop_cluster(cluster)
 
     # Modify cluster config for leader by setting smaller minAvailSpacePercent
     with open(
@@ -1172,6 +1190,7 @@ def test_rollover_with_file_size_increase_and_decrease(
         encoding="utf-8",
     ) as f:
         data = json.load(f)
+        data["myClusters"][0]["elector"]["quorum"] = 0  # force to be a leader
         data["myClusters"][0]["partitionConfig"]["minAvailSpacePercent"] = (
             20  # decrease to meet rollover policy
         )
@@ -1181,7 +1200,9 @@ def test_rollover_with_file_size_increase_and_decrease(
 
     # Start cluster and assert that leader is not changed
     cluster.start_nodes(wait_leader=True, wait_ready=True)
-    assert leader == cluster.last_known_leader
+    assert leader == cluster.last_known_leader, (
+        f"leader {leader} is not last_known_leader {cluster.last_known_leader}"
+    )
 
     leader.drain()
     replica.drain()
@@ -1189,7 +1210,7 @@ def test_rollover_with_file_size_increase_and_decrease(
     # Put messages with confirm to initiate the rollover
     # and meet the rollover policy
     i = 1
-    while not leader.outputs_substr("Initiating rollover", 0.01):
+    while not leader.outputs_substr("Initiating rollover", 0.1):
         assert i < 8, "Rollover was not initiated"
         producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
         consumer.wait_push_event()
@@ -1215,7 +1236,9 @@ def test_rollover_with_file_size_increase_and_decrease(
 
     # Wait until rollover completed at all nodes
     for node in cluster.nodes():
-        assert node.outputs_substr("ROLLOVER COMPLETE", 3)
+        assert node.outputs_substr("ROLLOVER COMPLETE", 3), (
+            f"Node {node} did not output 'ROLLOVER COMPLETE'"
+        )
 
     # Check that leader and replica journal files are equal (including header with file size)
     _stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
