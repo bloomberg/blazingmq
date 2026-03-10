@@ -71,11 +71,11 @@ def _stop_cluster(cluster: Cluster) -> None:
     cluster.stop_nodes()
 
 
-def _clean_output(input: str) -> str:
+def _clean_output(output_str: str) -> str:
     """
     Clean the output by removing any non-deterministic parts, such as timestamps.
     """
-    data = json.loads(input)
+    data = json.loads(output_str)
     for record in data["Records"]:
         if "Timestamp" in record:
             del record["Timestamp"]
