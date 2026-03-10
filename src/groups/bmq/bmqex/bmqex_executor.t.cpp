@@ -114,18 +114,18 @@ class StatExecutor {
 
     /// Perform `++statistics()->d_postCallCount` followed by `f()`.
     template <class FUNCTION>
-    void post(FUNCTION f) const
+    void post(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) f) const
     {
         ++d_statistics_p->d_postCallCount;
-        f();
+        bslmf::MovableRefUtil::access(f)();
     }
 
     /// Perform `++statistics()->d_dispatchCallCount` followed by `f()`.
     template <class FUNCTION>
-    void dispatch(FUNCTION f) const
+    void dispatch(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) f) const
     {
         ++d_statistics_p->d_dispatchCallCount;
-        f();
+        bslmf::MovableRefUtil::access(f)();
     }
 
   public:
