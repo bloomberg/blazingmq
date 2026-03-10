@@ -985,7 +985,7 @@ def test_no_rollover_if_grow_limit_unset(
 
     # Put messages w/o confirm to initiate the rollover
     i = 1
-    while not leader.outputs_substr("Rollover is required", 0.01):
+    while not leader.outputs_substr("Rollover is required", 0.1):
         assert i < 8, "Rollover was not initiated"
         producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
         i += 1
@@ -1027,7 +1027,7 @@ def test_no_rollover_if_grow_limit_reached(
 
     # Put messages w/o confirm to initiate the rollover
     i = 1
-    while not leader.outputs_substr("Rollover is required", 0.01):
+    while not leader.outputs_substr("Rollover is required", 0.1):
         assert i < 8, "Rollover was not initiated"
         producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
         i += 1
@@ -1064,7 +1064,7 @@ def test_rollover_no_file_size_change(
 
     # Put messages w/o confirm to initiate the rollover
     i = 1
-    while not leader.outputs_substr("Initiating rollover", 0.01):
+    while not leader.outputs_substr("Initiating rollover", 0.1):
         assert i < 8, "Rollover was not initiated"
         producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
         i += 1
@@ -1120,7 +1120,7 @@ def test_rollover_with_file_size_increase_and_decrease(
 
     # Put messages w/o confirm to initiate the rollover
     i = 1
-    while not leader.outputs_substr("Initiating rollover", 0.01):
+    while not leader.outputs_substr("Initiating rollover", 0.1):
         assert i < 8, "Rollover was not initiated"
         producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
         i += 1

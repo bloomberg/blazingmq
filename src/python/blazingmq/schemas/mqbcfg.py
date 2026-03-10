@@ -1416,7 +1416,7 @@ class PartitionConfig:
         },
     )
     data_file_grow_limit: int = field(
-        default=25769803776,
+        default=None,
         metadata={
             "name": "dataFileGrowLimit",
             "type": "Element",
@@ -1425,7 +1425,7 @@ class PartitionConfig:
         },
     )
     journal_file_grow_limit: int = field(
-        default=4294967296,
+        default=None,
         metadata={
             "name": "journalFileGrowLimit",
             "type": "Element",
@@ -1434,7 +1434,7 @@ class PartitionConfig:
         },
     )
     q_list_file_grow_limit: int = field(
-        default=1073741824,
+        default=None,
         metadata={
             "name": "qListFileGrowLimit",
             "type": "Element",
