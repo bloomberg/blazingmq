@@ -1131,12 +1131,18 @@ def test_rollover_with_file_size_increase_and_decrease(
         MAX_JOURNAL_FILE_SIZE + MAX_JOURNAL_FILE_SIZE * GROW_STEP_PERCENT // 100
     )
     assert leader.outputs_regex(
-        r"Issued a resize storage record[\s\S]*journalFileSize = {0}".format(expected_size), 0.1
+        r"Issued a resize storage record[\s\S]*journalFileSize = {0}".format(
+            expected_size
+        ),
+        0.1,
     )
 
     # Assert that replica issued `resize storage` record
     assert replica.outputs_regex(
-        r"Received ResizeStorage record[\s\S]*journalFileSize = {0}".format(expected_size), 1
+        r"Received ResizeStorage record[\s\S]*journalFileSize = {0}".format(
+            expected_size
+        ),
+        1,
     )
 
     # Wait until rollover completed for all nodes
@@ -1147,8 +1153,12 @@ def test_rollover_with_file_size_increase_and_decrease(
     _stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
 
     # Check that leader and replica data and qlist files headers are equal
-    _stop_cluster_and_compare_partition_file_headers(leader.name, replica.name, cluster, "/*.bmq_data")
-    _stop_cluster_and_compare_partition_file_headers(leader.name, replica.name, cluster, "/*.bmq_qlist")
+    _stop_cluster_and_compare_partition_file_headers(
+        leader.name, replica.name, cluster, "/*.bmq_data"
+    )
+    _stop_cluster_and_compare_partition_file_headers(
+        leader.name, replica.name, cluster, "/*.bmq_qlist"
+    )
 
     # Stop cluster before changing config
     cluster.stop_nodes(prevent_leader_bounce=True)
@@ -1189,13 +1199,17 @@ def test_rollover_with_file_size_increase_and_decrease(
     # Assert that primary issued `resize storage` record
     # with decreased journal file size
     assert leader.outputs_regex(
-        r"Issued a resize storage record[\s\S]*journalFileSize = {0}".format(MAX_JOURNAL_FILE_SIZE),
+        r"Issued a resize storage record[\s\S]*journalFileSize = {0}".format(
+            MAX_JOURNAL_FILE_SIZE
+        ),
         0.1,
     )
 
     # Assert that replica issued `resize storage` record
     assert replica.outputs_regex(
-        r"Received ResizeStorage record[\s\S]*journalFileSize = {0}".format(MAX_JOURNAL_FILE_SIZE),
+        r"Received ResizeStorage record[\s\S]*journalFileSize = {0}".format(
+            MAX_JOURNAL_FILE_SIZE
+        ),
         1,
     )
 
@@ -1207,5 +1221,9 @@ def test_rollover_with_file_size_increase_and_decrease(
     _stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
 
     # Check that leader and replica data and qlist files headers are equal
-    _stop_cluster_and_compare_partition_file_headers(leader.name, replica.name, cluster, "/*.bmq_data")
-    _stop_cluster_and_compare_partition_file_headers(leader.name, replica.name, cluster, "/*.bmq_qlist")
+    _stop_cluster_and_compare_partition_file_headers(
+        leader.name, replica.name, cluster, "/*.bmq_data"
+    )
+    _stop_cluster_and_compare_partition_file_headers(
+        leader.name, replica.name, cluster, "/*.bmq_qlist"
+    )
