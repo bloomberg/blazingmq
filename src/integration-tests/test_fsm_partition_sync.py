@@ -1172,7 +1172,7 @@ def test_rollover_with_file_size_increase_and_decrease(
     for node in cluster.nodes():
         assert node.outputs_substr("ROLLOVER COMPLETE", 3)
 
-    # Stop cluster and check that leader and replica journal files are equal 
+    # Stop cluster and check that leader and replica journal files are equal
     # (including header with file size)
     _stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
 
@@ -1201,9 +1201,7 @@ def test_rollover_with_file_size_increase_and_decrease(
         f.truncate()
 
     # Start all cluster nodes, `leader` is the first, force it to be a leader
-    sorted_nodes = sorted(
-        cluster.nodes(), key=lambda node: 0 if node == leader else 1
-    )
+    sorted_nodes = sorted(cluster.nodes(), key=lambda node: 0 if node == leader else 1)
     for node in sorted_nodes:
         node.start()
         node.wait_until_started()
