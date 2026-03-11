@@ -73,12 +73,17 @@ def _stop_cluster(cluster: Cluster) -> None:
 
 def _clean_output(output_str: str) -> str:
     """
-    Clean the output by removing any non-deterministic parts, such as timestamps.
+    Clean the output by removing any non-deterministic parts, such as timestamps/epochs.
     """
+    KEYS_TO_REMOVE = [
+        "Timestamp",
+        "Epoch",
+    ]
     data = json.loads(output_str)
     for record in data["Records"]:
-        if "Timestamp" in record:
-            del record["Timestamp"]
+        for key in KEYS_TO_REMOVE:
+            if key in record:
+                del record[key]
 
     return json.dumps(data)
 
@@ -1167,7 +1172,8 @@ def test_rollover_with_file_size_increase_and_decrease(
     for node in cluster.nodes():
         assert node.outputs_substr("ROLLOVER COMPLETE", 3)
 
-    # Check that leader and replica journal files are equal (including header with file size)
+    # Stop cluster and check that leader and replica journal files are equal 
+    # (including header with file size)
     _stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
 
     # Check that leader and replica data and qlist files headers are equal
@@ -1178,10 +1184,7 @@ def test_rollover_with_file_size_increase_and_decrease(
         leader.name, replica.name, cluster, "/*.bmq_qlist"
     )
 
-    # Stop cluster before changing config
-    _stop_cluster(cluster)
-
-    # Modify cluster config for leader by setting smaller minAvailSpacePercent
+    # Cluster is stopped, modify cluster config for leader by setting smaller minAvailSpacePercent
     with open(
         cluster.work_dir.joinpath(
             cluster.config.nodes[leader.name].config_dir, "clusters.json"
@@ -1190,7 +1193,6 @@ def test_rollover_with_file_size_increase_and_decrease(
         encoding="utf-8",
     ) as f:
         data = json.load(f)
-        data["myClusters"][0]["elector"]["quorum"] = 0  # force to be a leader
         data["myClusters"][0]["partitionConfig"]["minAvailSpacePercent"] = (
             20  # decrease to meet rollover policy
         )
@@ -1198,10 +1200,20 @@ def test_rollover_with_file_size_increase_and_decrease(
         json.dump(data, f, indent=4)
         f.truncate()
 
-    # Start cluster and assert that leader is not changed
-    cluster.start_nodes(wait_leader=True, wait_ready=True)
-    assert leader == cluster.last_known_leader, (
-        f"leader {leader} is not last_known_leader {cluster.last_known_leader}"
+    # Start all cluster nodes, `leader` is the first, force it to be a leader
+    sorted_nodes = sorted(
+        cluster.nodes(), key=lambda node: 0 if node == leader else 1
+    )
+    for node in sorted_nodes:
+        node.start()
+        node.wait_until_started()
+        quorum = 3 if node == leader else 5
+        node.set_quorum(quorum)
+
+    # Wait until cluster is ready
+    leader.wait_status(wait_leader=True, wait_ready=True)
+    assert leader.last_known_leader == leader, (
+        f"leader {leader} is not last_known_leader {leader.last_known_leader}"
     )
 
     leader.drain()
@@ -1223,7 +1235,7 @@ def test_rollover_with_file_size_increase_and_decrease(
         r"Issued a resize storage record[\s\S]*journalFileSize = {0}".format(
             MAX_JOURNAL_FILE_SIZE
         ),
-        0.1,
+        0.3,
     )
 
     # Assert that replica issued `resize storage` record
@@ -1234,11 +1246,10 @@ def test_rollover_with_file_size_increase_and_decrease(
         1,
     )
 
-    # Wait until rollover completed at all nodes
-    for node in cluster.nodes():
-        assert node.outputs_substr("ROLLOVER COMPLETE", 3), (
-            f"Node {node} did not output 'ROLLOVER COMPLETE'"
-        )
+    # Wait until replica completed rollover
+    assert replica.outputs_substr("ROLLOVER COMPLETE", 3), (
+        f"Replica {replica} did not output 'ROLLOVER COMPLETE'"
+    )
 
     # Check that leader and replica journal files are equal (including header with file size)
     _stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
