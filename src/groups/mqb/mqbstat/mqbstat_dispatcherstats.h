@@ -122,9 +122,6 @@ class DispatcherStats {
     /// dispatcher queues from the clients.
     struct DispatcherStatsIndex {
         enum Enum {
-            e_STAT_QUEUE = -2,  // Queue/Dequeue
-            e_STAT_TIME  = -1,  // Event queued time
-
             /// Processing times for each event type.
             /// Each enum value MUST be equal to the corresponding
             /// event type value in mqbi::DispatcherEventType
@@ -140,7 +137,10 @@ class DispatcherStats {
             e_STAT_PROCESSING_TIME_CLUSTER_STATE       = 9,
             e_STAT_PROCESSING_TIME_STORAGE             = 10,
             e_STAT_PROCESSING_TIME_RECOVERY            = 11,
-            e_STAT_PROCESSING_TIME_REPLICATION_RECEIPT = 12
+            e_STAT_PROCESSING_TIME_REPLICATION_RECEIPT = 12,
+            /// Other queue metrics
+            e_STAT_QUEUE = 13,  // Queue/Dequeue
+            e_STAT_TIME  = 14,  // Event queued time
         };
     };
 

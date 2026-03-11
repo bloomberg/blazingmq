@@ -205,8 +205,6 @@ DispatcherStatsUtil::initializeStatContext(int               historySize,
         .defaultHistorySize(historySize)
         .statValueAllocator(allocator)
         .storeExpiredSubcontextValues(true)
-        .value("queued_count")
-        .value("queued_time", bmqst::StatValue::e_DISCRETE)
         .value("processing_time_undefined", bmqst::StatValue::e_DISCRETE)
         .value("processing_time_dispatcher", bmqst::StatValue::e_DISCRETE)
         .value("processing_time_callback", bmqst::StatValue::e_DISCRETE)
@@ -220,7 +218,9 @@ DispatcherStatsUtil::initializeStatContext(int               historySize,
         .value("processing_time_storage", bmqst::StatValue::e_DISCRETE)
         .value("processing_time_recovery", bmqst::StatValue::e_DISCRETE)
         .value("processing_time_replication_receipt",
-               bmqst::StatValue::e_DISCRETE);
+               bmqst::StatValue::e_DISCRETE)
+        .value("queued_count")
+        .value("queued_time", bmqst::StatValue::e_DISCRETE);
 
     return bsl::shared_ptr<bmqst::StatContext>(
         new (*allocator) bmqst::StatContext(config, allocator),
