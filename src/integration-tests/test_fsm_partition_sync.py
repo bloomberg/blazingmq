@@ -86,7 +86,7 @@ def _clean_output(output_str: str) -> str:
         "Record Timestamp",
         "Record Epoch",
         "SyncPoint Timestamp",
-        "SyncPoint Epoch"
+        "SyncPoint Epoch",
     ]
     data = json.loads(output_str)
     if "Records" in data:
