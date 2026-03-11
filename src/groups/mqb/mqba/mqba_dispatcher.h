@@ -345,6 +345,11 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
     /// `processorId`.
     void flushClients(mqbi::DispatcherClientType::Enum type, int processorId);
 
+    // PRIVATE ACCESSORS
+
+    /// Return the name of the queue the specified `client`.
+    bsl::string queueName(const mqbi::DispatcherClient* client) const;
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(Dispatcher, bslma::UsesBslmaAllocator)

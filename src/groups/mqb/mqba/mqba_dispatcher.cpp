@@ -44,8 +44,7 @@ namespace BloombergLP {
 namespace mqba {
 
 namespace {
-const double k_QUEUE_STUCK_INTERVAL = 3 * 60.0;
-const int    k_POOL_GROW_BY         = 1024;
+const int k_POOL_GROW_BY = 1024;
 }  // close unnamed namespace
 
 // -------------------------
@@ -254,11 +253,11 @@ int Dispatcher::startContext(bsl::ostream&                    errorDescription,
 
     processorPoolConfig.setName(mqbi::DispatcherClientType::toAscii(type))
         .setEventScheduler(d_scheduler_p)
-        .setMonitorAlarm("ALARM [DISPATCHER_QUEUE_STUCK] ",
-                         bsls::TimeInterval(k_QUEUE_STUCK_INTERVAL));
-    // TBD: .statContext(...) / .createSubcontext(true)
-    //      We should have subcontext per each type of event (PUSH, PUT,
-    //      CALLBACK, ACK, ...)
+        .setMonitorAlarm(
+            "ALARM [DISPATCHER_QUEUE_STUCK] ",
+            bsls::TimeInterval(d_config.alarmTimeoutMs() / 1000.0))
+        .setMonitorWarningTimeout(
+            bsls::TimeInterval(d_config.warningTimeoutMs() / 1000.0));
 
     context->d_processorPool_mp.load(
         new (*d_allocator_p) ProcessorPool(processorPoolConfig, d_allocator_p),
@@ -372,6 +371,16 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
             dispatcherContext.d_statContexts[processorId].get(),
             event->type(),
             processingTime);
+
+        if (processingTime / bdlt::TimeUnitRatio::k_NS_PER_MS >
+            static_cast<bsls::Types::Int64>(d_config.warningTimeoutMs())) {
+            BALL_LOG_WARN << "Queue '" << queueName(event->destination())
+                          << "' has processed an event in "
+                          << bmqu::PrintUtil::prettyTimeInterval(
+                                 processingTime)
+                          << " Current queue size: "
+                          << numProcessorEvents(event->destination());
+        }
     }
     else {
         // Empty `event` means queue is empty
@@ -396,6 +405,20 @@ void Dispatcher::flushClients(mqbi::DispatcherClientType::Enum type,
         flushList[i]->dispatcherClientData().setAddedToFlushList(false);
     }
     flushList.clear();
+}
+
+// PRIVATE ACCESSORS
+
+/// Return the name of the queue the specified `client`.
+bsl::string Dispatcher::queueName(const mqbi::DispatcherClient* client) const
+{
+    BSLS_ASSERT_SAFE(client);
+
+    const mqbi::DispatcherClientData& data    = client->dispatcherClientData();
+    mqbi::DispatcherClientType::Enum  type    = data.clientType();
+    int                               queueId = data.processorHandle();
+
+    return d_contexts[type]->d_processorPool_mp->queueName(queueId);
 }
 
 Dispatcher::Dispatcher(const mqbcfg::DispatcherConfig& config,

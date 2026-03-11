@@ -1,4 +1,4 @@
-// Copyright 2025 Bloomberg Finance L.P.
+// Copyright 2026 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -45,6 +45,7 @@
 
 #include <bsl_iosfwd.h>
 #include <bsl_limits.h>
+#include <bsl_type_traits.h>
 
 #include <bsl_ostream.h>
 #include <bsl_string.h>
@@ -8256,29 +8257,41 @@ class DispatcherConfig {
     DispatcherProcessorConfig d_sessions;
     DispatcherProcessorConfig d_queues;
     DispatcherProcessorConfig d_clusters;
+    int                       d_alarmTimeoutMs;
+    int                       d_warningTimeoutMs;
 
     // PRIVATE ACCESSORS
     template <typename t_HASH_ALGORITHM>
     void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
 
+    bool isEqualTo(const DispatcherConfig& rhs) const;
+
   public:
     // TYPES
     enum {
-        ATTRIBUTE_ID_SESSIONS = 0,
-        ATTRIBUTE_ID_QUEUES   = 1,
-        ATTRIBUTE_ID_CLUSTERS = 2
+        ATTRIBUTE_ID_SESSIONS           = 0,
+        ATTRIBUTE_ID_QUEUES             = 1,
+        ATTRIBUTE_ID_CLUSTERS           = 2,
+        ATTRIBUTE_ID_ALARM_TIMEOUT_MS   = 3,
+        ATTRIBUTE_ID_WARNING_TIMEOUT_MS = 4
     };
 
-    enum { NUM_ATTRIBUTES = 3 };
+    enum { NUM_ATTRIBUTES = 5 };
 
     enum {
-        ATTRIBUTE_INDEX_SESSIONS = 0,
-        ATTRIBUTE_INDEX_QUEUES   = 1,
-        ATTRIBUTE_INDEX_CLUSTERS = 2
+        ATTRIBUTE_INDEX_SESSIONS           = 0,
+        ATTRIBUTE_INDEX_QUEUES             = 1,
+        ATTRIBUTE_INDEX_CLUSTERS           = 2,
+        ATTRIBUTE_INDEX_ALARM_TIMEOUT_MS   = 3,
+        ATTRIBUTE_INDEX_WARNING_TIMEOUT_MS = 4
     };
 
     // CONSTANTS
     static const char CLASS_NAME[];
+
+    static const int DEFAULT_INITIALIZER_ALARM_TIMEOUT_MS;
+
+    static const int DEFAULT_INITIALIZER_WARNING_TIMEOUT_MS;
 
     static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
@@ -8345,6 +8358,14 @@ class DispatcherConfig {
     // Return a reference to the modifiable "Clusters" attribute of this
     // object.
 
+    int& alarmTimeoutMs();
+    // Return a reference to the modifiable "AlarmTimeoutMs" attribute of
+    // this object.
+
+    int& warningTimeoutMs();
+    // Return a reference to the modifiable "WarningTimeoutMs" attribute of
+    // this object.
+
     // ACCESSORS
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
@@ -8400,6 +8421,12 @@ class DispatcherConfig {
     // Return a reference offering non-modifiable access to the "Clusters"
     // attribute of this object.
 
+    int alarmTimeoutMs() const;
+    // Return the value of the "AlarmTimeoutMs" attribute of this object.
+
+    int warningTimeoutMs() const;
+    // Return the value of the "WarningTimeoutMs" attribute of this object.
+
     // HIDDEN FRIENDS
     friend bool operator==(const DispatcherConfig& lhs,
                            const DispatcherConfig& rhs)
@@ -8407,9 +8434,7 @@ class DispatcherConfig {
     // have the same value, and 'false' otherwise.  Two attribute objects
     // have the same value if each respective attribute has the same value.
     {
-        return lhs.sessions() == rhs.sessions() &&
-               lhs.queues() == rhs.queues() &&
-               lhs.clusters() == rhs.clusters();
+        return lhs.isEqualTo(rhs);
     }
 
     friend bool operator!=(const DispatcherConfig& lhs,
@@ -18397,6 +18422,17 @@ void DispatcherConfig::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     hashAppend(hashAlgorithm, this->sessions());
     hashAppend(hashAlgorithm, this->queues());
     hashAppend(hashAlgorithm, this->clusters());
+    hashAppend(hashAlgorithm, this->alarmTimeoutMs());
+    hashAppend(hashAlgorithm, this->warningTimeoutMs());
+}
+
+inline bool DispatcherConfig::isEqualTo(const DispatcherConfig& rhs) const
+{
+    return this->sessions() == rhs.sessions() &&
+           this->queues() == rhs.queues() &&
+           this->clusters() == rhs.clusters() &&
+           this->alarmTimeoutMs() == rhs.alarmTimeoutMs() &&
+           this->warningTimeoutMs() == rhs.warningTimeoutMs();
 }
 
 // CLASS METHODS
@@ -18423,6 +18459,19 @@ int DispatcherConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
+    ret = manipulator(&d_alarmTimeoutMs,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ALARM_TIMEOUT_MS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(
+        &d_warningTimeoutMs,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_WARNING_TIMEOUT_MS]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -18443,6 +18492,16 @@ int DispatcherConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
     case ATTRIBUTE_ID_CLUSTERS: {
         return manipulator(&d_clusters,
                            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CLUSTERS]);
+    }
+    case ATTRIBUTE_ID_ALARM_TIMEOUT_MS: {
+        return manipulator(
+            &d_alarmTimeoutMs,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ALARM_TIMEOUT_MS]);
+    }
+    case ATTRIBUTE_ID_WARNING_TIMEOUT_MS: {
+        return manipulator(
+            &d_warningTimeoutMs,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_WARNING_TIMEOUT_MS]);
     }
     default: return NOT_FOUND;
     }
@@ -18479,6 +18538,16 @@ inline DispatcherProcessorConfig& DispatcherConfig::clusters()
     return d_clusters;
 }
 
+inline int& DispatcherConfig::alarmTimeoutMs()
+{
+    return d_alarmTimeoutMs;
+}
+
+inline int& DispatcherConfig::warningTimeoutMs()
+{
+    return d_warningTimeoutMs;
+}
+
 // ACCESSORS
 template <typename t_ACCESSOR>
 int DispatcherConfig::accessAttributes(t_ACCESSOR& accessor) const
@@ -18496,6 +18565,18 @@ int DispatcherConfig::accessAttributes(t_ACCESSOR& accessor) const
     }
 
     ret = accessor(d_clusters, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CLUSTERS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_alarmTimeoutMs,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ALARM_TIMEOUT_MS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_warningTimeoutMs,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_WARNING_TIMEOUT_MS]);
     if (ret) {
         return ret;
     }
@@ -18520,6 +18601,16 @@ int DispatcherConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
     case ATTRIBUTE_ID_CLUSTERS: {
         return accessor(d_clusters,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CLUSTERS]);
+    }
+    case ATTRIBUTE_ID_ALARM_TIMEOUT_MS: {
+        return accessor(
+            d_alarmTimeoutMs,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ALARM_TIMEOUT_MS]);
+    }
+    case ATTRIBUTE_ID_WARNING_TIMEOUT_MS: {
+        return accessor(
+            d_warningTimeoutMs,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_WARNING_TIMEOUT_MS]);
     }
     default: return NOT_FOUND;
     }
@@ -18554,6 +18645,16 @@ inline const DispatcherProcessorConfig& DispatcherConfig::queues() const
 inline const DispatcherProcessorConfig& DispatcherConfig::clusters() const
 {
     return d_clusters;
+}
+
+inline int DispatcherConfig::alarmTimeoutMs() const
+{
+    return d_alarmTimeoutMs;
+}
+
+inline int DispatcherConfig::warningTimeoutMs() const
+{
+    return d_warningTimeoutMs;
 }
 
 // -----------------------
@@ -21346,6 +21447,13 @@ inline const AppConfig& Configuration::appConfig() const
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
+// GENERATED BY BLP_BAS_CODEGEN_2026.02.26
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd
+// ----------------------------------------------------------------------------
+// NOTICE:
+//      Copyright 2026 Bloomberg Finance L.P. All rights reserved.
+//      Property of Bloomberg Finance L.P. (BFLP)
+//      This software is made available solely pursuant to the
+//      terms of a BFLP license agreement which governs its use.
+// ------------------------------- END-OF-FILE --------------------------------
