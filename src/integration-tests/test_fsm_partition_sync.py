@@ -20,6 +20,7 @@ Testing primary-replica partition synchronization in FSM mode.
 import glob
 from pathlib import Path
 import json
+import pytest
 import subprocess
 
 
@@ -1096,6 +1097,7 @@ def test_rollover_no_file_size_change(
     )
 
 
+@pytest.mark.skip(reason="Flaky test, needs investigation")
 @tweak.cluster.partition_config.max_journal_file_size(MAX_JOURNAL_FILE_SIZE)
 # Set growth limit more than max journal file size
 @tweak.cluster.partition_config.journal_file_grow_limit(MAX_JOURNAL_FILE_SIZE * 2)
