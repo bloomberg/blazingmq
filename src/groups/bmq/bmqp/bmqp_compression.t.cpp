@@ -284,7 +284,7 @@ static void eCompressDecompressHelper(
     // get compressed data and compare with expected_compressed
     BSLS_ASSERT_SAFE(compressed.numDataBuffers() == compressedBuffersNum);
 
-    if (compressedBuffersNum == 1 && expectedCompressed != nullptr) {
+    if (compressedBuffersNum == 1 && expectedCompressed != NULL) {
         int   bufferSize     = bmqu::BlobUtil::bufferSize(compressed, 0);
         char* receivedBuffer = compressed.buffer(0).data();
 
@@ -851,10 +851,10 @@ static void test3_compression_decompression_zstd()
             int         d_line;
             const char* d_data;
             const char* d_expected;
-        } k_DATA[] = {{L_, "Hello World", nullptr},
-                      {L_, "HelloHello", nullptr},
-                      {L_, "abcdefghij", nullptr},
-                      {L_, "Hello Hello Hello Hello Hello", nullptr}};
+        } k_DATA[] = {{L_, "Hello World", NULL},
+                      {L_, "HelloHello", NULL},
+                      {L_, "abcdefghij", NULL},
+                      {L_, "Hello Hello Hello Hello Hello", NULL}};
 
         const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
@@ -902,7 +902,6 @@ static void test3_compression_decompression_zstd()
             const char* d_data;
             const char* d_expected;
             int         d_compressedBuffersNum;
-            ;
         } k_DATA[] = {
             {L_,
              "yhemjqtitnqrwrupsapufiulldbmdyeggntrvaplnqlxchojckigrkoizdbzkqpw"
@@ -937,7 +936,7 @@ static void test3_compression_decompression_zstd()
              "blwwvqfljopsieqakcjbpilsjxfvhczzozxydwctdszapwvlszcmpqkkbntxvaca"
              "hatxsymuemoxplwfyorvfselrifgrijlcyuugsdexrsanxlcezwdhqstcbyhtojo"
              "nrhiouftlxjcqmjtlfogwggkejsszpxyqxod",
-             nullptr,
+             NULL,
              2}};
 
         const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);

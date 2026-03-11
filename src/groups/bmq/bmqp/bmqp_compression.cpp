@@ -374,7 +374,8 @@ int ZZstdStream::deflateZstd(ZZstdStream* stream, ZSTD_EndDirective endOp)
     return 0;
 };
 
-int ZZstdStream::inflateZstd(ZZstdStream* stream, ZSTD_EndDirective endOp)
+int ZZstdStream::inflateZstd(ZZstdStream*                        stream,
+                             BSLA_MAYBE_UNUSED ZSTD_EndDirective endOp)
 {
     ZSTD_inBuffer  in  = {stream->next_in, stream->avail_in, 0};
     ZSTD_outBuffer out = {stream->next_out, stream->avail_out, 0};
@@ -619,6 +620,14 @@ int Compression::compress(bdlbb::Blob*                         output,
                                               Z_DEFAULT_COMPRESSION,
                                               errorStream,
                                               allocator);  // RETURN
+    case bmqt::CompressionAlgorithmType::e_ZSTD:
+        return Compression_Impl::compressZstd(output,
+                                              factory,
+                                              input,
+                                              Zstd::k_ZSTD_COMPRESSION_DEFAULT,
+                                              errorStream,
+                                              allocator);  // RETURN
+
     case bmqt::CompressionAlgorithmType::e_NONE:
         if (output->length() == 0) {
             *output = input;
@@ -819,7 +828,7 @@ int Compression_Impl::compressZstd(bdlbb::Blob*              output,
     }
     ZSTD_CCtx_setParameter(cctx, ZSTD_c_compressionLevel, level);
 
-    ZZstdStream stream = {cctx, 0, 0, nullptr, nullptr};
+    ZZstdStream stream = {cctx, 0, 0, NULL, NULL};
 
     const int result = Zstd::writeOutput(output,
                                          factory,
@@ -850,7 +859,7 @@ int Compression_Impl::decompressZstd(bdlbb::Blob*              output,
         return rc_STREAM_INIT_FAILURE;  // RETURN
     }
 
-    ZZstdStream stream = {dctx, 0, 0, nullptr, nullptr};
+    ZZstdStream stream = {dctx, 0, 0, NULL, NULL};
 
     const int result = Zstd::writeOutput(output,
                                          factory,
