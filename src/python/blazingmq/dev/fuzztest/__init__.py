@@ -424,8 +424,6 @@ def fuzz(host: str, port: int, request: Optional[str] = None) -> None:
         (close_queue, "close_queue"),
         (disconnect, "disconnect"),
     ]
-
-    # TODO: remove this workflow when Authentication becomes mandatory
     authn_bypass_workflow = [
         (negotiation_bypass_authentication, "negotiation_bypass_authentication")
     ]
