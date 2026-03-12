@@ -43,3 +43,6 @@ src/applications/bmqbrkr/etc/etc
 
 # 'sim_cpp11_features.pl' backups
 *.bak
+
+# Claude Code context files
+CLAUDE*.md
