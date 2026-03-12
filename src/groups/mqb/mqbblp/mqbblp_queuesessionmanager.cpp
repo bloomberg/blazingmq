@@ -77,6 +77,13 @@ void handleHolderDummy(BSLA_MAYBE_UNUSED const bsl::shared_ptr<void>& handle)
     // NOTHING
 }
 
+void clearClient(mqbi::QueueHandle* queueHandle)
+{
+    if (queueHandle) {
+        queueHandle->clearClient(false);
+    }
+}
+
 }  // close unnamed namespace
 
 // -------------------------
@@ -230,6 +237,8 @@ void QueueSessionManager::onQueueOpenCb(
 {
     // executed by *ANY* thread
 
+    bdlb::ScopeExitAny cleaner(bdlf::BindUtil::bind(clearClient, queueHandle));
+
     bmqu::AtomicValidatorGuard guard(validator.get());
     if (!guard.isValid()) {
         // The session was destroyed before we received the response (see
@@ -253,6 +262,8 @@ void QueueSessionManager::onQueueOpenCb(
                              responseCallback,
                              request),
         d_dispatcherClient_p);
+
+    cleaner.release();
 }
 
 void QueueSessionManager::onQueueOpenCbDispatched(
@@ -268,6 +279,8 @@ void QueueSessionManager::onQueueOpenCbDispatched(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_dispatcherClient_p->inDispatcherThread());
     BSLS_ASSERT_SAFE(request.choice().isOpenQueueValue());
+
+    bdlb::ScopeExitAny cleaner(bdlf::BindUtil::bind(clearClient, queueHandle));
 
     if (d_shutdownInProgress) {
         return;  // RETURN
@@ -330,6 +343,8 @@ void QueueSessionManager::onQueueOpenCbDispatched(
                 cluster,
                 queueFlags);
         }
+
+        cleaner.release();
     }
 
     responseCallback(status, queueHandle, openQueueResponse);

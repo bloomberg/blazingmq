@@ -299,12 +299,13 @@ void Queue::dropHandleDispatched(mqbi::QueueHandle* handle, bool doDeconfigure)
         isFinal = ((++citer) == handle->subStreamInfos().end());
         totalReadCount -= consumerHandleParams.readCount();
 
-        BALL_LOG_INFO << "For queue [" << handle->queue()->description()
-                      << "] and handle [" << handle->client() << ":"
-                      << handle->id() << "] " << "having [handleParamerers: "
-                      << handle->handleParameters() << "], dropping subStream "
-                      << "[" << subStreamInfo << "] having [streamParameters: "
-                      << info.d_streamParameters << "].";
+        BALL_LOG_INFO << "Dropping subStream for queue ["
+                      << handle->queue()->description() << "] and handle ["
+                      << handle->client() << ":" << handle->id()
+                      << "] handleParamerers [" << handle->handleParameters()
+                      << "], subStreamInfo [" << subStreamInfo
+                      << "], streamParameters [" << info.d_streamParameters
+                      << "].";
 
         if (doDeconfigure) {
             bmqp_ctrlmsg::StreamParameters nullStreamParameters;
