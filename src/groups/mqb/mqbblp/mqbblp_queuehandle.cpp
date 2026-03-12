@@ -548,6 +548,11 @@ void QueueHandle::deliverMessageImpl(
     BSLS_ASSERT_SAFE(subscriptions.size() >= 1 &&
                      subscriptions.size() <= d_subscriptions.size());
 
+    if (!d_clientContext_sp) {
+        // This client is gone
+        return;  // RETURN
+    }
+
     d_domainStats_p->onEvent<mqbstat::QueueStatsDomain::EventType::e_PUSH>(
         attributes.appDataLen());
 
