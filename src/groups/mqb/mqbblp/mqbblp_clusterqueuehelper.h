@@ -566,9 +566,6 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
                            bsls::Types::Uint64  generationCount,
                            int                  numAttempts);
 
-    void tryReopenQueueRequest(QueueContext*    queueContext,
-                               SubQueueContext* subQueueContext);
-
     /// Assign the upstream subQueueId in the specified `context`.  If the
     /// queue has already been opened with the appId in the `context`,
     /// assign the upstream subQueueId which was previously generated for
