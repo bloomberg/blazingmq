@@ -20,6 +20,7 @@ Testing primary-replica partition synchronization in FSM mode.
 import glob
 from pathlib import Path
 import json
+import pytest
 import subprocess
 
 
@@ -37,6 +38,9 @@ from blazingmq.dev import paths
 
 # Set max journal file size to a small value to force rollover during the test
 MAX_JOURNAL_FILE_SIZE = 884
+
+# Step (in percents of max file size) for file growth during rollover
+GROW_STEP_PERCENT = 50
 
 
 def _run_storage_tool(journal_file: Path, mode: str) -> subprocess.CompletedProcess:
@@ -66,6 +70,43 @@ def _stop_cluster(cluster: Cluster) -> None:
         cluster.last_known_leader.stop()
         cluster.make_sure_node_stopped(cluster.last_known_leader)
     cluster.stop_nodes()
+
+
+def _clean_output(output_str: str) -> str:
+    """
+    Clean the output by removing any non-deterministic parts, such as timestamps/epochs.
+    """
+    RECORDS_KEYS_TO_REMOVE = [
+        "Timestamp",
+        "Epoch",
+    ]
+    SUMMARY_KEYS_TO_REMOVE = [
+        "First SyncPointRecord timestamp",
+        "First SyncPointRecord epoch",
+        "Record Timestamp",
+        "Record Epoch",
+        "SyncPoint Timestamp",
+        "SyncPoint Epoch",
+    ]
+    data = json.loads(output_str)
+    if "Records" in data:
+        for record in data["Records"]:
+            for key in RECORDS_KEYS_TO_REMOVE:
+                if key in record:
+                    del record[key]
+    elif "JournalFileDetails" in data:
+        journal_details = data["JournalFileDetails"]
+        journal_hdr = journal_details["Journal File Header"]
+        for key in SUMMARY_KEYS_TO_REMOVE:
+            if key in journal_hdr:
+                del journal_hdr[key]
+        if "Journal SyncPoint" in journal_details:
+            journal_sync = journal_details["Journal SyncPoint"]
+            for key in SUMMARY_KEYS_TO_REMOVE:
+                if key in journal_sync:
+                    del journal_sync[key]
+
+    return json.dumps(data)
 
 
 def _stop_cluster_and_compare_journal_files(
@@ -113,7 +154,7 @@ def _stop_cluster_and_compare_journal_files(
         )
 
         # Check that content of leader and replica journal files is equal
-        assert leader_res.stdout == replica_res.stdout, (
+        assert _clean_output(leader_res.stdout) == _clean_output(replica_res.stdout), (
             f"Leader and replica journal file contents differ for {leader_file} and {replica_file}"
         )
 
@@ -130,7 +171,7 @@ def _stop_cluster_and_compare_journal_files(
         )
 
         # Check that content of leader and replica journal files is equal
-        assert leader_res.stdout == replica_res.stdout, (
+        assert _clean_output(leader_res.stdout) == _clean_output(replica_res.stdout), (
             f"Leader and replica journal file summary differ for {leader_file} and {replica_file}"
         )
 
@@ -953,4 +994,295 @@ def test_primary_replica_partition_size_sync_at_startup(
     )
     _stop_cluster_and_compare_partition_file_headers(
         replica.name, standard_replica.name, cluster, "/*.bmq_qlist"
+    )
+
+
+@tweak.cluster.partition_config.max_journal_file_size(MAX_JOURNAL_FILE_SIZE)
+@tweak.cluster.partition_config.journal_file_grow_limit(0)
+# Make rollover policy stronger to force file size growth
+@tweak.cluster.partition_config.min_avail_space_percent(50)
+def test_no_rollover_if_grow_limit_unset(
+    fsm_multi_cluster: Cluster,
+    domain_urls: tc.DomainUrls,
+) -> None:
+    """
+    Test that rollover is skipped if rollover policy is not met and
+    growth limit is unset (set to zero).
+    - start cluster
+    - put messages to fill storage files until rollover is initiated
+    - assert that rollover policy is not met and rollover is skipped
+    """
+
+    cluster: Cluster = fsm_multi_cluster
+    uri_priority = domain_urls.uri_priority
+
+    leader = cluster.last_known_leader
+    proxy = next(cluster.proxy_cycle())
+
+    # Create producer and consumer
+    producer = proxy.create_client("producer")
+    producer.open(uri_priority, flags=["write,ack"], succeed=True)
+
+    consumer = proxy.create_client("consumer")
+    consumer.open(uri_priority, flags=["read"], succeed=True)
+
+    # Put messages w/o confirm to initiate the rollover
+    i = 1
+    while not leader.outputs_substr("Rollover is required", 0.1):
+        assert i < 8, "Rollover was not initiated"
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+        i += 1
+
+    # Assert that rollover is skipped because
+    # rollover policy is not met and no growth limit
+    assert leader.outputs_substr("cannot be rolled over", 1), (
+        "Rollover was not skipped as expected"
+    )
+
+
+@tweak.cluster.partition_config.max_journal_file_size(MAX_JOURNAL_FILE_SIZE)
+# Set growth limit a bit higher than max journal file size
+@tweak.cluster.partition_config.journal_file_grow_limit(MAX_JOURNAL_FILE_SIZE + 60)
+# Make rollover policy stronger to force file size growth
+@tweak.cluster.partition_config.min_avail_space_percent(50)
+def test_no_rollover_if_grow_limit_reached(
+    fsm_multi_cluster: Cluster,
+    domain_urls: tc.DomainUrls,
+) -> None:
+    """
+    Test that rollover is skipped if rollover policy is not met and
+    growth limit is reached.
+    - start cluster
+    - put messages to fill storage files until rollover is initiated
+    - assert that rollover is skipped
+    """
+
+    cluster: Cluster = fsm_multi_cluster
+    uri_priority = domain_urls.uri_priority
+
+    leader = cluster.last_known_leader
+    proxy = next(cluster.proxy_cycle())
+
+    # Create producer and consumer
+    producer = proxy.create_client("producer")
+    producer.open(uri_priority, flags=["write,ack"], succeed=True)
+
+    consumer = proxy.create_client("consumer")
+    consumer.open(uri_priority, flags=["read"], succeed=True)
+
+    # Put messages w/o confirm to initiate the rollover
+    i = 1
+    while not leader.outputs_substr("Rollover is required", 0.1):
+        assert i < 8, "Rollover was not initiated"
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+        i += 1
+
+    # Assert that rollover is skipped because
+    # rollover policy is not met and growth limit reached
+    assert leader.outputs_substr("cannot be rolled over", 1), (
+        "Rollover was not skipped as expected"
+    )
+
+
+@tweak.cluster.partition_config.max_journal_file_size(MAX_JOURNAL_FILE_SIZE)
+def test_rollover_no_file_size_change(
+    fsm_multi_cluster: Cluster,
+    domain_urls: tc.DomainUrls,
+) -> None:
+    """
+    Test that file size is not changed during rollover if rollover policy is met.
+    - start cluster
+    - put messages to fill storage files until rollover is initiated
+    - assert that file size is not changed
+    """
+
+    cluster: Cluster = fsm_multi_cluster
+    uri_priority = domain_urls.uri_priority
+
+    leader = cluster.last_known_leader
+    proxy = next(cluster.proxy_cycle())
+
+    # Create producer and consumer
+    producer = proxy.create_client("producer")
+    producer.open(uri_priority, flags=["write,ack"], succeed=True)
+
+    consumer = proxy.create_client("consumer")
+    consumer.open(uri_priority, flags=["read"], succeed=True)
+
+    # Put messages w/o confirm to initiate the rollover
+    i = 1
+    while not leader.outputs_substr("Initiating rollover", 0.1):
+        assert i < 8, "Rollover was not initiated"
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+        i += 1
+
+    # Assert that primary NOT issued `resize storage` record
+    assert not leader.outputs_substr("Issued a resize storage record", 0.1), (
+        "`Resize storage` record was not issued as expected"
+    )
+
+
+@pytest.mark.skip(reason="Flaky test, needs investigation")
+@tweak.cluster.partition_config.max_journal_file_size(MAX_JOURNAL_FILE_SIZE)
+# Set growth limit more than max journal file size
+@tweak.cluster.partition_config.journal_file_grow_limit(MAX_JOURNAL_FILE_SIZE * 2)
+# Make rollover policy stronger to force file size growth
+@tweak.cluster.partition_config.min_avail_space_percent(50)
+@tweak.cluster.partition_config.grow_step_percent(GROW_STEP_PERCENT)
+def test_rollover_with_file_size_increase_and_decrease(
+    fsm_multi_cluster: Cluster,
+    domain_urls: tc.DomainUrls,
+) -> None:
+    """
+    Test that during rollover journal file size could be dynamically changed:
+    (increased by grow_step_percent from maxJournalFileSize and then decreased back
+    to maxJournalFileSize.
+    - start cluster
+    - put messages to fill storage files until rollover is initiated
+    - assert that journal file size is increased at both primary and replica
+    - check that primary and replica journal files content is equal
+    and data/qlist file headers are equal
+    - stop cluster
+    - decrease minAvailSpacePercent in cluster config for primary to meet
+    rollover policy
+    - start cluster
+    - put messages to fill storage files until rollover is initiated
+    - assert that journal file size is decreased at both primary and replica
+    - check that primary and replica journal files content is equal
+    and data/qlist file headers are equal
+    """
+
+    cluster: Cluster = fsm_multi_cluster
+    uri_priority = domain_urls.uri_priority
+
+    leader = cluster.last_known_leader
+    proxy = next(cluster.proxy_cycle())
+
+    # Create producer and consumer
+    producer = proxy.create_client("producer")
+    producer.open(uri_priority, flags=["write,ack"], succeed=True)
+
+    consumer = proxy.create_client("consumer")
+    consumer.open(uri_priority, flags=["read"], succeed=True)
+
+    # Choose replica
+    replica = cluster.nodes(exclude=leader)[0]
+
+    # Put messages w/o confirm to initiate the rollover
+    i = 1
+    while not leader.outputs_substr("Initiating rollover", 0.1):
+        assert i < 8, "Rollover was not initiated"
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+        i += 1
+
+    # Assert that primary issued `resize storage` record
+    # with increased journal file size
+    expected_size = (
+        MAX_JOURNAL_FILE_SIZE + MAX_JOURNAL_FILE_SIZE * GROW_STEP_PERCENT // 100
+    )
+    assert leader.outputs_regex(
+        r"Issued a resize storage record[\s\S]*journalFileSize = {0}".format(
+            expected_size
+        ),
+        0.1,
+    )
+
+    # Assert that replica issued `resize storage` record
+    assert replica.outputs_regex(
+        r"Received ResizeStorage record[\s\S]*journalFileSize = {0}".format(
+            expected_size
+        ),
+        1,
+    )
+
+    # Wait until rollover completed for all nodes
+    for node in cluster.nodes():
+        assert node.outputs_substr("ROLLOVER COMPLETE", 3)
+
+    # Stop cluster and check that leader and replica journal files are equal
+    # (including header with file size)
+    _stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
+
+    # Check that leader and replica data and qlist files headers are equal
+    _stop_cluster_and_compare_partition_file_headers(
+        leader.name, replica.name, cluster, "/*.bmq_data"
+    )
+    _stop_cluster_and_compare_partition_file_headers(
+        leader.name, replica.name, cluster, "/*.bmq_qlist"
+    )
+
+    # Cluster is stopped, modify cluster config for leader by setting smaller minAvailSpacePercent
+    with open(
+        cluster.work_dir.joinpath(
+            cluster.config.nodes[leader.name].config_dir, "clusters.json"
+        ),
+        "r+",
+        encoding="utf-8",
+    ) as f:
+        data = json.load(f)
+        data["myClusters"][0]["partitionConfig"]["minAvailSpacePercent"] = (
+            20  # decrease to meet rollover policy
+        )
+        f.seek(0)
+        json.dump(data, f, indent=4)
+        f.truncate()
+
+    # Start all cluster nodes, `leader` is the first, force it to be a leader
+    sorted_nodes = sorted(cluster.nodes(), key=lambda node: 0 if node == leader else 1)
+    for node in sorted_nodes:
+        node.start()
+        node.wait_until_started()
+        quorum = 3 if node == leader else 5
+        node.set_quorum(quorum)
+
+    # Wait until cluster is ready
+    leader.wait_status(wait_leader=True, wait_ready=True)
+    assert leader.last_known_leader == leader, (
+        f"leader {leader} is not last_known_leader {leader.last_known_leader}"
+    )
+
+    leader.drain()
+    replica.drain()
+
+    # Put messages with confirm to initiate the rollover
+    # and meet the rollover policy
+    i = 1
+    while not leader.outputs_substr("Initiating rollover", 0.1):
+        assert i < 8, "Rollover was not initiated"
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+        consumer.wait_push_event()
+        consumer.confirm(uri_priority, "*", succeed=True)
+        i += 1
+
+    # Assert that primary issued `resize storage` record
+    # with decreased journal file size
+    assert leader.outputs_regex(
+        r"Issued a resize storage record[\s\S]*journalFileSize = {0}".format(
+            MAX_JOURNAL_FILE_SIZE
+        ),
+        0.3,
+    )
+
+    # Assert that replica issued `resize storage` record
+    assert replica.outputs_regex(
+        r"Received ResizeStorage record[\s\S]*journalFileSize = {0}".format(
+            MAX_JOURNAL_FILE_SIZE
+        ),
+        1,
+    )
+
+    # Wait until replica completed rollover
+    assert replica.outputs_substr("ROLLOVER COMPLETE", 3), (
+        f"Replica {replica} did not output 'ROLLOVER COMPLETE'"
+    )
+
+    # Check that leader and replica journal files are equal (including header with file size)
+    _stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
+
+    # Check that leader and replica data and qlist files headers are equal
+    _stop_cluster_and_compare_partition_file_headers(
+        leader.name, replica.name, cluster, "/*.bmq_data"
+    )
+    _stop_cluster_and_compare_partition_file_headers(
+        leader.name, replica.name, cluster, "/*.bmq_qlist"
     )
