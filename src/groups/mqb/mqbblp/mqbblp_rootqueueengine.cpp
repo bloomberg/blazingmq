@@ -1050,6 +1050,13 @@ void RootQueueEngine::configureHandle(
                                      d_queueState_p->routingContext(),
                                      d_allocator_p),
                                  d_allocator_p);
+    const QueueHandleCatalog::Visitor& visitor = bdlf::BindUtil::bind(
+        &RootQueueEngine::rebuildSelectedApp,
+        this,
+        bdlf::PlaceHolders::_1,  // handle
+        bdlf::PlaceHolders::_2,  // info
+        iter,
+        previous.get());
 
     d_queueState_p->handleCatalog().iterateConsumers(
         bdlf::BindUtil::bind(&RootQueueEngine::rebuildSelectedApp,
@@ -1246,7 +1253,6 @@ void RootQueueEngine::releaseHandle(
                     // 'releaseHandle' that releases the handle.
                     BALL_LOG_ERROR
                         << "#QUEUE_IMPROPER_BEHAVIOR "
-                        << "For queue [" << d_queueState_p->uri() << "],  "
                         << "received a 'releaseHandle' for the handle [id: "
                         << handle->id() << ", clientPtr: " << handle->client()
                         << ", ptr: " << handle << "] without having first "

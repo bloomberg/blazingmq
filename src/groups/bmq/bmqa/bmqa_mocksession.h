@@ -556,6 +556,7 @@
 #include <bmqa_openqueuestatus.h>
 #include <bmqa_queueid.h>
 #include <bmqa_session.h>  // for 'bmqa::SessionEventHandler'
+#include <bmqp_blobpoolutil.h>
 #include <bmqt_queueoptions.h>
 #include <bmqt_sessionoptions.h>
 
@@ -694,9 +695,9 @@ struct MockSessionUtil {
     /// Create and return an `Event` configured as a message event of type
     /// `e_ACK` with the specified `acks` params using the specified
     /// `bufferFactory` and the specified `allocator` to supply memory.
-    static Event createAckEvent(const bsl::vector<AckParams>& acks,
-                                bdlbb::BlobBufferFactory*     bufferFactory,
-                                bslma::Allocator*             allocator);
+    static Event createAckEvent(const bsl::vector<AckParams>&   acks,
+                                bmqp::BlobPoolUtil::BlobSpPool* blobSpPool,
+                                bslma::Allocator*               allocator);
 
     /// Create and return an `Event` configured as a message event of type
     /// `e_PUSH` and with the specified `pushEventParams`, using the
@@ -704,6 +705,7 @@ struct MockSessionUtil {
     /// memory.
     static Event
     createPushEvent(const bsl::vector<PushMessageParams>& pushEventParams,
+                    bmqp::BlobPoolUtil::BlobSpPool*       blobSpPool,
                     bdlbb::BlobBufferFactory*             bufferFactory,
                     bslma::Allocator*                     allocator);
 
