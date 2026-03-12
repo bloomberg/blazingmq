@@ -3778,44 +3778,14 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
     const ClusterStatePartitionInfo* pinfo                  = 0;
 
     if (!allPartitions) {
-        pinfo = &(d_clusterState_p->partition(partitionId));
-        BSLS_ASSERT_SAFE(pinfo);
-        if (!hasActiveAvailablePrimary(partitionId)) {
-            BALL_LOG_INFO << d_cluster_p->description() << " Partition ["
-                          << partitionId
-                          << "]: Not restoring partition state because there "
-                          << "is no primary or primary isn't ACTIVE. Current "
-                          << "primary: "
-                          << (pinfo->primaryNode()
-                                  ? pinfo->primaryNode()->nodeDescription()
-                                  : "** null **")
-                          << ", primary status: " << pinfo->primaryStatus();
+        pinfo = activeAvailablePrimaryPartition(&isSelfPrimaryAndLeader,
+                                                partitionId);
+
+        if (!pinfo) {
             return;  // RETURN
         }
-
-        // Primary for this partitionId is ACTIVE.  Check if self is the
-        // primary and leader.  If self is primary but not leader, this is
-        // primary-leader divergence and we should not proceed with state
-        // restore.
-
-        isSelfPrimaryAndLeader =
-            pinfo->primaryNode() == d_clusterData_p->membership().selfNode() &&
-            d_clusterData_p->electorInfo().isSelfLeader();
     }
 
-    /// TODO (FSM); remove after switching to FSM
-    if (!d_cluster_p->isFSMWorkflow() && isSelfPrimaryAndLeader) {
-        // Note that this fails if there are data
-        mqbc::ClusterState::AssignmentVisitor doubleAssignmentVisitor =
-            bdlf::BindUtil::bindS(d_allocator_p,
-                                  &mqbi::StorageManager::unregisterQueue,
-                                  d_storageManager_p,
-                                  bdlf::PlaceHolders::_1,   // uri
-                                  bdlf::PlaceHolders::_2);  // partitionId),
-
-        d_clusterState_p->iterateDoubleAssignments(partitionId,
-                                                   doubleAssignmentVisitor);
-    }
     ConditionalAdvance<QueueContextMapConstIter> conditional;
     for (QueueContextMapConstIter cit = d_queues.cbegin();
          cit != d_queues.cend();
@@ -3850,134 +3820,139 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
 
                 continue;  // CONTINUE
             }
-        }
-        else {
-            // A specific partitionId is specified.  Attempt to re-issue
-            // open-queue requests for all appropriate queues assigned to that
-            // partition.
 
-            if (queueContext->partitionId() != partitionId) {
-                // Skip the queue as its assigned to a different partitionId.
-                continue;  // CONTINUE;
+            // Proceed as if a specific partitionId is specified.
+
+            pinfo = activeAvailablePrimaryPartition(
+                &isSelfPrimaryAndLeader,
+                queueContext->partitionId());
+            if (!pinfo) {
+                continue;
             }
+        }
+        else if (queueContext->partitionId() != partitionId) {
+            // Skip the queue as its assigned to a different partitionId.
+            continue;  // CONTINUE;
+        }
 
-            BSLS_ASSERT_SAFE(isQueueAssigned(*queueContext));
-            BSLS_ASSERT_SAFE(isQueuePrimaryAvailable(*queueContext));
+        // Attempt to re-issue open-queue requests for all appropriate queues
+        // assigned to that partition.
+
+        BSLS_ASSERT_SAFE(isQueueAssigned(*queueContext));
+        BSLS_ASSERT_SAFE(isQueuePrimaryAvailable(*queueContext));
 
             // Start restore cycle
             bsl::shared_ptr<PartitionReopenCycle> cycle =
                 startPartitionReopen(partitionId, pinfo->primaryLeaseId());
 
-            // Verify the CSL if needed by comparing it with the Domain config
-            if (liveQInfo.d_queue_sp) {
-                if (isSelfPrimaryAndLeader) {
-                    // We are assuming that it is not possible for a node to be
-                    // primary, lose primary-ship and regain primary-ship;
-                    // unless eventually the node went down in which case it
-                    // will start from fresh.
+        // Verify the CSL if needed by comparing it with the Domain config
+        if (liveQInfo.d_queue_sp) {
+            if (isSelfPrimaryAndLeader) {
+                // We are assuming that it is not possible for a node to be
+                // primary, lose primary-ship and regain primary-ship;
+                // unless eventually the node went down in which case it
+                // will start from fresh.
 
-                    // Moreover, since self node is now the primary, it is
-                    // important for it to register the queue with the
-                    // StorageManager.  This is logically equivalent to
-                    // registering the queue with StorageManager when a primary
-                    // node creates a local queue instance (see
-                    // 'createQueueFactory').
+                // Moreover, since self node is now the primary, it is
+                // important for it to register the queue with the
+                // StorageManager.  This is logically equivalent to
+                // registering the queue with StorageManager when a primary
+                // node creates a local queue instance (see
+                // 'createQueueFactory').
 
-                    bsl::vector<bsl::string> added(d_allocator_p);
-                    bsl::vector<bsl::string> removed(d_allocator_p);
-                    mqbi::Domain* domain = liveQInfo.d_queue_sp->domain();
+                bsl::vector<bsl::string> added(d_allocator_p);
+                bsl::vector<bsl::string> removed(d_allocator_p);
+                mqbi::Domain* domain = liveQInfo.d_queue_sp->domain();
 
-                    match(&added,
-                          &removed,
-                          *queueContext->d_stateQInfo_sp,
-                          domain->config().mode());
+                match(&added,
+                      &removed,
+                      *queueContext->d_stateQInfo_sp,
+                      domain->config().mode());
 
-                    if (!removed.empty() || !added.empty()) {
-                        VoidFunctor park = bdlf::BindUtil::bindS(
-                            d_allocator_p,
-                            &ClusterQueueHelper::convertToLocal,
-                            this,
-                            queueContext,
-                            domain);
+                if (!removed.empty() || !added.empty()) {
+                    VoidFunctor park = bdlf::BindUtil::bindS(
+                        d_allocator_p,
+                        &ClusterQueueHelper::convertToLocal,
+                        this,
+                        queueContext,
+                        domain);
 
-                        // Add to 'd_pendingUpdates' before calling
-                        // 'updateAppIds' which is asynchronous (CSL commit)
-                        liveQInfo.d_pendingUpdates.push_back(park);
+                    // Add to 'd_pendingUpdates' before calling
+                    // 'updateAppIds' which is asynchronous (CSL commit)
+                    liveQInfo.d_pendingUpdates.push_back(park);
 
-                        mqbi::ClusterErrorCode::Enum result =
-                            d_clusterStateManager_p->updateAppIds(
-                                added,
-                                removed,
-                                domain->name(),
-                                "");
+                    mqbi::ClusterErrorCode::Enum result =
+                        d_clusterStateManager_p->updateAppIds(added,
+                                                              removed,
+                                                              domain->name(),
+                                                              "");
 
-                        if (mqbi::ClusterErrorCode::e_OK == result) {
-                            // Cannot continue until 'onQueueUpdated'
-                            // Send QueueUpdateAdvisory and _wait_ for commit
+                    if (mqbi::ClusterErrorCode::e_OK == result) {
+                        // Cannot continue until 'onQueueUpdated'
+                        // Send QueueUpdateAdvisory and _wait_ for commit
 
-                            continue;  // CONTINUE
-                        }
-
-                        // An update error is CSL error (in
-                        // 'ClusterStateLedger::apply'). This queue cannot
-                        // convertToLocal
-                        // ('RootQueueEngine::initializeAppId' would assert
-                        // if there is no storage for some app).
-
-                        BSLS_ASSERT_SAFE(
-                            false &&
-                            "Failure to update Apps before convertToLocal");
+                        continue;  // CONTINUE
                     }
-                    else {
-                        convertToLocal(queueContext, domain);
-                    }
+
+                    // An update error is CSL error (in
+                    // 'ClusterStateLedger::apply'). This queue cannot
+                    // convertToLocal
+                    // ('RootQueueEngine::initializeAppId' would assert
+                    // if there is no storage for some app).
+
+                    BSLS_ASSERT_SAFE(
+                        false &&
+                        "Failure to update Apps before convertToLocal");
                 }
                 else {
-                    if (queueContext->d_liveQInfo.d_numQueueHandles != 0) {
-                        // In the case of a cluster member, queues are deleted
-                        // 'lazily' when receiving a notification from the
-                        // primary.  This replica may have fully closed the
-                        // queue, but the queue has not been deleted by the
-                        // primary if another replica still uses it; however
-                        // from this replica's perspective, we don't want to
-                        // reopen the queue.
-                        const bmqt::GenericResult::Enum rc =
-                            restoreStateHelper(queueContext.get(),
-                                               pinfo->primaryNode(),
+                    convertToLocal(queueContext, domain);
+                }
+            }
+            else {
+                if (queueContext->d_liveQInfo.d_numQueueHandles != 0) {
+                    const bmqt::GenericResult::Enum rc = restoreStateHelper(
+                        queueContext.get(),
+                        pinfo->primaryNode(),
                                                cycle);
 
-                        if (rc == bmqt::GenericResult::e_NOT_CONNECTED) {
-                            // Abort restore of the state: the channel is no
-                            // longer valid or we hit high water mark.  For the
-                            // case of invalid channel, we'll wait for a new
-                            // one to be active and will restart restoring the
-                            // state from the beginning.
-                            return;  // RETURN
-                        }
-                        // In case of other type of failure, just continue
-                        // processing other queues instead of stopping the
-                        // 'state restore' sequence.
-
-                        // REVISIT: this code sends pending Open Queue requests
-                        // without waiting for the Reopen Queue Response.
+                    if (rc == bmqt::GenericResult::e_NOT_CONNECTED) {
+                        // Abort restore of the state: the channel is no
+                        // longer valid or we hit high water mark.  For the
+                        // case of invalid channel, we'll wait for a new
+                        // one to be active and will restart restoring the
+                        // state from the beginning.
+                        return;  // RETURN
                     }
-                    else {
-                        BMQ_LOGTHROTTLE_INFO
-                            << d_cluster_p->description()
-                            << ": Skipping restore of " << queueContext->uri()
-                            << " because it has no active queue handles";
-                    }
+                    // In case of other type of failure, just continue
+                    // processing other queues instead of stopping the
+                    // 'state restore' sequence.
 
-                    // We also need to issue requests for any pending contexts:
-                    // when a primary fails over, the queue may have been
-                    // already open on this node, and all clients which were
-                    // connected to the old primary will immediately reconnect,
-                    // some might connect to this node and will issue an open
-                    // queue.  Because primary just got lost, those open queue
-                    // requests were not processed, but appended to the pending
-                    // context list, so once we have an active primary, we
-                    // should process them.
+                    // REVISIT: this code sends pending Open Queue requests
+                    // without waiting for the Reopen Queue Response.
                 }
+                else {
+                    // In the case of a cluster member, queues are deleted
+                    // 'lazily' when receiving a notification from the
+                    // primary.  This replica may have fully closed the
+                    // queue, but the queue has not been deleted by the
+                    // primary if another replica still uses it; however
+                    // from this replica's perspective, we don't want to
+                    // reopen the queue.
+                    BMQ_LOGTHROTTLE_INFO
+                        << d_cluster_p->description()
+                        << ": Skipping restore of " << queueContext->uri()
+                        << " because it has no active queue handles";
+                }
+
+                // We also need to issue requests for any pending contexts:
+                // when a primary fails over, the queue may have been
+                // already open on this node, and all clients which were
+                // connected to the old primary will immediately reconnect,
+                // some might connect to this node and will issue an open
+                // queue.  Because primary just got lost, those open queue
+                // requests were not processed, but appended to the pending
+                // context list, so once we have an active primary, we
+                // should process them.
             }
             // else, Queue instance is not created, but the queue is assigned.
             // Proceed ahead.
@@ -6263,6 +6238,55 @@ void ClusterQueueHelper::match(bsl::vector<bsl::string>*          added,
 
         added->push_back(appId);
     }
+}
+
+const mqbc::ClusterStatePartitionInfo*
+ClusterQueueHelper::activeAvailablePrimaryPartition(
+    bool* isSelfPrimaryAndLeader,
+    int   partitionId)
+{
+    BSLS_ASSERT_SAFE(isSelfPrimaryAndLeader);
+
+    const ClusterStatePartitionInfo* pinfo = &(
+        d_clusterState_p->partition(partitionId));
+    BSLS_ASSERT_SAFE(pinfo);
+    if (!hasActiveAvailablePrimary(partitionId)) {
+        BALL_LOG_INFO << d_cluster_p->description() << " Partition ["
+                      << partitionId
+                      << "]: Not restoring partition state because there "
+                      << "is no primary or primary isn't ACTIVE. Current "
+                      << "primary: "
+                      << (pinfo->primaryNode()
+                              ? pinfo->primaryNode()->nodeDescription()
+                              : "** null **")
+                      << ", primary status: " << pinfo->primaryStatus();
+        return 0;  // RETURN
+    }
+
+    // Primary for this partitionId is ACTIVE.  Check if self is the
+    // primary and leader.  If self is primary but not leader, this is
+    // primary-leader divergence and we should not proceed with state
+    // restore.
+
+    *isSelfPrimaryAndLeader = pinfo->primaryNode() ==
+                                  d_clusterData_p->membership().selfNode() &&
+                              d_clusterData_p->electorInfo().isSelfLeader();
+
+    /// TODO (FSM); remove after switching to FSM
+    if (!d_cluster_p->isFSMWorkflow() && *isSelfPrimaryAndLeader) {
+        // Note that this fails if there are data
+        mqbc::ClusterState::AssignmentVisitor doubleAssignmentVisitor =
+            bdlf::BindUtil::bindS(d_allocator_p,
+                                  &mqbi::StorageManager::unregisterQueue,
+                                  d_storageManager_p,
+                                  bdlf::PlaceHolders::_1,   // uri
+                                  bdlf::PlaceHolders::_2);  // partitionId),
+
+        d_clusterState_p->iterateDoubleAssignments(partitionId,
+                                                   doubleAssignmentVisitor);
+    }
+
+    return pinfo;
 }
 
 }  // close package namespace

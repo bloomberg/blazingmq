@@ -363,7 +363,22 @@ void Queue::convertToLocalDispatched()
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
+
+    if (d_localQueue_mp) {
+        BSLS_ASSERT_SAFE(!d_remoteQueue_mp);
+
+        BALL_LOG_INFO << d_state.uri() << ": has already converted to local "
+                      << "[handlesCount: "
+                      << d_state.handleCatalog().handlesCount()
+                      << ", handle parameters: " << d_state.handleParameters()
+                      << ", stream parameters: "
+                      << d_state.subQueuesParameters() << "]";
+
+        return;  // RETURN
+    }
+
     BSLS_ASSERT_SAFE(d_remoteQueue_mp);
+    BSLS_ASSERT_SAFE(!d_localQueue_mp);
 
     BALL_LOG_INFO << d_state.uri() << ": converting to local "
                   << "[handlesCount: "
