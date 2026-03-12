@@ -54,6 +54,7 @@ CompressionAlgorithmType::toAscii(CompressionAlgorithmType::Enum value)
         BMQT_CASE(UNKNOWN)
         BMQT_CASE(NONE)
         BMQT_CASE(ZLIB)
+        BMQT_CASE(ZSTD)
     default: return "(* UNKNOWN *)";
     }
 
@@ -73,6 +74,7 @@ bool CompressionAlgorithmType::fromAscii(CompressionAlgorithmType::Enum* out,
 
     BMQT_CHECKVALUE(NONE);
     BMQT_CHECKVALUE(ZLIB);
+    BMQT_CHECKVALUE(ZSTD);
 
     // Invalid string
     return false;
@@ -88,7 +90,8 @@ bool CompressionAlgorithmType::isValid(const bsl::string* str,
         return true;  // RETURN
     }
 
-    stream << "Error: compressionAlgorithmType must be one of [NONE, ZLIB]\n";
+    stream << "Error: compressionAlgorithmType must be one of [NONE, ZLIB, "
+              "ZSTD]\n";
     return false;
 }
 

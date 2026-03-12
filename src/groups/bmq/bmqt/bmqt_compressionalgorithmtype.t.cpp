@@ -108,12 +108,13 @@ static void test1_enumPrint()
 
         BSLMF_ASSERT(
             bmqt::CompressionAlgorithmType::k_HIGHEST_SUPPORTED_TYPE ==
-            bmqt::CompressionAlgorithmType::e_ZLIB);
+            bmqt::CompressionAlgorithmType::e_ZSTD);
 
         PrintTestData k_DATA[] = {
             {L_, bmqt::CompressionAlgorithmType::e_UNKNOWN, "UNKNOWN"},
             {L_, bmqt::CompressionAlgorithmType::e_NONE, "NONE"},
             {L_, bmqt::CompressionAlgorithmType::e_ZLIB, "ZLIB"},
+            {L_, bmqt::CompressionAlgorithmType::e_ZSTD, "ZSTD"},
             {L_,
              bmqt::CompressionAlgorithmType::k_HIGHEST_SUPPORTED_TYPE + 1,
              "(* UNKNOWN *)"}};
