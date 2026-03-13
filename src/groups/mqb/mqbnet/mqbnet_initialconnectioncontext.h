@@ -63,6 +63,9 @@
 namespace BloombergLP {
 
 // FORWARD DECLARATION
+namespace bdlmt {
+class EventScheduler;
+}
 namespace bmqio {
 class Channel;
 };
@@ -382,8 +385,11 @@ class InitialConnectionContext {
     void
     setNegotiationContext(const bsl::shared_ptr<NegotiationContext>& value);
 
-    /// Called by the IO upon `onClose` signal
-    void onClose();
+    /// Called by the IO upon `onClose` signal.  The specified `scheduler_p`
+    /// is forwarded to `AuthenticationContext::onClose()` if an
+    /// authentication context exists, so that any pending reauthentication
+    /// timer can be cancelled.
+    void onClose(bdlmt::EventScheduler* scheduler_p);
 
     /// Read callback invoked when data is available on the channel.
     /// Process the received `blob` if `status` indicates success.
