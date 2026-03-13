@@ -35,7 +35,9 @@
 // BDE
 #include <ball_record.h>
 #include <bdlma_localsequentialallocator.h>
+#include <bsl_algorithm.h>
 #include <bsl_iomanip.h>
+#include <bsl_limits.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bsl_vector.h>

@@ -25,6 +25,7 @@
 #include <bdlb_print.h>
 #include <bdlb_stringrefutil.h>
 #include <bdlma_localsequentialallocator.h>
+#include <bsl_ostream.h>
 #include <bsla_fallthrough.h>
 #include <bsls_assert.h>
 

@@ -30,6 +30,7 @@
 // BDE
 #include <bdlf_bind.h>
 #include <bdlmt_eventscheduler.h>
+#include <bsl_iostream.h>
 #include <bsl_sstream.h>
 #include <bslmt_semaphore.h>
 #include <bslmt_threadutil.h>

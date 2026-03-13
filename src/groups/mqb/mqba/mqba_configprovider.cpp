@@ -38,6 +38,7 @@
 #include <bsl_cstdlib.h>
 #include <bsl_fstream.h>
 #include <bsl_iostream.h>
+#include <bsl_utility.h>
 #include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslmt_lockguard.h>
