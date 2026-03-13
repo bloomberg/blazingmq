@@ -235,6 +235,7 @@ class TestChannel : public Channel {
 
     /// Pops the oldest (FIFO) call from those written to the channel.
     /// The behaviour is undefined if the corresponding call queue is empty.
+    ReadCall    popReadCall();
     WriteCall   popWriteCall();
     CloseCall popCloseCall();
     OnCloseCall popOnCloseCall();
@@ -275,6 +276,7 @@ class TestChannel : public Channel {
 
     const Status& writeStatus() const;
 
+    size_t numReadCalls() const;
     size_t numWriteCalls() const;
     size_t numCloseCalls() const;
     size_t numOnCloseCalls() const;

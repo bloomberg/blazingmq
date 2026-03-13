@@ -205,6 +205,14 @@ bool TestChannel::waitFor(const bdlbb::Blob&        blob,
     return true;
 }
 
+TestChannel::ReadCall TestChannel::popReadCall()
+{
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
+    ReadCall                       result = d_readCalls.front();
+    d_readCalls.pop_front();
+    return result;
+}
+
 TestChannel::WriteCall TestChannel::popWriteCall()
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
@@ -259,6 +267,12 @@ TestChannel::WatermarkSignaler& TestChannel::watermarkSignaler()
 const Status& TestChannel::writeStatus() const
 {
     return d_writeStatus;
+}
+
+size_t TestChannel::numReadCalls() const
+{
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+    return d_readCalls.size();
 }
 
 size_t TestChannel::numWriteCalls() const
