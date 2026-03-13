@@ -15,7 +15,10 @@
 
 """Test suite for blazingmq.util.logging."""
 
+from __future__ import annotations
+
 from logging import DEBUG, INFO, getLogger
+from typing import Optional
 from unittest.mock import patch
 
 import blazingmq.util.logging
@@ -27,22 +30,24 @@ DEFAULT_LEVEL = getLogger().getEffectiveLevel()
 @pytest.mark.parametrize(
     "spec,expected",
     [
-        (None, [DEFAULT_LEVEL]),
-        ("INFO", [INFO]),
-        ("DEBUG", [DEBUG]),
-        ("blazingmq.foo:DEBUG", [DEFAULT_LEVEL, ("blazingmq.foo", DEBUG)]),
+        (None, (DEFAULT_LEVEL, [])),
+        ("INFO", (INFO, [])),
+        ("DEBUG", (DEBUG, [])),
+        ("blazingmq.foo:DEBUG", (DEFAULT_LEVEL, [("blazingmq.foo", DEBUG)])),
         (
             "blazingmq.foo:DEBUG,blazingmq.bar:INFO",
-            [DEFAULT_LEVEL, ("blazingmq.foo", DEBUG), ("blazingmq.bar", INFO)],
+            (DEFAULT_LEVEL, [("blazingmq.foo", DEBUG), ("blazingmq.bar", INFO)]),
         ),
-        ("DEBUG,blazingmq.foo:INFO", [DEBUG, ("blazingmq.foo", INFO)]),
+        ("DEBUG,blazingmq.foo:INFO", (DEBUG, [("blazingmq.foo", INFO)])),
     ],
 )
-def test_normalize_levels(spec, expected):
+def test_normalize_levels(
+    spec: Optional[str], expected: tuple[int, list[tuple[str, int]]]
+) -> None:
     assert blazingmq.util.logging.normalize_log_levels(spec) == expected
 
 
-def test_logging_parser():
+def test_logging_parser() -> None:
     """Tests"""
 
     parser = blazingmq.util.logging.make_parser()
