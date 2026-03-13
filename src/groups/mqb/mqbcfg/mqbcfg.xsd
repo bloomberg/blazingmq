@@ -180,8 +180,24 @@
       <element name='maxAgeDays'    type='int'/>
       <element name='rotateBytes'   type='int' default='268435456'/> <!-- 256 * 1024 * 1024 -->
       <element name='rotateDays'    type='int' default='1'/>
+      <element name='encoding'      type='tns:StatsPrinterEncodingFormat' default='TABLE_AND_JSON'/>
     </sequence>
   </complexType>
+
+  <simpleType name='StatsPrinterEncodingFormat'>
+    <annotation>
+      <documentation>
+        Enum of the various Stats Printer encoding format bitmasks.
+      </documentation>
+    </annotation>
+    <restriction base='string' bdem:preserveEnumOrder='1'>
+      <enumeration value='NONE'           bdem:id='0'/>
+      <enumeration value='TABLE'          bdem:id='1'/>
+      <enumeration value='JSON'           bdem:id='2'/>
+      <enumeration value='TABLE_AND_JSON' bdem:id='3'/>
+    </restriction>
+  </simpleType>
+
 
   <complexType name='NetworkInterfaces'>
     <sequence>

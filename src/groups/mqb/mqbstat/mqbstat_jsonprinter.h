@@ -1,4 +1,4 @@
-// Copyright 2024 Bloomberg Finance L.P.
+// Copyright 2026 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,9 +27,17 @@
 // statistics updates (e.g. making a new snapshot of the used StatContexts)
 // must be done before calling to this component.
 
+// MQB
+#include <mqbcfg_messages.h>
+
+// BMQ
 #include <bmqst_statcontext.h>
+#include <bmqtsk_logcleaner.h>
 
 // BDE
+#include <ball_fileobserver2.h>
+#include <ball_log.h>
+#include <bdlmt_eventscheduler.h>
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
 #include <bslma_allocator.h>
@@ -44,6 +52,15 @@ namespace mqbstat {
 
 class JsonPrinter {
   private:
+    // CLASS-SCOPE CATEGORY
+    BALL_LOG_SET_CLASS_CATEGORY("MQBSTAT.JSONPRINTER");
+
+  public:
+    // PUBLIC TYPES
+    typedef bsl::unordered_map<bsl::string, bmqst::StatContext*>
+        StatContextsMap;
+
+  private:
     // PRIVATE TYPES
     /// Forward declaration of the printer implementation type.
     class JsonPrinterImpl;
@@ -52,22 +69,44 @@ class JsonPrinter {
     /// Managed pointer to the printer implementation.
     bslma::ManagedPtr<JsonPrinterImpl> d_impl_mp;
 
+    /// Config to use.
+    const mqbcfg::StatsConfig& d_config;
+
+    /// Log file pattern
+    bsl::string d_logfile_pattern;
+
+    /// FileObserver for the stats log dump.
+    ball::FileObserver2 d_statsLogFile;
+
+    /// Mechanism to clean up old stat logs.
+    bmqtsk::LogCleaner d_statLogCleaner;
+
   private:
     // NOT IMPLEMENTED
     JsonPrinter(const JsonPrinter& other) BSLS_CPP11_DELETED;
     JsonPrinter& operator=(const JsonPrinter& other) BSLS_CPP11_DELETED;
 
   public:
-    // PUBLIC TYPES
-    typedef bsl::unordered_map<bsl::string, bmqst::StatContext*>
-        StatContextsMap;
-
     // CREATORS
 
-    /// Create a new `JsonPrinter` object, using the specified
-    /// `statContextsMap` and the optionally specified `allocator`.
-    explicit JsonPrinter(const StatContextsMap& statContextsMap,
-                         bslma::Allocator*      allocator = 0);
+    /// Create a new `JsonPrinter` object, using the specified `config`,
+    /// `eventScheduler`, `statContextsMap` and the specified `allocator`
+    /// for memory allocation.
+
+    explicit JsonPrinter(const mqbcfg::StatsConfig& config,
+                         bdlmt::EventScheduler*     eventScheduler,
+                         const StatContextsMap&     statContextsMap,
+                         bslma::Allocator*          allocator);
+
+    // MANIPULATORS
+
+    /// Start the Printer.  Return 0 on success, or a non-zero return
+    /// code on error and fill in the specified `errorDescription` stream
+    /// with the description of the error.
+    int start(bsl::ostream& errorDescription);
+
+    /// Stop the printer.
+    void stop();
 
     // ACCESSORS
 
@@ -77,8 +116,34 @@ class JsonPrinter {
     /// Return `0` on success, and non-zero return code on failure.
     ///
     /// THREAD: This method is called in the *StatController scheduler* thread.
-    int printStats(bsl::string* out, bool compact) const;
+    int printStats(bsl::ostream&         os,
+                   bool                  compact,
+                   int                   statsId,
+                   const bdlt::Datetime& datetime,
+                   bool                  needValidJson = false);
+
+    /// Dump the stats to the stat log file.
+    void logStats(int lastStatId);
+
+    /// Returns true if printing is enabled, false otherwise.
+    bool isEnabled() const;
 };
+
+// ============================================================================
+//                             INLINE DEFINITIONS
+// ============================================================================
+
+// -------------
+// class JsonPrinter
+// -------------
+
+// ACCESSORS
+
+inline bool JsonPrinter::isEnabled() const
+{
+    return d_config.printer().encoding() &
+           mqbcfg::StatsPrinterEncodingFormat::JSON;
+}
 
 }  // close package namespace
 }  // close enterprise namespace

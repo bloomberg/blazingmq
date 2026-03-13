@@ -375,6 +375,7 @@ QueueStatsDomain::getValue(const bmqst::StatContext& context,
 
 #undef STAT_RANGE
 #undef STAT_SINGLE
+#undef OLDEST_SNAPSHOT
 }
 
 QueueStatsDomain::QueueStatsDomain(bslma::Allocator* allocator)
@@ -634,6 +635,33 @@ const char* QueueStatsDomain::Role::toAscii(Role::Enum value)
 // class QueueStatsClient
 // ----------------------
 
+const char* QueueStatsClient::Stat::toString(Stat::Enum value)
+{
+#define MQBSTAT_CASE(VAL, DESC)                                               \
+    case (VAL): {                                                             \
+        return (DESC);                                                        \
+    } break;
+
+    switch (value) {
+        MQBSTAT_CASE(e_PUT_MESSAGES_DELTA, "queue_put_msgs")
+        MQBSTAT_CASE(e_PUT_BYTES_DELTA, "queue_put_bytes")
+        MQBSTAT_CASE(e_PUT_MESSAGES_ABS, "queue_put_msgs_abs")
+        MQBSTAT_CASE(e_PUT_BYTES_ABS, "queue_put_bytes_abs")
+        MQBSTAT_CASE(e_PUSH_MESSAGES_DELTA, "queue_push_msgs")
+        MQBSTAT_CASE(e_PUSH_BYTES_DELTA, "queue_push_bytes")
+        MQBSTAT_CASE(e_PUSH_MESSAGES_ABS, "queue_push_msgs_abs")
+        MQBSTAT_CASE(e_PUSH_BYTES_ABS, "queue_push_bytes_abs")
+        MQBSTAT_CASE(e_ACK_DELTA, "queue_ack_msgs")
+        MQBSTAT_CASE(e_ACK_ABS, "queue_ack_msgs_abs")
+        MQBSTAT_CASE(e_CONFIRM_DELTA, "queue_confirm_msgs")
+        MQBSTAT_CASE(e_CONFIRM_ABS, "queue_confirm_msgs_abs")
+    default:
+        BSLS_ASSERT(false && "invalid enumerator");
+        BSLS_ASSERT_INVOKE_NORETURN("");
+    }
+#undef MQBSTAT_CASE
+}
+
 bsls::Types::Int64
 QueueStatsClient::getValue(const bmqst::StatContext& context,
                            int                       snapshotId,
@@ -643,7 +671,15 @@ QueueStatsClient::getValue(const bmqst::StatContext& context,
     // invoked from the SNAPSHOT thread
 
     const bmqst::StatValue::SnapshotLocation latestSnapshot(0, 0);
-    const bmqst::StatValue::SnapshotLocation oldestSnapshot(0, snapshotId);
+
+#define OLDEST_SNAPSHOT(STAT)                                                 \
+    (bmqst::StatValue::SnapshotLocation(                                      \
+        0,                                                                    \
+        (snapshotId >= 0)                                                     \
+            ? snapshotId                                                      \
+            : (context.value(bmqst::StatContext::e_DIRECT_VALUE, (STAT))      \
+                   .historySize(0) -                                          \
+               1)))
 
 #define STAT_SINGLE(OPERATION, STAT)                                          \
     bmqst::StatUtil::OPERATION(                                               \
@@ -654,7 +690,7 @@ QueueStatsClient::getValue(const bmqst::StatContext& context,
     bmqst::StatUtil::OPERATION(                                               \
         context.value(bmqst::StatContext::e_DIRECT_VALUE, STAT),              \
         latestSnapshot,                                                       \
-        oldestSnapshot)
+        OLDEST_SNAPSHOT(STAT))
 
     switch (stat) {
     case QueueStatsClient::Stat::e_PUSH_MESSAGES_DELTA: {
@@ -702,6 +738,7 @@ QueueStatsClient::getValue(const bmqst::StatContext& context,
 
 #undef STAT_RANGE
 #undef STAT_SINGLE
+#undef OLDEST_SNAPSHOT
 }
 
 QueueStatsClient::QueueStatsClient()

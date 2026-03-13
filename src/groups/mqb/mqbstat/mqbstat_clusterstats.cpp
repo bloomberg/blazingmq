@@ -208,6 +208,7 @@ bsls::Types::Int64 ClusterStats::getValue(const bmqst::StatContext& context,
     return 0;
 #undef STAT_RANGE
 #undef STAT_SINGLE
+#undef OLDEST_SNAPSHOT
 }
 
 bsl::shared_ptr<PartitionStats>

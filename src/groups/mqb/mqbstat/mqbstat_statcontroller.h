@@ -30,8 +30,7 @@
 // MQB
 
 #include <mqbcmd_messages.h>
-#include <mqbstat_jsonprinter.h>
-#include <mqbstat_printer.h>
+#include <mqbstat_printermanager.h>
 
 #include <bmqma_countingallocatorstore.h>
 #include <bmqst_statcontext.h>
@@ -128,8 +127,7 @@ class StatController {
     typedef bslma::ManagedPtr<bmqst::StatContext>         StatContextMp;
     typedef bsl::shared_ptr<bmqst::StatContext>           StatContextSp;
     typedef bslma::ManagedPtr<bmqsys::StatMonitor>        SystemStatMonitorMp;
-    typedef bslma::ManagedPtr<Printer>                    PrinterMp;
-    typedef bslma::ManagedPtr<JsonPrinter>                JsonPrinterMp;
+    typedef bslma::ManagedPtr<PrinterManager>             PrinterManagerMp;
     typedef bslma::ManagedPtr<mqbplug::StatPublisher>     StatPublisherMp;
     typedef bslma::ManagedPtr<mqbplug::StatConsumer>      StatConsumerMp;
 
@@ -206,11 +204,8 @@ class StatController {
     /// from a command processor plugin.
     CommandProcessorFn d_commandProcessorFn;
 
-    /// Console and log file stats printer
-    PrinterMp d_printer_mp;
-
-    /// JsonPrinter used for admin commands processing
-    JsonPrinterMp d_jsonPrinter_mp;
+    /// Console and log file stats printer manager
+    PrinterManagerMp d_printerManager_mp;
 
     /// Registered stat consumers
     bsl::vector<StatConsumerMp> d_statConsumers;
