@@ -1584,6 +1584,20 @@ void StorageManager::do_replicaStateResponse(const EventWithData& event)
 
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(eventData.source());
+
+    const mqbnet::ClusterNode* primary_p =
+        d_partitionInfoVec[partitionId].primary();
+    if (!primary_p) {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId << "]: "
+                      << "Skipping ReplicaStateResponse because primary node ["
+                      << eventData.source()->nodeDescription() << "] "
+                      << "went down";
+        return;  // RETURN
+    }
+
+    BSLS_ASSERT_SAFE(eventData.source()->nodeId() == primary_p->nodeId());
 
     bmqp_ctrlmsg::ControlMessage controlMsg;
     controlMsg.rId() = eventData.requestId();
@@ -1609,10 +1623,6 @@ void StorageManager::do_replicaStateResponse(const EventWithData& event)
     response.partitionMaxFileSizes() = getSelfPartitionMaxFileSizes(
         partitionId);
 
-    BSLS_ASSERT_SAFE(eventData.source());
-    BSLS_ASSERT_SAFE(eventData.source()->nodeId() ==
-                     d_partitionInfoVec[partitionId].primary()->nodeId());
-
     d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
                                                           eventData.source());
 
@@ -1636,6 +1646,18 @@ void StorageManager::do_failureReplicaStateResponse(const EventWithData& event)
                      partitionId < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(eventData.source());
 
+    const mqbnet::ClusterNode* primary_p =
+        d_partitionInfoVec[partitionId].primary();
+    if (!primary_p) {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId << "]: "
+                      << "Skipping failure ReplicaStateResponse because "
+                      << "primary node ["
+                      << eventData.source()->nodeDescription()
+                      << "] went down";
+        return;  // RETURN
+    }
+
     bmqp_ctrlmsg::ControlMessage controlMsg;
     controlMsg.rId()               = eventData.requestId();
     bmqp_ctrlmsg::Status& response = controlMsg.choice().makeStatus();
@@ -1656,8 +1678,7 @@ void StorageManager::do_failureReplicaStateResponse(const EventWithData& event)
     else {
         BSLS_ASSERT_SAFE(partitionHealthState(partitionId) ==
                          PartitionFSM::State::e_REPLICA_WAITING);
-        BSLS_ASSERT_SAFE(eventData.source()->nodeId() ==
-                         d_partitionInfoVec[partitionId].primary()->nodeId());
+        BSLS_ASSERT_SAFE(eventData.source()->nodeId() == primary_p->nodeId());
 
         response.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
         response.code()     = mqbi::ClusterErrorCode::e_REPLICA_WAITING;
@@ -1817,8 +1838,20 @@ void StorageManager::do_primaryStateRequest(const EventWithData& event)
 
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
-    BSLS_ASSERT_SAFE(primary->nodeId() ==
-                     d_partitionInfoVec[partitionId].primary()->nodeId());
+    BSLS_ASSERT_SAFE(primary);
+
+    const mqbnet::ClusterNode* primary_p =
+        d_partitionInfoVec[partitionId].primary();
+    if (!primary_p) {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId << "]: "
+                      << "Skipping PrimaryStateRequest because primary "
+                      << "node [" << primary->nodeDescription()
+                      << "] went down";
+        return;  // RETURN
+    }
+
+    BSLS_ASSERT_SAFE(primary->nodeId() == primary_p->nodeId());
     BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfReplica());
 
     d_recoveryManager_mp->setLiveDataSource(primary, partitionId);
@@ -2148,10 +2181,20 @@ void StorageManager::do_replicaDataResponsePush(const EventWithData& event)
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfReplica());
-
     BSLS_ASSERT_SAFE(destNode);
-    BSLS_ASSERT_SAFE(destNode->nodeId() ==
-                     d_partitionInfoVec[partitionId].primary()->nodeId());
+
+    const mqbnet::ClusterNode* primary_p =
+        d_partitionInfoVec[partitionId].primary();
+    if (!primary_p) {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId
+                      << "]: " << "Skipping ReplicaDataResponsePush because "
+                      << "primary node [" << destNode->nodeDescription()
+                      << "] went down";
+        return;  // RETURN
+    }
+
+    BSLS_ASSERT_SAFE(destNode->nodeId() == primary_p->nodeId());
 
     bmqp_ctrlmsg::ControlMessage controlMsg;
     if (eventData.requestId() >= 0) {
@@ -2367,10 +2410,20 @@ void StorageManager::do_replicaDataResponseDrop(const EventWithData& event)
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfReplica());
-
     BSLS_ASSERT_SAFE(destNode);
-    BSLS_ASSERT_SAFE(destNode->nodeId() ==
-                     d_partitionInfoVec[partitionId].primary()->nodeId());
+
+    const mqbnet::ClusterNode* primary_p =
+        d_partitionInfoVec[partitionId].primary();
+    if (!primary_p) {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId
+                      << "]: " << "Skipping ReplicaDataResponseDrop because "
+                      << "primary node [" << destNode->nodeDescription()
+                      << "] went down";
+        return;  // RETURN
+    }
+
+    BSLS_ASSERT_SAFE(destNode->nodeId() == primary_p->nodeId());
 
     bmqp_ctrlmsg::ControlMessage controlMsg;
 
@@ -2486,8 +2539,19 @@ void StorageManager::do_replicaDataResponsePull(const EventWithData& event)
 
     mqbnet::ClusterNode* destNode = eventData.source();
     BSLS_ASSERT_SAFE(destNode);
-    BSLS_ASSERT_SAFE(destNode->nodeId() ==
-                     d_partitionInfoVec[partitionId].primary()->nodeId());
+
+    const mqbnet::ClusterNode* primary_p =
+        d_partitionInfoVec[partitionId].primary();
+    if (!primary_p) {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId
+                      << "]: " << "Skipping ReplicaDataResponsePull because "
+                      << "primary node [" << destNode->nodeDescription()
+                      << "] went down";
+        return;  // RETURN
+    }
+
+    BSLS_ASSERT_SAFE(destNode->nodeId() == primary_p->nodeId());
 
     bmqp_ctrlmsg::ControlMessage controlMsg;
     controlMsg.rId() = eventData.requestId();
@@ -2532,11 +2596,20 @@ void StorageManager::do_failureReplicaDataResponsePull(
                      partitionId < static_cast<int>(d_fileStores.size()));
 
     mqbnet::ClusterNode* destNode = eventData.source();
-
     BSLS_ASSERT_SAFE(destNode);
-    BSLS_ASSERT_SAFE(destNode->nodeId() ==
-                     d_partitionInfoVec[partitionId].primary()->nodeId());
-    // TODO Continue verifying here
+
+    const mqbnet::ClusterNode* primary_p =
+        d_partitionInfoVec[partitionId].primary();
+    if (!primary_p) {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId
+                      << "]: " << "Skipping failure ReplicaDataResponsePull "
+                      << "because primary node ["
+                      << destNode->nodeDescription() << "] went down";
+        return;  // RETURN
+    }
+
+    BSLS_ASSERT_SAFE(destNode->nodeId() == primary_p->nodeId());
 
     bmqp_ctrlmsg::ControlMessage controlMsg;
     controlMsg.rId() = eventData.requestId();
@@ -2727,14 +2800,24 @@ void StorageManager::do_processBufferedPrimaryStatusAdvisories(
         << d_bufferedPrimaryStatusAdvisoryInfosVec[partitionId].size()
         << " buffered primary status advisory.";
 
+    PartitionInfo&             pinfo     = d_partitionInfoVec[partitionId];
+    const mqbnet::ClusterNode* primary_p = pinfo.primary();
+    if (!primary_p) {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId << "]: "
+                      << "Skipping buffered primary status advisories "
+                      << "because primary node went down";
+        d_bufferedPrimaryStatusAdvisoryInfosVec[partitionId].clear();
+        return;  // RETURN
+    }
+
     for (PrimaryStatusAdvisoryInfosCIter cit =
              d_bufferedPrimaryStatusAdvisoryInfosVec[partitionId].cbegin();
          cit != d_bufferedPrimaryStatusAdvisoryInfosVec[partitionId].cend();
          ++cit) {
         BSLS_ASSERT_SAFE(cit->first.partitionId() == partitionId);
 
-        PartitionInfo& pinfo = d_partitionInfoVec[partitionId];
-        if (cit->second->nodeId() != pinfo.primary()->nodeId() ||
+        if (cit->second->nodeId() != primary_p->nodeId() ||
             cit->first.primaryLeaseId() != pinfo.primaryLeaseId()) {
             BALL_LOG_INFO << d_clusterData_p->identity().description()
                           << " Partition [" << partitionId
@@ -2742,7 +2825,7 @@ void StorageManager::do_processBufferedPrimaryStatusAdvisories(
                           << cit->first
                           << " because primary node or leaseId is invalid. "
                           << "Self-perceived [prmary, leaseId] is: ["
-                          << pinfo.primary()->nodeDescription() << ","
+                          << primary_p->nodeDescription() << ","
                           << pinfo.primaryLeaseId() << "]";
             continue;  // CONTINUE
         }
@@ -2883,8 +2966,19 @@ void StorageManager::do_startSendDataChunks(const EventWithData& event)
 
         mqbnet::ClusterNode* const destNode = eventData.source();
         BSLS_ASSERT_SAFE(destNode->nodeId() != selfNode->nodeId());
-        BSLS_ASSERT_SAFE(destNode->nodeId() ==
-                         d_partitionInfoVec[partitionId].primary()->nodeId());
+
+        const mqbnet::ClusterNode* primary_p =
+            d_partitionInfoVec[partitionId].primary();
+        if (!primary_p) {
+            BALL_LOG_INFO << d_clusterData_p->identity().description()
+                          << " Partition [" << partitionId
+                          << "]: " << "Skipping SendDataChunks because "
+                          << "primary node [" << destNode->nodeDescription()
+                          << "] went down";
+            return;  // RETURN
+        }
+
+        BSLS_ASSERT_SAFE(destNode->nodeId() == primary_p->nodeId());
 
         const bmqp_ctrlmsg::PartitionSequenceNumber beginSeqNum =
             eventData.partitionSeqNumDataRange().first;
@@ -3893,10 +3987,20 @@ void StorageManager::do_replicaDataResponseResize(const EventWithData& event)
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfReplica());
-
     BSLS_ASSERT_SAFE(destNode);
-    BSLS_ASSERT_SAFE(destNode->nodeId() ==
-                     d_partitionInfoVec[partitionId].primary()->nodeId());
+
+    const mqbnet::ClusterNode* primary_p =
+        d_partitionInfoVec[partitionId].primary();
+    if (!primary_p) {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId
+                      << "]: " << "Skipping ReplicaDataResponseResize because "
+                      << "primary node [" << destNode->nodeDescription()
+                      << "] went down";
+        return;  // RETURN
+    }
+
+    BSLS_ASSERT_SAFE(destNode->nodeId() == primary_p->nodeId());
 
     bmqp_ctrlmsg::ControlMessage controlMsg;
 
@@ -3986,6 +4090,16 @@ void StorageManager::do_reapplyDetectSelfPrimary(const EventWithData& event)
     BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->state() ==
                      PartitionFSM::State::e_UNKNOWN);
 
+    const mqbnet::ClusterNode* primary_p =
+        d_partitionInfoVec[partitionId].primary();
+    if (!primary_p) {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId
+                      << "]: " << "Skipping re-apply transition to primary "
+                      << "because primary node went down";
+        return;  // RETURN
+    }
+
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId << "]: "
                   << "Re-apply transition to primary in the Partition FSM.";
@@ -4017,6 +4131,16 @@ void StorageManager::do_reapplyDetectSelfReplica(const EventWithData& event)
                          PartitionFSM::State::e_UNKNOWN ||
                      d_partitionFSMVec[partitionId]->state() ==
                          PartitionFSM::State::e_REPLICA_HEALING);
+
+    const mqbnet::ClusterNode* primary_p =
+        d_partitionInfoVec[partitionId].primary();
+    if (!primary_p) {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId
+                      << "]: " << "Skipping re-apply transition to replica "
+                      << "because primary node went down";
+        return;  // RETURN
+    }
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId << "]: "
