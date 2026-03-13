@@ -22,7 +22,7 @@ RUN apt-get update && \
 
 WORKDIR /workspace
 
-ENV PATH=${PATH}:/workspace/srcs/bde-tools/bin
+ENV PATH=${PATH}:/opt/bb/bde-tools/bin
 ENV PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
 
 COPY docker/build_deps.sh bin/build_deps.sh
@@ -33,12 +33,12 @@ COPY etc srcs/bmq/etc
 RUN bin/build_deps.sh \
     && cd srcs/bmq  \
     && cmake -S . -B cmake.bld/Linux -G Ninja \
-        -DCMAKE_TOOLCHAIN_FILE=/workspace/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
+        -DCMAKE_TOOLCHAIN_FILE=/opt/bb/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         -DBDE_BUILD_TARGET_SAFE=ON \
         -DBDE_BUILD_TARGET_64=ON \
         -DBDE_BUILD_TARGET_CPP17=ON \
-        -DCMAKE_PREFIX_PATH=/workspace/srcs/bde-tools/BdeBuildSystem \
+        -DCMAKE_PREFIX_PATH=/opt/bb/bde-tools/BdeBuildSystem \
         -DCMAKE_INSTALL_LIBDIR=lib64 \
     && cmake --build cmake.bld/Linux --parallel 8 --target bmqbrkr bmqtool \
     && cmake --install cmake.bld/Linux --prefix=/bmq --component bmqbrkr \

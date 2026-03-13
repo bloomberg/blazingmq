@@ -78,8 +78,13 @@ fetch_deps() {
     fetch_git bloomberg ntf-core 2.6.10
 }
 
+install_bde_tools() {
+    mkdir -p /opt/bb
+    cp -r srcs/bde-tools /opt/bb/
+}
+
 configure() {
-    PATH="$PATH:$(realpath srcs/bde-tools/bin)"
+    PATH="$PATH:/opt/bb/bde-tools/bin"
     export PATH
     eval "$(bbs_build_env -u "opt_64_$CXX_STANDARD")"
 }
@@ -116,6 +121,7 @@ build() {
 
 fetch_deps
 if [ "${DO_BUILD}" = true ]; then
+    install_bde_tools
     configure
     build
 fi
