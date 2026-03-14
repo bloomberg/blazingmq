@@ -62,7 +62,85 @@ class DispatcherStats {
             e_QUEUE_TIME_MIN     = 5,
             e_QUEUE_TIME_AVG     = 6,
             e_QUEUE_TIME_MAX     = 7,
-            e_QUEUE_TIME_ABS_MAX = 8
+            e_QUEUE_TIME_ABS_MAX = 8,
+            e_PROCESSING_TIME_UNDEFINED_MAX,
+            e_PROCESSING_TIME_UNDEFINED_AVG,
+            e_PROCESSING_TIME_UNDEFINED_SUM,
+            e_PROCESSED_COUNT_UNDEFINED,
+            e_PROCESSING_TIME_DISPATCHER_MAX,
+            e_PROCESSING_TIME_DISPATCHER_AVG,
+            e_PROCESSING_TIME_DISPATCHER_SUM,
+            e_PROCESSED_COUNT_DISPATCHER,
+            e_PROCESSING_TIME_CALLBACK_MAX,
+            e_PROCESSING_TIME_CALLBACK_AVG,
+            e_PROCESSING_TIME_CALLBACK_SUM,
+            e_PROCESSED_COUNT_CALLBACK,
+            e_PROCESSING_TIME_CONTROL_MSG_MAX,
+            e_PROCESSING_TIME_CONTROL_MSG_AVG,
+            e_PROCESSING_TIME_CONTROL_MSG_SUM,
+            e_PROCESSED_COUNT_CONTROL_MSG,
+            e_PROCESSING_TIME_CONFIRM_MAX,
+            e_PROCESSING_TIME_CONFIRM_AVG,
+            e_PROCESSING_TIME_CONFIRM_SUM,
+            e_PROCESSED_COUNT_CONFIRM,
+            e_PROCESSING_TIME_REJECT_MAX,
+            e_PROCESSING_TIME_REJECT_AVG,
+            e_PROCESSING_TIME_REJECT_SUM,
+            e_PROCESSED_COUNT_REJECT,
+            e_PROCESSING_TIME_PUSH_MAX,
+            e_PROCESSING_TIME_PUSH_AVG,
+            e_PROCESSING_TIME_PUSH_SUM,
+            e_PROCESSED_COUNT_PUSH,
+            e_PROCESSING_TIME_PUT_MAX,
+            e_PROCESSING_TIME_PUT_AVG,
+            e_PROCESSING_TIME_PUT_SUM,
+            e_PROCESSED_COUNT_PUT,
+            e_PROCESSING_TIME_ACK_MAX,
+            e_PROCESSING_TIME_ACK_AVG,
+            e_PROCESSING_TIME_ACK_SUM,
+            e_PROCESSED_COUNT_ACK,
+            e_PROCESSING_TIME_CLUSTER_STATE_MAX,
+            e_PROCESSING_TIME_CLUSTER_STATE_AVG,
+            e_PROCESSING_TIME_CLUSTER_STATE_SUM,
+            e_PROCESSED_COUNT_CLUSTER_STATE,
+            e_PROCESSING_TIME_STORAGE_MAX,
+            e_PROCESSING_TIME_STORAGE_AVG,
+            e_PROCESSING_TIME_STORAGE_SUM,
+            e_PROCESSED_COUNT_STORAGE,
+            e_PROCESSING_TIME_RECOVERY_MAX,
+            e_PROCESSING_TIME_RECOVERY_AVG,
+            e_PROCESSING_TIME_RECOVERY_SUM,
+            e_PROCESSED_COUNT_RECOVERY,
+            e_PROCESSING_TIME_REPLICATION_RECEIPT_MAX,
+            e_PROCESSING_TIME_REPLICATION_RECEIPT_AVG,
+            e_PROCESSING_TIME_REPLICATION_RECEIPT_SUM,
+            e_PROCESSED_COUNT_REPLICATION_RECEIPT,
+        };
+    };
+
+    /// Namespace for the constants of stat values that applies to the
+    /// dispatcher queues from the clients.
+    struct DispatcherStatsIndex {
+        enum Enum {
+            /// Processing times for each event type.
+            /// Each enum value MUST be equal to the corresponding
+            /// event type value in mqbi::DispatcherEventType
+            e_STAT_PROCESSING_TIME_UNDEFINED           = 0,
+            e_STAT_PROCESSING_TIME_DISPATCHER          = 1,
+            e_STAT_PROCESSING_TIME_CALLBACK            = 2,
+            e_STAT_PROCESSING_TIME_CONTROL_MSG         = 3,
+            e_STAT_PROCESSING_TIME_CONFIRM             = 4,
+            e_STAT_PROCESSING_TIME_REJECT              = 5,
+            e_STAT_PROCESSING_TIME_PUSH                = 6,
+            e_STAT_PROCESSING_TIME_PUT                 = 7,
+            e_STAT_PROCESSING_TIME_ACK                 = 8,
+            e_STAT_PROCESSING_TIME_CLUSTER_STATE       = 9,
+            e_STAT_PROCESSING_TIME_STORAGE             = 10,
+            e_STAT_PROCESSING_TIME_RECOVERY            = 11,
+            e_STAT_PROCESSING_TIME_REPLICATION_RECEIPT = 12,
+            /// Other queue metrics
+            e_STAT_QUEUE = 13,  // Queue/Dequeue
+            e_STAT_TIME  = 14,  // Event queued time
         };
     };
 
@@ -87,18 +165,13 @@ class DispatcherStats {
     static void onDequeue(bmqst::StatContext* queueStatContext,
                           bsls::Types::Int64  queuedTime);
 
+    /// Update the `processing_time` fields of the specified `eventType`
+    /// and the specified `queueStatContext`
+    static void onProcess(bmqst::StatContext* queueStatContext,
+                          int                 eventType,
+                          bsls::Types::Int64  processedTime);
+
   private:
-    // PRIVATE TYPES
-
-    /// Namespace for the constants of stat values that applies to the
-    /// dispatcher queues from the clients.
-    struct DispatcherStatsIndex {
-        enum Enum {
-            e_STAT_QUEUE = 0,  // Queue/Dequeue
-            e_STAT_TIME  = 1   // Event queued time
-        };
-    };
-
     // NOT IMPLEMENTED
     DispatcherStats(const DispatcherStats&) BSLS_CPP11_DELETED;
 
@@ -167,6 +240,15 @@ inline void DispatcherStats::onDequeue(bmqst::StatContext* queueStatContext,
     queueStatContext->adjustValue(DispatcherStatsIndex::e_STAT_QUEUE, -1);
     queueStatContext->reportValue(DispatcherStatsIndex::e_STAT_TIME,
                                   queuedTime);
+}
+
+inline void DispatcherStats::onProcess(bmqst::StatContext* queueStatContext,
+                                       int                 eventType,
+                                       bsls::Types::Int64  processedTime)
+{
+    BSLS_ASSERT_SAFE(queueStatContext && "Stat context is not initialized");
+
+    queueStatContext->reportValue(eventType, processedTime);
 }
 
 }  // close package namespace
