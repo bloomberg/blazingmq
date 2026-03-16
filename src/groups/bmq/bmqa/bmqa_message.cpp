@@ -146,8 +146,6 @@ Message& Message::setCorrelationId(const bmqt::CorrelationId& correlationId)
     BSLS_ASSERT_SAFE(isInitialized() &&
                      "message is invalid: use "
                      "'MessageEventBuilder::startMessage' to get one");
-    BSLS_ASSERT_SAFE(d_impl.d_event_p->putEventBuilder() &&
-                     "message not editable");
 
     d_impl.d_correlationId = correlationId;
 
