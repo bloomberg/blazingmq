@@ -64,11 +64,11 @@ namespace mqbblp {
 // ------------------------------------------------
 
 ClusterOrchestrator::OnElectorEventFunctor::OnElectorEventFunctor(
-    ClusterOrchestrator*                 orchestrator_p,
-    bslmf::MovableRef<const bmqp::Event> event,
-    mqbnet::ClusterNode*                 source_p)
+    ClusterOrchestrator* orchestrator_p,
+    const bmqp::Event&   event,
+    mqbnet::ClusterNode* source_p)
 : d_orchestrator_p(orchestrator_p)
-, d_event(bslmf::MovableRefUtil::move(event))
+, d_event(event)
 , d_source_p(source_p)
 {
     // PRECONDITIONS
@@ -1316,10 +1316,9 @@ void ClusterOrchestrator::processElectorEvent(const bmqp::Event&   event,
             ->getDefaultEventSource()
             ->getEvent<mqbevt::CallbackEvent>();
     event_sp->callback()
-        .createInplace<ClusterOrchestrator::OnElectorEventFunctor>(
-            this,
-            bslmf::MovableRefUtil::move(event),
-            source);
+        .createInplace<ClusterOrchestrator::OnElectorEventFunctor>(this,
+                                                                   event,
+                                                                   source);
 
     dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(event_sp),
                                 d_cluster_p);

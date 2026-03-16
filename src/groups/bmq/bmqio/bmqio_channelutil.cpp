@@ -195,11 +195,6 @@ int ChannelUtil::handleRead(const Reader& reader,
         // We have a complete message.  Move the bytes out of 'inBlob' into a
         // standalone packet in 'outPackets'.
         reader(*inBlob, consumedBytes, packetLength);
-        //        outPackets->emplace_back();
-        //        bdlbb::BlobUtil::append(&outPackets->back(),
-        //                                *inBlob,
-        //                                consumedBytes,
-        //                                packetLength);
 
         consumedBytes += packetLength;
     }
