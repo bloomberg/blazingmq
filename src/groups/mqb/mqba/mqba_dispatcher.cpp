@@ -323,8 +323,10 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
         BALL_LOG_TRACE << "Dispatching Event to queue " << processorId
                        << " of " << type << " dispatcher: " << *event;
 
-        const bsls::Types::Int64 queuedTime =
-            bmqsys::Time::highResolutionTimer() - event->enqueueTime();
+        const bsls::Types::Int64 processingTimeStart =
+            bmqsys::Time::highResolutionTimer();
+        const bsls::Types::Int64 queuedTime = processingTimeStart -
+                                              event->enqueueTime();
 
         DispatcherContext& dispatcherContext = *(d_contexts[type]);
 
@@ -359,10 +361,17 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
             }
         }
 
+        const bsls::Types::Int64 processingTime =
+            bmqsys::Time::highResolutionTimer() - processingTimeStart;
+
         // Update stats
         mqbstat::DispatcherStats::onDequeue(
             dispatcherContext.d_statContexts[processorId].get(),
             queuedTime);
+        mqbstat::DispatcherStats::onProcess(
+            dispatcherContext.d_statContexts[processorId].get(),
+            event->type(),
+            processingTime);
     }
     else {
         // Empty `event` means queue is empty
@@ -380,7 +389,7 @@ void Dispatcher::flushClients(mqbi::DispatcherClientType::Enum type,
         return;  // RETURN
     }
 
-    DispatcherContext& context = *(d_contexts[type]);
+    DispatcherContext&         context   = *(d_contexts[type]);
     DispatcherClientPtrVector& flushList = context.d_flushList[processorId];
     for (size_t i = 0; i < flushList.size(); ++i) {
         flushList[i]->flush();
