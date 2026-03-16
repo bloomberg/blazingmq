@@ -1277,7 +1277,6 @@ def test_rollover_with_file_size_decrease(
     for node in cluster.nodes():
         assert node.outputs_substr("ROLLOVER COMPLETE", 3)
 
-
     # Confirm all messages to make space for rollover
     consumer.confirm(uri_priority, "*", succeed=True)
 
