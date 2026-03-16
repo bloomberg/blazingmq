@@ -396,7 +396,7 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
 
     /// The period for the recurrently called function that controlls event
     /// processing time
-    const double k_MONITORING_PERIOD_SEC = 5.0;
+    static const double k_MONITORING_PERIOD_SEC;
 
     // DATA
     Config d_config;
@@ -495,6 +495,9 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
 
     bsl::string queueName(int queueId) const;
 };
+
+template <typename TYPE>
+const double MultiQueueThreadPool<TYPE>::k_MONITORING_PERIOD_SEC = 5.0;
 
 // ============================================================================
 //                             INLINE DEFINITIONS
