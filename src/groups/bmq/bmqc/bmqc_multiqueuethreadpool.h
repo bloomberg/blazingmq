@@ -300,6 +300,21 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
         e_MONITOR_STUCK
     };
 
+    /// The thread functor.
+    struct ProcessQueueJob {
+        ThisClass* d_pool_p;
+        int        d_queueId;
+
+        explicit ProcessQueueJob(ThisClass* pool, int queueId)
+        : d_pool_p(pool)
+        , d_queueId(queueId)
+        {
+            // NOTHING
+        }
+
+        void operator()() const { d_pool_p->processQueue(d_queueId); }
+    };
+
     struct QueueInfo {
         // PUBLIC DATA
         /// Pointer to the queue
@@ -731,9 +746,7 @@ inline int MultiQueueThreadPool<TYPE>::start()
     // Set up threads
     for (size_t i = 0; i < d_queues.size(); ++i) {
         BSLA_MAYBE_UNUSED const int rc = d_config.d_threadPool_p->enqueueJob(
-            bdlf::BindUtil::bind(&ThisClass::processQueue,
-                                 this,
-                                 static_cast<int>(i)));
+            ThisClass::ProcessQueueJob(this, static_cast<int>(i)));
         BSLS_ASSERT_SAFE(rc == 0);
     }
 
