@@ -1200,7 +1200,6 @@ void ClusterQueueHelper::sendOpenQueueRequest(
             << "].";
 
         qcontext->d_liveQInfo.d_pending.push_back(context);
-        context->queueContext()->d_liveQInfo.d_pending.push_back(context);
     }
 }
 
