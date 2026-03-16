@@ -92,11 +92,7 @@ MessageEventBuilder::packMessage(const bmqa::QueueId& queueId)
     bmqp::PutEventBuilder* builder = msgImplRef.d_event_p->putEventBuilder();
     BSLS_ASSERT_SAFE(builder->messageGUID().isUnset());
 
-    // Because setCorrelationId could be called on a copy of what this object
-    // holds (as in the case of legacy BlazingMQ Python bindings), read from
-    // d_event_p (instead of msgImplRef.d_correlationId).
-
-    const bmqt::CorrelationId& corrId = msgImplRef.d_event_p->correlationId();
+    const bmqt::CorrelationId& corrId = msgImplRef.d_correlationId;
 
     // Extract internal queueId; in order to do that, first get the rep
     typedef bsl::shared_ptr<bmqimp::Queue> QueueSP;
