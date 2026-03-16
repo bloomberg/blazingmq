@@ -347,8 +347,8 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
 
     // PRIVATE ACCESSORS
 
-    /// Return the name of the queue the specified `client`.
-    bsl::string queueName(const mqbi::DispatcherClient* client) const;
+    /// Return the name of the queue of the specified `client`.
+    bsl::string_view queueName(const mqbi::DispatcherClient* client) const;
 
   public:
     // TRAITS

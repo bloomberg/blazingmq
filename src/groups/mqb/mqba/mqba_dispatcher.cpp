@@ -409,10 +409,11 @@ void Dispatcher::flushClients(mqbi::DispatcherClientType::Enum type,
 
 // PRIVATE ACCESSORS
 
-/// Return the name of the queue the specified `client`.
 bsl::string Dispatcher::queueName(const mqbi::DispatcherClient* client) const
 {
-    BSLS_ASSERT_SAFE(client);
+    if (!client) {
+        return "UNDEFINED";
+    }
 
     const mqbi::DispatcherClientData& data    = client->dispatcherClientData();
     mqbi::DispatcherClientType::Enum  type    = data.clientType();

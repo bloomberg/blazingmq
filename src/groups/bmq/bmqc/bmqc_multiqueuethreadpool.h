@@ -270,11 +270,8 @@ class MultiQueueThreadPoolConfig {
     setMonitorAlarm(bslstl::StringRef         alarmString,
                     const bsls::TimeInterval& timeout);
 
-    /// Monitor the queues of the MQTP to make sure events can pass through
-    /// each queue in at most `timeout` time, and print an error message
-    /// with the specified `alarmString` if any of the queues is processing
-    /// messages too slowly.  Return a reference offering modifiable access
-    /// to this object.
+    /// Set the warning interval `timeout` for stuck events.
+    /// Return a reference offering modifiable access to this object.
     MultiQueueThreadPoolConfig<TYPE>&
     setMonitorWarningTimeout(const bsls::TimeInterval& timeout);
 };
@@ -334,7 +331,7 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
         bsls::AtomicInt d_processQueueRefCount;
 
         /// A thread-safe timestamp in nanoseconds of the moment when the last
-        /// event was poped from the queue and started processing. Can be 0 if
+        /// event was popped from the queue and started processing. Can be 0 if
         /// the last element has been processed and the queue is empty.
         bsls::AtomicInt64 d_lastProcessingStartTime;
 
@@ -394,7 +391,7 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
     /// The timeout for `timedWait` when stopping the queues
     static const int k_MAX_WAIT_SECONDS_AT_SHUTDOWN = 300;
 
-    /// The period for the recurrently called function that controlls event
+    /// The period for the recurrently called function that controls event
     /// processing time
     static const double k_MONITORING_PERIOD_SEC;
 
@@ -419,7 +416,7 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
     void processMonitorEvents();
 
     /// Check when each queue started processing its last event and report if
-    /// procecessing is taking too long.
+    /// processing is taking too long.
     void checkStuckEvents();
 
     /// Thread pool worker function.
@@ -493,7 +490,7 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
 
     bsls::Types::Int64 numElements(int queueId) const;
 
-    bsl::string queueName(int queueId) const;
+    bsl::string_view queueName(int queueId) const;
 };
 
 template <typename TYPE>
