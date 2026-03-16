@@ -678,6 +678,9 @@ inline bmqt::SessionEventType::Enum Event::sessionEventType() const
 
 inline const bmqt::CorrelationId& Event::correlationId() const
 {
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(type() == EventType::e_SESSION);
+
     return d_correlationId;
 }
 
@@ -708,6 +711,9 @@ inline Event& Event::setSessionEventType(bmqt::SessionEventType::Enum value)
 
 inline Event& Event::setCorrelationId(const bmqt::CorrelationId& value)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(type() == EventType::e_SESSION);
+
     d_correlationId = value;
     return *this;
 }
