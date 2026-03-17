@@ -1044,7 +1044,7 @@ def test_no_rollover_if_grow_limit_unset(
 # Set growth limit a bit higher than max journal file size
 @tweak.cluster.partition_config.journal_file_grow_limit(MAX_JOURNAL_FILE_SIZE + 60)
 # Make rollover policy stronger to force file size growth
-@tweak.cluster.partition_config.min_avail_space_percent(50)
+@tweak.cluster.partition_config.min_avail_space_percent(60)
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)
 def test_no_rollover_if_grow_limit_reached(
     fsm_multi_cluster: Cluster,
