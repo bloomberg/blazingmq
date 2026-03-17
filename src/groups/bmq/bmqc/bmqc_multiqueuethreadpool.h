@@ -368,6 +368,7 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
         , d_monitorState(static_cast<int>(other.d_monitorState))
         , d_processQueueRefCount(
               static_cast<int>(other.d_processQueueRefCount))
+        , d_lastProcessingStartTime(0)
         , d_finished_sp(other.d_finished_sp)
         , d_threadId(other.d_threadId)
         {
@@ -980,7 +981,8 @@ MultiQueueThreadPool<TYPE>::numElements(int queueId) const
 }
 
 template <typename TYPE>
-inline bsl::string MultiQueueThreadPool<TYPE>::queueName(int queueId) const
+inline bsl::string_view
+MultiQueueThreadPool<TYPE>::queueName(int queueId) const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 <= queueId);

@@ -372,8 +372,11 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
             event->type(),
             processingTime);
 
-        if (processingTime / bdlt::TimeUnitRatio::k_NS_PER_MS >
-            static_cast<bsls::Types::Int64>(d_config.warningTimeoutMs())) {
+        static const bsls::Types::Int64 warningTimeoutNs =
+            bdlt::TimeUnitRatio::k_NS_PER_MS *
+            static_cast<bsls::Types::Int64>(d_config.warningTimeoutMs());
+
+        if (processingTime > warningTimeoutNs) {
             BALL_LOG_WARN << "Queue '" << queueName(event->destination())
                           << "' has processed an event in "
                           << bmqu::PrintUtil::prettyTimeInterval(
@@ -409,7 +412,8 @@ void Dispatcher::flushClients(mqbi::DispatcherClientType::Enum type,
 
 // PRIVATE ACCESSORS
 
-bsl::string Dispatcher::queueName(const mqbi::DispatcherClient* client) const
+bsl::string_view
+Dispatcher::queueName(const mqbi::DispatcherClient* client) const
 {
     if (!client) {
         return "UNDEFINED";
