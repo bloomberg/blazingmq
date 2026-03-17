@@ -66,7 +66,7 @@
 // Now, our event handler can simply push the integers it receives into its
 // context vector.
 //..
-//  void eventCb(int queueId, const MQTP::EventSp &event)
+//  void eventCb(const MQTP::EventSp &event)
 //  {
 //      if (event) {
 //          // Non-empty `event` means user event
@@ -81,6 +81,15 @@
 // a valid case and it means "queue is empty" event.  Non-empty `event` always
 // means a user event.
 //
+// Since each queue gets its own event callback, we define a creator function
+// that returns the callback for a given `queueId`.
+//..
+//  MQTP::EventFn eventCbCreator(int queueId)
+//  {
+//      return bdlf::BindUtil::bind(&eventCb, bdlf::PlaceHolders::_1);
+//  }
+//..
+//
 // Now, we're ready to create a thread pool and the MQTP using it to process
 // our messages.
 //..
@@ -94,10 +103,9 @@
 //  using namespace bdlf::PlaceHolders;
 //  MQTP mfqtp(MQTP::Config(
 //                        3,    // number of queues,
-//                        bdlf::BindUtil::bind(&eventCb, _1, _2),
-//                        bdlf::BindUtil::bind(&queueCreator, _1, _2))
-//                                                     .threadPool(&threadPool)
-//                                                     .exclusive(true));
+//                        &threadPool,
+//                        bdlf::BindUtil::bind(&eventCbCreator, _1),
+//                        bdlf::BindUtil::bind(&queueCreator, _1, _2)));
 //  mfqtp.start();
 //..
 // Now we can attempt to enqueue some events on our queues.  Since we created
@@ -188,9 +196,11 @@ class MultiQueueThreadPoolConfig {
     typedef bsl::function<Queue*(int queueId, bslma::Allocator* allocator)>
         QueueCreatorFn;
 
-    /// Callback invoked when processing the specified `event` popped from
-    /// the queue having the specified `queueId`.
-    typedef bsl::function<void(int queueId, const EventSp& event)> EventFn;
+    /// Callback invoked to process the specified `event`.
+    typedef bsl::function<void(const EventSp& event)> EventFn;
+
+    /// Create the event callback for the specified `queueId`.
+    typedef bsl::function<EventFn(int queueId)> EventFnCreatorFn;
 
     // FRIENDS
     template <typename T>
@@ -208,7 +218,7 @@ class MultiQueueThreadPoolConfig {
     /// queue at the requested time.
     bdlmt::EventScheduler* d_eventScheduler_p;
 
-    EventFn d_eventCallbackFn;
+    EventFnCreatorFn d_eventCallbackCreatorFn;
 
     QueueCreatorFn d_queueCreatorFn;
 
@@ -234,11 +244,12 @@ class MultiQueueThreadPoolConfig {
     /// process events, the specified `queueCreator` to create the queues,
     /// and the optionally specified `objectCreator` and `objectResetter` to
     /// create and reset objects of the parameterized `TYPE`.
-    explicit MultiQueueThreadPoolConfig(int                   numQueues,
-                                        bdlmt::ThreadPool*    threadPool,
-                                        const EventFn&        eventCallback,
-                                        const QueueCreatorFn& queueCreator,
-                                        bslma::Allocator* basicAllocator = 0);
+    explicit MultiQueueThreadPoolConfig(
+        int                     numQueues,
+        bdlmt::ThreadPool*      threadPool,
+        const EventFnCreatorFn& eventCallbackCreator,
+        const QueueCreatorFn&   queueCreator,
+        bslma::Allocator*       basicAllocator = 0);
 
     /// Create a `bmqc::MultiQueueThreadPoolConfig` object having the same
     /// value as the specified `original` object.  Use the optionally
@@ -307,6 +318,21 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
         e_MONITOR_STUCK
     };
 
+    /// The thread functor.
+    struct ProcessQueueJob {
+        ThisClass* d_pool_p;
+        int        d_queueId;
+
+        explicit ProcessQueueJob(ThisClass* pool, int queueId)
+        : d_pool_p(pool)
+        , d_queueId(queueId)
+        {
+            // NOTHING
+        }
+
+        void operator()() const { d_pool_p->processQueue(d_queueId); }
+    };
+
     struct QueueInfo {
         // PUBLIC DATA
         /// Pointer to the queue
@@ -314,6 +340,8 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
 
         /// Name of the queue
         bsl::string d_name;
+
+        EventFn d_eventCallback;
 
         bsls::AtomicInt d_monitorState;
 
@@ -349,6 +377,7 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
         explicit QueueInfo(bslma::Allocator* basicAllocator = 0)
         : d_queue_p(0)
         , d_name(basicAllocator)
+        , d_eventCallback(bsl::allocator_arg, basicAllocator)
         , d_monitorState(e_MONITOR_PROCESSED)
         , d_processQueueRefCount(1)
         , d_lastProcessingStartTime(0)
@@ -365,6 +394,9 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
                            bslma::Allocator* basicAllocator = 0)
         : d_queue_p(other.d_queue_p)
         , d_name(other.d_name, basicAllocator)
+        , d_eventCallback(bsl::allocator_arg,
+                          basicAllocator,
+                          other.d_eventCallback)
         , d_monitorState(static_cast<int>(other.d_monitorState))
         , d_processQueueRefCount(
               static_cast<int>(other.d_processQueueRefCount))
@@ -378,9 +410,10 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
         // MANIPULATORS
         void reset()
         {
-            d_queue_p      = 0;
-            d_monitorState = e_MONITOR_PROCESSED;
-            d_threadId     = 0;
+            d_queue_p               = 0;
+            d_monitorState          = e_MONITOR_PROCESSED;
+            d_threadId              = 0;
+            d_eventCallback         = bsl::nullptr_t();
         }
     };
 
@@ -508,15 +541,17 @@ const double MultiQueueThreadPool<TYPE>::k_MONITORING_PERIOD_SEC = 5.0;
 // CREATORS
 template <typename TYPE>
 inline MultiQueueThreadPoolConfig<TYPE>::MultiQueueThreadPoolConfig(
-    int                   numQueues,
-    bdlmt::ThreadPool*    threadPool,
-    const EventFn&        eventCallback,
-    const QueueCreatorFn& queueCreator,
-    bslma::Allocator*     basicAllocator)
+    int                     numQueues,
+    bdlmt::ThreadPool*      threadPool,
+    const EventFnCreatorFn& eventCallbackCreator,
+    const QueueCreatorFn&   queueCreator,
+    bslma::Allocator*       basicAllocator)
 : d_numQueues(numQueues)
 , d_threadPool_p(threadPool)
 , d_eventScheduler_p(0)
-, d_eventCallbackFn(bsl::allocator_arg, basicAllocator, eventCallback)
+, d_eventCallbackCreatorFn(bsl::allocator_arg,
+                           basicAllocator,
+                           eventCallbackCreator)
 , d_queueCreatorFn(bsl::allocator_arg, basicAllocator, queueCreator)
 , d_name(basicAllocator)
 , d_monitorAlarmString(basicAllocator)
@@ -535,9 +570,9 @@ inline MultiQueueThreadPoolConfig<TYPE>::MultiQueueThreadPoolConfig(
 : d_numQueues(other.d_numQueues)
 , d_threadPool_p(other.d_threadPool_p)
 , d_eventScheduler_p(other.d_eventScheduler_p)
-, d_eventCallbackFn(bsl::allocator_arg,
-                    basicAllocator,
-                    other.d_eventCallbackFn)
+, d_eventCallbackCreatorFn(bsl::allocator_arg,
+                           basicAllocator,
+                           other.d_eventCallbackCreatorFn)
 , d_queueCreatorFn(bsl::allocator_arg, basicAllocator, other.d_queueCreatorFn)
 , d_name(other.d_name, basicAllocator)
 , d_monitorAlarmString(other.d_monitorAlarmString, basicAllocator)
@@ -687,7 +722,7 @@ inline void MultiQueueThreadPool<TYPE>::processQueue(int queue)
         const int popRet = info.d_queue_p->tryPopFront(&event);
         if (popRet != 0) {
             // Queue is empty
-            d_config.d_eventCallbackFn(queue, d_queueEmptyEvent_sp);
+            info.d_eventCallback(d_queueEmptyEvent_sp);
             info.d_queue_p->popFront(&event);
         }
 
@@ -720,7 +755,7 @@ inline void MultiQueueThreadPool<TYPE>::processQueue(int queue)
         info.d_lastProcessingStartTime.store(
             bsls::SystemTime::nowMonotonicClock().totalNanoseconds());
 
-        d_config.d_eventCallbackFn(queue, event);
+        info.d_eventCallbackFn(queue, event);
 
         info.d_lastProcessingStartTime.store(0);
     }
@@ -776,8 +811,11 @@ inline int MultiQueueThreadPool<TYPE>::start()
 
     // Create the queues
     for (size_t i = 0; i < d_queues.size(); ++i) {
-        d_queues[i].d_queue_p = d_config.d_queueCreatorFn(static_cast<int>(i),
-                                                          d_allocator_p);
+        QueueInfo& queue      = d_queues[i];
+        queue.d_queue_p       = d_config.d_queueCreatorFn(static_cast<int>(i),
+                                                    d_allocator_p);
+        queue.d_eventCallback = d_config.d_eventCallbackCreatorFn(
+            static_cast<int>(i));
         // Generate a name for the queue
         bsl::string name(d_allocator_p);
         if (!d_config.d_name.empty()) {
@@ -787,7 +825,7 @@ inline int MultiQueueThreadPool<TYPE>::start()
         name += "Queue ";
         name += bsl::to_string(i);
 
-        d_queues[i].d_name = name;
+        queue.d_name = name;
     }
 
     BSLS_ASSERT_SAFE(d_config.d_threadPool_p->enabled());
@@ -795,9 +833,7 @@ inline int MultiQueueThreadPool<TYPE>::start()
     // Set up threads
     for (size_t i = 0; i < d_queues.size(); ++i) {
         BSLA_MAYBE_UNUSED const int rc = d_config.d_threadPool_p->enqueueJob(
-            bdlf::BindUtil::bind(&ThisClass::processQueue,
-                                 this,
-                                 static_cast<int>(i)));
+            ThisClass::ProcessQueueJob(this, static_cast<int>(i)));
         BSLS_ASSERT_SAFE(rc == 0);
     }
 

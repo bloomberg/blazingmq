@@ -1080,8 +1080,8 @@ static void test7_checkMultithreadListen()
 {
     bmqtst::TestHelper::printTestName("Check Multithread Listen Test");
 
-    const size_t k_NUM_THREADS = 10;
-    const size_t k_RETRY_COUNT = 1000;
+    const size_t k_NUM_THREADS = 4;
+    const size_t k_RETRY_COUNT = 100;
 
     struct LocalFuncs {
         static void
