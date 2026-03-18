@@ -2007,7 +2007,8 @@ struct JournalOpRecord {
     //  JournalOpType...............: JournalOpType
     //  Data[24]....................: 24 bytes of data specific to either
     //                                `SyncPoint` or `ResizeStorage` record.
-    //                                For `SyncPoint`(JournalOpType::e_SYNCPOINT)
+    //                                For
+    //                                `SyncPoint`(JournalOpType::e_SYNCPOINT)
     //                                it consists of:
     //    Sequence Number Upper Bits: Upper 32 bits of sequence number.
     //    Sequence Number Lower Bits: Lower 32 bits of sequence number.
@@ -2016,8 +2017,8 @@ struct JournalOpRecord {
     //    DataFileOffstDwords.......: Current offset (in DWORDs) of the data
     //                                file.
     //    QlistFileOffsetWords......: Current offset (in WORDs) of the qlist
-    //                                file.
-    //                                For `ResizeStorage`(JournalOpType::e_RESIZE)
+    //                                file.  For
+    //                                `ResizeStorage`(JournalOpType::e_RESIZE)
     //                                it consists of:
     //    maxJournalFileSize Upper Bits: Upper 32 bits of maxJournalFileSize.
     //    maxJournalFileSize Lower Bits: Lower 32 bits of maxJournalFileSize.

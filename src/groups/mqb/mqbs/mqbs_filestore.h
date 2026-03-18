@@ -589,7 +589,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                                const bmqp_ctrlmsg::SyncPoint* syncPoint = 0);
 
     /// Self primary writes a resize storage record with `maxFileSizes`
-    /// and replicates to all replicas.  Return zero on success, 
+    /// and replicates to all replicas.  Return zero on success,
     /// non-zero value otherwise.
     ///
     /// THREAD: This method executes in the partition dispatcher thread.
