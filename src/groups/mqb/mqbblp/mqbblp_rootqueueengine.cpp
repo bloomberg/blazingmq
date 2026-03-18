@@ -55,6 +55,7 @@
 #include <bdlt_epochutil.h>
 #include <bdlt_timeunitratio.h>
 #include <bsl_algorithm.h>
+#include <bsl_functional.h>
 #include <bsl_ios.h>
 #include <bsl_iostream.h>
 #include <bsl_iterator.h>

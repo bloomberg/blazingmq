@@ -26,6 +26,7 @@
 // BDE
 #include <ball_log.h>
 #include <bdld_datummapbuilder.h>
+#include <bsl_limits.h>
 
 namespace BloombergLP {
 namespace mqbstat {

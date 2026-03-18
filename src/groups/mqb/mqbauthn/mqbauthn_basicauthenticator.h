@@ -41,6 +41,7 @@
 #include <bsl_map.h>
 #include <bsl_memory.h>
 #include <bsl_optional.h>
+#include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bsl_string_view.h>
 #include <bslma_managedptr.h>

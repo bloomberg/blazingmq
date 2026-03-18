@@ -16,6 +16,9 @@
 // mqbu_flowcontroller.t.cpp                                          -*-C++-*-
 #include <mqbu_flowcontroller.h>
 
+// BDE
+#include <bsl_iostream.h>
+
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
 

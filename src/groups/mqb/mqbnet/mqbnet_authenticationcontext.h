@@ -37,6 +37,7 @@
 #include <ball_log.h>
 #include <bdlmt_eventscheduler.h>
 #include <bsl_memory.h>
+#include <bsl_ostream.h>
 #include <bsl_string_view.h>
 #include <bslma_allocator.h>
 #include <bslmt_mutex.h>
