@@ -14,7 +14,7 @@
 // limitations under the License.
 
 // mqbc_controlmessagetransmitter.cpp                                 -*-C++-*-
-#include <mqbc_controlmessagetransmitter.h>
+#include <mqbnet_controlmessagetransmitter.h>
 
 #include <mqbscm_version.h>
 // MQB
@@ -30,7 +30,7 @@
 #include <bsls_assert.h>
 
 namespace BloombergLP {
-namespace mqbc {
+namespace mqbnet {
 
 // -------------------------------
 // class ControlMessageTransmitter

@@ -13,9 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbc_controlmessagetransmitter.h                                   -*-C++-*-
-#ifndef INCLUDED_MQBC_CONTROLMESSAGETRANSMITTER
-#define INCLUDED_MQBC_CONTROLMESSAGETRANSMITTER
+// mqbnet_controlmessagetransmitter.h                                 -*-C++-*-
+#ifndef INCLUDED_MQBNET_CONTROLMESSAGETRANSMITTER
+#define INCLUDED_MQBNET_CONTROLMESSAGETRANSMITTER
 
 /// @file mqbc_controlmessagetransmitter.h
 ///
@@ -24,7 +24,7 @@
 /// @bbref{mqbc::ControlMessageTransmitter} provides a mechanism to transmit
 /// messages to peer nodes in the same cluster.
 ///
-/// Thread Safety                      {#mqbc_controlmessagetransmitter_thread}
+/// Thread Safety                    {#mqbnet_controlmessagetransmitter_thread}
 /// =============
 ///
 /// The @bbref{mqbc::ControlMessageTransmitter} object is not thread safe and
@@ -57,9 +57,6 @@ class Cluster;
 }
 namespace mqbnet {
 class ClusterNode;
-}
-
-namespace mqbc {
 
 // ===============================
 // class ControlMessageTransmitter
