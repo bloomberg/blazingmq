@@ -282,7 +282,7 @@ class ClusterData {
     mqbi::DomainFactory* domainFactory();
 
     /// Get a modifiable reference to this object's transportManager.
-    mqbnet::TransportManager& transportManager();
+    mqbnet::TransportManager* transportManager();
 
     /// Get a modifiable reference to this object's cluster stats.
     mqbstat::ClusterStats& stats();
@@ -423,9 +423,9 @@ inline mqbi::DomainFactory* ClusterData::domainFactory()
     return d_domainFactory_p;
 }
 
-inline mqbnet::TransportManager& ClusterData::transportManager()
+inline mqbnet::TransportManager* ClusterData::transportManager()
 {
-    return *d_transportManager_p;
+    return d_transportManager_p;
 }
 
 inline mqbstat::ClusterStats& ClusterData::stats()

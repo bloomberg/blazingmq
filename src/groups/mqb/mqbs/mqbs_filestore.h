@@ -38,6 +38,7 @@
 
 #include <mqbi_dispatcher.h>
 #include <mqbnet_cluster.h>
+#include <mqbnet_controlmessagetransmitter.h>
 #include <mqbs_datastore.h>
 #include <mqbs_fileset.h>
 #include <mqbs_filestoreprotocol.h>
@@ -420,6 +421,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     // Overriden (by storage manager) max file sizes for journal, data and
     // qlist files for this partition. If it is not present,
     // `d_partitionMaxFileSizes` is used.
+
+    /// Control message transmitter to use.
+    mqbnet::ControlMessageTransmitter d_messageTransmitter;
 
   private:
     // NOT IMPLEMENTED
@@ -954,6 +958,14 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     void setLastStrongConsistency(unsigned int        primaryLeaseId,
                                   bsls::Types::Uint64 sequenceNum);
 
+    /// Encode and broadcast the specified `message` to all cluster nodes.
+    void broadcastMessage(const bmqp_ctrlmsg::ControlMessage& message);
+
+    /// Encode and send the specified schema `message` to the specified
+    /// peer `destination`.
+    void sendMessage(const bmqp_ctrlmsg::ControlMessage& message,
+                     mqbnet::ClusterNode*                destination);
+
     /// Load into the specified `storages` the list of queue storages for
     /// which all filters from the specified `filters` are returning true.
     void getStorages(StorageList*          storages,
@@ -1251,6 +1263,26 @@ inline void FileStore::overridePartitionMaxFileSizes(
     const bmqp_ctrlmsg::PartitionMaxFileSizes& maxFileSizes)
 {
     d_overridenPartitionMaxFileSizes = maxFileSizes;
+}
+
+inline void
+FileStore::broadcastMessage(const bmqp_ctrlmsg::ControlMessage& message)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(inDispatcherThread());
+
+    flushStorage();
+    d_messageTransmitter.broadcastMessage(message);
+}
+
+inline void FileStore::sendMessage(const bmqp_ctrlmsg::ControlMessage& message,
+                                   mqbnet::ClusterNode* destination)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(inDispatcherThread());
+
+    flushStorage();
+    d_messageTransmitter.sendMessage(message, destination);
 }
 
 // ACCESSORS

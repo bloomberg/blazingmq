@@ -1412,15 +1412,15 @@ StorageUtil::findMinReqDiskSpace(const mqbcfg::PartitionConfig& config)
     return minimumRequiredDiskSpace;
 }
 
-void StorageUtil::transitionToActivePrimary(PartitionInfo*     partitionInfo,
-                                            mqbc::ClusterData* clusterData,
-                                            int                partitionId)
+void StorageUtil::transitionToActivePrimary(PartitionInfo*   partitionInfo,
+                                            mqbs::FileStore* fs,
+                                            int              partitionId)
 {
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(partitionInfo);
-    BSLS_ASSERT_SAFE(clusterData);
+    BSLS_ASSERT_SAFE(fs);
 
     partitionInfo->setPrimaryStatus(bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE);
 
@@ -1434,7 +1434,7 @@ void StorageUtil::transitionToActivePrimary(PartitionInfo*     partitionInfo,
     primaryAdv.primaryLeaseId() = partitionInfo->primaryLeaseId();
     primaryAdv.status()         = bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE;
 
-    clusterData->messageTransmitter().broadcastMessageSafe(controlMsg);
+    fs->broadcastMessage(controlMsg);
 }
 
 void StorageUtil::onPartitionPrimarySync(
@@ -1505,7 +1505,7 @@ void StorageUtil::onPartitionPrimarySync(
 
     // Broadcast self as active primary of this partition.  This must be done
     // before invoking 'FileStore::setActivePrimary'.
-    transitionToActivePrimary(pinfo, clusterData, partitionId);
+    transitionToActivePrimary(pinfo, fs, partitionId);
 
     partitionPrimaryStatusCb(partitionId, status, pinfo->primaryLeaseId());
 
@@ -3412,7 +3412,7 @@ void StorageUtil::processShutdownEventDispatched(ClusterData*     clusterData,
         primaryAdv.primaryLeaseId() = pinfo->primaryLeaseId();
         primaryAdv.status()         = bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE;
 
-        clusterData->messageTransmitter().broadcastMessageSafe(controlMsg);
+        fs->broadcastMessage(controlMsg);
     }
 
     // Notify partition that self node is shutting down (this occurs
@@ -3862,11 +3862,10 @@ void StorageUtil::forceIssueAdvisoryAndSyncPt(mqbc::ClusterData*   clusterData,
     primaryAdv.status()         = bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE;
 
     if (destination) {
-        clusterData->messageTransmitter().sendMessageSafe(controlMsg,
-                                                          destination);
+        fs->sendMessage(controlMsg, destination);
     }
     else {
-        clusterData->messageTransmitter().broadcastMessageSafe(controlMsg);
+        fs->broadcastMessage(controlMsg);
     }
     const int                             rc = fs->issueSyncPoint();
     bmqp_ctrlmsg::PartitionSequenceNumber psn;

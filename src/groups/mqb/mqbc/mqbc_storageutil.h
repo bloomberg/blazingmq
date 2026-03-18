@@ -545,9 +545,9 @@ struct StorageUtil {
     ///
     /// THREAD: Executed by the queue dispatcher thread associated with
     ///         'partitionId'.
-    static void transitionToActivePrimary(PartitionInfo*     partitionInfo,
-                                          mqbc::ClusterData* clusterData,
-                                          int                partitionId);
+    static void transitionToActivePrimary(PartitionInfo*   partitionInfo,
+                                          mqbs::FileStore* fs,
+                                          int              partitionId);
 
     /// Callback executed after primary sync for the specified 'partitionId'
     /// is complete with the specified 'status'.  Use the specified 'fs',

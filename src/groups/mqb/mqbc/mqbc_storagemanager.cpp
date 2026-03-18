@@ -1613,8 +1613,7 @@ void StorageManager::do_replicaStateResponse(const EventWithData& event)
     BSLS_ASSERT_SAFE(eventData.source()->nodeId() ==
                      d_partitionInfoVec[partitionId].primary()->nodeId());
 
-    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
-                                                          eventData.source());
+    fileStore(partitionId).sendMessage(controlMsg, eventData.source());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << ": sent response " << controlMsg
@@ -1673,8 +1672,7 @@ void StorageManager::do_failureReplicaStateResponse(const EventWithData& event)
                       << eventData.source()->nodeDescription() << ".";
     }
 
-    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
-                                                          eventData.source());
+    fileStore(partitionId).sendMessage(controlMsg, eventData.source());
 }
 
 void StorageManager::do_logFailureReplicaStateResponse(
@@ -1915,8 +1913,7 @@ void StorageManager::do_primaryStateResponse(const EventWithData& event)
     response.partitionMaxFileSizes() = getSelfPartitionMaxFileSizes(
         partitionId);
 
-    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
-                                                          eventData.source());
+    fileStore(partitionId).sendMessage(controlMsg, eventData.source());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << ": sent response " << controlMsg
@@ -1951,8 +1948,7 @@ void StorageManager::do_failurePrimaryStateResponse(const EventWithData& event)
     response.code()                = mqbi::ClusterErrorCode::e_NOT_PRIMARY;
     response.message()             = "Not a primary";
 
-    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
-                                                          eventData.source());
+    fileStore(partitionId).sendMessage(controlMsg, eventData.source());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId
@@ -2181,8 +2177,7 @@ void StorageManager::do_replicaDataResponsePush(const EventWithData& event)
                                                           partitionId);
     }
 
-    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
-                                                          destNode);
+    fileStore(partitionId).sendMessage(controlMsg, destNode);
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId << "]: " << "Sent response "
@@ -2394,8 +2389,7 @@ void StorageManager::do_replicaDataResponseDrop(const EventWithData& event)
         eventData.partitionSeqNumDataRange().first;
     response.endSequenceNumber() = eventData.partitionSeqNumDataRange().second;
 
-    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
-                                                          eventData.source());
+    fileStore(partitionId).sendMessage(controlMsg, eventData.source());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId << "]: " << "Sent response "
@@ -2506,8 +2500,7 @@ void StorageManager::do_replicaDataResponsePull(const EventWithData& event)
         eventData.partitionSeqNumDataRange().first;
     response.endSequenceNumber() = eventData.partitionSeqNumDataRange().second;
 
-    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
-                                                          destNode);
+    fileStore(partitionId).sendMessage(controlMsg, destNode);
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId << "]: Sent response "
@@ -2546,8 +2539,7 @@ void StorageManager::do_failureReplicaDataResponsePull(
     status.code()                = mqbi::ClusterErrorCode::e_STORAGE_FAILURE;
     status.message()             = "Failed to send data chunks";
 
-    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
-                                                          destNode);
+    fileStore(partitionId).sendMessage(controlMsg, destNode);
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId
@@ -3919,8 +3911,7 @@ void StorageManager::do_replicaDataResponseResize(const EventWithData& event)
     response.partitionMaxFileSizes() = getSelfPartitionMaxFileSizes(
         partitionId);
 
-    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
-                                                          eventData.source());
+    fileStore(partitionId).sendMessage(controlMsg, eventData.source());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId << "]: " << "Sent response "

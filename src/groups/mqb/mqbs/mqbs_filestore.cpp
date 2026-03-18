@@ -5297,6 +5297,7 @@ FileStore::FileStore(
 , d_firstSyncPointAfterRolloverSeqNum()
 , d_partitionMaxFileSizes()
 , d_overridenPartitionMaxFileSizes()
+, d_messageTransmitter(blobSpPool, cluster, allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT(allocator);
@@ -7048,33 +7049,25 @@ void FileStore::clearPrimary()
 
 void FileStore::flushStorage()
 {
-    // 'LocalQueue::flush' invokes 'flushStorage'.
-    // This means that 'flushStorage' will be executed more frequently on a
-    // FileStore than actually applicable.  This is ok and has no side effect.
-
-    // Note that 'RemoteQueue::flush' will not invoke
-    // 'FileStore::flushStorage' because only the partition's primary node
-    // should invoke 'flushStorage' on the FileStore.
-
-    BSLS_ASSERT_SAFE(d_isPrimary);
-
-    if (d_storageEventBuilder.messageCount() != 0) {
-        BALL_LOG_TRACE << partitionDesc() << "Flushing "
-                       << d_storageEventBuilder.messageCount()
-                       << " STORAGE messages.";
-        const int maxChannelPendingItems = d_cluster_p->broadcast(
-            d_storageEventBuilder.blob());
-        if (maxChannelPendingItems > 0) {
-            if (d_nagglePacketCount < k_NAGLE_PACKET_COUNT) {
-                // back off
-                ++d_nagglePacketCount;
-            }
-        }
-        else if (d_nagglePacketCount) {
-            --d_nagglePacketCount;
-        }
-        d_storageEventBuilder.reset();
+    if (d_storageEventBuilder.messageCount() == 0) {
+        return;
     }
+
+    BALL_LOG_TRACE << partitionDesc() << "Flushing "
+                   << d_storageEventBuilder.messageCount()
+                   << " STORAGE messages.";
+    const int maxChannelPendingItems = d_cluster_p->broadcast(
+        d_storageEventBuilder.blob());
+    if (maxChannelPendingItems > 0) {
+        if (d_nagglePacketCount < k_NAGLE_PACKET_COUNT) {
+            // back off
+            ++d_nagglePacketCount;
+        }
+    }
+    else if (d_nagglePacketCount) {
+        --d_nagglePacketCount;
+    }
+    d_storageEventBuilder.reset();
 }
 
 void FileStore::notifyQueuesOnReplicatedBatch()
@@ -7183,7 +7176,6 @@ void FileStore::applyForEachQueue(const QueueFunctor& functor) const
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
-
     if (!d_isOpen) {
         return;  // RETURN
     }
