@@ -663,7 +663,7 @@ QueueHandle::QueueHandle(
         5 * bdlt::TimeUnitRatio::k_NS_PER_S);
     // One maximum log per 5 seconds
 
-    d_clientDescription = d_clientContext_sp->client()->description();
+    d_clientDescription = d_clientContext_sp->description();
 
     setHandleParameters(handleParameters);
 }
