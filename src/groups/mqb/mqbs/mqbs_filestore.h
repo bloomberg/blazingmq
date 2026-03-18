@@ -588,7 +588,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                                bool                           immediateFlush,
                                const bmqp_ctrlmsg::SyncPoint* syncPoint = 0);
 
-    /// Issue a resize storage request.
+    /// Self primary writes a resize storage record with `maxFileSizes`
+    /// and replicates to all replicas.  Return zero on success, 
+    /// non-zero value otherwise.
     ///
     /// THREAD: This method executes in the partition dispatcher thread.
     int issueResizeStorage(
@@ -715,13 +717,13 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     /// Adjust the partition file size that satisfies rollover
     /// policy based on the specified `outstandingBytes`,
-    /// `minFileSize` and `fileSizeGrowLimit`.
+    /// `smallestMaxFileSize` and `fileSizeGrowLimit`.
     /// Return the adjusted file size and set `availableSpacePercent`
     /// if rollover policy is satisfied. Return zero value otherwise.
     bsls::Types::Uint64
     adjustPartitionFileSize(unsigned int*       availableSpacePercent,
                             bsls::Types::Uint64 outstandingBytes,
-                            bsls::Types::Uint64 minFileSize,
+                            bsls::Types::Uint64 smallestMaxFileSize,
                             bsls::Types::Uint64 fileSizeGrowLimit);
 
   public:

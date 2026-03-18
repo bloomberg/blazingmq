@@ -7331,18 +7331,18 @@ void FileStore::gcHistory()
 bsls::Types::Uint64
 FileStore::adjustPartitionFileSize(unsigned int*       availableSpacePercent,
                                    bsls::Types::Uint64 outstandingBytes,
-                                   bsls::Types::Uint64 minFileSize,
+                                   bsls::Types::Uint64 smallestMaxFileSize,
                                    bsls::Types::Uint64 fileSizeGrowLimit)
 {
-    BSLS_ASSERT_SAFE(minFileSize <= fileSizeGrowLimit);
+    BSLS_ASSERT_SAFE(smallestMaxFileSize <= fileSizeGrowLimit);
 
-    bsls::Types::Uint64 currMaxFileSize = minFileSize;
+    bsls::Types::Uint64 currMaxFileSize = smallestMaxFileSize;
 
     bsls::Types::Uint64 fileSizeGrowStep = d_config.growStepPercent() *
-                                           minFileSize / 100;
+                                           smallestMaxFileSize / 100;
     BSLS_ASSERT_SAFE(fileSizeGrowStep > 0);
 
-    // Find a min file size that satisfies rollover policy
+    // Find the smallest max file size that satisfies rollover policy
     bool canRollover = false;
     while (true) {
         canRollover = isSatisfyRolloverPolicy(availableSpacePercent,
