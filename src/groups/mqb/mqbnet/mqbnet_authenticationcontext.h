@@ -217,7 +217,7 @@ class AuthenticationContext {
     /// `errorDescription`, indicating a reauthentication error or
     /// authentication timeout for the current context.
     void onReauthenticateErrorOrTimeout(
-        const int                              errorCode,
+        int                                    errorCode,
         const bsl::string&                     errorName,
         const bsl::string&                     errorDescription,
         const bsl::shared_ptr<bmqio::Channel>& channel);
