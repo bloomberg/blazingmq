@@ -263,6 +263,8 @@ Parameters::Parameters(bslma::Allocator* allocator)
 , d_messageProperties(allocator)
 , d_subscriptions(allocator)
 , d_autoIncrementedField(allocator)
+, d_authnMechanism(allocator)
+, d_authnData(allocator)
 {
     CommandLineParameters params(allocator);
     const bool            rc = from(bsl::cerr, params);
@@ -419,6 +421,8 @@ bool Parameters::from(bsl::ostream&                stream,
     setSubscriptions(params.subscriptions());
     setAutoPubSubModulo(params.autoPubSubModulo());
     setTimeout(timeout);
+    setAuthnMechanism(params.authnMechanism());
+    setAuthnData(params.authnData());
 
     return true;
 }

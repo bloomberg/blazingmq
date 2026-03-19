@@ -490,7 +490,7 @@ struct EventType {
     /// NOTE: This value must always be equal to the highest type in the
     /// enum because it is being used as an upper bound to verify an
     /// Event's `type` field is a supported type.
-    static const int k_HIGHEST_SUPPORTED_EVENT_TYPE = e_REPLICATION_RECEIPT;
+    static const int k_HIGHEST_SUPPORTED_EVENT_TYPE = e_AUTHENTICATION;
 
     // CLASS METHODS
 

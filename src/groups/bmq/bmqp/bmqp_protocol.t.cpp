@@ -1378,7 +1378,7 @@ static void test4_enumPrint()
         BSLMF_ASSERT(bmqp::EventType::e_CONTROL ==
                      bmqp::EventType::k_LOWEST_SUPPORTED_EVENT_TYPE);
 
-        BSLMF_ASSERT(bmqp::EventType::e_REPLICATION_RECEIPT ==
+        BSLMF_ASSERT(bmqp::EventType::e_AUTHENTICATION ==
                      bmqp::EventType::k_HIGHEST_SUPPORTED_EVENT_TYPE);
 
         PrintTestData k_DATA[] = {
@@ -1399,6 +1399,7 @@ static void test4_enumPrint()
             {L_,
              bmqp::EventType::e_REPLICATION_RECEIPT,
              "REPLICATION_RECEIPT"},
+            {L_, bmqp::EventType::e_AUTHENTICATION, "AUTHENTICATION"},
             {L_, -1, "(* UNKNOWN *)"}};
 
         printEnumHelper<bmqp::EventType>(k_DATA);
