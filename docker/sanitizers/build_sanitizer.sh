@@ -228,13 +228,16 @@ pushd "${DIR_SRCS_EXT}/ntf-core"
 # the fix in issue 175307231 is resolved.
 sed -i 's/fcoroutines-ts/fcoroutines/g' 'repository.cmake'
 
-./configure --keep \
-            --prefix /opt/bb             \
+./configure --keep                          \
+            --prefix /opt/bb                \
             --output "${DIR_BUILD_EXT}/ntf" \
-            --without-warnings-as-errors \
-            --without-usage-examples \
-            --without-applications \
-            --ufid 'dbg_64_safe_cpp20' \
+            --without-warnings-as-errors    \
+            --without-usage-examples        \
+            --without-applications          \
+            --with-zlib                     \
+            --without-zstd                  \
+            --without-lz4                   \
+            --ufid 'dbg_64_safe_cpp20'      \
             --toolchain "${TOOLCHAIN_PATH}"
 make -j${PARALLELISM}
 make install
