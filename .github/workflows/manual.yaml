@@ -10,10 +10,10 @@ on:
   workflow_dispatch:
     inputs:
       ref1:
-        description: 'Branch name, tag, or commit SHA #1'
+        description: "Branch name, tag, or commit SHA #1"
         required: true
       ref2:
-        description: 'Branch name, tag, or commit SHA #2'
+        description: "Branch name, tag, or commit SHA #2"
         required: true
 
 # The ref parameter is flexible and can accept:
@@ -38,6 +38,7 @@ jobs:
       target: "bmqbrkr bmqtool"
       save_build_as_artifacts: true
       run_unit_tests: false
+      cxx_standard: cpp17
 
   build2:
     name: "Build ref ${{ github.event.inputs.ref2 }}"
@@ -49,6 +50,7 @@ jobs:
       target: "bmqbrkr bmqtool"
       save_build_as_artifacts: true
       run_unit_tests: false
+      cxx_standard: cpp17
 
   integration_tests_ubuntu_upgrade_version:
     name: Test 7-node cluster upgrade [${{ matrix.cluster }}/${{ matrix.mode }}/${{ matrix.consistency }}]
@@ -63,7 +65,7 @@ jobs:
       - build1
       - build2
     env:
-        RUN_UID: ${{ matrix.cluster }}_${{ matrix.mode }}_${{ matrix.consistency }}
+      RUN_UID: ${{ matrix.cluster }}_${{ matrix.mode }}_${{ matrix.consistency }}
     steps:
       - name: Checkout ITs repo
         uses: actions/checkout@v4
@@ -140,7 +142,6 @@ jobs:
           path: ${{ github.workspace }}/repoit/src/integration-tests/failure-logs
           retention-days: 5
 
-
   integration_tests_ubuntu_two_versions_in_cluster:
     name: IT [${{ matrix.cluster }}/${{ matrix.mode }}/${{ matrix.consistency }}]
     strategy:
@@ -154,7 +155,7 @@ jobs:
       - build1
       - build2
     env:
-        RUN_UID: ${{ matrix.cluster }}_${{ matrix.mode }}_${{ matrix.consistency }}
+      RUN_UID: ${{ matrix.cluster }}_${{ matrix.mode }}_${{ matrix.consistency }}
     steps:
       - name: Checkout ITs repo
         uses: actions/checkout@v4
