@@ -17,17 +17,17 @@
 #ifndef INCLUDED_MQBNET_CONTROLMESSAGETRANSMITTER
 #define INCLUDED_MQBNET_CONTROLMESSAGETRANSMITTER
 
-/// @file mqbc_controlmessagetransmitter.h
+/// @file mqbnet_controlmessagetransmitter.h
 ///
 /// @brief Provide a mechanism to transmit control messages to peer nodes.
 ///
-/// @bbref{mqbc::ControlMessageTransmitter} provides a mechanism to transmit
+/// @bbref{mqbnet::ControlMessageTransmitter} provides a mechanism to transmit
 /// messages to peer nodes in the same cluster.
 ///
 /// Thread Safety                    {#mqbnet_controlmessagetransmitter_thread}
 /// =============
 ///
-/// The @bbref{mqbc::ControlMessageTransmitter} object is not thread safe and
+/// The @bbref{mqbnet::ControlMessageTransmitter} object is not thread safe and
 /// should always be manipulated from the associated cluster's dispatcher
 /// thread, unless specified by the function (such as `sendMessageSafe`).
 

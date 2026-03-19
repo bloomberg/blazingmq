@@ -329,9 +329,9 @@ void Cluster::stopDispatched()
     //       guaranteed that this object will be kept alive.
 
     // Teardown all ClusterNodeSession
-    BALL_LOG_ERROR << description() << " teardown "
-                   << d_clusterData.membership().clusterNodeSessionMap().size()
-                   << " ClusterNodeSession";
+    BALL_LOG_INFO << description() << " teardown "
+                  << d_clusterData.membership().clusterNodeSessionMap().size()
+                  << " ClusterNodeSession";
 
     for (ClusterNodeSessionMapIter it =
              d_clusterData.membership().clusterNodeSessionMap().begin();
@@ -688,7 +688,7 @@ void Cluster::continueShutdownDispatched(
     d_clusterData.messageTransmitter().broadcastMessage(
         controlMsg,
         d_clusterData.transportManager());
-        
+
     // Make sure all partitions done sending last sync points and advisories.
     // Synchronize with all Queue Dispatcher threads
     bslmt::Latch latch(1);

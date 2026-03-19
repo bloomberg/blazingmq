@@ -540,8 +540,7 @@ struct StorageUtil {
 
     /// Transition self to active primary of the specified `partitionId` and
     /// load this info into the specified `partitionInfo`.  Then, broadcast
-    /// a primary status advisory to peers using the specified
-    /// `clusterData`.
+    /// a primary status advisory to peers via the specified `fs`.
     ///
     /// THREAD: Executed by the queue dispatcher thread associated with
     ///         'partitionId'.
