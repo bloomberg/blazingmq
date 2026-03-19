@@ -1459,9 +1459,8 @@ void ClusterQueueHelper::onOpenQueueResponse(
     }
 
     // Do retry if the state is k_OPEN && isQueuePrimaryAvailable
-    bool retryNow = subQueueContext.d_state == SubQueueContext::k_OPEN
-                        ? isQueuePrimaryAvailable(*qcontext, otherThan)
-                        : false;
+    bool retryNow = (subQueueContext.d_state == SubQueueContext::k_OPEN) &&
+                    isQueuePrimaryAvailable(*qcontext, otherThan);
 
     BSLS_ASSERT_SAFE(isQueueAssigned(*qcontext));
 
