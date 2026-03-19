@@ -681,6 +681,16 @@ void Cluster::continueShutdownDispatched(
         bmqp_ctrlmsg::NodeStatus::E_UNAVAILABLE);
     d_clusterData.messageTransmitter().broadcastMessage(controlMsg, true);
 
+    // Make sure all partitions done sending last sync points and advisories.
+    // Synchronize with all Queue Dispatcher threads
+    bslmt::Latch latch(1);
+    dispatcher()->executeOnAllQueues(
+        mqbi::Dispatcher::VoidFunctor(),  // empty
+        mqbi::DispatcherClientType::e_QUEUE,
+        bdlf::BindUtil::bindS(d_allocator_p, &bslmt::Latch::arrive, &latch));
+
+    latch.wait();
+
     // Close all channels of the associated cluster: when broadcasting the
     // state change, the leader, in response, will potentially elect new
     // primaries and broadcast new messages.
