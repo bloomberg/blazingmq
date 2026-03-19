@@ -882,9 +882,6 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
     void setAsClosed(const QueueContextSp& queueContextSp);
 
-    const ClusterStatePartitionInfo*
-    activeAvailablePrimaryPartition(bool* isSelfPrimaryAndLeader, int id);
-
     // PRIVATE MANIPULATORS
     //   (virtual: mqbc::ClusterMembershipObserver)
 

@@ -3852,14 +3852,44 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
     const ClusterStatePartitionInfo* pinfo                  = 0;
 
     if (!allPartitions) {
-        pinfo = activeAvailablePrimaryPartition(&isSelfPrimaryAndLeader,
-                                                partitionId);
-
-        if (!pinfo) {
+        pinfo = &(d_clusterState_p->partition(partitionId));
+        BSLS_ASSERT_SAFE(pinfo);
+        if (!hasActiveAvailablePrimary(partitionId)) {
+            BALL_LOG_INFO << d_cluster_p->description() << " Partition ["
+                          << partitionId
+                          << "]: Not restoring partition state because there "
+                          << "is no primary or primary isn't ACTIVE. Current "
+                          << "primary: "
+                          << (pinfo->primaryNode()
+                                  ? pinfo->primaryNode()->nodeDescription()
+                                  : "** null **")
+                          << ", primary status: " << pinfo->primaryStatus();
             return;  // RETURN
         }
+
+        // Primary for this partitionId is ACTIVE.  Check if self is the
+        // primary and leader.  If self is primary but not leader, this is
+        // primary-leader divergence and we should not proceed with state
+        // restore.
+
+        isSelfPrimaryAndLeader =
+            pinfo->primaryNode() == d_clusterData_p->membership().selfNode() &&
+            d_clusterData_p->electorInfo().isSelfLeader();
     }
 
+    /// TODO (FSM); remove after switching to FSM
+    if (!d_cluster_p->isFSMWorkflow() && isSelfPrimaryAndLeader) {
+        // Note that this fails if there are data
+        mqbc::ClusterState::AssignmentVisitor doubleAssignmentVisitor =
+            bdlf::BindUtil::bindS(d_allocator_p,
+                                  &mqbi::StorageManager::unregisterQueue,
+                                  d_storageManager_p,
+                                  bdlf::PlaceHolders::_1,   // uri
+                                  bdlf::PlaceHolders::_2);  // partitionId),
+
+        d_clusterState_p->iterateDoubleAssignments(partitionId,
+                                                   doubleAssignmentVisitor);
+    }
     ConditionalAdvance<QueueContextMapConstIter> conditional;
     for (QueueContextMapConstIter cit = d_queues.cbegin();
          cit != d_queues.cend();
@@ -3896,13 +3926,26 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
             }
 
             // Proceed as if a specific partitionId is specified.
+            partitionId = queueContext->partitionId();
+            pinfo       = &(d_clusterState_p->partition(partitionId));
 
-            pinfo = activeAvailablePrimaryPartition(
-                &isSelfPrimaryAndLeader,
-                queueContext->partitionId());
-            if (!pinfo) {
-                continue;
+            if (!hasActiveAvailablePrimary(partitionId)) {
+                BMQ_LOGTHROTTLE_INFO
+                    << d_cluster_p->description()
+                    << " Not performing restore of queue ["
+                    << queueContext->uri()
+                    << "] because there is no primary or primary isn't "
+                       "ACTIVE. Current primary: "
+                    << (pinfo->primaryNode()
+                            ? pinfo->primaryNode()->nodeDescription()
+                            : "** null **")
+                    << ", primary status: " << pinfo->primaryStatus();
+                continue;  // CONTINUE
             }
+            isSelfPrimaryAndLeader =
+                pinfo->primaryNode() ==
+                    d_clusterData_p->membership().selfNode() &&
+                d_clusterData_p->electorInfo().isSelfLeader();
         }
         else if (queueContext->partitionId() != partitionId) {
             // Skip the queue as its assigned to a different partitionId.
@@ -6295,55 +6338,6 @@ void ClusterQueueHelper::match(bsl::vector<bsl::string>*          added,
 
         added->push_back(appId);
     }
-}
-
-const mqbc::ClusterStatePartitionInfo*
-ClusterQueueHelper::activeAvailablePrimaryPartition(
-    bool* isSelfPrimaryAndLeader,
-    int   partitionId)
-{
-    BSLS_ASSERT_SAFE(isSelfPrimaryAndLeader);
-
-    const ClusterStatePartitionInfo* pinfo = &(
-        d_clusterState_p->partition(partitionId));
-    BSLS_ASSERT_SAFE(pinfo);
-    if (!hasActiveAvailablePrimary(partitionId)) {
-        BALL_LOG_INFO << d_cluster_p->description() << " Partition ["
-                      << partitionId
-                      << "]: Not restoring partition state because there "
-                      << "is no primary or primary isn't ACTIVE. Current "
-                      << "primary: "
-                      << (pinfo->primaryNode()
-                              ? pinfo->primaryNode()->nodeDescription()
-                              : "** null **")
-                      << ", primary status: " << pinfo->primaryStatus();
-        return 0;  // RETURN
-    }
-
-    // Primary for this partitionId is ACTIVE.  Check if self is the
-    // primary and leader.  If self is primary but not leader, this is
-    // primary-leader divergence and we should not proceed with state
-    // restore.
-
-    *isSelfPrimaryAndLeader = pinfo->primaryNode() ==
-                                  d_clusterData_p->membership().selfNode() &&
-                              d_clusterData_p->electorInfo().isSelfLeader();
-
-    /// TODO (FSM); remove after switching to FSM
-    if (!d_cluster_p->isFSMWorkflow() && *isSelfPrimaryAndLeader) {
-        // Note that this fails if there are data
-        mqbc::ClusterState::AssignmentVisitor doubleAssignmentVisitor =
-            bdlf::BindUtil::bindS(d_allocator_p,
-                                  &mqbi::StorageManager::unregisterQueue,
-                                  d_storageManager_p,
-                                  bdlf::PlaceHolders::_1,   // uri
-                                  bdlf::PlaceHolders::_2);  // partitionId),
-
-        d_clusterState_p->iterateDoubleAssignments(partitionId,
-                                                   doubleAssignmentVisitor);
-    }
-
-    return pinfo;
 }
 
 }  // close package namespace
