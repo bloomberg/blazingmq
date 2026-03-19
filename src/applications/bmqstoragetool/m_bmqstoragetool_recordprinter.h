@@ -270,27 +270,16 @@ void RecordDetailsPrinter<PRINTER_TYPE>::printRecord(
     const RecordDetails<mqbs::JournalOpRecord>& rec)
 {
     d_fields.push_back("JournalOpType");
-    if (mqbs::JournalOpType::e_SYNCPOINT == rec.d_record.type()) {
-        d_fields.push_back("SyncPointType");
-        d_fields.push_back("SyncPtPrimaryLeaseId");
-        d_fields.push_back("SyncPtSequenceNumber");
-        d_fields.push_back("PrimaryNodeId");
-        d_fields.push_back("DataFileOffsetDwords");
-        const mqbs::JournalOpRecord::SyncPointData& spd =
-            rec.d_record.syncPointData();
-        *d_printer_mp << rec.d_record.type() << rec.d_record.syncPointType()
-                      << spd.primaryLeaseId() << spd.sequenceNum()
-                      << spd.primaryNodeId() << spd.dataFileOffsetDwords();
-    }
-    else if (mqbs::JournalOpType::e_RESIZE_STORAGE == rec.d_record.type()) {
-        d_fields.push_back("MaxJournalFileSize");
-        d_fields.push_back("MaxDataFileSize");
-        d_fields.push_back("MaxQlistFileSize");
-        const mqbs::JournalOpRecord::ResizeStorageData& rsd =
-            rec.d_record.resizeStorageData();
-        *d_printer_mp << rsd.maxJournalFileSize() << rsd.maxDataFileSize()
-                      << rsd.maxQlistFileSize();
-    }
+    d_fields.push_back("SyncPointType");
+    d_fields.push_back("SyncPtPrimaryLeaseId");
+    d_fields.push_back("SyncPtSequenceNumber");
+    d_fields.push_back("PrimaryNodeId");
+    d_fields.push_back("DataFileOffsetDwords");
+
+    *d_printer_mp << rec.d_record.type() << rec.d_record.syncPointType()
+                  << rec.d_record.primaryLeaseId()
+                  << rec.d_record.sequenceNum() << rec.d_record.primaryNodeId()
+                  << rec.d_record.dataFileOffsetDwords();
 }
 
 }  // close namespace RecordPrinter

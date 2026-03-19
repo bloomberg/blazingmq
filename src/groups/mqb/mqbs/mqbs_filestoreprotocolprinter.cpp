@@ -421,18 +421,11 @@ void printRecord(bsl::ostream& stream, const mqbs::JournalOpRecord& rec)
     fields.push_back("Timestamp");
     fields.push_back("Epoch");
     fields.push_back("JournalOpType");
-    if (mqbs::JournalOpType::e_SYNCPOINT == rec.type()) {
-        fields.push_back("SyncPointType");
-        fields.push_back("SyncPtPrimaryLeaseId");
-        fields.push_back("SyncPtSequenceNumber");
-        fields.push_back("PrimaryNodeId");
-        fields.push_back("DataFileOffsetDwords");
-    }
-    else if (mqbs::JournalOpType::e_RESIZE_STORAGE == rec.type()) {
-        fields.push_back("MaxJournalFileSize");
-        fields.push_back("MaxDataFileSize");
-        fields.push_back("MaxQlistFileSize");
-    }
+    fields.push_back("SyncPointType");
+    fields.push_back("SyncPtPrimaryLeaseId");
+    fields.push_back("SyncPtSequenceNumber");
+    fields.push_back("PrimaryNodeId");
+    fields.push_back("DataFileOffsetDwords");
 
     bmqu::AlignedPrinter printer(stream, &fields);
     printer << rec.header().primaryLeaseId() << rec.header().sequenceNumber();
@@ -446,19 +439,10 @@ void printRecord(bsl::ostream& stream, const mqbs::JournalOpRecord& rec)
     else {
         printer << datetime;
     }
-    printer << epochValue << rec.type();
-    if (mqbs::JournalOpType::e_SYNCPOINT == rec.type()) {
-        const mqbs::JournalOpRecord::SyncPointData& spd = rec.syncPointData();
-        printer << rec.syncPointType() << spd.primaryLeaseId()
-                << spd.sequenceNum() << spd.primaryNodeId()
-                << spd.dataFileOffsetDwords();
-    }
-    else if (mqbs::JournalOpType::e_RESIZE_STORAGE == rec.type()) {
-        const mqbs::JournalOpRecord::ResizeStorageData& rsd =
-            rec.resizeStorageData();
-        printer << rsd.maxJournalFileSize() << rsd.maxDataFileSize()
-                << rsd.maxQlistFileSize();
-    }
+
+    printer << epochValue << rec.type() << rec.syncPointType()
+            << rec.primaryLeaseId() << rec.sequenceNum() << rec.primaryNodeId()
+            << rec.dataFileOffsetDwords();
 
     stream << "\n";
 }
