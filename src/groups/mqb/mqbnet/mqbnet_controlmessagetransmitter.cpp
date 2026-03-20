@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbc_controlmessagetransmitter.cpp                                 -*-C++-*-
-#include <mqbc_controlmessagetransmitter.h>
+// mqbnet_controlmessagetransmitter.cpp                               -*-C++-*-
+#include <mqbnet_controlmessagetransmitter.h>
 
 #include <mqbscm_version.h>
 // MQB
@@ -30,7 +30,7 @@
 #include <bsls_assert.h>
 
 namespace BloombergLP {
-namespace mqbc {
+namespace mqbnet {
 
 // -------------------------------
 // class ControlMessageTransmitter
@@ -70,7 +70,7 @@ void ControlMessageTransmitter::sendMessageHelper(
 void ControlMessageTransmitter::broadcastMessageHelper(
     const bmqp_ctrlmsg::ControlMessage& message,
     bmqp::SchemaEventBuilder*           schemaBuilder,
-    bool                                broadcastToProxies)
+    mqbnet::TransportManager*           transportManager)
 {
     // executed by *ANY* thread
 
@@ -85,18 +85,17 @@ void ControlMessageTransmitter::broadcastMessageHelper(
     // Broadcast to cluster, using the unicast channel to ensure ordering of
     // events.
 
-    d_cluster_p->netCluster().writeAll(schemaBuilder->blob(),
-                                       bmqp::EventType::e_CONTROL);
+    d_cluster_p->writeAll(schemaBuilder->blob(), bmqp::EventType::e_CONTROL);
 
     BALL_LOG_INFO << "Broadcasted message '" << message
                   << "' to all cluster nodes";
 
-    if (!broadcastToProxies) {
+    if (!transportManager) {
         return;  // RETURN
     }
 
     bsl::vector<bsl::weak_ptr<mqbnet::Session> > sessions;
-    for (mqbnet::TransportManagerIterator sessIt(d_transportManager_p); sessIt;
+    for (mqbnet::TransportManagerIterator sessIt(transportManager); sessIt;
          ++sessIt) {
         sessions.push_back(sessIt.session());
     }
@@ -133,15 +132,13 @@ void ControlMessageTransmitter::broadcastMessageHelper(
 
 // CREATORS
 ControlMessageTransmitter::ControlMessageTransmitter(
-    BlobSpPool*               blobSpPool_p,
-    mqbi::Cluster*            cluster,
-    mqbnet::TransportManager* transportManager,
-    bslma::Allocator*         allocator)
+    BlobSpPool*       blobSpPool_p,
+    mqbnet::Cluster*  cluster,
+    bslma::Allocator* allocator)
 : d_allocator_p(allocator)
 , d_blobSpPool_p(blobSpPool_p)
 , d_schemaBuilder(d_blobSpPool_p, bmqp::EncodingType::e_BER, allocator)
 , d_cluster_p(cluster)
-, d_transportManager_p(transportManager)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_allocator_p);
@@ -158,11 +155,6 @@ void ControlMessageTransmitter::sendMessage(
     const bmqp_ctrlmsg::ControlMessage& message,
     mqbnet::ClusterNode*                destination)
 {
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-
     d_schemaBuilder.reset();
     sendMessageHelper(message, destination, &d_schemaBuilder);
 }
@@ -172,11 +164,6 @@ void ControlMessageTransmitter::sendMessage(
     const bsl::shared_ptr<bmqio::Channel>& channel,
     const bsl::string&                     description)
 {
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-
     d_schemaBuilder.reset();
 
     int rc = d_schemaBuilder.setMessage(message, bmqp::EventType::e_CONTROL);
@@ -220,29 +207,10 @@ void ControlMessageTransmitter::sendMessageSafe(
 
 void ControlMessageTransmitter::broadcastMessage(
     const bmqp_ctrlmsg::ControlMessage& message,
-    bool                                broadcastToProxies)
+    mqbnet::TransportManager*           transportManager)
 {
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-
     d_schemaBuilder.reset();
-    broadcastMessageHelper(message, &d_schemaBuilder, broadcastToProxies);
-}
-
-void ControlMessageTransmitter::broadcastMessageSafe(
-    const bmqp_ctrlmsg::ControlMessage& message)
-{
-    // executed by *ANY* thread
-
-    // Since this method can be invoked from any thread, schema event builder
-    // is created on the stack, instead of using 'd_schemaBuilder'.
-
-    bmqp::SchemaEventBuilder schemaBuilder(d_blobSpPool_p,
-                                           bmqp::EncodingType::e_BER,
-                                           d_allocator_p);
-    broadcastMessageHelper(message, &schemaBuilder, false);
+    broadcastMessageHelper(message, &d_schemaBuilder, transportManager);
 }
 
 }  // close package namespace

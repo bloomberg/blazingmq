@@ -540,14 +540,13 @@ struct StorageUtil {
 
     /// Transition self to active primary of the specified `partitionId` and
     /// load this info into the specified `partitionInfo`.  Then, broadcast
-    /// a primary status advisory to peers using the specified
-    /// `clusterData`.
+    /// a primary status advisory to peers via the specified `fs`.
     ///
     /// THREAD: Executed by the queue dispatcher thread associated with
     ///         'partitionId'.
-    static void transitionToActivePrimary(PartitionInfo*     partitionInfo,
-                                          mqbc::ClusterData* clusterData,
-                                          int                partitionId);
+    static void transitionToActivePrimary(PartitionInfo*   partitionInfo,
+                                          mqbs::FileStore* fs,
+                                          int              partitionId);
 
     /// Callback executed after primary sync for the specified 'partitionId'
     /// is complete with the specified 'status'.  Use the specified 'fs',

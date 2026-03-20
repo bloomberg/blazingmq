@@ -119,8 +119,7 @@ ClusterData::ClusterData(
                       allocator))
 , d_cluster_p(cluster)
 , d_messageTransmitter(resources.blobSpPool(),
-                       cluster,
-                       transportManager,
+                       membership().netCluster(),
                        allocator)
 , d_requestManager(bmqp::EventType::e_CONTROL,
                    resources.blobSpPool(),
