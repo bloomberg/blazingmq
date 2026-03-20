@@ -171,7 +171,7 @@ static void test1_initialConnectionContext()
             bsl::shared_ptr<mqbnet::AuthenticationContext> authnCtx =
                 bsl::allocate_shared<mqbnet::AuthenticationContext>(
                     alloc,
-                    nullptr,  // initialConnectionContext
+                    &obj,
                     "testMechanism",
                     authnMsg,
                     bmqp::EncodingType::e_BER,
