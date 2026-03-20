@@ -350,12 +350,15 @@ void FileStoreProtocolUtil::loadAppInfos(
         const char* appIdBegin = appIdsBlock.base() + offset +
                                  sizeof(AppIdHeader);
 
-        appIdKeyPairs->insert(bsl::make_pair(
+        bslma::Allocator* alloc = appIdKeyPairs->get_allocator();
+        mqbi::Storage::AppInfos::value_type appIdKeyPair(
             bsl::string(appIdBegin,
                         paddedLen - appIdBegin[paddedLen - 1],
-                        appIdKeyPairs->get_allocator()),
+                        alloc),
             mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                             appIdBegin + paddedLen)));
+                             appIdBegin + paddedLen),
+            alloc);
+        appIdKeyPairs->insert(appIdKeyPair);
 
         // Move to beginning of next AppIdHeader.
         offset += sizeof(AppIdHeader) + paddedLen +
