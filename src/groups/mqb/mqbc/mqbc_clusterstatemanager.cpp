@@ -285,7 +285,8 @@ void ClusterStateManager::do_updatePrimaryInPFSMs(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-    BSLS_ASSERT_SAFE(d_clusterFSM.isSelfHealed());
+    BSLS_ASSERT_SAFE(d_clusterFSM.isSelfHealed() ||
+                     event.first == ClusterStateTableEvent::e_RST_PRIMARY);
 
     const ClusterStateTableEvent::Enum eventType = event.first;
     const bsl::vector<int>&            modifiedPartitions =

@@ -332,6 +332,8 @@ class PartitionStateTableActions {
 
     virtual void do_processLiveData(const ARGS& args) = 0;
 
+    virtual void do_setPrimary(const ARGS& args) = 0;
+
     virtual void do_cleanupMetadata(const ARGS& args) = 0;
 
     virtual void do_startSendDataChunks(const ARGS& args) = 0;
@@ -380,10 +382,11 @@ class PartitionStateTableActions {
         const ARGS& args);
 
     void
-    do_startWatchDog_openRecoveryFileSet_storeSelfSeq_replicaStateRequest_checkQuorumMaxFileSizesAndSeq(
+    do_setPrimary_startWatchDog_openRecoveryFileSet_storeSelfSeq_replicaStateRequest_checkQuorumMaxFileSizesAndSeq(
         const ARGS& args);
 
-    void do_startWatchDog_openRecoveryFileSet_storeSelfSeq_primaryStateRequest(
+    void
+    do_setPrimary_startWatchDog_openRecoveryFileSet_storeSelfSeq_primaryStateRequest(
         const ARGS& args);
 
     void do_storeReplicaSeq_primaryStateResponse_checkQuorumMaxFileSizesAndSeq(
@@ -520,12 +523,12 @@ class PartitionStateTable
         PST_CFG(
             UNKNOWN,
             DETECT_SELF_PRIMARY,
-            startWatchDog_openRecoveryFileSet_storeSelfSeq_replicaStateRequest_checkQuorumMaxFileSizesAndSeq,
+            setPrimary_startWatchDog_openRecoveryFileSet_storeSelfSeq_replicaStateRequest_checkQuorumMaxFileSizesAndSeq,
             PRIMARY_HEALING_STG1);
         PST_CFG(
             UNKNOWN,
             DETECT_SELF_REPLICA,
-            startWatchDog_openRecoveryFileSet_storeSelfSeq_primaryStateRequest,
+            setPrimary_startWatchDog_openRecoveryFileSet_storeSelfSeq_primaryStateRequest,
             REPLICA_WAITING);
         PST_CFG(UNKNOWN,
                 PRIMARY_STATE_RQST,
@@ -859,9 +862,10 @@ void PartitionStateTableActions<ARGS>::
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_startWatchDog_openRecoveryFileSet_storeSelfSeq_replicaStateRequest_checkQuorumMaxFileSizesAndSeq(
+    do_setPrimary_startWatchDog_openRecoveryFileSet_storeSelfSeq_replicaStateRequest_checkQuorumMaxFileSizesAndSeq(
         const ARGS& args)
 {
+    do_setPrimary(args);
     do_startWatchDog(args);
     do_openRecoveryFileSet(args);
     do_storeSelfSeq(args);
@@ -871,9 +875,10 @@ void PartitionStateTableActions<ARGS>::
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_startWatchDog_openRecoveryFileSet_storeSelfSeq_primaryStateRequest(
+    do_setPrimary_startWatchDog_openRecoveryFileSet_storeSelfSeq_primaryStateRequest(
         const ARGS& args)
 {
+    do_setPrimary(args);
     do_startWatchDog(args);
     do_openRecoveryFileSet(args);
     do_storeSelfSeq(args);

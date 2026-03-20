@@ -461,6 +461,7 @@ class ClusterStateTable
                 logUnexpectedCSLCommit_and_abort,
                 UNKNOWN);
         CST_CFG(UNKNOWN, STOP_NODE, stopPFSMs, STOPPED);
+        CST_CFG(UNKNOWN, RST_PRIMARY, updatePrimaryInPFSMs, UNKNOWN);
         CST_CFG(FOL_HEALING,
                 SLCT_LDR,
                 stopWatchDog_cancelRequests_reapplyEvent,

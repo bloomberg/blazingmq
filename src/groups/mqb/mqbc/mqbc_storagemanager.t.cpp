@@ -575,8 +575,8 @@ struct TestHelper {
         bmqp_ctrlmsg::Status& failureResponse =
             failureMessage.choice().makeStatus();
         failureResponse.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
-        failureResponse.code()     = mqbi::ClusterErrorCode::e_NOT_REPLICA;
-        failureResponse.message()  = "Not a replica";
+        failureResponse.code()     = mqbi::ClusterErrorCode::e_UNKNOWN;
+        failureResponse.message()  = "Primary mismatch";
 
         for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
              cit != d_cluster_mp->_channels().cend();
