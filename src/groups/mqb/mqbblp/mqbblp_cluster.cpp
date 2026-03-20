@@ -672,6 +672,16 @@ void Cluster::continueShutdownDispatched(
 
     d_clusterOrchestrator.queueHelper().processShutdownEvent();
 
+    // Make sure all partitions done sending last sync points.
+    // Synchronize with all Queue Dispatcher threads
+    bslmt::Latch latch(1);
+    dispatcher()->executeOnAllQueues(
+        mqbi::Dispatcher::VoidFunctor(),  // empty
+        mqbi::DispatcherClientType::e_QUEUE,
+        bdlf::BindUtil::bindS(d_allocator_p, &bslmt::Latch::arrive, &latch));
+
+    latch.wait();
+
     // Notify peers before going down.  This should be the last message sent
     // out.
 
@@ -689,15 +699,8 @@ void Cluster::continueShutdownDispatched(
         controlMsg,
         d_clusterData.transportManager());
 
-    // Make sure all partitions done sending last sync points and advisories.
-    // Synchronize with all Queue Dispatcher threads
-    bslmt::Latch latch(1);
-    dispatcher()->executeOnAllQueues(
-        mqbi::Dispatcher::VoidFunctor(),  // empty
-        mqbi::DispatcherClientType::e_QUEUE,
-        bdlf::BindUtil::bindS(d_allocator_p, &bslmt::Latch::arrive, &latch));
-
-    latch.wait();
+    BALL_LOG_INFO << "Cluster: [name: '" << name()
+                  << "'] done waiting and now will close the channels";
 
     // Close all channels of the associated cluster: when broadcasting the
     // state change, the leader, in response, will potentially elect new
