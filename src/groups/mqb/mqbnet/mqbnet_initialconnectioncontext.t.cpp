@@ -43,8 +43,7 @@ void complete(const bsl::shared_ptr<int>&             check,
               int                                     status,
               const bsl::string&                      errorDescription,
               const bsl::shared_ptr<mqbnet::Session>& session,
-              const bsl::shared_ptr<bmqio::Channel>&  channel,
-              const mqbnet::InitialConnectionContext* initialConnectionContext)
+              const bsl::shared_ptr<bmqio::Channel>&  channel)
 {
     BSLS_ASSERT_SAFE(check);
 
@@ -55,7 +54,6 @@ void complete(const bsl::shared_ptr<int>&             check,
     (void)errorDescription;
     (void)session;
     (void)channel;
-    (void)initialConnectionContext;
 }
 
 // Mock authenticator
@@ -128,14 +126,12 @@ static void test1_initialConnectionContext()
 
     bsl::shared_ptr<int> check = bsl::allocate_shared<int>(alloc, 0);
     mqbnet::InitialConnectionContext::InitialConnectionCompleteCb completeCb =
-        bdlf::BindUtil::bind(
-            &complete,
-            check,
-            bdlf::PlaceHolders::_1,  // status
-            bdlf::PlaceHolders::_2,  // errorDescription
-            bdlf::PlaceHolders::_3,  // session
-            bdlf::PlaceHolders::_4,  // channel
-            bdlf::PlaceHolders::_5   // initialConnectionContext
+        bdlf::BindUtil::bind(&complete,
+                             check,
+                             bdlf::PlaceHolders::_1,  // status
+                             bdlf::PlaceHolders::_2,  // errorDescription
+                             bdlf::PlaceHolders::_3,  // session
+                             bdlf::PlaceHolders::_4   // channel
         );
 
     bmqtst::TestHelper::printTestName("test1_basicConstruction");
