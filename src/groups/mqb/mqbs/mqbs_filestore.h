@@ -717,6 +717,17 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// replica nodes.
     void gcHistory();
 
+    /// Adjust the partition file size that satisfies rollover
+    /// policy based on the specified `outstandingBytes`,
+    /// `smallestMaxFileSize` and `fileSizeGrowLimit`.
+    /// Return the adjusted file size and set `availableSpacePercent`
+    /// if rollover policy is satisfied. Return zero value otherwise.
+    bsls::Types::Uint64
+    adjustPartitionFileSize(unsigned int*       availableSpacePercent,
+                            bsls::Types::Uint64 outstandingBytes,
+                            bsls::Types::Uint64 smallestMaxFileSize,
+                            bsls::Types::Uint64 fileSizeGrowLimit);
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(FileStore, bslma::UsesBslmaAllocator)

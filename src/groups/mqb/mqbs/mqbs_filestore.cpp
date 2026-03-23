@@ -276,6 +276,22 @@ void printNextEventRecord(bsl::ostream&                       stream,
     allocator->deallocate(p);
 }
 
+// Return `true` if the rollover policy is satisfied, `false` otherwise.
+// Set `availableSpacePercent` pointed value with calculated value.
+bool isSatisfyRolloverPolicy(unsigned int*             availableSpacePercent,
+                             const bsls::Types::Uint64 maxFileSize,
+                             const bsls::Types::Uint64 outstandingBytes,
+                             const unsigned int        minAvailSpacePercent)
+{
+    *availableSpacePercent = 0;
+    if (outstandingBytes <= maxFileSize) {
+        *availableSpacePercent = ((maxFileSize - outstandingBytes) * 100) /
+                                 maxFileSize;
+    }
+
+    return *availableSpacePercent >= minAvailSpacePercent;
+}
+
 }  // close unnamed namespace
 
 // -------------------------------------
@@ -3100,7 +3116,10 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
         rc_JOURNAL_ROLLOVER_POLICY_FAILURE = -1,
         rc_DATA_ROLLOVER_POLICY_FAILURE    = -2,
         rc_QLIST_ROLLOVER_POLICY_FAILURE   = -3,
-        rc_ROLLOVER_FAILURE                = -4
+        rc_SYNC_POINT_FAILURE              = -4,
+        rc_RESIZE_STORAGE_FAILURE          = -5,
+        rc_ROLLOVER_FAILURE                = -6,
+        rc_SYNC_POINT_FORCE_ISSUE_FAILURE  = -7
     };
 
     // Note: QList file will be deprecated in FSM workflow.
@@ -3158,6 +3177,7 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
     bool           canRollover            = true;
     int            rc                     = rc_SUCCESS;
     FileType::Enum cannotRolloverFileType = FileType::e_UNDEFINED;
+    bmqp_ctrlmsg::PartitionMaxFileSizes adjustedMaxFileSizes;
 
     bsls::Types::Uint64 outstandingBytesJournal =
         activeFileSet->d_outstandingBytesJournal;
@@ -3165,16 +3185,19 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
         outstandingBytesJournal += requestedSpace;
     }
 
-    bsls::Types::Uint64 availableSpacePercentJournal = 0;
-    bsls::Types::Uint64 maxJournalFileSize =
-        activeFileSet->d_journalFile.fileSize();
-    if (outstandingBytesJournal <= maxJournalFileSize) {
-        availableSpacePercentJournal =
-            ((maxJournalFileSize - outstandingBytesJournal) * 100) /
-            maxJournalFileSize;
-    }
+    unsigned int availableSpacePercentJournal = 0;
+    // If journalFileGrowLimit is not set, use current max file size as
+    // grow limit.
+    const bsls::Types::Uint64 journalFileSizeGrowLimit = bsl::max(
+        d_config.journalFileGrowLimit(),
+        d_partitionMaxFileSizes.journalFileSize());
 
-    if (availableSpacePercentJournal < d_config.minAvailSpacePercent()) {
+    adjustedMaxFileSizes.journalFileSize() = adjustPartitionFileSize(
+        &availableSpacePercentJournal,
+        outstandingBytesJournal,
+        d_config.maxJournalFileSize(),
+        journalFileSizeGrowLimit);
+    if (adjustedMaxFileSizes.journalFileSize() == 0) {
         // JOURNAL file can't be rolled over.
 
         canRollover            = false;
@@ -3188,15 +3211,19 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
         outstandingBytesData += requestedSpace;
     }
 
-    bsls::Types::Uint64 availableSpacePercentData = 0;
-    bsls::Types::Uint64 maxDataFileSize = activeFileSet->d_dataFile.fileSize();
-    if (outstandingBytesData <= maxDataFileSize) {
-        availableSpacePercentData = ((maxDataFileSize - outstandingBytesData) *
-                                     100) /
-                                    maxDataFileSize;
-    }
+    unsigned int availableSpacePercentData = 0;
+    // If dataFileGrowLimit is not set, use current max file size as
+    // grow limit
+    const bsls::Types::Uint64 dataFileSizeGrowLimit = bsl::max(
+        d_config.dataFileGrowLimit(),
+        d_partitionMaxFileSizes.dataFileSize());
 
-    if (availableSpacePercentData < d_config.minAvailSpacePercent()) {
+    adjustedMaxFileSizes.dataFileSize() = adjustPartitionFileSize(
+        &availableSpacePercentData,
+        outstandingBytesData,
+        d_config.maxDataFileSize(),
+        dataFileSizeGrowLimit);
+    if (adjustedMaxFileSizes.dataFileSize() == 0) {
         // DATA file can't be rolled over.
 
         canRollover            = false;
@@ -3204,7 +3231,7 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
         rc                     = rc_DATA_ROLLOVER_POLICY_FAILURE;
     }
 
-    bsls::Types::Uint64 availableSpacePercentQlist = 0;
+    unsigned int availableSpacePercentQlist = 0;
     if (d_qListAware) {
         bsls::Types::Uint64 outstandingBytesQlist =
             activeFileSet->d_outstandingBytesQlist;
@@ -3212,17 +3239,19 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
             outstandingBytesQlist += requestedSpace;
         }
 
-        bsls::Types::Uint64 maxQlistFileSize =
-            activeFileSet->d_qlistFile.fileSize();
-        if (outstandingBytesQlist <= maxQlistFileSize) {
-            availableSpacePercentQlist =
-                ((maxQlistFileSize - outstandingBytesQlist) * 100) /
-                maxQlistFileSize;
-        }
+        // If qListFileGrowLimit is not set, use current max file size
+        // as grow limit
+        const bsls::Types::Uint64 qListFileSizeGrowLimit = bsl::max(
+            d_config.qListFileGrowLimit(),
+            d_partitionMaxFileSizes.qListFileSize());
 
-        if (availableSpacePercentQlist < d_config.minAvailSpacePercent()) {
-            // QLIST file can't be rolled over.  Alarm only if we have
-            // encountered this for the first time.
+        adjustedMaxFileSizes.qListFileSize() = adjustPartitionFileSize(
+            &availableSpacePercentQlist,
+            outstandingBytesQlist,
+            d_config.maxQlistFileSize(),
+            qListFileSizeGrowLimit);
+        if (adjustedMaxFileSizes.qListFileSize() == 0) {
+            // QLIST file can't be rolled over.
 
             canRollover            = false;
             cannotRolloverFileType = FileType::e_QLIST;
@@ -3306,6 +3335,27 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
 
     activeFileSet->d_journalFileAvailable = true;
     // Set the availability flag back to true.
+
+    // Reset overridden max file sizes, not needed anymore.
+    d_overridenPartitionMaxFileSizes.reset();
+
+    // If adjusted max file sizes are different from current,
+    // issue resize storage record BEFORE rollover sync point.
+    BSLS_ASSERT_SAFE(adjustedMaxFileSizes !=
+                     bmqp_ctrlmsg::PartitionMaxFileSizes());
+    if (adjustedMaxFileSizes != d_partitionMaxFileSizes) {
+        rc = issueResizeStorage(adjustedMaxFileSizes);
+        if (0 != rc) {
+            return 10 * rc + rc_RESIZE_STORAGE_FAILURE;  // RETURN
+        }
+
+        BALL_LOG_INFO << partitionDesc()
+                      << "Issued a resize storage record with "
+                      << "adjusted partition file sizes: "
+                      << adjustedMaxFileSizes;
+        // Update current partition max file sizes with adjusted values.
+        d_partitionMaxFileSizes = adjustedMaxFileSizes;
+    }
 
     rc = rollover();
     if (0 != rc) {
@@ -7267,6 +7317,39 @@ void FileStore::gcHistory()
          ++it) {
         it->second->gcHistory(now);
     }
+}
+
+bsls::Types::Uint64
+FileStore::adjustPartitionFileSize(unsigned int*       availableSpacePercent,
+                                   bsls::Types::Uint64 outstandingBytes,
+                                   bsls::Types::Uint64 smallestMaxFileSize,
+                                   bsls::Types::Uint64 fileSizeGrowLimit)
+{
+    BSLS_ASSERT_SAFE(smallestMaxFileSize <= fileSizeGrowLimit);
+
+    bsls::Types::Uint64 currMaxFileSize = smallestMaxFileSize;
+
+    bsls::Types::Uint64 fileSizeGrowStep = d_config.growStepPercent() *
+                                           smallestMaxFileSize / 100;
+    BSLS_ASSERT_SAFE(fileSizeGrowStep > 0);
+
+    // Find the smallest max file size that satisfies rollover policy
+    bool canRollover = false;
+    while (true) {
+        canRollover = isSatisfyRolloverPolicy(availableSpacePercent,
+                                              currMaxFileSize,
+                                              outstandingBytes,
+                                              d_config.minAvailSpacePercent());
+        if (canRollover || currMaxFileSize == fileSizeGrowLimit) {
+            // Policy is met or reached the limit
+            break;  // BREAK
+        }
+        // Increase file size by step up to limit
+        currMaxFileSize = bsl::min(currMaxFileSize + fileSizeGrowStep,
+                                   fileSizeGrowLimit);
+    }
+
+    return (canRollover ? currMaxFileSize : 0);
 }
 
 void FileStore::applyForEachQueue(const QueueFunctor& functor) const
