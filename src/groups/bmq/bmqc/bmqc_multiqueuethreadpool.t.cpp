@@ -74,7 +74,10 @@ struct TestItem {
     // MANIPULATORS
     int& value() { return d_value; }
 
-    TestItem& setProcessingStartTime(bsls::Types::Int64 time) { return *this; }
+    TestItem& setProcessingStartTime(BSLA_MAYBE_UNUSED bsls::Types::Int64 time)
+    {
+        return *this;
+    }
 };
 
 typedef bmqc::MultiQueueThreadPool<TestItem> MQTP;
