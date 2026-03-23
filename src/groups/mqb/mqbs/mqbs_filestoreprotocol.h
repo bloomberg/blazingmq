@@ -2006,8 +2006,26 @@ struct JournalOpRecord {
     //                                for JournalOpType::e_SYNCPOINT
     //  JournalOpType...............: JournalOpType
     //  Data[24]....................: 24 bytes of data specific to either
-    //                                `SyncPoint` or `ResizeStorage`
-    //                                record.
+    //                                `SyncPoint` or `ResizeStorage` record.
+    //                                For
+    //                                `SyncPoint`(JournalOpType::e_SYNCPOINT)
+    //                                it consists of:
+    //    Sequence Number Upper Bits: Upper 32 bits of sequence number.
+    //    Sequence Number Lower Bits: Lower 32 bits of sequence number.
+    //    Primary Node Id...........: NodeId of partition's primary.
+    //    Primary Lease Id..........: LeaseId of the primary of this partition.
+    //    DataFileOffstDwords.......: Current offset (in DWORDs) of the data
+    //                                file.
+    //    QlistFileOffsetWords......: Current offset (in WORDs) of the qlist
+    //                                file.  For
+    //                                `ResizeStorage`(JournalOpType::e_RESIZE)
+    //                                it consists of:
+    //    maxJournalFileSize Upper Bits: Upper 32 bits of maxJournalFileSize.
+    //    maxJournalFileSize Lower Bits: Lower 32 bits of maxJournalFileSize.
+    //    maxDataFileSize Upper Bits...: Upper 32 bits of maxDataFileSize.
+    //    maxDataFileSize Lower Bits...: Lower 32 bits of maxDataFileSize.
+    //    maxQlistFileSize Upper Bits..: Upper 32 bits of maxQlistFileSize.
+    //    maxQlistFileSize Lower Bits..: Lower 32 bits of maxQlistFileSize.
     //  Magic.......................: Magic word
     //..
 

@@ -108,8 +108,10 @@ const int k_NAGLE_PACKET_COUNT = 100;
 const int k_KEY_LEN = FileStoreProtocol::k_KEY_LENGTH;
 
 const unsigned int k_REQUESTED_JOURNAL_SPACE =
-    3 * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
-// Above, 3 == 1 journal record being written +
+    4 * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+// Above, 4 == 1 journal record being written +
+//             1 journal `resize storage` record if rolling over
+//               to satisfy rollover policy +
 //             1 journal sync point if rolling over +
 //             1 journal sync point if self needs to issue another sync point
 //             in 'setActivePrimary' with old values
