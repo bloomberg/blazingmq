@@ -72,6 +72,8 @@ struct TestItem {
 
     // MANIPULATORS
     int& value() { return d_value; }
+
+    TestItem& setProcessingStartTime(bsls::Types::Int64 time) { return *this; }
 };
 
 typedef bmqc::MultiQueueThreadPool<TestItem> MQTP;
@@ -236,25 +238,25 @@ static void test1_breathingTest()
     {
         MQTP::EventSp event;
         event.createInplace(allocator);
-        event->value()      = 0;
+        event->value() = 0;
         mfqtp.enqueueEvent(bslmf::MovableRefUtil::move(event), 0);
     }
     {
         MQTP::EventSp event;
         event.createInplace(allocator);
-        event->value()      = 1;
+        event->value() = 1;
         mfqtp.enqueueEvent(bslmf::MovableRefUtil::move(event), 1);
     }
     {
         MQTP::EventSp event;
         event.createInplace(allocator);
-        event->value()      = 2;
+        event->value() = 2;
         mfqtp.enqueueEvent(bslmf::MovableRefUtil::move(event), 2);
     }
     {
         MQTP::EventSp event;
         event.createInplace(allocator);
-        event->value()      = 3;
+        event->value() = 3;
         mfqtp.enqueueEventOnAllQueues(bslmf::MovableRefUtil::move(event));
     }
 
@@ -338,7 +340,7 @@ static void testN1_performance()
     for (int i = 0; i < k_NUM_ITERATIONS; ++i) {
         MQTP::EventSp event;
         event.createInplace(bmqtst::TestHelperUtil::allocator());
-        event->value()      = 0;
+        event->value() = 0;
         mfqtp.enqueueEvent(bslmf::MovableRefUtil::move(event), 0);
     }
     PRINT("Enqueued " << k_NUM_ITERATIONS << " items.");
@@ -354,7 +356,7 @@ static void testN1_performance()
     for (int i = 0; i < k_NUM_ITERATIONS; ++i) {
         MQTP::EventSp event;
         event.createInplace(bmqtst::TestHelperUtil::allocator());
-        event->value()      = 0;
+        event->value() = 0;
         mfqtp.enqueueEvent(bslmf::MovableRefUtil::move(event), 0);
     }
     PRINT("Enqueued " << k_NUM_ITERATIONS << " items.");
@@ -489,7 +491,7 @@ static void testN1_performance_GoogleBenchmark(benchmark::State& state)
         for (int i = 0; i < k_NUM_ITERATIONS; ++i) {
             MQTP::EventSp event;
             event.createInplace(bmqtst::TestHelperUtil::allocator());
-            event->value()      = 0;
+            event->value() = 0;
             mfqtp.enqueueEvent(bslmf::MovableRefUtil::move(event), 0);
         }
         PRINT("Enqueued " << k_NUM_ITERATIONS << " items.");

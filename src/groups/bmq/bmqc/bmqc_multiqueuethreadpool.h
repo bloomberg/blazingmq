@@ -410,10 +410,11 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
         // MANIPULATORS
         void reset()
         {
-            d_queue_p               = 0;
-            d_monitorState          = e_MONITOR_PROCESSED;
-            d_threadId              = 0;
-            d_eventCallback         = bsl::nullptr_t();
+            d_queue_p                 = 0;
+            d_monitorState            = e_MONITOR_PROCESSED;
+            d_threadId                = 0;
+            d_eventCallback           = bsl::nullptr_t();
+            d_lastProcessingStartTime = 0;
         }
     };
 
@@ -752,10 +753,12 @@ inline void MultiQueueThreadPool<TYPE>::processQueue(int queue)
             continue;  // CONTINUE
         }
 
-        info.d_lastProcessingStartTime.store(
-            bsls::SystemTime::nowMonotonicClock().totalNanoseconds());
+        const bsls::Types::Int64 processingTimeStart =
+            bsls::SystemTime::nowMonotonicClock().totalNanoseconds();
+        info.d_lastProcessingStartTime.store(processingTimeStart);
+        event->setProcessingStartTime(processingTimeStart);
 
-        info.d_eventCallbackFn(queue, event);
+        info.d_eventCallback(event);
 
         info.d_lastProcessingStartTime.store(0);
     }

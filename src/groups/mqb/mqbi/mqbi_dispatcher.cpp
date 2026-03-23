@@ -313,6 +313,7 @@ DispatcherEvent::DispatcherEvent(bslma::Allocator* allocator)
 , d_callback(allocator)
 , d_finalizeCallback(allocator)
 , d_enqueueTime(0)
+, d_processingStartTime(0)
 {
     // NOTHING
 }
@@ -410,10 +411,11 @@ void DispatcherEvent::reset()
     } break;
     }
 
-    d_type          = DispatcherEventType::e_UNDEFINED;
-    d_source_p      = 0;
-    d_destination_p = 0;
-    d_enqueueTime   = 0;
+    d_type                = DispatcherEventType::e_UNDEFINED;
+    d_source_p            = 0;
+    d_destination_p       = 0;
+    d_enqueueTime         = 0;
+    d_processingStartTime = 0;
 }
 
 bsl::ostream& DispatcherEvent::print(bsl::ostream& stream,

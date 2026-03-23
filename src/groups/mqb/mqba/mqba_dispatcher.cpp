@@ -313,102 +313,6 @@ Dispatcher::queueCreator(mqbi::DispatcherClientType::Enum             type,
     return queue;
 }
 
-void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
-                              int                              processorId,
-                              const ProcessorPool::EventSp&    event)
-{
-    if (event) {
-        BALL_LOG_TRACE << "Dispatching Event to queue " << processorId
-                       << " of " << type << " dispatcher: " << *event;
-
-        const bsls::Types::Int64 processingTimeStart =
-            bmqsys::Time::highResolutionTimer();
-        const bsls::Types::Int64 queuedTime = processingTimeStart -
-                                              event->enqueueTime();
-
-        DispatcherContext& dispatcherContext = *(d_contexts[type]);
-
-        if (event->type() == mqbi::DispatcherEventType::e_DISPATCHER) {
-            const mqbi::DispatcherDispatcherEvent* realEvent =
-                event->asDispatcherEvent();
-
-            // We must flush now (and irrespective of a callback actually being
-            // set on the event) to ensure the flushList is empty before
-            // executing the callback: this dispatcher event may correspond to
-            // the destruction of the Client, and guaranteeing this client is
-            // not (and will not be added) to the flushList is actually the
-            // whole purpose of the 'e_DISPATCHER' event type.
-            flushClients(type, processorId);
-
-            if (!realEvent->callback().empty()) {
-                // A callback may not have been set if all we wanted was to
-                // execute the 'finalizeCallback' of the event.
-                realEvent->callback()();
-            }
-        }
-        else {
-            event->destination()->onDispatcherEvent(*event.get());
-            if (!event->destination()
-                     ->dispatcherClientData()
-                     .addedToFlushList()) {
-                dispatcherContext.d_flushList[processorId].emplace_back(
-                    event->destination());
-                event->destination()
-                    ->dispatcherClientData()
-                    .setAddedToFlushList(true);
-            }
-        }
-
-        const bsls::Types::Int64 processingTime =
-            bmqsys::Time::highResolutionTimer() - processingTimeStart;
-
-        // Update stats
-        mqbstat::DispatcherStats::onDequeue(
-            dispatcherContext.d_statContexts[processorId].get(),
-            queuedTime);
-        mqbstat::DispatcherStats::onProcess(
-            dispatcherContext.d_statContexts[processorId].get(),
-            event->type(),
-            processingTime);
-
-        static const bsls::Types::Int64 warningTimeoutNs =
-            bdlt::TimeUnitRatio::k_NS_PER_MS *
-            static_cast<bsls::Types::Int64>(d_config.warningTimeoutMs());
-
-        if (processingTime > warningTimeoutNs) {
-            BALL_LOG_WARN << "Queue '" << queueName(event->destination())
-                          << "' has processed an event in "
-                          << bmqu::PrintUtil::prettyTimeInterval(
-                                 processingTime)
-                          << " Current queue size: "
-                          << numProcessorEvents(event->destination());
-        }
-    }
-    else {
-        // Empty `event` means queue is empty
-        flushClients(type, processorId);
-    }
-}
-
-void Dispatcher::flushClients(mqbi::DispatcherClientType::Enum type,
-                              int                              processorId)
-{
-    // executed by the *DISPATCHER* thread
-    bmqu::GateKeeper::Status status(d_flushClientsGate);
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!status.isOpen())) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return;  // RETURN
-    }
-
-    DispatcherContext&         context   = *(d_contexts[type]);
-    DispatcherClientPtrVector& flushList = context.d_flushList[processorId];
-    for (size_t i = 0; i < flushList.size(); ++i) {
-        flushList[i]->flush();
-        flushList[i]->dispatcherClientData().setAddedToFlushList(false);
-    }
-    flushList.clear();
-}
-
 // PRIVATE ACCESSORS
 
 bsl::string_view
@@ -814,7 +718,13 @@ Dispatcher::ProcessorPool::EventFn
 Dispatcher::eventCallbackCreator(mqbi::DispatcherClientType::Enum type,
                                  int                              queueId)
 {
-    return EventCallback(type, queueId, &d_flushClientsGate, d_contexts[type]);
+    return EventCallback(
+        type,
+        queueId,
+        &d_flushClientsGate,
+        d_contexts[type],
+        bdlt::TimeUnitRatio::k_NS_PER_MS *
+            static_cast<bsls::Types::Int64>(d_config.warningTimeoutMs()));
 }
 
 // -------------------------------
@@ -825,12 +735,16 @@ mqba::Dispatcher::EventCallback::EventCallback(
     mqbi::DispatcherClientType::Enum             type,
     int                                          queueId,
     bmqu::GateKeeper*                            flushClientsGate_p,
-    const mqba::Dispatcher::DispatcherContextSp& context_sp)
-: d_type(type)
-, d_queueId(queueId)
+    const mqba::Dispatcher::DispatcherContextSp& context_sp,
+    bsls::Types::Int64                           warningTimeoutNs)
+: d_queueName(context_sp->d_processorPool_mp->queueName(queueId))
+, d_stats_sp(context_sp->d_statContexts[queueId])
 , d_flushClientsGate_p(flushClientsGate_p)
 , d_flushList_p(&context_sp->d_flushList[queueId])
-, d_stats_sp(context_sp->d_statContexts[queueId])
+, d_processorPool_p(context_sp->d_processorPool_mp.get())
+, d_warningTimeoutNs(warningTimeoutNs)
+, d_type(type)
+, d_queueId(queueId)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_flushClientsGate_p);
@@ -843,9 +757,7 @@ void mqba::Dispatcher::EventCallback::operator()(
         BALL_LOG_TRACE << "Dispatching Event to queue " << d_queueId << " of "
                        << d_type << " dispatcher: " << *event;
 
-        const bsls::Types::Int64 processingTimeStart =
-            bmqsys::Time::highResolutionTimer();
-        const bsls::Types::Int64 queuedTime = processingTimeStart -
+        const bsls::Types::Int64 queuedTime = event->processingStartTime() -
                                               event->enqueueTime();
 
         if (event->type() == mqbi::DispatcherEventType::e_DISPATCHER) {
@@ -879,13 +791,22 @@ void mqba::Dispatcher::EventCallback::operator()(
         }
 
         const bsls::Types::Int64 processingTime =
-            bmqsys::Time::highResolutionTimer() - processingTimeStart;
+            bmqsys::Time::highResolutionTimer() - event->processingStartTime();
 
         // Update stats
         mqbstat::DispatcherStats::onDequeue(d_stats_sp.get(), queuedTime);
         mqbstat::DispatcherStats::onProcess(d_stats_sp.get(),
                                             event->type(),
                                             processingTime);
+
+        if (processingTime > d_warningTimeoutNs) {
+            BALL_LOG_WARN << "Queue '" << d_queueName
+                          << "' has processed an event in "
+                          << bmqu::PrintUtil::prettyTimeInterval(
+                                 processingTime)
+                          << ". Current queue size: "
+                          << d_processorPool_p->numElements(d_queueId);
+        }
     }
     else {
         // Empty `event` means queue is empty

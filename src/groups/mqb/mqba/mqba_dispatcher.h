@@ -276,11 +276,11 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
       private:
         // DATA
 
-        /// Type of the dispatcher client (used for logging).
-        mqbi::DispatcherClientType::Enum d_type;
+        /// Queue name (used for logging).
+        bsl::string_view d_queueName;
 
-        /// Processor queue identifier (used for logging).
-        int d_queueId;
+        /// Stat context for this processor queue.
+        bsl::shared_ptr<bmqst::StatContext> d_stats_sp;
 
         /// Gate controlling whether client flushing is enabled (held, not
         /// owned).
@@ -289,8 +289,17 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
         /// Flush list for this processor queue (held, not owned).
         mqba::Dispatcher::DispatcherClientPtrVector* d_flushList_p;
 
-        /// Stat context for this processor queue.
-        bsl::shared_ptr<bmqst::StatContext> d_stats_sp;
+        /// Processor pull for logging the size of the queue (held, not owned).
+        const ProcessorPool* d_processorPool_p;
+
+        /// Timeout for warnings if processing of the event takes longer.
+        const bsls::Types::Int64 d_warningTimeoutNs;
+
+        /// Type of the dispatcher client (used for logging).
+        const mqbi::DispatcherClientType::Enum d_type;
+
+        /// Processor queue identifier (used for logging).
+        const int d_queueId;
 
         // PRIVATE MANIPULATORS
 
@@ -309,7 +318,8 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
             mqbi::DispatcherClientType::Enum             type,
             int                                          queueId,
             bmqu::GateKeeper*                            flushClientsGate_p,
-            const mqba::Dispatcher::DispatcherContextSp& context_sp);
+            const mqba::Dispatcher::DispatcherContextSp& context_sp,
+            bsls::Types::Int64                           warningTimeoutNs);
 
         // MANIPULATORS
 
