@@ -234,6 +234,10 @@ sed -i 's/fcoroutines-ts/fcoroutines/g' 'repository.cmake'
             --without-warnings-as-errors \
             --without-usage-examples \
             --without-applications \
+            --without-zlib \
+            --without-zstd \
+            --without-lz4 \
+            --without-openssl \
             --ufid 'dbg_64_safe_cpp20' \
             --toolchain "${TOOLCHAIN_PATH}"
 make -j${PARALLELISM}

@@ -37,6 +37,8 @@
 #include <bdlb_string.h>
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_memory.h>
+#include <bsl_ostream.h>
+#include <bsl_vector.h>
 
 namespace BloombergLP {
 namespace mqbnet {

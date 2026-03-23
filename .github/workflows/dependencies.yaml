@@ -33,8 +33,7 @@ jobs:
       - name: Generate dependencies cache key
         id: get-cache-key
         run: |
-          BUILD_DEPS_SHA=$(cat docker/build_deps.sh | shasum)
-          echo "cache_key=deps-${{ inputs.cxx_standard }}-$BUILD_DEPS_SHA" >> $GITHUB_OUTPUT
+          echo "cache_key=deps-`date +%y-%m-%d`-`cat docker/build_deps.sh | shasum`" >> $GITHUB_OUTPUT
 
       - name: Cache lookup
         uses: actions/cache/restore@v4

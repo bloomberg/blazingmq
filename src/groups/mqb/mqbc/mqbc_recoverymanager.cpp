@@ -1802,6 +1802,19 @@ void RecoveryManager::recoverPartitionMaxFileSizes(
                                             recoveryCtx.d_mappedQlistFd)
                                             .maxFileSize();
     }
+
+    // Validate max file sizes.
+    if (*maxFileSizes == bmqp_ctrlmsg::PartitionMaxFileSizes()) {
+        // If file sizes are ommitted in file header, use config values
+        maxFileSizes->journalFileSize() =
+            d_clusterConfig.partitionConfig().maxJournalFileSize();
+        maxFileSizes->dataFileSize() =
+            d_clusterConfig.partitionConfig().maxDataFileSize();
+        if (d_qListAware) {
+            maxFileSizes->qListFileSize() =
+                d_clusterConfig.partitionConfig().maxQlistFileSize();
+        }
+    }
 }
 
 void RecoveryManager::setLiveDataSource(mqbnet::ClusterNode* source,

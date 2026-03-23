@@ -224,6 +224,18 @@ void ClusterQueueHelper::finishOpening(
     BSLS_ASSERT_SAFE(openQueueContext_sp);
     BSLS_ASSERT_SAFE(openQueueContext_sp->d_queueContext_p);
 
+    // First step in this routine is to update the cookie with the queue handle
+    // if 'confirmationCookie' is valid.  If this open-queue request has
+    // succeeded, this object should eventually set 'confirmationCookie' to 0
+    // (see 'onGetQueueHandleDispatched').  Note that this also applies to the
+    // 'mqba::ClientSession' case ('onQueueOpenCb').  The rough equivalent
+    // of a client session here is the cluster node session represented by
+    // 'requester'.
+
+    if (confirmationCookie) {
+        confirmationCookie->d_handle = queueHandle;
+    }
+
     const OpenQueueContext& openQueueContext = *openQueueContext_sp;
 
     openQueueContext.d_callback(status,
@@ -1408,7 +1420,7 @@ void ClusterQueueHelper::onOpenQueueResponse(
         }
 
         // 'createQueue' always calls 'onGetQueueHandle' which calls
-        // 'finishOpenQueueRequest'.
+        // 'finishOpening'.
         return;  // RETURN
     }
 
@@ -2097,14 +2109,18 @@ void ClusterQueueHelper::onOpenQueueConfirmationCookieReleased(
     // in); but upstream was a success, so we need to rollback and issue a
     // closeQueue.
 
-    BMQ_LOGTHROTTLE_WARN
+    BMQ_LOGTHROTTLE_ERROR
         << d_cluster_p->description()
         << ": OpenQueueConfirmationCookie released without "
         << "successful processing from the requester. Queue handle  "
         << "ptr [" << handle << "], client ptr [" << handle->client()
         << "], handle parameters: " << handleParameters << ".";
-    handle->clearClient(false);
-    handle->drop();
+
+    // Roll back exactly 'handleParameters'.
+    // Cannot drop the handle as it can have other substreams.
+    handle->release(handleParameters,
+                    false,
+                    mqbi::QueueHandle::HandleReleasedCallback());
 }
 
 bool ClusterQueueHelper::createQueue(
@@ -2765,18 +2781,6 @@ void ClusterQueueHelper::onGetQueueHandle(
     // executed by *ANY* thread
 
     BSLS_ASSERT_SAFE(context);
-
-    // First step in this routine is to update the cookie with the queue handle
-    // if 'confirmationCookie' is valid.  If this open-queue request has
-    // succeeded, this object should eventually set 'confirmationCookie' to 0
-    // (see 'onGetQueueHandleDispatched').  Note that this also applies to the
-    // 'mqba::ClientSession' case ('onQueueOpenCb').  The rough equivalent
-    // of a client session here is the cluster node session represented by
-    // 'requester'.
-
-    if (confirmationCookie) {
-        confirmationCookie->d_handle = queueHandle;
-    }
 
     d_cluster_p->dispatcher()->execute(
         bdlf::BindUtil::bindS(d_allocator_p,

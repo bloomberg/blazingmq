@@ -37,6 +37,7 @@
 #include <ball_log.h>
 #include <bdlmt_eventscheduler.h>
 #include <bsl_memory.h>
+#include <bsl_ostream.h>
 #include <bsl_string_view.h>
 #include <bslma_allocator.h>
 #include <bslmt_mutex.h>
@@ -216,7 +217,7 @@ class AuthenticationContext {
     /// `errorDescription`, indicating a reauthentication error or
     /// authentication timeout for the current context.
     void onReauthenticateErrorOrTimeout(
-        const int                              errorCode,
+        int                                    errorCode,
         const bsl::string&                     errorName,
         const bsl::string&                     errorDescription,
         const bsl::shared_ptr<bmqio::Channel>& channel);

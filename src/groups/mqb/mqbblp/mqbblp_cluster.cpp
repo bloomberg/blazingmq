@@ -164,7 +164,9 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
     bmqp_ctrlmsg::NodeStatusAdvisory& advisory =
         clusterMsg.choice().makeNodeStatusAdvisory();
     advisory.status() = bmqp_ctrlmsg::NodeStatus::E_STARTING;
-    d_clusterData.messageTransmitter().broadcastMessage(controlMsg, true);
+    d_clusterData.messageTransmitter().broadcastMessage(
+        controlMsg,
+        d_clusterData.transportManager());
 
     // Start a StatMonitorSnapshotRecorder to track system stats during
     // recovery
@@ -327,6 +329,10 @@ void Cluster::stopDispatched()
     //       guaranteed that this object will be kept alive.
 
     // Teardown all ClusterNodeSession
+    BALL_LOG_INFO << description() << " teardown "
+                  << d_clusterData.membership().clusterNodeSessionMap().size()
+                  << " ClusterNodeSession";
+
     for (ClusterNodeSessionMapIter it =
              d_clusterData.membership().clusterNodeSessionMap().begin();
          it != d_clusterData.membership().clusterNodeSessionMap().end();
@@ -352,36 +358,6 @@ void Cluster::stopDispatched()
     d_clusterOrchestrator.stop();
 
     d_clusterData.miscWorkThreadPool().stop();
-
-    // Notify peers before going down.  This should be the last message sent
-    // out.
-
-    bmqp_ctrlmsg::ControlMessage  controlMsg;
-    bmqp_ctrlmsg::ClusterMessage& clusterMsg =
-        controlMsg.choice().makeClusterMessage();
-    bmqp_ctrlmsg::NodeStatusAdvisory& advisory =
-        clusterMsg.choice().makeNodeStatusAdvisory();
-
-    advisory.status() = bmqp_ctrlmsg::NodeStatus::E_UNAVAILABLE;
-
-    d_clusterData.membership().setSelfNodeStatus(
-        bmqp_ctrlmsg::NodeStatus::E_UNAVAILABLE);
-    d_clusterData.messageTransmitter().broadcastMessage(controlMsg, true);
-
-    // Close all channels of the associated cluster: when broadcasting the
-    // state change, the leader, in response, will potentially elect new
-    // primaries and broadcast new messages.  Once we return from this
-    // 'stopDispatched' method, this cluster object gets destroyed, but not the
-    // underlying channel, which will be destroyed later; so if a message is
-    // received on the channel, it will try to invoke the 'processEvent' method
-    // on that now destroyed cluster.  While we should revisit this, closing
-    // the channel at this time here is a working *probably temporary* fix.
-    //
-    // NOTE: channel.close() will not flush the channel's buffer, so there is a
-    //       risk that the last message (the broadcast of the e_UNAVAILABLE
-    //       state) - or worse, more messages - may not be delivered.
-
-    d_clusterData.membership().netCluster()->closeChannels();
 }
 
 void Cluster::sendAck(bmqt::AckResult::Enum           status,
@@ -695,6 +671,46 @@ void Cluster::continueShutdownDispatched(
     // something that we don't want when shutting down.
 
     d_clusterOrchestrator.queueHelper().processShutdownEvent();
+
+    // Make sure all partitions done sending last sync points.
+    // Synchronize with all Queue Dispatcher threads
+    bslmt::Latch latch(1);
+    dispatcher()->executeOnAllQueues(
+        mqbi::Dispatcher::VoidFunctor(),  // empty
+        mqbi::DispatcherClientType::e_QUEUE,
+        bdlf::BindUtil::bindS(d_allocator_p, &bslmt::Latch::arrive, &latch));
+
+    latch.wait();
+
+    // Notify peers before going down.  This should be the last message sent
+    // out.
+
+    bmqp_ctrlmsg::ControlMessage  controlMsg;
+    bmqp_ctrlmsg::ClusterMessage& clusterMsg =
+        controlMsg.choice().makeClusterMessage();
+    bmqp_ctrlmsg::NodeStatusAdvisory& advisory =
+        clusterMsg.choice().makeNodeStatusAdvisory();
+
+    advisory.status() = bmqp_ctrlmsg::NodeStatus::E_UNAVAILABLE;
+
+    d_clusterData.membership().setSelfNodeStatus(
+        bmqp_ctrlmsg::NodeStatus::E_UNAVAILABLE);
+    d_clusterData.messageTransmitter().broadcastMessage(
+        controlMsg,
+        d_clusterData.transportManager());
+
+    BALL_LOG_INFO << "Cluster: [name: '" << name()
+                  << "'] done waiting and now will close the channels";
+
+    // Close all channels of the associated cluster: when broadcasting the
+    // state change, the leader, in response, will potentially elect new
+    // primaries and broadcast new messages.
+
+    // NOTE: channel.close() will not flush the channel's buffer, so there is a
+    //       risk that the last message (the broadcast of the e_UNAVAILABLE
+    //       state) - or worse, more messages - may not be delivered.
+
+    d_clusterData.membership().netCluster()->closeChannels();
 }
 
 void Cluster::onPutEvent(const mqbi::DispatcherPutEvent& event)

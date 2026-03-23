@@ -21,12 +21,10 @@ on:
         description: "Whether to save the build as artifacts"
         required: true
         type: boolean
-        default: true
       run_unit_tests:
         description: "Whether to run unit tests.  Can only be set to true if `all.t` is one of the build targets"
         required: true
         type: boolean
-        default: false
       name:
         description: "Name of the workflow run, used for artifacts"
         required: false
@@ -36,7 +34,6 @@ on:
         description: "What C++ Standard to build with.  [cpp03, cpp11, cpp14, cpp17, cpp20, cpp23]"
         required: true
         type: string
-        default: "cpp17"
     outputs:
       artifact_key:
         description: "GH Actions Cache key associated with the built dependencies"
@@ -68,13 +65,13 @@ jobs:
         id: get_cache_key
         if: inputs.save_build_as_artifacts == true # Variable type is boolean, thus no quotes
         # When restoring from cache fails, it searches for other keys to fall back to.
-        # If the given key is a prefix of another key, it will be used. 
-        # E.g. "...-all" can fallback to "...-all.t" 
+        # If the given key is a prefix of another key, it will be used.
+        # E.g. "...-all" can fallback to "...-all.t"
         # Thus do not put the target at the end of the key.
         run: |
-            COMMIT_SHA=$(git rev-parse HEAD)
-            echo "cache_key=cache-${{ inputs.cxx_standard }}-${{ inputs.target }}-${COMMIT_SHA}" >> $GITHUB_OUTPUT
-            echo "artifact_key=${{ inputs.name }}-${{ inputs.target }}-${COMMIT_SHA}" >> $GITHUB_OUTPUT
+          COMMIT_SHA=$(git rev-parse HEAD)
+          echo "cache_key=cache-${{ inputs.cxx_standard }}-${{ inputs.target }}-${COMMIT_SHA}" >> $GITHUB_OUTPUT
+          echo "artifact_key=${{ inputs.name }}-${{ inputs.target }}-${COMMIT_SHA}" >> $GITHUB_OUTPUT
       - uses: actions/cache/restore@v4
         id: build-cache-restore-step
         if: inputs.save_build_as_artifacts == true # Variable type is boolean, thus no quotes

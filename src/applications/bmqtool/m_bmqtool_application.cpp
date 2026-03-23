@@ -31,6 +31,7 @@
 #include <bmqa_sessionevent.h>
 #include <bmqimp_event.h>
 #include <bmqp_confirmeventbuilder.h>
+#include <bmqt_authncredential.h>
 #include <bmqt_queueflags.h>
 #include <bmqt_resultcode.h>
 #include <bmqt_sessioneventtype.h>
@@ -126,6 +127,30 @@ struct BuildConfirmOverflowFunctor {
 
     // MANIPULATORS
     inline void operator()() { d_session.confirmMessages(&d_builder); }
+};
+
+/// Functor that returns a fixed `AuthnCredential` when invoked.
+struct AuthnCredentialProvider {
+    // DATA
+    bsl::string       d_mechanism;
+    bsl::vector<char> d_data;
+
+    // CREATORS
+    AuthnCredentialProvider(const bsl::string& mechanism,
+                            const bsl::string& data)
+    : d_mechanism(mechanism)
+    , d_data(data.begin(), data.end())
+    {
+    }
+
+    // MANIPULATORS
+    bsl::optional<bmqt::AuthnCredential>
+    operator()(bsl::ostream& /* error */) const
+    {
+        return bsl::optional<bmqt::AuthnCredential>(bsl::in_place,
+                                                    d_mechanism,
+                                                    d_data);
+    }
 };
 
 }  // close unnamed namespace
@@ -564,6 +589,12 @@ int Application::initialize()
         .setNumProcessingThreads(d_parameters.numProcessingThreads())
         .configureEventQueue(1000, 10 * 1000)
         .setUserAgentPrefix("bmqtool");
+
+    if (!d_parameters.authnMechanism().empty()) {
+        options.setAuthnCredentialCb(
+            AuthnCredentialProvider(d_parameters.authnMechanism(),
+                                    d_parameters.authnData()));
+    }
 
     // Create the session
     if (d_parameters.noSessionEventHandler()) {

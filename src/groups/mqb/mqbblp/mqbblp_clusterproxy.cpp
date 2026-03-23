@@ -111,7 +111,7 @@ void ClusterProxy::startDispatched()
     // and all session to build initial state and then schedule a refresh to
     // find active node if there is none after processing all pending events.
 
-    d_activeNodeManager.initialize(&d_clusterData.transportManager());
+    d_activeNodeManager.initialize(d_clusterData.transportManager());
 
     // Ready to read.
     d_clusterData.membership().netCluster()->enableRead();

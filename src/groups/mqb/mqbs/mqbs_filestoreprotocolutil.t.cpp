@@ -525,13 +525,14 @@ static void test4_loadAppInfos()
 {
     typedef mqbi::Storage::AppInfos AppInfos;
 
+    bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
+
     {
         // No appIds.
 
-        char* p = static_cast<char*>(
-            bmqtst::TestHelperUtil::allocator()->allocate(1));
+        char*             p = static_cast<char*>(alloc->allocate(1));
         mqbs::MemoryBlock mb(p, 1);
-        AppInfos          appIdKeyPairs(bmqtst::TestHelperUtil::allocator());
+        AppInfos          appIdKeyPairs(alloc);
 
         mqbs::FileStoreProtocolUtil::loadAppInfos(&appIdKeyPairs,
                                                   mb,
@@ -539,7 +540,7 @@ static void test4_loadAppInfos()
 
         BMQTST_ASSERT_EQ(0u, appIdKeyPairs.size());
 
-        bmqtst::TestHelperUtil::allocator()->deallocate(p);
+        alloc->deallocate(p);
     }
 
     {
@@ -550,8 +551,7 @@ static void test4_loadAppInfos()
         const size_t numPaddingBytes = 3;
         const size_t totalSize = sizeof(mqbs::AppIdHeader) + paddedAppIdLen +
                                  mqbs::FileStoreProtocol::k_HASH_LENGTH;
-        char* p = static_cast<char*>(
-            bmqtst::TestHelperUtil::allocator()->allocate(totalSize));
+        char*  p      = static_cast<char*>(alloc->allocate(totalSize));
         size_t offset = 0;
 
         // Append AppIdHeader.
@@ -563,7 +563,7 @@ static void test4_loadAppInfos()
         offset += sizeof(mqbs::AppIdHeader);
 
         // Append AppId.
-        bsl::string appId(appIdLen, 'g', bmqtst::TestHelperUtil::allocator());
+        bsl::string appId(appIdLen, 'g', alloc);
         bsl::memcpy(p + offset, appId.c_str(), appIdLen);
         offset += appIdLen;
 
@@ -586,7 +586,7 @@ static void test4_loadAppInfos()
 
         // Test.
         mqbs::MemoryBlock mb(p, totalSize);
-        AppInfos          appIdKeyPairs(bmqtst::TestHelperUtil::allocator());
+        AppInfos          appIdKeyPairs(alloc);
 
         mqbs::FileStoreProtocolUtil::loadAppInfos(&appIdKeyPairs,
                                                   mb,
@@ -596,7 +596,7 @@ static void test4_loadAppInfos()
         BMQTST_ASSERT_EQ(appId, appIdKeyPairs.begin()->first);
         BMQTST_ASSERT_EQ(appKey, appIdKeyPairs.begin()->second);
 
-        bmqtst::TestHelperUtil::allocator()->deallocate(p);
+        alloc->deallocate(p);
     }
 
     {
@@ -604,11 +604,9 @@ static void test4_loadAppInfos()
         const int numAppIds = 6;
         size_t    totalSize = 0;
 
-        bsl::vector<size_t> appIdLenVec(bmqtst::TestHelperUtil::allocator());
-        bsl::vector<size_t> paddedAppIdLenVec(
-            bmqtst::TestHelperUtil::allocator());
-        bsl::vector<size_t> numPaddingBytesVec(
-            bmqtst::TestHelperUtil::allocator());
+        bsl::vector<size_t> appIdLenVec(alloc);
+        bsl::vector<size_t> paddedAppIdLenVec(alloc);
+        bsl::vector<size_t> numPaddingBytesVec(alloc);
 
         for (int n = 0; n < numAppIds; ++n) {
             size_t appIdLen = (n + 1) * 9 + 3;
@@ -626,10 +624,9 @@ static void test4_loadAppInfos()
                          mqbs::FileStoreProtocol::k_HASH_LENGTH;
         }
 
-        char* p = static_cast<char*>(
-            bmqtst::TestHelperUtil::allocator()->allocate(totalSize));
+        char*    p      = static_cast<char*>(alloc->allocate(totalSize));
         size_t   offset = 0;
-        AppInfos expectedAppInfos(bmqtst::TestHelperUtil::allocator());
+        AppInfos expectedAppInfos(alloc);
 
         for (int n = 0; n < numAppIds; ++n) {
             // Append AppIdHeader.
@@ -644,9 +641,7 @@ static void test4_loadAppInfos()
 
             // Append AppId.
 
-            bsl::string appId(appIdLenVec[n],
-                              static_cast<char>(n + 1),
-                              bmqtst::TestHelperUtil::allocator());
+            bsl::string appId(appIdLenVec[n], static_cast<char>(n + 1), alloc);
             bsl::memcpy(p + offset, appId.c_str(), appIdLenVec[n]);
             offset += appIdLenVec[n];
 
@@ -671,14 +666,15 @@ static void test4_loadAppInfos()
                         appHash,
                         mqbs::FileStoreProtocol::k_HASH_LENGTH);
 
-            expectedAppInfos.insert(bsl::make_pair(
-                bsl::string(appId, bmqtst::TestHelperUtil::allocator()),
-                appKey));
+            AppInfos::value_type appInfo(bsl::string(appId, alloc),
+                                         appKey,
+                                         alloc);
+            expectedAppInfos.insert(appInfo);
             offset += mqbs::FileStoreProtocol::k_HASH_LENGTH;
         }
         // Test.
         mqbs::MemoryBlock mb(p, totalSize);
-        AppInfos          appIdKeyPairs(bmqtst::TestHelperUtil::allocator());
+        AppInfos          appIdKeyPairs(alloc);
 
         mqbs::FileStoreProtocolUtil::loadAppInfos(&appIdKeyPairs,
                                                   mb,
@@ -692,7 +688,7 @@ static void test4_loadAppInfos()
             BMQTST_ASSERT_EQ(expectedAppInfos.count(cit->first), 1u);
         }
 
-        bmqtst::TestHelperUtil::allocator()->deallocate(p);
+        alloc->deallocate(p);
     }
 }
 

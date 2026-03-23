@@ -35,6 +35,7 @@
 // BDE
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_iostream.h>
+#include <bsl_limits.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bsla_annotations.h>
@@ -146,18 +147,8 @@ Message& Message::setCorrelationId(const bmqt::CorrelationId& correlationId)
     BSLS_ASSERT_SAFE(isInitialized() &&
                      "message is invalid: use "
                      "'MessageEventBuilder::startMessage' to get one");
-    BSLS_ASSERT_SAFE(d_impl.d_event_p->putEventBuilder() &&
-                     "message not editable");
 
     d_impl.d_correlationId = correlationId;
-
-    // Because this object can be a copy of what MessageEventBuilder holds (as
-    // in the case of legacy BlazingMQ Python bindings), and
-    // MessageEventBuilder::packMessage does not take this object as an
-    // argument, store this id in the d_event_p so that / MessageEventBuilder
-    // can read it.
-
-    d_impl.d_event_p->setCorrelationId(correlationId);
 
     return *this;
 }

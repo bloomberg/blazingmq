@@ -26,7 +26,6 @@
 
 // MQB
 #include <mqbc_clustermembership.h>
-#include <mqbc_controlmessagetransmitter.h>
 #include <mqbc_electorinfo.h>
 #include <mqbcfg_clusterquorummanager.h>
 #include <mqbcfg_messages.h>
@@ -34,6 +33,7 @@
 #include <mqbi_dispatcher.h>
 #include <mqbi_domain.h>
 #include <mqbnet_cluster.h>
+#include <mqbnet_controlmessagetransmitter.h>
 #include <mqbnet_elector.h>
 #include <mqbnet_multirequestmanager.h>
 #include <mqbnet_transportmanager.h>
@@ -185,7 +185,7 @@ class ClusterData {
     mqbi::Cluster* d_cluster_p;
 
     /// Control message transmitter to use.
-    ControlMessageTransmitter d_messageTransmitter;
+    mqbnet::ControlMessageTransmitter d_messageTransmitter;
 
     /// Request manager to use.
     RequestManagerType d_requestManager;
@@ -270,7 +270,7 @@ class ClusterData {
     mqbcfg::ClusterQuorumManager& quorumManager();
 
     /// Get a modifiable reference to this object's messageTransmitter.
-    ControlMessageTransmitter& messageTransmitter();
+    mqbnet::ControlMessageTransmitter& messageTransmitter();
 
     /// Get a modifiable reference to this object's requestManager.
     RequestManagerType& requestManager();
@@ -282,7 +282,7 @@ class ClusterData {
     mqbi::DomainFactory* domainFactory();
 
     /// Get a modifiable reference to this object's transportManager.
-    mqbnet::TransportManager& transportManager();
+    mqbnet::TransportManager* transportManager();
 
     /// Get a modifiable reference to this object's cluster stats.
     mqbstat::ClusterStats& stats();
@@ -403,7 +403,7 @@ inline mqbcfg::ClusterQuorumManager& ClusterData::quorumManager()
     return d_quorumManager;
 }
 
-inline ControlMessageTransmitter& ClusterData::messageTransmitter()
+inline mqbnet::ControlMessageTransmitter& ClusterData::messageTransmitter()
 {
     return d_messageTransmitter;
 }
@@ -423,9 +423,9 @@ inline mqbi::DomainFactory* ClusterData::domainFactory()
     return d_domainFactory_p;
 }
 
-inline mqbnet::TransportManager& ClusterData::transportManager()
+inline mqbnet::TransportManager* ClusterData::transportManager()
 {
-    return *d_transportManager_p;
+    return d_transportManager_p;
 }
 
 inline mqbstat::ClusterStats& ClusterData::stats()

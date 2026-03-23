@@ -196,6 +196,9 @@ class QueueHandle : public mqbi::QueueHandle {
     /// cache producer stats to avoid lookup
     StatsSp d_producerStats;
 
+    /// Cache d_clientContext_sp->client()->description()
+    bsl::string d_clientDescription;
+
     bslma::Allocator* d_allocator_p;
 
   private:

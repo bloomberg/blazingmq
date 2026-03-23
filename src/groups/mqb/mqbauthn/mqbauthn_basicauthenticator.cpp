@@ -24,11 +24,13 @@
 
 // BDE
 #include <bdlt_timeunitratio.h>
+#include <bsl_cstddef.h>
 #include <bsl_iostream.h>
 #include <bsl_memory.h>
 #include <bsl_optional.h>
 #include <bsl_string.h>
 #include <bsl_string_view.h>
+#include <bsl_vector.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bsls_assert.h>

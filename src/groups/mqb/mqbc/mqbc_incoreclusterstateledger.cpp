@@ -63,6 +63,7 @@
 #include <bsl_memory.h>
 #include <bsl_unordered_set.h>
 #include <bsl_utility.h>
+#include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bslmf_allocatorargt.h>
 #include <bsls_keyword.h>
