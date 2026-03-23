@@ -175,8 +175,7 @@ static void test1_initialConnectionContext()
                     "testMechanism",
                     authnMsg,
                     bmqp::EncodingType::e_BER,
-                    mqbnet::AuthenticationState::e_AUTHENTICATING,
-                    alloc);
+                    mqbnet::AuthenticationState::e_AUTHENTICATING);
             obj.setAuthenticationContext(authnCtx);
             BMQTST_ASSERT_EQ(authnCtx, obj.authenticationContext());
         }
