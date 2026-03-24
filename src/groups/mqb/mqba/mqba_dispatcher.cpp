@@ -313,22 +313,6 @@ Dispatcher::queueCreator(mqbi::DispatcherClientType::Enum             type,
     return queue;
 }
 
-// PRIVATE ACCESSORS
-
-bsl::string_view
-Dispatcher::queueName(const mqbi::DispatcherClient* client) const
-{
-    if (!client) {
-        return "UNDEFINED";
-    }
-
-    const mqbi::DispatcherClientData& data    = client->dispatcherClientData();
-    mqbi::DispatcherClientType::Enum  type    = data.clientType();
-    int                               queueId = data.processorHandle();
-
-    return d_contexts[type]->d_processorPool_mp->queueName(queueId);
-}
-
 Dispatcher::Dispatcher(const mqbcfg::DispatcherConfig& config,
                        bmqst::StatContext*             statContext,
                        bdlmt::EventScheduler*          scheduler,
