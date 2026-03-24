@@ -592,6 +592,14 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                                bool                           immediateFlush,
                                const bmqp_ctrlmsg::SyncPoint* syncPoint = 0);
 
+    /// Self primary writes a resize storage record with `maxFileSizes`
+    /// and replicates to all replicas.  Return zero on success,
+    /// non-zero value otherwise.
+    ///
+    /// THREAD: This method executes in the partition dispatcher thread.
+    int issueResizeStorage(
+        const bmqp_ctrlmsg::PartitionMaxFileSizes& maxFileSizes);
+
     int writeMessageRecord(const bmqp::StorageHeader&          header,
                            const mqbs::RecordHeader&           recHeader,
                            const bsl::shared_ptr<bdlbb::Blob>& event,
@@ -710,6 +718,17 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// store.  Note that this routine is invoked at primary as well as
     /// replica nodes.
     void gcHistory();
+
+    /// Adjust the partition file size that satisfies rollover
+    /// policy based on the specified `outstandingBytes`,
+    /// `smallestMaxFileSize` and `fileSizeGrowLimit`.
+    /// Return the adjusted file size and set `availableSpacePercent`
+    /// if rollover policy is satisfied. Return zero value otherwise.
+    bsls::Types::Uint64
+    adjustPartitionFileSize(unsigned int*       availableSpacePercent,
+                            bsls::Types::Uint64 outstandingBytes,
+                            bsls::Types::Uint64 smallestMaxFileSize,
+                            bsls::Types::Uint64 fileSizeGrowLimit);
 
   public:
     // TRAITS
@@ -853,6 +872,12 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     int writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint& syncPoint,
                              SyncPointType::Enum type) BSLS_KEYWORD_OVERRIDE;
+
+    /// Write a RESIZE_STORAGE record to the journal with the specified
+    /// `maxFileSizes`.
+    ///  Return zero on success, non-zero value otherwise.
+    int writeResizeStorageRecord(const bmqp_ctrlmsg::PartitionMaxFileSizes&
+                                     maxFileSizes) BSLS_KEYWORD_OVERRIDE;
 
     /// Remove the record identified by the specified `handle`.  Return zero
     /// on success, non-zero value if `handle` is invalid.  Behavior is
