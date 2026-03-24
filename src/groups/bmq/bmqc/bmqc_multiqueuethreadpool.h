@@ -814,11 +814,6 @@ inline int MultiQueueThreadPool<TYPE>::start()
 
     // Create the queues
     for (size_t i = 0; i < d_queues.size(); ++i) {
-        QueueInfo& queue      = d_queues[i];
-        queue.d_queue_p       = d_config.d_queueCreatorFn(static_cast<int>(i),
-                                                    d_allocator_p);
-        queue.d_eventCallback = d_config.d_eventCallbackCreatorFn(
-            static_cast<int>(i));
         // Generate a name for the queue
         bsl::string name(d_allocator_p);
         if (!d_config.d_name.empty()) {
@@ -828,7 +823,12 @@ inline int MultiQueueThreadPool<TYPE>::start()
         name += "Queue ";
         name += bsl::to_string(i);
 
-        queue.d_name = name;
+        QueueInfo& queue      = d_queues[i];
+        queue.d_name          = name;
+        queue.d_queue_p       = d_config.d_queueCreatorFn(static_cast<int>(i),
+                                                    d_allocator_p);
+        queue.d_eventCallback = d_config.d_eventCallbackCreatorFn(
+            static_cast<int>(i));
     }
 
     BSLS_ASSERT_SAFE(d_config.d_threadPool_p->enabled());
