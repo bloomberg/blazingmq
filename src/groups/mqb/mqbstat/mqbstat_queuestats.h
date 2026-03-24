@@ -338,6 +338,10 @@ class QueueStatsClient {
             e_CONFIRM_DELTA,
             e_CONFIRM_ABS
         };
+
+        /// Return the non-modifiable string description corresponding to
+        /// the specified enumeration `value`.
+        static const char* toString(Stat::Enum value);
     };
 
   private:

@@ -1,4 +1,4 @@
-// Copyright 2017-2023 Bloomberg Finance L.P.
+// Copyright 2026 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -63,10 +63,10 @@ const char k_SUBCONTEXT_ALLOCATORS[] = "allocators";
 }  // close unnamed namespace
 
 // -------------
-// class Printer
+// class TablePrinter
 // -------------
 
-void Printer::initializeTablesAndTips()
+void TablePrinter::initializeTablesAndTips()
 {
     const int historySize = d_config.printer().printInterval() /
                                 d_config.snapshotInterval() +
@@ -113,14 +113,12 @@ void Printer::initializeTablesAndTips()
         end);
 }
 
-Printer::Printer(const mqbcfg::StatsConfig& config,
-                 bdlmt::EventScheduler*     eventScheduler,
-                 const StatContextsMap&     statContextsMap,
-                 bslma::Allocator*          allocator)
+TablePrinter::TablePrinter(const mqbcfg::StatsConfig& config,
+                           bdlmt::EventScheduler*     eventScheduler,
+                           const StatContextsMap&     statContextsMap,
+                           bslma::Allocator*          allocator)
 : d_config(config)
 , d_statsLogFile(allocator)
-, d_lastStatId(0)
-, d_actionCounter(0)
 , d_lastAllocatorSnapshot(0)
 , d_contexts(allocator)
 , d_statLogCleaner(eventScheduler, allocator)
@@ -130,8 +128,8 @@ Printer::Printer(const mqbcfg::StatsConfig& config,
                      bsls::SystemClockType::e_MONOTONIC);
 
     // Insert all the required Contexts
-    for (StatContextsMap::const_iterator it = statContextsMap.begin();
-         it != statContextsMap.end();
+    for (StatContextsMap::const_iterator it = statContextsMap.cbegin();
+         it != statContextsMap.cend();
          ++it) {
         bsl::shared_ptr<Context> contextSp;
         contextSp.createInplace(allocator);
@@ -144,15 +142,12 @@ Printer::Printer(const mqbcfg::StatsConfig& config,
     }
 }
 
-int Printer::start(BSLA_MAYBE_UNUSED bsl::ostream& errorDescription)
+int TablePrinter::start(BSLA_MAYBE_UNUSED bsl::ostream& errorDescription)
 {
     // Setup the print of stats if configured for it
     if (!isEnabled()) {
         return 0;  // RETURN
     }
-
-    d_actionCounter = d_config.printer().printInterval() /
-                      d_config.snapshotInterval();
 
     // Initialize table and tips
     initializeTablesAndTips();
@@ -192,28 +187,21 @@ int Printer::start(BSLA_MAYBE_UNUSED bsl::ostream& errorDescription)
     return 0;
 }
 
-void Printer::stop()
+void TablePrinter::stop()
 {
-    // Dump the final stats (to ensure all events have been accounted for, even
-    // if they happen within less than the print interval).  Note that since
-    // the scheduler has been stopped, there is no more snapshot happening,
-    // therefore it is fine to print stats from this (arbitrary) thread.
-    if (d_lastStatId != 0) {
-        // Printing needs to access at least 'printInterval' snapshot; in case
-        // the broker starts and stops before that amount of snapshot has been
-        // taken, it is unsafe to print stats.  The above check ensures that at
-        // least one regular stat dump already happened.  This check also takes
-        // care of if the printer was disabled.
-        logStats();
-    }
-
     // Stop the log cleaner
     d_statLogCleaner.stop();
 }
 
-void Printer::printStats(bsl::ostream& stream)
+int TablePrinter::printStats(bsl::ostream&         stream,
+                             int                   statsId,
+                             const bdlt::Datetime& datetime)
 {
     // This must execute in the 'snapshot' thread
+
+    stream << "===== ===== ===== ===== ===== ===== ===== ===== ===== =====\n"
+           << "Stats id: " << statsId << " @ " << datetime << "\n"
+           << "===== ===== ===== ===== ===== ===== ===== ===== ===== =====\n";
 
     // DOMAINQUEUES
     stream << "\n"
@@ -250,7 +238,7 @@ void Printer::printStats(bsl::ostream& stream)
     if (it == d_contexts.end()) {
         // When using test allocator, we don't have a stat context
         stream << " Unavailable\n";
-        return;  // RETURN
+        return 0;  // RETURN
     }
     // NOTE: By contract, snapshot needs to be invoked on the statcontexts
     //       prior to this method.
@@ -265,12 +253,12 @@ void Printer::printStats(bsl::ostream& stream)
     context = it->second.get();
     context->d_table.records().update();
     bmqst::TableUtil::printTable(stream, context->d_tip);
+
+    return 0;
 }
 
-void Printer::logStats()
+void TablePrinter::logStats(int lastStatId)
 {
-    ++d_lastStatId;
-
     // Dump to statslog file
     // Prepare the log record and associated attributes
     ball::Record            record;
@@ -287,29 +275,11 @@ void Printer::logStats()
 
     // Dump stats into bmqbrkr.stats.log
     attributes.clearMessage();
-    bsl::ostream os(&attributes.messageStreamBuf());
-    os << "===== ===== ===== ===== ===== ===== ===== ===== ===== =====\n"
-       << "Stats id: " << d_lastStatId << " @ " << now << "\n"
-       << "===== ===== ===== ===== ===== ===== ===== ===== ===== =====\n";
-
-    printStats(os);
+    printStats(attributes.messageStream(), lastStatId, now);
 
     d_statsLogFile.publish(
         record,
         ball::Context(ball::Transmission::e_MANUAL_PUBLISH, 0, 1));
-}
-
-void Printer::onSnapshot()
-{
-    // Check if we need to print the stats to log
-    if (!isEnabled() || --d_actionCounter != 0) {
-        return;  // RETURN
-    }
-
-    d_actionCounter = d_config.printer().printInterval() /
-                      d_config.snapshotInterval();
-
-    logStats();
 }
 
 }  // close package namespace

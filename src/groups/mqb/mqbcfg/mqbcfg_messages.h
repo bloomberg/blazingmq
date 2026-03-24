@@ -12,6 +12,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 // mqbcfg_messages.h             *DO NOT EDIT*             @generated -*-C++-*-
 #ifndef INCLUDED_MQBCFG_MESSAGES
 #define INCLUDED_MQBCFG_MESSAGES
@@ -101,9 +102,6 @@ namespace mqbcfg {
 class ResolvedDomain;
 }
 namespace mqbcfg {
-class StatsPrinterConfig;
-}
-namespace mqbcfg {
 class StorageSyncConfig;
 }
 namespace mqbcfg {
@@ -138,6 +136,9 @@ class PluginSettingKeyValue;
 }
 namespace mqbcfg {
 class StatPluginConfigPrometheus;
+}
+namespace mqbcfg {
+class StatsPrinterConfig;
 }
 namespace mqbcfg {
 class TcpInterfaceConfig;
@@ -3983,52 +3984,189 @@ struct bdlat_UsesDefaultValueFlag<mqbcfg::ResolvedDomain> : bsl::true_type {};
 
 namespace mqbcfg {
 
-// ========================
-// class StatsPrinterConfig
-// ========================
+// ================================
+// class StatsPrinterEncodingFormat
+// ================================
 
-class StatsPrinterConfig {
+struct StatsPrinterEncodingFormat {
+    // Enum of the various Stats Printer encoding format bitmasks.
+
+  public:
+    // TYPES
+    enum Value { NONE = 0, TABLE = 1, JSON = 2, TABLE_AND_JSON = 3 };
+
+    enum { NUM_ENUMERATORS = 4 };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const bdlat_EnumeratorInfo ENUMERATOR_INFO_ARRAY[];
+
+    // CLASS METHODS
+    static const char* toString(Value value);
+    // Return the string representation exactly matching the enumerator
+    // name corresponding to the specified enumeration 'value'.
+
+    static int fromString(Value* result, const char* string, int stringLength);
+    // Load into the specified 'result' the enumerator matching the
+    // specified 'string' of the specified 'stringLength'.  Return 0 on
+    // success, and a non-zero value with no effect on 'result' otherwise
+    // (i.e., 'string' does not match any enumerator).
+
+    static int fromString(Value* result, const bsl::string& string);
+    // Load into the specified 'result' the enumerator matching the
+    // specified 'string'.  Return 0 on success, and a non-zero value with
+    // no effect on 'result' otherwise (i.e., 'string' does not match any
+    // enumerator).
+
+    static int fromInt(Value* result, int number);
+    // Load into the specified 'result' the enumerator matching the
+    // specified 'number'.  Return 0 on success, and a non-zero value with
+    // no effect on 'result' otherwise (i.e., 'number' does not match any
+    // enumerator).
+
+    static bsl::ostream& print(bsl::ostream& stream, Value value);
+    // Write to the specified 'stream' the string representation of
+    // the specified enumeration 'value'.  Return a reference to
+    // the modifiable 'stream'.
+
+    // HIDDEN FRIENDS
+    friend bsl::ostream& operator<<(bsl::ostream& stream, Value rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return StatsPrinterEncodingFormat::print(stream, rhs);
+    }
+};
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_ENUMERATION_TRAITS(mqbcfg::StatsPrinterEncodingFormat)
+
+namespace mqbcfg {
+
+// =======================
+// class StorageSyncConfig
+// =======================
+
+class StorageSyncConfig {
+    // Type representing the configuration for storage synchronization and
+    // recovery of a cluster.
+    // startupRecoveryMaxDurationMs...: maximum amount of time, in
+    // milliseconds, in which recovery for a partition at node startup must
+    // complete.  This interval captures the time taken to receive storage-sync
+    // response, retry attempts for failed storage-sync request, as well as the
+    // time taken by the peer node to send partition files to the starting
+    // (i.e.  requester) node maxAttemptsStorageSync.........: maximum number
+    // of attempts that a node makes for storage-sync requests when it comes up
+    // (this value includes the 1st attempt) storageSyncReqTimeoutMs........:
+    // timeout, in milliseconds, for the storage-sync request.  A bigger value
+    // is recommended because peer node could be busy serving storage-sync
+    // request for other partition(s) assigned to the same partition-dispatcher
+    // thread, etc.  This timeout does *not* capture the time taken by the peer
+    // to send partition files masterSyncMaxDurationMs........: maximum amount
+    // of time, in milliseconds, in which master sync for a partition must
+    // complete.  This interval includes the time taken by replica node (the
+    // one with advanced view of the partition) to send the file chunks, as
+    // well as time taken to receive partition-sync state and data responses
+    // partitionSyncStateReqTimeoutMs.: timeout, in milliseconds, for
+    // partition-sync-state-query request.  This request is sent by a new
+    // master node to all replica nodes to query their view of the partition
+    // partitionSyncDataReqTimeoutMs..: timeout, in milliseconds, for
+    // partition-sync-data-query request.  This request is sent by a new master
+    // node to a replica node (which has an advanced view of the partition) to
+    // initiate partition sync.  This duration does *not* capture the amount of
+    // time which replica might take to send the partition file
+    // startupWaitDurationMs..........: duration, in milliseconds, for which
+    // recovery manager waits for a sync point for a partition.  If no sync
+    // point is received from a peer for a partition during this time, it is
+    // assumed that there is no master for that partition, and recovery manager
+    // randomly picks up a node from all the available ones with send a sync
+    // request.  If no peers are available at this time, it is assumed that
+    // entire cluster is coming up together, and proceeds with local recovery
+    // for that partition.  Note that this value should be less than the
+    // duration for which a node waits if its elected a leader and there are no
+    // AVAILABLE nodes.  This is important so that if all nodes in the cluster
+    // are starting, they have a chance to wait for 'startupWaitDurationMs'
+    // milliseconds, find out that none of the partitions have any master, go
+    // ahead with local recovery and declare themselves as AVAILABLE.  This
+    // will give the new leader node a chance to make each node a master for a
+    // given partition.  Moreover, this value should be greater than the
+    // duration for which a peer waits before attempting to reconnect to the
+    // node in the cluster, so that peer has a chance to connect to this node,
+    // get notified (via ClusterObserver), and send sync point if its a master
+    // for any partition fileChunkSize..................: chunk size, in bytes,
+    // to send in one go to the peer when serving a storage sync request from
+    // it partitionSyncEventSize.........: maximum size, in bytes, of
+    // bmqp::EventType::PARTITION_SYNC before we send it to the peer
+
     // INSTANCE DATA
-    bsl::string d_file;
-    int         d_printInterval;
-    int         d_maxAgeDays;
-    int         d_rotateBytes;
-    int         d_rotateDays;
+    int d_startupRecoveryMaxDurationMs;
+    int d_maxAttemptsStorageSync;
+    int d_storageSyncReqTimeoutMs;
+    int d_masterSyncMaxDurationMs;
+    int d_partitionSyncStateReqTimeoutMs;
+    int d_partitionSyncDataReqTimeoutMs;
+    int d_startupWaitDurationMs;
+    int d_fileChunkSize;
+    int d_partitionSyncEventSize;
 
     // PRIVATE ACCESSORS
     template <typename t_HASH_ALGORITHM>
     void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
 
-    bool isEqualTo(const StatsPrinterConfig& rhs) const;
+    bool isEqualTo(const StorageSyncConfig& rhs) const;
 
   public:
     // TYPES
     enum {
-        ATTRIBUTE_ID_PRINT_INTERVAL = 0,
-        ATTRIBUTE_ID_FILE           = 1,
-        ATTRIBUTE_ID_MAX_AGE_DAYS   = 2,
-        ATTRIBUTE_ID_ROTATE_BYTES   = 3,
-        ATTRIBUTE_ID_ROTATE_DAYS    = 4
+        ATTRIBUTE_ID_STARTUP_RECOVERY_MAX_DURATION_MS    = 0,
+        ATTRIBUTE_ID_MAX_ATTEMPTS_STORAGE_SYNC           = 1,
+        ATTRIBUTE_ID_STORAGE_SYNC_REQ_TIMEOUT_MS         = 2,
+        ATTRIBUTE_ID_MASTER_SYNC_MAX_DURATION_MS         = 3,
+        ATTRIBUTE_ID_PARTITION_SYNC_STATE_REQ_TIMEOUT_MS = 4,
+        ATTRIBUTE_ID_PARTITION_SYNC_DATA_REQ_TIMEOUT_MS  = 5,
+        ATTRIBUTE_ID_STARTUP_WAIT_DURATION_MS            = 6,
+        ATTRIBUTE_ID_FILE_CHUNK_SIZE                     = 7,
+        ATTRIBUTE_ID_PARTITION_SYNC_EVENT_SIZE           = 8
     };
 
-    enum { NUM_ATTRIBUTES = 5 };
+    enum { NUM_ATTRIBUTES = 9 };
 
     enum {
-        ATTRIBUTE_INDEX_PRINT_INTERVAL = 0,
-        ATTRIBUTE_INDEX_FILE           = 1,
-        ATTRIBUTE_INDEX_MAX_AGE_DAYS   = 2,
-        ATTRIBUTE_INDEX_ROTATE_BYTES   = 3,
-        ATTRIBUTE_INDEX_ROTATE_DAYS    = 4
+        ATTRIBUTE_INDEX_STARTUP_RECOVERY_MAX_DURATION_MS    = 0,
+        ATTRIBUTE_INDEX_MAX_ATTEMPTS_STORAGE_SYNC           = 1,
+        ATTRIBUTE_INDEX_STORAGE_SYNC_REQ_TIMEOUT_MS         = 2,
+        ATTRIBUTE_INDEX_MASTER_SYNC_MAX_DURATION_MS         = 3,
+        ATTRIBUTE_INDEX_PARTITION_SYNC_STATE_REQ_TIMEOUT_MS = 4,
+        ATTRIBUTE_INDEX_PARTITION_SYNC_DATA_REQ_TIMEOUT_MS  = 5,
+        ATTRIBUTE_INDEX_STARTUP_WAIT_DURATION_MS            = 6,
+        ATTRIBUTE_INDEX_FILE_CHUNK_SIZE                     = 7,
+        ATTRIBUTE_INDEX_PARTITION_SYNC_EVENT_SIZE           = 8
     };
 
     // CONSTANTS
     static const char CLASS_NAME[];
 
-    static const int DEFAULT_INITIALIZER_PRINT_INTERVAL;
+    static const int DEFAULT_INITIALIZER_STARTUP_RECOVERY_MAX_DURATION_MS;
 
-    static const int DEFAULT_INITIALIZER_ROTATE_BYTES;
+    static const int DEFAULT_INITIALIZER_MAX_ATTEMPTS_STORAGE_SYNC;
 
-    static const int DEFAULT_INITIALIZER_ROTATE_DAYS;
+    static const int DEFAULT_INITIALIZER_STORAGE_SYNC_REQ_TIMEOUT_MS;
+
+    static const int DEFAULT_INITIALIZER_MASTER_SYNC_MAX_DURATION_MS;
+
+    static const int DEFAULT_INITIALIZER_PARTITION_SYNC_STATE_REQ_TIMEOUT_MS;
+
+    static const int DEFAULT_INITIALIZER_PARTITION_SYNC_DATA_REQ_TIMEOUT_MS;
+
+    static const int DEFAULT_INITIALIZER_STARTUP_WAIT_DURATION_MS;
+
+    static const int DEFAULT_INITIALIZER_FILE_CHUNK_SIZE;
+
+    static const int DEFAULT_INITIALIZER_PARTITION_SYNC_EVENT_SIZE;
 
     static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
@@ -4045,51 +4183,11 @@ class StatsPrinterConfig {
     // exists, and 0 otherwise.
 
     // CREATORS
-    explicit StatsPrinterConfig(bslma::Allocator* basicAllocator = 0);
-    // Create an object of type 'StatsPrinterConfig' having the default
-    // value.  Use the optionally specified 'basicAllocator' to supply
-    // memory.  If 'basicAllocator' is 0, the currently installed default
-    // allocator is used.
-
-    StatsPrinterConfig(const StatsPrinterConfig& original,
-                       bslma::Allocator*         basicAllocator = 0);
-    // Create an object of type 'StatsPrinterConfig' having the value of
-    // the specified 'original' object.  Use the optionally specified
-    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
-    // currently installed default allocator is used.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    StatsPrinterConfig(StatsPrinterConfig&& original) noexcept;
-    // Create an object of type 'StatsPrinterConfig' having the value of
-    // the specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
-
-    StatsPrinterConfig(StatsPrinterConfig&& original,
-                       bslma::Allocator*    basicAllocator);
-    // Create an object of type 'StatsPrinterConfig' having the value of
-    // the specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
-    // Use the optionally specified 'basicAllocator' to supply memory.  If
-    // 'basicAllocator' is 0, the currently installed default allocator is
-    // used.
-#endif
-
-    ~StatsPrinterConfig();
-    // Destroy this object.
+    StorageSyncConfig();
+    // Create an object of type 'StorageSyncConfig' having the default
+    // value.
 
     // MANIPULATORS
-    StatsPrinterConfig& operator=(const StatsPrinterConfig& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    StatsPrinterConfig& operator=(StatsPrinterConfig&& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-    // After performing this action, the 'rhs' object will be left in a
-    // valid, but unspecified state.
-#endif
-
     void reset();
     // Reset this object to the default value (i.e., its value upon
     // default construction).
@@ -4123,21 +4221,21 @@ class StatsPrinterConfig {
     // returned from the invocation of 'manipulator' if 'name' identifies
     // an attribute of this class, and -1 otherwise.
 
-    int& printInterval();
-    // Return a reference to the modifiable "PrintInterval" attribute of
-    // this object.
+    int& startupRecoveryMaxDurationMs();
+    // Return a reference to the modifiable "StartupRecoveryMaxDurationMs"
+    // attribute of this object.
 
-    bsl::string& file();
-    // Return a reference to the modifiable "File" attribute of this
-    // object.
+    int& maxAttemptsStorageSync();
+    // Return a reference to the modifiable "MaxAttemptsStorageSync"
+    // attribute of this object.
 
-    int& maxAgeDays();
-    // Return a reference to the modifiable "MaxAgeDays" attribute of this
-    // object.
+    int& storageSyncReqTimeoutMs();
+    // Return a reference to the modifiable "StorageSyncReqTimeoutMs"
+    // attribute of this object.
 
-    int& rotateBytes();
-    // Return a reference to the modifiable "RotateBytes" attribute of this
-    // object.
+    int& masterSyncMaxDurationMs();
+    // Return a reference to the modifiable "MasterSyncMaxDurationMs"
+    // attribute of this object.
 
     int& rotateDays();
     // Return a reference to the modifiable "RotateDays" attribute of this
@@ -7424,9 +7522,290 @@ class StatPluginConfigPrometheus {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::StatPluginConfigPrometheus);
+    mqbcfg::StatPluginConfigPrometheus)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::StatPluginConfigPrometheus>
+: bsl::true_type {};
+
+namespace mqbcfg {
+
+// ========================
+// class StatsPrinterConfig
+// ========================
+
+class StatsPrinterConfig {
+    // INSTANCE DATA
+    bsl::string                       d_file;
+    int                               d_printInterval;
+    int                               d_maxAgeDays;
+    int                               d_rotateBytes;
+    int                               d_rotateDays;
+    StatsPrinterEncodingFormat::Value d_encoding;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
+
+    bool isEqualTo(const StatsPrinterConfig& rhs) const;
+
+  public:
+    // TYPES
+    enum {
+        ATTRIBUTE_ID_PRINT_INTERVAL = 0,
+        ATTRIBUTE_ID_FILE           = 1,
+        ATTRIBUTE_ID_MAX_AGE_DAYS   = 2,
+        ATTRIBUTE_ID_ROTATE_BYTES   = 3,
+        ATTRIBUTE_ID_ROTATE_DAYS    = 4,
+        ATTRIBUTE_ID_ENCODING       = 5
+    };
+
+    enum { NUM_ATTRIBUTES = 6 };
+
+    enum {
+        ATTRIBUTE_INDEX_PRINT_INTERVAL = 0,
+        ATTRIBUTE_INDEX_FILE           = 1,
+        ATTRIBUTE_INDEX_MAX_AGE_DAYS   = 2,
+        ATTRIBUTE_INDEX_ROTATE_BYTES   = 3,
+        ATTRIBUTE_INDEX_ROTATE_DAYS    = 4,
+        ATTRIBUTE_INDEX_ENCODING       = 5
+    };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const int DEFAULT_INITIALIZER_PRINT_INTERVAL;
+
+    static const int DEFAULT_INITIALIZER_ROTATE_BYTES;
+
+    static const int DEFAULT_INITIALIZER_ROTATE_DAYS;
+
+    static const StatsPrinterEncodingFormat::Value
+        DEFAULT_INITIALIZER_ENCODING;
+
+    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
+
+  public:
+    // CLASS METHODS
+    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
+
+    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
+                                                          int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
+
+    // CREATORS
+    explicit StatsPrinterConfig(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'StatsPrinterConfig' having the default
+    // value.  Use the optionally specified 'basicAllocator' to supply
+    // memory.  If 'basicAllocator' is 0, the currently installed default
+    // allocator is used.
+
+    StatsPrinterConfig(const StatsPrinterConfig& original,
+                       bslma::Allocator*         basicAllocator = 0);
+    // Create an object of type 'StatsPrinterConfig' having the value of
+    // the specified 'original' object.  Use the optionally specified
+    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
+    // currently installed default allocator is used.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    StatsPrinterConfig(StatsPrinterConfig&& original) noexcept;
+    // Create an object of type 'StatsPrinterConfig' having the value of
+    // the specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+
+    StatsPrinterConfig(StatsPrinterConfig&& original,
+                       bslma::Allocator*    basicAllocator);
+    // Create an object of type 'StatsPrinterConfig' having the value of
+    // the specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+    // Use the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
+#endif
+
+    ~StatsPrinterConfig();
+    // Destroy this object.
+
+    // MANIPULATORS
+    StatsPrinterConfig& operator=(const StatsPrinterConfig& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    StatsPrinterConfig& operator=(StatsPrinterConfig&& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+    // After performing this action, the 'rhs' object will be left in a
+    // valid, but unspecified state.
+#endif
+
+    void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator,
+                            const char*    name,
+                            int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    int& printInterval();
+    // Return a reference to the modifiable "PrintInterval" attribute of
+    // this object.
+
+    bsl::string& file();
+    // Return a reference to the modifiable "File" attribute of this
+    // object.
+
+    int& maxAgeDays();
+    // Return a reference to the modifiable "MaxAgeDays" attribute of this
+    // object.
+
+    int& rotateBytes();
+    // Return a reference to the modifiable "RotateBytes" attribute of this
+    // object.
+
+    int& rotateDays();
+    // Return a reference to the modifiable "RotateDays" attribute of this
+    // object.
+
+    StatsPrinterEncodingFormat::Value& encoding();
+    // Return a reference to the modifiable "Encoding" attribute of this
+    // object.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    template <typename t_ACCESSOR>
+    int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor,
+                        const char* name,
+                        int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    int printInterval() const;
+    // Return the value of the "PrintInterval" attribute of this object.
+
+    const bsl::string& file() const;
+    // Return a reference offering non-modifiable access to the "File"
+    // attribute of this object.
+
+    int maxAgeDays() const;
+    // Return the value of the "MaxAgeDays" attribute of this object.
+
+    int rotateBytes() const;
+    // Return the value of the "RotateBytes" attribute of this object.
+
+    int rotateDays() const;
+    // Return the value of the "RotateDays" attribute of this object.
+
+    StatsPrinterEncodingFormat::Value encoding() const;
+    // Return the value of the "Encoding" attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const StatsPrinterConfig& lhs,
+                           const StatsPrinterConfig& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.isEqualTo(rhs);
+    }
+
+    friend bool operator!=(const StatsPrinterConfig& lhs,
+                           const StatsPrinterConfig& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&             stream,
+                                    const StatsPrinterConfig& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&         hashAlg,
+                           const StatsPrinterConfig& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'StatsPrinterConfig'.
+    {
+        object.hashAppendImpl(hashAlg);
+    }
+};
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    mqbcfg::StatPluginConfigPrometheus);
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::StatsPrinterConfig>
 : bsl::true_type {};
 
 namespace mqbcfg {
@@ -14548,248 +14927,24 @@ inline const bsl::string& ResolvedDomain::clusterName() const
     return d_clusterName;
 }
 
-// ------------------------
-// class StatsPrinterConfig
-// ------------------------
-
-// PRIVATE ACCESSORS
-template <typename t_HASH_ALGORITHM>
-void StatsPrinterConfig::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
-{
-    using bslh::hashAppend;
-    hashAppend(hashAlgorithm, this->printInterval());
-    hashAppend(hashAlgorithm, this->file());
-    hashAppend(hashAlgorithm, this->maxAgeDays());
-    hashAppend(hashAlgorithm, this->rotateBytes());
-    hashAppend(hashAlgorithm, this->rotateDays());
-}
-
-inline bool StatsPrinterConfig::isEqualTo(const StatsPrinterConfig& rhs) const
-{
-    return this->printInterval() == rhs.printInterval() &&
-           this->file() == rhs.file() &&
-           this->maxAgeDays() == rhs.maxAgeDays() &&
-           this->rotateBytes() == rhs.rotateBytes() &&
-           this->rotateDays() == rhs.rotateDays();
-}
+// --------------------------------
+// class StatsPrinterEncodingFormat
+// --------------------------------
 
 // CLASS METHODS
-// MANIPULATORS
-template <typename t_MANIPULATOR>
-int StatsPrinterConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
+inline int StatsPrinterEncodingFormat::fromString(Value*             result,
+                                                  const bsl::string& string)
 {
-    int ret;
-
-    ret = manipulator(&d_printInterval,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRINT_INTERVAL]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_file, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FILE]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_maxAgeDays,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_AGE_DAYS]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_rotateBytes,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ROTATE_BYTES]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_rotateDays,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ROTATE_DAYS]);
-    if (ret) {
-        return ret;
-    }
-
-    return 0;
+    return fromString(result,
+                      string.c_str(),
+                      static_cast<int>(string.length()));
 }
 
-template <typename t_MANIPULATOR>
-int StatsPrinterConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
+inline bsl::ostream&
+StatsPrinterEncodingFormat::print(bsl::ostream&                     stream,
+                                  StatsPrinterEncodingFormat::Value value)
 {
-    enum { NOT_FOUND = -1 };
-
-    switch (id) {
-    case ATTRIBUTE_ID_PRINT_INTERVAL: {
-        return manipulator(
-            &d_printInterval,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRINT_INTERVAL]);
-    }
-    case ATTRIBUTE_ID_FILE: {
-        return manipulator(&d_file,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FILE]);
-    }
-    case ATTRIBUTE_ID_MAX_AGE_DAYS: {
-        return manipulator(&d_maxAgeDays,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_AGE_DAYS]);
-    }
-    case ATTRIBUTE_ID_ROTATE_BYTES: {
-        return manipulator(&d_rotateBytes,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ROTATE_BYTES]);
-    }
-    case ATTRIBUTE_ID_ROTATE_DAYS: {
-        return manipulator(&d_rotateDays,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ROTATE_DAYS]);
-    }
-    default: return NOT_FOUND;
-    }
-}
-
-template <typename t_MANIPULATOR>
-int StatsPrinterConfig::manipulateAttribute(t_MANIPULATOR& manipulator,
-                                            const char*    name,
-                                            int            nameLength)
-{
-    enum { NOT_FOUND = -1 };
-
-    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
-                                                                   nameLength);
-    if (0 == attributeInfo) {
-        return NOT_FOUND;
-    }
-
-    return manipulateAttribute(manipulator, attributeInfo->d_id);
-}
-
-inline int& StatsPrinterConfig::printInterval()
-{
-    return d_printInterval;
-}
-
-inline bsl::string& StatsPrinterConfig::file()
-{
-    return d_file;
-}
-
-inline int& StatsPrinterConfig::maxAgeDays()
-{
-    return d_maxAgeDays;
-}
-
-inline int& StatsPrinterConfig::rotateBytes()
-{
-    return d_rotateBytes;
-}
-
-inline int& StatsPrinterConfig::rotateDays()
-{
-    return d_rotateDays;
-}
-
-// ACCESSORS
-template <typename t_ACCESSOR>
-int StatsPrinterConfig::accessAttributes(t_ACCESSOR& accessor) const
-{
-    int ret;
-
-    ret = accessor(d_printInterval,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRINT_INTERVAL]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_file, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FILE]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_maxAgeDays,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_AGE_DAYS]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_rotateBytes,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ROTATE_BYTES]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_rotateDays,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ROTATE_DAYS]);
-    if (ret) {
-        return ret;
-    }
-
-    return 0;
-}
-
-template <typename t_ACCESSOR>
-int StatsPrinterConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
-{
-    enum { NOT_FOUND = -1 };
-
-    switch (id) {
-    case ATTRIBUTE_ID_PRINT_INTERVAL: {
-        return accessor(d_printInterval,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRINT_INTERVAL]);
-    }
-    case ATTRIBUTE_ID_FILE: {
-        return accessor(d_file, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FILE]);
-    }
-    case ATTRIBUTE_ID_MAX_AGE_DAYS: {
-        return accessor(d_maxAgeDays,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_AGE_DAYS]);
-    }
-    case ATTRIBUTE_ID_ROTATE_BYTES: {
-        return accessor(d_rotateBytes,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ROTATE_BYTES]);
-    }
-    case ATTRIBUTE_ID_ROTATE_DAYS: {
-        return accessor(d_rotateDays,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ROTATE_DAYS]);
-    }
-    default: return NOT_FOUND;
-    }
-}
-
-template <typename t_ACCESSOR>
-int StatsPrinterConfig::accessAttribute(t_ACCESSOR& accessor,
-                                        const char* name,
-                                        int         nameLength) const
-{
-    enum { NOT_FOUND = -1 };
-
-    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
-                                                                   nameLength);
-    if (0 == attributeInfo) {
-        return NOT_FOUND;
-    }
-
-    return accessAttribute(accessor, attributeInfo->d_id);
-}
-
-inline int StatsPrinterConfig::printInterval() const
-{
-    return d_printInterval;
-}
-
-inline const bsl::string& StatsPrinterConfig::file() const
-{
-    return d_file;
-}
-
-inline int StatsPrinterConfig::maxAgeDays() const
-{
-    return d_maxAgeDays;
-}
-
-inline int StatsPrinterConfig::rotateBytes() const
-{
-    return d_rotateBytes;
-}
-
-inline int StatsPrinterConfig::rotateDays() const
-{
-    return d_rotateDays;
+    return stream << toString(value);
 }
 
 // -----------------------
@@ -17629,6 +17784,281 @@ inline const bsl::string& StatPluginConfigPrometheus::host() const
 inline int StatPluginConfigPrometheus::port() const
 {
     return d_port;
+}
+
+// ------------------------
+// class StatsPrinterConfig
+// ------------------------
+
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void StatsPrinterConfig::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->printInterval());
+    hashAppend(hashAlgorithm, this->file());
+    hashAppend(hashAlgorithm, this->maxAgeDays());
+    hashAppend(hashAlgorithm, this->rotateBytes());
+    hashAppend(hashAlgorithm, this->rotateDays());
+    hashAppend(hashAlgorithm, this->encoding());
+}
+
+inline bool StatsPrinterConfig::isEqualTo(const StatsPrinterConfig& rhs) const
+{
+    return this->printInterval() == rhs.printInterval() &&
+           this->file() == rhs.file() &&
+           this->maxAgeDays() == rhs.maxAgeDays() &&
+           this->rotateBytes() == rhs.rotateBytes() &&
+           this->rotateDays() == rhs.rotateDays() &&
+           this->encoding() == rhs.encoding();
+}
+
+// CLASS METHODS
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int StatsPrinterConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
+{
+    int ret;
+
+    ret = manipulator(&d_printInterval,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRINT_INTERVAL]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_file, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FILE]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_maxAgeDays,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_AGE_DAYS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_rotateBytes,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ROTATE_BYTES]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_rotateDays,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ROTATE_DAYS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_encoding,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ENCODING]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_MANIPULATOR>
+int StatsPrinterConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_PRINT_INTERVAL: {
+        return manipulator(
+            &d_printInterval,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRINT_INTERVAL]);
+    }
+    case ATTRIBUTE_ID_FILE: {
+        return manipulator(&d_file,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FILE]);
+    }
+    case ATTRIBUTE_ID_MAX_AGE_DAYS: {
+        return manipulator(&d_maxAgeDays,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_AGE_DAYS]);
+    }
+    case ATTRIBUTE_ID_ROTATE_BYTES: {
+        return manipulator(&d_rotateBytes,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ROTATE_BYTES]);
+    }
+    case ATTRIBUTE_ID_ROTATE_DAYS: {
+        return manipulator(&d_rotateDays,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ROTATE_DAYS]);
+    }
+    case ATTRIBUTE_ID_ENCODING: {
+        return manipulator(&d_encoding,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ENCODING]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_MANIPULATOR>
+int StatsPrinterConfig::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                            const char*    name,
+                                            int            nameLength)
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return manipulateAttribute(manipulator, attributeInfo->d_id);
+}
+
+inline int& StatsPrinterConfig::printInterval()
+{
+    return d_printInterval;
+}
+
+inline bsl::string& StatsPrinterConfig::file()
+{
+    return d_file;
+}
+
+inline int& StatsPrinterConfig::maxAgeDays()
+{
+    return d_maxAgeDays;
+}
+
+inline int& StatsPrinterConfig::rotateBytes()
+{
+    return d_rotateBytes;
+}
+
+inline int& StatsPrinterConfig::rotateDays()
+{
+    return d_rotateDays;
+}
+
+inline StatsPrinterEncodingFormat::Value& StatsPrinterConfig::encoding()
+{
+    return d_encoding;
+}
+
+// ACCESSORS
+template <typename t_ACCESSOR>
+int StatsPrinterConfig::accessAttributes(t_ACCESSOR& accessor) const
+{
+    int ret;
+
+    ret = accessor(d_printInterval,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRINT_INTERVAL]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_file, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FILE]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_maxAgeDays,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_AGE_DAYS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_rotateBytes,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ROTATE_BYTES]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_rotateDays,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ROTATE_DAYS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_encoding, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ENCODING]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_ACCESSOR>
+int StatsPrinterConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_PRINT_INTERVAL: {
+        return accessor(d_printInterval,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRINT_INTERVAL]);
+    }
+    case ATTRIBUTE_ID_FILE: {
+        return accessor(d_file, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FILE]);
+    }
+    case ATTRIBUTE_ID_MAX_AGE_DAYS: {
+        return accessor(d_maxAgeDays,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_AGE_DAYS]);
+    }
+    case ATTRIBUTE_ID_ROTATE_BYTES: {
+        return accessor(d_rotateBytes,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ROTATE_BYTES]);
+    }
+    case ATTRIBUTE_ID_ROTATE_DAYS: {
+        return accessor(d_rotateDays,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ROTATE_DAYS]);
+    }
+    case ATTRIBUTE_ID_ENCODING: {
+        return accessor(d_encoding,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ENCODING]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_ACCESSOR>
+int StatsPrinterConfig::accessAttribute(t_ACCESSOR& accessor,
+                                        const char* name,
+                                        int         nameLength) const
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return accessAttribute(accessor, attributeInfo->d_id);
+}
+
+inline int StatsPrinterConfig::printInterval() const
+{
+    return d_printInterval;
+}
+
+inline const bsl::string& StatsPrinterConfig::file() const
+{
+    return d_file;
+}
+
+inline int StatsPrinterConfig::maxAgeDays() const
+{
+    return d_maxAgeDays;
+}
+
+inline int StatsPrinterConfig::rotateBytes() const
+{
+    return d_rotateBytes;
+}
+
+inline int StatsPrinterConfig::rotateDays() const
+{
+    return d_rotateDays;
+}
+
+inline StatsPrinterEncodingFormat::Value StatsPrinterConfig::encoding() const
+{
+    return d_encoding;
 }
 
 // ------------------------
@@ -21346,6 +21776,6 @@ inline const AppConfig& Configuration::appConfig() const
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
+// GENERATED BY BLP_BAS_CODEGEN_2025.11.13
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd

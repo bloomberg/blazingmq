@@ -1,4 +1,4 @@
-// Copyright 2017-2023 Bloomberg Finance L.P.
+// Copyright 2026 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,9 +20,10 @@
 //@PURPOSE: Provide a mechanism to print statistics to streams
 //
 //@CLASSES:
-//  mqbstat::Printer: bmqbrkr statistics printer
+//  mqbstat::TablePrinter: bmqbrkr statistics printer
 //
-//@DESCRIPTION: 'mqbstat::Printer' handles the printing of all the statistics.
+//@DESCRIPTION: 'mqbstat::TablePrinter' handles the printing of all the
+// statistics.
 // It holds the tables and table info providers which can be printed.
 
 // MQB
@@ -32,6 +33,7 @@
 #include <bmqst_statcontext.h>
 #include <bmqst_table.h>
 #include <bmqtsk_logcleaner.h>
+#include <mqbstat_jsonprinter.h>
 
 // BDE
 #include <ball_fileobserver2.h>
@@ -54,10 +56,10 @@ namespace BloombergLP {
 namespace mqbstat {
 
 // =============
-// class Printer
+// class TablePrinter
 // =============
 
-class Printer {
+class TablePrinter {
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBSTAT.PRINTER");
@@ -92,15 +94,6 @@ class Printer {
     /// FileObserver for the stats log dump.
     ball::FileObserver2 d_statsLogFile;
 
-    /// Sequence number for stat log
-    /// records, used to synchronize the
-    /// stat log and the normal log.
-    int d_lastStatId;
-
-    /// Counter to know when to periodically
-    /// print the stats to file.
-    int d_actionCounter;
-
     /// HiRes timer value of the last time
     /// the Counting Allocators snapshot
     /// happened on the context.
@@ -114,25 +107,25 @@ class Printer {
 
   private:
     // NOT IMPLEMENTED
-    Printer(const Printer& other) BSLS_CPP11_DELETED;
-    Printer& operator=(const Printer& other) BSLS_CPP11_DELETED;
+    TablePrinter(const TablePrinter& other) BSLS_CPP11_DELETED;
+    TablePrinter& operator=(const TablePrinter& other) BSLS_CPP11_DELETED;
 
     /// Initialize table and tips.
     void initializeTablesAndTips();
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(Printer, bslma::UsesBslmaAllocator)
+    BSLMF_NESTED_TRAIT_DECLARATION(TablePrinter, bslma::UsesBslmaAllocator)
 
     // CREATORS
 
-    /// Create a new `Printer` object, using the specified `config`,
+    /// Create a new `TablePrinter` object, using the specified `config`,
     /// `eventScheduler`, `statContextsMap` and the specified `allocator`
     /// for memory allocation.
-    explicit Printer(const mqbcfg::StatsConfig& config,
-                     bdlmt::EventScheduler*     eventScheduler,
-                     const StatContextsMap&     statContextsMap,
-                     bslma::Allocator*          allocator);
+    explicit TablePrinter(const mqbcfg::StatsConfig& config,
+                          bdlmt::EventScheduler*     eventScheduler,
+                          const StatContextsMap&     statContextsMap,
+                          bslma::Allocator*          allocator);
 
     // MANIPULATORS
 
@@ -147,22 +140,17 @@ class Printer {
     /// Print the stats to the specified `stream`.
     ///
     /// THREAD: This method is called in the `snapshot` thread.
-    void printStats(bsl::ostream& stream);
+    int printStats(bsl::ostream&         stream,
+                   int                   statsId,
+                   const bdlt::Datetime& datetime);
 
     /// Dump the stats to the stat log file.
-    void logStats();
-
-    /// Print the stats to the stats log file at the appropriate time.
-    void onSnapshot();
+    void logStats(int lastStatId);
 
     // ACCESSORS
 
     /// Returns true if printing is enabled, false otherwise.
     bool isEnabled() const;
-
-    /// Returns true if the next call to `onSnapshot` will perform the
-    /// action (i.e., print).
-    bool nextSnapshotWillPrint() const;
 };
 
 // ============================================================================
@@ -170,18 +158,15 @@ class Printer {
 // ============================================================================
 
 // -------------
-// class Printer
+// class TablePrinter
 // -------------
 
-inline bool Printer::isEnabled() const
-{
-    return (d_config.printer().printInterval() > 0 &&
-            d_config.snapshotInterval() > 0);
-}
+// ACCESSORS
 
-inline bool Printer::nextSnapshotWillPrint() const
+inline bool TablePrinter::isEnabled() const
 {
-    return d_actionCounter == 1;
+    return d_config.printer().encoding() &
+           mqbcfg::StatsPrinterEncodingFormat::TABLE;
 }
 
 }  // close package namespace

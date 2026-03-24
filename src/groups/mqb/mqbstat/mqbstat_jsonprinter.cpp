@@ -1,4 +1,4 @@
-// Copyright 2024 Bloomberg Finance L.P.
+// Copyright 2026 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,12 +21,21 @@
 // MQB
 #include <mqbstat_queuestats.h>
 
+#include <bmqio_statchannel.h>
+#include <bmqio_statchannelfactory.h>
 #include <bmqu_memoutstream.h>
 
+#include <bmqst_statutil.h>
+
 // BDE
+#include <ball_context.h>
 #include <ball_log.h>
+#include <ball_logfilecleanerutil.h>
+#include <ball_recordstringformatter.h>
 #include <bdljsn_json.h>
 #include <bdljsn_jsonutil.h>
+#include <bdls_processutil.h>
+#include <bdlt_iso8601util.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {
@@ -34,7 +43,82 @@ namespace mqbstat {
 
 namespace {
 
-struct ConversionUtils {
+const char k_LOG_CATEGORY[] = "MQBSTAT.JSONPRINTER";
+
+// ----------------------------------
+// class JsonPrettyPrinter
+// ----------------------------------
+
+/// The implementation class for JsonPrettyPrinter which incapsulates
+/// printing to a stream with specified write options (e.g. compact or pretty).
+
+class JsonPrettyPrinter {
+  private:
+    // DATA
+
+    /// Output stream to print JSON to
+    bsl::ostream& d_os;
+
+    /// Options for printing a compact JSON
+    const bdljsn::WriteOptions& d_opts;
+
+    mutable int d_linesWritten;
+
+    const bool d_needValidJson;
+
+  private:
+    // NOT IMPLEMENTED
+    JsonPrettyPrinter(const JsonPrettyPrinter& other) BSLS_CPP11_DELETED;
+    JsonPrettyPrinter&
+    operator=(const JsonPrettyPrinter& other) BSLS_CPP11_DELETED;
+
+  public:
+    // CREATORS
+
+    /// Create a new `JsonPrinterImpl` object, using the specified
+    /// stream and the specified write options.
+    JsonPrettyPrinter(bsl::ostream&               os,
+                      const bdljsn::WriteOptions& opts,
+                      const bool                  needValidJson)
+    : d_os(os)
+    , d_opts(opts)
+    , d_linesWritten(0)
+    , d_needValidJson(needValidJson)
+    {
+        if (d_needValidJson) {
+            d_os << "[";
+        }
+    }
+
+    ~JsonPrettyPrinter()
+    {
+        if (d_needValidJson) {
+            d_os << "]";
+        }
+    }
+
+    // ACCESSORS
+
+    /// Print the specified `json` to the output stream.
+    inline void printJson(const bdljsn::Json& json) const
+    {
+        if (d_linesWritten > 0) {
+            if (d_needValidJson) {
+                d_os << ",";
+            }
+            else {
+                d_os << std::endl;
+            }
+        }
+
+        d_linesWritten++;
+
+        const int rc = bdljsn::JsonUtil::write(d_os, json, d_opts);
+        BSLS_ASSERT_SAFE(0 == rc);
+    }
+};
+
+struct DomainsStatsConversionUtils {
     // PUBLIC CLASS METHODS
 
     /// "domainQueues" stat context:
@@ -42,32 +126,33 @@ struct ConversionUtils {
     /// from the specified `ctx`.
 
     inline static void
-    populateMetric(bdljsn::JsonObject*                   metricsObject,
+    populateMetric(bdljsn::JsonObject*                   obj,
                    const bmqst::StatContext&             ctx,
                    mqbstat::QueueStatsDomain::Stat::Enum metric)
     {
         // PRECONDITIONS
-        BSLS_ASSERT_SAFE(metricsObject);
+        BSLS_ASSERT_SAFE(obj);
 
         const bsls::Types::Int64 value =
             mqbstat::QueueStatsDomain::getValue(ctx, -1, metric);
 
-        (*metricsObject)[mqbstat::QueueStatsDomain::Stat::toString(metric)]
+        (*obj)[mqbstat::QueueStatsDomain::Stat::toString(metric)]
             .makeNumber() = value;
     }
 
-    inline static void populateQueueStats(bdljsn::JsonObject* queueObject,
-                                          const bmqst::StatContext& ctx)
+    inline static void populateMetrics(const JsonPrettyPrinter&  jsonPrinter,
+                                       const bdljsn::Json&       parent,
+                                       const bmqst::StatContext& ctx)
     {
-        // PRECONDITIONS
-        BSLS_ASSERT_SAFE(queueObject);
-
         if (ctx.numValues() == 0) {
             // Prefer to omit an empty "values" object
             return;  // RETURN
         }
 
-        bdljsn::JsonObject& values = (*queueObject)["values"].makeObject();
+        bdljsn::Json        json(parent, parent.allocator());
+        bdljsn::JsonObject& values = json.theObject();
+
+        values.insert("type", "domain");
 
         typedef mqbstat::QueueStatsDomain::Stat Stat;
 
@@ -122,25 +207,21 @@ struct ConversionUtils {
         populateMetric(&values, ctx, Stat::e_NO_SC_MSGS_ABS);
 
         populateMetric(&values, ctx, Stat::e_HISTORY_ABS);
+
+        jsonPrinter.printJson(json);
     }
 
-    inline static void populateOneDomainStats(bdljsn::JsonObject* domainObject,
-                                              const bmqst::StatContext& ctx)
+    inline static void populateOne(const JsonPrettyPrinter&  jsonPrinter,
+                                   const bdljsn::Json&       parent,
+                                   const bmqst::StatContext& ctx)
     {
-        // PRECONDITIONS
-        BSLS_ASSERT_SAFE(domainObject);
-
         for (bmqst::StatContextIterator queueIt = ctx.subcontextIterator();
              queueIt;
              ++queueIt) {
-            bdljsn::JsonObject& queueObj =
-                (*domainObject)[queueIt->name()].makeObject();
-            populateQueueStats(&queueObj, *queueIt);
+            bdljsn::Json json(parent, parent.allocator());
+            json.theObject().insert("queue_name", queueIt->name());
 
             if (queueIt->numSubcontexts() > 0) {
-                bdljsn::JsonObject& appIdsObject =
-                    queueObj["appIds"].makeObject();
-
                 // Add metrics per appId, if any
                 for (bmqst::StatContextIterator appIdIt =
                          queueIt->subcontextIterator();
@@ -149,29 +230,403 @@ struct ConversionUtils {
                     // Do not expect another nested StatContext within appId
                     BSLS_ASSERT_SAFE(0 == appIdIt->numSubcontexts());
 
-                    populateQueueStats(
-                        &appIdsObject[appIdIt->name()].makeObject(),
-                        *appIdIt);
+                    bdljsn::Json jsonApp(parent, parent.allocator());
+                    jsonApp.theObject().insert("app_id", appIdIt->name());
+
+                    populateMetrics(jsonPrinter, jsonApp, *appIdIt);
                 }
+            }
+            else {
+                populateMetrics(jsonPrinter, json, *queueIt);
             }
         }
     }
 
-    inline static void populateAllDomainsStats(bdljsn::JsonObject* parent,
-                                               const bmqst::StatContext& ctx)
+    inline static void populateAll(const JsonPrettyPrinter&  jsonPrinter,
+                                   const bdljsn::Json&       parent,
+                                   const bmqst::StatContext& ctx)
     {
-        // PRECONDITIONS
-        BSLS_ASSERT_SAFE(parent);
-
-        bdljsn::JsonObject& nodes = (*parent)["domains"].makeObject();
         for (bmqst::StatContextIterator domainIt = ctx.subcontextIterator();
              domainIt;
              ++domainIt) {
-            populateOneDomainStats(&nodes[domainIt->name()].makeObject(),
-                                   *domainIt);
+            bdljsn::Json json(parent, parent.allocator());
+            json.theObject().insert("domain_name", domainIt->name());
+
+            populateOne(jsonPrinter, json, *domainIt);
         }
     }
 };
+
+struct ClientStatsConversionUtils {
+    // PUBLIC CLASS METHODS
+
+    /// "clients" stat context:
+    /// Populate the specified `bdljsn::JsonObject*` with the values
+    /// from the specified `ctx`.
+
+    inline static void
+    populateMetric(bdljsn::JsonObject*                   obj,
+                   const bmqst::StatContext&             ctx,
+                   mqbstat::QueueStatsClient::Stat::Enum metric)
+    {
+        // PRECONDITIONS
+        BSLS_ASSERT_SAFE(obj);
+
+        const bsls::Types::Int64 value =
+            mqbstat::QueueStatsClient::getValue(ctx, -1, metric);
+
+        (*obj)[mqbstat::QueueStatsClient::Stat::toString(metric)]
+            .makeNumber() = value;
+    }
+
+    inline static void populateMetrics(const JsonPrettyPrinter&  jsonPrinter,
+                                       const bdljsn::Json&       parent,
+                                       const bmqst::StatContext& ctx)
+    {
+        if (ctx.numValues() == 0) {
+            // Prefer to omit an empty "values" object
+            return;  // RETURN
+        }
+
+        bdljsn::Json        json(parent, parent.allocator());
+        bdljsn::JsonObject& values = json.theObject();
+
+        values.insert("type", "client");
+
+        typedef mqbstat::QueueStatsClient::Stat Stat;
+
+        populateMetric(&values, ctx, Stat::e_PUT_MESSAGES_DELTA);
+        populateMetric(&values, ctx, Stat::e_PUT_BYTES_DELTA);
+        populateMetric(&values, ctx, Stat::e_PUT_MESSAGES_ABS);
+        populateMetric(&values, ctx, Stat::e_PUT_BYTES_ABS);
+
+        populateMetric(&values, ctx, Stat::e_PUSH_MESSAGES_DELTA);
+        populateMetric(&values, ctx, Stat::e_PUSH_BYTES_DELTA);
+        populateMetric(&values, ctx, Stat::e_PUSH_MESSAGES_ABS);
+        populateMetric(&values, ctx, Stat::e_PUSH_BYTES_ABS);
+
+        populateMetric(&values, ctx, Stat::e_ACK_DELTA);
+        populateMetric(&values, ctx, Stat::e_ACK_ABS);
+        populateMetric(&values, ctx, Stat::e_CONFIRM_DELTA);
+        populateMetric(&values, ctx, Stat::e_CONFIRM_ABS);
+
+        jsonPrinter.printJson(json);
+    }
+
+    inline static void populateOne(const JsonPrettyPrinter&  jsonPrinter,
+                                   const bdljsn::Json&       parent,
+                                   const bmqst::StatContext& ctx)
+    {
+        for (bmqst::StatContextIterator queueIt = ctx.subcontextIterator();
+             queueIt;
+             ++queueIt) {
+            bdljsn::Json json(parent, parent.allocator());
+            json.theObject().insert("queue_name", queueIt->name());
+
+            if (queueIt->numSubcontexts() > 0) {
+                // Add metrics per appId, if any
+                for (bmqst::StatContextIterator appIdIt =
+                         queueIt->subcontextIterator();
+                     appIdIt;
+                     ++appIdIt) {
+                    // Do not expect another nested StatContext within appId
+                    BSLS_ASSERT_SAFE(0 == appIdIt->numSubcontexts());
+
+                    bdljsn::Json jsonApp(parent, parent.allocator());
+                    jsonApp.theObject().insert("app_id", appIdIt->name());
+
+                    populateMetrics(jsonPrinter, jsonApp, *appIdIt);
+                }
+            }
+            else {
+                populateMetrics(jsonPrinter, json, *queueIt);
+            }
+        }
+    }
+
+    inline static void populateAll(const JsonPrettyPrinter&  jsonPrinter,
+                                   const bdljsn::Json&       parent,
+                                   const bmqst::StatContext& ctx)
+    {
+        for (bmqst::StatContextIterator clientIt = ctx.subcontextIterator();
+             clientIt;
+             ++clientIt) {
+            // Populate client metrics
+
+            bdljsn::Json json(parent, parent.allocator());
+            json.theObject().insert("client_name", clientIt->name());
+
+            populateOne(jsonPrinter, json, *clientIt);
+        }
+    }
+};
+
+struct ChannelStatsConversionUtils {
+    // PUBLIC CLASS METHODS
+
+    /// "channels" stat context:
+    /// Populate the specified `bdljsn::JsonObject*` with the values
+    /// from the specified `ctx`.
+
+    inline static void
+    populateMetric(bdljsn::JsonObject*                       obj,
+                   const bmqst::StatContext&                 ctx,
+                   bmqio::StatChannelFactoryUtil::Stat::Enum metric)
+    {
+        // PRECONDITIONS
+        BSLS_ASSERT_SAFE(obj);
+
+        const bsls::Types::Int64 value =
+            bmqio::StatChannelFactoryUtil::getValue(ctx, -1, metric);
+
+        (*obj)[bmqio::StatChannelFactoryUtil::Stat::toString(metric)]
+            .makeNumber() = value;
+    }
+
+    inline static void
+    populatePortMetrics(const JsonPrettyPrinter&  jsonPrinter,
+                        const bdljsn::Json&       parent,
+                        const bmqst::StatContext& ctx)
+    {
+        if (ctx.numValues() == 0) {
+            // Prefer to omit an empty "values" object
+            return;  // RETURN
+        }
+
+        bdljsn::Json        json(parent, parent.allocator());
+        bdljsn::JsonObject& values = json.theObject();
+
+        values.insert("type", "channel");
+
+        typedef bmqio::StatChannelFactoryUtil::Stat Stat;
+
+        populateMetric(&values, ctx, Stat::e_BYTES_IN_DELTA);
+        populateMetric(&values, ctx, Stat::e_BYTES_IN_ABS);
+        populateMetric(&values, ctx, Stat::e_BYTES_OUT_DELTA);
+        populateMetric(&values, ctx, Stat::e_BYTES_OUT_ABS);
+        populateMetric(&values, ctx, Stat::e_CONNECTIONS_DELTA);
+        populateMetric(&values, ctx, Stat::e_CONNECTIONS_ABS);
+
+        jsonPrinter.printJson(json);
+    }
+
+    inline static void populatePort(const JsonPrettyPrinter&  jsonPrinter,
+                                    const bdljsn::Json&       parent,
+                                    const bmqst::StatContext& ctx)
+    {
+        for (bmqst::StatContextIterator xIt = ctx.subcontextIterator(); xIt;
+             ++xIt) {
+            // Populate channel metrics (e.g. 127.0.0.1~localhost:36160)
+
+            bdljsn::Json json(parent, parent.allocator());
+            json.theObject().insert("channel_name", xIt->name());
+
+            populatePortMetrics(jsonPrinter, json, *xIt);
+        }
+    }
+
+    inline static void populateOne(const JsonPrettyPrinter&  jsonPrinter,
+                                   const bdljsn::Json&       parent,
+                                   const bmqst::StatContext& ctx)
+    {
+        for (bmqst::StatContextIterator portIt = ctx.subcontextIterator();
+             portIt;
+             ++portIt) {
+            // Populate port metrics (e.g. 36160).
+            // Port identifier is integer, thus need to convert to string.
+            char portItName[64];
+            sprintf(portItName, "%lld", portIt->id());
+
+            bdljsn::Json json(parent, parent.allocator());
+            json.theObject().insert("port_id", portItName);
+            populatePort(jsonPrinter, json, *portIt);
+        }
+    }
+
+    inline static void populateAll(const JsonPrettyPrinter&  jsonPrinter,
+                                   const bdljsn::Json&       parent,
+                                   const bmqst::StatContext& ctx)
+    {
+        for (bmqst::StatContextIterator channelIt = ctx.subcontextIterator();
+             channelIt;
+             ++channelIt) {
+            // Populate channel metrics type (e.g. remote/local)
+
+            bdljsn::Json json(parent, parent.allocator());
+            json.theObject().insert("channel_type", channelIt->name());
+
+            populateOne(jsonPrinter, json, *channelIt);
+        }
+    }
+};
+
+struct AllocatorStatsConversionUtils {
+    // PUBLIC CLASS METHODS
+
+    /// "allocators" stat context:
+    /// Populate the specified `bdljsn::JsonObject*` with the values
+    /// from the specified `ctx`.
+
+    struct Stat {
+        enum Enum {
+            e_NUM_ALLOCATED,
+            e_NUM_ALLOCATED_DELTA,
+            e_MAX_ALLOCATED,
+            e_NUM_ALLOCATIONS,
+            e_NUM_ALLOCATIONS_DELTA,
+            e_NUM_DEALLOCATIONS,
+            e_NUM_DEALLOCATIONS_DELTA
+        };
+
+        static const char* toString(Enum stat);
+    };
+
+    inline static bsls::Types::Int64
+    getValue(const bmqst::StatContext& context,
+             int                       snapshotId,
+             Stat::Enum                stat)
+    {
+        const int statValueIndex = 0;
+
+        const bmqst::StatValue::SnapshotLocation latestSnapshot(0, 0);
+
+#define OLDEST_SNAPSHOT(STAT)                                                 \
+    (bmqst::StatValue::SnapshotLocation(                                      \
+        0,                                                                    \
+        (snapshotId >= 0)                                                     \
+            ? snapshotId                                                      \
+            : (context.value(bmqst::StatContext::e_DIRECT_VALUE, (STAT))      \
+                   .historySize(0) -                                          \
+               1)))
+
+#define STAT_AGGREGATED(OPERATION, STAT)                                      \
+    bmqst::StatUtil::OPERATION(                                               \
+        context.value(bmqst::StatContext::e_TOTAL_VALUE, STAT))
+
+#define STAT_SINGLE(OPERATION, STAT)                                          \
+    bmqst::StatUtil::OPERATION(                                               \
+        context.value(bmqst::StatContext::e_TOTAL_VALUE, STAT),               \
+        latestSnapshot)
+
+#define STAT_RANGE(OPERATION, STAT)                                           \
+    bmqst::StatUtil::OPERATION(                                               \
+        context.value(bmqst::StatContext::e_TOTAL_VALUE, STAT),               \
+        latestSnapshot,                                                       \
+        OLDEST_SNAPSHOT(STAT))
+
+        switch (stat) {
+        case Stat::e_NUM_ALLOCATED: {
+            return STAT_SINGLE(value, statValueIndex);
+        }
+        case Stat::e_NUM_ALLOCATED_DELTA: {
+            return STAT_RANGE(valueDifference, statValueIndex);
+        }
+        case Stat::e_MAX_ALLOCATED: {
+            return STAT_AGGREGATED(absoluteMax, statValueIndex);
+        }
+        case Stat::e_NUM_ALLOCATIONS: {
+            return STAT_SINGLE(increments, statValueIndex);
+        }
+        case Stat::e_NUM_ALLOCATIONS_DELTA: {
+            return STAT_RANGE(incrementsDifference, statValueIndex);
+        }
+        case Stat::e_NUM_DEALLOCATIONS: {
+            return STAT_SINGLE(decrements, statValueIndex);
+        }
+        case Stat::e_NUM_DEALLOCATIONS_DELTA: {
+            return STAT_RANGE(decrementsDifference, statValueIndex);
+        }
+        default: {
+            BSLS_ASSERT_SAFE(false && "Attempting to access an unknown stat");
+        }
+        }
+
+#undef STAT_RANGE
+#undef STAT_SINGLE
+#undef OLDEST_SNAPSHOT
+
+        return 0;
+    }
+
+    inline static void populateMetric(bdljsn::JsonObject*       obj,
+                                      const bmqst::StatContext& ctx,
+                                      Stat::Enum                metric)
+    {
+        // PRECONDITIONS
+        BSLS_ASSERT_SAFE(obj);
+
+        const bsls::Types::Int64 value = getValue(ctx, -1, metric);
+
+        (*obj)[Stat::toString(metric)].makeNumber() = value;
+    }
+
+    inline static void populateMetrics(const JsonPrettyPrinter&  jsonPrinter,
+                                       const bdljsn::Json&       parent,
+                                       const bmqst::StatContext& ctx,
+                                       const bsl::string&        key
+
+    )
+    {
+        if (ctx.numValues() == 0) {
+            // Prefer to omit an empty "values" object
+            return;  // RETURN
+        }
+
+        bdljsn::Json        json(parent, parent.allocator());
+        bdljsn::JsonObject& values = json.theObject();
+        values.insert("type", "allocator");
+        values.insert("allocator_name", key);
+
+        populateMetric(&values, ctx, Stat::e_NUM_ALLOCATED);
+        populateMetric(&values, ctx, Stat::e_NUM_ALLOCATED_DELTA);
+        populateMetric(&values, ctx, Stat::e_MAX_ALLOCATED);
+        populateMetric(&values, ctx, Stat::e_NUM_ALLOCATIONS);
+        populateMetric(&values, ctx, Stat::e_NUM_ALLOCATIONS_DELTA);
+        populateMetric(&values, ctx, Stat::e_NUM_DEALLOCATIONS);
+        populateMetric(&values, ctx, Stat::e_NUM_DEALLOCATIONS_DELTA);
+
+        jsonPrinter.printJson(json);
+    }
+
+    inline static void populateAll(const JsonPrettyPrinter&  jsonPrinter,
+                                   const bdljsn::Json&       parent,
+                                   const bmqst::StatContext& ctx,
+                                   const bsl::string&        key)
+    {
+        populateMetrics(jsonPrinter, parent, ctx, key);
+
+        for (bmqst::StatContextIterator subIt = ctx.subcontextIterator();
+             subIt;
+             ++subIt) {
+            bdljsn::Json json(parent, parent.allocator());
+
+            bsl::string subKey = key.empty() ? subIt->name()
+                                             : key + "." + subIt->name();
+            populateAll(jsonPrinter, json, *subIt, subKey);
+        }
+    }
+};
+
+const char* AllocatorStatsConversionUtils::Stat::toString(Stat::Enum value)
+{
+#define MQBSTAT_CASE(VAL, DESC)                                               \
+    case (VAL): {                                                             \
+        return (DESC);                                                        \
+    } break;
+
+    switch (value) {
+        MQBSTAT_CASE(Stat::e_NUM_ALLOCATED, "num_allocated")
+        MQBSTAT_CASE(Stat::e_NUM_ALLOCATED_DELTA, "num_allocated_delta")
+        MQBSTAT_CASE(Stat::e_MAX_ALLOCATED, "max_allocated")
+        MQBSTAT_CASE(Stat::e_NUM_ALLOCATIONS, "num_allocations")
+        MQBSTAT_CASE(Stat::e_NUM_ALLOCATIONS_DELTA, "num_allocations_delta")
+        MQBSTAT_CASE(Stat::e_NUM_DEALLOCATIONS, "num_deallocations")
+        MQBSTAT_CASE(Stat::e_NUM_DEALLOCATIONS_DELTA,
+                     "num_deallocations_delta")
+    default: BSLS_ASSERT_INVOKE_NORETURN("");
+    }
+#undef MQBSTAT_CASE
+}
 
 }  // close unnamed namespace
 
@@ -205,6 +660,9 @@ class JsonPrinter::JsonPrinterImpl {
     /// StatContext-s map
     const StatContextsMap d_contexts;
 
+    /// Allocator
+    bslma::Allocator* d_allocator_p;
+
   private:
     // NOT IMPLEMENTED
     JsonPrinterImpl(const JsonPrinterImpl& other) BSLS_CPP11_DELETED;
@@ -227,7 +685,11 @@ class JsonPrinter::JsonPrinterImpl {
     /// Return `0` on success, and non-zero return code on failure.
     ///
     /// THREAD: This method is called in the *StatController scheduler* thread.
-    int printStats(bsl::string* out, bool compact) const;
+    int printStats(bsl::ostream&         os,
+                   bool                  compact,
+                   int                   statId,
+                   const bdlt::Datetime& now,
+                   bool                  needValidJson) const;
 };
 
 inline JsonPrinter::JsonPrinterImpl::JsonPrinterImpl(
@@ -242,47 +704,91 @@ inline JsonPrinter::JsonPrinterImpl::JsonPrinterImpl(
                   .setStyle(bdljsn::WriteStyle::e_PRETTY)
                   .setSortMembers(true))
 , d_contexts(statContextsMap, allocator)
+, d_allocator_p(allocator)
 {
     // NOTHING
-}
-
-inline int JsonPrinter::JsonPrinterImpl::printStats(bsl::string* out,
-                                                    bool         compact) const
-{
-    // executed by *StatController scheduler* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(out);
-
-    bdljsn::Json        json;
-    bdljsn::JsonObject& obj = json.makeObject();
-
-    {
-        const bmqst::StatContext& ctx =
-            *d_contexts.find("domainQueues")->second;
-        bdljsn::JsonObject& domainQueuesObj = obj["domainQueues"].makeObject();
-
-        ConversionUtils::populateAllDomainsStats(&domainQueuesObj, ctx);
-    }
-
-    const bdljsn::WriteOptions& ops = compact ? d_opsCompact : d_opsPretty;
-
-    bmqu::MemOutStream os;
-    const int          rc = bdljsn::JsonUtil::write(os, json, ops);
-    if (0 != rc) {
-        BALL_LOG_ERROR << "Failed to encode stats JSON, rc = " << rc;
-        return rc;  // RETURN
-    }
-    (*out) = os.str();
-    return 0;
 }
 
 // -----------------
 // class JsonPrinter
 // -----------------
 
-JsonPrinter::JsonPrinter(const StatContextsMap& statContextsMap,
-                         bslma::Allocator*      allocator)
+inline int
+JsonPrinter::JsonPrinterImpl::printStats(bsl::ostream&         os,
+                                         bool                  compact,
+                                         int                   statsId,
+                                         const bdlt::Datetime& datetime,
+                                         bool needValidJson) const
+{
+    // executed by *StatController scheduler* thread
+
+    JsonPrettyPrinter jpp(os,
+                          compact ? d_opsCompact : d_opsPretty,
+                          needValidJson);
+
+    bdljsn::Json json(d_allocator_p);
+    json.makeObject();
+
+    {
+        // Output stats_id
+        json.theObject().insert("stats_id", bdljsn::JsonNumber(statsId));
+    }
+    {
+        // Output datetime in de-facto standard ISO-8601 format:
+        char buffer[64];
+        bdlt::Iso8601Util::generate(buffer, sizeof(buffer), datetime);
+        json.theObject().insert("timestamp", buffer);
+    }
+    // Populate DOMAIN QUEUES stats
+    {
+        const bmqst::StatContext& ctx =
+            *d_contexts.find("domainQueues")->second;
+
+        DomainsStatsConversionUtils::populateAll(jpp, json, ctx);
+    }
+    // Populate CLIENTS stats
+    {
+        const bmqst::StatContext& ctx = *d_contexts.find("clients")->second;
+
+        ClientStatsConversionUtils::populateAll(jpp, json, ctx);
+    }
+    // Populate CLUSTERS stats
+    {
+        const bmqst::StatContext& ctx =
+            *d_contexts.find("clusterNodes")->second;
+
+        ClientStatsConversionUtils::populateAll(jpp, json, ctx);
+    }
+
+    // Populate TCP CHANNELS stats
+    {
+        const bmqst::StatContext& ctx = *d_contexts.find("channels")->second;
+
+        ChannelStatsConversionUtils::populateAll(jpp, json, ctx);
+    }
+
+    // Populate Allocators stats
+    {
+        StatContextsMap::const_iterator it = d_contexts.find("allocators");
+
+        if (it != d_contexts.end()) {
+            const bmqst::StatContext& ctx = *it->second;
+
+            AllocatorStatsConversionUtils::populateAll(jpp, json, ctx, "");
+        }
+    }
+
+    return 0;
+}
+
+JsonPrinter::JsonPrinter(const mqbcfg::StatsConfig& config,
+                         bdlmt::EventScheduler*     eventScheduler,
+                         const StatContextsMap&     statContextsMap,
+                         bslma::Allocator*          allocator)
+: d_config(config)
+, d_logfile_pattern(config.printer().file() + ".json")
+, d_statsLogFile(allocator)
+, d_statLogCleaner(eventScheduler, allocator)
 {
     bslma::Allocator* alloc = bslma::Default::allocator(allocator);
 
@@ -290,15 +796,98 @@ JsonPrinter::JsonPrinter(const StatContextsMap& statContextsMap,
                    alloc);
 }
 
-int JsonPrinter::printStats(bsl::string* out, bool compact) const
+int JsonPrinter::printStats(bsl::ostream&         os,
+                            bool                  compact,
+                            int                   statsId,
+                            const bdlt::Datetime& datetime,
+                            bool                  needValidJson)
 {
     // executed by *StatController scheduler* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(out);
     BSLS_ASSERT_SAFE(d_impl_mp);
 
-    return d_impl_mp->printStats(out, compact);
+    return d_impl_mp->printStats(os,
+                                 compact,
+                                 statsId,
+                                 datetime,
+                                 needValidJson);
+}
+
+void JsonPrinter::logStats(int lastStatId)
+{
+    // Dump to statslog file
+    // Prepare the log record and associated attributes
+    ball::Record            record;
+    ball::RecordAttributes& attributes = record.fixedFields();
+    bdlt::Datetime          now;
+    bdlt::EpochUtil::convertFromTimeT(&now, time(0));
+    attributes.setTimestamp(now);
+    attributes.setProcessID(bdls::ProcessUtil::getProcessId());
+    attributes.setThreadID(bslmt::ThreadUtil::selfIdAsUint64());
+    attributes.setFileName(__FILE__);
+    attributes.setLineNumber(__LINE__);
+    attributes.setCategory(k_LOG_CATEGORY);
+    attributes.setSeverity(ball::Severity::e_INFO);
+
+    // Dump stats into bmqbrkr.stats.log
+    attributes.clearMessage();
+
+    const bool isCompact =
+        true;  // Single JSON object per line in stat log file
+    printStats(attributes.messageStream(), isCompact, lastStatId, now);
+
+    d_statsLogFile.publish(
+        record,
+        ball::Context(ball::Transmission::e_MANUAL_PUBLISH, 0, 1));
+}
+
+int JsonPrinter::start(BSLA_UNUSED bsl::ostream& errorDescription)
+{
+    // Setup the print of stats if configured for it
+    if (!isEnabled()) {
+        return 0;  // RETURN
+    }
+
+    // Configure the stats dump log file
+    d_statsLogFile.enableFileLogging(d_logfile_pattern.c_str());
+    d_statsLogFile.rotateOnSize(d_config.printer().rotateBytes() / 1024);
+    d_statsLogFile.rotateOnTimeInterval(
+        bdlt::DatetimeInterval(d_config.printer().rotateDays()));
+    d_statsLogFile.setLogFileFunctor(ball::RecordStringFormatter("%m\n"));
+    // Record's time is printed not through the record, but part of the
+    // 'id banner' (see 'onSnapshot').
+
+    // LogCleanup
+    if (d_config.printer().maxAgeDays() <= 0 ||
+        d_config.printer().file().empty()) {
+        BALL_LOG_INFO << "StatLogCleaning is *disabled* "
+                      << "[reason: either 'maxAgeDays' is set to 0 in config "
+                      << "or file pattern is empty]";
+        return 0;  // RETURN
+    }
+
+    bsl::string filePattern;
+    ball::LogFileCleanerUtil::logPatternToFilePattern(
+        &filePattern,
+        d_config.printer().file());
+    bsls::TimeInterval maxAge(0, 0);
+    maxAge.addDays(d_config.printer().maxAgeDays());
+
+    int rc = d_statLogCleaner.start(filePattern, maxAge);
+    if (rc != 0) {
+        BALL_LOG_ERROR << "#STATLOG_CLEANING "
+                       << "Failed to start log cleaning of '" << filePattern
+                       << "' [rc: " << rc << "]";
+    }
+
+    return 0;
+}
+
+void JsonPrinter::stop()
+{
+    // Stop the log cleaner
+    d_statLogCleaner.stop();
 }
 
 }  // close package namespace

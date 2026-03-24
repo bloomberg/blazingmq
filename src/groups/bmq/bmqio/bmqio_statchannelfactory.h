@@ -249,6 +249,8 @@ struct StatChannelFactoryUtil {
             e_CONNECTIONS_DELTA,
             e_CONNECTIONS_ABS
         };
+
+        static const char* toString(Enum stat);
     };
 
   public:

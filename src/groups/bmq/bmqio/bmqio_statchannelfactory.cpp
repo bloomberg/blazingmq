@@ -211,6 +211,25 @@ void StatChannelFactory::connect(Status*                      status,
 // struct StatChannelFactoryUtil
 // -----------------------------
 
+const char* StatChannelFactoryUtil::Stat::toString(Stat::Enum value)
+{
+#define MQBSTAT_CASE(VAL, DESC)                                               \
+    case (VAL): {                                                             \
+        return (DESC);                                                        \
+    } break;
+
+    switch (value) {
+        MQBSTAT_CASE(Stat::e_BYTES_IN_DELTA, "in_bytes_delta")
+        MQBSTAT_CASE(Stat::e_BYTES_IN_ABS, "in_bytes")
+        MQBSTAT_CASE(Stat::e_BYTES_OUT_DELTA, "out_bytes_delta")
+        MQBSTAT_CASE(Stat::e_BYTES_OUT_ABS, "out_bytes")
+        MQBSTAT_CASE(Stat::e_CONNECTIONS_DELTA, "connections_delta")
+        MQBSTAT_CASE(Stat::e_CONNECTIONS_ABS, "connections")
+    default: BSLS_ASSERT_INVOKE_NORETURN("");
+    }
+#undef MQBSTAT_CASE
+}
+
 bmqst::StatContextConfiguration
 StatChannelFactoryUtil::statContextConfiguration(const bsl::string& name,
                                                  int               historySize,
@@ -344,7 +363,15 @@ StatChannelFactoryUtil::getValue(const bmqst::StatContext& context,
     // invoked from the SNAPSHOT thread
 
     const bmqst::StatValue::SnapshotLocation latestSnapshot(0, 0);
-    const bmqst::StatValue::SnapshotLocation oldestSnapshot(0, snapshotId);
+
+#define OLDEST_SNAPSHOT(STAT)                                                 \
+    (bmqst::StatValue::SnapshotLocation(                                      \
+        0,                                                                    \
+        (snapshotId >= 0)                                                     \
+            ? snapshotId                                                      \
+            : (context.value(bmqst::StatContext::e_DIRECT_VALUE, (STAT))      \
+                   .historySize(0) -                                          \
+               1)))
 
 #define STAT_SINGLE(OPERATION, STAT)                                          \
     bmqst::StatUtil::OPERATION(                                               \
@@ -355,7 +382,7 @@ StatChannelFactoryUtil::getValue(const bmqst::StatContext& context,
     bmqst::StatUtil::OPERATION(                                               \
         context.value(bmqst::StatContext::e_TOTAL_VALUE, STAT),               \
         latestSnapshot,                                                       \
-        oldestSnapshot)
+        OLDEST_SNAPSHOT(STAT))
 
     switch (stat) {
     case Stat::e_BYTES_IN_DELTA: {
@@ -385,6 +412,7 @@ StatChannelFactoryUtil::getValue(const bmqst::StatContext& context,
 
 #undef STAT_RANGE
 #undef STAT_SINGLE
+#undef OLDEST_SNAPSHOT
 }
 
 }  // close package namespace

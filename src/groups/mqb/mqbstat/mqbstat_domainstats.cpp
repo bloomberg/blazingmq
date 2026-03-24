@@ -91,6 +91,7 @@ bsls::Types::Int64 DomainStats::getValue(const bmqst::StatContext& context,
 
 #undef STAT_RANGE
 #undef STAT_SINGLE
+#undef OLDEST_SNAPSHOT
 }
 
 DomainStats::DomainStats()

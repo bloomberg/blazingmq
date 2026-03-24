@@ -54,6 +54,7 @@
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
 #include <bdlmt_eventscheduler.h>
+#include <bdlt_currenttime.h>
 #include <bdlt_timeunitratio.h>
 #include <bsl_algorithm.h>
 #include <bsl_ctime.h>
@@ -266,10 +267,12 @@ void StatController::captureStatsAndSemaphorePost(
         d_allocatorsStatContext_p->snapshot();
     }
 
+    bdlt::Datetime now = bdlt::CurrentTime::local();
+
     switch (encoding) {
     case mqbcmd::EncodingFormat::TEXT: {
         bmqu::MemOutStream os;
-        d_printer_mp->printStats(os);
+        d_printerManager_mp->printTableStats(os, 0, now);
         result->makeStats() = os.str();
     } break;  // BREAK
 
@@ -282,10 +285,15 @@ void StatController::captureStatsAndSemaphorePost(
         // outdated existing one.
         const bool savedNextSnapshot = snapshot();
         if (savedNextSnapshot) {
-            const bool compact = (encoding ==
+            const bool         compact = (encoding ==
                                   mqbcmd::EncodingFormat::JSON_COMPACT);
-            const int  rc = d_jsonPrinter_mp->printStats(&result->makeStats(),
-                                                        compact);
+            bmqu::MemOutStream os;
+
+            const int rc =
+                d_printerManager_mp->printJsonStats(os, compact, 0, now, true);
+
+            result->makeStats() = os.str();
+
             if (0 != rc) {
                 result->makeError().message() = "Stats print to json failed";
             }
@@ -394,8 +402,9 @@ void StatController::setTunable(mqbcmd::StatResult*       result,
             return;  // RETURN
         }
 
-        int newValue = tunable.value().theInteger();
-        int oldValue = targetConsumer->publishInterval().seconds();
+        bsls::Types::Int64 newValue = tunable.value().theInteger();
+        bsls::Types::Int64 oldValue =
+            targetConsumer->publishInterval().seconds();
 
         if (newValue == -1) {
             newValue = targetConsumerCfg->publishInterval();
@@ -421,7 +430,8 @@ void StatController::setTunable(mqbcmd::StatResult*       result,
         tunableConfirmation.oldValue().makeTheInteger(oldValue);
         tunableConfirmation.newValue().makeTheInteger(newValue);
 
-        targetConsumer->setPublishInterval(bsls::TimeInterval(newValue));
+        targetConsumer->setPublishInterval(
+            bsls::TimeInterval(static_cast<double>(newValue)));
         return;  // RETURN
     }
 
@@ -569,7 +579,7 @@ bool StatController::snapshot()
     // before printing.
     // TODO: adopt this code for `mqbstat::JsonPrinter` when we report
     //       allocator stats in json
-    const bool willPrint = d_printer_mp->nextSnapshotWillPrint();
+    const bool willPrint = d_printerManager_mp->nextSnapshotWillPrint();
     if (d_allocatorsStatContext_p && willPrint) {
         d_allocatorsStatContext_p->snapshot();
     }
@@ -597,15 +607,15 @@ void StatController::snapshotAndNotify()
         }
     }
 
-    const bool willPrint = d_printer_mp->nextSnapshotWillPrint();
-    d_printer_mp->onSnapshot();
+    const bool willPrint = d_printerManager_mp->nextSnapshotWillPrint();
+    d_printerManager_mp->onSnapshot();
 
     // Finally, perform cleanup of expired stat contexts if we have printed
     // them.
     // TBD: Currently the code relies on the fact that 'printer' is the one
     //      with the largest 'actionInterval', but normally cleanup should be
     //      done after the less frequent consumer has performed its action.
-    if (!d_printer_mp->isEnabled() || willPrint) {
+    if (!d_printerManager_mp->isEnabled() || willPrint) {
         // Cleanup deleted subcontexts now that we printed them, or don't care
         for (StatContextDetailsMap::iterator mit = d_statContextsMap.begin();
              mit != d_statContextsMap.end();
@@ -686,8 +696,7 @@ StatController::StatController(const CommandProcessorFn& commandProcessor,
 , d_pluginManager_p(pluginManager)
 , d_bufferFactory_p(bufferFactory)
 , d_commandProcessorFn(bsl::allocator_arg, allocator, commandProcessor)
-, d_printer_mp(0)
-, d_jsonPrinter_mp(0)
+, d_printerManager_mp(0)
 , d_statConsumers(allocator)
 , d_statConsumerMaxPublishInterval(0)
 , d_eventScheduler_p(eventScheduler)
@@ -839,17 +848,18 @@ int StatController::start(bsl::ostream& errorDescription)
         }
     }
 
-    // Start the printer
-    d_printer_mp.load(new (*d_allocator_p) Printer(brkrCfg.stats(),
-                                                   d_eventScheduler_p,
-                                                   ctxPtrMap,
-                                                   d_allocator_p),
-                      d_allocator_p);
+    // Start the printer manager
+    d_printerManager_mp.load(new (*d_allocator_p)
+                                 PrinterManager(brkrCfg.stats(),
+                                                d_eventScheduler_p,
+                                                ctxPtrMap,
+                                                d_allocator_p),
+                             d_allocator_p);
 
     // Give the printer a map of statContext ptrs for its printing. It has been
     // done this way to break the cyclic dependency of ctxPtrMap,
     // initializeStats() and creation of d_printer.
-    rc = d_printer_mp->start(errorStream);
+    rc = d_printerManager_mp->start(errorStream);
     if (rc != 0) {
         BMQTSK_ALARMLOG_ALARM("#STATS")
             << "Failed to start Printer [rc: " << rc << ", error: '"
@@ -857,11 +867,6 @@ int StatController::start(bsl::ostream& errorDescription)
         rc = 0;
         errorStream.reset();
     }
-
-    // Create the json printer
-    d_jsonPrinter_mp.load(new (*d_allocator_p)
-                              JsonPrinter(ctxPtrMap, d_allocator_p),
-                          d_allocator_p);
 
     // Max value for the stat publish interval must be the minimum history size
     // of all stat contexts.
@@ -905,15 +910,14 @@ void StatController::stop()
         STOP_OBJ((*it), it->name());
     }
 
-    STOP_OBJ(d_printer_mp, "Printer");
+    STOP_OBJ(d_printerManager_mp, "PrinterManager");
     STOP_OBJ(d_systemStatMonitor_mp, "SystemStatMonitor");
 
     // Destroy everything!!
     for (it = d_statConsumers.begin(); it != d_statConsumers.end(); ++it) {
         DESTROY_OBJ((*it), it->name());
     }
-    DESTROY_OBJ(d_printer_mp, "Printer");
-    DESTROY_OBJ(d_jsonPrinter_mp, "JsonPrinter");
+    DESTROY_OBJ(d_printerManager_mp, "PrinterManager");
     DESTROY_OBJ(d_systemStatMonitor_mp, "SystemStatMonitor");
     DESTROY_OBJ(d_scheduler_mp, "Scheduler");
 
