@@ -68,6 +68,43 @@ def _stop_cluster(cluster: Cluster) -> None:
     cluster.stop_nodes()
 
 
+def _clean_output(output_str: str) -> str:
+    """
+    Clean the output by removing any non-deterministic parts, such as timestamps/epochs.
+    """
+    RECORDS_KEYS_TO_REMOVE = [
+        "Timestamp",
+        "Epoch",
+    ]
+    SUMMARY_KEYS_TO_REMOVE = [
+        "First SyncPointRecord timestamp",
+        "First SyncPointRecord epoch",
+        "Record Timestamp",
+        "Record Epoch",
+        "SyncPoint Timestamp",
+        "SyncPoint Epoch",
+    ]
+    data = json.loads(output_str)
+    if "Records" in data:
+        for record in data["Records"]:
+            for key in RECORDS_KEYS_TO_REMOVE:
+                if key in record:
+                    del record[key]
+    elif "JournalFileDetails" in data:
+        journal_details = data["JournalFileDetails"]
+        journal_hdr = journal_details["Journal File Header"]
+        for key in SUMMARY_KEYS_TO_REMOVE:
+            if key in journal_hdr:
+                del journal_hdr[key]
+        if "Journal SyncPoint" in journal_details:
+            journal_sync = journal_details["Journal SyncPoint"]
+            for key in SUMMARY_KEYS_TO_REMOVE:
+                if key in journal_sync:
+                    del journal_sync[key]
+
+    return json.dumps(data)
+
+
 def _stop_cluster_and_compare_journal_files(
     leader_name: str, replica_name: str, cluster: Cluster
 ) -> None:
@@ -113,7 +150,7 @@ def _stop_cluster_and_compare_journal_files(
         )
 
         # Check that content of leader and replica journal files is equal
-        assert leader_res.stdout == replica_res.stdout, (
+        assert _clean_output(leader_res.stdout) == _clean_output(replica_res.stdout), (
             f"Leader and replica journal file contents differ for {leader_file} and {replica_file}"
         )
 
@@ -130,7 +167,7 @@ def _stop_cluster_and_compare_journal_files(
         )
 
         # Check that content of leader and replica journal files is equal
-        assert leader_res.stdout == replica_res.stdout, (
+        assert _clean_output(leader_res.stdout) == _clean_output(replica_res.stdout), (
             f"Leader and replica journal file summary differ for {leader_file} and {replica_file}"
         )
 
