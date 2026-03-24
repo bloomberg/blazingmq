@@ -1094,6 +1094,21 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// Return the mapping from node in the cluster to their sequence number
     /// context for the specified 'partitionId'.
     const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap(int partitionId) const;
+
+    /// Return the number of watchdog retries remaining for the specified
+    /// `partitionId`.  This accessor is meant to be used for unit testing
+    /// purposes.
+    int watchdogRetriesRemaining(int partitionId) const;
+
+    /// Return the watchdog generation number for the specified
+    /// `partitionId`.  This accessor is meant to be used for unit testing
+    /// purposes.
+    int watchdogGeneration(int partitionId) const;
+
+    /// Return whether the watchdog timer is currently active for the
+    /// specified `partitionId`.  This accessor is meant to be used for
+    /// unit testing purposes.
+    bool isWatchdogActive(int partitionId) const;
 };
 
 // ============================
@@ -1270,6 +1285,21 @@ inline const StorageManager::NodeToSeqNumCtxMap&
 StorageManager::nodeToSeqNumCtxMap(int partitionId) const
 {
     return d_nodeToSeqNumCtxMapVec[partitionId];
+}
+
+inline int StorageManager::watchdogRetriesRemaining(int partitionId) const
+{
+    return d_watchdogContexts[partitionId].d_retriesRemaining;
+}
+
+inline int StorageManager::watchdogGeneration(int partitionId) const
+{
+    return d_watchdogContexts[partitionId].d_generation;
+}
+
+inline bool StorageManager::isWatchdogActive(int partitionId) const
+{
+    return d_watchdogContexts[partitionId].d_active;
 }
 
 inline unsigned int StorageManager::getSeqNumQuorum() const
