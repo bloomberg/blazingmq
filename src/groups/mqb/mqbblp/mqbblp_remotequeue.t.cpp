@@ -18,6 +18,7 @@
 
 // MQB
 #include <mqbcfg_messages.h>
+#include <mqbevt_ackevent.h>
 #include <mqbi_queue.h>
 #include <mqbmock_cluster.h>
 #include <mqbmock_dispatcher.h>
@@ -132,8 +133,6 @@ class TestBench {
     mqbmock::Dispatcher                 d_dispatcher;
     mqbmock::Cluster                    d_cluster;
     mqbmock::Domain                     d_domain;
-    mqbi::Dispatcher::DispatcherEventSp d_event_sp;
-    mqbmock::Dispatcher::EventGuard     d_eventGuard;
     bmqp_ctrlmsg::QueueHandleParameters d_params;
     bmqt::AckResult::Enum               d_status;
     bsl::queue<PutEvent>                d_puts;
@@ -170,8 +169,6 @@ TestBench::TestBench(bslma::Allocator* allocator_p)
 : d_dispatcher(allocator_p)
 , d_cluster(allocator_p)
 , d_domain(&d_cluster, allocator_p)
-, d_event_sp(bsl::allocate_shared<mqbi::DispatcherEvent>(allocator_p))
-, d_eventGuard(d_dispatcher._withEvent(&d_cluster, d_event_sp))
 , d_params(allocator_p)
 , d_status(bmqt::AckResult::e_UNKNOWN)
 , d_puts(allocator_p)
@@ -203,9 +200,6 @@ TestBench::TestBench(bslma::Allocator* allocator_p)
 TestBench::~TestBench()
 {
     d_cluster.stop();
-
-    // Reset the event, not the pointer
-    d_event_sp->reset();
 
     bmqsys::Time::shutdown();
 }
@@ -257,9 +251,8 @@ void TestBench::ackPuts(mqbi::Queue* queue, bmqt::AckResult::Enum status)
                 ph.flags(),
                 bmqp::PutHeaderFlags::e_ACK_REQUESTED) ||
             status == bmqt::AckResult::e_NOT_READY) {
-            mqbi::DispatcherEvent ackEvent(d_allocator_p);
-            ackEvent.setType(mqbi::DispatcherEventType::e_ACK)
-                .setAckMessage(ackMessage)
+            mqbevt::AckEvent ackEvent(d_allocator_p);
+            ackEvent.setAckMessage(ackMessage)
                 .setBlob(d_puts.front().d_appData)
                 .setOptions(d_puts.front().d_options);
             queue->onDispatcherEvent(ackEvent);

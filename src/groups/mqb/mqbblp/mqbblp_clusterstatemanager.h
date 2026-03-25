@@ -75,6 +75,9 @@ class StorageManager;
 namespace mqbnet {
 class ClusterNode;
 }
+namespace mqbevt {
+class ClusterStateEvent;
+}
 
 namespace mqbblp {
 // =========================
@@ -454,8 +457,8 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    void processClusterStateEvent(
-        const mqbi::DispatcherClusterStateEvent& event) BSLS_KEYWORD_OVERRIDE;
+    void processClusterStateEvent(const mqbevt::ClusterStateEvent& event)
+        BSLS_KEYWORD_OVERRIDE;
 
     /// Process the queue assignment in the specified `request`, received
     /// from the specified `requester`.  Return the queue assignment result.

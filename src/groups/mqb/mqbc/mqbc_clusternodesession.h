@@ -24,6 +24,8 @@
 /// @todo Document this component.
 
 // MQB
+#include <mqbevt_ackevent.h>
+#include <mqbevt_pushevent.h>
 #include <mqbi_cluster.h>
 #include <mqbi_dispatcher.h>
 #include <mqbi_queue.h>
@@ -450,7 +452,28 @@ ClusterNodeSession::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     // the only events expected here are PUSH and ACK, for now.
 
     mqbi::DispatcherEvent& ev = const_cast<mqbi::DispatcherEvent&>(event);
-    ev.setClusterNode(d_clusterNode_p);
+    switch (event.type()) {
+    case mqbi::DispatcherEventType::e_PUSH: {
+        ev.the<mqbevt::PushEvent>()->setClusterNode(d_clusterNode_p);
+    } break;
+    case mqbi::DispatcherEventType::e_ACK: {
+        ev.the<mqbevt::AckEvent>()->setClusterNode(d_clusterNode_p);
+    } break;
+    case mqbi::DispatcherEventType::e_UNDEFINED: BSLA_FALLTHROUGH;
+    case mqbi::DispatcherEventType::e_DISPATCHER: BSLA_FALLTHROUGH;
+    case mqbi::DispatcherEventType::e_CALLBACK: BSLA_FALLTHROUGH;
+    case mqbi::DispatcherEventType::e_CONTROL_MSG: BSLA_FALLTHROUGH;
+    case mqbi::DispatcherEventType::e_CONFIRM: BSLA_FALLTHROUGH;
+    case mqbi::DispatcherEventType::e_REJECT: BSLA_FALLTHROUGH;
+    case mqbi::DispatcherEventType::e_PUT: BSLA_FALLTHROUGH;
+    case mqbi::DispatcherEventType::e_CLUSTER_STATE: BSLA_FALLTHROUGH;
+    case mqbi::DispatcherEventType::e_STORAGE: BSLA_FALLTHROUGH;
+    case mqbi::DispatcherEventType::e_RECOVERY: BSLA_FALLTHROUGH;
+    case mqbi::DispatcherEventType::e_REPLICATION_RECEIPT: BSLA_FALLTHROUGH;
+    default: {
+        BSLS_ASSERT_OPT(false && "Unexpected event type");
+    } break;
+    }
     d_cluster_p->onDispatcherEvent(event);
 }
 
