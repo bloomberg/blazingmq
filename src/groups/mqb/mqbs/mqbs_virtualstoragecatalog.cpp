@@ -153,51 +153,41 @@ VirtualStorageCatalog::get(const bmqt::MessageGUID& msgGUID)
     DataStreamIterator it = d_dataStream.find(msgGUID);
 
     if (it != d_dataStream.end()) {
-        setup(&it->second);
+        setup(it->second.get());
     }
 
     return it;
 }
 
-mqbi::StorageResult::Enum
-VirtualStorageCatalog::put(const bmqt::MessageGUID&  msgGUID,
-                           int                       msgSize,
-                           unsigned int              refCount,
-                           mqbi::DataStreamMessage** out)
+bsl::shared_ptr<mqbi::DataStreamMessage> VirtualStorageCatalog::insert(
+    const bmqt::MessageGUID&                        msgGUID,
+    const bsl::shared_ptr<mqbi::DataStreamMessage>& ptr)
 {
     bsl::pair<VirtualStorage::DataStreamIterator, bool> insertResult =
-        d_dataStream.insert(bsl::make_pair(
-            msgGUID,
-            mqbi::DataStreamMessage(refCount, msgSize, d_allocator_p)));
+        d_dataStream.insert(bsl::make_pair(msgGUID, ptr));
 
-    mqbi::StorageResult::Enum result = mqbi::StorageResult::e_SUCCESS;
-
-    mqbi::DataStreamMessage& dataStreamMessage = insertResult.first->second;
+    mqbi::DataStreamMessage& dataStreamMessage = *insertResult.first->second;
 
     if (!insertResult.second) {
         // Duplicate GUID
+
+        // Discard the 'ptr' and keep existing message
+
         if (d_isProxy) {
+            unsigned int refCount = ptr->d_numApps;
             // A proxy can receive subsequent PUSH messages for the same GUID
             // but different apps
             BSLS_ASSERT_SAFE(refCount <= d_ordinals.size());
 
             dataStreamMessage.d_numApps = refCount;
         }
-        result = mqbi::StorageResult::e_GUID_NOT_UNIQUE;
     }
     else {
-        d_totalBytes += msgSize;
+        d_totalBytes += ptr->d_size;
         ++d_numMessages;
     }
 
-    if (out) {
-        // The auto-confirm case when we need to update App states.
-        *out = &dataStreamMessage;
-
-        setup(*out);
-    }
-
-    return result;
+    return insertResult.first->second;
 }
 
 bslma::ManagedPtr<mqbi::StorageIterator>
@@ -288,11 +278,12 @@ VirtualStorageCatalog::confirm(const bmqt::MessageGUID& msgGUID,
     VirtualStoragesIter it = d_virtualStorages.findByKey2(appKey);
     BSLS_ASSERT_SAFE(it != d_virtualStorages.end());
 
-    const mqbi::StorageResult::Enum rc = it->value()->confirm(&data->second);
+    const mqbi::StorageResult::Enum rc = it->value()->confirm(
+        data->second.get());
     if (mqbi::StorageResult::e_SUCCESS == rc) {
         d_queueStats_sp->onEvent(
             mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
-            data->second.d_size,
+            data->second->d_size,
             it->key1());
     }
 
@@ -317,13 +308,24 @@ VirtualStorageCatalog::gc(const bmqt::MessageGUID& msgGUID)
         return mqbi::StorageResult::e_GUID_NOT_FOUND;  // RETURN
     }
 
+    gcApps(*data->second);
+
+    d_totalBytes -= data->second->d_size;
+    --d_numMessages;
+
+    d_dataStream.erase(data);
+
+    return mqbi::StorageResult::e_SUCCESS;
+}
+
+void VirtualStorageCatalog::gcApps(
+    const mqbi::DataStreamMessage& dataStreamMessage)
+{
     // Update each App so the math of numMessages/numBytes stays correct.
     // REVISIT.
     for (VirtualStoragesIter it = d_virtualStorages.begin();
          it != d_virtualStorages.end();
          ++it) {
-        const mqbi::DataStreamMessage& dataStreamMessage = data->second;
-
         const mqbi::AppMessage& appMessage =
             appMessageView(dataStreamMessage, it->value()->ordinal());
         if (appMessage.isPending()) {
@@ -331,7 +333,7 @@ VirtualStorageCatalog::gc(const bmqt::MessageGUID& msgGUID)
                 d_numMessages - it->value()->numRemoved() - 1;
             const bsls::Types::Int64 appNumBytes =
                 d_totalBytes - it->value()->removedBytes() -
-                data->second.d_size;
+                dataStreamMessage.d_size;
             d_queueStats_sp->setOutstandingData(appNumMessages,
                                                 appNumBytes,
                                                 it->value()->appId());
@@ -340,13 +342,6 @@ VirtualStorageCatalog::gc(const bmqt::MessageGUID& msgGUID)
             it->value()->onGC(dataStreamMessage.d_size);
         }
     }
-
-    d_totalBytes -= data->second.d_size;
-    --d_numMessages;
-
-    d_dataStream.erase(data);
-
-    return mqbi::StorageResult::e_SUCCESS;
 }
 
 void VirtualStorageCatalog::removeAll()
@@ -394,7 +389,7 @@ bsls::Types::Int64 VirtualStorageCatalog::seek(DataStreamIterator*   it,
 
     bsls::Types::Int64 result = 0;
     for (; itData != d_dataStream.end(); ++itData, ++result) {
-        const mqbi::DataStreamMessage& data    = itData->second;
+        const mqbi::DataStreamMessage& data    = *itData->second;
         const unsigned int             numApps = data.d_numApps;
 
         if (vs->ordinal() < numApps) {
@@ -457,7 +452,7 @@ VirtualStorageCatalog::purgeImpl(VirtualStorage*     vs,
 
     while (itData != d_dataStream.end()) {
         const bmqt::MessageGUID& msgGUID           = itData->first;
-        mqbi::DataStreamMessage* dataStreamMessage = &itData->second;
+        mqbi::DataStreamMessage* dataStreamMessage = itData->second.get();
 
         mqbi::StorageResult::Enum result = mqbi::StorageResult::e_SUCCESS;
 
@@ -702,6 +697,19 @@ void VirtualStorageCatalog::calibrate()
                                               &bytes);
         it->value()->setNumRemoved(numMessages, bytes);
     }
+}
+
+bsl::shared_ptr<mqbi::DataStreamMessage>
+VirtualStorageCatalog::createDataStreamMessage(int          msgSize,
+                                               unsigned int refCount)
+{
+    bsl::shared_ptr<mqbi::DataStreamMessage> ptr =
+        bsl::allocate_shared<mqbi::DataStreamMessage>(d_allocator_p,
+                                                      refCount,
+                                                      msgSize,
+                                                      d_allocator_p);
+
+    return ptr;
 }
 
 // ACCESSORS

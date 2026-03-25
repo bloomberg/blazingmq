@@ -75,7 +75,7 @@ class VirtualStorage {
     /// Must be a container in which iteration order is same as insertion
     /// order.
     typedef bmqc::OrderedHashMap<bmqt::MessageGUID,
-                                 mqbi::DataStreamMessage,
+                                 bsl::shared_ptr<mqbi::DataStreamMessage>,
                                  bslh::Hash<bmqt::MessageGUIDHashAlgo> >
         DataStream;
 

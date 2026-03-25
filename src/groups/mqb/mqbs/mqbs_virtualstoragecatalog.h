@@ -208,13 +208,12 @@ class VirtualStorageCatalog BSLS_KEYWORD_FINAL {
     /// specified 'msgGUID' and allocate space for all Apps states if needed.
     DataStreamIterator get(const bmqt::MessageGUID& msgGUID);
 
-    /// Save the message having the specified 'msgGUID' and 'msgSize' to the
-    /// DataStream.  If the specified 'out' is not '0', allocate space for all
-    /// Apps states and load the created object into the 'out'.
-    mqbi::StorageResult::Enum put(const bmqt::MessageGUID&  msgGUID,
-                                  int                       msgSize,
-                                  unsigned int              refCount,
-                                  mqbi::DataStreamMessage** out = 0);
+    /// Save the message referenced by the specified `ptr` to the DataStream.
+    /// Return existing message if the 'msgGUID` is already present or `ptr`
+    /// otherwise.
+    bsl::shared_ptr<mqbi::DataStreamMessage>
+    insert(const bmqt::MessageGUID&                        msgGUID,
+           const bsl::shared_ptr<mqbi::DataStreamMessage>& ptr);
 
     /// Get an iterator for items stored in the DataStream identified by the
     /// specified 'appKey'.
@@ -247,6 +246,7 @@ class VirtualStorageCatalog BSLS_KEYWORD_FINAL {
     /// Return 0 on success, or a non-zero return code if the 'msgGUID' was
     /// not found.
     mqbi::StorageResult::Enum gc(const bmqt::MessageGUID& msgGUID);
+    void gcApps(const mqbi::DataStreamMessage& dataStreamMessage);
 
     /// Update the App state corresponding to the specified 'msgGUID' and the
     /// specified 'appKey' in the DataStream.
@@ -328,6 +328,14 @@ class VirtualStorageCatalog BSLS_KEYWORD_FINAL {
     /// An App offset is the number of messages older than the App.
     void calibrate();
 
+    /// Create a DataStreamMessage with the specified 'msgSize' and 'refCount'
+    /// and return a shared_ptr to it. The message is NOT initialized with App
+    /// states (`setup()` is not called). This factory method should be used
+    /// when the caller needs to process auto-confirms or access the message
+    /// before inserting it into the catalog.
+    bsl::shared_ptr<mqbi::DataStreamMessage>
+    createDataStreamMessage(int msgSize, unsigned int refCount);
+
     // ACCESSORS
 
     /// Return the number of virtual storages registered with this instance.
@@ -367,7 +375,11 @@ class VirtualStorageCatalog BSLS_KEYWORD_FINAL {
 
     mqbi::Queue* queue() const;
 
-    /// Allocate space for all Apps states in the specified 'data' if needed.
+    /// Initialize the specified 'dataStreamMessage' with App state slots for
+    /// all registered virtual storages.  This should be called when processing
+    /// auto-confirms or when the caller needs to modify App states before
+    /// insertion. It is NOT called automatically by createDataStreamMessage()
+    /// or insert().
     void setup(mqbi::DataStreamMessage* data) const;
 
     /// Return the state for the message corresponding to specified

@@ -1192,18 +1192,17 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
         rc_NULL_QUEUE_KEY           = -5,
         rc_INVALID_QLIST_OFFSET     = -6,
         rc_DUPLICATE_QUEUE_KEY      = -7,
-        rc_UNEXPECTED_QUEUE_OP_TYPE = -8,
-        rc_INVALID_QUEUE_KEY        = -9,
-        rc_QUEUE_URI_MISMATCH       = -10,
-        rc_APP_ID_KEY_MISMATCH      = -11,
-        rc_INVALID_DATA_OFFSET      = -12,
-        rc_INVALID_SYNC_PT_SUB_TYPE = -13,
-        rc_INVALID_QLIST_RECORD     = -14,
-        rc_INVALID_DELETION_RECORD  = -15,
-        rc_INVALID_CONFIRM_RECORD   = -16,
-        rc_INVALID_MESSAGE_RECORD   = -17,
-        rc_INVALID_DATA_RECORD      = -18,
-        rc_INVALID_PARTITION_ID     = -19
+        rc_INVALID_QUEUE_KEY        = -8,
+        rc_QUEUE_URI_MISMATCH       = -9,
+        rc_APP_ID_KEY_MISMATCH      = -10,
+        rc_INVALID_DATA_OFFSET      = -11,
+        rc_INVALID_SYNC_PT_SUB_TYPE = -12,
+        rc_INVALID_QLIST_RECORD     = -13,
+        rc_INVALID_DELETION_RECORD  = -14,
+        rc_INVALID_CONFIRM_RECORD   = -15,
+        rc_INVALID_MESSAGE_RECORD   = -16,
+        rc_INVALID_DATA_RECORD      = -17,
+        rc_INVALID_PARTITION_ID     = -18
     };
 
     FileSet*                    activeFileSet = d_fileSets[0].get();
@@ -1563,7 +1562,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 << "Record offset: " << journalIt.recordOffset()
                 << ", record index: " << journalIt.recordIndex()
                 << BMQTSK_ALARMLOG_END;
-            return rc_UNEXPECTED_QUEUE_OP_TYPE;  // RETURN
+            continue;  // CONTINUE
         }
     }
 
@@ -1884,7 +1883,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                             << ", index: " << jit->recordIndex()
                             << ", but the queueKey is not present in cluster "
                             << "state.";
-                        return rc_INVALID_QUEUE_KEY;  // RETURN
+                        continue;  // CONTINUE
                     }
                     else {
                         BMQTSK_ALARMLOG_ALARM("RECOVERY")
@@ -1895,7 +1894,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                             << ", index: " << jit->recordIndex()
                             << ", for which a QueueOp.CREATION record was not "
                             << "seen in first pass." << BMQTSK_ALARMLOG_END;
-                        return rc_INVALID_QUEUE_KEY;  // RETURN
+                        continue;  // CONTINUE
                     }
                 }
 
@@ -2365,7 +2364,6 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                         << ", index: " << jit->recordIndex()
                         << ", but the queueKey is not present in cluster "
                         << "state.";
-                    return rc_INVALID_QUEUE_KEY;  // RETURN
                 }
                 else {
                     BMQTSK_ALARMLOG_ALARM("RECOVERY")
@@ -2376,8 +2374,9 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                         << ", index: " << jit->recordIndex()
                         << ", for which a QueueOp.CREATION record was not "
                         << "seen in first pass." << BMQTSK_ALARMLOG_END;
-                    return rc_INVALID_QUEUE_KEY;  // RETURN
                 }
+
+                // Ignore the error and continue tracking the GUID as deleted.
             }
 
             deletedGuids.insert(rec.messageGUID());
@@ -2442,7 +2441,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                         << ", index: " << jit->recordIndex()
                         << ", but the queueKey is not "
                         << "present in cluster state.";
-                    return rc_INVALID_QUEUE_KEY;  // RETURN
+                    continue;  // CONTINUE
                 }
                 else {
                     BMQTSK_ALARMLOG_ALARM("RECOVERY")
@@ -2454,7 +2453,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                         << ", for which a "
                         << "QueueOp.CREATION record was not seen in first "
                         << "pass." << BMQTSK_ALARMLOG_END;
-                    return rc_INVALID_QUEUE_KEY;  // RETURN
+                    continue;  // CONTINUE
                 }
             }
 

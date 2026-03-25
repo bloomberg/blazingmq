@@ -458,40 +458,38 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
         bdlt::CurrentTime::utc());
 
     // Evaluate application subscriptions
-    mqbi::StorageResult::Enum res = d_queueEngine_mp->evaluateAppSubscriptions(
-        putHeader,
-        appData,
-        translation,
-        timestamp);
+    d_queueEngine_mp->evaluateAppSubscriptions(putHeader,
+                                               appData,
+                                               translation);
 
     bool         haveReceipt = true;
     unsigned int refCount    = d_queueEngine_mp->messageReferenceCount();
 
-    if (res == mqbi::StorageResult::e_SUCCESS) {
-        if (refCount) {
-            // Note that arrival timepoint is used only at the primary node,
-            // for calculating and reporting the time interval for which a
-            // message stays in the queue.
-            mqbi::StorageMessageAttributes attributes(
-                timestamp,
-                refCount,
-                static_cast<unsigned int>(appData->length()),
-                translation,
-                putHeader.compressionAlgorithmType(),
-                !d_haveStrongConsistency,
-                doAck ? source : 0,
-                putHeader.crc32c(),
-                timePoint);  // Arrival Timepoint
+    mqbi::StorageResult::Enum res = mqbi::StorageResult::e_SUCCESS;
 
-            res = d_state_p->storage()->put(&attributes,
-                                            putHeader.messageGUID(),
-                                            appData,
-                                            options);
+    if (refCount) {
+        // Note that arrival timepoint is used only at the primary node,
+        // for calculating and reporting the time interval for which a
+        // message stays in the queue.
+        mqbi::StorageMessageAttributes attributes(
+            timestamp,
+            refCount,
+            static_cast<unsigned int>(appData->length()),
+            translation,
+            putHeader.compressionAlgorithmType(),
+            !d_haveStrongConsistency,
+            doAck ? source : 0,
+            putHeader.crc32c(),
+            timePoint);  // Arrival Timepoint
 
-            haveReceipt = attributes.hasReceipt();
-        }
-        // else all subscriptions are negative
+        res = d_state_p->storage()->put(&attributes,
+                                        putHeader.messageGUID(),
+                                        appData,
+                                        options);
+
+        haveReceipt = attributes.hasReceipt();
     }
+    // else all subscriptions are negative
 
     // Send acknowledgement if post failed or if ack was requested (both could
     // be true as well).

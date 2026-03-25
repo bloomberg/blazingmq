@@ -594,8 +594,7 @@ class Storage {
                                       bool                    asPrimary) = 0;
 
     virtual void selectForAutoConfirming(const bmqt::MessageGUID& msgGUID) = 0;
-    virtual StorageResult::Enum autoConfirm(const mqbu::StorageKey& appKey,
-                                            bsls::Types::Uint64 timestamp) = 0;
+    virtual void autoConfirm(const mqbu::StorageKey& appKey)               = 0;
     /// The sequence of calls is `selectForAutoConfirming`, then zero or more
     /// `autoConfirm`, then `put` - all for the same specified `msgGUID`.
     /// `autoConfirm` replicates ephemeral auto CONFIRM for the specified

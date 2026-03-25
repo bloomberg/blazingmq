@@ -224,17 +224,15 @@ class QueueEngine {
                                    const mqbu::StorageKey& appKey,
                                    unsigned int            appOrdinal);
 
-    /// Given the specified 'putHeader', 'appData', 'mpi', and 'timestamp',
-    /// evaluate all application subscriptions and exclude applications with
-    /// negative results from message delivery.  Return 0 on success or an
-    /// non-zero error code on failure.
+    /// Given the specified 'putHeader', 'appData', and 'mpi', evaluate all
+    /// application subscriptions and exclude applications with negative
+    /// results from message delivery.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    virtual StorageResult::Enum
+    virtual void
     evaluateAppSubscriptions(const bmqp::PutHeader&              putHeader,
                              const bsl::shared_ptr<bdlbb::Blob>& appData,
-                             const bmqp::MessagePropertiesInfo&  mpi,
-                             bsls::Types::Uint64 timestamp) = 0;
+                             const bmqp::MessagePropertiesInfo&  mpi) = 0;
 
     // ACCESSORS
 

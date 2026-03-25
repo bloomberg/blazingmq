@@ -427,9 +427,7 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     void selectForAutoConfirming(const bmqt::MessageGUID& msgGUID)
         BSLS_KEYWORD_OVERRIDE;
-    mqbi::StorageResult::Enum
-    autoConfirm(const mqbu::StorageKey& appKey,
-                bsls::Types::Uint64     timestamp) BSLS_KEYWORD_OVERRIDE;
+    void autoConfirm(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
     /// The sequence of calls is 'startAutoConfirming', then zero or more
     /// 'autoConfirm', then 'put' - all for the same specified 'msgGUID'.
     /// Any other sequence removes auto CONFIRMs.

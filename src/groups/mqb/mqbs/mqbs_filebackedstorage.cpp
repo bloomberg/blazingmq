@@ -79,7 +79,7 @@ void FileBackedStorage::purgeCommon(const mqbu::StorageKey& appKey,
         for (RecordHandleMapConstIter it = d_handles.begin();
              it != d_handles.end();
              ++it) {
-            const RecordHandlesArray& array = it->second.d_array;
+            const RecordHandlesArray& array = it->second->d_array;
             for (unsigned int i = 0; i < array.size(); ++i) {
                 d_store_p->removeRecordRaw(array[i]);
             }
@@ -134,7 +134,8 @@ FileBackedStorage::FileBackedStorage(
 , d_isEmpty(1)
 , d_hasReceipts(!domain->config().consistency().isStrongValue())
 , d_currentlyAutoConfirming()
-, d_autoConfirms(d_allocator_p)
+, d_autoConfirmHandles(d_allocator_p)
+, d_autoConfirmApps(d_allocator_p)
 {
     BSLS_ASSERT(d_store_p);
 
@@ -168,7 +169,7 @@ FileBackedStorage::get(bsl::shared_ptr<bdlbb::Blob>*   appData,
         return mqbi::StorageResult::e_GUID_NOT_FOUND;  // RETURN
     }
 
-    const RecordHandlesArray& handles = it->second.d_array;
+    const RecordHandlesArray& handles = it->second->d_array;
     BSLS_ASSERT(!handles.empty());
 
     d_store_p->loadMessageRaw(appData, options, attributes, handles[0]);
@@ -197,7 +198,7 @@ FileBackedStorage::get(mqbi::StorageMessageAttributes* attributes,
         return mqbi::StorageResult::e_GUID_NOT_FOUND;  // RETURN
     }
 
-    const RecordHandlesArray& handles = it->second.d_array;
+    const RecordHandlesArray& handles = it->second->d_array;
     BSLS_ASSERT(!handles.empty());
     d_store_p->loadMessageAttributesRaw(attributes, handles[0]);
 
@@ -226,7 +227,7 @@ bool FileBackedStorage::hasReceipt(const bmqt::MessageGUID& msgGUID) const
         return false;  // RETURN
     }
 
-    const RecordHandlesArray& handles = it->second.d_array;
+    const RecordHandlesArray& handles = it->second->d_array;
     BSLS_ASSERT(!handles.empty());
     return d_store_p->hasReceipt(handles[0]);
 }
@@ -317,60 +318,100 @@ FileBackedStorage::put(mqbi::StorageMessageAttributes*     attributes,
                     : mqbi::StorageResult::e_LIMIT_BYTES);  // RETURN
     }
 
-    // Update
+    // Prepare the item
+    bsl::shared_ptr<Item> item(bsl::allocate_shared<Item>(d_allocator_p));
+
+    item->d_array.resize(1 + d_autoConfirmApps.size());
+
+    bsl::shared_ptr<mqbi::DataStreamMessage> dataStreamMessage =
+        d_virtualStorageCatalog.createDataStreamMessage(
+            msgSize,
+            d_virtualStorageCatalog.numVirtualStorages());
+
     DataStoreRecordHandle handle;
-    int                   rc = d_store_p->writeMessageRecord(attributes,
-                                           &handle,
-                                           msgGUID,
-                                           appData,
-                                           options,
-                                           d_queueKey);
+    int                   rc = mqbi::StorageResult::e_SUCCESS;
+    // the first element in 'item.d_array' is the PUT
+    int nextHandleIndex = 1;
+
+    if (!d_autoConfirmApps.empty()) {
+        BSLS_ASSERT_SAFE(!d_currentlyAutoConfirming.isUnset());
+
+        // Now replicate auto confirms
+        d_virtualStorageCatalog.setup(dataStreamMessage.get());
+
+        for (AutoConfirmApps::const_iterator cit = d_autoConfirmApps.begin();
+             cit != d_autoConfirmApps.end();
+             ++cit) {
+            rc = d_store_p->writeConfirmRecord(
+                &handle,
+                d_currentlyAutoConfirming,
+                d_queueKey,
+                *cit,
+                attributes->arrivalTimestamp(),
+                ConfirmReason::e_AUTO_CONFIRMED);
+
+            if (0 != rc) {
+                // rollback
+                d_virtualStorageCatalog.gcApps(*dataStreamMessage);
+                // Delete all items pointed by all handles for this GUID.
+                const RecordHandlesArray& handles = item->d_array;
+
+                for (int i = 1; i < nextHandleIndex; ++i) {
+                    d_store_p->removeRecordRaw(handles[i]);
+                }
+
+                return mqbi::StorageResult::e_WRITE_FAILURE;  // RETURN
+            }
+
+            item->d_array[nextHandleIndex++] = handle;
+            d_virtualStorageCatalog.autoConfirm(dataStreamMessage.get(), *cit);
+        }
+        d_autoConfirmApps.clear();
+    }
+
+    d_currentlyAutoConfirming = bmqt::MessageGUID();
+
+    // _After_ autoconfirms, write the PUT
+    // If this write fails, the recovery process will ignore orphan confirms.
+    rc = d_store_p->writeMessageRecord(attributes,
+                                       &handle,
+                                       msgGUID,
+                                       appData,
+                                       options,
+                                       d_queueKey);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+
+        d_virtualStorageCatalog.gcApps(*dataStreamMessage);
+        // Delete all items pointed by all handles for this GUID.
+        const RecordHandlesArray& handles = item->d_array;
+
+        for (int i = 1; i < nextHandleIndex; ++i) {
+            d_store_p->removeRecordRaw(handles[i]);
+        }
 
         // Rollback reserved capacity.
         d_capacityMeter.remove(1, msgSize);
         return mqbi::StorageResult::e_WRITE_FAILURE;  // RETURN
     }
 
-    InsertRc irc = d_handles.insert(bsl::make_pair(msgGUID, Item()),
-                                    attributes->arrivalTimepoint());
-
-    irc.first->second.d_array.push_back(handle);
-    irc.first->second.d_refCount = attributes->refCount();
+    item->d_array[0] = handle;
+    item->d_refCount = attributes->refCount();
 
     // Looks like extra lookup in
     // VirtualStorageIterator::loadMessageAndAttributes() can be avoided
     // if we keep `irc` (like we keep 'DataStoreRecordHandle').
+    d_handles.insert(bsl::make_pair(msgGUID, item),
+                     attributes->arrivalTimepoint());
 
-    if (d_autoConfirms.empty()) {
-        d_virtualStorageCatalog.put(
-            msgGUID,
-            msgSize,
-            d_virtualStorageCatalog.numVirtualStorages(),
-            out);
-    }
-    else {
-        mqbi::DataStreamMessage* dataStreamMessage = 0;
-        if (out == 0) {
-            out = &dataStreamMessage;
-        }
-        d_virtualStorageCatalog.put(
-            msgGUID,
-            msgSize,
-            d_virtualStorageCatalog.numVirtualStorages(),
-            out);
+    dataStreamMessage = d_virtualStorageCatalog.insert(msgGUID,
+                                                       dataStreamMessage);
 
-        // Move auto confirms to the data record
-        for (AutoConfirms::const_iterator it = d_autoConfirms.begin();
-             it != d_autoConfirms.end();
-             ++it) {
-            irc.first->second.d_array.push_back(it->d_confirmRecordHandle);
-            d_virtualStorageCatalog.autoConfirm(*out, it->d_appKey);
-        }
-        d_autoConfirms.clear();
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(out)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        d_virtualStorageCatalog.setup(dataStreamMessage.get());
+        *out = dataStreamMessage.get();
     }
-    d_currentlyAutoConfirming = bmqt::MessageGUID();
 
     BSLS_ASSERT_SAFE(queue());
     queue()
@@ -417,10 +458,10 @@ FileBackedStorage::confirm(const bmqt::MessageGUID& msgGUID,
         return rc;  // RETURN
     }
 
-    RecordHandlesArray& handles = it->second.d_array;
+    RecordHandlesArray& handles = it->second->d_array;
     BSLS_ASSERT_SAFE(!handles.empty());
 
-    if (0 == --it->second.d_refCount) {
+    if (0 == --it->second->d_refCount) {
         // Outstanding refCount for this message is zero now.
         // In this case we intentionally skip recording the last CONFIRM
         // due to optimization of journal file usage
@@ -457,16 +498,16 @@ FileBackedStorage::releaseRef(const bmqt::MessageGUID& guid, bool asPrimary)
         return mqbi::StorageResult::e_GUID_NOT_FOUND;
     }
 
-    if (0 == it->second.d_refCount) {
+    if (0 == it->second->d_refCount) {
         // Outstanding refCount for this message is already zero.
 
         return mqbi::StorageResult::e_INVALID_OPERATION;
     }
 
-    const RecordHandlesArray& handles = it->second.d_array;
+    const RecordHandlesArray& handles = it->second->d_array;
     BSLS_ASSERT_SAFE(!handles.empty());
 
-    if (0 == --it->second.d_refCount) {
+    if (0 == --it->second->d_refCount) {
         if (asPrimary) {
             // This appKey was the last outstanding client for this message.
             // Message can now be deleted.
@@ -535,7 +576,7 @@ FileBackedStorage::remove(const bmqt::MessageGUID& msgGUID, int* msgSize)
 
     d_virtualStorageCatalog.remove(msgGUID);
 
-    const RecordHandlesArray& handles = it->second.d_array;
+    const RecordHandlesArray& handles = it->second->d_array;
     BSLS_ASSERT_SAFE(!handles.empty());
 
     int msgLen = static_cast<int>(d_store_p->getMessageLenRaw(handles[0]));
@@ -695,7 +736,7 @@ mqbi::StorageResult::Enum FileBackedStorage::writeAppPurgeRecord(
     BSLS_ASSERT_SAFE(itRecord != d_handles.end());
 
     DataStoreRecordHandle     start;  // !isValid()
-    const RecordHandlesArray& handles = itRecord->second.d_array;
+    const RecordHandlesArray& handles = itRecord->second->d_array;
     BSLS_ASSERT(!handles.empty());
     start = handles[0];
 
@@ -758,7 +799,7 @@ int FileBackedStorage::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc,
         }
         cit = next++;
 
-        const RecordHandlesArray& handles = cit->second.d_array;
+        const RecordHandlesArray& handles = cit->second->d_array;
         BSLS_ASSERT_SAFE(!handles.empty());
 
         const DataStoreRecordHandle& handle       = handles[0];
@@ -891,42 +932,44 @@ void FileBackedStorage::processMessageRecord(
 
     RecordHandleMapIter it = d_handles.find(guid);
     if (d_handles.end() == it) {
-        InsertRc irc = d_handles.insert(bsl::make_pair(guid, Item()),
-                                        bmqsys::Time::highResolutionTimer());
-        irc.first->second.d_array.push_back(handle);
-        irc.first->second.d_refCount = refCount;
+        bsl::shared_ptr<Item> item(bsl::allocate_shared<Item>(d_allocator_p));
 
-        if (d_autoConfirms.empty()) {
-            d_virtualStorageCatalog.put(guid, msgLen, refCount);
-        }
-        else {
+        InsertRc irc = d_handles.insert(bsl::make_pair(guid, item),
+                                        bmqsys::Time::highResolutionTimer());
+        irc.first->second->d_array.push_back(handle);
+        irc.first->second->d_refCount = refCount;
+
+        bsl::shared_ptr<mqbi::DataStreamMessage> dataStreamMessage =
+            d_virtualStorageCatalog.createDataStreamMessage(
+                msgLen,
+                refCount + d_autoConfirmHandles.size());
+
+        if (!d_autoConfirmHandles.empty()) {
             if (!d_currentlyAutoConfirming.isUnset()) {
                 if (d_currentlyAutoConfirming == guid) {
-                    mqbi::DataStreamMessage* dataStreamMessage = 0;
-                    d_virtualStorageCatalog.put(guid,
-                                                msgLen,
-                                                refCount +
-                                                    d_autoConfirms.size(),
-                                                &dataStreamMessage);
+                    d_virtualStorageCatalog.setup(dataStreamMessage.get());
 
                     // Move auto confirms to the data record
-                    for (AutoConfirms::const_iterator cit =
-                             d_autoConfirms.begin();
-                         cit != d_autoConfirms.end();
+                    for (AutoConfirmHandles::const_iterator cit =
+                             d_autoConfirmHandles.begin();
+                         cit != d_autoConfirmHandles.end();
                          ++cit) {
-                        irc.first->second.d_array.push_back(
+                        irc.first->second->d_array.push_back(
                             cit->d_confirmRecordHandle);
-                        d_virtualStorageCatalog.autoConfirm(dataStreamMessage,
-                                                            cit->d_appKey);
+                        d_virtualStorageCatalog.autoConfirm(
+                            dataStreamMessage.get(),
+                            cit->d_appKey);
                     }
                 }
                 else {
-                    clearSelection();
+                    clearAutoConfirmHandles();
                 }
             }
-            d_autoConfirms.clear();
+            d_autoConfirmHandles.clear();
         }
         d_currentlyAutoConfirming = bmqt::MessageGUID();
+
+        d_virtualStorageCatalog.insert(guid, dataStreamMessage);
 
         // Update the messages & bytes monitors, and the stats.
         d_capacityMeter.forceCommit(1, msgLen);  // Return value ignored.
@@ -961,12 +1004,12 @@ void FileBackedStorage::processConfirmRecord(
     if (reason == ConfirmReason::e_AUTO_CONFIRMED) {
         if (d_currentlyAutoConfirming != guid) {
             if (!d_currentlyAutoConfirming.isUnset()) {
-                clearSelection();
+                clearAutoConfirmHandles();
             }
             d_currentlyAutoConfirming = guid;
         }
 
-        d_autoConfirms.emplace_back(appKey, handle);
+        d_autoConfirmHandles.emplace_back(appKey, handle);
         return;  // RETURN
     }
 
@@ -981,7 +1024,7 @@ void FileBackedStorage::processConfirmRecord(
         return;  // RETURN
     }
 
-    if (0 == it->second.d_refCount) {
+    if (0 == it->second->d_refCount) {
         // Outstanding refCount for this message is already zero at this node.
         BMQTSK_ALARMLOG_ALARM("REPLICATION")
             << "Partition [" << partitionId() << "]"
@@ -992,12 +1035,12 @@ void FileBackedStorage::processConfirmRecord(
         return;  // RETURN
     }
 
-    RecordHandlesArray& handles = it->second.d_array;
+    RecordHandlesArray& handles = it->second->d_array;
     BSLS_ASSERT_SAFE(!handles.empty());
     BSLS_ASSERT_SAFE(RecordType::e_MESSAGE == handles[0].type());
 
     handles.push_back(handle);
-    --it->second.d_refCount;  // Update outstanding refCount
+    --it->second->d_refCount;  // Update outstanding refCount
 
     if (!appKey.isNull()) {
         const mqbi::StorageResult::Enum rc =
@@ -1041,7 +1084,7 @@ void FileBackedStorage::processDeletionRecord(const bmqt::MessageGUID& guid)
     // TBD: check that outstanding refCount maintained by self is zero?
 
     // Update stats.
-    const RecordHandlesArray& handles = it->second.d_array;
+    const RecordHandlesArray& handles = it->second->d_array;
     const unsigned int        msgLen = d_store_p->getMessageLenRaw(handles[0]);
 
     if (queue()) {
@@ -1118,30 +1161,17 @@ void FileBackedStorage::purge(const mqbu::StorageKey& appKey)
 void FileBackedStorage::selectForAutoConfirming(
     const bmqt::MessageGUID& msgGUID)
 {
-    clearSelection();
+    d_autoConfirmApps.clear();
+
     d_currentlyAutoConfirming = msgGUID;
 }
 
-mqbi::StorageResult::Enum
-FileBackedStorage::autoConfirm(const mqbu::StorageKey& appKey,
-                               bsls::Types::Uint64     timestamp)
+void FileBackedStorage::autoConfirm(const mqbu::StorageKey& appKey)
 {
     BSLS_ASSERT_SAFE(!appKey.isNull());
     BSLS_ASSERT_SAFE(!d_currentlyAutoConfirming.isUnset());
 
-    DataStoreRecordHandle handle;
-    int                   rc = d_store_p->writeConfirmRecord(&handle,
-                                           d_currentlyAutoConfirming,
-                                           d_queueKey,
-                                           appKey,
-                                           timestamp,
-                                           ConfirmReason::e_AUTO_CONFIRMED);
-    if (0 != rc) {
-        return mqbi::StorageResult::e_WRITE_FAILURE;  // RETURN
-    }
-    d_autoConfirms.emplace_back(appKey, handle);
-
-    return mqbi::StorageResult::e_SUCCESS;
+    d_autoConfirmApps.emplace_back(appKey);
 }
 
 void FileBackedStorage::setPrimary()
@@ -1156,14 +1186,14 @@ void FileBackedStorage::calibrate()
     d_virtualStorageCatalog.calibrate();
 }
 
-void FileBackedStorage::clearSelection()
+void FileBackedStorage::clearAutoConfirmHandles()
 {
-    for (AutoConfirms::const_iterator it = d_autoConfirms.begin();
-         it != d_autoConfirms.end();
+    for (AutoConfirmHandles::const_iterator it = d_autoConfirmHandles.begin();
+         it != d_autoConfirmHandles.end();
          ++it) {
         d_store_p->removeRecordRaw(it->d_confirmRecordHandle);
     }
-    d_autoConfirms.clear();
+    d_autoConfirmHandles.clear();
 
     d_currentlyAutoConfirming = bmqt::MessageGUID();
 }
