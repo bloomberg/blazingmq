@@ -458,11 +458,17 @@ class StorageManager BSLS_KEYWORD_FINAL
     void onPartitionRecovery(int partitionId);
 
     /// Dispatch the event to *QUEUE DISPATCHER* thread associated with
-    /// the partitionId as per the specified `eventDataVec` with the
+    /// the `partitionId` as per the specified `eventDataVec` with the
     /// specified `event`.  If we are already in *QUEUE DISPATCHER* thread,
     /// then execute the event in place.
     void dispatchEventToPartition(PartitionFSM::Event::Enum event,
                                   const EventData&          eventDataVec);
+
+    /// Verify and execute the event in *QUEUE DISPATCHER* thread associated
+    /// with the `partitionId` as per the specified `eventDataVec` with the
+    /// specified `event`.
+    void executeEventInPartitionThread(PartitionFSM::Event::Enum event,
+                                       const EventData&          eventDataVec);
 
     /// Set the primary status of the specified `partitionId` to the specified
     /// `value`.
@@ -667,6 +673,8 @@ class StorageManager BSLS_KEYWORD_FINAL
         BSLS_KEYWORD_OVERRIDE;
 
     void do_processLiveData(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_setPrimary(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
     void do_cleanupMetadata(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
