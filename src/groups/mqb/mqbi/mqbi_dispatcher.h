@@ -964,6 +964,9 @@ class DispatcherEvent : public DispatcherDispatcherEvent,
     /// Enqueue time.
     bsls::Types::Int64 d_enqueueTime;
 
+    /// Processing start time.
+    bsls::Types::Int64 d_processingStartTime;
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(DispatcherEvent, bslma::UsesBslmaAllocator)
@@ -1071,6 +1074,9 @@ class DispatcherEvent : public DispatcherDispatcherEvent,
     /// Set the enqueue time.
     DispatcherEvent& setEnqueueTime(bsls::Types::Int64 time);
 
+    /// Set the processing start time.
+    DispatcherEvent& setProcessingStartTime(bsls::Types::Int64 time);
+
     /// Reset all members of this `DispatcherEvent` to a default value.
     void reset();
 
@@ -1089,6 +1095,9 @@ class DispatcherEvent : public DispatcherDispatcherEvent,
 
     /// Return the enqueue time.
     bsls::Types::Int64 enqueueTime() const;
+
+    /// Return the processing start time.
+    bsls::Types::Int64 processingStartTime() const;
 
     const DispatcherDispatcherEvent*     asDispatcherEvent() const;
     const DispatcherControlMessageEvent* asControlMessageEvent() const;
@@ -1615,6 +1624,13 @@ DispatcherEvent::setEnqueueTime(bsls::Types::Int64 time)
     return *this;
 }
 
+inline DispatcherEvent&
+DispatcherEvent::setProcessingStartTime(bsls::Types::Int64 time)
+{
+    d_processingStartTime = time;
+    return *this;
+}
+
 inline DispatcherEventType::Enum DispatcherEvent::type() const
 {
     return d_type;
@@ -1633,6 +1649,11 @@ inline DispatcherClient* DispatcherEvent::destination() const
 inline bsls::Types::Int64 DispatcherEvent::enqueueTime() const
 {
     return d_enqueueTime;
+}
+
+inline bsls::Types::Int64 DispatcherEvent::processingStartTime() const
+{
+    return d_processingStartTime;
 }
 
 inline const DispatcherDispatcherEvent*

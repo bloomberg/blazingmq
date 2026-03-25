@@ -133,6 +133,8 @@
         <element name='sessions' type='tns:DispatcherProcessorConfig'/>
         <element name='queues'   type='tns:DispatcherProcessorConfig'/>
         <element name='clusters' type='tns:DispatcherProcessorConfig'/>
+        <element name='alarmTimeoutMs'   type='int' default='180000'/>
+        <element name='warningTimeoutMs' type='int' default='10000'/>
     </sequence>
   </complexType>
 
