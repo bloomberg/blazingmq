@@ -18,6 +18,7 @@
 
 // MQB
 #include <mqbcfg_messages.h>
+#include <mqbevt_callbackevent.h>
 #include <mqbmock_dispatcher.h>
 #include <mqbstat_dispatcherstats.h>
 
@@ -180,7 +181,7 @@ struct TestDispatcherClient : public mqbi::DispatcherClient {
     onDispatcherEvent(const mqbi::DispatcherEvent& event) BSLS_KEYWORD_OVERRIDE
     {
         if (event.type() == mqbi::DispatcherEventType::e_CALLBACK) {
-            event.asCallbackEvent()->callback()();
+            event.the<mqbevt::CallbackEvent>()->callback()();
         }
     }
 
@@ -566,8 +567,8 @@ static void test4_eventSource()
         {
             bslmt::Semaphore done;
 
-            bsl::shared_ptr<mqbi::DispatcherEvent> event = client.getEvent();
-            event->setType(mqbi::DispatcherEventType::e_CALLBACK);
+            bsl::shared_ptr<mqbevt::CallbackEvent> event =
+                client.getEvent<mqbevt::CallbackEvent>();
             event->setCallback(
                 bdlf::BindUtil::bindS(alloc, &Local::callbackFn, &done));
 
@@ -580,9 +581,8 @@ static void test4_eventSource()
         {
             bslmt::Semaphore done;
 
-            bsl::shared_ptr<mqbi::DispatcherEvent> event =
-                dispatcher.getDefaultEventSource()->getEvent();
-            event->setType(mqbi::DispatcherEventType::e_CALLBACK);
+            bsl::shared_ptr<mqbevt::CallbackEvent> event =
+                client.getEvent<mqbevt::CallbackEvent>();
             event->setCallback(
                 bdlf::BindUtil::bindS(alloc, &Local::callbackFn, &done));
 
@@ -598,9 +598,8 @@ static void test4_eventSource()
 
             bslmt::Semaphore done;
 
-            bsl::shared_ptr<mqbi::DispatcherEvent> event =
-                eventSource_sp->getEvent();
-            event->setType(mqbi::DispatcherEventType::e_CALLBACK);
+            bsl::shared_ptr<mqbevt::CallbackEvent> event =
+                client.getEvent<mqbevt::CallbackEvent>();
             event->setCallback(
                 bdlf::BindUtil::bindS(alloc, &Local::callbackFn, &done));
 

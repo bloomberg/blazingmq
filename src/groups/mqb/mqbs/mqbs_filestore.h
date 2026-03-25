@@ -782,6 +782,18 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     void dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event);
 
+#if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+    // C++03 compatibility:
+    // It is not possible to cast mqbevt movable refs to mqbi movable ref.
+    template <class EVENT_TYPE>
+    void dispatchEvent(bslmf::MovableRef<bsl::shared_ptr<EVENT_TYPE> > event)
+    {
+        mqbi::Dispatcher::DispatcherEventSp base(
+            bslmf::MovableRefUtil::access(event));
+        dispatchEvent(bslmf::MovableRefUtil::move(base));
+    }
+#endif
+
     /// Execute the specified `functor`, using the `e_CALLBACK` event
     /// type, in the processor associated to this object.
     void execute(const mqbi::Dispatcher::VoidFunctor& functor);
