@@ -308,19 +308,7 @@ VirtualStorageCatalog::gc(const bmqt::MessageGUID& msgGUID)
         return mqbi::StorageResult::e_GUID_NOT_FOUND;  // RETURN
     }
 
-    gcApps(*data->second);
-
-    d_totalBytes -= data->second->d_size;
-    --d_numMessages;
-
-    d_dataStream.erase(data);
-
-    return mqbi::StorageResult::e_SUCCESS;
-}
-
-void VirtualStorageCatalog::gcApps(
-    const mqbi::DataStreamMessage& dataStreamMessage)
-{
+    const mqbi::DataStreamMessage& dataStreamMessage = *data->second;
     // Update each App so the math of numMessages/numBytes stays correct.
     // REVISIT.
     for (VirtualStoragesIter it = d_virtualStorages.begin();
@@ -339,6 +327,31 @@ void VirtualStorageCatalog::gcApps(
                                                 it->value()->appId());
         }
         else {
+            it->value()->onGC(dataStreamMessage.d_size);
+        }
+    }
+
+    d_totalBytes -= data->second->d_size;
+    --d_numMessages;
+
+    d_dataStream.erase(data);
+
+    return mqbi::StorageResult::e_SUCCESS;
+}
+
+void VirtualStorageCatalog::gcAutoConfirms(
+    const mqbi::DataStreamMessage& dataStreamMessage)
+{
+    // Reverse autoConfirm effects on VirtualStorage counters for a message
+    // that was never inserted into the catalog.
+
+    for (VirtualStoragesIter it = d_virtualStorages.begin();
+         it != d_virtualStorages.end();
+         ++it) {
+        const mqbi::AppMessage& appMessage =
+            appMessageView(dataStreamMessage, it->value()->ordinal());
+
+        if (!appMessage.isPending()) {
             it->value()->onGC(dataStreamMessage.d_size);
         }
     }

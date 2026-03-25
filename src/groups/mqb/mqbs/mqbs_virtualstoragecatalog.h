@@ -246,7 +246,7 @@ class VirtualStorageCatalog BSLS_KEYWORD_FINAL {
     /// Return 0 on success, or a non-zero return code if the 'msgGUID' was
     /// not found.
     mqbi::StorageResult::Enum gc(const bmqt::MessageGUID& msgGUID);
-    void gcApps(const mqbi::DataStreamMessage& dataStreamMessage);
+    void gcAutoConfirms(const mqbi::DataStreamMessage& dataStreamMessage);
 
     /// Update the App state corresponding to the specified 'msgGUID' and the
     /// specified 'appKey' in the DataStream.

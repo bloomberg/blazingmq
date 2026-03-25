@@ -2386,6 +2386,8 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
         else if (RecordType::e_CONFIRM == rt) {
             const ConfirmRecord& rec = jit->asConfirmRecord();
 
+            // Corrupted records (unset GUID, null queueKey) fail recovery.
+            // Records with no matching queue are skipped (orphan confirms).
             if (rec.messageGUID().isUnset()) {
                 BALL_LOG_ERROR
                     << partitionDesc()

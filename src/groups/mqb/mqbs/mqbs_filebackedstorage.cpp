@@ -352,7 +352,7 @@ FileBackedStorage::put(mqbi::StorageMessageAttributes*     attributes,
 
             if (0 != rc) {
                 // rollback
-                d_virtualStorageCatalog.gcApps(*dataStreamMessage);
+                d_virtualStorageCatalog.gcAutoConfirms(*dataStreamMessage);
                 // Delete all items pointed by all handles for this GUID.
                 const RecordHandlesArray& handles = item->d_array;
 
@@ -360,6 +360,10 @@ FileBackedStorage::put(mqbi::StorageMessageAttributes*     attributes,
                     d_store_p->removeRecordRaw(handles[i]);
                 }
 
+                // Rollback reserved capacity.
+                d_capacityMeter.remove(1, msgSize);
+                d_autoConfirmApps.clear();
+                d_currentlyAutoConfirming = bmqt::MessageGUID();
                 return mqbi::StorageResult::e_WRITE_FAILURE;  // RETURN
             }
 
@@ -382,7 +386,7 @@ FileBackedStorage::put(mqbi::StorageMessageAttributes*     attributes,
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        d_virtualStorageCatalog.gcApps(*dataStreamMessage);
+        d_virtualStorageCatalog.gcAutoConfirms(*dataStreamMessage);
         // Delete all items pointed by all handles for this GUID.
         const RecordHandlesArray& handles = item->d_array;
 
@@ -1183,6 +1187,9 @@ void FileBackedStorage::setPrimary()
 
 void FileBackedStorage::calibrate()
 {
+    // use this event as another trigger to clear orphan confirms
+    clearAutoConfirmHandles();
+
     d_virtualStorageCatalog.calibrate();
 }
 

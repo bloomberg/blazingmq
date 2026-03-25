@@ -628,6 +628,10 @@ void InMemoryStorage::setPrimary()
 
 void InMemoryStorage::calibrate()
 {
+    // use this event as another trigger to clear orphan confirms
+    d_autoConfirms.clear();
+    d_currentlyAutoConfirming = bmqt::MessageGUID();
+
     d_virtualStorageCatalog.calibrate();
 }
 
