@@ -301,6 +301,10 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
         /// Processor queue identifier (used for logging).
         const int d_queueId;
 
+        /// Atomic timestamp tracking when the last event started processing,
+        /// used by the stuck-event monitor (held, not owned).
+        bsls::AtomicInt64* d_lastProcessingStartTime_p;
+
         // PRIVATE MANIPULATORS
 
         /// Flush all clients in the flush list and clear it.
@@ -312,14 +316,17 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
         /// Create an event callback for the processor having the specified
         /// `queueId` in charge of dispatcher clients of the specified
         /// `type`, using the specified `flushClientsGate_p` to control
-        /// flushing and the specified `context_sp` to obtain the flush list
-        /// and stat context.
+        /// flushing, the specified `context_sp` to obtain the flush list
+        /// and stat context, and the specified
+        /// `lastProcessingStartTime` to track event processing for the
+        /// stuck-event monitor.
         explicit EventCallback(
             mqbi::DispatcherClientType::Enum             type,
             int                                          queueId,
             bmqu::GateKeeper*                            flushClientsGate_p,
             const mqba::Dispatcher::DispatcherContextSp& context_sp,
-            bsls::Types::Int64                           warningTimeoutNs);
+            bsls::Types::Int64                           warningTimeoutNs,
+            bsls::AtomicInt64* lastProcessingStartTime);
 
         // MANIPULATORS
 
@@ -395,9 +402,13 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
                  bslma::Allocator*                            allocator);
 
     /// Create an event callback for the processor having the specified
-    /// `queueId` in charge of dispatcher clients of the specified `type`.
+    /// `queueId` in charge of dispatcher clients of the specified `type`,
+    /// using the specified `lastProcessingStartTime` to track event
+    /// processing for the stuck-event monitor.
     ProcessorPool::EventFn
-    eventCallbackCreator(mqbi::DispatcherClientType::Enum type, int queueId);
+    eventCallbackCreator(mqbi::DispatcherClientType::Enum type,
+                         int                              queueId,
+                         bsls::AtomicInt64* lastProcessingStartTime);
 
     // PRIVATE ACCESSORS
 

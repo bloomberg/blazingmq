@@ -238,10 +238,12 @@ int Dispatcher::startContext(bsl::ostream&                    errorDescription,
     ProcessorPool::Config processorPoolConfig(
         config.numProcessors(),
         context->d_threadPool_mp.get(),
-        bdlf::BindUtil::bind(&Dispatcher::eventCallbackCreator,
-                             this,
-                             type,
-                             bdlf::PlaceHolders::_1),  // queueId
+        bdlf::BindUtil::bind(
+            &Dispatcher::eventCallbackCreator,
+            this,
+            type,
+            bdlf::PlaceHolders::_1,   // queueId
+            bdlf::PlaceHolders::_2),  // lastProcessingStartTime
         bdlf::BindUtil::bind(&Dispatcher::queueCreator,
                              this,
                              type,
@@ -700,7 +702,8 @@ bsl::shared_ptr<mqbi::DispatcherEventSource> Dispatcher::createEventSource()
 
 Dispatcher::ProcessorPool::EventFn
 Dispatcher::eventCallbackCreator(mqbi::DispatcherClientType::Enum type,
-                                 int                              queueId)
+                                 int                              queueId,
+                                 bsls::AtomicInt64* lastProcessingStartTime)
 {
     return EventCallback(
         type,
@@ -708,7 +711,8 @@ Dispatcher::eventCallbackCreator(mqbi::DispatcherClientType::Enum type,
         &d_flushClientsGate,
         d_contexts[type],
         bdlt::TimeUnitRatio::k_NS_PER_MS *
-            static_cast<bsls::Types::Int64>(d_config.warningTimeoutMs()));
+            static_cast<bsls::Types::Int64>(d_config.warningTimeoutMs()),
+        lastProcessingStartTime);
 }
 
 // -------------------------------
@@ -720,7 +724,8 @@ mqba::Dispatcher::EventCallback::EventCallback(
     int                                          queueId,
     bmqu::GateKeeper*                            flushClientsGate_p,
     const mqba::Dispatcher::DispatcherContextSp& context_sp,
-    bsls::Types::Int64                           warningTimeoutNs)
+    bsls::Types::Int64                           warningTimeoutNs,
+    bsls::AtomicInt64*                           lastProcessingStartTime)
 : d_queueName(context_sp->d_processorPool_mp->queueName(queueId))
 , d_stats_sp(context_sp->d_statContexts[queueId])
 , d_flushClientsGate_p(flushClientsGate_p)
@@ -729,9 +734,11 @@ mqba::Dispatcher::EventCallback::EventCallback(
 , d_warningTimeoutNs(warningTimeoutNs)
 , d_type(type)
 , d_queueId(queueId)
+, d_lastProcessingStartTime_p(lastProcessingStartTime)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_flushClientsGate_p);
+    BSLS_ASSERT_SAFE(d_lastProcessingStartTime_p);
 }
 
 void mqba::Dispatcher::EventCallback::operator()(
@@ -741,7 +748,11 @@ void mqba::Dispatcher::EventCallback::operator()(
         BALL_LOG_TRACE << "Dispatching Event to queue " << d_queueId << " of "
                        << d_type << " dispatcher: " << *event;
 
-        const bsls::Types::Int64 queuedTime = event->processingStartTime() -
+        const bsls::Types::Int64 processingStartTime =
+            bmqsys::Time::highResolutionTimer();
+        d_lastProcessingStartTime_p->store(processingStartTime);
+
+        const bsls::Types::Int64 queuedTime = processingStartTime -
                                               event->enqueueTime();
 
         if (event->type() == mqbi::DispatcherEventType::e_DISPATCHER) {
@@ -775,13 +786,15 @@ void mqba::Dispatcher::EventCallback::operator()(
         }
 
         const bsls::Types::Int64 processingTime =
-            bmqsys::Time::highResolutionTimer() - event->processingStartTime();
+            bmqsys::Time::highResolutionTimer() - processingStartTime;
 
         // Update stats
         mqbstat::DispatcherStats::onDequeue(d_stats_sp.get(), queuedTime);
         mqbstat::DispatcherStats::onProcess(d_stats_sp.get(),
                                             event->type(),
                                             processingTime);
+
+        d_lastProcessingStartTime_p->store(0);
 
         if (processingTime > d_warningTimeoutNs) {
             BALL_LOG_WARN << "Queue '" << d_queueName
