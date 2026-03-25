@@ -54,6 +54,12 @@ class QueueHandle;
 namespace mqbi {
 class DispatcherClient;
 }
+namespace mqbevt {
+class AckEvent;
+class CallbackEvent;
+class PushEvent;
+class PutEvent;
+}
 
 namespace mqbblp {
 
