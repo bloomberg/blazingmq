@@ -161,7 +161,7 @@ class StorageManager BSLS_KEYWORD_FINAL
     typedef bsl::vector<PrimaryStatusAdvisoryInfos>
         PrimaryStatusAdvisoryInfosVec;
 
-    /// VST representing per-partition watchdog state.
+    /// Per-partition watchdog context.
     class WatchdogContext {
       public:
         // DATA
@@ -198,17 +198,10 @@ class StorageManager BSLS_KEYWORD_FINAL
         /// generation and zero retries remaining.
         WatchdogContext();
 
-        /// Create a `WatchdogContext` copying the values from the specified
-        /// `other`.
-        ///
-        /// WARNING: This copy constructor is NOT thread-safe.
-        /// The atomic loads of individual fields are each atomic, but the
-        /// overall copy is not an atomic snapshot of `other`.  This
-        /// constructor exists solely to satisfy `bsl::vector::resize()`
-        /// during startup in the StorageManager constructor, before any
-        /// threads access the watchdog contexts.  It must NOT be used
-        /// after startup.
-        WatchdogContext(const WatchdogContext& other);
+        // NOT IMPLEMENTED
+        WatchdogContext(const WatchdogContext&) BSLS_KEYWORD_DELETED;
+        WatchdogContext&
+        operator=(const WatchdogContext&) BSLS_KEYWORD_DELETED;
     };
 
     /// VST representing node's sequence number, first sync point after
@@ -263,7 +256,9 @@ class StorageManager BSLS_KEYWORD_FINAL
 
     /// List of watchdog contexts, indexed by partitionId.
     ///
-    /// THREAD: Used in both the cluster thread and the partition thread.
+    /// THREAD: The i-th index of this data member **must** be used only in the
+    ///         cluster thread or the associated partition thread for the i-th
+    ///         partitionId.
     bsl::vector<WatchdogContext> d_watchdogContexts;
 
     /// Timeout interval for the watchdog.
@@ -1317,16 +1312,6 @@ inline StorageManager::WatchdogContext::WatchdogContext()
 , d_active(false)
 , d_eventHandle()
 , d_retriesRemaining(0)
-{
-    // NOTHING
-}
-
-inline StorageManager::WatchdogContext::WatchdogContext(
-    const WatchdogContext& other)
-: d_generation(static_cast<int>(other.d_generation))
-, d_active(static_cast<bool>(other.d_active))
-, d_eventHandle(other.d_eventHandle)
-, d_retriesRemaining(static_cast<int>(other.d_retriesRemaining))
 {
     // NOTHING
 }
