@@ -1125,16 +1125,25 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// Return the number of watchdog retries remaining for the specified
     /// `partitionId`.  This accessor is meant to be used for unit testing
     /// purposes.
+    ///
+    /// THREAD: Must be called from the cluster dispatcher thread or the
+    ///         partition dispatcher thread for the specified `partitionId`.
     int watchdogRetriesRemaining(int partitionId) const;
 
     /// Return the watchdog generation number for the specified
     /// `partitionId`.  This accessor is meant to be used for unit testing
     /// purposes.
+    ///
+    /// THREAD: Must be called from the cluster dispatcher thread or the
+    ///         partition dispatcher thread for the specified `partitionId`.
     int watchdogGeneration(int partitionId) const;
 
     /// Return whether the watchdog timer is currently active for the
     /// specified `partitionId`.  This accessor is meant to be used for
     /// unit testing purposes.
+    ///
+    /// THREAD: Must be called from the cluster dispatcher thread or the
+    ///         partition dispatcher thread for the specified `partitionId`.
     bool isWatchdogActive(int partitionId) const;
 };
 
@@ -1312,16 +1321,34 @@ StorageManager::nodeToContextMap(int partitionId) const
 
 inline int StorageManager::watchdogRetriesRemaining(int partitionId) const
 {
+    // executed by the cluster *DISPATCHER* or *QUEUE_DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread() ||
+                     d_fileStores[partitionId]->inDispatcherThread());
+
     return d_watchdogContexts[partitionId].d_retriesRemaining;
 }
 
 inline int StorageManager::watchdogGeneration(int partitionId) const
 {
+    // executed by the cluster *DISPATCHER* or *QUEUE_DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread() ||
+                     d_fileStores[partitionId]->inDispatcherThread());
+
     return d_watchdogContexts[partitionId].d_generation;
 }
 
 inline bool StorageManager::isWatchdogActive(int partitionId) const
 {
+    // executed by the cluster *DISPATCHER* or *QUEUE_DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread() ||
+                     d_fileStores[partitionId]->inDispatcherThread());
+
     return d_watchdogContexts[partitionId].d_active;
 }
 
