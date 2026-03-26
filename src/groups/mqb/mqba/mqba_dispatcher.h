@@ -399,11 +399,6 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
     ProcessorPool::EventFn
     eventCallbackCreator(mqbi::DispatcherClientType::Enum type, int queueId);
 
-    // PRIVATE ACCESSORS
-
-    /// Return the name of the queue of the specified `client`.
-    bsl::string_view queueName(const mqbi::DispatcherClient* client) const;
-
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(Dispatcher, bslma::UsesBslmaAllocator)
