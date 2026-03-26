@@ -422,6 +422,18 @@ inline void VirtualStorageCatalog::configureAsProxy()
     d_isProxy = true;
 }
 
+inline bsl::shared_ptr<mqbi::DataStreamMessage>
+VirtualStorageCatalog::createDataStreamMessage(int          msgSize,
+                                               unsigned int refCount)
+{
+    bsl::shared_ptr<mqbi::DataStreamMessage> ptr =
+        bsl::allocate_shared<mqbi::DataStreamMessage>(d_allocator_p,
+                                                      refCount,
+                                                      msgSize);
+
+    return ptr;
+}
+
 // ACCESSORS
 inline int VirtualStorageCatalog::numVirtualStorages() const
 {

@@ -946,7 +946,8 @@ void FileBackedStorage::processMessageRecord(
         bsl::shared_ptr<mqbi::DataStreamMessage> dataStreamMessage =
             d_virtualStorageCatalog.createDataStreamMessage(
                 msgLen,
-                refCount + d_autoConfirmHandles.size());
+                refCount +
+                    static_cast<unsigned int>(d_autoConfirmHandles.size()));
 
         if (!d_autoConfirmHandles.empty()) {
             if (!d_currentlyAutoConfirming.isUnset()) {
@@ -966,7 +967,7 @@ void FileBackedStorage::processMessageRecord(
                     }
                 }
                 else {
-                    clearAutoConfirmHandles();
+                    removeAutoConfirmHandles();
                 }
             }
             d_autoConfirmHandles.clear();
@@ -1008,7 +1009,7 @@ void FileBackedStorage::processConfirmRecord(
     if (reason == ConfirmReason::e_AUTO_CONFIRMED) {
         if (d_currentlyAutoConfirming != guid) {
             if (!d_currentlyAutoConfirming.isUnset()) {
-                clearAutoConfirmHandles();
+                removeAutoConfirmHandles();
             }
             d_currentlyAutoConfirming = guid;
         }
@@ -1188,12 +1189,12 @@ void FileBackedStorage::setPrimary()
 void FileBackedStorage::calibrate()
 {
     // use this event as another trigger to clear orphan confirms
-    clearAutoConfirmHandles();
+    removeAutoConfirmHandles();
 
     d_virtualStorageCatalog.calibrate();
 }
 
-void FileBackedStorage::clearAutoConfirmHandles()
+void FileBackedStorage::removeAutoConfirmHandles()
 {
     for (AutoConfirmHandles::const_iterator it = d_autoConfirmHandles.begin();
          it != d_autoConfirmHandles.end();

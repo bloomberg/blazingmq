@@ -229,7 +229,7 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     void purgeCommon(const mqbu::StorageKey& appKey, bool asPrimary);
 
     /// Clear the state created by 'selectForAutoConfirming'.
-    void clearAutoConfirmHandles();
+    void removeAutoConfirmHandles();
 
     /// Write AppPurgeRecord to the persistent data store for the App with
     /// specified `appKey` using the specified `timestamp`.  The specified

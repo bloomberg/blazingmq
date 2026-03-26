@@ -302,6 +302,10 @@ struct AppMessage {
 struct DataStreamMessage {
     // VST to track the state associated with a GUID (for all Apps).
 
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(DataStreamMessage,
+                                   bslma::UsesBslmaAllocator)
+
     unsigned d_numApps;
     // number of Apps at the time of this object creation
 

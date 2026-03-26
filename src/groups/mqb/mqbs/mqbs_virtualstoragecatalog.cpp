@@ -166,7 +166,8 @@ bsl::shared_ptr<mqbi::DataStreamMessage> VirtualStorageCatalog::insert(
     bsl::pair<VirtualStorage::DataStreamIterator, bool> insertResult =
         d_dataStream.insert(bsl::make_pair(msgGUID, ptr));
 
-    mqbi::DataStreamMessage& dataStreamMessage = *insertResult.first->second;
+    bsl::shared_ptr<mqbi::DataStreamMessage> dataStreamMessage =
+        insertResult.first->second;
 
     if (!insertResult.second) {
         // Duplicate GUID
@@ -179,7 +180,7 @@ bsl::shared_ptr<mqbi::DataStreamMessage> VirtualStorageCatalog::insert(
             // but different apps
             BSLS_ASSERT_SAFE(refCount <= d_ordinals.size());
 
-            dataStreamMessage.d_numApps = refCount;
+            dataStreamMessage->d_numApps = refCount;
         }
     }
     else {
@@ -187,7 +188,7 @@ bsl::shared_ptr<mqbi::DataStreamMessage> VirtualStorageCatalog::insert(
         ++d_numMessages;
     }
 
-    return insertResult.first->second;
+    return dataStreamMessage;
 }
 
 bslma::ManagedPtr<mqbi::StorageIterator>
@@ -710,19 +711,6 @@ void VirtualStorageCatalog::calibrate()
                                               &bytes);
         it->value()->setNumRemoved(numMessages, bytes);
     }
-}
-
-bsl::shared_ptr<mqbi::DataStreamMessage>
-VirtualStorageCatalog::createDataStreamMessage(int          msgSize,
-                                               unsigned int refCount)
-{
-    bsl::shared_ptr<mqbi::DataStreamMessage> ptr =
-        bsl::allocate_shared<mqbi::DataStreamMessage>(d_allocator_p,
-                                                      refCount,
-                                                      msgSize,
-                                                      d_allocator_p);
-
-    return ptr;
 }
 
 // ACCESSORS
