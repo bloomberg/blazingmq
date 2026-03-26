@@ -73,11 +73,6 @@ struct TestItem {
 
     // MANIPULATORS
     int& value() { return d_value; }
-
-    TestItem& setProcessingStartTime(BSLA_MAYBE_UNUSED bsls::Types::Int64 time)
-    {
-        return *this;
-    }
 };
 
 typedef bmqc::MultiQueueThreadPool<TestItem> MQTP;
@@ -113,7 +108,8 @@ static void eventCb(bsl::map<int, bsl::vector<int> >* queueContextMap,
 static MQTP::EventFn
 eventCbCreator(bsl::map<int, bsl::vector<int> >* queueContextMap,
                int                               queueId,
-               bslma::Allocator*                 allocator)
+               BSLA_MAYBE_UNUSED bsls::AtomicInt64* lastProcessingStartTime,
+               bslma::Allocator*                    allocator)
 {
     return bdlf::BindUtil::bindS(allocator,
                                  &eventCb,
@@ -134,9 +130,10 @@ void performanceTestEventCb(BSLA_MAYBE_UNUSED const MQTP::EventSp&)
     // NOTHING
 }
 
-static MQTP::EventFn
-performanceTestEventCbCreator(BSLA_MAYBE_UNUSED int queueId,
-                              bslma::Allocator*     allocator)
+static MQTP::EventFn performanceTestEventCbCreator(
+    BSLA_MAYBE_UNUSED int queueId,
+    BSLA_MAYBE_UNUSED bsls::AtomicInt64* lastProcessingStartTime,
+    bslma::Allocator*                    allocator)
 {
     return bdlf::BindUtil::bindS(allocator,
                                  &performanceTestEventCb,
@@ -219,11 +216,13 @@ static void test1_breathingTest()
     MQTP::Config config(
         k_NUM_QUEUES,
         &threadPool,
-        bdlf::BindUtil::bindS(allocator,
-                              &eventCbCreator,
-                              &queueContextMap,
-                              bdlf::PlaceHolders::_1,  // queueId
-                              allocator),
+        bdlf::BindUtil::bindS(
+            allocator,
+            &eventCbCreator,
+            &queueContextMap,
+            bdlf::PlaceHolders::_1,  // queueId
+            bdlf::PlaceHolders::_2,  // lastProcessingStartTime
+            allocator),
         bdlf::BindUtil::bindS(allocator,
                               &queueCreator,
                               bdlf::PlaceHolders::_1,  // queueId
@@ -324,10 +323,12 @@ static void testN1_performance()
     MQTP::Config config(
         k_NUM_QUEUES,
         &threadPool,
-        bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
-                              &performanceTestEventCbCreator,
-                              bdlf::PlaceHolders::_1,  // queueId
-                              bmqtst::TestHelperUtil::allocator()),
+        bdlf::BindUtil::bindS(
+            bmqtst::TestHelperUtil::allocator(),
+            &performanceTestEventCbCreator,
+            bdlf::PlaceHolders::_1,  // queueId
+            bdlf::PlaceHolders::_2,  // lastProcessingStartTime
+            bmqtst::TestHelperUtil::allocator()),
         bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
                               &performanceTestQueueCreator,
                               bdlf::PlaceHolders::_1,  // queueId
@@ -474,10 +475,12 @@ static void testN1_performance_GoogleBenchmark(benchmark::State& state)
     MQTP::Config config(
         k_NUM_QUEUES,
         &threadPool,
-        bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
-                              &performanceTestEventCbCreator,
-                              bdlf::PlaceHolders::_1,  // queueId
-                              bmqtst::TestHelperUtil::allocator()),
+        bdlf::BindUtil::bindS(
+            bmqtst::TestHelperUtil::allocator(),
+            &performanceTestEventCbCreator,
+            bdlf::PlaceHolders::_1,  // queueId
+            bdlf::PlaceHolders::_2,  // lastProcessingStartTime
+            bmqtst::TestHelperUtil::allocator()),
         bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
                               &performanceTestQueueCreator,
                               bdlf::PlaceHolders::_1,  // queueId

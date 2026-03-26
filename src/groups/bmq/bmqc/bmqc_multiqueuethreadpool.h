@@ -199,8 +199,12 @@ class MultiQueueThreadPoolConfig {
     /// Callback invoked to process the specified `event`.
     typedef bsl::function<void(const EventSp& event)> EventFn;
 
-    /// Create the event callback for the specified `queueId`.
-    typedef bsl::function<EventFn(int queueId)> EventFnCreatorFn;
+    /// Create the event callback for the specified `queueId` and the
+    /// specified `lastProcessingStartTime` atomic pointer used to track
+    /// the processing start time of the last event for stuck detection.
+    typedef bsl::function<EventFn(int                queueId,
+                                  bsls::AtomicInt64* lastProcessingStartTime)>
+        EventFnCreatorFn;
 
     // FRIENDS
     template <typename T>
@@ -753,14 +757,7 @@ inline void MultiQueueThreadPool<TYPE>::processQueue(int queue)
             continue;  // CONTINUE
         }
 
-        const bsls::Types::Int64 processingTimeStart =
-            bsls::SystemTime::nowMonotonicClock().totalNanoseconds();
-        info.d_lastProcessingStartTime.store(processingTimeStart);
-        event->setProcessingStartTime(processingTimeStart);
-
         info.d_eventCallback(event);
-
-        info.d_lastProcessingStartTime.store(0);
     }
 }
 
@@ -828,7 +825,8 @@ inline int MultiQueueThreadPool<TYPE>::start()
         queue.d_queue_p       = d_config.d_queueCreatorFn(static_cast<int>(i),
                                                     d_allocator_p);
         queue.d_eventCallback = d_config.d_eventCallbackCreatorFn(
-            static_cast<int>(i));
+            static_cast<int>(i),
+            &queue.d_lastProcessingStartTime);
     }
 
     BSLS_ASSERT_SAFE(d_config.d_threadPool_p->enabled());
