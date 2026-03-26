@@ -232,12 +232,12 @@ void StorageManager::onWatchdogDispatched(int partitionId, int generation)
         return;  // RETURN
     }
 
+    // Decrement retry counter
+    const int retriesRemaining = ctx.d_retriesRemaining--;
+
     // Mark that watchdog has fired so that `do_startWatchDog` will schedule
     // a fresh timer on the next invocation.
     ctx.d_active = false;
-
-    // Decrement retry counter
-    const int retriesRemaining = ctx.d_retriesRemaining--;
 
     BMQTSK_ALARMLOG_ALARM("RECOVERY")
         << d_clusterData_p->identity().description() << " Partition ["
@@ -4256,7 +4256,8 @@ StorageManager::StorageManager(
 : d_allocator_p(allocator)
 , d_allocators(d_allocator_p)
 , d_isStarted(false)
-, d_watchdogContexts(allocator)
+, d_watchdogContexts(clusterConfig.partitionConfig().numPartitions(),
+                     allocator)
 , d_watchdogTimeoutInterval(watchdogTimeoutDuration)
 , d_watchdogNumRetries(watchdogNumRetries)
 , d_lowDiskspaceWarning(false)
@@ -4303,7 +4304,6 @@ StorageManager::StorageManager(
     const mqbcfg::PartitionConfig& partitionCfg =
         d_clusterConfig.partitionConfig();
 
-    d_watchdogContexts.resize(partitionCfg.numPartitions());
     for (int i = 0; i < partitionCfg.numPartitions(); ++i) {
         d_watchdogContexts[i].d_retriesRemaining = d_watchdogNumRetries;
     }
