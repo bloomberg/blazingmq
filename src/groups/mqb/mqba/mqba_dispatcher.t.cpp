@@ -35,6 +35,7 @@
 #include <bslmt_semaphore.h>
 #include <bslmt_threadutil.h>
 #include <bsls_assert.h>
+#include <bsls_atomic.h>
 #include <bsls_systemclocktype.h>
 #include <bsls_timeutil.h>
 
@@ -210,6 +211,42 @@ struct TestDispatcherClient : public mqbi::DispatcherClient {
     const bsl::string& description() const BSLS_KEYWORD_OVERRIDE
     {
         return d_description;
+    }
+};
+
+/// A helper class used to verify correctness of ExecuteOnAllQueues.
+struct ExecuteOnAllQueuesHelper {
+    // DATA
+    bsls::AtomicInt  d_functorCount;
+    bsls::AtomicInt  d_doneCount;
+    bslmt::Semaphore d_doneSemaphore;
+    const int        d_expectedCount;
+
+    // CREATORS
+    explicit ExecuteOnAllQueuesHelper(int expectedCount)
+    : d_functorCount(0)
+    , d_doneCount(0)
+    , d_doneSemaphore()
+    , d_expectedCount(expectedCount)
+    {
+    }
+
+    // MANIPULATORS
+    void incrementCounter() { ++d_functorCount; }
+
+    void signalDone()
+    {
+        BSLS_ASSERT_OPT(d_functorCount.load() == d_expectedCount);
+        ++d_doneCount;
+        d_doneSemaphore.post();
+    }
+
+    void verifyDone()
+    {
+        d_doneSemaphore.wait();
+
+        BMQTST_ASSERT_EQ(d_functorCount.load(), d_expectedCount);
+        BMQTST_ASSERT_EQ(d_doneCount.load(), 1);
     }
 };
 
@@ -578,6 +615,99 @@ static void test4_eventSource()
     eventScheduler.stop();
 }
 
+static void test5_executeOnAllQueues()
+// ------------------------------------------------------------------------
+// EXECUTE ON ALL QUEUES
+//
+// Concerns:
+//   - The specified functor is executed on every processor of the given
+//     client type.
+//   - The specified doneCallback is invoked exactly once, and only after
+//     all processors have executed the functor.
+//
+// Plan:
+//   - Create a dispatcher with multiple queue processors.
+//   - Call executeOnAllQueues with a functor that atomically increments a
+//     counter.
+//   - Provide a doneCallback that posts to a semaphore.
+//   - Wait on the semaphore and verify the counter equals the number of
+//     processors.
+//
+// Testing:
+//   mqba::Dispatcher::executeOnAllQueues
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("EXECUTE ON ALL QUEUES");
+
+    bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
+
+    const int k_NUM_QUEUE_PROCESSORS = 4;
+
+    // Create and start scheduler
+    bdlmt::EventScheduler eventScheduler(bsls::SystemClockType::e_MONOTONIC,
+                                         alloc);
+    eventScheduler.start();
+
+    {
+        // Create dispatcher config with multiple queue processors
+        mqbcfg::DispatcherConfig config = makeConfig();
+        config.queues().numProcessors() = k_NUM_QUEUE_PROCESSORS;
+
+        // Create Dispatcher
+        bsl::shared_ptr<bmqst::StatContext> statContext =
+            mqbstat::DispatcherStatsUtil::initializeStatContext(0, alloc);
+        mqba::Dispatcher dispatcher(config,
+                                    statContext.get(),
+                                    &eventScheduler,
+                                    alloc);
+
+        // Start the dispatcher
+        bsl::stringstream startErr(alloc);
+        const int         rc = dispatcher.start(startErr);
+        BMQTST_ASSERT_EQ(rc, 0);
+
+        // 1. Verify functor executes on all processors and doneCallback
+        //    fires exactly once after all executions.
+        {
+            const int k_REPEATS = 256;
+            for (int i = 0; i < k_REPEATS; i++) {
+                ExecuteOnAllQueuesHelper helper(k_NUM_QUEUE_PROCESSORS);
+
+                dispatcher.executeOnAllQueues(
+                    bdlf::BindUtil::bindS(
+                        alloc,
+                        &ExecuteOnAllQueuesHelper::incrementCounter,
+                        &helper),
+                    mqbi::DispatcherClientType::e_QUEUE,
+                    bdlf::BindUtil::bindS(
+                        alloc,
+                        &ExecuteOnAllQueuesHelper::signalDone,
+                        &helper));
+
+                helper.verifyDone();
+            }
+        }
+
+        // 2. Verify with an empty functor and only a doneCallback
+        {
+            ExecuteOnAllQueuesHelper helper(0);
+
+            dispatcher.executeOnAllQueues(
+                mqbi::Dispatcher::VoidFunctor(),
+                mqbi::DispatcherClientType::e_QUEUE,
+                bdlf::BindUtil::bindS(alloc,
+                                      &ExecuteOnAllQueuesHelper::signalDone,
+                                      &helper));
+
+            helper.d_doneSemaphore.wait();
+        }
+
+        dispatcher.stop();
+    }
+
+    eventScheduler.stop();
+}
+
 static void testN1_inDispatcherThread()
 {
     const size_t k_ITERS_NUM = 10000000;
@@ -663,6 +793,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 5: test5_executeOnAllQueues(); break;
     case 4: test4_eventSource(); break;
     case 3: test3_executorsSupport(); break;
     case 2: test2_clientTypeEnumValues(); break;

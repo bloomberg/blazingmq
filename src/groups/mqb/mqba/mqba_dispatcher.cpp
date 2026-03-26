@@ -330,9 +330,10 @@ Dispatcher::Dispatcher(const mqbcfg::DispatcherConfig& config,
 , d_flushClientsGate()
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(scheduler->clockType() ==
+    BSLS_ASSERT_SAFE(d_scheduler_p);
+    BSLS_ASSERT_SAFE(d_scheduler_p->clockType() ==
                      bsls::SystemClockType::e_MONOTONIC);
-    BSLS_ASSERT_SAFE(statContext);
+    BSLS_ASSERT_SAFE(d_statContext_p);
 
     d_flushClientsGate.open();
 }
