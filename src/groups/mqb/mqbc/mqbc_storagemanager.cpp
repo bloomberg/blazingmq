@@ -381,13 +381,15 @@ void StorageManager::enqueuePartitionFSMEventDispatched(
 
     // For WATCH_DOG events, check generation count to ignore stale events
     if (event == PartitionFSM::Event::e_WATCH_DOG) {
-        const int generation = eventDataVec[0].watchdogGeneration();
-        if (generation != -1 &&
-            generation != d_watchdogContexts[partitionId].d_generation) {
+        const bsl::optional<int> generation =
+            eventDataVec[0].watchdogGeneration();
+        if (generation.has_value() &&
+            generation.value() !=
+                d_watchdogContexts[partitionId].d_generation) {
             BALL_LOG_WARN << d_clusterData_p->identity().description()
                           << " Partition [" << partitionId
                           << "]: Ignoring stale WATCH_DOG event with "
-                          << "generation " << generation
+                          << "generation " << generation.value()
                           << ", current generation is "
                           << d_watchdogContexts[partitionId].d_generation;
             return;  // RETURN
