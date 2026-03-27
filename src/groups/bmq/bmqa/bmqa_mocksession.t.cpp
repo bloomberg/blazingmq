@@ -23,6 +23,7 @@
 #include <bmqa_openqueuestatus.h>
 #include <bmqa_session.h>
 #include <bmqimp_queue.h>
+#include <bmqp_blobpoolutil.h>
 #include <bmqp_protocolutil.h>
 #include <bmqt_queueoptions.h>
 
@@ -301,6 +302,11 @@ static void test1_staticMethods()
             bmqtst::TestHelperUtil::allocator()));
     }
 
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+
     {
         PVV("Create Ack Event");
 
@@ -318,7 +324,7 @@ static void test1_staticMethods()
 
         bmqa::Event event = bmqa::MockSessionUtil::createAckEvent(
             acks,
-            &bufferFactory,
+            blobSpPool.get(),
             bmqtst::TestHelperUtil::allocator());
 
         bmqa::MessageEvent ackEvent = event.messageEvent();
@@ -377,6 +383,7 @@ static void test1_staticMethods()
         pushMsgs.emplace_back(payload, queueId, guid, properties);
         bmqa::Event event = bmqa::MockSessionUtil::createPushEvent(
             pushMsgs,
+            blobSpPool.get(),
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator());
 
@@ -859,8 +866,14 @@ static void test5_confirmingMessages()
     pushMsgs.emplace_back(payload, queueId, guid2, properties);
     pushMsgs.emplace_back(payload, queueId, guid3, properties);
 
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+
     mockSession.enqueueEvent(bmqa::MockSessionUtil::createPushEvent(
         pushMsgs,
+        blobSpPool.get(),
         &bufferFactory,
         bmqtst::TestHelperUtil::allocator()));
 
@@ -888,6 +901,7 @@ static void test5_confirmingMessages()
             bmqa::MessageEvent invalidEvent =
                 bmqa::MockSessionUtil ::createPushEvent(
                     invalidMsg,
+                    blobSpPool.get(),
                     &bufferFactory,
                     bmqtst::TestHelperUtil::allocator())
                     .messageEvent();
@@ -1187,9 +1201,16 @@ static void test6_runThrough()
                                 queueId,
                                 messageGUID,
                                 bmqa::MessageProperties());
+
+        bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+            bmqp::BlobPoolUtil::createBlobPool(
+                &bufferFactory,
+                bmqtst::TestHelperUtil::allocator()));
+
         bmqa::MessageEvent pushMsgEvt =
             bmqa::MockSessionUtil::createPushEvent(
                 pushParams,
+                blobSpPool.get(),
                 &bufferFactory,
                 bmqtst::TestHelperUtil::allocator())
                 .messageEvent();

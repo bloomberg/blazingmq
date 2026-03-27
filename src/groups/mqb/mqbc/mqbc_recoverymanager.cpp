@@ -807,7 +807,7 @@ int RecoveryManager::processReceiveDataChunks(
         return rc_SUCCESS;  // RETURN
     }
 
-    bmqp::Event event(blob.get(), d_allocator_p);
+    bmqp::Event event(blob, d_allocator_p);
     BSLS_ASSERT_SAFE(event.isPartitionSyncEvent());
 
     bmqp::StorageMessageIterator iter;

@@ -300,6 +300,11 @@ class TCPSessionFactory {
     /// BlobBuffer factory to use (passed to the ChannelFactory)
     bdlbb::BlobBufferFactory* d_blobBufferFactory_p;
 
+    bdlcc::SharedObjectPool<bdlbb::Blob,
+                            bdlcc::ObjectPoolFunctors::DefaultCreator,
+                            bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
+        d_blobSpPool;
+
     /// Authenticator to use for authentication
     Authenticator* d_authenticator_p;
 
@@ -426,6 +431,11 @@ class TCPSessionFactory {
                       int*                 numNeeded,
                       bdlbb::Blob*         blob,
                       ChannelInfo*         channelInfo);
+
+    void read(ChannelInfo*       channelInfo,
+              const bdlbb::Blob& source,
+              int                offset,
+              int                length);
 
     /// Method invoked when the initial connection (including authentication
     /// and negotiation) of the specified `channel` is complete, whether it be

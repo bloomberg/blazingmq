@@ -212,6 +212,8 @@ class ConfirmEventBuilder {
     /// `length == 0`.  Behavior is undefined unless this instance was
     /// obtained using `bmqa::Session::loadConfirmEventBuilder`.
     const bdlbb::Blob& blob() const;
+
+    const bsl::shared_ptr<bdlbb::Blob>& sharedBlob() const;
 };
 
 // ============================================================================
