@@ -63,9 +63,6 @@ using namespace bmqio;
 // has been accepted only for the user to learn that it has already been
 // closed. The test that ensures that an immediately-cancelled connection
 // does not result in a CHANNEL_UP event has been adjusted to reflect this.
-//
-// 4) NTC does not report failures of individual connection retry attempts,
-// only the failure of the overall connection operation.
 // ========================================================================
 //                       STANDARD BDE ASSERT TEST MACRO
 // ------------------------------------------------------------------------
@@ -399,6 +396,14 @@ class Tester {
     /// specified `channelName`. This function will wait a few ms to give
     /// any recently-written data to be read.
     void checkNoRead(int line, const bslstl::StringRef& channelName);
+
+    /// Wait up to 5s for a ResultCallback invocation on the handle with
+    /// the specified `handleName`, pop it from the queue into the specified
+    /// `result`, and return `true`.  If no callback arrives within the
+    /// timeout, assert and return `false`.
+    bool popResultCallback(ResultCbInfo*            result,
+                           int                      line,
+                           const bslstl::StringRef& handleName);
 
     /// Check the oldest unchecked call to the ResultCallback
     /// associated with the handle with the specified `handleName`,
@@ -867,11 +872,9 @@ void Tester::checkNoRead(int line, const bslstl::StringRef& channelName)
     BMQTST_ASSERT_EQ_D(line, info.d_readData.length(), 0);
 }
 
-void Tester::checkResultCallback(int                       line,
-                                 const bslstl::StringRef&  handleName,
-                                 ChannelFactoryEvent::Enum event,
-                                 StatusCategory::Enum      statusCategory,
-                                 const bslstl::StringRef&  channelName)
+bool Tester::popResultCallback(ResultCbInfo*            result,
+                               int                      line,
+                               const bslstl::StringRef& handleName)
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
@@ -888,10 +891,36 @@ void Tester::checkResultCallback(int                       line,
 
     if (info.d_resultCbCalls.empty()) {
         BMQTST_ASSERT_D(line, false);
+        return false;  // RETURN
+    }
+
+    *result = info.d_resultCbCalls.front();
+    info.d_resultCbCalls.pop_front();
+    return true;
+}
+
+void Tester::checkResultCallback(int                       line,
+                                 const bslstl::StringRef&  handleName,
+                                 ChannelFactoryEvent::Enum event,
+                                 StatusCategory::Enum      statusCategory,
+                                 const bslstl::StringRef&  channelName)
+{
+    ResultCbInfo cbInfo;
+    if (!popResultCallback(&cbInfo, line, handleName)) {
         return;  // RETURN
     }
 
-    ResultCbInfo& cbInfo = info.d_resultCbCalls.front();
+    // When expecting a successful connection, skip any intermediate
+    // retry failure notifications from NTC.
+    if (event == ChannelFactoryEvent::e_CHANNEL_UP) {
+        while (cbInfo.d_event ==
+               ChannelFactoryEvent::e_CONNECT_ATTEMPT_FAILED) {
+            if (!popResultCallback(&cbInfo, line, handleName)) {
+                return;  // RETURN
+            }
+        }
+    }
+
     BMQTST_ASSERT_EQ_D(line, cbInfo.d_event, event);
     BMQTST_ASSERT_EQ_D(line, cbInfo.d_status.category(), statusCategory);
     if (cbInfo.d_status) {
@@ -926,14 +955,10 @@ void Tester::checkResultCallback(int                       line,
         cbInfo.d_channel->read(&readStatus, 1, readCb);
         if (readStatus) {
             // If the read succeeds, then the channel isn't down yet
+            bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
             d_channelMap[channelNameStr].d_channel = cbInfo.d_channel;
         }
     }
-    else {
-        // cout << "Failed result: " << cbInfo.d_status << endl;
-    }
-
-    info.d_resultCbCalls.pop_front();
 }
 
 void Tester::checkResultCallback(int                      line,
@@ -1327,18 +1352,11 @@ static void test2_connectListenFailTest()
     t.listen(L_, "h", "badport", CAT_GENERIC);
 
     // Concern 'b'
-
-    // This fails asynchronously in NTC, rather than synchronously as in BTE:
-    // t.connect(L_, "h", "localfoohost", CAT_GENERIC);
-
     t.connect(L_, "c1", "localfoohost");
     t.checkResultCallback(L_,
                           "c1",
                           ChannelFactoryEvent::e_CONNECT_ATTEMPT_FAILED,
                           StatusCategory::e_CONNECTION);
-
-    // This fails asynchronously in NTC, rather than synchronously as in BTE:
-    // t.connect(L_, "h", "localhost:a", CAT_GENERIC);
 
     t.connect(L_, "c2", "localhost:a");
     t.checkResultCallback(L_,
