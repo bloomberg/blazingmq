@@ -518,6 +518,11 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
                                  const bsl::string&     domainName)
         BSLS_KEYWORD_OVERRIDE;
 
+    /// PFSM signals when it is `e_DONE_RECEIVING_DATA_CHUNKS`.  Previously
+    /// buffered PrimaryStatusAdvisories should be reread.
+    void processBufferedPrimaryStatusAdvisories(int partitionId)
+        BSLS_KEYWORD_OVERRIDE;
+
     void getPrimaryNodes(int*                               rc,
                          bsl::ostream&                      errorDescription,
                          bsl::vector<mqbnet::ClusterNode*>* nodes,
