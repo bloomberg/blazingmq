@@ -6,7 +6,7 @@ echo -e "Before running this script, install the following prerequisites, if not
         "by executing the following commands:\n"                                               \
         "sudo apt update && sudo apt -y install ca-certificates\n"                             \
         "sudo apt install -y --no-install-recommends"                                          \
-        "autoconf automake build-essential gdb cmake ninja-build pkg-config bison libfl-dev libbenchmark-dev libgmock-dev libtool libz-dev"
+        "autoconf automake build-essential gdb cmake ninja-build pkg-config bison libfl-dev libbenchmark-dev libgmock-dev libtool libz-dev libzstd-dev"
 
 # :: Parse and validate arguments :::::::::::::::::::::::::::::::::::::::::::::
 print_usage_and_exit_with_error() {

@@ -141,6 +141,19 @@ struct Compression_Impl {
                               const bdlbb::Blob&        input,
                               bsl::ostream*             errorStream,
                               bslma::Allocator*         allocator);
+
+    static int compressZstd(bdlbb::Blob*              output,
+                            bdlbb::BlobBufferFactory* factory,
+                            const bdlbb::Blob&        input,
+                            int                       level,
+                            bsl::ostream*             errorStream,
+                            bslma::Allocator*         allocator);
+
+    static int decompressZstd(bdlbb::Blob*              output,
+                              bdlbb::BlobBufferFactory* factory,
+                              const bdlbb::Blob&        input,
+                              bsl::ostream*             errorStream,
+                              bslma::Allocator*         allocator);
 };
 
 }  // close package namespace

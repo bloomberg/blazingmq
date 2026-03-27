@@ -26,7 +26,7 @@
 ///
 ///   - *NONE*: No compression algorithm was specified
 ///   - *ZLIB*: The compression algorithm is ZLIB
-
+///   - *ZSTD*: The compression algorithm is ZSTD
 // BMQ
 
 // BDE
@@ -43,7 +43,7 @@ namespace bmqt {
 /// This struct defines various types of compression algorithms.
 struct CompressionAlgorithmType {
     // TYPES
-    enum Enum { e_UNKNOWN = -1, e_NONE = 0, e_ZLIB = 1 };
+    enum Enum { e_UNKNOWN = -1, e_NONE = 0, e_ZLIB = 1, e_ZSTD = 2 };
 
     // CONSTANTS
 
@@ -55,7 +55,7 @@ struct CompressionAlgorithmType {
     /// NOTE: This value must always be equal to the highest type in the
     /// enum because it is being used as an upper bound to verify that a
     /// header's `CompressionAlgorithmType` field is a supported type.
-    static const int k_HIGHEST_SUPPORTED_TYPE = e_ZLIB;
+    static const int k_HIGHEST_SUPPORTED_TYPE = e_ZSTD;
 
     // CLASS METHODS
 
