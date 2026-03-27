@@ -472,21 +472,18 @@ void StorageManager::setPrimaryStatusForPartitionDispatched(
 
     pinfo.setPrimaryStatus(value);
     if (bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE == value) {
+        // TODO: This should be part of FSM instead of checking the state.
         if (!d_partitionFSMVec[partitionId]->isSelfHealed()) {
-            BALL_LOG_WARN << d_clusterData_p->identity().description()
-                          << " Partition [" << partitionId << "]: "
-                          << "Partition FSM is not yet healed; deferring "
-                          << "setting active primary in FileStore until "
-                          << "healing is complete. Will buffer an artificial "
-                          << "PrimaryStatusAdvisory for Partition FSM to "
-                          << "process when it becomes healed";
+            BALL_LOG_WARN
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId
+                << "]: Partition FSM is not yet healed; deferring setting "
+                   "active primary in FileStore until healing is complete.";
 
-            bmqp_ctrlmsg::PrimaryStatusAdvisory primaryAdv;
-            primaryAdv.partitionId()    = partitionId;
-            primaryAdv.primaryLeaseId() = pinfo.primaryLeaseId();
-            primaryAdv.status()         = value;
+            // will call idempotent 'FileStore::setActivePrimary' in
+            // 'do_processBufferedPrimaryStatusAdvisories' upon transition to
+            // 'REPLICA_HEALED'.
 
-            bufferPrimaryStatusAdvisoryDispatched(primaryAdv, pinfo.primary());
             return;  // RETURN
         }
 
@@ -1241,27 +1238,6 @@ void StorageManager::processReplicaDataResponse(
             context,
             responder),
         d_cluster_p);
-}
-
-void StorageManager::bufferPrimaryStatusAdvisoryDispatched(
-    const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
-    mqbnet::ClusterNode*                       source)
-{
-    // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
-
-    // PRECONDITIONS
-    const int pid = advisory.partitionId();
-    BSLS_ASSERT_SAFE(0 <= pid && pid < static_cast<int>(d_fileStores.size()));
-    BSLS_ASSERT_SAFE(d_fileStores[pid]->inDispatcherThread());
-    BSLS_ASSERT_SAFE(source);
-
-    BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << pid
-                  << "]: Buffering primary status advisory: " << advisory
-                  << " from " << source->nodeDescription();
-
-    d_bufferedPrimaryStatusAdvisoryInfosVec.at(pid).push_back(
-        bsl::make_pair(advisory, source));
 }
 
 void StorageManager::processShutdownEventDispatched(int partitionId)
@@ -2774,56 +2750,22 @@ void StorageManager::do_processBufferedPrimaryStatusAdvisories(
         return;  // RETURN
     }
 
-    mqbs::FileStore* fs = d_fileStores[static_cast<size_t>(partitionId)].get();
-    BSLS_ASSERT_SAFE(fs);
-    if (!fs->isOpen()) {
-        BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << " Partition [" << partitionId << "]: "
-                       << "Cannot process buffered primary status advisory "
-                       << "because FileStore is not opened.";
+    d_cluster_p->processBufferedPrimaryStatusAdvisories(partitionId);
 
-        return;  // RETURN
-    }
+    PartitionInfo& pinfo = d_partitionInfoVec[partitionId];
 
-    BALL_LOG_INFO
-        << d_clusterData_p->identity().description() << " Partition ["
-        << partitionId << "]: " << "Processing "
-        << d_bufferedPrimaryStatusAdvisoryInfosVec[partitionId].size()
-        << " buffered primary status advisory.";
+    // we check this either upon transition to HEALED (this action) or after
+    // (in setPrimaryStatusForPartitionDispatched)
 
-    for (PrimaryStatusAdvisoryInfosCIter cit =
-             d_bufferedPrimaryStatusAdvisoryInfosVec[partitionId].cbegin();
-         cit != d_bufferedPrimaryStatusAdvisoryInfosVec[partitionId].cend();
-         ++cit) {
-        BSLS_ASSERT_SAFE(cit->first.partitionId() == partitionId);
+    // TODO: is it possible to have buffered advisories and E_ACTIVE status?
+    if (pinfo.primaryStatus() == bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE) {
+        d_fileStores[partitionId]->setActivePrimary(pinfo.primary(),
+                                                    pinfo.primaryLeaseId());
 
-        PartitionInfo& pinfo = d_partitionInfoVec[partitionId];
-        if (cit->second->nodeId() != pinfo.primary()->nodeId() ||
-            cit->first.primaryLeaseId() != pinfo.primaryLeaseId()) {
-            BALL_LOG_INFO << d_clusterData_p->identity().description()
-                          << " Partition [" << partitionId
-                          << "]: " << "Ignoring primary status advisory "
-                          << cit->first
-                          << " because primary node or leaseId is invalid. "
-                          << "Self-perceived [prmary, leaseId] is: ["
-                          << pinfo.primary()->nodeDescription() << ","
-                          << pinfo.primaryLeaseId() << "]";
-            continue;  // CONTINUE
-        }
-        pinfo.setPrimaryStatus(cit->first.status());
-        if (bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE == cit->first.status()) {
-            d_fileStores[partitionId]->setActivePrimary(
-                pinfo.primary(),
-                pinfo.primaryLeaseId());
-
-            // Note: We don't check if all partitions are fully healed and have
-            // an active active primary here, because we will do the check soon
-            // after when we transition the replica to healed (see
-            // `onPartitionRecovery()` method).
+        if (allPartitionsAvailable()) {
+            d_recoveryStatusCb(0);
         }
     }
-
-    d_bufferedPrimaryStatusAdvisoryInfosVec[partitionId].clear();
 }
 
 void StorageManager::do_processLiveData(const EventWithData& event)
@@ -4205,7 +4147,6 @@ StorageManager::StorageManager(
 , d_storages(allocator)
 , d_partitionInfoVec(allocator)
 , d_partitionFSMVec(allocator)
-, d_bufferedPrimaryStatusAdvisoryInfosVec(allocator)
 , d_numPartitionsRecoveredFully(0)
 , d_numPartitionsRecoveredQueues(0)
 , d_recoveryStartTimes(allocator)
@@ -4237,9 +4178,7 @@ StorageManager::StorageManager(
     d_fileStores.resize(partitionCfg.numPartitions());
     d_storages.resize(partitionCfg.numPartitions());
     d_partitionInfoVec.resize(partitionCfg.numPartitions());
-    d_bufferedPrimaryStatusAdvisoryInfosVec.resize(
-        partitionCfg.numPartitions(),
-        PrimaryStatusAdvisoryInfos(allocator));
+
     d_recoveryStartTimes.resize(partitionCfg.numPartitions());
     d_nodeToContextMapVec.resize(partitionCfg.numPartitions());
     d_numReplicaDataResponsesReceivedVec.resize(partitionCfg.numPartitions());
@@ -5232,43 +5171,6 @@ void StorageManager::processReceiptEvent(const bmqp::Event&   event,
                                      receipt->primaryLeaseId(),
                                      receipt->sequenceNum(),
                                      source));
-}
-
-void StorageManager::bufferPrimaryStatusAdvisory(
-    const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
-    mqbnet::ClusterNode*                       source)
-{
-    // executed by *ANY* thread
-
-    // PRECONDITION
-    BSLS_ASSERT_SAFE(d_fileStores.size() >
-                     static_cast<size_t>(advisory.partitionId()));
-
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!d_isStarted)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << " Partition [" << advisory.partitionId() << "]: "
-                      << " Not buffering primary status advisory as StorageMgr"
-                      << " is not started.";
-        return;  // RETURN
-    }
-
-    if (d_cluster_p->isStopping()) {
-        BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << " Partition [" << advisory.partitionId() << "]: "
-                      << " Not buffering primary status advisory as cluster"
-                      << " is stopping.";
-        return;  // RETURN
-    }
-
-    mqbs::FileStore* fs = d_fileStores[advisory.partitionId()].get();
-    BSLS_ASSERT_SAFE(fs);
-
-    fs->execute(bdlf::BindUtil::bind(
-        &StorageManager::bufferPrimaryStatusAdvisoryDispatched,
-        this,
-        advisory,
-        source));
 }
 
 void StorageManager::processPrimaryStatusAdvisory(

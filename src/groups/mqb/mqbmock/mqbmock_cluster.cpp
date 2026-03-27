@@ -550,6 +550,12 @@ void Cluster::purgeAndGCQueueOnDomain(
     result->makeError().message() = os.str();
 }
 
+void Cluster::processBufferedPrimaryStatusAdvisories(
+    BSLA_MAYBE_UNUSED int partitionId)
+{
+    // NOTHING (mock)
+}
+
 // MANIPULATORS
 //   (specific to mqbmock::Cluster)
 Cluster& Cluster::_setIsClusterMember(bool value)

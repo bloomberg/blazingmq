@@ -617,6 +617,7 @@ ClusterOrchestrator::ClusterOrchestrator(
                 allocator)
 , d_elector_mp()
 , d_storageManager_p(0)
+, d_bufferedPrimaryStatusAdvisoryInfosVec(allocator)
 {
     // executed by *ANY* thread
 
@@ -624,6 +625,10 @@ ClusterOrchestrator::ClusterOrchestrator(
     BSLS_ASSERT_SAFE(allocator);
     BSLS_ASSERT_SAFE(d_cluster_p);
     BSLS_ASSERT_SAFE(d_clusterData_p);
+
+    d_bufferedPrimaryStatusAdvisoryInfosVec.resize(
+        d_clusterConfig.partitionConfig().numPartitions(),
+        PrimaryStatusAdvisoryInfos(allocator));
 }
 
 ClusterOrchestrator::~ClusterOrchestrator()
@@ -1560,6 +1565,21 @@ void ClusterOrchestrator::processPrimaryStatusAdvisory(
     const bmqp_ctrlmsg::PrimaryStatusAdvisory& primaryAdv =
         message.choice().clusterMessage().choice().primaryStatusAdvisory();
 
+    processPrimaryStatusAdvisoryImpl(primaryAdv, source);
+}
+
+void ClusterOrchestrator::processPrimaryStatusAdvisoryImpl(
+    const bmqp_ctrlmsg::PrimaryStatusAdvisory& primaryAdv,
+    mqbnet::ClusterNode*                       source)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+
+    // This routine is invoked when the status of a primary 'source' node has
+    // changed.
+
     if (d_clusterData_p->membership().selfNodeStatus() ==
         bmqp_ctrlmsg::NodeStatus::E_STOPPING) {
         // No need to process the advisory since self is stopping.
@@ -1614,13 +1634,17 @@ void ClusterOrchestrator::processPrimaryStatusAdvisory(
                     BALL_LOG_OUTPUT_STREAM << " Ignoring advisory.";
                 }
                 else {
-                    BALL_LOG_OUTPUT_STREAM << " Since we have not received any"
-                                           << " information regarding the true"
-                                           << " primary, this advisory could "
-                                           << "be from the true one. Will"
-                                           << " buffer the advisory for now.";
-                    d_storageManager_p->bufferPrimaryStatusAdvisory(primaryAdv,
-                                                                    source);
+                    BALL_LOG_OUTPUT_STREAM
+                        << d_clusterData_p->identity().description()
+                        << " Partition [" << primaryAdv.partitionId()
+                        << "]: buffering primary status advisory: "
+                        << primaryAdv << " from " << source->nodeDescription()
+                        << " since we have not received any information "
+                           "regarding the true primary";
+
+                    d_bufferedPrimaryStatusAdvisoryInfosVec
+                        .at(primaryAdv.partitionId())
+                        .push_back(bsl::make_pair(primaryAdv, source));
                 }
             }
             return;  // RETURN
@@ -1917,6 +1941,49 @@ void ClusterOrchestrator::onPartitionPrimaryStatus(int          partitionId,
             status,
             primaryLeaseId),
         d_cluster_p);
+}
+
+void ClusterOrchestrator::processBufferedPrimaryStatusAdvisories(
+    int partitionId)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+
+    BALL_LOG_INFO
+        << d_clusterData_p->identity().description() << " Partition ["
+        << partitionId << "]: " << "Processing "
+        << d_bufferedPrimaryStatusAdvisoryInfosVec[partitionId].size()
+        << " buffered primary status advisory.";
+
+    const mqbc::ClusterStatePartitionInfo& pinfo = clusterState()->partition(
+        partitionId);
+
+    for (PrimaryStatusAdvisoryInfosCIter cit =
+             d_bufferedPrimaryStatusAdvisoryInfosVec[partitionId].cbegin();
+         cit != d_bufferedPrimaryStatusAdvisoryInfosVec[partitionId].cend();
+         ++cit) {
+        BSLS_ASSERT_SAFE(cit->first.partitionId() == partitionId);
+
+        if (cit->second->nodeId() != pinfo.primaryNodeId() ||
+            cit->first.primaryLeaseId() != pinfo.primaryLeaseId()) {
+            BALL_LOG_INFO << d_clusterData_p->identity().description()
+                          << " Partition [" << partitionId
+                          << "]: " << "Ignoring primary status advisory "
+                          << cit->first
+                          << " because primary node or leaseId is invalid. "
+                          << "Self-perceived [primary, leaseId] is: ["
+                          << (pinfo.primaryNode()
+                                  ? pinfo.primaryNode()->nodeDescription()
+                                  : "** null **")
+                          << "," << pinfo.primaryLeaseId() << "]";
+            continue;  // CONTINUE
+        }
+        processPrimaryStatusAdvisoryImpl(cit->first, cit->second);
+    }
+
+    d_bufferedPrimaryStatusAdvisoryInfosVec[partitionId].clear();
 }
 
 int ClusterOrchestrator::processCommand(
