@@ -248,13 +248,6 @@ void StorageManager::processReceiptEvent(
     // NOTHING
 }
 
-void StorageManager::bufferPrimaryStatusAdvisory(
-    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
-    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* source)
-{
-    // NOTHING
-}
-
 void StorageManager::processPrimaryStatusAdvisory(
     BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
     BSLA_MAYBE_UNUSED mqbnet::ClusterNode* source)

@@ -1968,15 +1968,6 @@ void StorageManager::processReceiptEvent(const bmqp::Event&   event,
                                      source));
 }
 
-void StorageManager::bufferPrimaryStatusAdvisory(
-    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
-    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* source)
-{
-    // executed by *ANY* thread
-
-    BSLS_ASSERT_OPT(false && "This method should only be invoked in FSM mode");
-}
-
 void StorageManager::processPrimaryStatusAdvisory(
     const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
     mqbnet::ClusterNode*                       source)

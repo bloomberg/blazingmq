@@ -611,11 +611,6 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
                         mqbnet::ClusterNode* source) BSLS_KEYWORD_OVERRIDE;
 
     /// Executed by any thread.
-    void bufferPrimaryStatusAdvisory(
-        const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
-        mqbnet::ClusterNode* source) BSLS_KEYWORD_OVERRIDE;
-
-    /// Executed by any thread.
     void processPrimaryStatusAdvisory(
         const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
         mqbnet::ClusterNode* source) BSLS_KEYWORD_OVERRIDE;

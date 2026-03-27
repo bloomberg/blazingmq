@@ -3180,6 +3180,18 @@ void Cluster::purgeAndGCQueueOnDomainDispatched(mqbcmd::ClusterResult* result,
     }
 }
 
+void Cluster::processBufferedPrimaryStatusAdvisories(int partitionId)
+{
+    // exected by *ANY* thread
+
+    dispatcher()->execute(
+        bdlf::BindUtil::bind(
+            &ClusterOrchestrator::processBufferedPrimaryStatusAdvisories,
+            &d_clusterOrchestrator,
+            partitionId),
+        this);
+}
+
 void Cluster::printClusterStateSummary(bsl::ostream& out,
                                        int           level,
                                        int           spacesPerLevel) const

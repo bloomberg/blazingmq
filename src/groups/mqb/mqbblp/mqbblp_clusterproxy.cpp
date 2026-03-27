@@ -1150,6 +1150,12 @@ void ClusterProxy::purgeAndGCQueueOnDomain(
     result->makeError().message() = os.str();
 }
 
+void ClusterProxy::processBufferedPrimaryStatusAdvisories(
+    BSLA_MAYBE_UNUSED int partitionId)
+{
+    BSLS_ASSERT_SAFE(false && "Proxy does not buffer advisories");
+}
+
 mqbi::InlineResult::Enum
 ClusterProxy::sendConfirmInline(BSLA_MAYBE_UNUSED int       partitionId,
                                 const bmqp::ConfirmMessage& message)

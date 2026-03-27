@@ -315,14 +315,6 @@ class StorageManager BSLS_KEYWORD_FINAL
     ///         for the i-th partitionId.
     PartitionFSMVec d_partitionFSMVec;
 
-    /// Vector, indexed by partitionId, of vectors of pairs of buffered primary
-    /// status advisories and their source.
-    ///
-    /// THREAD: Except during the ctor, the i-th index of this data member
-    ///         **must** be accessed in the associated Queue dispatcher thread
-    ///         for the i-th partitionId.
-    PrimaryStatusAdvisoryInfosVec d_bufferedPrimaryStatusAdvisoryInfosVec;
-
     /// Number of partitions whose recovery has been fully completed.  This
     /// variable needs to be atomic because it's touched from the dispatcher
     /// threads of all partitions.
@@ -564,12 +556,6 @@ class StorageManager BSLS_KEYWORD_FINAL
     void
     processReplicaDataResponse(const RequestManagerType::RequestSp& context,
                                mqbnet::ClusterNode*                 responder);
-
-    /// THREAD: Executed by the dispatcher thread for the specified
-    ///         `partitionId`.
-    void bufferPrimaryStatusAdvisoryDispatched(
-        const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
-        mqbnet::ClusterNode*                       source);
 
     /// THREAD: Executed by the dispatcher thread for the specified
     ///         `partitionId`.
@@ -984,11 +970,6 @@ class StorageManager BSLS_KEYWORD_FINAL
     void
     processReceiptEvent(const bmqp::Event&   event,
                         mqbnet::ClusterNode* source) BSLS_KEYWORD_OVERRIDE;
-
-    /// Executed by any thread.
-    void bufferPrimaryStatusAdvisory(
-        const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
-        mqbnet::ClusterNode* source) BSLS_KEYWORD_OVERRIDE;
 
     /// Executed in cluster dispatcher thread.
     void processPrimaryStatusAdvisory(

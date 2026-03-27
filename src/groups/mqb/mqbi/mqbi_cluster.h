@@ -367,6 +367,10 @@ class Cluster : public DispatcherClient {
     virtual void purgeAndGCQueueOnDomain(mqbcmd::ClusterResult* result,
                                          const bsl::string& domainName) = 0;
 
+    /// PFSM signals when it is `e_DONE_RECEIVING_DATA_CHUNKS`.  Previously
+    /// buffered PrimaryStatusAdvisories should be reread.
+    virtual void processBufferedPrimaryStatusAdvisories(int partitionId) = 0;
+
     // ACCESSORS
 
     /// Return the name of this cluster.

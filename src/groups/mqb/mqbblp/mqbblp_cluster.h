@@ -609,6 +609,11 @@ class Cluster : public mqbi::Cluster,
     void purgeAndGCQueueOnDomainDispatched(mqbcmd::ClusterResult* result,
                                            const bsl::string&     domainName);
 
+    /// PFSM signals when it is `e_DONE_RECEIVING_DATA_CHUNKS`.  Previously
+    /// buffered PrimaryStatusAdvisories should be reread.
+    void processBufferedPrimaryStatusAdvisories(int partitionId)
+        BSLS_KEYWORD_OVERRIDE;
+
     // MANIPULATORS
     //   (virtual: mqbnet::SessionEventProcessor)
 
