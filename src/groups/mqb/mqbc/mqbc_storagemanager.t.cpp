@@ -63,6 +63,9 @@
 #include <bsls_systemtime.h>
 #include <bsls_types.h>
 
+// SYS
+#include <bsl_c_signal.h>  // sigaction, sig_atomic_t
+
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
 #include <bmqu_tempdirectory.h>
@@ -85,6 +88,17 @@ static const int k_WATCHDOG_NUM_RETRIES = 1;
 // 10-second request timeout so that advancing time fires the watchdog
 // without also expiring pending replica/primary state requests.
 static const bsls::Types::Int64 k_WATCHDOG_TIMEOUT_DURATION_SHORT = 5;
+
+/// Flag set by `testSigintHandler` when SIGINT is received.  Used to
+/// verify that `mqbu::ExitUtil::shutdown` was invoked (which sends
+/// SIGINT to the process) without actually terminating the test.
+static volatile sig_atomic_t s_sigintReceived = 0;
+
+/// Signal handler that captures SIGINT instead of terminating.
+static void testSigintHandler(int /* signum */)
+{
+    s_sigintReceived = 1;
+}
 
 // TYPES
 typedef mqbmock::Cluster::TestChannelMapCIter TestChannelMapCIter;
@@ -3147,16 +3161,20 @@ static void test21_watchdogMultipleRetries()
 // Concerns:
 //   With numRetries = 2, the watchdog can fire and retry twice
 //   (counter: 2 -> 1 -> 0), with healing restarting each time.
+//   On the third fire (retries exhausted), ExitUtil::shutdown is called,
+//   which sends SIGINT to the process.
 //
 // Plan:
 //  1) Create a StorageManager with numRetries = 2
 //  2) Start as primary -> PRIMARY_HEALING_STG1
 //  3) Advance time -> watchdog fires -> verify retries = 1
 //  4) Clear channels, advance time again -> verify retries = 0
-//  5) Do NOT advance time again (next fire would call shutdown)
+//  5) Install a SIGINT handler, advance time again -> verify SIGINT
+//     received (ExitUtil::shutdown was called)
 //
 // Testing:
-//   Multiple watchdog retries end-to-end.
+//   Multiple watchdog retries end-to-end, including broker shutdown
+//   on retry exhaustion.
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("WATCHDOG MULTIPLE RETRIES");
@@ -3227,7 +3245,29 @@ static void test21_watchdogMultipleRetries()
                      0);
     BMQTST_ASSERT_EQ(storageManager.isWatchdogActive(k_PARTITION_ID), true);
 
-    // Do NOT fire again -- next fire would call ExitUtil::shutdown
+    for (size_t pid = 0; pid < helper.numPartitions(); ++pid) {
+        helper.verifyPrimarySendsReplicaStateRqst(selfNodeId);
+    }
+    helper.clearChannels();
+
+    // Third watchdog fire: retries exhausted -> ExitUtil::shutdown (SIGINT).
+    // Install a custom SIGINT handler so the process survives.  Note:
+    // ExitUtil::shutdown sends SIGINT via kill(pid, SIGINT).
+    s_sigintReceived = 0;
+
+    struct sigaction sa, oldSa;
+    sa.sa_handler = testSigintHandler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sigaction(SIGINT, &sa, &oldSa);
+
+    helper.d_cluster_mp->advanceTime(k_WATCHDOG_TIMEOUT_DURATION_SHORT);
+    helper.d_cluster_mp->waitForScheduler();
+
+    BMQTST_ASSERT_EQ(static_cast<int>(s_sigintReceived), 1);
+
+    // Restore original handler
+    sigaction(SIGINT, &oldSa, NULL);
 
     // Cleanup
     storageManager.stopPFSMs();
