@@ -81,10 +81,11 @@ Channel::Channel(bdlbb::BlobBufferFactory* blobBufferFactory,
              d_allocators.get("ItemPool"))
 , d_buffer(1024, allocator)
 , d_doStop(false)
-, d_state(e_INITIAL)
+, d_state(e_RESET)
 , d_description(name + " - ", d_allocator_p)
 , d_name(name, d_allocator_p)
 , d_stats()
+, d_isClosing(false)
 {
     bslmt::ThreadAttributes attr = bmqsys::ThreadUtil::defaultAttributes();
     bsl::string             threadName("bmqNet-");
@@ -261,19 +262,14 @@ void Channel::resetChannel()
 
 void Channel::closeChannel()
 {
-    bsl::shared_ptr<bmqio::Channel> channel;
-    {
-        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
-        channel = d_channel_wp.lock();
-    }  // UNLOCK
+    d_isClosing.store(true);
 
-    if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(channel)) {
-        channel->close();
-        // Set the state to e_CLOSE to avoid repeated attempts to write until
-        // 'OnClose' calls 'resetChannel'.
+    // No need to 'signal' to interrupt the waiting.
+    // Waiting means there is no connection and therefore nothing to close.
 
-        d_state.testAndSwap(e_READY, e_CLOSE);
-    }
+    wakeUp();
+
+    // do not wait for all items to drain.
 }
 
 void Channel::setChannel(const bsl::weak_ptr<bmqio::Channel>& value)
@@ -747,7 +743,7 @@ void Channel::threadFn()
     bsl::string                     description;
     int                             mode = e_BLOCK;
 
-    BSLS_ASSERT(d_state == e_INITIAL || d_state == e_RESET);
+    BSLS_ASSERT(d_state == e_RESET);
 
     while (!d_doStop) {
         bmqc::MonitoredQueueState::Enum queueState;
@@ -796,17 +792,14 @@ void Channel::threadFn()
                 item.reset();
                 reset();
 
-                d_state = e_INITIAL;
                 mode    = e_BLOCK;
-            }
+                d_isClosing.store(false);
 
-            if (d_state == e_INITIAL) {
                 channel     = d_channel_wp.lock();
                 description = d_description;
 
                 if (channel) {
-                    // This is the only place for transitions:
-                    //  e_IDLE  -> e_READY
+                    // This is the only place for the transition
                     //  e_RESET -> e_READY
                     d_state = e_READY;
                 }
@@ -855,6 +848,13 @@ void Channel::threadFn()
                     // Everything was processed and flushed, circle back to
                     // BLOCK mode and wait for the next batch of items.
                     mode = e_BLOCK;
+                }
+                // if draining, this is where it stops.
+                // Does not matter if 'flushAll' has failed; must close
+                if (d_isClosing) {
+                    channel->close();
+                    d_state.testAndSwap(e_READY, e_CLOSE);
+                    // bmqio::Channel observer will trigger 'resetChannel'
                 }
             } break;
             default: {
