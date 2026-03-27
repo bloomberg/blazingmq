@@ -199,7 +199,7 @@ class Task {
     // True is this object has been initialized.
 
     bsl::string d_bmqPrefix;
-    // BMQ_PREFIX directory
+    // Directory path to store PID, HIST, and CTL files under.
 
     bdlmt::EventScheduler d_scheduler;
     // EventScheduler
