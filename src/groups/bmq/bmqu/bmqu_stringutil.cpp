@@ -23,6 +23,7 @@
 #include <bsl_cctype.h>
 #include <bsl_climits.h>
 #include <bsl_functional.h>
+#include <bsl_iterator.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {
@@ -142,14 +143,36 @@ bsl::vector<bslstl::StringRef>
 StringUtil::strTokenizeRef(const bsl::string&       str,
                            const bslstl::StringRef& delims)
 {
+    bsl::vector<bsl::string_view> tokenized =
+        strTokenizeRef(bsl::string_view(str), bsl::string_view(delims));
+
+    struct Locals {
+        static bslstl::StringRef convert(bsl::string_view str)
+        {
+            return bslstl::StringRef(str);
+        }
+    };
+
     bsl::vector<bslstl::StringRef> res;
+    res.reserve(tokenized.size());
+    bsl::transform(tokenized.cbegin(),
+                   tokenized.cend(),
+                   bsl::back_inserter(res),
+                   Locals::convert);
+    return res;
+}
+
+bsl::vector<bsl::string_view>
+StringUtil::strTokenizeRef(bsl::string_view str, bsl::string_view delims)
+{
+    bsl::vector<bsl::string_view> res;
 
     if (str.empty()) {
         return res;  // RETURN
     }
 
     if (delims.length() == 0) {
-        res.push_back(bslstl::StringRef(str.c_str(), str.length()));
+        res.push_back(str);
         return res;  // RETURN
     }
 
@@ -157,22 +180,21 @@ StringUtil::strTokenizeRef(const bsl::string&       str,
 
     while ((delimIdx = str.find_first_of(delims, idx)) != bsl::string::npos) {
         if ((len = delimIdx - idx) != 0) {
-            res.push_back(bslstl::StringRef(str.c_str() + idx, len));
+            res.emplace_back(str.cbegin() + idx, len);
         }
         else {
             // Put an empty ""
-            res.push_back(bslstl::StringRef(str.c_str() + idx, 0));
+            res.emplace_back(str.cbegin() + idx, 0);
         }
         idx = delimIdx + 1;
     }
 
     if (idx != str.length()) {
-        res.push_back(
-            bslstl::StringRef(str.c_str() + idx, str.length() - idx));
+        res.emplace_back(str.cbegin() + idx, str.length() - idx);
     }
     else {
         // Put an empty ""
-        res.push_back(bslstl::StringRef(str.c_str() + idx, 0));
+        res.emplace_back(str.cbegin() + idx, 0);
     }
 
     return res;

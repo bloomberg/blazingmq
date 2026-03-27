@@ -205,6 +205,13 @@ class AuthenticatedChannelFactory : public bmqio::ChannelFactory {
     processAuthenticationEvent(const bmqp::Event&                     event,
                                const ResultCallback&                  cb,
                                const bsl::shared_ptr<bmqio::Channel>& channel);
+
+    /// Enable this factory to start creating connections.
+    int start() BSLS_KEYWORD_OVERRIDE;
+
+    /// Stop this factory from creating connections and clean up any pending
+    /// connections.
+    void stop() BSLS_KEYWORD_OVERRIDE;
 };
 
 }  // close package namespace

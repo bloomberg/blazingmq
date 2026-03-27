@@ -462,5 +462,15 @@ void AuthenticatedChannelFactory::connect(bmqio::Status*               status,
             bdlf::PlaceHolders::_3));  // channel
 }
 
+int AuthenticatedChannelFactory::start()
+{
+    return 0;
+}
+
+void AuthenticatedChannelFactory::stop()
+{
+    // NOTHING
+}
+
 }  // close package namespace
 }  // close enterprise namespace

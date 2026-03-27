@@ -86,11 +86,28 @@
                 "highWatermark": 1073741824,
                 "nodeLowWatermark": 5242880,
                 "nodeHighWatermark": 10485760,
-                "heartbeatIntervalMs": 3000
+                "heartbeatIntervalMs": 3000,
+                "listeners": [
+                    {
+                        "name": "TCPListener",
+                        "port": 30114,
+                        "tls": false
+                    },
+                    {
+                        "name": "TLSListener",
+                        "port": 30115,
+                        "tls": true
+                    }
+                ]
             }
         },
         "bmqconfConfig": {
             "cacheTTLSeconds": 30
+        },
+        "tlsConfig": {
+            "certificateAuthority": "/var/local/bmq/certs/ca-cert",
+            "certificate": "/var/local/bmq/certs/broker_host_cert.pem",
+            "key": "/var/local/bmq/certs/broker_private_key.pem"
         }
     }
 }

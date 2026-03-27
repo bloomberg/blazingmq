@@ -254,6 +254,10 @@ class ResolvingChannelFactory : public ChannelFactory {
                  bslma::ManagedPtr<OpHandle>* handle,
                  const ConnectOptions&        options,
                  const ResultCallback&        cb) BSLS_KEYWORD_OVERRIDE;
+
+    int start() BSLS_KEYWORD_OVERRIDE;
+
+    void stop() BSLS_KEYWORD_OVERRIDE;
 };
 
 // ==================================

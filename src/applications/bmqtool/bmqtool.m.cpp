@@ -204,6 +204,18 @@ static bool parseArgs(Parameters* parameters, int argc, const char* argv[])
          "address and port of the broker",
          balcl::TypeInfo(&params.broker()),
          balcl::OccurrenceInfo(params.broker())},
+        {"tls-authority",
+         "tlsAuthority",
+         "Path to the certificate authority FILE for TLS mode."
+         "The empty string value means that TLS is disabled, "
+         "non-empty string value means that TLS is enabled",
+         balcl::TypeInfo(&params.tlsAuthority()),
+         balcl::OccurrenceInfo(params.tlsAuthority())},
+        {"tls-versions",
+         "tlsVersions",
+         "TLS protocol versions, has effect only in TLS mode",
+         balcl::TypeInfo(&params.tlsVersions()),
+         balcl::OccurrenceInfo(params.tlsVersions())},
         {"q|queueuri",
          "uri",
          "URI of the queue (for auto/syschk modes)",

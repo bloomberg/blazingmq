@@ -40,6 +40,3 @@ settings.json
 
 # Symlink from 'src/applications/bmqbrkr/run'
 src/applications/bmqbrkr/etc/etc
-
-# 'sim_cpp11_features.pl' backups
-*.bak
