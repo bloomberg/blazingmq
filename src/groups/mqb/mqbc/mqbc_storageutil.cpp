@@ -3453,13 +3453,13 @@ void StorageUtil::forceFlushFileStores(FileStores* fileStores)
 
 void StorageUtil::purgeDomainDispatched(
     bsl::vector<bsl::vector<mqbcmd::PurgeQueueResult> >*
-                       purgedQueuesResultsVec,
-    bslmt::Latch*      latch,
-    int                partitionId,
-    StorageSpMapVec*   storageMapVec,
-    bslmt::Mutex*      storagesLock,
-    const FileStores*  fileStores,
-    const bsl::string& domainName)
+                                                 purgedQueuesResultsVec,
+    bslmt::Latch*                                latch,
+    int                                          partitionId,
+    StorageSpMapVec*                             storageMapVec,
+    bsl::vector<bsl::shared_ptr<bslmt::Mutex> >* storageLockVec,
+    const FileStores*                            fileStores,
+    const bsl::string&                           domainName)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
@@ -3473,7 +3473,7 @@ void StorageUtil::purgeDomainDispatched(
                      fileStores->size());
     BSLS_ASSERT_SAFE(purgedQueuesResultsVec->size() == fileStores->size());
     BSLS_ASSERT_SAFE(storageMapVec);
-    BSLS_ASSERT_SAFE(storagesLock);
+    BSLS_ASSERT_SAFE(storageLockVec);
 
     const mqbs::FileStore* fileStore = (*fileStores)[partitionId].get();
 
@@ -3482,7 +3482,8 @@ void StorageUtil::purgeDomainDispatched(
 
     bsl::vector<mqbi::Storage*> domainStorages;
     {
-        bslmt::LockGuard<bslmt::Mutex> guard(storagesLock);  // LOCK
+        bslmt::LockGuard<bslmt::Mutex> guard(
+            (*storageLockVec)[partitionId].get());  // LOCK
 
         const StorageSpMap& partitionStorages = (*storageMapVec)[partitionId];
         for (StorageSpMap::const_iterator it = partitionStorages.cbegin();
@@ -3492,8 +3493,8 @@ void StorageUtil::purgeDomainDispatched(
                 domainStorages.push_back(it->second.get());
             }
         }
-        // Prepare a vector of storages to purge and release `storagesLock`
-        // as fast as possible.
+        // Prepare a vector of storages to purge and release the partition
+        // lock as fast as possible.
     }
 
     bsl::vector<mqbcmd::PurgeQueueResult>& purgedQueuesResults =
@@ -3602,15 +3603,16 @@ void StorageUtil::purgeQueueDispatched(
     queueDetails.numBytesPurged()    = numBytes;
 }
 
-int StorageUtil::processCommand(mqbcmd::StorageResult*     result,
-                                FileStores*                fileStores,
-                                StorageSpMapVec*           storageMapVec,
-                                bslmt::Mutex*              storagesLock,
-                                const mqbi::DomainFactory* domainFactory,
-                                int*                       replicationFactor,
-                                const mqbcmd::StorageCommand& command,
-                                const bslstl::StringRef& partitionLocation,
-                                bslma::Allocator*        allocator)
+int StorageUtil::processCommand(
+    mqbcmd::StorageResult*                       result,
+    FileStores*                                  fileStores,
+    StorageSpMapVec*                             storageMapVec,
+    bsl::vector<bsl::shared_ptr<bslmt::Mutex> >* storageLockVec,
+    const mqbi::DomainFactory*                   domainFactory,
+    int*                                         replicationFactor,
+    const mqbcmd::StorageCommand&                command,
+    const bslstl::StringRef&                     partitionLocation,
+    bslma::Allocator*                            allocator)
 {
     // executed by cluster *DISPATCHER* thread
 
@@ -3618,7 +3620,7 @@ int StorageUtil::processCommand(mqbcmd::StorageResult*     result,
     BSLS_ASSERT_SAFE(result);
     BSLS_ASSERT_SAFE(fileStores);
     BSLS_ASSERT_SAFE(storageMapVec);
-    BSLS_ASSERT_SAFE(storagesLock);
+    BSLS_ASSERT_SAFE(storageLockVec);
     BSLS_ASSERT_SAFE(domainFactory);
     BSLS_ASSERT_SAFE(replicationFactor);
 
@@ -3713,7 +3715,7 @@ int StorageUtil::processCommand(mqbcmd::StorageResult*     result,
                                      bdlf::PlaceHolders::_2,  // latch
                                      bdlf::PlaceHolders::_1,  // partitionId
                                      storageMapVec,
-                                     storagesLock,
+                                     storageLockVec,
                                      fileStores,
                                      command.domain().name()),
                 *fileStores);
@@ -3739,16 +3741,13 @@ int StorageUtil::processCommand(mqbcmd::StorageResult*     result,
         BSLS_ASSERT_SAFE(uri.isCanonical());
 
         mqbi::Storage* queueStorage = NULL;
-        {
-            bslmt::LockGuard<bslmt::Mutex> guard(storagesLock);  // LOCK
-            for (StorageSpMapVec::iterator it = storageMapVec->begin();
-                 it != storageMapVec->end();
-                 it++) {
-                StorageSpMap::iterator storageIter = it->find(uri);
-                if (storageIter != it->end()) {
-                    queueStorage = storageIter->second.get();
-                    break;  // BREAK
-                }
+        for (size_t i = 0; i < storageMapVec->size(); ++i) {
+            bslmt::LockGuard<bslmt::Mutex> guard(
+                (*storageLockVec)[i].get());  // LOCK
+            StorageSpMap::iterator storageIter = (*storageMapVec)[i].find(uri);
+            if (storageIter != (*storageMapVec)[i].end()) {
+                queueStorage = storageIter->second.get();
+                break;  // BREAK
             }
         }
 
@@ -3885,11 +3884,12 @@ void StorageUtil::forceIssueAdvisoryAndSyncPt(mqbc::ClusterData*   clusterData,
     }
 }
 
-void StorageUtil::purgeQueueOnDomain(mqbcmd::StorageResult* result,
-                                     const bsl::string&     domainName,
-                                     FileStores*            fileStores,
-                                     StorageSpMapVec*       storageMapVec,
-                                     bslmt::Mutex*          storagesLock)
+void StorageUtil::purgeQueueOnDomain(
+    mqbcmd::StorageResult*                       result,
+    const bsl::string&                           domainName,
+    FileStores*                                  fileStores,
+    StorageSpMapVec*                             storageMapVec,
+    bsl::vector<bsl::shared_ptr<bslmt::Mutex> >* storageLockVec)
 {
     bsl::vector<bsl::vector<mqbcmd::PurgeQueueResult> > purgedQueuesVec;
     purgedQueuesVec.resize(fileStores->size());
@@ -3906,7 +3906,7 @@ void StorageUtil::purgeQueueOnDomain(mqbcmd::StorageResult* result,
                              bdlf::PlaceHolders::_2,  // latch
                              bdlf::PlaceHolders::_1,  // partitionId
                              storageMapVec,
-                             storagesLock,
+                             storageLockVec,
                              fileStores,
                              domainName),
         *fileStores);
