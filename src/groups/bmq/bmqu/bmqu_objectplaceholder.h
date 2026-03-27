@@ -44,12 +44,16 @@
 #include <bsls_performancehint.h>
 
 #if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+// clang-format off
 // Include version that can be compiled with C++03
-// Generated on Wed Jun 18 14:44:06 2025
+// Generated on Wed Mar 25 20:05:02 2026
 // Command line: sim_cpp11_features.pl bmqu_objectplaceholder.h
-#define COMPILING_BMQU_OBJECTPLACEHOLDER_H
-#include <bmqu_objectplaceholder_cpp03.h>
-#undef COMPILING_BMQU_OBJECTPLACEHOLDER_H
+
+# define COMPILING_BMQU_OBJECTPLACEHOLDER_H
+# include <bmqu_objectplaceholder_cpp03.h>
+# undef COMPILING_BMQU_OBJECTPLACEHOLDER_H
+
+// clang-format on
 #else
 
 namespace BloombergLP {
@@ -190,7 +194,7 @@ class ObjectPlaceHolder {
 
   public:
     // MANIPULATORS
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=9
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=9
 
     /// Initialize this placeholder with an object of the specified `TYPE`
     /// constructed from the specified `args` arguments.  Specify an
@@ -386,7 +390,7 @@ inline ObjectPlaceHolder<SIZE>::~ObjectPlaceHolder()
 }
 
 // MANIPULATORS
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=9
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=9
 
 template <size_t SIZE>
 template <class TYPE, class... ARGS>
@@ -469,6 +473,6 @@ ObjectPlaceHolder<SIZE>::objectAddress() const BSLS_KEYWORD_NOEXCEPT
 }  // close package namespace
 }  // close enterprise namespace
 
-#endif  // End C++11 code
+#endif // End C++11 code
 
 #endif
