@@ -22,5 +22,4 @@ bmqu_tempdirectory
 bmqu_tempfile
 bmqu_temputil
 bmqu_throttledaction
-bmqu_tlsbool
 bmqu_weakmemfn

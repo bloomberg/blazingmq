@@ -18,8 +18,6 @@
 
 #include <bmqscm_version.h>
 
-#include <bmqu_tlsbool.h>
-
 // BDE
 #include <ball_log.h>
 #include <bsl_cstring.h>
@@ -51,12 +49,7 @@ void ThreadUtil::setCurrentThreadName(const bsl::string& value)
 
 void ThreadUtil::setCurrentThreadNameOnce(const bsl::string& value)
 {
-#ifdef BSLS_PLATFORM_CMP_CLANG
-    // Suppress "exit-time-destructor" warning on Clang by qualifying the
-    // static variable 's_named' with Clang-specific attribute.
-    [[clang::no_destroy]]
-#endif
-    static bmqu::TLSBool s_named(false, true);
+    static BSLS_KEYWORD_THREAD_LOCAL bool s_named = false;
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!s_named)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
