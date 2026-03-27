@@ -18,13 +18,11 @@
 
 #include <bmqscm_version.h>
 // BMQ
+#include <bmqio_channelutil.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_event.h>
 #include <bmqp_protocol.h>
 #include <bmqp_schemaeventbuilder.h>
-#include <bmqsys_time.h>
-
-#include <bmqio_channelutil.h>
 #include <bmqt_authncredential.h>
 #include <bmqu_blob.h>
 #include <bmqu_memoutstream.h>
@@ -401,8 +399,7 @@ bool AuthenticatedChannelFactory::processAuthenticationEvent(
         // Pending events will be cancelled when Application stops.
         d_config.d_scheduler_p->scheduleEvent(
             &d_reauthenticationTimeoutHandle,
-            bsls::TimeInterval(bmqsys::Time::nowMonotonicClock())
-                .addMilliseconds(intervalMs),
+            d_config.d_scheduler_p->now().addMilliseconds(intervalMs),
             bdlf::BindUtil::bind(bmqu::WeakMemFnUtil::weakMemFn(
                                      &AuthenticatedChannelFactory::sendRequest,
                                      d_self.acquireWeak()),

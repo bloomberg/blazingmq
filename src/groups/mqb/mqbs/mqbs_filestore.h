@@ -592,7 +592,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                                bool                           immediateFlush,
                                const bmqp_ctrlmsg::SyncPoint* syncPoint = 0);
 
-    /// Issue a resize storage request.
+    /// Self primary writes a resize storage record with `maxFileSizes`
+    /// and replicates to all replicas.  Return zero on success,
+    /// non-zero value otherwise.
     ///
     /// THREAD: This method executes in the partition dispatcher thread.
     int issueResizeStorage(
