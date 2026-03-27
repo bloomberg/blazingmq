@@ -1731,18 +1731,16 @@ void RelayQueueEngine::afterPostMessage()
     // NOTHING
 }
 
-mqbi::StorageResult::Enum RelayQueueEngine::evaluateAppSubscriptions(
+void RelayQueueEngine::evaluateAppSubscriptions(
     BSLA_MAYBE_UNUSED const bmqp::PutHeader& putHeader,
     BSLA_MAYBE_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,
-    BSLA_MAYBE_UNUSED const bmqp::MessagePropertiesInfo& mpi,
-    BSLA_MAYBE_UNUSED bsls::Types::Uint64 timestamp)
+    BSLA_MAYBE_UNUSED const bmqp::MessagePropertiesInfo& mpi)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
     BSLS_ASSERT_OPT(false && "should never be invoked");
 
     // NOTHING
-    return mqbi::StorageResult::e_INVALID_OPERATION;
 }
 
 void RelayQueueEngine::loadInternals(mqbcmd::QueueEngine* out) const

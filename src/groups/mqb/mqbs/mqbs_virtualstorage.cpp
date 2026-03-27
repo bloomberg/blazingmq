@@ -261,7 +261,7 @@ StorageIterator::appMessageView(unsigned int appOrdinal) const
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!atEnd());
 
-    const mqbi::DataStreamMessage& dataStreamMessage = d_iterator->second;
+    const mqbi::DataStreamMessage& dataStreamMessage = *d_iterator->second;
 
     return d_owner_p->appMessageView(dataStreamMessage, appOrdinal);
 }
@@ -271,7 +271,7 @@ mqbi::AppMessage& StorageIterator::appMessageState(unsigned int appOrdinal)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!atEnd());
 
-    mqbi::DataStreamMessage* dataStreamMessage = &d_iterator->second;
+    mqbi::DataStreamMessage* dataStreamMessage = d_iterator->second.get();
 
     d_owner_p->setup(dataStreamMessage);
 

@@ -129,7 +129,8 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
         const DataStoreRecordHandle& confirmRecordHandle();
     };
 
-    typedef bsl::list<AutoConfirm> AutoConfirms;
+    typedef bsl::list<AutoConfirm>      AutoConfirmHandles;
+    typedef bsl::list<mqbu::StorageKey> AutoConfirmApps;
 
   public:
     // TYPES
@@ -144,7 +145,7 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// order.
     typedef bmqc::OrderedHashMapWithHistory<
         bmqt::MessageGUID,
-        Item,
+        bsl::shared_ptr<Item>,
         bslh::Hash<bmqt::MessageGUIDHashAlgo> >
         RecordHandleMap;
 
@@ -211,8 +212,11 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     bmqt::MessageGUID d_currentlyAutoConfirming;
     // Message being evaluated and possibly auto confirmed.
 
-    AutoConfirms d_autoConfirms;
-    // Auto CONFIRMs waiting for 'put' or 'processMessageRecord'
+    /// Auto CONFIRMs waiting for 'processMessageRecord'
+    AutoConfirmHandles d_autoConfirmHandles;
+
+    /// Auto CONFIRMs waiting for 'put'
+    AutoConfirmApps d_autoConfirmApps;
 
   private:
     // NOT IMPLEMENTED
@@ -225,7 +229,7 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     void purgeCommon(const mqbu::StorageKey& appKey, bool asPrimary);
 
     /// Clear the state created by 'selectForAutoConfirming'.
-    void clearSelection();
+    void removeAutoConfirmHandles();
 
     /// Write AppPurgeRecord to the persistent data store for the App with
     /// specified `appKey` using the specified `timestamp`.  The specified
@@ -561,9 +565,7 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     void selectForAutoConfirming(const bmqt::MessageGUID& msgGUID)
         BSLS_KEYWORD_OVERRIDE;
-    mqbi::StorageResult::Enum
-    autoConfirm(const mqbu::StorageKey& appKey,
-                bsls::Types::Uint64     timestamp) BSLS_KEYWORD_OVERRIDE;
+    void autoConfirm(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
     /// The sequence of calls is 'startAutoConfirming', then zero or more
     /// 'autoConfirm', then 'put' - all for the same specified 'msgGUID'.
     /// 'autoConfirm' replicates ephemeral auto CONFIRM for the specified
@@ -710,7 +712,7 @@ FileBackedStorage::getMessageSize(int*                     msgSize,
         return mqbi::StorageResult::e_GUID_NOT_FOUND;  // RETURN
     }
 
-    const RecordHandlesArray& handles = it->second.d_array;
+    const RecordHandlesArray& handles = it->second->d_array;
     BSLS_ASSERT_SAFE(!handles.empty());
     *msgSize = static_cast<int>(d_store_p->getMessageLenRaw(handles[0]));
 
@@ -760,7 +762,7 @@ FileBackedStorage::loadVirtualStorageDetails(AppInfos* buffer) const
 
 inline unsigned int FileBackedStorage::numAutoConfirms() const
 {
-    return static_cast<unsigned int>(d_autoConfirms.size());
+    return static_cast<unsigned int>(d_autoConfirmApps.size());
 }
 
 }  // close package namespace

@@ -91,6 +91,8 @@ using namespace bsl;
 // - addQueueOpRecordHandle
 // - doNotRecordLastConfirmInPriorityMode
 // - doNotRecordLastConfirmInFanoutMode
+// - put_autoConfirmWriteFailure
+// - put_autoConfirmWriteMessageFailure
 //-----------------------------------------------------------------------------
 
 // ============================================================================
@@ -157,6 +159,12 @@ generateUniqueGUID(const bsl::vector<bmqt::MessageGUID>& guids)
     return uniqueGUID;
 }
 
+// TYPES
+union IntCharUnion {
+    int  d_int;
+    char d_chars[sizeof(int)];
+};
+
 // CLASSES
 
 // ===================
@@ -191,6 +199,14 @@ class MockDataStore : public mqbs::DataStore {
     bsls::Types::Uint64 d_messageCounter;
     bsls::Types::Uint64 d_confirmCounter;
     bsls::Types::Uint64 d_deletionCounter;
+    bsls::Types::Uint64 d_removeRecordRawCounter;
+
+    bsls::Types::Uint64 d_writeConfirmRecordFailAt;
+    // If > 0, writeConfirmRecord will fail (return -1) on the Nth call
+    // (1-based) and reset.  0 means never fail.
+
+    bool d_writeMessageRecordFail;
+    // If true, writeMessageRecord will fail (return -1).
 
   public:
     explicit MockDataStore(int partitionId, bslma::Allocator* allocator)
@@ -205,6 +221,9 @@ class MockDataStore : public mqbs::DataStore {
     , d_messageCounter(0)
     , d_confirmCounter(0)
     , d_deletionCounter(0)
+    , d_removeRecordRawCounter(0)
+    , d_writeConfirmRecordFailAt(0)
+    , d_writeMessageRecordFail(false)
     {
         d_config.setPartitionId(partitionId);
     }
@@ -218,6 +237,21 @@ class MockDataStore : public mqbs::DataStore {
         return d_deletionCounter;
     }
 
+    bsls::Types::Uint64 getRemoveRecordRawCounter() const
+    {
+        return d_removeRecordRawCounter;
+    }
+
+    void setWriteConfirmRecordFailAt(bsls::Types::Uint64 value)
+    {
+        d_writeConfirmRecordFailAt = value;
+    }
+
+    void setWriteMessageRecordFail(bool value)
+    {
+        d_writeMessageRecordFail = value;
+    }
+
     int writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
                            mqbs::DataStoreRecordHandle*    handle,
                            BSLA_MAYBE_UNUSED const bmqt::MessageGUID& guid,
@@ -226,6 +260,11 @@ class MockDataStore : public mqbs::DataStore {
                            BSLA_MAYBE_UNUSED const mqbu::StorageKey& queueKey)
         BSLS_KEYWORD_OVERRIDE
     {
+        if (d_writeMessageRecordFail) {
+            d_writeMessageRecordFail = false;
+            return -1;  // RETURN
+        }
+
         d_messageCounter++;
 
         bsls::Types::Uint64          id             = d_messageCounter;
@@ -253,7 +292,7 @@ class MockDataStore : public mqbs::DataStore {
         return 0;
     }
 
-    int writeConfirmRecord(mqbs::DataStoreRecordHandle*,
+    int writeConfirmRecord(mqbs::DataStoreRecordHandle* handle,
                            const bmqt::MessageGUID&,
                            const mqbu::StorageKey&,
                            const mqbu::StorageKey&,
@@ -261,6 +300,28 @@ class MockDataStore : public mqbs::DataStore {
                            mqbs::ConfirmReason::Enum) BSLS_KEYWORD_OVERRIDE
     {
         d_confirmCounter++;
+
+        if (d_writeConfirmRecordFailAt > 0 &&
+            d_confirmCounter >= d_writeConfirmRecordFailAt) {
+            d_writeConfirmRecordFailAt = 0;
+            return -1;  // RETURN
+        }
+
+        // Insert a record so removeRecordRaw can verify it exists.
+        bsls::Types::Uint64          sequenceNum    = d_confirmCounter;
+        unsigned int                 primaryLeaseId = 1;
+        const mqbs::RecordType::Enum recType   = mqbs::RecordType::e_CONFIRM;
+        bsls::Types::Uint64          recOffset = d_confirmCounter;
+
+        mqbs::DataStoreConfig::RecordIterator* iter =
+            reinterpret_cast<mqbs::DataStoreConfig::RecordIterator*>(handle);
+
+        InsertRc insertRc = d_records.insert(bsl::make_pair(
+            mqbs::DataStoreRecordKey(sequenceNum, primaryLeaseId),
+            mqbs::DataStoreRecord(recType, recOffset)));
+
+        *iter = insertRc.first;
+
         return 0;
     }
 
@@ -387,9 +448,17 @@ class MockDataStore : public mqbs::DataStore {
         return 0;
     }
 
-    void
-    removeRecordRaw(const mqbs::DataStoreRecordHandle&) BSLS_KEYWORD_OVERRIDE
+    void removeRecordRaw(const mqbs::DataStoreRecordHandle& handle)
+        BSLS_KEYWORD_OVERRIDE
     {
+        const mqbs::DataStoreConfig::RecordIterator& iter =
+            *reinterpret_cast<const mqbs::DataStoreConfig::RecordIterator*>(
+                &handle);
+
+        if (d_records.find(iter->first) != d_records.end()) {
+            d_records.erase(iter);
+            d_removeRecordRawCounter++;
+        }
     }
 
     void processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>&,
@@ -604,20 +673,14 @@ struct Tester {
             const bmqt::MessageGUID& guid = guidHolder->at(guidCount -
                                                            msgCount + i);
 
-            const int data = i + dataOffset;
+            IntCharUnion data;
+            data.d_int = i + dataOffset;
 
-            const bsl::shared_ptr<bdlbb::Blob> appDataPtr(
-                new (*bmqtst::TestHelperUtil::allocator())
-                    bdlbb::Blob(d_mockCluster.bufferFactory(),
-                                bmqtst::TestHelperUtil::allocator()),
-                bmqtst::TestHelperUtil::allocator());
-
-            bdlbb::BlobUtil::append(&(*appDataPtr),
-                                    reinterpret_cast<const char*>(&data),
-                                    static_cast<int>(sizeof(int)));
+            const bsl::shared_ptr<bdlbb::Blob> appDataPtr =
+                allocateBlob(data.d_chars, static_cast<int>(sizeof(data)));
 
             mqbi::StorageMessageAttributes attributes(
-                static_cast<bsls::Types::Uint64>(data),
+                static_cast<bsls::Types::Uint64>(data.d_int),
                 refCount,
                 static_cast<unsigned int>(appDataPtr->length()),
                 bmqp::MessagePropertiesInfo::makeNoSchema(),
@@ -655,7 +718,19 @@ struct Tester {
         recordItRef = insertRc.first;
     }
 
-    const MockDataStore& dataStore() { return d_dataStore; }
+    MockDataStore& dataStore() { return d_dataStore; }
+
+    bsl::shared_ptr<bdlbb::Blob> allocateBlob(const char* data, int length)
+    {
+        bsl::shared_ptr<bdlbb::Blob> blob(
+            new (*bmqtst::TestHelperUtil::allocator())
+                bdlbb::Blob(d_mockCluster.bufferFactory(),
+                            bmqtst::TestHelperUtil::allocator()),
+            bmqtst::TestHelperUtil::allocator());
+
+        bdlbb::BlobUtil::append(&(*blob), data, length);
+        return blob;
+    }
 
   private:
     // NOT IMPLEMENTED
@@ -1908,6 +1983,181 @@ BMQTST_TEST_F(Test, doNotRecordLastConfirmInFanoutMode)
     BMQTST_ASSERT_EQ(data_store.getMessageCounter(), 1ULL);
     BMQTST_ASSERT_EQ(data_store.getConfirmCounter(), 2ULL);
     BMQTST_ASSERT_EQ(data_store.getDeletionCounter(), 1ULL);
+}
+
+BMQTST_TEST_F(Test, put_autoConfirmWriteFailure)
+// ------------------------------------------------------------------------
+// PUT - AUTO CONFIRM WRITE FAILURE
+//
+// Testing:
+//   Verifies that when 'writeConfirmRecord' fails during auto-confirm
+//   processing in 'put', the storage properly rolls back:
+//   - The message is not stored.
+//   - The capacity meter is restored.
+//   - 'put' returns 'e_WRITE_FAILURE'.
+//   - Subsequent 'put' (without auto-confirms) succeeds normally.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("PUT - AUTO CONFIRM WRITE FAILURE");
+    bmqu::MemOutStream errDescription(bmqtst::TestHelperUtil::allocator());
+
+    MockDataStore&           data_store = d_tester.dataStore();
+    mqbs::ReplicatedStorage& storage    = d_tester.storage();
+
+    // Set up 3 virtual storages (apps).
+    BSLS_ASSERT_OPT(
+        storage.addVirtualStorage(errDescription, k_APP_ID1, k_APP_KEY1) == 0);
+    BSLS_ASSERT_OPT(
+        storage.addVirtualStorage(errDescription, k_APP_ID2, k_APP_KEY2) == 0);
+    BSLS_ASSERT_OPT(
+        storage.addVirtualStorage(errDescription, k_APP_ID3, k_APP_KEY3) == 0);
+
+    // Generate a GUID and prepare a message.
+    bmqt::MessageGUID guid;
+    mqbu::MessageGUIDUtil::generateGUID(&guid);
+
+    IntCharUnion data;
+    data.d_int = 42;
+    const bsl::shared_ptr<bdlbb::Blob> appDataPtr =
+        d_tester.allocateBlob(data.d_chars, static_cast<int>(sizeof(data)));
+
+    const int msgSize = static_cast<int>(appDataPtr->length());
+
+    mqbi::StorageMessageAttributes attributes(
+        0ULL,  // arrivalTimestamp
+        3,     // refCount (3 apps)
+        static_cast<unsigned int>(msgSize),
+        bmqp::MessagePropertiesInfo::makeNoSchema(),
+        bmqt::CompressionAlgorithmType::e_NONE);
+
+    // Set up auto-confirms for APP_KEY1 and APP_KEY2, so 2 confirms will
+    // be attempted.  Inject failure on the 2nd writeConfirmRecord call.
+    storage.selectForAutoConfirming(guid);
+    storage.autoConfirm(k_APP_KEY1);
+    storage.autoConfirm(k_APP_KEY2);
+
+    data_store.setWriteConfirmRecordFailAt(2);
+
+    // Attempt put — should fail on the 2nd confirm write.
+    mqbi::StorageResult::Enum rc =
+        storage.put(&attributes, guid, appDataPtr, appDataPtr);
+    BMQTST_ASSERT_EQ(rc, mqbi::StorageResult::e_WRITE_FAILURE);
+
+    // Verify the storage is clean: no messages stored.
+    BMQTST_ASSERT_EQ(storage.numMessages(k_NULL_KEY), 0);
+    BMQTST_ASSERT_EQ(storage.numBytes(k_NULL_KEY), 0);
+
+    // writeMessageRecord was never called (failure was during confirms).
+    BMQTST_ASSERT_EQ(data_store.getMessageCounter(), 0ULL);
+
+    // 1 confirm succeeded before the 2nd failed; that record was rolled
+    // back via removeRecordRaw.
+    BMQTST_ASSERT_EQ(data_store.getConfirmCounter(), 2ULL);
+    BMQTST_ASSERT_EQ(data_store.getRemoveRecordRawCounter(), 1ULL);
+
+    // Verify a subsequent normal put (no auto-confirms) succeeds.
+    bmqt::MessageGUID guid2;
+    mqbu::MessageGUIDUtil::generateGUID(&guid2);
+
+    mqbi::StorageMessageAttributes attributes2(
+        1ULL,  // arrivalTimestamp
+        3,     // refCount
+        static_cast<unsigned int>(msgSize),
+        bmqp::MessagePropertiesInfo::makeNoSchema(),
+        bmqt::CompressionAlgorithmType::e_NONE);
+
+    rc = storage.put(&attributes2, guid2, appDataPtr, appDataPtr);
+    BMQTST_ASSERT_EQ(rc, mqbi::StorageResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(storage.numMessages(k_NULL_KEY), 1);
+    BMQTST_ASSERT_EQ(data_store.getMessageCounter(), 1ULL);
+}
+
+BMQTST_TEST_F(Test, put_autoConfirmWriteMessageFailure)
+// ------------------------------------------------------------------------
+// PUT - AUTO CONFIRM WRITE MESSAGE FAILURE
+//
+// Testing:
+//   Verifies that when auto-confirm writes succeed but
+//   'writeMessageRecord' subsequently fails, the storage properly
+//   rolls back all auto-confirms:
+//   - The message is not stored.
+//   - The capacity meter is restored.
+//   - 'put' returns 'e_WRITE_FAILURE'.
+//   - Subsequent 'put' succeeds normally.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName(
+        "PUT - AUTO CONFIRM WRITE MESSAGE FAILURE");
+    bmqu::MemOutStream errDescription(bmqtst::TestHelperUtil::allocator());
+
+    MockDataStore&           data_store = d_tester.dataStore();
+    mqbs::ReplicatedStorage& storage    = d_tester.storage();
+
+    // Set up 3 virtual storages (apps).
+    BSLS_ASSERT_OPT(
+        storage.addVirtualStorage(errDescription, k_APP_ID1, k_APP_KEY1) == 0);
+    BSLS_ASSERT_OPT(
+        storage.addVirtualStorage(errDescription, k_APP_ID2, k_APP_KEY2) == 0);
+    BSLS_ASSERT_OPT(
+        storage.addVirtualStorage(errDescription, k_APP_ID3, k_APP_KEY3) == 0);
+
+    // Generate a GUID and prepare a message.
+    bmqt::MessageGUID guid;
+    mqbu::MessageGUIDUtil::generateGUID(&guid);
+
+    IntCharUnion data;
+    data.d_int = 42;
+    const bsl::shared_ptr<bdlbb::Blob> appDataPtr =
+        d_tester.allocateBlob(data.d_chars, static_cast<int>(sizeof(data)));
+
+    const int msgSize = static_cast<int>(appDataPtr->length());
+
+    mqbi::StorageMessageAttributes attributes(
+        0ULL,  // arrivalTimestamp
+        3,     // refCount (3 apps)
+        static_cast<unsigned int>(msgSize),
+        bmqp::MessagePropertiesInfo::makeNoSchema(),
+        bmqt::CompressionAlgorithmType::e_NONE);
+
+    // Set up auto-confirms for 2 apps.  Both confirm writes will
+    // succeed, but the PUT write will fail.
+    storage.selectForAutoConfirming(guid);
+    storage.autoConfirm(k_APP_KEY1);
+    storage.autoConfirm(k_APP_KEY2);
+
+    data_store.setWriteMessageRecordFail(true);
+
+    // Attempt put — confirms succeed but message write fails.
+    mqbi::StorageResult::Enum rc =
+        storage.put(&attributes, guid, appDataPtr, appDataPtr);
+    BMQTST_ASSERT_EQ(rc, mqbi::StorageResult::e_WRITE_FAILURE);
+
+    // Verify the storage is clean: no messages stored.
+    BMQTST_ASSERT_EQ(storage.numMessages(k_NULL_KEY), 0);
+    BMQTST_ASSERT_EQ(storage.numBytes(k_NULL_KEY), 0);
+
+    // Both confirm records were written (then rolled back via
+    // removeRecordRaw).
+    BMQTST_ASSERT_EQ(data_store.getConfirmCounter(), 2ULL);
+    BMQTST_ASSERT_EQ(data_store.getRemoveRecordRawCounter(), 2ULL);
+    // writeMessageRecord failed, so counter was not incremented.
+    BMQTST_ASSERT_EQ(data_store.getMessageCounter(), 0ULL);
+
+    // Verify a subsequent normal put (no auto-confirms) succeeds.
+    bmqt::MessageGUID guid2;
+    mqbu::MessageGUIDUtil::generateGUID(&guid2);
+
+    mqbi::StorageMessageAttributes attributes2(
+        1ULL,  // arrivalTimestamp
+        3,     // refCount
+        static_cast<unsigned int>(msgSize),
+        bmqp::MessagePropertiesInfo::makeNoSchema(),
+        bmqt::CompressionAlgorithmType::e_NONE);
+
+    rc = storage.put(&attributes2, guid2, appDataPtr, appDataPtr);
+    BMQTST_ASSERT_EQ(rc, mqbi::StorageResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(storage.numMessages(k_NULL_KEY), 1);
+    BMQTST_ASSERT_EQ(data_store.getMessageCounter(), 1ULL);
 }
 
 // ============================================================================

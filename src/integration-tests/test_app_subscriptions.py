@@ -434,6 +434,60 @@ class TestAppSubscriptions:
         assert len(self.consumer_bar.list(block=True)) == 0
         assert len(self.consumer_baz.list(block=True)) == 0
 
+        assert (
+            producer.post(
+                du.uri_fanout,
+                payload=["4"],
+                block=True,
+                wait_ack=True,
+                messageProperties=[{"name": "x", "value": "0", "type": "E_INT"}],
+            )
+            == Client.e_SUCCESS
+        )
+
+        producer.close(du.uri_fanout, block=True)
+        self.consumer.close(du.uri_fanout_foo, block=True)
+
+        self.consumer_bar.close(du.uri_fanout_bar, block=True)
+        self.consumer_baz.close(du.uri_fanout_baz, block=True)
+
+        self.leader.force_gc_queues(block=True, succeed=True)
+
+        for node in cluster.nodes():
+            if node != self.leader:
+                node.capture(r"Received QueueOpRecord of type DELETION")
+
+        all_partition_id = -1  # use -1 to rollover all partitions
+        self.leader.trigger_rollover(all_partition_id, succeed=None)
+
+        for node in cluster.nodes():
+            node.wait_rollover_complete()
+
+        cluster.stop()
+        cluster.start(wait_leader=True, wait_ready=True)
+
+        producer = proxy.create_client("producer")
+        assert (
+            producer.open(du.uri_fanout, flags=["write", "ack"], block=True)
+            == Client.e_SUCCESS
+        )
+
+        self.consumer = self._start_client(proxy, du.uri_fanout_foo, "consumerFoo")
+
+        assert (
+            producer.post(
+                du.uri_fanout,
+                payload=["5"],
+                block=True,
+                wait_ack=True,
+                messageProperties=[{"name": "x", "value": "1", "type": "E_INT"}],
+            )
+            == Client.e_SUCCESS
+        )
+
+        self.consumer.wait_push_event()
+        assert len(self.consumer.list(block=True)) == 1
+
     @tweak.domain.subscriptions(
         [
             {
