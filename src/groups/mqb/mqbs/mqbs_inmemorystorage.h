@@ -176,13 +176,6 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     // DATA
     bslma::Allocator* d_allocator_p;
 
-    /// The pointer to the parent DataStore object that contains this storage.
-    /// Held, not owned.
-    /// Might be NULL:
-    /// - On a proxy (in this case `gcExpired` is not called)
-    /// - In UTs (in this case `gcExpired` might be called)
-    DataStore* d_store_p;
-
     mqbu::StorageKey d_key;
 
     bmqt::Uri d_uri;
@@ -251,8 +244,7 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// Constructor of a new object associated to the queue having specified
     /// `uri` and using the specified `parentCapacityMeter`, and
     /// `allocator`.
-    InMemoryStorage(DataStore*                     dataStore_p,
-                    const bmqt::Uri&               uri,
+    InMemoryStorage(const bmqt::Uri&               uri,
                     const mqbu::StorageKey&        queueKey,
                     mqbi::Domain*                  domain,
                     int                            partitionId,
