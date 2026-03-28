@@ -295,13 +295,13 @@ class PartitionStateTableActions {
 
     virtual void do_failurePrimaryStateResponse(const ARGS& args) = 0;
 
+    virtual void do_determineDataDestinations(const ARGS& args) = 0;
+
     virtual void do_replicaDataRequestPush(const ARGS& args) = 0;
 
     virtual void do_replicaDataResponsePush(const ARGS& args) = 0;
 
     virtual void do_replicaDataRequestDrop(const ARGS& args) = 0;
-
-    virtual void do_replicaDataResponseDrop(const ARGS& args) = 0;
 
     virtual void do_replicaDataRequestPull(const ARGS& args) = 0;
 
@@ -346,7 +346,8 @@ class PartitionStateTableActions {
 
     virtual void do_updateStorage(const ARGS& args) = 0;
 
-    virtual void do_removeStorage(const ARGS& args) = 0;
+    virtual void
+    do_removeStorageAndSendReplicaDataDropResponse(const ARGS& args) = 0;
 
     virtual void do_incrementNumRplcaDataRspn(const ARGS& args) = 0;
 
@@ -378,7 +379,8 @@ class PartitionStateTableActions {
 
     virtual void do_unsupportedPrimaryDowngrade(const ARGS& args) = 0;
 
-    void do_replicaDataResponseDrop_removeStorage_reapplyDetectSelfReplica(
+    void
+    do_removeStorageAndSendReplicaDataDropResponse_reapplyDetectSelfReplica(
         const ARGS& args);
 
     void
@@ -423,7 +425,7 @@ class PartitionStateTableActions {
         const ARGS& args);
 
     void
-    do_closeRecoveryFileSet_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
+    do_closeRecoveryFileSet_attemptOpenStorage_determineDataDestinations_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
         const ARGS& args);
 
     void do_setExpectedDataChunkRange_replicaDataRequestPull(const ARGS& args);
@@ -431,7 +433,7 @@ class PartitionStateTableActions {
     void do_setExpectedDataChunkRange_clearBufferedLiveData(const ARGS& args);
 
     void
-    do_resetReceiveDataCtx_storeSelfSeq_closeRecoveryFileSet_attemptOpenStorage_replicaDataRequestResizeIfNeeded_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
+    do_resetReceiveDataCtx_storeSelfSeq_closeRecoveryFileSet_attemptOpenStorage_replicaDataRequestResizeIfNeeded_determineDataDestinations_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
         const ARGS& args);
 
     void do_stopWatchDog_transitionToActivePrimary(const ARGS& args);
@@ -467,19 +469,19 @@ class PartitionStateTableActions {
         const ARGS& args);
 
     void
-    do_storeReplicaSeq_primaryStateResponse_replicaDataRequestResizeIfNeeded_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
+    do_storeReplicaSeq_primaryStateResponse_replicaDataRequestResizeIfNeeded_determineDataDestinations_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
         const ARGS& args);
 
     void
-    do_storeSelfSeq_storeReplicaSeq_primaryStateResponse_replicaDataRequestResizeIfNeeded_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
+    do_storeSelfSeq_storeReplicaSeq_primaryStateResponse_replicaDataRequestResizeIfNeeded_determineDataDestinations_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
         const ARGS& args);
 
     void
-    do_storeReplicaSeq_replicaDataRequestResizeIfNeeded_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
+    do_storeReplicaSeq_replicaDataRequestResizeIfNeeded_determineDataDestinations_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
         const ARGS& args);
 
     void
-    do_storeSelfSeq_storeReplicaSeq_replicaDataRequestResizeIfNeeded_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
+    do_storeSelfSeq_storeReplicaSeq_replicaDataRequestResizeIfNeeded_determineDataDestinations_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
         const ARGS& args);
 
     void
@@ -575,7 +577,7 @@ class PartitionStateTable
         PST_CFG(
             PRIMARY_HEALING_STG1,
             SELF_HIGHEST_SEQ,
-            closeRecoveryFileSet_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn,
+            closeRecoveryFileSet_attemptOpenStorage_determineDataDestinations_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn,
             PRIMARY_HEALING_STG2);
         PST_CFG(PRIMARY_HEALING_STG1,
                 REPLICA_HIGHEST_SEQ,
@@ -610,7 +612,7 @@ class PartitionStateTable
         PST_CFG(
             PRIMARY_HEALING_STG2,
             REPLICA_STATE_RSPN,
-            storeReplicaSeq_replicaDataRequestResizeIfNeeded_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks,
+            storeReplicaSeq_replicaDataRequestResizeIfNeeded_determineDataDestinations_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks,
             PRIMARY_HEALING_STG2);
         PST_CFG(PRIMARY_HEALING_STG2,
                 FAIL_REPLICA_STATE_RSPN,
@@ -619,7 +621,7 @@ class PartitionStateTable
         PST_CFG(
             PRIMARY_HEALING_STG2,
             PRIMARY_STATE_RQST,
-            storeReplicaSeq_primaryStateResponse_replicaDataRequestResizeIfNeeded_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks,
+            storeReplicaSeq_primaryStateResponse_replicaDataRequestResizeIfNeeded_determineDataDestinations_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks,
             PRIMARY_HEALING_STG2)
         PST_CFG(PRIMARY_HEALING_STG2,
                 RECOVERY_DATA,
@@ -633,7 +635,7 @@ class PartitionStateTable
         PST_CFG(
             PRIMARY_HEALING_STG2,
             REPLICA_DATA_RSPN_PULL,
-            resetReceiveDataCtx_storeSelfSeq_closeRecoveryFileSet_attemptOpenStorage_replicaDataRequestResizeIfNeeded_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn,
+            resetReceiveDataCtx_storeSelfSeq_closeRecoveryFileSet_attemptOpenStorage_replicaDataRequestResizeIfNeeded_determineDataDestinations_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn,
             PRIMARY_HEALING_STG2);
         PST_CFG(PRIMARY_HEALING_STG2,
                 REPLICA_DATA_RSPN_PUSH,
@@ -737,10 +739,11 @@ class PartitionStateTable
                 REPLICA_DATA_RQST_PUSH,
                 setExpectedDataChunkRange_clearBufferedLiveData,
                 REPLICA_HEALING);
-        PST_CFG(REPLICA_HEALING,
-                REPLICA_DATA_RQST_DROP,
-                replicaDataResponseDrop_removeStorage_reapplyDetectSelfReplica,
-                REPLICA_HEALING);
+        PST_CFG(
+            REPLICA_HEALING,
+            REPLICA_DATA_RQST_DROP,
+            removeStorageAndSendReplicaDataDropResponse_reapplyDetectSelfReplica,
+            REPLICA_HEALING);
         PST_CFG(
             REPLICA_HEALING,
             REPLICA_DATA_RQST_RESIZE,
@@ -807,7 +810,7 @@ class PartitionStateTable
         PST_CFG(
             PRIMARY_HEALED,
             REPLICA_STATE_RSPN,
-            storeSelfSeq_storeReplicaSeq_replicaDataRequestResizeIfNeeded_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks,
+            storeSelfSeq_storeReplicaSeq_replicaDataRequestResizeIfNeeded_determineDataDestinations_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks,
             PRIMARY_HEALED);
         PST_CFG(PRIMARY_HEALED,
                 FAIL_REPLICA_STATE_RSPN,
@@ -816,7 +819,7 @@ class PartitionStateTable
         PST_CFG(
             PRIMARY_HEALED,
             PRIMARY_STATE_RQST,
-            storeSelfSeq_storeReplicaSeq_primaryStateResponse_replicaDataRequestResizeIfNeeded_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks,
+            storeSelfSeq_storeReplicaSeq_primaryStateResponse_replicaDataRequestResizeIfNeeded_determineDataDestinations_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks,
             PRIMARY_HEALED);
         PST_CFG(PRIMARY_HEALED, RST_UNKNOWN, cleanupMetadata, UNKNOWN);
         PST_CFG(PRIMARY_HEALED, STOP_NODE, cleanupMetadata, STOPPED);
@@ -852,11 +855,10 @@ void PartitionStateTableActions<ARGS>::do_none(const ARGS& args)
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_replicaDataResponseDrop_removeStorage_reapplyDetectSelfReplica(
+    do_removeStorageAndSendReplicaDataDropResponse_reapplyDetectSelfReplica(
         const ARGS& args)
 {
-    do_replicaDataResponseDrop(args);
-    do_removeStorage(args);
+    do_removeStorageAndSendReplicaDataDropResponse(args);
     do_reapplyDetectSelfReplica(args);
 }
 
@@ -998,11 +1000,12 @@ void PartitionStateTableActions<ARGS>::
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_closeRecoveryFileSet_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
+    do_closeRecoveryFileSet_attemptOpenStorage_determineDataDestinations_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
         const ARGS& args)
 {
     do_closeRecoveryFileSet(args);
     do_attemptOpenStorage(args);
+    do_determineDataDestinations(args);
     do_replicaDataRequestPush(args);
     do_replicaDataRequestDrop(args);
     do_startSendDataChunks(args);
@@ -1028,7 +1031,7 @@ void PartitionStateTableActions<
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_resetReceiveDataCtx_storeSelfSeq_closeRecoveryFileSet_attemptOpenStorage_replicaDataRequestResizeIfNeeded_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
+    do_resetReceiveDataCtx_storeSelfSeq_closeRecoveryFileSet_attemptOpenStorage_replicaDataRequestResizeIfNeeded_determineDataDestinations_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
         const ARGS& args)
 {
     do_resetReceiveDataCtx(args);
@@ -1036,6 +1039,7 @@ void PartitionStateTableActions<ARGS>::
     do_closeRecoveryFileSet(args);
     do_attemptOpenStorage(args);
     do_replicaDataRequestResizeIfNeeded(args);
+    do_determineDataDestinations(args);
     do_replicaDataRequestPush(args);
     do_replicaDataRequestDrop(args);
     do_startSendDataChunks(args);
@@ -1148,12 +1152,13 @@ void PartitionStateTableActions<ARGS>::
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_storeReplicaSeq_primaryStateResponse_replicaDataRequestResizeIfNeeded_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
+    do_storeReplicaSeq_primaryStateResponse_replicaDataRequestResizeIfNeeded_determineDataDestinations_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
         const ARGS& args)
 {
     do_storeReplicaSeq(args);
     do_primaryStateResponse(args);
     do_replicaDataRequestResizeIfNeeded(args);
+    do_determineDataDestinations(args);
     do_replicaDataRequestPush(args);
     do_replicaDataRequestDrop(args);
     do_startSendDataChunks(args);
@@ -1161,13 +1166,14 @@ void PartitionStateTableActions<ARGS>::
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_storeSelfSeq_storeReplicaSeq_primaryStateResponse_replicaDataRequestResizeIfNeeded_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
+    do_storeSelfSeq_storeReplicaSeq_primaryStateResponse_replicaDataRequestResizeIfNeeded_determineDataDestinations_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
         const ARGS& args)
 {
     do_storeSelfSeq(args);
     do_storeReplicaSeq(args);
     do_primaryStateResponse(args);
     do_replicaDataRequestResizeIfNeeded(args);
+    do_determineDataDestinations(args);
     do_replicaDataRequestPush(args);
     do_replicaDataRequestDrop(args);
     do_startSendDataChunks(args);
@@ -1175,11 +1181,12 @@ void PartitionStateTableActions<ARGS>::
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_storeReplicaSeq_replicaDataRequestResizeIfNeeded_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
+    do_storeReplicaSeq_replicaDataRequestResizeIfNeeded_determineDataDestinations_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
         const ARGS& args)
 {
     do_storeReplicaSeq(args);
     do_replicaDataRequestResizeIfNeeded(args);
+    do_determineDataDestinations(args);
     do_replicaDataRequestPush(args);
     do_replicaDataRequestDrop(args);
     do_startSendDataChunks(args);
@@ -1187,12 +1194,13 @@ void PartitionStateTableActions<ARGS>::
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_storeSelfSeq_storeReplicaSeq_replicaDataRequestResizeIfNeeded_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
+    do_storeSelfSeq_storeReplicaSeq_replicaDataRequestResizeIfNeeded_determineDataDestinations_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
         const ARGS& args)
 {
     do_storeSelfSeq(args);
     do_storeReplicaSeq(args);
     do_replicaDataRequestResizeIfNeeded(args);
+    do_determineDataDestinations(args);
     do_replicaDataRequestPush(args);
     do_replicaDataRequestDrop(args);
     do_startSendDataChunks(args);
