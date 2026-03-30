@@ -1552,13 +1552,12 @@ void ClusterQueueHelper::onReopenQueueResponse(
 
     SubQueueContext& subQueueContext = sqit->value();
     const bsls::Types::Uint64 generationCount = cycle->generationCount();
-    cycle->generationCount();
 
     if (subQueueContext.d_generationCount != generationCount) {
         BMQ_LOGTHROTTLE_WARN
             << d_cluster_p->description()
             << ": ignoring stale ReopenQueueResponse for uri '" << uri
-            << "' with upstreamSubQueueId: " << upstreamSubQueueId
+            << "' with upstreamSubQueueId: [" << upstreamSubQueueId
             << "], response: " << requestContext->response();
 
         return;  // RETURN
@@ -4008,7 +4007,6 @@ bmqt::GenericResult::Enum ClusterQueueHelper::restoreStateHelper(
     BSLS_ASSERT_SAFE(queuePtr);
 
     const bsls::Types::Uint64 generationCount = cycle->generationCount();
-    cycle->generationCount();
 
     for (StreamsMap::iterator iter = queueInfo.d_subQueueIds.begin();
          iter != queueInfo.d_subQueueIds.end();

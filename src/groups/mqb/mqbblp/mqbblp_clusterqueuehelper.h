@@ -432,7 +432,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     typedef bsl::unordered_map<int, QueueContext*> QueueContextByIdMap;
 
     struct PartitionReopenCycle {
-        ClusterQueueHelper* d_owner;
+        ClusterQueueHelper* d_owner_p;
         bsls::Types::Uint64 d_generationCount;
         int                 d_partitionId;
         bool                d_isSuccess;
@@ -1176,25 +1176,26 @@ inline int ClusterQueueHelper::QueueContext::partitionId() const
                            : mqbi::Storage::k_INVALID_PARTITION_ID;
 }
 
-// --------------------------------------
-// class ClusterQueueHelper::RestoreCycle
-// --------------------------------------
+// ----------------------------------------------
+// class ClusterQueueHelper::PartitionReopenCycle
+// ----------------------------------------------
 
 inline ClusterQueueHelper::PartitionReopenCycle::PartitionReopenCycle(
     ClusterQueueHelper* owner,
     bsls::Types::Uint64 generationCount,
     int                 partitionId)
-: d_owner(owner)
+: d_owner_p(owner)
 , d_generationCount(generationCount)
 , d_partitionId(partitionId)
 , d_isSuccess(true)
 {
-    // NOTHING
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_owner_p);
 }
 
 inline ClusterQueueHelper::PartitionReopenCycle::~PartitionReopenCycle()
 {
-    d_owner->completePartitionReopen(this);
+    d_owner_p->completePartitionReopen(this);
 };
 
 inline void ClusterQueueHelper::PartitionReopenCycle::setAsFailed()
@@ -1249,16 +1250,24 @@ ClusterQueueHelper::startPartitionReopen(int                 partitionId,
 inline void
 ClusterQueueHelper::completePartitionReopen(PartitionReopenCycle* cycle)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
     BSLS_ASSERT_SAFE(cycle);
 
+    int pid = cycle->partitionId();
+
     if (cycle->isSuccess()) {
-        d_reopenCycles.erase(cycle->partitionId());
+        d_reopenCycles.erase(pid);
         if (d_reopenCycles.empty()) {
             BALL_LOG_INFO << d_cluster_p->description() << ": state restored";
         }
     }
-    // else keep the entry (weak_ptr) as an indication of unhealthy partition.
-    // Next 'restoreState' call which will retry and replace the entry.
+    else {
+        // Keep the entry (weak_ptr) as an indication of unhealthy partition.
+        // Next 'restoreState' call will retry and replace the entry.
+        BALL_LOG_INFO << d_cluster_p->description() << ": partition [" << pid
+                      << "] has failed to reopen";
+    }
 }
 
 inline bool ClusterQueueHelper::hasActiveAvailablePrimary(
