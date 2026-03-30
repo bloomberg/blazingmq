@@ -190,6 +190,11 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
     // receives PUSH.
     // For this reason, Proxies sum up all incoming apps in the refCount.
 
+    bsl::shared_ptr<mqbi::DataStreamMessage> dataStreamMessage =
+        d_virtualStorageCatalog.createDataStreamMessage(
+            msgSize,
+            d_virtualStorageCatalog.numVirtualStorages());
+
     if (!isProxy()) {
         if (d_items.isInHistory(msgGUID)) {
             return mqbi::StorageResult::e_DUPLICATE;
@@ -212,32 +217,19 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
                                       Item(appData, options, *attributes)),
                        attributes->arrivalTimepoint());
 
-        if (d_autoConfirms.empty()) {
-            d_virtualStorageCatalog.put(
-                msgGUID,
-                msgSize,
-                d_virtualStorageCatalog.numVirtualStorages(),
-                out);
-        }
-        else {
-            mqbi::DataStreamMessage* dataStreamMessage = 0;
-            if (out == 0) {
-                out = &dataStreamMessage;
-            }
-            d_virtualStorageCatalog.put(
-                msgGUID,
-                msgSize,
-                d_virtualStorageCatalog.numVirtualStorages(),
-                out);
-
+        if (!d_autoConfirms.empty()) {
+            d_virtualStorageCatalog.setup(dataStreamMessage.get());
             // Move auto confirms to the data record
             for (AutoConfirms::const_iterator it = d_autoConfirms.begin();
                  it != d_autoConfirms.end();
                  ++it) {
-                d_virtualStorageCatalog.autoConfirm(*out, it->d_appKey);
+                d_virtualStorageCatalog.autoConfirm(dataStreamMessage.get(),
+                                                    it->d_appKey);
             }
             d_autoConfirms.clear();
         }
+
+        d_virtualStorageCatalog.insert(msgGUID, dataStreamMessage);
 
         d_currentlyAutoConfirming = bmqt::MessageGUID();
 
@@ -273,11 +265,13 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
 
     // This can override (increase) 'mqbi::DataStreamMessage::d_numApps' with
     // 'd_virtualStorageCatalog.numVirtualStorages()'.
-    // Proxy can detect duplicates by inspecting returned 'DataStreamMessage'.
-    d_virtualStorageCatalog.put(msgGUID,
-                                msgSize,
-                                d_virtualStorageCatalog.numVirtualStorages(),
-                                out);
+    dataStreamMessage = d_virtualStorageCatalog.insert(msgGUID,
+                                                       dataStreamMessage);
+
+    if (out) {
+        d_virtualStorageCatalog.setup(dataStreamMessage.get());
+        *out = dataStreamMessage.get();
+    }
 
     // We don't verify uniqueness of the insertion because in the case of a
     // proxy, it uses this inMemoryStorage, and when some upstream node
@@ -538,13 +532,9 @@ void InMemoryStorage::selectForAutoConfirming(const bmqt::MessageGUID& msgGUID)
     d_currentlyAutoConfirming = msgGUID;
 }
 
-mqbi::StorageResult::Enum
-InMemoryStorage::autoConfirm(const mqbu::StorageKey& appKey,
-                             BSLA_MAYBE_UNUSED bsls::Types::Uint64 timestamp)
+void InMemoryStorage::autoConfirm(const mqbu::StorageKey& appKey)
 {
     d_autoConfirms.emplace_back(appKey);
-
-    return mqbi::StorageResult::e_SUCCESS;
 }
 
 // ACCESSORS
@@ -638,6 +628,10 @@ void InMemoryStorage::setPrimary()
 
 void InMemoryStorage::calibrate()
 {
+    // use this event as another trigger to clear orphan confirms
+    d_autoConfirms.clear();
+    d_currentlyAutoConfirming = bmqt::MessageGUID();
+
     d_virtualStorageCatalog.calibrate();
 }
 

@@ -336,11 +336,13 @@ void StorageManager::dispatchEventToPartition(PartitionFSM::Event::Enum event,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(eventDataVec.size() >= 1);
 
-    // NOTE: it is assumed that all elements in 'eventDataVec' have the same
-    // 'partitionId'.
     const int partitionId = eventDataVec[0].partitionId();
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
+    // Verify other events with 0-indexed event's partitionId
+    for (size_t i = 1; i < eventDataVec.size(); ++i) {
+        BSLS_ASSERT_SAFE(partitionId == eventDataVec[i].partitionId());
+    }
 
     if (d_cluster_p->isStopping()) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
@@ -353,15 +355,86 @@ void StorageManager::dispatchEventToPartition(PartitionFSM::Event::Enum event,
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
     BSLS_ASSERT_SAFE(fs);
     if (fs->inDispatcherThread()) {
-        d_partitionFSMVec[partitionId]->enqueueEvent(
-            PartitionFSM::EventWithData(event, eventDataVec));
+        executeEventInPartitionThread(event, eventDataVec);
     }
     else {
         fs->execute(bdlf::BindUtil::bind(
-            &PartitionFSM::enqueueEvent,
-            d_partitionFSMVec[partitionId].get(),
-            PartitionFSM::EventWithData(event, eventDataVec)));
+            &StorageManager::executeEventInPartitionThread,
+            this,
+            event,
+            eventDataVec));
     }
+}
+
+void StorageManager::executeEventInPartitionThread(
+    PartitionFSM::Event::Enum event,
+    const EventData&          eventDataVec)
+{
+    // Thread: QUEUE dispatcher
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(eventDataVec.size() >= 1);
+
+    const int partitionId = eventDataVec[0].partitionId();
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
+
+    // Verify events
+    if (eventDataVec.size() == 1) {
+        const PartitionFSMEventData& evt = eventDataVec[0];
+
+        // Do not perform extra checks if primaryLeaseId is unspecified.
+        if (PartitionFSMEventData::k_INVALID_LEASE_ID !=
+            evt.primaryLeaseId()) {
+            const PartitionInfo& pinfo = d_partitionInfoVec[partitionId];
+
+            const bool isLeaseIdOutdated = evt.primaryLeaseId() <
+                                           pinfo.primaryLeaseId();
+            const bool isPrimaryMismatch = evt.primaryLeaseId() ==
+                                               pinfo.primaryLeaseId() &&
+                                           evt.primary() && pinfo.primary() &&
+                                           evt.primary()->nodeId() !=
+                                               pinfo.primary()->nodeId();
+
+            if (isLeaseIdOutdated || isPrimaryMismatch) {
+                BALL_LOG_WARN
+                    << d_clusterData_p->identity().description()
+                    << " Partition [" << partitionId
+                    << "]: dropping stale event: source "
+                    << evt.source()->nodeDescription()
+                    << ", event primaryLeaseId [" << evt.primaryLeaseId()
+                    << "], current primaryLeaseId [" << pinfo.primaryLeaseId()
+                    << "], event primary ["
+                    << (evt.primary() ? evt.primary()->nodeDescription()
+                                      : "null")
+                    << "], current primary ["
+                    << (pinfo.primary() ? pinfo.primary()->nodeDescription()
+                                        : "null")
+                    << "]";
+
+                if (0 <= evt.requestId()) {
+                    bmqp_ctrlmsg::ControlMessage controlMsg;
+                    controlMsg.rId() = evt.requestId();
+                    bmqp_ctrlmsg::Status& response =
+                        controlMsg.choice().makeStatus();
+
+                    response.category() =
+                        bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+                    response.code()    = mqbi::ClusterErrorCode::e_UNKNOWN;
+                    response.message() = "Primary mismatch";
+
+                    d_clusterData_p->messageTransmitter().sendMessageSafe(
+                        controlMsg,
+                        evt.source());
+                }
+                return;
+            }
+        }
+    }
+
+    d_partitionFSMVec[partitionId]->enqueueEvent(
+        PartitionFSM::EventWithData(event, eventDataVec));
 }
 
 void StorageManager::setPrimaryStatusForPartitionDispatched(
@@ -1580,10 +1653,13 @@ void StorageManager::do_replicaStateResponse(const EventWithData& event)
     BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
 
     const PartitionFSMEventData& eventData   = eventDataVec[0];
-    int                          partitionId = eventData.partitionId();
+    const int                    partitionId = eventData.partitionId();
 
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(eventData.source());
+    BSLS_ASSERT_SAFE(eventData.source()->nodeId() ==
+                     d_partitionInfoVec[partitionId].primary()->nodeId());
 
     bmqp_ctrlmsg::ControlMessage controlMsg;
     controlMsg.rId() = eventData.requestId();
@@ -1609,12 +1685,7 @@ void StorageManager::do_replicaStateResponse(const EventWithData& event)
     response.partitionMaxFileSizes() = getSelfPartitionMaxFileSizes(
         partitionId);
 
-    BSLS_ASSERT_SAFE(eventData.source());
-    BSLS_ASSERT_SAFE(eventData.source()->nodeId() ==
-                     d_partitionInfoVec[partitionId].primary()->nodeId());
-
-    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
-                                                          eventData.source());
+    fileStore(partitionId).sendMessage(controlMsg, eventData.source());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << ": sent response " << controlMsg
@@ -1673,8 +1744,7 @@ void StorageManager::do_failureReplicaStateResponse(const EventWithData& event)
                       << eventData.source()->nodeDescription() << ".";
     }
 
-    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
-                                                          eventData.source());
+    fileStore(partitionId).sendMessage(controlMsg, eventData.source());
 }
 
 void StorageManager::do_logFailureReplicaStateResponse(
@@ -1915,8 +1985,7 @@ void StorageManager::do_primaryStateResponse(const EventWithData& event)
     response.partitionMaxFileSizes() = getSelfPartitionMaxFileSizes(
         partitionId);
 
-    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
-                                                          eventData.source());
+    fileStore(partitionId).sendMessage(controlMsg, eventData.source());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << ": sent response " << controlMsg
@@ -1951,8 +2020,7 @@ void StorageManager::do_failurePrimaryStateResponse(const EventWithData& event)
     response.code()                = mqbi::ClusterErrorCode::e_NOT_PRIMARY;
     response.message()             = "Not a primary";
 
-    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
-                                                          eventData.source());
+    fileStore(partitionId).sendMessage(controlMsg, eventData.source());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId
@@ -2181,8 +2249,7 @@ void StorageManager::do_replicaDataResponsePush(const EventWithData& event)
                                                           partitionId);
     }
 
-    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
-                                                          destNode);
+    fileStore(partitionId).sendMessage(controlMsg, destNode);
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId << "]: " << "Sent response "
@@ -2394,8 +2461,7 @@ void StorageManager::do_replicaDataResponseDrop(const EventWithData& event)
         eventData.partitionSeqNumDataRange().first;
     response.endSequenceNumber() = eventData.partitionSeqNumDataRange().second;
 
-    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
-                                                          eventData.source());
+    fileStore(partitionId).sendMessage(controlMsg, eventData.source());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId << "]: " << "Sent response "
@@ -2506,8 +2572,7 @@ void StorageManager::do_replicaDataResponsePull(const EventWithData& event)
         eventData.partitionSeqNumDataRange().first;
     response.endSequenceNumber() = eventData.partitionSeqNumDataRange().second;
 
-    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
-                                                          destNode);
+    fileStore(partitionId).sendMessage(controlMsg, destNode);
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId << "]: Sent response "
@@ -2546,8 +2611,7 @@ void StorageManager::do_failureReplicaDataResponsePull(
     status.code()                = mqbi::ClusterErrorCode::e_STORAGE_FAILURE;
     status.message()             = "Failed to send data chunks";
 
-    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
-                                                          destNode);
+    fileStore(partitionId).sendMessage(controlMsg, destNode);
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId
@@ -2803,6 +2867,36 @@ void StorageManager::do_processLiveData(const EventWithData& event)
                             source);
 }
 
+void StorageManager::do_setPrimary(const EventWithData& event)
+{
+    // executed by the *QUEUE DISPATCHER* thread associated with the
+    // paritionId contained in 'event'
+
+    const EventData& eventDataVec = event.second;
+    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+
+    const PartitionFSMEventData& eventData   = eventDataVec[0];
+    const int                    partitionId = eventData.partitionId();
+    mqbnet::ClusterNode*         primary     = eventData.primary();
+    const unsigned int           leaseId     = eventData.primaryLeaseId();
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
+    BSLS_ASSERT_SAFE(primary);
+
+    PartitionInfo& pinfo = d_partitionInfoVec[partitionId];
+    if (pinfo.primary() && (pinfo.primary()->nodeId() == primary->nodeId())) {
+        pinfo.setPrimaryLeaseId(leaseId);
+        return;  // RETURN
+    }
+
+    pinfo.setPrimary(primary);
+    pinfo.setPrimaryLeaseId(leaseId);
+    pinfo.setPrimaryStatus(bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE);
+}
+
 void StorageManager::do_cleanupMetadata(const EventWithData& event)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with the
@@ -2822,6 +2916,12 @@ void StorageManager::do_cleanupMetadata(const EventWithData& event)
                          PartitionFSM::State::e_UNKNOWN ||
                      d_partitionFSMVec[partitionId]->state() ==
                          PartitionFSM::State::e_STOPPED);
+
+    StorageUtil::clearPrimaryForPartition(
+        d_fileStores[partitionId].get(),
+        &d_partitionInfoVec[partitionId],
+        d_clusterData_p->identity().description(),
+        partitionId);
 
     d_nodeToContextMapVec[partitionId].clear();
     d_numReplicaDataResponsesReceivedVec[partitionId] = 0;
@@ -3919,8 +4019,7 @@ void StorageManager::do_replicaDataResponseResize(const EventWithData& event)
     response.partitionMaxFileSizes() = getSelfPartitionMaxFileSizes(
         partitionId);
 
-    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
-                                                          eventData.source());
+    fileStore(partitionId).sendMessage(controlMsg, eventData.source());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId << "]: " << "Sent response "
@@ -4914,6 +5013,8 @@ void StorageManager::processReplicaStateRequest(
         message.rId().isNull() ? -1 : message.rId().value(),
         partitionId,
         1,
+        source,
+        replicaStateRequest.latestSequenceNumber().primaryLeaseId(),
         replicaStateRequest.latestSequenceNumber(),
         replicaStateRequest.firstSyncPointAfterRolloverSequenceNumber(),
         replicaStateRequest.partitionMaxFileSizes());

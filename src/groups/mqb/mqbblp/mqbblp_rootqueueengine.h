@@ -422,15 +422,13 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
     /// Given the specified 'putHeader', 'appData', 'mpi', and 'timestamp',
     /// evaluate all application subscriptions and exclude applications with
-    /// negative results from message delivery.  Return 0 on success or an
-    /// non-zero error code on failure.
+    /// negative results from message delivery.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    mqbi::StorageResult::Enum evaluateAppSubscriptions(
-        const bmqp::PutHeader&              putHeader,
-        const bsl::shared_ptr<bdlbb::Blob>& appData,
-        const bmqp::MessagePropertiesInfo&  mpi,
-        bsls::Types::Uint64                 timestamp) BSLS_KEYWORD_OVERRIDE;
+    void evaluateAppSubscriptions(const bmqp::PutHeader& putHeader,
+                                  const bsl::shared_ptr<bdlbb::Blob>& appData,
+                                  const bmqp::MessagePropertiesInfo&  mpi)
+        BSLS_KEYWORD_OVERRIDE;
 
     /// Return storage iterator to the 1st un-delivered message including
     /// 'put-aside' messages (those without matching Subscriptions).

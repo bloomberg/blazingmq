@@ -2252,18 +2252,15 @@ void RootQueueEngine::unregisterStorage(
     iter->second->unauthorize();
 }
 
-mqbi::StorageResult::Enum RootQueueEngine::evaluateAppSubscriptions(
+void RootQueueEngine::evaluateAppSubscriptions(
     const bmqp::PutHeader&              putHeader,
     const bsl::shared_ptr<bdlbb::Blob>& appData,
-    const bmqp::MessagePropertiesInfo&  mpi,
-    bsls::Types::Uint64                 timestamp)
+    const bmqp::MessagePropertiesInfo&  mpi)
 {
     if (!d_hasAppSubscriptions) {
         // No-op if no application subscriptions configured
-        return mqbi::StorageResult::e_SUCCESS;
+        return;  // RETURN
     }
-
-    mqbi::StorageResult::Enum result = mqbi::StorageResult::e_SUCCESS;
 
     Routers::QueueRoutingContext& queue = d_queueState_p->routingContext();
 
@@ -2281,16 +2278,9 @@ mqbi::StorageResult::Enum RootQueueEngine::evaluateAppSubscriptions(
     for (Apps::iterator it = d_apps.begin(); it != d_apps.end(); ++it) {
         AppStateSp& app = it->second;
         if (!app->evaluateAppSubcription()) {
-            result = d_queueState_p->storage()->autoConfirm(app->appKey(),
-                                                            timestamp);
-
-            if (result != mqbi::StorageResult::e_SUCCESS) {
-                return result;
-            }
+            d_queueState_p->storage()->autoConfirm(app->appKey());
         }
     }
-
-    return result;
 }
 
 bslma::ManagedPtr<mqbi::StorageIterator>

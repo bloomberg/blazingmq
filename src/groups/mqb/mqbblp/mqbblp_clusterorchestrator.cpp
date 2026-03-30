@@ -797,8 +797,9 @@ void ClusterOrchestrator::transitionToAvailable()
         bmqp_ctrlmsg::NodeStatusAdvisory& advisory =
             clusterMsg.choice().makeNodeStatusAdvisory();
         advisory.status() = bmqp_ctrlmsg::NodeStatus::E_AVAILABLE;
-        d_clusterData_p->messageTransmitter().broadcastMessage(controlMsg,
-                                                               true);
+        d_clusterData_p->messageTransmitter().broadcastMessage(
+            controlMsg,
+            d_clusterData_p->transportManager());
 
         d_wasAvailableAdvisorySent = true;
     }

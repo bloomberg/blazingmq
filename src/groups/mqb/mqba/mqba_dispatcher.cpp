@@ -44,8 +44,7 @@ namespace BloombergLP {
 namespace mqba {
 
 namespace {
-const double k_QUEUE_STUCK_INTERVAL = 3 * 60.0;
-const int    k_POOL_GROW_BY         = 1024;
+const int k_POOL_GROW_BY = 1024;
 }  // close unnamed namespace
 
 // -------------------------
@@ -239,10 +238,12 @@ int Dispatcher::startContext(bsl::ostream&                    errorDescription,
     ProcessorPool::Config processorPoolConfig(
         config.numProcessors(),
         context->d_threadPool_mp.get(),
-        bdlf::BindUtil::bind(&Dispatcher::eventCallbackCreator,
-                             this,
-                             type,
-                             bdlf::PlaceHolders::_1),  // queueId
+        bdlf::BindUtil::bind(
+            &Dispatcher::eventCallbackCreator,
+            this,
+            type,
+            bdlf::PlaceHolders::_1,   // queueId
+            bdlf::PlaceHolders::_2),  // lastProcessingStartTime
         bdlf::BindUtil::bind(&Dispatcher::queueCreator,
                              this,
                              type,
@@ -253,11 +254,11 @@ int Dispatcher::startContext(bsl::ostream&                    errorDescription,
 
     processorPoolConfig.setName(mqbi::DispatcherClientType::toAscii(type))
         .setEventScheduler(d_scheduler_p)
-        .setMonitorAlarm("ALARM [DISPATCHER_QUEUE_STUCK] ",
-                         bsls::TimeInterval(k_QUEUE_STUCK_INTERVAL));
-    // TBD: .statContext(...) / .createSubcontext(true)
-    //      We should have subcontext per each type of event (PUSH, PUT,
-    //      CALLBACK, ACK, ...)
+        .setMonitorAlarm(
+            "ALARM [DISPATCHER_QUEUE_STUCK] ",
+            bsls::TimeInterval(d_config.alarmTimeoutMs() / 1000.0))
+        .setMonitorWarningTimeout(
+            bsls::TimeInterval(d_config.warningTimeoutMs() / 1000.0));
 
     context->d_processorPool_mp.load(
         new (*d_allocator_p) ProcessorPool(processorPoolConfig, d_allocator_p),
@@ -331,9 +332,10 @@ Dispatcher::Dispatcher(const mqbcfg::DispatcherConfig& config,
 , d_flushClientsGate()
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(scheduler->clockType() ==
+    BSLS_ASSERT_SAFE(d_scheduler_p);
+    BSLS_ASSERT_SAFE(d_scheduler_p->clockType() ==
                      bsls::SystemClockType::e_MONOTONIC);
-    BSLS_ASSERT_SAFE(statContext);
+    BSLS_ASSERT_SAFE(d_statContext_p);
 
     d_flushClientsGate.open();
 }
@@ -701,9 +703,17 @@ bsl::shared_ptr<mqbi::DispatcherEventSource> Dispatcher::createEventSource()
 
 Dispatcher::ProcessorPool::EventFn
 Dispatcher::eventCallbackCreator(mqbi::DispatcherClientType::Enum type,
-                                 int                              queueId)
+                                 int                              queueId,
+                                 bsls::AtomicInt64* lastProcessingStartTime)
 {
-    return EventCallback(type, queueId, &d_flushClientsGate, d_contexts[type]);
+    return EventCallback(
+        type,
+        queueId,
+        &d_flushClientsGate,
+        d_contexts[type],
+        bdlt::TimeUnitRatio::k_NS_PER_MS *
+            static_cast<bsls::Types::Int64>(d_config.warningTimeoutMs()),
+        lastProcessingStartTime);
 }
 
 // -------------------------------
@@ -714,15 +724,22 @@ mqba::Dispatcher::EventCallback::EventCallback(
     mqbi::DispatcherClientType::Enum             type,
     int                                          queueId,
     bmqu::GateKeeper*                            flushClientsGate_p,
-    const mqba::Dispatcher::DispatcherContextSp& context_sp)
-: d_type(type)
-, d_queueId(queueId)
+    const mqba::Dispatcher::DispatcherContextSp& context_sp,
+    bsls::Types::Int64                           warningTimeoutNs,
+    bsls::AtomicInt64*                           lastProcessingStartTime)
+: d_queueName(context_sp->d_processorPool_mp->queueName(queueId))
+, d_stats_sp(context_sp->d_statContexts[queueId])
 , d_flushClientsGate_p(flushClientsGate_p)
 , d_flushList_p(&context_sp->d_flushList[queueId])
-, d_stats_sp(context_sp->d_statContexts[queueId])
+, d_processorPool_p(context_sp->d_processorPool_mp.get())
+, d_warningTimeoutNs(warningTimeoutNs)
+, d_type(type)
+, d_queueId(queueId)
+, d_lastProcessingStartTime_p(lastProcessingStartTime)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_flushClientsGate_p);
+    BSLS_ASSERT_SAFE(d_lastProcessingStartTime_p);
 }
 
 void mqba::Dispatcher::EventCallback::operator()(
@@ -732,9 +749,11 @@ void mqba::Dispatcher::EventCallback::operator()(
         BALL_LOG_TRACE << "Dispatching Event to queue " << d_queueId << " of "
                        << d_type << " dispatcher: " << *event;
 
-        const bsls::Types::Int64 processingTimeStart =
+        const bsls::Types::Int64 processingStartTime =
             bmqsys::Time::highResolutionTimer();
-        const bsls::Types::Int64 queuedTime = processingTimeStart -
+        d_lastProcessingStartTime_p->store(processingStartTime);
+
+        const bsls::Types::Int64 queuedTime = processingStartTime -
                                               event->enqueueTime();
 
         if (event->type() == mqbi::DispatcherEventType::e_DISPATCHER) {
@@ -768,13 +787,24 @@ void mqba::Dispatcher::EventCallback::operator()(
         }
 
         const bsls::Types::Int64 processingTime =
-            bmqsys::Time::highResolutionTimer() - processingTimeStart;
+            bmqsys::Time::highResolutionTimer() - processingStartTime;
 
         // Update stats
         mqbstat::DispatcherStats::onDequeue(d_stats_sp.get(), queuedTime);
         mqbstat::DispatcherStats::onProcess(d_stats_sp.get(),
                                             event->type(),
                                             processingTime);
+
+        d_lastProcessingStartTime_p->store(0);
+
+        if (processingTime > d_warningTimeoutNs) {
+            BALL_LOG_WARN << "Queue '" << d_queueName
+                          << "' has processed an event in "
+                          << bmqu::PrintUtil::prettyTimeInterval(
+                                 processingTime)
+                          << ". Current queue size: "
+                          << d_processorPool_p->numElements(d_queueId);
+        }
     }
     else {
         // Empty `event` means queue is empty

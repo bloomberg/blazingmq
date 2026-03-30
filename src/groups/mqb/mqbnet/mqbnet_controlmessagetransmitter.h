@@ -13,21 +13,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbc_controlmessagetransmitter.h                                   -*-C++-*-
-#ifndef INCLUDED_MQBC_CONTROLMESSAGETRANSMITTER
-#define INCLUDED_MQBC_CONTROLMESSAGETRANSMITTER
+// mqbnet_controlmessagetransmitter.h                                 -*-C++-*-
+#ifndef INCLUDED_MQBNET_CONTROLMESSAGETRANSMITTER
+#define INCLUDED_MQBNET_CONTROLMESSAGETRANSMITTER
 
-/// @file mqbc_controlmessagetransmitter.h
+/// @file mqbnet_controlmessagetransmitter.h
 ///
 /// @brief Provide a mechanism to transmit control messages to peer nodes.
 ///
-/// @bbref{mqbc::ControlMessageTransmitter} provides a mechanism to transmit
+/// @bbref{mqbnet::ControlMessageTransmitter} provides a mechanism to transmit
 /// messages to peer nodes in the same cluster.
 ///
-/// Thread Safety                      {#mqbc_controlmessagetransmitter_thread}
+/// Thread Safety                    {#mqbnet_controlmessagetransmitter_thread}
 /// =============
 ///
-/// The @bbref{mqbc::ControlMessageTransmitter} object is not thread safe and
+/// The @bbref{mqbnet::ControlMessageTransmitter} object is not thread safe and
 /// should always be manipulated from the associated cluster's dispatcher
 /// thread, unless specified by the function (such as `sendMessageSafe`).
 
@@ -57,9 +57,6 @@ class Cluster;
 }
 namespace mqbnet {
 class ClusterNode;
-}
-
-namespace mqbc {
 
 // ===============================
 // class ControlMessageTransmitter
@@ -88,9 +85,7 @@ class ControlMessageTransmitter {
     bmqp::SchemaEventBuilder d_schemaBuilder;
 
     /// Associated cluster.
-    mqbi::Cluster* d_cluster_p;
-
-    mqbnet::TransportManager* d_transportManager_p;
+    mqbnet::Cluster* d_cluster_p;
 
   private:
     // NOT IMPLEMENTED
@@ -113,13 +108,13 @@ class ControlMessageTransmitter {
 
     /// Use the specified `schemaBuilder` to build a BlazingMQ schema event
     /// for the specified `message`, then encode and send it to all peer
-    /// nodes in the cluster.  If the specified `broadcastToProxies` is
-    /// true, send the `message` to all proxies connected to this cluster.
+    /// nodes in the cluster.  If the specified `transportManager` is not `0`,
+    /// send the `message` to all proxies known to the `transportManager`.
     ///
     /// THREAD: This method can be invoked from any thread.
     void broadcastMessageHelper(const bmqp_ctrlmsg::ControlMessage& message,
                                 bmqp::SchemaEventBuilder* schemaBuilder,
-                                bool                      broadcastToProxies);
+                                mqbnet::TransportManager* transportManager);
 
   public:
     // TRAITS
@@ -131,10 +126,9 @@ class ControlMessageTransmitter {
     /// Create an instance of `ControlMessageTransmitter` associated with
     /// the specified `cluster` and using the specified `blobSpPool_p`.
     /// Use the specified `allocator` for memory allocations.
-    ControlMessageTransmitter(BlobSpPool*               blobSpPool_p,
-                              mqbi::Cluster*            cluster,
-                              mqbnet::TransportManager* transportManager,
-                              bslma::Allocator*         allocator);
+    ControlMessageTransmitter(BlobSpPool*       blobSpPool_p,
+                              mqbnet::Cluster*  cluster,
+                              bslma::Allocator* allocator);
 
     /// Destructor
     ~ControlMessageTransmitter();
@@ -166,19 +160,13 @@ class ControlMessageTransmitter {
                          mqbnet::ClusterNode*                destination);
 
     /// Encode and send the specified schema `message` to the all peer nodes
-    /// in the cluster.  If the optionally specified `broadcastToProxies` is
-    /// true, send the `message` to all proxies connected to this cluster.
+    /// in the cluster.  If the specified `transportManager` is not `0`,
+    /// send the `message` to all proxies known to the `transportManager`.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
     void broadcastMessage(const bmqp_ctrlmsg::ControlMessage& message,
-                          bool broadcastToProxies = false);
-
-    /// Encode and send the specified schema `message` to the all peer nodes
-    /// in the cluster.
-    ///
-    /// THREAD: This method can be invoked from any thread.
-    void broadcastMessageSafe(const bmqp_ctrlmsg::ControlMessage& message);
+                          mqbnet::TransportManager* transportManager = 0);
 };
 
 }  // close package namespace

@@ -278,22 +278,6 @@ void printNextEventRecord(bsl::ostream&                       stream,
     allocator->deallocate(p);
 }
 
-// Return `true` if the rollover policy is satisfied, `false` otherwise.
-// Set `availableSpacePercent` pointed value with calculated value.
-bool isSatisfyRolloverPolicy(unsigned int*             availableSpacePercent,
-                             const bsls::Types::Uint64 maxFileSize,
-                             const bsls::Types::Uint64 outstandingBytes,
-                             const unsigned int        minAvailSpacePercent)
-{
-    *availableSpacePercent = 0;
-    if (outstandingBytes <= maxFileSize) {
-        *availableSpacePercent = ((maxFileSize - outstandingBytes) * 100) /
-                                 maxFileSize;
-    }
-
-    return *availableSpacePercent >= minAvailSpacePercent;
-}
-
 }  // close unnamed namespace
 
 // -------------------------------------
@@ -1208,18 +1192,17 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
         rc_NULL_QUEUE_KEY           = -5,
         rc_INVALID_QLIST_OFFSET     = -6,
         rc_DUPLICATE_QUEUE_KEY      = -7,
-        rc_UNEXPECTED_QUEUE_OP_TYPE = -8,
-        rc_INVALID_QUEUE_KEY        = -9,
-        rc_QUEUE_URI_MISMATCH       = -10,
-        rc_APP_ID_KEY_MISMATCH      = -11,
-        rc_INVALID_DATA_OFFSET      = -12,
-        rc_INVALID_SYNC_PT_SUB_TYPE = -13,
-        rc_INVALID_QLIST_RECORD     = -14,
-        rc_INVALID_DELETION_RECORD  = -15,
-        rc_INVALID_CONFIRM_RECORD   = -16,
-        rc_INVALID_MESSAGE_RECORD   = -17,
-        rc_INVALID_DATA_RECORD      = -18,
-        rc_INVALID_PARTITION_ID     = -19
+        rc_INVALID_QUEUE_KEY        = -8,
+        rc_QUEUE_URI_MISMATCH       = -9,
+        rc_APP_ID_KEY_MISMATCH      = -10,
+        rc_INVALID_DATA_OFFSET      = -11,
+        rc_INVALID_SYNC_PT_SUB_TYPE = -12,
+        rc_INVALID_QLIST_RECORD     = -13,
+        rc_INVALID_DELETION_RECORD  = -14,
+        rc_INVALID_CONFIRM_RECORD   = -15,
+        rc_INVALID_MESSAGE_RECORD   = -16,
+        rc_INVALID_DATA_RECORD      = -17,
+        rc_INVALID_PARTITION_ID     = -18
     };
 
     FileSet*                    activeFileSet = d_fileSets[0].get();
@@ -1579,7 +1562,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 << "Record offset: " << journalIt.recordOffset()
                 << ", record index: " << journalIt.recordIndex()
                 << BMQTSK_ALARMLOG_END;
-            return rc_UNEXPECTED_QUEUE_OP_TYPE;  // RETURN
+            continue;  // CONTINUE
         }
     }
 
@@ -1900,7 +1883,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                             << ", index: " << jit->recordIndex()
                             << ", but the queueKey is not present in cluster "
                             << "state.";
-                        return rc_INVALID_QUEUE_KEY;  // RETURN
+                        continue;  // CONTINUE
                     }
                     else {
                         BMQTSK_ALARMLOG_ALARM("RECOVERY")
@@ -1911,7 +1894,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                             << ", index: " << jit->recordIndex()
                             << ", for which a QueueOp.CREATION record was not "
                             << "seen in first pass." << BMQTSK_ALARMLOG_END;
-                        return rc_INVALID_QUEUE_KEY;  // RETURN
+                        continue;  // CONTINUE
                     }
                 }
 
@@ -2381,7 +2364,6 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                         << ", index: " << jit->recordIndex()
                         << ", but the queueKey is not present in cluster "
                         << "state.";
-                    return rc_INVALID_QUEUE_KEY;  // RETURN
                 }
                 else {
                     BMQTSK_ALARMLOG_ALARM("RECOVERY")
@@ -2392,8 +2374,9 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                         << ", index: " << jit->recordIndex()
                         << ", for which a QueueOp.CREATION record was not "
                         << "seen in first pass." << BMQTSK_ALARMLOG_END;
-                    return rc_INVALID_QUEUE_KEY;  // RETURN
                 }
+
+                // Ignore the error and continue tracking the GUID as deleted.
             }
 
             deletedGuids.insert(rec.messageGUID());
@@ -2403,6 +2386,8 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
         else if (RecordType::e_CONFIRM == rt) {
             const ConfirmRecord& rec = jit->asConfirmRecord();
 
+            // Corrupted records (unset GUID, null queueKey) fail recovery.
+            // Records with no matching queue are skipped (orphan confirms).
             if (rec.messageGUID().isUnset()) {
                 BALL_LOG_ERROR
                     << partitionDesc()
@@ -2458,7 +2443,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                         << ", index: " << jit->recordIndex()
                         << ", but the queueKey is not "
                         << "present in cluster state.";
-                    return rc_INVALID_QUEUE_KEY;  // RETURN
+                    continue;  // CONTINUE
                 }
                 else {
                     BMQTSK_ALARMLOG_ALARM("RECOVERY")
@@ -2470,7 +2455,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                         << ", for which a "
                         << "QueueOp.CREATION record was not seen in first "
                         << "pass." << BMQTSK_ALARMLOG_END;
-                    return rc_INVALID_QUEUE_KEY;  // RETURN
+                    continue;  // CONTINUE
                 }
             }
 
@@ -3118,10 +3103,7 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
         rc_JOURNAL_ROLLOVER_POLICY_FAILURE = -1,
         rc_DATA_ROLLOVER_POLICY_FAILURE    = -2,
         rc_QLIST_ROLLOVER_POLICY_FAILURE   = -3,
-        rc_SYNC_POINT_FAILURE              = -4,
-        rc_RESIZE_STORAGE_FAILURE          = -5,
-        rc_ROLLOVER_FAILURE                = -6,
-        rc_SYNC_POINT_FORCE_ISSUE_FAILURE  = -7
+        rc_ROLLOVER_FAILURE                = -4
     };
 
     // Note: QList file will be deprecated in FSM workflow.
@@ -3179,7 +3161,6 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
     bool           canRollover            = true;
     int            rc                     = rc_SUCCESS;
     FileType::Enum cannotRolloverFileType = FileType::e_UNDEFINED;
-    bmqp_ctrlmsg::PartitionMaxFileSizes adjustedMaxFileSizes;
 
     bsls::Types::Uint64 outstandingBytesJournal =
         activeFileSet->d_outstandingBytesJournal;
@@ -3187,19 +3168,16 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
         outstandingBytesJournal += requestedSpace;
     }
 
-    unsigned int availableSpacePercentJournal = 0;
-    // If journalFileGrowLimit is not set, use current max file size as
-    // grow limit.
-    const bsls::Types::Uint64 journalFileSizeGrowLimit = bsl::max(
-        d_config.journalFileGrowLimit(),
-        d_partitionMaxFileSizes.journalFileSize());
+    bsls::Types::Uint64 availableSpacePercentJournal = 0;
+    bsls::Types::Uint64 maxJournalFileSize =
+        activeFileSet->d_journalFile.fileSize();
+    if (outstandingBytesJournal <= maxJournalFileSize) {
+        availableSpacePercentJournal =
+            ((maxJournalFileSize - outstandingBytesJournal) * 100) /
+            maxJournalFileSize;
+    }
 
-    adjustedMaxFileSizes.journalFileSize() = adjustPartitionFileSize(
-        &availableSpacePercentJournal,
-        outstandingBytesJournal,
-        d_config.maxJournalFileSize(),
-        journalFileSizeGrowLimit);
-    if (adjustedMaxFileSizes.journalFileSize() == 0) {
+    if (availableSpacePercentJournal < d_config.minAvailSpacePercent()) {
         // JOURNAL file can't be rolled over.
 
         canRollover            = false;
@@ -3213,19 +3191,15 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
         outstandingBytesData += requestedSpace;
     }
 
-    unsigned int availableSpacePercentData = 0;
-    // If dataFileGrowLimit is not set, use current max file size as
-    // grow limit
-    const bsls::Types::Uint64 dataFileSizeGrowLimit = bsl::max(
-        d_config.dataFileGrowLimit(),
-        d_partitionMaxFileSizes.dataFileSize());
+    bsls::Types::Uint64 availableSpacePercentData = 0;
+    bsls::Types::Uint64 maxDataFileSize = activeFileSet->d_dataFile.fileSize();
+    if (outstandingBytesData <= maxDataFileSize) {
+        availableSpacePercentData = ((maxDataFileSize - outstandingBytesData) *
+                                     100) /
+                                    maxDataFileSize;
+    }
 
-    adjustedMaxFileSizes.dataFileSize() = adjustPartitionFileSize(
-        &availableSpacePercentData,
-        outstandingBytesData,
-        d_config.maxDataFileSize(),
-        dataFileSizeGrowLimit);
-    if (adjustedMaxFileSizes.dataFileSize() == 0) {
+    if (availableSpacePercentData < d_config.minAvailSpacePercent()) {
         // DATA file can't be rolled over.
 
         canRollover            = false;
@@ -3233,7 +3207,7 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
         rc                     = rc_DATA_ROLLOVER_POLICY_FAILURE;
     }
 
-    unsigned int availableSpacePercentQlist = 0;
+    bsls::Types::Uint64 availableSpacePercentQlist = 0;
     if (d_qListAware) {
         bsls::Types::Uint64 outstandingBytesQlist =
             activeFileSet->d_outstandingBytesQlist;
@@ -3241,19 +3215,17 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
             outstandingBytesQlist += requestedSpace;
         }
 
-        // If qListFileGrowLimit is not set, use current max file size
-        // as grow limit
-        const bsls::Types::Uint64 qListFileSizeGrowLimit = bsl::max(
-            d_config.qListFileGrowLimit(),
-            d_partitionMaxFileSizes.qListFileSize());
+        bsls::Types::Uint64 maxQlistFileSize =
+            activeFileSet->d_qlistFile.fileSize();
+        if (outstandingBytesQlist <= maxQlistFileSize) {
+            availableSpacePercentQlist =
+                ((maxQlistFileSize - outstandingBytesQlist) * 100) /
+                maxQlistFileSize;
+        }
 
-        adjustedMaxFileSizes.qListFileSize() = adjustPartitionFileSize(
-            &availableSpacePercentQlist,
-            outstandingBytesQlist,
-            d_config.maxQlistFileSize(),
-            qListFileSizeGrowLimit);
-        if (adjustedMaxFileSizes.qListFileSize() == 0) {
-            // QLIST file can't be rolled over.
+        if (availableSpacePercentQlist < d_config.minAvailSpacePercent()) {
+            // QLIST file can't be rolled over.  Alarm only if we have
+            // encountered this for the first time.
 
             canRollover            = false;
             cannotRolloverFileType = FileType::e_QLIST;
@@ -3337,27 +3309,6 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
 
     activeFileSet->d_journalFileAvailable = true;
     // Set the availability flag back to true.
-
-    // Reset overridden max file sizes, not needed anymore.
-    d_overridenPartitionMaxFileSizes.reset();
-
-    // If adjusted max file sizes are different from current,
-    // issue resize storage record BEFORE rollover sync point.
-    BSLS_ASSERT_SAFE(adjustedMaxFileSizes !=
-                     bmqp_ctrlmsg::PartitionMaxFileSizes());
-    if (adjustedMaxFileSizes != d_partitionMaxFileSizes) {
-        rc = issueResizeStorage(adjustedMaxFileSizes);
-        if (0 != rc) {
-            return 10 * rc + rc_RESIZE_STORAGE_FAILURE;  // RETURN
-        }
-
-        BALL_LOG_INFO << partitionDesc()
-                      << "Issued a resize storage record with "
-                      << "adjusted partition file sizes: "
-                      << adjustedMaxFileSizes;
-        // Update current partition max file sizes with adjusted values.
-        d_partitionMaxFileSizes = adjustedMaxFileSizes;
-    }
 
     rc = rollover();
     if (0 != rc) {
@@ -5404,6 +5355,7 @@ FileStore::FileStore(
 , d_firstSyncPointAfterRolloverSeqNum()
 , d_partitionMaxFileSizes()
 , d_overridenPartitionMaxFileSizes()
+, d_messageTransmitter(blobSpPool, cluster, allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT(allocator);
@@ -7199,33 +7151,25 @@ void FileStore::clearPrimary()
 
 void FileStore::flushStorage()
 {
-    // 'LocalQueue::flush' invokes 'flushStorage'.
-    // This means that 'flushStorage' will be executed more frequently on a
-    // FileStore than actually applicable.  This is ok and has no side effect.
-
-    // Note that 'RemoteQueue::flush' will not invoke
-    // 'FileStore::flushStorage' because only the partition's primary node
-    // should invoke 'flushStorage' on the FileStore.
-
-    BSLS_ASSERT_SAFE(d_isPrimary);
-
-    if (d_storageEventBuilder.messageCount() != 0) {
-        BALL_LOG_TRACE << partitionDesc() << "Flushing "
-                       << d_storageEventBuilder.messageCount()
-                       << " STORAGE messages.";
-        const int maxChannelPendingItems = d_cluster_p->broadcast(
-            d_storageEventBuilder.blob());
-        if (maxChannelPendingItems > 0) {
-            if (d_nagglePacketCount < k_NAGLE_PACKET_COUNT) {
-                // back off
-                ++d_nagglePacketCount;
-            }
-        }
-        else if (d_nagglePacketCount) {
-            --d_nagglePacketCount;
-        }
-        d_storageEventBuilder.reset();
+    if (d_storageEventBuilder.messageCount() == 0) {
+        return;
     }
+
+    BALL_LOG_TRACE << partitionDesc() << "Flushing "
+                   << d_storageEventBuilder.messageCount()
+                   << " STORAGE messages.";
+    const int maxChannelPendingItems = d_cluster_p->broadcast(
+        d_storageEventBuilder.blob());
+    if (maxChannelPendingItems > 0) {
+        if (d_nagglePacketCount < k_NAGLE_PACKET_COUNT) {
+            // back off
+            ++d_nagglePacketCount;
+        }
+    }
+    else if (d_nagglePacketCount) {
+        --d_nagglePacketCount;
+    }
+    d_storageEventBuilder.reset();
 }
 
 void FileStore::notifyQueuesOnReplicatedBatch()
@@ -7328,46 +7272,12 @@ void FileStore::gcHistory()
     }
 }
 
-bsls::Types::Uint64
-FileStore::adjustPartitionFileSize(unsigned int*       availableSpacePercent,
-                                   bsls::Types::Uint64 outstandingBytes,
-                                   bsls::Types::Uint64 smallestMaxFileSize,
-                                   bsls::Types::Uint64 fileSizeGrowLimit)
-{
-    BSLS_ASSERT_SAFE(smallestMaxFileSize <= fileSizeGrowLimit);
-
-    bsls::Types::Uint64 currMaxFileSize = smallestMaxFileSize;
-
-    bsls::Types::Uint64 fileSizeGrowStep = d_config.growStepPercent() *
-                                           smallestMaxFileSize / 100;
-    BSLS_ASSERT_SAFE(fileSizeGrowStep > 0);
-
-    // Find the smallest max file size that satisfies rollover policy
-    bool canRollover = false;
-    while (true) {
-        canRollover = isSatisfyRolloverPolicy(availableSpacePercent,
-                                              currMaxFileSize,
-                                              outstandingBytes,
-                                              d_config.minAvailSpacePercent());
-        if (canRollover || currMaxFileSize == fileSizeGrowLimit) {
-            // Policy is met or reached the limit
-            break;  // BREAK
-        }
-        // Increase file size by step up to limit
-        currMaxFileSize = bsl::min(currMaxFileSize + fileSizeGrowStep,
-                                   fileSizeGrowLimit);
-    }
-
-    return (canRollover ? currMaxFileSize : 0);
-}
-
 void FileStore::applyForEachQueue(const QueueFunctor& functor) const
 {
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
-
     if (!d_isOpen) {
         return;  // RETURN
     }

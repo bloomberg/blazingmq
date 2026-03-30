@@ -10,7 +10,6 @@ mqbc_clusterstateledgerutil
 mqbc_clusterstatemanager
 mqbc_clusterstatetable
 mqbc_clusterutil
-mqbc_controlmessagetransmitter
 mqbc_electorinfo
 mqbc_incoreclusterstateledger
 mqbc_incoreclusterstateledgeriterator

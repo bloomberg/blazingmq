@@ -108,7 +108,8 @@ static void eventCb(bsl::map<int, bsl::vector<int> >* queueContextMap,
 static MQTP::EventFn
 eventCbCreator(bsl::map<int, bsl::vector<int> >* queueContextMap,
                int                               queueId,
-               bslma::Allocator*                 allocator)
+               BSLA_MAYBE_UNUSED bsls::AtomicInt64* lastProcessingStartTime,
+               bslma::Allocator*                    allocator)
 {
     return bdlf::BindUtil::bindS(allocator,
                                  &eventCb,
@@ -129,9 +130,10 @@ void performanceTestEventCb(BSLA_MAYBE_UNUSED const MQTP::EventSp&)
     // NOTHING
 }
 
-static MQTP::EventFn
-performanceTestEventCbCreator(BSLA_MAYBE_UNUSED int queueId,
-                              bslma::Allocator*     allocator)
+static MQTP::EventFn performanceTestEventCbCreator(
+    BSLA_MAYBE_UNUSED int queueId,
+    BSLA_MAYBE_UNUSED bsls::AtomicInt64* lastProcessingStartTime,
+    bslma::Allocator*                    allocator)
 {
     return bdlf::BindUtil::bindS(allocator,
                                  &performanceTestEventCb,
@@ -214,11 +216,13 @@ static void test1_breathingTest()
     MQTP::Config config(
         k_NUM_QUEUES,
         &threadPool,
-        bdlf::BindUtil::bindS(allocator,
-                              &eventCbCreator,
-                              &queueContextMap,
-                              bdlf::PlaceHolders::_1,  // queueId
-                              allocator),
+        bdlf::BindUtil::bindS(
+            allocator,
+            &eventCbCreator,
+            &queueContextMap,
+            bdlf::PlaceHolders::_1,  // queueId
+            bdlf::PlaceHolders::_2,  // lastProcessingStartTime
+            allocator),
         bdlf::BindUtil::bindS(allocator,
                               &queueCreator,
                               bdlf::PlaceHolders::_1,  // queueId
@@ -237,25 +241,25 @@ static void test1_breathingTest()
     {
         MQTP::EventSp event;
         event.createInplace(allocator);
-        event->value()      = 0;
+        event->value() = 0;
         mfqtp.enqueueEvent(bslmf::MovableRefUtil::move(event), 0);
     }
     {
         MQTP::EventSp event;
         event.createInplace(allocator);
-        event->value()      = 1;
+        event->value() = 1;
         mfqtp.enqueueEvent(bslmf::MovableRefUtil::move(event), 1);
     }
     {
         MQTP::EventSp event;
         event.createInplace(allocator);
-        event->value()      = 2;
+        event->value() = 2;
         mfqtp.enqueueEvent(bslmf::MovableRefUtil::move(event), 2);
     }
     {
         MQTP::EventSp event;
         event.createInplace(allocator);
-        event->value()      = 3;
+        event->value() = 3;
         mfqtp.enqueueEventOnAllQueues(bslmf::MovableRefUtil::move(event));
     }
 
@@ -319,10 +323,12 @@ static void testN1_performance()
     MQTP::Config config(
         k_NUM_QUEUES,
         &threadPool,
-        bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
-                              &performanceTestEventCbCreator,
-                              bdlf::PlaceHolders::_1,  // queueId
-                              bmqtst::TestHelperUtil::allocator()),
+        bdlf::BindUtil::bindS(
+            bmqtst::TestHelperUtil::allocator(),
+            &performanceTestEventCbCreator,
+            bdlf::PlaceHolders::_1,  // queueId
+            bdlf::PlaceHolders::_2,  // lastProcessingStartTime
+            bmqtst::TestHelperUtil::allocator()),
         bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
                               &performanceTestQueueCreator,
                               bdlf::PlaceHolders::_1,  // queueId
@@ -339,7 +345,7 @@ static void testN1_performance()
     for (int i = 0; i < k_NUM_ITERATIONS; ++i) {
         MQTP::EventSp event;
         event.createInplace(bmqtst::TestHelperUtil::allocator());
-        event->value()      = 0;
+        event->value() = 0;
         mfqtp.enqueueEvent(bslmf::MovableRefUtil::move(event), 0);
     }
     PRINT("Enqueued " << k_NUM_ITERATIONS << " items.");
@@ -355,7 +361,7 @@ static void testN1_performance()
     for (int i = 0; i < k_NUM_ITERATIONS; ++i) {
         MQTP::EventSp event;
         event.createInplace(bmqtst::TestHelperUtil::allocator());
-        event->value()      = 0;
+        event->value() = 0;
         mfqtp.enqueueEvent(bslmf::MovableRefUtil::move(event), 0);
     }
     PRINT("Enqueued " << k_NUM_ITERATIONS << " items.");
@@ -469,10 +475,12 @@ static void testN1_performance_GoogleBenchmark(benchmark::State& state)
     MQTP::Config config(
         k_NUM_QUEUES,
         &threadPool,
-        bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
-                              &performanceTestEventCbCreator,
-                              bdlf::PlaceHolders::_1,  // queueId
-                              bmqtst::TestHelperUtil::allocator()),
+        bdlf::BindUtil::bindS(
+            bmqtst::TestHelperUtil::allocator(),
+            &performanceTestEventCbCreator,
+            bdlf::PlaceHolders::_1,  // queueId
+            bdlf::PlaceHolders::_2,  // lastProcessingStartTime
+            bmqtst::TestHelperUtil::allocator()),
         bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
                               &performanceTestQueueCreator,
                               bdlf::PlaceHolders::_1,  // queueId
@@ -490,7 +498,7 @@ static void testN1_performance_GoogleBenchmark(benchmark::State& state)
         for (int i = 0; i < k_NUM_ITERATIONS; ++i) {
             MQTP::EventSp event;
             event.createInplace(bmqtst::TestHelperUtil::allocator());
-            event->value()      = 0;
+            event->value() = 0;
             mfqtp.enqueueEvent(bslmf::MovableRefUtil::move(event), 0);
         }
         PRINT("Enqueued " << k_NUM_ITERATIONS << " items.");

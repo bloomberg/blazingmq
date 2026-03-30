@@ -654,15 +654,28 @@ void ClusterUtil::onPartitionPrimaryAssignment(
 
         ns->addPartitionRaw(partitionId);
 
-        // Notify the storage about (potentially same) mapping.  This must be
-        // done before calling
-        // 'ClusterQueueHelper::afterPartitionPrimaryAssignment' (via
-        // d_afterPartitionPrimaryAssignmentCb), because ClusterQueueHelper
-        // assumes that storage is aware of the mapping.
-        storageManager->setPrimaryForPartition(partitionId, primary, leaseId);
+        if (!clusterData->clusterConfig()
+                 .clusterAttributes()
+                 .isFSMWorkflow()) {
+            // In legacy mode, set primary directly.  In FSM workflow,
+            // setting is done through the Partition FSM's 'do_setPrimary'
+            // action upon processing 'e_DETECT_SELF_REPLICA' or
+            // 'e_DETECT_SELF_PRIMARY', keeping d_partitionInfoVec in sync
+            // with the PFSM state.
+            storageManager->setPrimaryForPartition(partitionId,
+                                                   primary,
+                                                   leaseId);
+        }
     }
     else {
-        storageManager->clearPrimaryForPartition(partitionId, oldPrimary);
+        if (!clusterData->clusterConfig()
+                 .clusterAttributes()
+                 .isFSMWorkflow()) {
+            // In legacy mode, clear primary directly.  In FSM workflow,
+            // clearing is done through the Partition FSM's
+            // 'do_cleanupMetadata' action upon processing 'e_RST_UNKNOWN'.
+            storageManager->clearPrimaryForPartition(partitionId, oldPrimary);
+        }
     }
 }
 

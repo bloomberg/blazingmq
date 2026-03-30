@@ -138,16 +138,14 @@ void QueueEngine::afterPostMessage()
     // NOTHING
 }
 
-mqbi::StorageResult::Enum QueueEngine::evaluateAppSubscriptions(
+void QueueEngine::evaluateAppSubscriptions(
     BSLA_MAYBE_UNUSED const bmqp::PutHeader& putHeader,
     BSLA_MAYBE_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,
-    BSLA_MAYBE_UNUSED const bmqp::MessagePropertiesInfo& mpi,
-    BSLA_MAYBE_UNUSED bsls::Types::Uint64 timestamp)
+    BSLA_MAYBE_UNUSED const bmqp::MessagePropertiesInfo& mpi)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
     // NOTHING
-    return mqbi::StorageResult::e_SUCCESS;
 }
 
 // ACCESSORS

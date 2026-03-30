@@ -410,10 +410,10 @@ void DispatcherEvent::reset()
     } break;
     }
 
-    d_type          = DispatcherEventType::e_UNDEFINED;
-    d_source_p      = 0;
-    d_destination_p = 0;
-    d_enqueueTime   = 0;
+    d_type                = DispatcherEventType::e_UNDEFINED;
+    d_source_p            = 0;
+    d_destination_p       = 0;
+    d_enqueueTime         = 0;
 }
 
 bsl::ostream& DispatcherEvent::print(bsl::ostream& stream,

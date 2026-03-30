@@ -69,6 +69,9 @@ class PartitionFSMEventData {
                       bmqp_ctrlmsg::PartitionSequenceNumber>
         PartitionSeqNumDataRange;
 
+    /// The placeholder value for invalid or unspecified leaseId.
+    static const unsigned int k_INVALID_LEASE_ID = 0;
+
   private:
     // DATA
 
@@ -131,8 +134,8 @@ class PartitionFSMEventData {
                           int                  requestId,
                           int                  partitionId,
                           int                  incrementCount,
-                          mqbnet::ClusterNode* primary        = 0,
-                          unsigned int         primaryLeaseId = 0,
+                          mqbnet::ClusterNode* primary = 0,
+                          unsigned int primaryLeaseId  = k_INVALID_LEASE_ID,
                           const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum =
                               bmqp_ctrlmsg::PartitionSequenceNumber(),
                           const bmqp_ctrlmsg::PartitionSequenceNumber&
@@ -327,7 +330,7 @@ inline PartitionFSMEventData::PartitionFSMEventData()
 , d_partitionId(mqbi::Storage::k_INVALID_PARTITION_ID)
 , d_incrementCount(1)
 , d_primary_p(0)
-, d_primaryLeaseId(0)  // Invalid placeholder LeaseId
+, d_primaryLeaseId(k_INVALID_LEASE_ID)
 , d_partitionSequenceNumber()
 , d_firstSyncPointAfterRolloverSequenceNumber()
 , d_partitionMaxFileSizes()
@@ -409,7 +412,7 @@ inline PartitionFSMEventData::PartitionFSMEventData(
 , d_partitionId(partitionId)
 , d_incrementCount(incrementCount)
 , d_primary_p(0)
-, d_primaryLeaseId(0)  // Invalid placeholder primaryLeaseId
+, d_primaryLeaseId(k_INVALID_LEASE_ID)
 , d_partitionSequenceNumber(seqNum)
 , d_firstSyncPointAfterRolloverSequenceNumber(
       firstSyncPointAfterRollloverSeqNum)
@@ -432,7 +435,7 @@ inline PartitionFSMEventData::PartitionFSMEventData(
 , d_partitionId(partitionId)
 , d_incrementCount(incrementCount)
 , d_primary_p(0)
-, d_primaryLeaseId(0)  // Invalid placeholder primaryLeaseId
+, d_primaryLeaseId(k_INVALID_LEASE_ID)
 , d_partitionSequenceNumber()
 , d_firstSyncPointAfterRolloverSequenceNumber()
 , d_partitionMaxFileSizes()
@@ -453,7 +456,7 @@ inline PartitionFSMEventData::PartitionFSMEventData(
 , d_partitionId(partitionId)
 , d_incrementCount(incrementCount)
 , d_primary_p(0)
-, d_primaryLeaseId(0)  // Invalid placeholder primaryLeaseId
+, d_primaryLeaseId(k_INVALID_LEASE_ID)
 , d_partitionSequenceNumber()
 , d_firstSyncPointAfterRolloverSequenceNumber()
 , d_partitionMaxFileSizes()

@@ -248,6 +248,8 @@
       <element name='subscriptions'            type='tns:Subscription'    maxOccurs='unbounded'/>
       <element name='autoPubSubModulo'         type='int'     default="0"/>
       <element name='timeoutSec'               type='int'     default="300"/>
+      <element name='authnMechanism'           type='string'  default=""/>
+      <element name='authnData'                type='string'  default=""/>
     </sequence>
   </complexType>
   <complexType name='MessageProperty'>

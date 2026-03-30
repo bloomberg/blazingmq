@@ -164,7 +164,9 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
     bmqp_ctrlmsg::NodeStatusAdvisory& advisory =
         clusterMsg.choice().makeNodeStatusAdvisory();
     advisory.status() = bmqp_ctrlmsg::NodeStatus::E_STARTING;
-    d_clusterData.messageTransmitter().broadcastMessage(controlMsg, true);
+    d_clusterData.messageTransmitter().broadcastMessage(
+        controlMsg,
+        d_clusterData.transportManager());
 
     // Start a StatMonitorSnapshotRecorder to track system stats during
     // recovery
@@ -327,6 +329,10 @@ void Cluster::stopDispatched()
     //       guaranteed that this object will be kept alive.
 
     // Teardown all ClusterNodeSession
+    BALL_LOG_INFO << description() << " teardown "
+                  << d_clusterData.membership().clusterNodeSessionMap().size()
+                  << " ClusterNodeSession";
+
     for (ClusterNodeSessionMapIter it =
              d_clusterData.membership().clusterNodeSessionMap().begin();
          it != d_clusterData.membership().clusterNodeSessionMap().end();
@@ -666,6 +672,16 @@ void Cluster::continueShutdownDispatched(
 
     d_clusterOrchestrator.queueHelper().processShutdownEvent();
 
+    // Make sure all partitions done sending last sync points.
+    // Synchronize with all Queue Dispatcher threads
+    bslmt::Latch latch(1);
+    dispatcher()->executeOnAllQueues(
+        mqbi::Dispatcher::VoidFunctor(),  // empty
+        mqbi::DispatcherClientType::e_QUEUE,
+        bdlf::BindUtil::bindS(d_allocator_p, &bslmt::Latch::arrive, &latch));
+
+    latch.wait();
+
     // Notify peers before going down.  This should be the last message sent
     // out.
 
@@ -679,17 +695,12 @@ void Cluster::continueShutdownDispatched(
 
     d_clusterData.membership().setSelfNodeStatus(
         bmqp_ctrlmsg::NodeStatus::E_UNAVAILABLE);
-    d_clusterData.messageTransmitter().broadcastMessage(controlMsg, true);
+    d_clusterData.messageTransmitter().broadcastMessage(
+        controlMsg,
+        d_clusterData.transportManager());
 
-    // Make sure all partitions done sending last sync points and advisories.
-    // Synchronize with all Queue Dispatcher threads
-    bslmt::Latch latch(1);
-    dispatcher()->executeOnAllQueues(
-        mqbi::Dispatcher::VoidFunctor(),  // empty
-        mqbi::DispatcherClientType::e_QUEUE,
-        bdlf::BindUtil::bindS(d_allocator_p, &bslmt::Latch::arrive, &latch));
-
-    latch.wait();
+    BALL_LOG_INFO << "Cluster: [name: '" << name()
+                  << "'] done waiting and now will close the channels";
 
     // Close all channels of the associated cluster: when broadcasting the
     // state change, the leader, in response, will potentially elect new

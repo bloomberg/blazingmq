@@ -47,9 +47,12 @@ class DeliveryLog:
     This class is used for verifying integrity of message flow from producer to consumers.
     """
 
-    def __init__(self, logger, allow_duplicates: bool):
+    def __init__(
+        self, logger, allow_duplicates: bool, allow_out_of_order: bool = False
+    ):
         self._logger = logger
         self._allow_duplicates = allow_duplicates
+        self._allow_out_of_order = allow_out_of_order
 
         self._num_acks = 0
         self._num_nacks = 0
@@ -283,15 +286,16 @@ class DeliveryLog:
         assert self._num_errors == 0, self._format_error_status()
 
         # Secondly, make sure that PUSHes are in correct order
-        previous_index = -1
-        for message_index in self._push_order:
-            if message_index < previous_index:
-                self._error(
-                    f"{app_id}: out of order PUSH",
-                    self._pushes[message_index],
-                    self._pushes[previous_index],
-                )
-            previous_index = message_index
+        if not self._allow_out_of_order:
+            previous_index = -1
+            for message_index in self._push_order:
+                if message_index < previous_index:
+                    self._error(
+                        f"{app_id}: out of order PUSH",
+                        self._pushes[message_index],
+                        self._pushes[previous_index],
+                    )
+                previous_index = message_index
 
         assert self._num_errors == 0, self._format_error_status()
         assert self._consumed == self._num_puts
@@ -332,7 +336,7 @@ class TestPutsRetransmission:
 
     work_dir: Path
 
-    def inspect_results(self, allow_duplicates=False):
+    def inspect_results(self, allow_duplicates=False, allow_out_of_order=False):
         if self.active_node in self.cluster.virtual_nodes():
             self.active_node.wait_status(wait_leader=True, wait_ready=False)
 
@@ -357,10 +361,12 @@ class TestPutsRetransmission:
         for consumer in self.consumers:
             consumer[0].force_stop()
 
-        self.parse_message_logs(allow_duplicates=allow_duplicates)
+        self.parse_message_logs(
+            allow_duplicates=allow_duplicates, allow_out_of_order=allow_out_of_order
+        )
 
-    def parse_message_logs(self, allow_duplicates=False):
-        delivery_log = DeliveryLog(test_logger, allow_duplicates)
+    def parse_message_logs(self, allow_duplicates=False, allow_out_of_order=False):
+        delivery_log = DeliveryLog(test_logger, allow_duplicates, allow_out_of_order)
         delivery_log.feed_producer_log(self.work_dir / "producer.log", self.uri)
         for uri, app_id in self.uris:
             delivery_log.feed_consumer_log(self.work_dir / f"{app_id}.log", uri, app_id)
@@ -645,7 +651,7 @@ class TestPutsRetransmission:
 
         # Because the quorum is 3, cluster is still healthy after shutting down
         # replica.
-        self.inspect_results(allow_duplicates=True)
+        self.inspect_results(allow_duplicates=True, allow_out_of_order=True)
 
     @tweak.broker.app_config.network_interfaces.tcp_interface.low_watermark(512)
     @tweak.broker.app_config.network_interfaces.tcp_interface.high_watermark(1024)
@@ -672,6 +678,21 @@ class TestPutsRetransmission:
         self.inspect_results(allow_duplicates=False)
 
     def test_kill_proxy(self, multi_node: Cluster, domain_urls: tc.DomainUrls):
+        """
+        kill replica can result in out-of-order in the following scenario:
+
+        - consumer -> proxy -> replica1 -> primary.
+        - kill replica1
+        - proxy detects replica1 disconnect before primary does, and opens the
+          queue on replica2
+        - replica2 opens the queue on primary before primary detects replica1
+          disconnect, resulting in primary having 2 downstreams.
+        - primary round robins messages {m1, m2}. m1 goes to replica1, m2 goes
+          to replica2
+        - primary detects replica1 disconnect and redelivers m1 to replica2
+          resulting in out-of-order {m2, m1}
+        """
+
         self.setup_cluster_fanout(multi_node, domain_urls)
 
         self.replica_proxy.force_stop()

@@ -526,11 +526,10 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
                            unsigned int appOrdinal) BSLS_KEYWORD_OVERRIDE;
 
     /// Not valid for 'RelayQueueEngine'
-    mqbi::StorageResult::Enum evaluateAppSubscriptions(
-        const bmqp::PutHeader&              putHeader,
-        const bsl::shared_ptr<bdlbb::Blob>& appData,
-        const bmqp::MessagePropertiesInfo&  mpi,
-        bsls::Types::Uint64                 timestamp) BSLS_KEYWORD_OVERRIDE;
+    void evaluateAppSubscriptions(const bmqp::PutHeader& putHeader,
+                                  const bsl::shared_ptr<bdlbb::Blob>& appData,
+                                  const bmqp::MessagePropertiesInfo&  mpi)
+        BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
 
