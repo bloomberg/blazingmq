@@ -1415,7 +1415,7 @@ class PartitionConfig:
             "required": True,
         },
     )
-    data_file_grow_limit: int = field(
+    data_file_grow_limit: Optional[int] = field(
         default=None,
         metadata={
             "name": "dataFileGrowLimit",
@@ -1424,7 +1424,7 @@ class PartitionConfig:
             "required": True,
         },
     )
-    journal_file_grow_limit: int = field(
+    journal_file_grow_limit: Optional[int] = field(
         default=None,
         metadata={
             "name": "journalFileGrowLimit",
@@ -1433,7 +1433,7 @@ class PartitionConfig:
             "required": True,
         },
     )
-    q_list_file_grow_limit: int = field(
+    q_list_file_grow_limit: Optional[int] = field(
         default=None,
         metadata={
             "name": "qListFileGrowLimit",
