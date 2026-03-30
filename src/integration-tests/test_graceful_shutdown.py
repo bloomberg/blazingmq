@@ -44,7 +44,10 @@ def multi_cluster_config(
         "otherCluster",
         nodes=[
             configurator.broker(
-                "localhost", next(port_allocator), f"{dc}{i}", data_center=dc
+                name=f"{dc}{i}",
+                tcp_host="localhost",
+                tcp_port=next(port_allocator),
+                data_center=dc,
             )
             for dc in ("east", "west")
             for i in (3, 4)
