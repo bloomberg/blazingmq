@@ -47,6 +47,23 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
+    // Skip under MemorySanitizer: bslmt::ThreadUtil::getThreadName uses
+    // pthread_getname_np which leaves the buffer uninitialized from MSan's
+    // perspective.
+#if defined(__has_feature)  // Clang-supported method for checking sanitizers.
+    const bool skipTest = __has_feature(memory_sanitizer);
+#elif defined(__SANITIZE_MEMORY__)
+    // GCC-supported macros for checking MSAN.
+    const bool skipTest = true;
+#else
+    const bool skipTest = false;
+#endif
+
+    if (skipTest) {
+        bsl::cout << "Test skipped (running under sanitizer)" << bsl::endl;
+        return;  // RETURN
+    }
+
     bsl::string threadName;
 
     bmqsys::ThreadUtil::setCurrentThreadNameOnce("TestThread1");
