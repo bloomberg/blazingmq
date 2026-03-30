@@ -6714,18 +6714,23 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
         sIt->second->setPrimary();
     }
 
-    // Schedule a sync point issue recurring event every 1 second, starting
-    // after 1 second.
-    d_config.scheduler()->scheduleRecurringEvent(
-        &d_syncPointEventHandle,
-        bsls::TimeInterval(1),  // 1 sec. TBD: make configurable
-        bdlf::BindUtil::bind(&FileStore::issueSyncPointCb, this));
+    // Schedule recurring timers only if not already scheduled.  This avoids
+    // leaking duplicate events when 'setActivePrimary' is called multiple
+    // times for the same primary node and leaseId.
+    if (!d_syncPointEventHandle) {
+        d_config.scheduler()->scheduleRecurringEvent(
+            &d_syncPointEventHandle,
+            bsls::TimeInterval(1),  // 1 sec. TBD: make configurable
+            bdlf::BindUtil::bind(&FileStore::issueSyncPointCb, this));
+    }
 
-    // Schedule a periodic alarm highwatermark check
-    d_config.scheduler()->scheduleRecurringEvent(
-        &d_partitionHighwatermarkEventHandle,
-        bsls::TimeInterval(k_PARTITION_AVAILABLESPACE_SECS),
-        bdlf::BindUtil::bind(&FileStore::alarmHighwatermarkIfNeededCb, this));
+    if (!d_partitionHighwatermarkEventHandle) {
+        d_config.scheduler()->scheduleRecurringEvent(
+            &d_partitionHighwatermarkEventHandle,
+            bsls::TimeInterval(k_PARTITION_AVAILABLESPACE_SECS),
+            bdlf::BindUtil::bind(&FileStore::alarmHighwatermarkIfNeededCb,
+                                 this));
+    }
 
     // New primary needs to issue a sync point with old leaseId, if previous
     // primary disappeared w/o issuing a sync point (crash, etc).  It is
