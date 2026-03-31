@@ -103,6 +103,33 @@ CLIENT_IDENTITY_SCHEMA: SchemaDescription = {
     }
 }
 
+CONFIGURE_STREAM_SCHEMA: SchemaDescription = {
+    "rId": 0,
+    "configureStream": {
+        "qId": 0,
+        "streamParameters": {
+            "appId": "__default",
+            "subscriptions": [
+                {
+                    "sId": 0,
+                    "expression": {
+                        "version": "E_VERSION_1",
+                        "text": "test_expression",
+                    },
+                    "consumers": [
+                        {
+                            "maxUnconfirmedMessages": 0,
+                            "maxUnconfirmedBytes": 0,
+                            "consumerPriority": -2147483648,
+                            "consumerPriorityCount": 0,
+                        },
+                    ],
+                },
+            ],
+        },
+    },
+}
+
 CONFIGURE_QUEUE_STREAM_SCHEMA: SchemaDescription = {
     "rId": 0,
     "configureQueueStream": {

@@ -185,6 +185,7 @@ jobs:
           "negotiation_bypass_authentication",
           "negotiation",
           "open_queue",
+          "configure_stream",
           "configure_queue_stream",
           "put",
           "confirm",
