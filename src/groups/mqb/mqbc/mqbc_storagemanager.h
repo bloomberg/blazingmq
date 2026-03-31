@@ -164,8 +164,8 @@ class StorageManager BSLS_KEYWORD_FINAL
         PrimaryStatusAdvisoryInfosVec;
 
     /// VST representing node's sequence number, first sync point after
-    /// rollover sequence number and partition max file size.
-    class NodeContext {
+    /// rollover sequence number.
+    class NodeSeqNumContext {
       public:
         // DATA
 
@@ -176,17 +176,13 @@ class StorageManager BSLS_KEYWORD_FINAL
         bmqp_ctrlmsg::PartitionSequenceNumber
             d_firstSyncPointAfterRolloverSeqNum;
 
-        /// Node's partition max file sizes.
-        bmqp_ctrlmsg::PartitionMaxFileSizes d_partitionMaxFileSizes;
-
         // CREATORS
-        NodeContext();
+        NodeSeqNumContext();
 
-        explicit NodeContext(
-            const bmqp_ctrlmsg::PartitionSequenceNumber seqNum,
+        explicit NodeSeqNumContext(
+            const bmqp_ctrlmsg::PartitionSequenceNumber d_seqNum,
             const bmqp_ctrlmsg::PartitionSequenceNumber
-                firstSyncPointAfterRolloverSeqNum,
-            const bmqp_ctrlmsg::PartitionMaxFileSizes& partitionMaxFileSizes);
+                d_firstSyncPointAfterRolloverSeqNum);
     };
 
   public:
@@ -196,11 +192,11 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// Pool of shared pointers to Blobs
     typedef StorageUtil::BlobSpPool BlobSpPool;
 
-    typedef bsl::unordered_map<mqbnet::ClusterNode*, NodeContext>
-                                             NodeToContextMap;
-    typedef NodeToContextMap::iterator       NodeToContextMapIter;
-    typedef NodeToContextMap::const_iterator NodeToContextMapCIter;
-    typedef bsl::vector<NodeToContextMap>    NodeToContextMapPartitionVec;
+    typedef bsl::unordered_map<mqbnet::ClusterNode*, NodeSeqNumContext>
+                                               NodeToSeqNumCtxMap;
+    typedef NodeToSeqNumCtxMap::iterator       NodeToSeqNumCtxMapIter;
+    typedef NodeToSeqNumCtxMap::const_iterator NodeToSeqNumCtxMapCIter;
+    typedef bsl::vector<NodeToSeqNumCtxMap>    NodeToSeqNumCtxMapPartitionVec;
 
     typedef StorageUtil::DomainQueueMessagesCountMaps
         DomainQueueMessagesCountMaps;
@@ -340,12 +336,12 @@ class StorageManager BSLS_KEYWORD_FINAL
     ///         for the i-th partitionId.
     bsl::vector<bsls::Types::Int64> d_recoveryStartTimes;
 
-    /// Vector of `NodeToContextMap` indexed by partitionId.
+    /// Vector of `NodeToSeqNumCtxMap` indexed by partitionId.
     ///
     /// THREAD: Except during the ctor, the i-th index of this data member
     ///         **must** be accessed in the associated Queue dispatcher thread
     ///         for the i-th partitionId.
-    NodeToContextMapPartitionVec d_nodeToContextMapVec;
+    NodeToSeqNumCtxMapPartitionVec d_nodeToSeqNumCtxMapVec;
 
     /// Vector of number of replica data responses received, indexed by
     /// partitionId.
@@ -508,12 +504,6 @@ class StorageManager BSLS_KEYWORD_FINAL
     processReplicaDataRequestDrop(const bmqp_ctrlmsg::ControlMessage& message,
                                   mqbnet::ClusterNode*                source);
 
-    /// Process replica data request of type RESIZE received from the specified
-    /// `source` with the specified `message`.
-    void processReplicaDataRequestResize(
-        const bmqp_ctrlmsg::ControlMessage& message,
-        mqbnet::ClusterNode*                source);
-
     /// Process the PrimaryStateResponse contained in the specified
     /// `context` from the specified `responder`.
     ///
@@ -610,18 +600,6 @@ class StorageManager BSLS_KEYWORD_FINAL
     void do_logFailurePrimaryStateResponse(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_logFailureReplicaDataResponseResize(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_replicaDataRequestResize(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_replicaDataRequestResizeIfNeeded(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_replicaDataResponseResize(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
-
     void do_logUnexpectedPrimaryStateResponse(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
 
@@ -684,19 +662,11 @@ class StorageManager BSLS_KEYWORD_FINAL
     void do_setExpectedDataChunkRange(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_checkQuorumMaxFileSizesAndSeq(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
     void
     do_resetReceiveDataCtx(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
     void
     do_attemptOpenStorage(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void do_findHighestMaxFileSizes(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void
-    do_overrideMaxFileSizes(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
     void do_updateStorage(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
@@ -709,6 +679,8 @@ class StorageManager BSLS_KEYWORD_FINAL
         BSLS_KEYWORD_OVERRIDE;
 
     void do_reapplyEvent(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_checkQuorumSeq(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
     void do_findHighestSeq(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
@@ -735,16 +707,12 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// THREAD: Executed by the Queue's dispatcher thread.
     bool allPartitionsAvailable() const;
 
-    /// Return the partition quorum to be used for this cluster.
-    unsigned int getPartitionFSMQuorum() const;
+    /// Return the sequence number quorum to be used for this cluster.
+    unsigned int getSeqNumQuorum() const;
 
     /// Return own the first sync point after rollover sequence number.
     const bmqp_ctrlmsg::PartitionSequenceNumber
     getSelfFirstSyncPointAfterRolloverSequenceNumber(int partitionId) const;
-
-    /// Return own max file sizes for the specified `partitionId`.
-    const bmqp_ctrlmsg::PartitionMaxFileSizes
-    getSelfPartitionMaxFileSizes(int partitionId) const;
 
   public:
     // TRAITS
@@ -1065,9 +1033,9 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// Return the health state of the specified `partitionId`.
     PartitionFSM::State::Enum partitionHealthState(int partitionId) const;
 
-    /// Return the mapping from node in the cluster to their
+    /// Return the mapping from node in the cluster to their sequence number
     /// context for the specified 'partitionId'.
-    const NodeToContextMap& nodeToContextMap(int partitionId) const;
+    const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap(int partitionId) const;
 };
 
 // ============================
@@ -1240,38 +1208,35 @@ StorageManager::partitionHealthState(int partitionId) const
     return d_partitionFSMVec[partitionId]->state();
 }
 
-inline const StorageManager::NodeToContextMap&
-StorageManager::nodeToContextMap(int partitionId) const
+inline const StorageManager::NodeToSeqNumCtxMap&
+StorageManager::nodeToSeqNumCtxMap(int partitionId) const
 {
-    return d_nodeToContextMapVec[partitionId];
+    return d_nodeToSeqNumCtxMapVec[partitionId];
 }
 
-inline unsigned int StorageManager::getPartitionFSMQuorum() const
+inline unsigned int StorageManager::getSeqNumQuorum() const
 {
     return d_clusterData_p->quorumManager().quorum();
 }
 
-// =================================
-// class StorageManager::NodeContext
-// =================================
+// =======================================
+// class StorageManager::NodeSeqNumContext
+// =======================================
 
 // CREATORS
-inline StorageManager::NodeContext::NodeContext()
+inline StorageManager::NodeSeqNumContext::NodeSeqNumContext()
 : d_seqNum()
 , d_firstSyncPointAfterRolloverSeqNum()
-, d_partitionMaxFileSizes()
 {
     // NOTHING
 }
 
-inline StorageManager::NodeContext::NodeContext(
+inline StorageManager::NodeSeqNumContext::NodeSeqNumContext(
     const bmqp_ctrlmsg::PartitionSequenceNumber seqNum,
     const bmqp_ctrlmsg::PartitionSequenceNumber
-        firstSyncPointAfterRolloverSeqNum,
-    const bmqp_ctrlmsg::PartitionMaxFileSizes& partitionMaxFileSizes)
+        firstSyncPointAfterRolloverSeqNum)
 : d_seqNum(seqNum)
 , d_firstSyncPointAfterRolloverSeqNum(firstSyncPointAfterRolloverSeqNum)
-, d_partitionMaxFileSizes(partitionMaxFileSizes)
 {
     // NOTHING
 }
