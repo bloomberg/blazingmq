@@ -933,7 +933,7 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
             BALL_LOG_WARN
                 << "[THROTTLED] #CLIENT_IMPROPER_BEHAVIOR "
                 << "Failed PUT message for queue [" << d_state_p->uri()
-                << "] from client [" << source->client()->description()
+                << "] from client [" << source->clientContext()->description()
                 << "]. Queue not opened in WRITE mode by the client.";
         }
     }
@@ -948,8 +948,8 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
             BALL_LOG_INFO << "[THROTTLED] Remote queue " << d_state_p->uri()
                           << " (id: " << d_state_p->id()
                           << ") discarding a duplicate PUT from client ["
-                          << source->client()->description() << "] for guid "
-                          << putHeader.messageGUID();
+                          << source->clientContext()->description()
+                          << "] for guid " << putHeader.messageGUID();
         }
     }
 

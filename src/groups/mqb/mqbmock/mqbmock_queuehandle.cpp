@@ -94,7 +94,8 @@ QueueHandle::QueueHandle(
 , d_downstreams(allocator)
 , d_subStreamInfos(allocator)
 , d_subscriptions(allocator)
-, d_client_p(clientContext->client())
+, d_clientContext_sp(clientContext)
+, d_haveClient(true)
 , d_queue_sp(queueSp)
 , d_unconfirmedMessageMonitor(0, 0, 0, 0, 0, 0)
 , d_schemaLearnerContext(
@@ -124,7 +125,7 @@ mqbi::Queue* QueueHandle::queue()
 
 mqbi::DispatcherClient* QueueHandle::client()
 {
-    return d_client_p;
+    return d_haveClient ? d_clientContext_sp->client() : 0;
 }
 
 mqbi::QueueHandle::SubStreams::const_iterator
@@ -391,7 +392,7 @@ void QueueHandle::clearClient(bool hasLostClient)
         }
         // guids.clear();
     }
-    d_client_p = 0;
+    d_haveClient = false;
 }
 
 int QueueHandle::transferUnconfirmedMessageGUID(
@@ -510,7 +511,7 @@ void QueueHandle::_resetUnconfirmed(const bsl::string& appId)
 //   (virtual mqbi::QueueHandle)
 const mqbi::DispatcherClient* QueueHandle::client() const
 {
-    return d_client_p;
+    return d_haveClient ? d_clientContext_sp->client() : 0;
 }
 
 const mqbi::Queue* QueueHandle::queue() const
@@ -542,7 +543,7 @@ bool QueueHandle::isClientClusterMember() const
 inline const mqbi::QueueHandleRequesterContext*
 QueueHandle::clientContext() const
 {
-    return 0;
+    return d_clientContext_sp.get();
 }
 
 bool QueueHandle::canDeliver(unsigned int downstreamSubscriptionId) const

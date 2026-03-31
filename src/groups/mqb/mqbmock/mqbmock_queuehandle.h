@@ -168,10 +168,11 @@ class QueueHandle : public mqbi::QueueHandle {
 
     Subscriptions d_subscriptions;
 
-    mqbi::DispatcherClient* d_client_p;
-    // Handle of the dispatcher mapped to
-    // the client associated to this
-    // QueueHandle.
+    bsl::shared_ptr<mqbi::QueueHandleRequesterContext> d_clientContext_sp;
+    // Context of the client requesting this QueueHandle.
+
+    bool d_haveClient;
+    // Whether the client is still connected.
 
     bsl::shared_ptr<mqbi::Queue> d_queue_sp;
     // Queue this QueueHandle belongs to.

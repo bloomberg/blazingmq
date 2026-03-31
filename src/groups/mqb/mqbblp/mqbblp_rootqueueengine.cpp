@@ -1993,7 +1993,7 @@ void RootQueueEngine::logAlarmCb(
             const int level = 2, spacesPerLevel = 2;
 
             ss << "\n  " << idx++ << ". "
-               << queueHandle_p->client()->description()
+               << queueHandle_p->clientContext()->description()
                << bmqu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
                << "Handle Parameters .....: "
                << queueHandle_p->handleParameters()

@@ -364,7 +364,7 @@ TestQueueHandle::TestQueueHandle(
 , d_postSequence(0)
 , d_ackSequence(0)
 {
-    d_clientContext->setClient(&d_dc);
+    d_clientContext->setClient(&d_dc).setDescription("test.tsk:1");
     registerSubStream(bmqp_ctrlmsg::SubQueueIdInfo(),
                       upstreamSubQueueId,
                       mqbi::QueueCounts(1, 1));
