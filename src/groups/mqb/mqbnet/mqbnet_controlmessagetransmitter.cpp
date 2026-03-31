@@ -47,9 +47,9 @@ void ControlMessageTransmitter::sendMessageHelper(
     int rc = schemaBuilder->setMessage(message, bmqp::EventType::e_CONTROL);
     if (0 != rc) {
         BALL_LOG_ERROR << "#CLUSTER_SEND_FAILURE "
-                       << "Failed to encode schema message: " << message
-                       << " destined to cluster node "
-                       << destination->nodeDescription() << ", rc: " << rc;
+                       << "Failed to encode schema message destined to "
+                       << "cluster node [ " << destination->nodeDescription()
+                       << " ], rc: " << rc << ", message: " << message;
         return;  // RETURN
     }
 
@@ -57,13 +57,16 @@ void ControlMessageTransmitter::sendMessageHelper(
         destination->write(schemaBuilder->blob(), bmqp::EventType::e_CONTROL);
     if (bmqt::GenericResult::e_SUCCESS != writeRc) {
         BALL_LOG_ERROR << "#CLUSTER_SEND_FAILURE "
-                       << "Failed to write schema message: " << message
-                       << " to cluster node " << destination->nodeDescription()
-                       << ", rc: " << writeRc;
+                       << "Failed to write schema message to cluster node [ "
+                       << destination->nodeDescription()
+                       << " ], rc: " << writeRc
+                       << ", length: " << schemaBuilder->blob()->length()
+                       << ", message: " << message;
     }
     else {
-        BALL_LOG_INFO << "Sent message '" << message << "' to cluster node "
-                      << destination->nodeDescription();
+        BALL_LOG_INFO << "Sent message to cluster node [ "
+                      << destination->nodeDescription()
+                      << " ], message: " << message;
     }
 }
 
@@ -77,8 +80,9 @@ void ControlMessageTransmitter::broadcastMessageHelper(
     int rc = schemaBuilder->setMessage(message, bmqp::EventType::e_CONTROL);
     if (0 != rc) {
         BALL_LOG_ERROR << "#CLUSTER_SEND_FAILURE "
-                       << "Failed to encode cluster schema message " << message
-                       << " destined to entire cluster, rc: " << rc;
+                       << "Failed to encode cluster schema message "
+                       << "destined to entire cluster, rc: " << rc
+                       << ", message: " << message;
         return;  // RETURN
     }
 
@@ -87,8 +91,8 @@ void ControlMessageTransmitter::broadcastMessageHelper(
 
     d_cluster_p->writeAll(schemaBuilder->blob(), bmqp::EventType::e_CONTROL);
 
-    BALL_LOG_INFO << "Broadcasted message '" << message
-                  << "' to all cluster nodes";
+    BALL_LOG_INFO << "Broadcasted message to all cluster nodes, message: "
+                  << message;
 
     if (!transportManager) {
         return;  // RETURN
@@ -117,14 +121,17 @@ void ControlMessageTransmitter::broadcastMessageHelper(
             bmqio::Status status;
             sessionSp->channel()->write(&status, *schemaBuilder->blob());
             if (status.category() == bmqio::StatusCategory::e_SUCCESS) {
-                BALL_LOG_INFO << "Sent message '" << message << "' to proxy "
-                              << sessionSp->description();
+                BALL_LOG_INFO << "Sent message to proxy [ "
+                              << sessionSp->description()
+                              << " ], message: " << message;
             }
             else {
-                BALL_LOG_ERROR << "#CLUSTER_SEND_FAILURE "
-                               << "Failed to write schema message: " << message
-                               << " to proxy " << sessionSp->description()
-                               << ", status: " << status;
+                BALL_LOG_ERROR
+                    << "#CLUSTER_SEND_FAILURE "
+                    << "Failed to write schema message to proxy [ "
+                    << sessionSp->description() << " ], status: " << status
+                    << ", length: " << schemaBuilder->blob()->length()
+                    << ", message: " << message;
             }
         }
     }
@@ -169,9 +176,9 @@ void ControlMessageTransmitter::sendMessage(
     int rc = d_schemaBuilder.setMessage(message, bmqp::EventType::e_CONTROL);
     if (0 != rc) {
         BALL_LOG_ERROR << "#CLUSTER_SEND_FAILURE "
-                       << "Failed to encode schema message: " << message
-                       << " destined to cluster node " << description
-                       << ", rc: " << rc;
+                       << "Failed to encode schema message "
+                       << "destined to session [ " << description
+                       << " ], rc: " << rc << ", message: " << message;
         return;  // RETURN
     }
 
@@ -179,13 +186,14 @@ void ControlMessageTransmitter::sendMessage(
     channel->write(&status, *d_schemaBuilder.blob());
     if (status.category() != bmqio::StatusCategory::e_SUCCESS) {
         BALL_LOG_ERROR << "#CLUSTER_SEND_FAILURE "
-                       << "Failed to write schema message: " << message
-                       << " to session " << description
-                       << ", status: " << status;
+                       << "Failed to write schema message to session [ "
+                       << description << " ], status: " << status
+                       << ", length: " << d_schemaBuilder.blob()->length()
+                       << ", message: " << message;
     }
     else {
-        BALL_LOG_INFO << "Sent message '" << message << "' to session "
-                      << description;
+        BALL_LOG_INFO << "Sent message to session [ " << description
+                      << " ], message: " << message;
     }
 }
 

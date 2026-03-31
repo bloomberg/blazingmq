@@ -250,16 +250,16 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
 
     PartitionPrimaryStatusCb d_partitionPrimaryStatusCb;
 
-    /// Mutex to protect access to `d_storages` and its elements.  See
-    /// documentation for `d_storages`.
-    mutable bslmt::Mutex d_storagesLock;
+    /// Vector of mutexes to protect access to `d_storages` and its elements,
+    /// one per partition.  See documentation for `d_storages`.
+    mutable bsl::vector<bsl::shared_ptr<bslmt::Mutex> > d_storageLockVec;
 
     /// Vector of `CanonicalQueueUri -> ReplicatedStorage` maps.  Vector is
     /// indexed by partitionId.  The maps contain *both* in-memory and
-    /// file-backed storages.  Note that `d_storagesLock` must be held while
-    /// accessing this container and any of its elements (`URI -> Storage`
-    /// maps), because they are accessed from partitions' dispatcher threads,
-    /// as well as the cluster dispatcher thread.
+    /// file-backed storages.  Note that `d_storageLockVec[partitionId]` must
+    /// be held while accessing `d_storages[partitionId]`, because they are
+    /// accessed from partitions' dispatcher threads, as well as the cluster
+    /// dispatcher thread.
     StorageSpMapVec d_storages;
 
     RecurringEventHandle d_storageMonitorEventHandle;
@@ -686,9 +686,10 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
 /// the storage manager.  The order of the iteration is implementation
 /// defined.  An iterator is *valid* if it is associated with a storage in
 /// the manager, otherwise it is *invalid*.  Thread-safe iteration is
-/// provided by locking the manager during the iterator's construction and
-/// unlocking it at the iterator's destruction.  This guarantees that during
-/// the life time of an iterator, the manager can't be modified.
+/// provided by locking the partition's mutex during the iterator's
+/// construction and unlocking it at the iterator's destruction.  This
+/// guarantees that during the life time of an iterator, the partition's
+/// storage map can't be modified.
 class StorageManagerIterator BSLS_KEYWORD_FINAL
 : public mqbi::StorageManagerIterator {
   private:
@@ -698,7 +699,7 @@ class StorageManagerIterator BSLS_KEYWORD_FINAL
 
   private:
     // DATA
-    const StorageManager* d_manager_p;
+    bslmt::Mutex* d_lock_p;
 
     const StorageSpMap* d_map_p;
 
@@ -716,12 +717,12 @@ class StorageManagerIterator BSLS_KEYWORD_FINAL
     /// Create an iterator for the specified `partitionId` in the specified
     /// storage `manager` and associated it with the first storage of the
     /// `partitionId`.  If the `manager` is empty then the iterator is
-    /// initialized to be invalid.  The `manager` is locked for the duration
-    /// of iterator's life time.  The behavior is undefined unless
+    /// initialized to be invalid.  The partition's lock is held for the
+    /// duration of iterator's life time.  The behavior is undefined unless
     /// `partitionId` is valid and `manager` is not null.
     StorageManagerIterator(int partitionId, const StorageManager* manager);
 
-    /// Destroy this iterator and unlock the storage manager associated with
+    /// Destroy this iterator and unlock the partition lock associated with
     /// it.
     ~StorageManagerIterator() BSLS_KEYWORD_OVERRIDE;
 
@@ -797,18 +798,21 @@ StorageManager::getIterator(int partitionId) const
 inline StorageManagerIterator::StorageManagerIterator(
     int                   partitionId,
     const StorageManager* manager)
-: d_manager_p(manager)
+: d_lock_p(0)
 , d_map_p(0)
 , d_iterator()
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_manager_p);
+    BSLS_ASSERT_SAFE(manager);
     BSLS_ASSERT_SAFE(0 <= partitionId);
 
-    d_map_p = &(d_manager_p->d_storages[partitionId]);
+    d_lock_p = manager->d_storageLockVec[partitionId].get();
+    BSLS_ASSERT_SAFE(d_lock_p);
+
+    d_map_p = &(manager->d_storages[partitionId]);
     BSLS_ASSERT_SAFE(d_map_p);
 
-    d_manager_p->d_storagesLock.lock();  // LOCK
+    d_lock_p->lock();  // LOCK
     d_iterator = d_map_p->begin();
 }
 

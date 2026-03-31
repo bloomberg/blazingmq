@@ -38,6 +38,7 @@ def write_messages(proxy, uri, n_msgs=5, do_confirm=True):
     producer.post(uri, [f"msg{i}" for i in range(n_msgs)], succeed=True, wait_ack=True)
 
     if do_confirm:
+        consumer.wait_push_event()
         consumer.confirm(uri, "*", succeed=True)
 
     producer.close(uri, succeed=True)

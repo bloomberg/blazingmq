@@ -230,14 +230,17 @@ def test_queue_stats(single_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     # Stage 2: check stats after confirming messages
     consumer_foo: Client = proxy.create_client("consumer_foo")
     consumer_foo.open(f"{task.uri}?id=foo", flags=["read"], succeed=True)
+    consumer_foo.wait_push_event()
     consumer_foo.confirm(f"{task.uri}?id=foo", "*", succeed=True)
 
     consumer_bar: Client = proxy.create_client("consumer_bar")
     consumer_bar.open(f"{task.uri}?id=bar", flags=["read"], succeed=True)
+    consumer_bar.wait_push_event()
     consumer_bar.confirm(f"{task.uri}?id=bar", "+22", succeed=True)
 
     consumer_baz: Client = proxy.create_client("consumer_baz")
     consumer_baz.open(f"{task.uri}?id=baz", flags=["read"], succeed=True)
+    consumer_baz.wait_push_event()
     consumer_baz.confirm(f"{task.uri}?id=baz", "+11", succeed=True)
 
     stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
@@ -362,14 +365,17 @@ def test_app_id_stats(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     # Stage 2: check stats after confirming messages
     consumer_foo: Client = proxy.create_client("consumer_foo")
     consumer_foo.open(f"{task.uri}?id=foo", flags=["read"], succeed=True)
+    consumer_foo.wait_push_event()
     consumer_foo.confirm(f"{task.uri}?id=foo", "*", succeed=True)
 
     consumer_bar: Client = proxy.create_client("consumer_bar")
     consumer_bar.open(f"{task.uri}?id=bar", flags=["read"], succeed=True)
+    consumer_bar.wait_push_event()
     consumer_bar.confirm(f"{task.uri}?id=bar", "+22", succeed=True)
 
     consumer_baz: Client = proxy.create_client("consumer_baz")
     consumer_baz.open(f"{task.uri}?id=baz", flags=["read"], succeed=True)
+    consumer_baz.wait_push_event()
     consumer_baz.confirm(f"{task.uri}?id=baz", "+11", succeed=True)
 
     admin.stop()
