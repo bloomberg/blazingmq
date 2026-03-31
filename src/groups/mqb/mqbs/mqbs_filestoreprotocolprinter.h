@@ -129,7 +129,6 @@ void printJournalFileHeader(bsl::ostream&                     stream,
     fields.reserve(10);
     fields.push_back("HeaderWords");
     fields.push_back("RecordWords");
-
     fields.push_back("First SyncPointRecord offset words");
     fields.push_back("First SyncPointRecord type");
     fields.push_back("First SyncPointRecord primaryNodeId");
@@ -162,12 +161,9 @@ void printJournalFileHeader(bsl::ostream&                     stream,
 
         BSLS_ASSERT_OPT(mqbs::JournalOpType::e_SYNCPOINT == spRec->type());
 
-        const mqbs::JournalOpRecord::SyncPointData& spd =
-            spRec->syncPointData();
-
-        printer << spRec->syncPointType() << spd.primaryNodeId()
-                << spd.primaryLeaseId() << spd.sequenceNum()
-                << spd.dataFileOffsetDwords();
+        printer << spRec->syncPointType() << spRec->primaryNodeId()
+                << spRec->primaryLeaseId() << spRec->sequenceNum()
+                << spRec->dataFileOffsetDwords();
 
         bsls::Types::Uint64 epochValue = spRec->header().timestamp();
         bdlt::Datetime      datetime;

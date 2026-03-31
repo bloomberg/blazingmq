@@ -115,7 +115,7 @@ static void test1_breathingTest()
         // --------------------------
         // DataFileHeader Breathing Test
         // --------------------------
-        PV("DataFileHeader");
+        PV("DateFileHeader");
 
         // Create default DataFileHeader
         DataFileHeader      fh;
@@ -429,62 +429,37 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(fh2.magic(), 0xdeadbeef);
     }
 
-    // ------------------------------
-    // JournalOpRecord Breathing Test
-    // ------------------------------
     {
-        PV("JournalOpRecord default");
+        // ------------------------------
+        // JournalOpRecord Breathing Test
+        // ------------------------------
+        PV("JournalOpRecord");
 
         // Create default JournalOpRecord
         JournalOpRecord fh;
 
         BMQTST_ASSERT_EQ(fh.flags(), 0U);
         BMQTST_ASSERT_EQ(fh.type(), JournalOpType::e_UNDEFINED);
+        BMQTST_ASSERT_EQ(fh.sequenceNum(), 0ULL);
+        BMQTST_ASSERT_EQ(fh.primaryNodeId(), 0);
+        BMQTST_ASSERT_EQ(fh.primaryLeaseId(), 0U);
         BMQTST_ASSERT_EQ(fh.magic(), 0U);
-    }
 
-    {
-        PV("JournalOpRecord of SyncPoint type");
-
-        // Create JournalOpRecord of SYNCPOINT type, set fields, assert fields
-        JournalOpRecord fh;
-        fh.setFlags(1000)
+        // Create JournalOpRecord, set fields, assert fields
+        JournalOpRecord fh2;
+        fh2.setFlags(1000)
             .setType(JournalOpType::e_SYNCPOINT)
-            .setMagic(0xdeadbeef);
-
-        JournalOpRecord::SyncPointData& spd = fh.syncPointData();
-        spd.setSequenceNum(k_33_BITS_MASK)
+            .setSequenceNum(k_33_BITS_MASK)
             .setPrimaryNodeId(k_INT_MAX)
-            .setPrimaryLeaseId(k_UNSIGNED_INT_MAX);
-        BMQTST_ASSERT_EQ(fh.flags(), 1000U);
-        BMQTST_ASSERT_EQ(fh.type(), JournalOpType::e_SYNCPOINT);
-        BMQTST_ASSERT_EQ(spd.sequenceNum(), k_33_BITS_MASK);
-        BMQTST_ASSERT_EQ(spd.primaryNodeId(), k_INT_MAX);
-        BMQTST_ASSERT_EQ(spd.primaryLeaseId(), k_UNSIGNED_INT_MAX);
-        BMQTST_ASSERT_EQ(fh.magic(), 0xdeadbeef);
-    }
-
-    {
-        PV("JournalOpRecord of ResizeStorage type");
-
-        // Create JournalOpRecord of RESIZE_STORAGE type, set fields,
-        // assert fields
-        JournalOpRecord fh;
-        fh.setFlags(1000)
-            .setType(JournalOpType::e_RESIZE_STORAGE)
+            .setPrimaryLeaseId(k_UNSIGNED_INT_MAX)
             .setMagic(0xdeadbeef);
 
-        JournalOpRecord::ResizeStorageData& rsd = fh.resizeStorageData();
-        rsd.setMaxJournalFileSize(0x12345678)
-            .setMaxDataFileSize(0x87654321)
-            .setMaxQlistFileSize(0x12348765);
-
-        BMQTST_ASSERT_EQ(fh.flags(), 1000U);
-        BMQTST_ASSERT_EQ(fh.type(), JournalOpType::e_RESIZE_STORAGE);
-        BMQTST_ASSERT_EQ(rsd.maxJournalFileSize(), 0x12345678UL);
-        BMQTST_ASSERT_EQ(rsd.maxDataFileSize(), 0x87654321UL);
-        BMQTST_ASSERT_EQ(rsd.maxQlistFileSize(), 0x12348765UL);
-        BMQTST_ASSERT_EQ(fh.magic(), 0xdeadbeef);
+        BMQTST_ASSERT_EQ(fh2.flags(), 1000U);
+        BMQTST_ASSERT_EQ(fh2.type(), JournalOpType::e_SYNCPOINT);
+        BMQTST_ASSERT_EQ(fh2.sequenceNum(), k_33_BITS_MASK);
+        BMQTST_ASSERT_EQ(fh2.primaryNodeId(), k_INT_MAX);
+        BMQTST_ASSERT_EQ(fh2.primaryLeaseId(), k_UNSIGNED_INT_MAX);
+        BMQTST_ASSERT_EQ(fh2.magic(), 0xdeadbeef);
     }
 }
 
@@ -760,20 +735,18 @@ static void test3_printTest()
         BMQTST_ASSERT_EQ(stream.str(), "INVALID");
     }
 
-    // --------------------------
-    // JournalOpRecord Print Test
-    // --------------------------
     {
-        PV("JournalOpRecord of SyncPoint type");
+        // --------------------------
+        // JournalOpRecord Print Test
+        // --------------------------
+        PV("JournalOpRecord");
         rh.setType(RecordType::e_JOURNAL_OP);
         mqbs::JournalOpRecord jOpRec;
         jOpRec.header() = rh;
         jOpRec.setFlags(0)
             .setType(JournalOpType::e_SYNCPOINT)
-            .setSyncPointType(SyncPointType::e_REGULAR);
-
-        JournalOpRecord::SyncPointData& spd = jOpRec.syncPointData();
-        spd.setSequenceNum(9876543)
+            .setSyncPointType(SyncPointType::e_REGULAR)
+            .setSequenceNum(9876543)
             .setPrimaryNodeId(1)
             .setPrimaryLeaseId(8)
             .setDataFileOffsetDwords(666)
@@ -796,28 +769,6 @@ static void test3_printTest()
         stream.clear(bsl::ios_base::badbit);
         stream << jOpRec;
         BMQTST_ASSERT_EQ(stream.str(), "INVALID");
-    }
-    {
-        PV("JournalOpRecord of resizeStorage type");
-        rh.setType(RecordType::e_JOURNAL_OP);
-        mqbs::JournalOpRecord jOpRec;
-        jOpRec.header() = rh;
-        jOpRec.setFlags(0).setType(JournalOpType::e_RESIZE_STORAGE);
-
-        JournalOpRecord::ResizeStorageData& rsd = jOpRec.resizeStorageData();
-        rsd.setMaxJournalFileSize(0x12345678)
-            .setMaxDataFileSize(0x87654321)
-            .setMaxQlistFileSize(0x12348765);
-
-        const char* const expectedOut =
-            "[ header = [ type = JOURNAL_OP flags = 0 primaryLeaseId = 8 "
-            "sequenceNumber = 33 timestamp = 123456 ] flags = 0 type = "
-            "RESIZE_STORAGE maxJournalFileSize = 305419896 "
-            "maxDataFileSize = 2271560481 maxQlistFileSize = 305432421 ]";
-
-        bmqu::MemOutStream stream(bmqtst::TestHelperUtil::allocator());
-        stream << jOpRec;
-        BMQTST_ASSERT_EQ(stream.str(), expectedOut);
     }
 }
 
