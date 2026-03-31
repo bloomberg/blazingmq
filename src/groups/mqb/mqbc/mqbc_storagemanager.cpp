@@ -2764,7 +2764,7 @@ void StorageManager::do_cleanupMetadata(const EventWithData& event)
         d_clusterData_p->identity().description(),
         partitionId);
 
-    d_nodeToContextMapVec[partitionId].clear();
+    d_nodeToSeqNumCtxMapVec[partitionId].clear();
     d_numReplicaDataResponsesReceivedVec[partitionId] = 0;
     d_recoveryManager_mp->resetReceiveDataCtx(partitionId);
 }
