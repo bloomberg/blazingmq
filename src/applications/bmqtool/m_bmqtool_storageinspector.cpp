@@ -1055,6 +1055,7 @@ void StorageInspector::readQueuesIfNeeded()
 // CREATORS
 StorageInspector::StorageInspector(bslma::Allocator* allocator)
 : d_isOpen(false)
+, d_terminalReader(allocator)
 , d_queues(allocator)
 , d_qlistFileRead(false)
 , d_dataFile(allocator)
@@ -1099,7 +1100,7 @@ int StorageInspector::mainLoop()
     while (true) {
         bsl::string input;
 
-        if (!InputUtil::getLine(&input)) {
+        if (!d_terminalReader.getLine(&input)) {
             break;  // BREAK
         }
 
