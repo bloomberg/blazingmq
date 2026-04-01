@@ -96,13 +96,13 @@ mkdir -p "${DIR_INSTALL}"
 
 # :: Clone dependencies :::::::::::::::::::::::::::::::::::::::::::::::::::::::
 if [ ! -d "${DIR_THIRDPARTY}/bde-tools" ]; then
-    git clone --depth 1 --branch 4.28.0.0 https://github.com/bloomberg/bde-tools "${DIR_THIRDPARTY}/bde-tools"
+    git clone --depth 1 --branch 4.35.0.0 https://github.com/bloomberg/bde-tools "${DIR_THIRDPARTY}/bde-tools"
 fi
 if [ ! -d "${DIR_THIRDPARTY}/bde" ]; then
-    git clone --depth 1 --branch 4.28.0.0 https://github.com/bloomberg/bde.git "${DIR_THIRDPARTY}/bde"
+    git clone --depth 1 --branch 4.35.0.0 https://github.com/bloomberg/bde.git "${DIR_THIRDPARTY}/bde"
 fi
 if [ ! -d "${DIR_THIRDPARTY}/ntf-core" ]; then
-    git clone --depth 1 --branch 2.6.10 https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"
+    git clone --depth 1 --branch 2.6.11 https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"
 fi
 
 # :: Install required packages ::::::::::::::::::::::::::::::::::::::::::::::::
@@ -118,7 +118,7 @@ if [ ! -e "${DIR_BUILD}/bde/.complete" ]; then
         # shellcheck disable=SC2030
         export CXXFLAGS="-w" CFLAGS="-w"
         cd "${DIR_THIRDPARTY}/bde"
-        eval "$(bbs_build_env -p clang -u opt_64_cpp23 -b "${DIR_BUILD}/bde" -i "${DIR_INSTALL}")"
+        eval "$(bbs_build_env -p clang -u opt_64_cpp17 -b "${DIR_BUILD}/bde" -i "${DIR_INSTALL}")"
         bbs_build configure --prefix="${DIR_INSTALL}"
         bbs_build build --prefix="${DIR_INSTALL}"
         bbs_build install --install_dir="/" --prefix="${DIR_INSTALL}"
@@ -143,7 +143,7 @@ if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
             --with-zlib \
             --without-zstd \
             --without-lz4 \
-            --ufid opt_64_cpp23
+            --ufid opt_64_cpp17
         make -j 16
         make install
     )
@@ -162,7 +162,7 @@ CMAKE_OPTIONS=(
     -DCMAKE_MODULE_PATH="${DIR_THIRDPARTY}/bde-tools/cmake;${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem"
     -DCMAKE_PREFIX_PATH="${DIR_INSTALL}"
     -DCMAKE_TOOLCHAIN_FILE="${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem/toolchains/darwin/clang-default.cmake"
-    -DCMAKE_CXX_STANDARD=23
+    -DCMAKE_CXX_STANDARD=17
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
     -DFLEX_ROOT="${FLEX_ROOT}")
 

@@ -72,9 +72,9 @@ fetch_git() {
 }
 
 fetch_deps() {
-    fetch_git bloomberg bde-tools 4.28.0.0
-    fetch_git bloomberg bde 4.28.0.0
-    fetch_git bloomberg ntf-core 2.6.10
+    fetch_git bloomberg bde-tools 4.35.0.0
+    fetch_git bloomberg bde 4.35.0.0
+    fetch_git bloomberg ntf-core 2.6.11
 }
 
 configure() {
@@ -92,6 +92,13 @@ build_bde() {
 }
 
 build_ntf() {
+    local standard="$CXX_STANDARD"
+    if [[ "$CXX_STANDARD" == "cpp03" ]]; then
+        # NTF doesn't correctly translate cpp03 to 98 in its toolchain, so we have to
+        # pass it cpp98 explicitly.
+        standard="cpp98"
+    fi
+
     pushd srcs/ntf-core
     ./configure \
         --keep \
@@ -102,7 +109,7 @@ build_ntf() {
         --with-zlib \
         --without-zstd \
         --without-lz4 \
-        --ufid "opt_64_$CXX_STANDARD"
+        --ufid "opt_64_$standard"
     make -j8
     make install
     popd
