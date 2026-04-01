@@ -349,6 +349,20 @@ struct BuildAckOverflowFunctor {
     inline void operator()() { d_session.flush(); }
 };
 
+template <typename EVENT_TYPE>
+void dispatchEvent(const bsl::shared_ptr<bdlbb::Blob>& blob_sp,
+                   mqba::ClientSession*                source)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(source);
+
+    mqbi::Dispatcher*           dispatcher = source->dispatcher();
+    bsl::shared_ptr<EVENT_TYPE> event_sp =
+        dispatcher->getDefaultEventSource()->getEvent<EVENT_TYPE>();
+    event_sp->setBlob(blob_sp).setSource(source);
+    dispatcher->dispatchEvent(bslmf::MovableRefUtil::move(event_sp), source);
+}
+
 }  // close unnamed namespace
 
 // -------------------------
@@ -2648,38 +2662,20 @@ void ClientSession::processEvent(const bmqp::Event& event,
 
         // Not a control or leader message, it's either a put or a confirm ..
 
-        bsl::shared_ptr<bdlbb::Blob> blobSp =
+        bsl::shared_ptr<bdlbb::Blob> blob_sp =
             d_state.d_blobSpPool_p->getObject();
-        *blobSp = *(event.blob());
+        *blob_sp = *(event.blob());
 
         // Dispatch the event
         // TODO(678098): revisit, use per-IO thread event source
         if (event.isPutEvent()) {
-            bsl::shared_ptr<mqbevt::PutEvent> event_sp =
-                dispatcher()
-                    ->getDefaultEventSource()
-                    ->getEvent<mqbevt::PutEvent>();
-            event_sp->setBlob(blobSp).setSource(this);
-            dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(event_sp),
-                                        this);
+            dispatchEvent<mqbevt::PutEvent>(blob_sp, this);
         }
         else if (event.isConfirmEvent()) {
-            bsl::shared_ptr<mqbevt::ConfirmEvent> event_sp =
-                dispatcher()
-                    ->getDefaultEventSource()
-                    ->getEvent<mqbevt::ConfirmEvent>();
-            event_sp->setBlob(blobSp).setSource(this);
-            dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(event_sp),
-                                        this);
+            dispatchEvent<mqbevt::ConfirmEvent>(blob_sp, this);
         }
         else if (event.isRejectEvent()) {
-            bsl::shared_ptr<mqbevt::RejectEvent> event_sp =
-                dispatcher()
-                    ->getDefaultEventSource()
-                    ->getEvent<mqbevt::RejectEvent>();
-            event_sp->setBlob(blobSp).setSource(this);
-            dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(event_sp),
-                                        this);
+            dispatchEvent<mqbevt::RejectEvent>(blob_sp, this);
         }
         else {
             BALL_LOG_ERROR << "#CLIENT_UNEXPECTED_EVENT " << description()

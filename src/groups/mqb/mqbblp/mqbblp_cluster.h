@@ -371,20 +371,20 @@ class Cluster : public mqbi::Cluster,
 
     /// @brief Pass a protocol event to the dispatcher.
     ///
-    /// @tparam EventType Concrete event type (e.g., mqbevt::PutEvent)
+    /// @tparam EVENT_TYPE Concrete event type (e.g., mqbevt::PutEvent)
     /// @param event      bmqp::Event containing the blob to copy
     /// @param source     Cluster node this event originates from
-    template <typename EventType>
+    template <typename EVENT_TYPE>
     void sendToDispatcher(const bmqp::Event&   event,
                           mqbnet::ClusterNode* source);
 
     /// @brief Pass a protocol event to the dispatcher (Relay/Non-Relay).
     ///
-    /// @tparam EventType Concrete event type (e.g., mqbevt::PutEvent)
-    /// @tparam IsRelay   Whether this event is a relay event
+    /// @tparam EVENT_TYPE Concrete event type (e.g., mqbevt::PutEvent)
+    /// @tparam IS_RELAY   Whether this event is a relay event
     /// @param event      bmqp::Event containing the blob to copy
     /// @param source     Cluster node this event originates from
-    template <typename EventType, bool IsRelay>
+    template <typename EVENT_TYPE, bool IS_RELAY>
     void sendToDispatcher(const bmqp::Event&   event,
                           mqbnet::ClusterNode* source);
 

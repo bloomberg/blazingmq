@@ -2680,7 +2680,7 @@ void Cluster::processClusterControlMessage(
     }
 }
 
-template <typename EventType, bool IsRelay>
+template <typename EVENT_TYPE, bool IS_RELAY>
 inline void Cluster::sendToDispatcher(const bmqp::Event&   event,
                                       mqbnet::ClusterNode* source)
 {
@@ -2689,17 +2689,17 @@ inline void Cluster::sendToDispatcher(const bmqp::Event&   event,
     bsl::shared_ptr<bdlbb::Blob> blob_sp =
         d_clusterData.blobSpPool().getObject();
     *blob_sp = *(event.blob());
-    bsl::shared_ptr<EventType> event_sp =
-        dispatcher()->getDefaultEventSource()->getEvent<EventType>();
+    bsl::shared_ptr<EVENT_TYPE> event_sp =
+        dispatcher()->getDefaultEventSource()->getEvent<EVENT_TYPE>();
     (*event_sp)
-        .setIsRelay(IsRelay)
+        .setIsRelay(IS_RELAY)
         .setSource(this)
         .setBlob(blob_sp)
         .setClusterNode(source);
     dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(event_sp), this);
 }
 
-template <typename EventType>
+template <typename EVENT_TYPE>
 inline void Cluster::sendToDispatcher(const bmqp::Event&   event,
                                       mqbnet::ClusterNode* source)
 {
@@ -2708,8 +2708,8 @@ inline void Cluster::sendToDispatcher(const bmqp::Event&   event,
     bsl::shared_ptr<bdlbb::Blob> blob_sp =
         d_clusterData.blobSpPool().getObject();
     *blob_sp = *(event.blob());
-    bsl::shared_ptr<EventType> event_sp =
-        dispatcher()->getDefaultEventSource()->getEvent<EventType>();
+    bsl::shared_ptr<EVENT_TYPE> event_sp =
+        dispatcher()->getDefaultEventSource()->getEvent<EVENT_TYPE>();
     (*event_sp).setSource(this).setBlob(blob_sp).setClusterNode(source);
     dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(event_sp), this);
 }

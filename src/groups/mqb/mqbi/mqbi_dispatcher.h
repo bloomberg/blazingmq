@@ -399,19 +399,17 @@ class Dispatcher {
     // C++03 compatibility:
     // It is not possible to cast mqbevt movable refs to mqbi movable ref.
     template <class EVENT_TYPE>
-    inline void
-    dispatchEvent(bslmf::MovableRef<bsl::shared_ptr<EVENT_TYPE> > event,
-                  DispatcherClient*                               destination)
+    void dispatchEvent(bslmf::MovableRef<bsl::shared_ptr<EVENT_TYPE> > event,
+                       DispatcherClient* destination)
     {
         DispatcherEventSp base(bslmf::MovableRefUtil::access(event));
         dispatchEvent(bslmf::MovableRefUtil::move(base), destination);
     }
 
     template <class EVENT_TYPE>
-    inline void
-    dispatchEvent(bslmf::MovableRef<bsl::shared_ptr<EVENT_TYPE> > event,
-                  DispatcherClientType::Enum                      type,
-                  ProcessorHandle                                 handle)
+    void dispatchEvent(bslmf::MovableRef<bsl::shared_ptr<EVENT_TYPE> > event,
+                       DispatcherClientType::Enum                      type,
+                       ProcessorHandle                                 handle)
     {
         DispatcherEventSp base(bslmf::MovableRefUtil::access(event));
         dispatchEvent(bslmf::MovableRefUtil::move(base), type, handle);
@@ -730,10 +728,10 @@ class DispatcherClient {
                (d_threadId == k_ANY_THREAD_ID);
     }
 
-    inline bslmt::ThreadUtil::Id getThreadId() const { return d_threadId; }
+    bslmt::ThreadUtil::Id getThreadId() const { return d_threadId; }
 
     template <class EVENT_TYPE>
-    inline bsl::shared_ptr<EVENT_TYPE> getEvent() const
+    bsl::shared_ptr<EVENT_TYPE> getEvent() const
     {
         // PRECONDITIONS
         BSLS_ASSERT(d_eventSource_sp);
