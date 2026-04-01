@@ -47,8 +47,6 @@
 
 // MQB
 
-#include <mqbcfg_messages.h>
-#include <mqbconfm_messages.h>
 #include <mqbi_dispatcher.h>
 #include <mqbi_storage.h>
 
@@ -88,6 +86,9 @@ class Uri;
 }
 namespace bmqst {
 class StatContext;
+}
+namespace mqbcfg {
+class MessageThrottleConfig;
 }
 namespace mqbcmd {
 class QueueCommand;

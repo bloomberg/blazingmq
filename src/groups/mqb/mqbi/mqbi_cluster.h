@@ -41,8 +41,6 @@
 
 // MQB
 
-#include <mqbcfg_messages.h>
-#include <mqbconfm_messages.h>
 #include <mqbi_dispatcher.h>
 #include <mqbi_queue.h>
 
@@ -69,6 +67,13 @@ class FixedThreadPool;
 }
 namespace bmqt {
 class Uri;
+}
+namespace mqbcfg {
+class ClusterDefinition;
+class ClusterProxyDefinition;
+}
+namespace mqbconfm {
+class Domain;
 }
 namespace mqbcmd {
 class ClusterCommand;
