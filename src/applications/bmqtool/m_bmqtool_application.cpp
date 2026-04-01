@@ -803,12 +803,6 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
             d_fileLogger.writePushMessage(message);
 
             if (d_parameters.confirmMsg()) {
-                // disambiguate ConfirmEventBuilder::addMessageConfirmation
-                bdlf::MemFn<bmqt::EventBuilderResult::Enum (
-                    bmqa::ConfirmEventBuilder::*)(
-                    const bmqa::Message& message)>
-                    f(&bmqa::ConfirmEventBuilder::addMessageConfirmation);
-
                 BSLA_MAYBE_UNUSED bmqt::EventBuilderResult::Enum rc =
                     bmqp::ProtocolUtil::buildEvent(
                         BuildConfirmFunctor(confirmBuilder, message),
