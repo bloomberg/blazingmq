@@ -5,6 +5,16 @@
 
 include_guard()
 
+# :: bmq_enable_safe_asserts_for_tests ::::::::::::::::::::::::::::::::::::::::
+# Helper function to enable safe asserts for test targets in non-Release builds
+function(bmq_enable_safe_asserts_for_tests test_targets)
+  if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+    foreach(test_target ${test_targets})
+      target_compile_definitions(${test_target} PRIVATE BSLS_ASSERT_LEVEL_ASSERT_SAFE)
+    endforeach()
+  endif()
+endfunction()
+
 # :: bmq_add_test :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # This function searches for the test drivers of a UOR-style TARGET within the
 # `tests` directory of each package. For each component, it generates a target
@@ -62,6 +72,8 @@ function(bmq_add_test target)
 
         add_dependencies(${target}.t ${${pkg}_TEST_TARGETS})
 
+        bmq_enable_safe_asserts_for_tests("${${pkg}_TEST_TARGETS}")
+
         if(import_test_deps)
           # Import UOR test dependencies only once and only if we have at least
           # one generated test target
@@ -79,6 +91,7 @@ function(bmq_add_test target)
       LABELS "unit;all" ${target})
 
     if(${target}_TEST_TARGETS)
+      bmq_enable_safe_asserts_for_tests("${${target}_TEST_TARGETS}")
       bbs_import_target_dependencies(${target} ${${uor_name}_TEST_PCDEPS})
     endif()
   endif()
@@ -130,6 +143,7 @@ function(bmq_add_application_test target)
   endif()
 
   if (${lib_target}_TEST_TARGETS)
+    bmq_enable_safe_asserts_for_tests("${${lib_target}_TEST_TARGETS}")
     bbs_import_target_dependencies(${lib_target} ${${uor_name}_TEST_PCDEPS})
   endif()
 endfunction()

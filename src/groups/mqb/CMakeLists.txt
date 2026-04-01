@@ -5,6 +5,11 @@ if (NOT BMQ_TARGET_MQB_NEEDED)
   return()
 endif()
 
+# Enable safe asserts for mqb and all its tests in Debug/RelWithDebInfo builds
+if (NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+  add_compile_definitions(BSLS_ASSERT_LEVEL_ASSERT_SAFE)
+endif()
+
 # Add the libmqb group library, since its a 'utility' library for bmqbrkr, it
 # doesn't need to have any install rules.
 add_library( mqb )
