@@ -605,7 +605,9 @@ int FileStoreUtil::create(bsl::ostream&            errorDescription,
     OffsetPtr<FileHeader> fh(dataFile.block(), dataFilePos);
 
     new (fh.get()) FileHeader();
-    fh->setFileType(FileType::e_DATA).setPartitionId(partitionId);
+    fh->setFileType(FileType::e_DATA)
+        .setPartitionId(partitionId)
+        .setMaxFileSize(dataFile.fileSize());
     dataFilePos = sizeof(FileHeader);
 
     // Data file -- append DataFileHeader
@@ -623,7 +625,9 @@ int FileStoreUtil::create(bsl::ostream&            errorDescription,
     // Journal file -- append BlazingMQ header
     fh.reset(journal.block(), journalPos);
     new (fh.get()) FileHeader();
-    fh->setFileType(FileType::e_JOURNAL).setPartitionId(partitionId);
+    fh->setFileType(FileType::e_JOURNAL)
+        .setPartitionId(partitionId)
+        .setMaxFileSize(journal.fileSize());
     journalPos += sizeof(FileHeader);
 
     // Journal file -- append JournalFileHeader
@@ -638,7 +642,9 @@ int FileStoreUtil::create(bsl::ostream&            errorDescription,
         fh.reset(qlistFile.block(), qlistFilePos);
 
         new (fh.get()) FileHeader();
-        fh->setFileType(FileType::e_QLIST).setPartitionId(partitionId);
+        fh->setFileType(FileType::e_QLIST)
+            .setPartitionId(partitionId)
+            .setMaxFileSize(qlistFile.fileSize());
         qlistFilePos += sizeof(FileHeader);
 
         // Qlist file -- append QlistFileHeader
@@ -1101,9 +1107,9 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
         }
 
         FileStoreSet&            fs              = fileSets[i];
-        const bsls::Types::Int64 journalFileSize = fs.journalFileSize();
-        const bsls::Types::Int64 dataFileSize    = fs.dataFileSize();
-        const bsls::Types::Int64 qlistFileSize   = fs.qlistFileSize();
+        const bsls::Types::Uint64 journalFileSize = fs.journalFileSize();
+        const bsls::Types::Uint64 dataFileSize    = fs.dataFileSize();
+        const bsls::Types::Uint64 qlistFileSize   = fs.qlistFileSize();
 
         BALL_LOG_INFO << "Partition [" << partitionId << "]"
                       << ": Checking file set: " << fs;
@@ -1116,6 +1122,12 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
         else {
             // When we open in write mode, we set to max file size such that we
             // can write to it.
+            BSLS_ASSERT_SAFE(journalFileSize <= config.maxJournalFileSize());
+            BSLS_ASSERT_SAFE(dataFileSize <= config.maxDataFileSize());
+            if (qlistFd) {
+                BSLS_ASSERT_SAFE(qlistFileSize <= config.maxQlistFileSize());
+            }
+
             fs.setJournalFileSize(config.maxJournalFileSize())
                 .setDataFileSize(config.maxDataFileSize());
             if (qlistFd) {

@@ -14,6 +14,7 @@ Details of journal file:
     Bitness           : 64
     FileType          : JOURNAL
     HeaderWords       : 8
+    MaxFileSize       : 0
     PartitionId       : 0
 
     Journal File Header    : 
