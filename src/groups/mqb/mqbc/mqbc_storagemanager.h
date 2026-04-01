@@ -209,10 +209,10 @@ class StorageManager BSLS_KEYWORD_FINAL
         // DATA
 
         /// Data push destinations
-        bsl::vector<NodeToContextMapCIter> d_dataPushDestinations;
+        bsl::vector<NodeToSeqNumCtxMapCIter> d_dataPushDestinations;
 
         /// Data drop destinations
-        bsl::vector<NodeToContextMapCIter> d_dataDropDestinations;
+        bsl::vector<NodeToSeqNumCtxMapCIter> d_dataDropDestinations;
 
       public:
         // TRAITS
