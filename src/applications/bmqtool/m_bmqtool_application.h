@@ -32,9 +32,6 @@
 #include <m_bmqtool_poster.h>
 #include <m_bmqtool_storageinspector.h>
 
-// MQB
-#include <mqbs_journalfileiterator.h>
-
 // BMQ
 #include <bmqa_messageeventbuilder.h>
 #include <bmqa_queueid.h>

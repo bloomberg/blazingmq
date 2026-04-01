@@ -376,7 +376,7 @@ class Parameters {
     int                                 maxUnconfirmedMsgs() const;
     int                                 maxUnconfirmedBytes() const;
     ParametersVerbosity::Value          verbosity() const;
-    bsl::string                         logFormat() const;
+    const bsl::string&                  logFormat() const;
     bool                                memoryDebug() const;
     int                                 numProcessingThreads() const;
     int                                 shutdownGrace() const;
@@ -731,7 +731,7 @@ inline ParametersVerbosity::Value Parameters::verbosity() const
     return d_verbosity;
 }
 
-inline bsl::string Parameters::logFormat() const
+inline const bsl::string& Parameters::logFormat() const
 {
     return d_logFormat;
 }
