@@ -37,7 +37,6 @@
 
 // MQB
 
-#include <mqbconfm_messages.h>
 #include <mqbu_storagekey.h>
 
 // BMQ
@@ -63,6 +62,11 @@
 namespace BloombergLP {
 
 // FORWARD DECLARATION
+namespace mqbconfm {
+class Consistency;
+class Limits;
+class Storage;
+}
 namespace mqbu {
 class CapacityMeter;
 }

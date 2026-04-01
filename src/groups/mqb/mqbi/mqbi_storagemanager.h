@@ -60,7 +60,9 @@ namespace BloombergLP {
 namespace mqbc {
 class ClusterState;
 }
-
+namespace mqbconfm {
+class StorageDefinition;
+}
 namespace mqbcmd {
 class StorageCommand;
 }

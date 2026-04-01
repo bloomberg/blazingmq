@@ -22,6 +22,7 @@
 
 // MQB
 #include <mqbcfg_brokerconfig.h>
+#include <mqbconfm_messages.h>
 #include <mqbi_cluster.h>
 #include <mqbi_domain.h>
 #include <mqbi_queue.h>
