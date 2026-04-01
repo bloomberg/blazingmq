@@ -695,7 +695,7 @@ void StorageManager::processReplicaDataRequestPull(
     mqbnet::ClusterNode* const selfNode =
         d_clusterData_p->membership().selfNode();
     const bmqp_ctrlmsg::PartitionSequenceNumber selfSeqNum =
-        d_nodeToContextMapVec.at(partitionId).at(selfNode).d_seqNum;
+        d_nodeToSeqNumCtxMapVec.at(partitionId).at(selfNode).d_seqNum;
     if (replicaDataRequest.endSequenceNumber() != selfSeqNum) {
         bmqp_ctrlmsg::ControlMessage controlMsg;
         controlMsg.rId() = message.rId();
@@ -2064,15 +2064,15 @@ void StorageManager::do_determineDataDestinations(const EventWithData& event)
                      partitionId < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfPrimary());
 
-    bsl::vector<NodeToContextMapCIter>& dataPushDestinations =
+    bsl::vector<NodeToSeqNumCtxMapCIter>& dataPushDestinations =
         d_tempDataDestinations[partitionId].d_dataPushDestinations;
-    bsl::vector<NodeToContextMapCIter>& dataDropDestinations =
+    bsl::vector<NodeToSeqNumCtxMapCIter>& dataDropDestinations =
         d_tempDataDestinations[partitionId].d_dataDropDestinations;
     dataPushDestinations.clear();
     dataDropDestinations.clear();
 
-    const NodeToContextMap& nodeToSeqNumCtxMap =
-        d_nodeToContextMapVec[partitionId];
+    const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap =
+        d_nodeToSeqNumCtxMapVec[partitionId];
     mqbnet::ClusterNode* const selfNode =
         d_clusterData_p->membership().selfNode();
     BSLS_ASSERT_SAFE(nodeToSeqNumCtxMap.find(selfNode) !=
@@ -2085,8 +2085,8 @@ void StorageManager::do_determineDataDestinations(const EventWithData& event)
                 .d_firstSyncPointAfterRolloverSeqNum;
 
     // Determine which nodes to check as potential data push/drop destinations
-    NodeToContextMapCIter nodesToCheckBegin;
-    NodeToContextMapCIter nodesToCheckEnd;
+    NodeToSeqNumCtxMapCIter nodesToCheckBegin;
+    NodeToSeqNumCtxMapCIter nodesToCheckEnd;
     if (eventType == PartitionFSM::Event::e_REPLICA_STATE_RSPN ||
         eventType == PartitionFSM::Event::e_PRIMARY_STATE_RQST) {
         // Such events can contain a vector of responses
@@ -2101,7 +2101,7 @@ void StorageManager::do_determineDataDestinations(const EventWithData& event)
             BSLS_ASSERT_SAFE(source);
             BSLS_ASSERT_SAFE(source->nodeId() != selfNode->nodeId());
 
-            NodeToContextMapCIter cit = nodeToSeqNumCtxMap.find(source);
+            NodeToSeqNumCtxMapCIter cit = nodeToSeqNumCtxMap.find(source);
             if (cit == nodeToSeqNumCtxMap.end()) {
                 BALL_LOG_ERROR
                     << d_clusterData_p->identity().description()
@@ -2129,7 +2129,8 @@ void StorageManager::do_determineDataDestinations(const EventWithData& event)
     }
 
     // Determine data push/drop destinations
-    for (NodeToContextMapCIter cit = nodesToCheckBegin; cit != nodesToCheckEnd;
+    for (NodeToSeqNumCtxMapCIter cit = nodesToCheckBegin;
+         cit != nodesToCheckEnd;
          cit++) {
         if (cit->first->nodeId() == selfNode->nodeId()) {
             continue;  // CONTINUE
@@ -2245,10 +2246,10 @@ void StorageManager::do_replicaDataRequestPush(const EventWithData& event)
                      nodeToSeqNumCtxMap.end());
 
     // Send ReplicaDataRequestPush to destination replicas
-    const bsl::vector<NodeToContextMapCIter>& destinationReplicas =
+    const bsl::vector<NodeToSeqNumCtxMapCIter>& destinationReplicas =
         d_tempDataDestinations.at(partitionId).d_dataPushDestinations;
     EventData failedEventDataVec;
-    for (bsl::vector<NodeToContextMapCIter>::const_iterator cit =
+    for (bsl::vector<NodeToSeqNumCtxMapCIter>::const_iterator cit =
              destinationReplicas.cbegin();
          cit != destinationReplicas.cend();
          ++cit) {
@@ -2394,10 +2395,10 @@ void StorageManager::do_replicaDataRequestDrop(const EventWithData& event)
                      d_nodeToSeqNumCtxMapVec.at(partitionId).end());
 
     // Send ReplicaDataRequestDrop to replicas with obsolete data
-    const bsl::vector<NodeToContextMapCIter>& destinationReplicas =
+    const bsl::vector<NodeToSeqNumCtxMapCIter>& destinationReplicas =
         d_tempDataDestinations.at(partitionId).d_dataDropDestinations;
     EventData failedEventDataVec;
-    for (bsl::vector<NodeToContextMapCIter>::const_iterator cit =
+    for (bsl::vector<NodeToSeqNumCtxMapCIter>::const_iterator cit =
              destinationReplicas.cbegin();
          cit != destinationReplicas.cend();
          ++cit) {
@@ -2922,7 +2923,7 @@ void StorageManager::do_startSendDataChunks(const EventWithData& event)
         // NOTE: 'eventData.partitionSeqNumDataRange()' is only used when
         // this action is performed by the replica, where a
         // ReplicaDataRequestPull has been sent by the primary.  If self is
-        // primary, we use `d_nodeToContextMapVec` to determine data range
+        // primary, we use `d_nodeToSeqNumCtxMapVec` to determine data range
         // for each replica instead.
         const bmqp_ctrlmsg::PartitionSequenceNumber beginSeqNum =
             eventData.partitionSeqNumDataRange().first;
@@ -2958,9 +2959,9 @@ void StorageManager::do_startSendDataChunks(const EventWithData& event)
         d_nodeToSeqNumCtxMapVec.at(partitionId).at(selfNode).d_seqNum;
 
     // For each node, check if we need to send data chunks
-    const bsl::vector<NodeToContextMapCIter>& destinationReplicas =
+    const bsl::vector<NodeToSeqNumCtxMapCIter>& destinationReplicas =
         d_tempDataDestinations.at(partitionId).d_dataPushDestinations;
-    for (bsl::vector<NodeToContextMapCIter>::const_iterator cit =
+    for (bsl::vector<NodeToSeqNumCtxMapCIter>::const_iterator cit =
              destinationReplicas.begin();
          cit != destinationReplicas.end();
          ++cit) {
