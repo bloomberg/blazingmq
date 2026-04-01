@@ -903,6 +903,7 @@ Interactive::Interactive(const Parameters& parameters,
 , d_eventHandlerThreads(allocator)
 , d_producerIdProperty("** NONE **", allocator)
 , d_poster_p(poster)
+, d_terminalReader(allocator)
 , d_allocator_p(allocator)
 {
     // PRECONDITIONS
@@ -936,7 +937,7 @@ int Interactive::mainLoop()
     while (true) {
         bsl::string input;
 
-        if (!InputUtil::getLine(&input)) {
+        if (!d_terminalReader.getLine(&input)) {
             break;  // BREAK
         }
 

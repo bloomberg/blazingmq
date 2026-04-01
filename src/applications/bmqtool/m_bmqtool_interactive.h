@@ -28,6 +28,7 @@
 // BMQTOOL
 #include <m_bmqtool_messages.h>
 #include <m_bmqtool_poster.h>
+#include <m_bmqtool_terminalreader.h>
 
 // BMQ
 #include <bmqa_closequeuestatus.h>
@@ -134,6 +135,8 @@ class Interactive {
     Poster* d_poster_p;
     // A factory for posting series of messages.
     // Held, not owned
+
+    TerminalReader d_terminalReader;
 
     bslma::Allocator* d_allocator_p;
     // Held, not owned

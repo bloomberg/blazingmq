@@ -27,6 +27,7 @@
 
 // BMQTOOL
 #include <m_bmqtool_messages.h>
+#include <m_bmqtool_terminalreader.h>
 
 // MQB
 #include <mqbs_datafileiterator.h>
@@ -113,6 +114,8 @@ class StorageInspector {
   private:
     // DATA
     bool d_isOpen;
+
+    TerminalReader d_terminalReader;
 
     QueuesMap d_queues;
 
