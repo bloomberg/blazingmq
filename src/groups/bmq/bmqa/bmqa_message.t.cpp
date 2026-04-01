@@ -116,6 +116,7 @@ static void test1_messageOnStackIsInvalid()
     BMQTST_ASSERT_SAFE_FAIL(msg.confirmationCookie());
     BMQTST_ASSERT_SAFE_FAIL(msg.ackStatus());
     BMQTST_ASSERT_SAFE_FAIL(msg.dataSize());
+    BMQTST_ASSERT_SAFE_FAIL(msg.messagePropertiesAndPaddingSize());
     BMQTST_ASSERT_SAFE_FAIL(msg.hasProperties());
 #ifdef BMQ_ENABLE_MSG_GROUPID
     BMQTST_ASSERT_SAFE_FAIL(msg.hasGroupId());
@@ -134,6 +135,7 @@ static void test1_messageOnStackIsInvalid()
     BMQTST_ASSERT_SAFE_FAIL(clone.confirmationCookie());
     BMQTST_ASSERT_SAFE_FAIL(clone.ackStatus());
     BMQTST_ASSERT_SAFE_FAIL(clone.dataSize());
+    BMQTST_ASSERT_SAFE_FAIL(clone.messagePropertiesAndPaddingSize());
     BMQTST_ASSERT_SAFE_FAIL(clone.hasProperties());
 #ifdef BMQ_ENABLE_MSG_GROUPID
     BMQTST_ASSERT_SAFE_FAIL(clone.hasGroupId());
@@ -331,6 +333,8 @@ static void test3_messageProperties()
 
     bmqa::MessageProperties out1(bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT_EQ(0, message.loadProperties(&out1));
+
+    BMQTST_ASSERT_EQ(message.messagePropertiesAndPaddingSize(), blob.length());
 
     // 1st setProperty w/o getProperty and then getProperty
     {

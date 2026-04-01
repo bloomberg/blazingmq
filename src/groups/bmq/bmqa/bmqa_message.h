@@ -364,12 +364,14 @@ class Message {
     /// of invoking this method multiple times on a message.
     int getData(bdlbb::Blob* blob) const;
 
-    /// Return the number of bytes in the payload.  The behaviour is
-    /// undefined unless this instance represents a `PUT` or a `PUSH`
-    /// message.  Note that for efficiency, application should fetch payload
-    /// size once and cache the value, instead of invoking this method
-    /// multiple times on a message.
+    /// Return the number of bytes in the payload.  The behavior is
+    /// undefined unless this instance represents a `PUT` or a `PUSH` message.
     int dataSize() const;
+
+    /// Return the size (in bytes) of message properties including the padding
+    /// if any).  The behavior is undefined unless this instance represents a
+    /// `PUT` or a `PUSH` message.
+    int messagePropertiesAndPaddingSize() const;
 
     /// Return `true` if this instance has at least one message property
     /// associated with it, `false` otherwise.  Behavior is undefined unless
