@@ -82,9 +82,9 @@ static const bsls::Types::Int64 k_WATCHDOG_TIMEOUT_DURATION = 5 * 60;
 // TYPES
 typedef mqbmock::Cluster::TestChannelMapCIter TestChannelMapCIter;
 
-typedef mqbc::StorageManager::NodeToContextMap NodeToContextMap;
-typedef mqbc::StorageManager::NodeToContextMap::const_iterator
-    NodeToContextMapCIter;
+typedef mqbc::StorageManager::NodeToSeqNumCtxMap NodeToSeqNumCtxMap;
+typedef mqbc::StorageManager::NodeToSeqNumCtxMap::const_iterator
+    NodeToSeqNumCtxMapCIter;
 typedef bsl::pair<mqbnet::ClusterNode*, bmqp_ctrlmsg::PartitionSequenceNumber>
     NodeSeqNumPair;
 
@@ -681,11 +681,6 @@ struct TestHelper {
 
         replicaStateResponse.partitionId()          = partitionId;
         replicaStateResponse.latestSequenceNumber() = seqNum;
-        replicaStateResponse.partitionMaxFileSizes().dataFileSize() =
-            mqbmock::Cluster::k_MAX_DATA_FILE_SIZE;
-        replicaStateResponse.partitionMaxFileSizes().journalFileSize() =
-            mqbmock::Cluster::k_MAX_JOURNAL_FILE_SIZE;
-        replicaStateResponse.partitionMaxFileSizes().qListFileSize() = 0;
 
         for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
              cit != d_cluster_mp->_channels().cend();
@@ -711,18 +706,18 @@ struct TestHelper {
     }
 
     NodeSeqNumPair
-    getHighestSeqNumNodeDetails(mqbnet::ClusterNode*    selfNode,
-                                const NodeToContextMap& nodeToContextMap)
+    getHighestSeqNumNodeDetails(mqbnet::ClusterNode*      selfNode,
+                                const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap)
     {
         // Return the highest sequence number (node, seqNum) pair in the
-        // specified 'nodeToContextMap'.  In case of a tie, the specified
+        // specified 'nodeToSeqNumCtxMap'.  In case of a tie, the specified
         // 'selfNode' is considered the highest.
 
         mqbnet::ClusterNode*                  highestSeqNumReplica = selfNode;
         bmqp_ctrlmsg::PartitionSequenceNumber highestSeqNum(
-            nodeToContextMap.at(selfNode).d_seqNum);
-        for (NodeToContextMapCIter cit = nodeToContextMap.cbegin();
-             cit != nodeToContextMap.cend();
+            nodeToSeqNumCtxMap.at(selfNode).d_seqNum);
+        for (NodeToSeqNumCtxMapCIter cit = nodeToSeqNumCtxMap.cbegin();
+             cit != nodeToSeqNumCtxMap.cend();
              ++cit) {
             if (cit->second.d_seqNum > highestSeqNum) {
                 highestSeqNumReplica = cit->first;
@@ -886,12 +881,7 @@ struct TestHelper {
             .setMaxDataFileSize(partitionCfg.maxDataFileSize())
             .setMaxJournalFileSize(partitionCfg.maxJournalFileSize())
             .setMaxQlistFileSize(partitionCfg.maxQlistFileSize())
-            .setMaxArchivedFileSets(partitionCfg.maxArchivedFileSets())
-            .setDataFileGrowLimit(partitionCfg.dataFileGrowLimit())
-            .setJournalFileGrowLimit(partitionCfg.journalFileGrowLimit())
-            .setQlistFileGrowLimit(partitionCfg.qListFileGrowLimit())
-            .setGrowStepPercent(partitionCfg.growStepPercent())
-            .setMinAvailSpacePercent(partitionCfg.minAvailSpacePercent());
+            .setMaxArchivedFileSets(partitionCfg.maxArchivedFileSets());
 
         bdlmt::FixedThreadPool threadPool(1,
                                           100,
@@ -1090,7 +1080,7 @@ static void test2_unknownDetectSelfPrimary()
 
     helper.startStorageManager(&storageManager, selfNode);
 
-    BMQTST_ASSERT_EQ(storageManager.nodeToContextMap(k_PARTITION_ID).size(),
+    BMQTST_ASSERT_EQ(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size(),
                      1U);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
@@ -1160,7 +1150,7 @@ static void test3_unknownDetectSelfReplica()
 
     helper.startStorageManager(&storageManager, primaryNode);
 
-    BMQTST_ASSERT_EQ(storageManager.nodeToContextMap(k_PARTITION_ID).size(),
+    BMQTST_ASSERT_EQ(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size(),
                      1U);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_REPLICA_WAITING);
@@ -1242,10 +1232,10 @@ static void test4_primaryHealingStage1ReceivesReplicaStateRqst()
     }
     helper.clearChannels();
 
-    const NodeToContextMap& nodeToContextMap = storageManager.nodeToContextMap(
-        k_PARTITION_ID);
+    const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap =
+        storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID);
 
-    BSLS_ASSERT_OPT(nodeToContextMap.size() == 1);
+    BSLS_ASSERT_OPT(nodeToSeqNumCtxMap.size() == 1);
 
     // Receives ReplicaStateRequest from a rogue node.
     static const int             k_ROGUE_REQUEST_ID = 1;
@@ -1276,7 +1266,7 @@ static void test4_primaryHealingStage1ReceivesReplicaStateRqst()
     helper.verifyPrimarySendsFailedReplicaStateRspn(selfNodeId + 1,
                                                     k_ROGUE_REQUEST_ID);
 
-    BMQTST_ASSERT_EQ(storageManager.nodeToContextMap(k_PARTITION_ID).size(),
+    BMQTST_ASSERT_EQ(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size(),
                      1U);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
@@ -1354,7 +1344,7 @@ static void test5_primaryHealingStage1ReceivesReplicaStateRspnQuorum()
     helper.clearChannels();
 
     // Receives ReplicaStateResponse from replica nodes.
-    BSLS_ASSERT_OPT(storageManager.nodeToContextMap(k_PARTITION_ID).size() ==
+    BSLS_ASSERT_OPT(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size() ==
                     1);
     static const int             k_REQUEST_ID = 1;
     bmqp_ctrlmsg::ControlMessage message;
@@ -1383,7 +1373,7 @@ static void test5_primaryHealingStage1ReceivesReplicaStateRspnQuorum()
     message.rId() = k_REQUEST_ID + 2;
     helper.d_cluster_mp->requestManager().processResponse(message);
 
-    BMQTST_ASSERT_EQ(storageManager.nodeToContextMap(k_PARTITION_ID).size(),
+    BMQTST_ASSERT_EQ(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size(),
                      4U);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG2);
@@ -1461,7 +1451,7 @@ static void test6_primaryHealingStage1ReceivesPrimaryStateRequestQuorum()
     helper.clearChannels();
 
     // Receives PrimaryStateRequest from replica nodes.
-    BSLS_ASSERT_OPT(storageManager.nodeToContextMap(k_PARTITION_ID).size() ==
+    BSLS_ASSERT_OPT(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size() ==
                     1);
     mqbnet::ClusterNode* replica1 =
         helper.d_cluster_mp->netCluster().lookupNode(selfNodeId + 1);
@@ -1495,7 +1485,7 @@ static void test6_primaryHealingStage1ReceivesPrimaryStateRequestQuorum()
         helper.d_cluster_mp->netCluster().lookupNode(selfNodeId - 1);
     storageManager.processPrimaryStateRequest(message, replica3);
 
-    BMQTST_ASSERT_EQ(storageManager.nodeToContextMap(k_PARTITION_ID).size(),
+    BMQTST_ASSERT_EQ(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size(),
                      4U);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG2);
@@ -1572,7 +1562,7 @@ static void test7_primaryHealingStage1ReceivesPrimaryStateRqst()
     }
     helper.clearChannels();
 
-    BSLS_ASSERT_OPT(storageManager.nodeToContextMap(k_PARTITION_ID).size() ==
+    BSLS_ASSERT_OPT(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size() ==
                     1);
 
     // Receives PrimaryStateRequest from a replica node.
@@ -1601,10 +1591,10 @@ static void test7_primaryHealingStage1ReceivesPrimaryStateRqst()
 
     storageManager.processPrimaryStateRequest(message, replicaNode);
 
-    BMQTST_ASSERT_EQ(storageManager.nodeToContextMap(k_PARTITION_ID).size(),
+    BMQTST_ASSERT_EQ(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size(),
                      2U);
     BMQTST_ASSERT_EQ(
-        storageManager.nodeToContextMap(k_PARTITION_ID).count(replicaNode),
+        storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).count(replicaNode),
         1U);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
@@ -1682,7 +1672,7 @@ static void test8_primaryHealingStage1ReceivesReplicaStateRspnNoQuorum()
     helper.clearChannels();
 
     // Receives success ReplicaStateResponse from a replica node.
-    BSLS_ASSERT_OPT(storageManager.nodeToContextMap(k_PARTITION_ID).size() ==
+    BSLS_ASSERT_OPT(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size() ==
                     1);
     static const int             k_REQUEST_ID = 1;
     bmqp_ctrlmsg::ControlMessage message;
@@ -1716,7 +1706,7 @@ static void test8_primaryHealingStage1ReceivesReplicaStateRspnNoQuorum()
     failureMsg.rId() = 3;
     helper.d_cluster_mp->requestManager().processResponse(failureMsg);
 
-    BMQTST_ASSERT_EQ(storageManager.nodeToContextMap(k_PARTITION_ID).size(),
+    BMQTST_ASSERT_EQ(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size(),
                      2U);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
@@ -1796,7 +1786,7 @@ static void test9_primaryHealingStage1QuorumSendsReplicaDataRequestPull()
     helper.clearChannels();
 
     // Receives ReplicaStateResponse from a replica node.
-    BSLS_ASSERT_OPT(storageManager.nodeToContextMap(k_PARTITION_ID).size() ==
+    BSLS_ASSERT_OPT(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size() ==
                     1);
     static const int             k_REQUEST_ID = 1;
     bmqp_ctrlmsg::ControlMessage message;
@@ -1816,12 +1806,6 @@ static void test9_primaryHealingStage1QuorumSendsReplicaDataRequestPull()
     replicaStateResponse.partitionId()          = k_PARTITION_ID;
     replicaStateResponse.latestSequenceNumber() = seqNum;
 
-    replicaStateResponse.partitionMaxFileSizes().dataFileSize() =
-        mqbmock::Cluster::k_MAX_DATA_FILE_SIZE;
-    replicaStateResponse.partitionMaxFileSizes().journalFileSize() =
-        mqbmock::Cluster::k_MAX_JOURNAL_FILE_SIZE;
-    replicaStateResponse.partitionMaxFileSizes().qListFileSize() = 0;
-
     helper.d_cluster_mp->requestManager().processResponse(message);
 
     message.rId()                               = k_REQUEST_ID + 1;
@@ -1836,7 +1820,7 @@ static void test9_primaryHealingStage1QuorumSendsReplicaDataRequestPull()
     replicaStateResponse.latestSequenceNumber() = seqNum;
     helper.d_cluster_mp->requestManager().processResponse(message);
 
-    BMQTST_ASSERT_EQ(storageManager.nodeToContextMap(k_PARTITION_ID).size(),
+    BMQTST_ASSERT_EQ(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size(),
                      4U);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG2);
@@ -1844,7 +1828,7 @@ static void test9_primaryHealingStage1QuorumSendsReplicaDataRequestPull()
     const NodeSeqNumPair& highestSeqNumNode =
         helper.getHighestSeqNumNodeDetails(
             selfNode,
-            storageManager.nodeToContextMap(k_PARTITION_ID));
+            storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID));
 
     BMQTST_ASSERT_NE(highestSeqNumNode.first, selfNode);
     BMQTST_ASSERT_EQ(highestSeqNumNode.second.sequenceNumber(), 7U);
@@ -1929,9 +1913,9 @@ static void test10_replicaWaitingDetectSelfPrimary()
     }
     helper.clearChannels();
 
-    const NodeToContextMap& nodeToContextMap = storageManager.nodeToContextMap(
-        k_PARTITION_ID);
-    BSLS_ASSERT_OPT(nodeToContextMap.size() == 1);
+    const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap =
+        storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID);
+    BSLS_ASSERT_OPT(nodeToSeqNumCtxMap.size() == 1);
 
     // Apply Detect Self Primary event to Self Node.
     helper.setPartitionPrimary(&storageManager,
@@ -1942,7 +1926,7 @@ static void test10_replicaWaitingDetectSelfPrimary()
                                            selfNode,
                                            2);  // primaryLeaseId
 
-    BMQTST_ASSERT_EQ(storageManager.nodeToContextMap(k_PARTITION_ID).size(),
+    BMQTST_ASSERT_EQ(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size(),
                      1U);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
@@ -2024,10 +2008,10 @@ static void test11_replicaWaitingReceivesReplicaStateRqst()
     }
     helper.clearChannels();
 
-    const NodeToContextMap& nodeToContextMap = storageManager.nodeToContextMap(
-        k_PARTITION_ID);
+    const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap =
+        storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID);
 
-    BSLS_ASSERT_OPT(nodeToContextMap.size() == 1);
+    BSLS_ASSERT_OPT(nodeToSeqNumCtxMap.size() == 1);
 
     // Receives failure PrimaryStateResponse from the primary node.
     static const int             k_PRIMARY_STATE_REQUEST_ID = 1;
@@ -2066,8 +2050,8 @@ static void test11_replicaWaitingReceivesReplicaStateRqst()
 
     helper.verifyReplicaSendsReplicaStateRspn(k_PARTITION_ID, primaryNodeId);
 
-    BMQTST_ASSERT_EQ(nodeToContextMap.size(), 2U);
-    BMQTST_ASSERT_EQ(nodeToContextMap.at(primaryNode).d_seqNum, seqNum);
+    BMQTST_ASSERT_EQ(nodeToSeqNumCtxMap.size(), 2U);
+    BMQTST_ASSERT_EQ(nodeToSeqNumCtxMap.at(primaryNode).d_seqNum, seqNum);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_REPLICA_HEALING);
 
@@ -2143,10 +2127,10 @@ static void test12_replicaWaitingReceivesPrimaryStateRspn()
     }
     helper.clearChannels();
 
-    const NodeToContextMap& nodeToContextMap = storageManager.nodeToContextMap(
-        k_PARTITION_ID);
+    const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap =
+        storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID);
 
-    BSLS_ASSERT_OPT(nodeToContextMap.size() == 1);
+    BSLS_ASSERT_OPT(nodeToSeqNumCtxMap.size() == 1);
 
     // Receives PrimaryStateResponse from the primary node.
     static const int             k_PRIMARY_REQUEST_ID = 1;
@@ -2169,8 +2153,8 @@ static void test12_replicaWaitingReceivesPrimaryStateRspn()
 
     helper.d_cluster_mp->requestManager().processResponse(message);
 
-    BMQTST_ASSERT_EQ(nodeToContextMap.size(), 2U);
-    BMQTST_ASSERT_EQ(nodeToContextMap.at(primaryNode).d_seqNum, seqNum);
+    BMQTST_ASSERT_EQ(nodeToSeqNumCtxMap.size(), 2U);
+    BMQTST_ASSERT_EQ(nodeToSeqNumCtxMap.at(primaryNode).d_seqNum, seqNum);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_REPLICA_HEALING);
 
@@ -2246,10 +2230,10 @@ static void test13_replicaWaitingReceivesFailedPrimaryStateRspn()
     }
     helper.clearChannels();
 
-    const NodeToContextMap& nodeToContextMap = storageManager.nodeToContextMap(
-        k_PARTITION_ID);
+    const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap =
+        storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID);
 
-    BSLS_ASSERT_OPT(nodeToContextMap.size() == 1);
+    BSLS_ASSERT_OPT(nodeToSeqNumCtxMap.size() == 1);
 
     // Receives Failed PrimaryStateResponse from the primary node.
     static const int             k_PRIMARY_REQUEST_ID = 1;
@@ -2262,7 +2246,7 @@ static void test13_replicaWaitingReceivesFailedPrimaryStateRspn()
 
     helper.d_cluster_mp->requestManager().processResponse(failureMsg);
 
-    BMQTST_ASSERT_EQ(nodeToContextMap.size(), 1U);
+    BMQTST_ASSERT_EQ(nodeToSeqNumCtxMap.size(), 1U);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_REPLICA_HEALING);
 
@@ -2338,10 +2322,10 @@ static void test14_replicaWaitingReceivesPrimaryStateRqst()
     }
     helper.clearChannels();
 
-    const NodeToContextMap& nodeToContextMap = storageManager.nodeToContextMap(
-        k_PARTITION_ID);
+    const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap =
+        storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID);
 
-    BSLS_ASSERT_OPT(nodeToContextMap.size() == 1);
+    BSLS_ASSERT_OPT(nodeToSeqNumCtxMap.size() == 1);
 
     // Receives PrimaryStateRequest from a rogue node.
     const int            rogueNodeId = selfNodeId + 2;
@@ -2372,8 +2356,8 @@ static void test14_replicaWaitingReceivesPrimaryStateRqst()
     helper.verifyReplicaSendsFailedPrimaryStateRspn(rogueNodeId,
                                                     k_ROGUE_REQUEST_ID);
 
-    BMQTST_ASSERT_EQ(nodeToContextMap.size(), 1U);
-    BMQTST_ASSERT_EQ(nodeToContextMap.count(rogueNode), 0U);
+    BMQTST_ASSERT_EQ(nodeToSeqNumCtxMap.size(), 1U);
+    BMQTST_ASSERT_EQ(nodeToSeqNumCtxMap.count(rogueNode), 0U);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_REPLICA_WAITING);
 
@@ -2463,10 +2447,10 @@ static void test15_replicaWaitingReceivesReplicaDataRqstPull()
     }
     helper.clearChannels();
 
-    const NodeToContextMap& nodeToContextMap = storageManager.nodeToContextMap(
-        k_PARTITION_ID);
+    const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap =
+        storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID);
 
-    BSLS_ASSERT_OPT(nodeToContextMap.size() == 1);
+    BSLS_ASSERT_OPT(nodeToSeqNumCtxMap.size() == 1);
 
     // Receives failure PrimaryStateResponse from the primary node.
     static const int             k_PRIMARY_STATE_REQUEST_ID = 1;
@@ -2508,8 +2492,8 @@ static void test15_replicaWaitingReceivesReplicaDataRqstPull()
                                               selfSeqNum);
     helper.clearChannels();
 
-    BMQTST_ASSERT_EQ(nodeToContextMap.size(), 2U);
-    BMQTST_ASSERT_EQ(nodeToContextMap.at(primaryNode).d_seqNum,
+    BMQTST_ASSERT_EQ(nodeToSeqNumCtxMap.size(), 2U);
+    BMQTST_ASSERT_EQ(nodeToSeqNumCtxMap.at(primaryNode).d_seqNum,
                      k_PRIMARY_SEQ_NUM);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_REPLICA_HEALING);
@@ -2625,10 +2609,10 @@ static void test16_primaryHealingStage1SelfHighestSendsDataChunks()
     }
     helper.clearChannels();
 
-    const NodeToContextMap& nodeToContextMap = storageManager.nodeToContextMap(
-        k_PARTITION_ID);
+    const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap =
+        storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID);
 
-    BSLS_ASSERT_OPT(nodeToContextMap.size() == 1);
+    BSLS_ASSERT_OPT(nodeToSeqNumCtxMap.size() == 1);
 
     // Receives ReplicaStateResponse from replica nodes.
     static const int             k_REQUEST_ID = 1;
@@ -2648,12 +2632,6 @@ static void test16_primaryHealingStage1SelfHighestSendsDataChunks()
     replicaStateResponse.partitionId()          = k_PARTITION_ID;
     replicaStateResponse.latestSequenceNumber() = k_REPLICA_SEQ_NUM_1;
 
-    replicaStateResponse.partitionMaxFileSizes().dataFileSize() =
-        mqbmock::Cluster::k_MAX_DATA_FILE_SIZE;
-    replicaStateResponse.partitionMaxFileSizes().journalFileSize() =
-        mqbmock::Cluster::k_MAX_JOURNAL_FILE_SIZE;
-    replicaStateResponse.partitionMaxFileSizes().qListFileSize() = 0;
-
     helper.d_cluster_mp->requestManager().processResponse(message);
 
     bmqp_ctrlmsg::PartitionSequenceNumber k_REPLICA_SEQ_NUM_2;
@@ -2667,7 +2645,7 @@ static void test16_primaryHealingStage1SelfHighestSendsDataChunks()
     replicaStateResponse.latestSequenceNumber() = selfSeqNum;
     helper.d_cluster_mp->requestManager().processResponse(message);
 
-    BSLS_ASSERT_OPT(storageManager.nodeToContextMap(k_PARTITION_ID).size() ==
+    BSLS_ASSERT_OPT(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size() ==
                     4U);
     BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
                     mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG2);
@@ -2675,7 +2653,7 @@ static void test16_primaryHealingStage1SelfHighestSendsDataChunks()
     const NodeSeqNumPair& highestSeqNumNode =
         helper.getHighestSeqNumNodeDetails(
             selfNode,
-            storageManager.nodeToContextMap(k_PARTITION_ID));
+            storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID));
 
     BSLS_ASSERT_OPT(highestSeqNumNode.first->nodeId() == selfNodeId);
     BSLS_ASSERT_OPT(highestSeqNumNode.second.sequenceNumber() == 12U);
