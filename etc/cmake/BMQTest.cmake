@@ -132,8 +132,4 @@ function(bmq_add_application_test target)
   if (${lib_target}_TEST_TARGETS)
     bbs_import_target_dependencies(${lib_target} ${${uor_name}_TEST_PCDEPS})
   endif()
-
-  if(${lib_target}_TEST_TARGETS)
-    bbs_import_target_dependencies(${lib_target} ${${uor_name}_TEST_PCDEPS})
-  endif()
 endfunction()
