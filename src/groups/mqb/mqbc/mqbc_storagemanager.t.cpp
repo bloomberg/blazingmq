@@ -2910,7 +2910,7 @@ static void test18_primaryHealingWatchdogRetry()
     helper.clearChannels();
 
     // Transition to PRIMARY_HEALING_STG2
-    BSLS_ASSERT_OPT(storageManager.nodeToContextMap(k_PARTITION_ID).size() ==
+    BSLS_ASSERT_OPT(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size() ==
                     1);
     static const int             k_REQUEST_ID = 1;
     bmqp_ctrlmsg::ControlMessage message;
@@ -2939,7 +2939,7 @@ static void test18_primaryHealingWatchdogRetry()
     message.rId() = k_REQUEST_ID + 2;
     helper.d_cluster_mp->requestManager().processResponse(message);
 
-    BMQTST_ASSERT_EQ(storageManager.nodeToContextMap(k_PARTITION_ID).size(),
+    BMQTST_ASSERT_EQ(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size(),
                      4U);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG2);
