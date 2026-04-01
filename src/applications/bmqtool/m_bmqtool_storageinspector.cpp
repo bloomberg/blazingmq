@@ -1091,7 +1091,7 @@ int StorageInspector::initialize()
     // Print the welcome banner
     BALL_LOG_INFO << "Welcome to the BlazingMQ tool storage inspector.\n"
                   << "Type 'help' to see the list of commands supported by "
-                  << "storage inspector. Crl-D to quit.";
+                  << "storage inspector. Ctrl-D to quit.";
     return 0;
 }
 
