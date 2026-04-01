@@ -47,8 +47,8 @@
             }
         },
         {
-            "name": "gh-build-ubuntu-latest-cpp17",
-            "description": "GitHub Actions CI: Build on ubuntu-latest, C++17",
+            "name": "gh-build-ubuntu-latest-cpp23",
+            "description": "GitHub Actions CI: Build on ubuntu-latest, C++23",
             "inherits": "gh-base",
             "toolchainFile":
                 "$env{GITHUB_WORKSPACE}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake",
@@ -57,14 +57,14 @@
                     "/usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig"
             },
             "cacheVariables": {
-                "BDE_BUILD_TARGET_CPP17": "ON",
+                "BDE_BUILD_TARGET_CPP23": "ON",
                 "CMAKE_INSTALL_LIBDIR": "lib64"
             }
         },
         {
-            "name": "gh-prometheus-ubuntu-latest-cpp17",
+            "name": "gh-prometheus-ubuntu-latest-cpp23",
             "description":
-                "GitHub Actions CI: Build with Prometheus plugin on ubuntu-latest, C++17",
+                "GitHub Actions CI: Build with Prometheus plugin on ubuntu-latest, C++23",
             "inherits": "gh-base",
             "toolchainFile":
                 "$env{GITHUB_WORKSPACE}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake",
@@ -73,7 +73,7 @@
                     "/usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig"
             },
             "cacheVariables": {
-                "BDE_BUILD_TARGET_CPP17": "ON",
+                "BDE_BUILD_TARGET_CPP23": "ON",
                 "CMAKE_INSTALL_LIBDIR": "lib64",
                 "INSTALL_TARGETS": "prometheus;bmqbrkr;bmqtool"
             }
@@ -92,9 +92,9 @@
             ]
         },
         {
-            "name": "gh-build-ubuntu-latest-cpp17",
-            "description": "GitHub Actions CI: Build on ubuntu-latest, C++17",
-            "configurePreset": "gh-build-ubuntu-latest-cpp17",
+            "name": "gh-build-ubuntu-latest-cpp23",
+            "description": "GitHub Actions CI: Build on ubuntu-latest, C++23",
+            "configurePreset": "gh-build-ubuntu-latest-cpp23",
             "jobs": 8,
             "targets": [
                 "bmqbrkr",
@@ -104,10 +104,10 @@
             ]
         },
         {
-            "name": "gh-prometheus-ubuntu-latest-cpp17",
+            "name": "gh-prometheus-ubuntu-latest-cpp23",
             "description":
-                "GitHub Actions CI: Build with Prometheus plugin on ubuntu-latest, C++17",
-            "configurePreset": "gh-prometheus-ubuntu-latest-cpp17",
+                "GitHub Actions CI: Build with Prometheus plugin on ubuntu-latest, C++23",
+            "configurePreset": "gh-prometheus-ubuntu-latest-cpp23",
             "jobs": 8,
             "targets": [
                 "bmqbrkr",
@@ -118,7 +118,7 @@
         {
             "name": "gh-doxygen",
             "description": "GitHub Actions CI: Build Doxygen Documentation",
-            "configurePreset": "gh-build-ubuntu-latest-cpp17",
+            "configurePreset": "gh-build-ubuntu-latest-cpp23",
             "jobs": 8,
             "targets": [
                 "docs"
@@ -128,7 +128,7 @@
             "name": "gh-doxygen-apidocs",
             "description":
                 "GitHub Actions CI: Build Doxygen API Documentation",
-            "configurePreset": "gh-build-ubuntu-latest-cpp17",
+            "configurePreset": "gh-build-ubuntu-latest-cpp23",
             "jobs": 8,
             "targets": [
                 "apidocs"
@@ -138,7 +138,7 @@
             "name": "gh-doxygen-internaldocs",
             "description":
                 "GitHub Actions CI: Build Doxygen Internal Documentation",
-            "configurePreset": "gh-build-ubuntu-latest-cpp17",
+            "configurePreset": "gh-build-ubuntu-latest-cpp23",
             "jobs": 8,
             "targets": [
                 "internaldocs"
@@ -165,10 +165,10 @@
             }
         },
         {
-            "name": "gh-build-ubuntu-latest-cpp17",
+            "name": "gh-build-ubuntu-latest-cpp23",
             "description":
-                "GitHub Actions CI: Unit tests on ubuntu-latest, C++17",
-            "configurePreset": "gh-build-ubuntu-latest-cpp17",
+                "GitHub Actions CI: Unit tests on ubuntu-latest, C++23",
+            "configurePreset": "gh-build-ubuntu-latest-cpp23",
             "filter": {
                 "include": {
                     "label": "^unit$"

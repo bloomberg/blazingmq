@@ -7,7 +7,7 @@ on:
         description: "What C++ Standard to build with.  [cpp03, cpp11, cpp14, cpp17, cpp20, cpp23]"
         required: true
         type: string
-        default: "cpp17"
+        default: "cpp23"
     outputs:
       cache_key:
         description: "GH Actions Cache key associated with the built dependencies"
