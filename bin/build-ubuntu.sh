@@ -173,7 +173,7 @@ CMAKE_OPTIONS=(
     -DCMAKE_MODULE_PATH="${DIR_THIRDPARTY}/bde-tools/cmake;${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem"
     -DCMAKE_PREFIX_PATH="${DIR_INSTALL}"
     -DCMAKE_TOOLCHAIN_FILE="${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake"
-    -DCMAKE_CXX_STANDARD=17
+    -DCMAKE_CXX_STANDARD=23
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
     -DFLEX_ROOT=/usr/lib/x86_64-linux-gnu)
 
