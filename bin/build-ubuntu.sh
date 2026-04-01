@@ -3,40 +3,40 @@
 # This script builds BlazingMQ and all of its dependencies.
 
 echo -e "Before running this script, install the following prerequisites, if not present yet," \
-        "by executing the following commands:\n"                                               \
-        "sudo apt update && sudo apt -y install ca-certificates\n"                             \
-        "sudo apt install -y --no-install-recommends"                                          \
-        "autoconf automake build-essential gdb cmake ninja-build pkg-config bison libfl-dev libbenchmark-dev libgmock-dev libtool libz-dev"
+    "by executing the following commands:\n" \
+    "sudo apt update && sudo apt -y install ca-certificates\n" \
+    "sudo apt install -y --no-install-recommends" \
+    "autoconf automake build-essential gdb cmake ninja-build pkg-config bison libfl-dev libbenchmark-dev libgmock-dev libtool libz-dev"
 
 # :: Parse and validate arguments :::::::::::::::::::::::::::::::::::::::::::::
 print_usage_and_exit_with_error() {
     echo "Usage:   $0 [--plugins list,of,plugins]"
     echo "  -p|--plugins list,of,plugins     Specify plugins you would like to build."
     echo "                                   Available plugins: prometheus"
-    exit 1;
+    exit 1
 }
 VALID_ARGS=$(getopt -o p: --long plugins: -- "$@") || print_usage_and_exit_with_error
 eval "set -- $VALID_ARGS"
 
 BUILD_PROMETHEUS=false
 while [ "$#" -gt 0 ]; do
-  case "$1" in
+    case "$1" in
     -p | --plugins)
-        for i in ${2//,/ }
-        do
+        for i in ${2//,/ }; do
             if [ "$i" == "prometheus" ]; then
                 BUILD_PROMETHEUS=true
             else
                 echo "Invalid plugin name '$i' provided"
-                print_usage_and_exit_with_error;
+                print_usage_and_exit_with_error
             fi
         done
         shift 2
         ;;
-    --) shift;
+    --)
+        shift
         break
         ;;
-  esac
+    esac
 done
 
 set -e
@@ -91,7 +91,7 @@ PATH="${DIR_THIRDPARTY}/bde-tools/bin:$PATH"
 
 if [ ! -e "${DIR_BUILD}/bde/.complete" ]; then
     pushd "${DIR_THIRDPARTY}/bde"
-    eval "$(bbs_build_env -u opt_64_cpp17 -b "${DIR_BUILD}/bde" -i "${DIR_INSTALL}")"
+    eval "$(bbs_build_env -u opt_64_cpp23 -b "${DIR_BUILD}/bde" -i "${DIR_INSTALL}")"
     bbs_build configure --prefix="${DIR_INSTALL}"
     bbs_build build --prefix="${DIR_INSTALL}"
     bbs_build install --install_dir="/" --prefix="${DIR_INSTALL}"
@@ -103,15 +103,15 @@ fi
 if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
     # Build and install NTF
     pushd "${DIR_THIRDPARTY}/ntf-core"
-    ./configure --prefix "${DIR_INSTALL}"    \
-                --output "${DIR_BUILD}/ntf"  \
-                --without-warnings-as-errors \
-                --without-usage-examples     \
-                --without-applications       \
-                --with-zlib                  \
-                --without-zstd               \
-                --without-lz4                \
-                --ufid opt_64_cpp17
+    ./configure --prefix "${DIR_INSTALL}" \
+        --output "${DIR_BUILD}/ntf" \
+        --without-warnings-as-errors \
+        --without-usage-examples \
+        --without-applications \
+        --with-zlib \
+        --without-zstd \
+        --without-lz4 \
+        --ufid opt_64_cpp23
     make -j 16
     make install
     popd
@@ -133,8 +133,7 @@ if [ "${BUILD_PROMETHEUS}" == true ]; then
             --disable-telnet --disable-tftp --disable-pop3 --disable-imap \
             --disable-smb --disable-smtp --disable-gopher --disable-manual \
             --disable-ipv6 --disable-sspi --disable-crypto-auth \
-            --disable-ntlm-wb --disable-tls-srp --with-pic --without-nghttp2\
-            --without-libidn2 --without-libssh2 --without-brotli \
+            --disable-ntlm-wb --disable-tls-srp --with-pic --without-nghttp2 --without-libidn2 --without-libssh2 --without-brotli \
             --without-ssl --without-zlib --prefix="${DIR_INSTALL}"
         make curl_LDFLAGS=-all-static
         make curl_LDFLAGS=-all-static install
@@ -150,14 +149,14 @@ if [ "${BUILD_PROMETHEUS}" == true ]; then
         git submodule update
         # Build and install prometheus-cpp
         PKG_CONFIG_PATH="${DIR_INSTALL}/lib/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
-        cmake -DBUILD_SHARED_LIBS=OFF \
-              -DENABLE_PUSH=ON \
-              -DENABLE_COMPRESSION=OFF \
-              -DENABLE_TESTING=OFF \
-              -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
-              -DGENERATE_PKGCONFIG=ON \
-              -DCMAKE_INSTALL_PREFIX="${DIR_INSTALL}" \
-              -B "${DIR_BUILD}/prometheus-cpp"
+            cmake -DBUILD_SHARED_LIBS=OFF \
+            -DENABLE_PUSH=ON \
+            -DENABLE_COMPRESSION=OFF \
+            -DENABLE_TESTING=OFF \
+            -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+            -DGENERATE_PKGCONFIG=ON \
+            -DCMAKE_INSTALL_PREFIX="${DIR_INSTALL}" \
+            -B "${DIR_BUILD}/prometheus-cpp"
         cmake --build "${DIR_BUILD}/prometheus-cpp" --parallel 16
         cmake --install "${DIR_BUILD}/prometheus-cpp" --prefix "${DIR_INSTALL}"
         touch "${DIR_BUILD}/prometheus-cpp/.complete"
@@ -166,26 +165,26 @@ if [ "${BUILD_PROMETHEUS}" == true ]; then
 fi
 
 # :: Build the BlazingMQ repo :::::::::::::::::::::::::::::::::::::::::::::::::
-CMAKE_OPTIONS=(\
-    -DBDE_BUILD_TARGET_64=1 \
-    -DCMAKE_BUILD_TYPE=Debug \
-    -DCMAKE_INSTALL_LIBDIR="lib" \
-    -DCMAKE_INSTALL_PREFIX="${DIR_INSTALL}" \
-    -DCMAKE_MODULE_PATH="${DIR_THIRDPARTY}/bde-tools/cmake;${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem" \
-    -DCMAKE_PREFIX_PATH="${DIR_INSTALL}" \
-    -DCMAKE_TOOLCHAIN_FILE="${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake" \
-    -DCMAKE_CXX_STANDARD=17 \
-    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+CMAKE_OPTIONS=(
+    -DBDE_BUILD_TARGET_64=1
+    -DCMAKE_BUILD_TYPE=Debug
+    -DCMAKE_INSTALL_LIBDIR="lib"
+    -DCMAKE_INSTALL_PREFIX="${DIR_INSTALL}"
+    -DCMAKE_MODULE_PATH="${DIR_THIRDPARTY}/bde-tools/cmake;${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem"
+    -DCMAKE_PREFIX_PATH="${DIR_INSTALL}"
+    -DCMAKE_TOOLCHAIN_FILE="${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake"
+    -DCMAKE_CXX_STANDARD=17
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
     -DFLEX_ROOT=/usr/lib/x86_64-linux-gnu)
 
 if [ "${BUILD_PROMETHEUS}" == true ]; then
-    CMAKE_OPTIONS+=(-DINSTALL_TARGETS=prometheus);
+    CMAKE_OPTIONS+=(-DINSTALL_TARGETS=prometheus)
 else
-    CMAKE_OPTIONS+=(-UINSTALL_TARGETS);
+    CMAKE_OPTIONS+=(-UINSTALL_TARGETS)
 fi
 
 PKG_CONFIG_PATH="${DIR_INSTALL}/lib64/pkgconfig:${DIR_INSTALL}/lib/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
-cmake -B "${DIR_BUILD}/blazingmq" -S "${DIR_ROOT}" "${CMAKE_OPTIONS[@]}"
+    cmake -B "${DIR_BUILD}/blazingmq" -S "${DIR_ROOT}" "${CMAKE_OPTIONS[@]}"
 make -C "${DIR_BUILD}/blazingmq" -j 16
 
 echo broker is here: "${DIR_BUILD}/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"

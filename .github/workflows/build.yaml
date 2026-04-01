@@ -20,7 +20,7 @@ jobs:
     name: "Dependencies"
     uses: ./.github/workflows/dependencies.yaml
     with:
-      cxx_standard: cpp17
+      cxx_standard: cpp23
 
   get_dependencies_cpp03:
     name: "Dependencies [C++03]"
@@ -37,7 +37,7 @@ jobs:
       target: "bmqbrkr bmqtool bmqstoragetool all.it"
       save_build_as_artifacts: true
       run_unit_tests: false
-      cxx_standard: cpp17
+      cxx_standard: cpp23
 
   build_ubuntu_cpp03:
     name: "Build [ubuntu, C++03]"
@@ -59,7 +59,7 @@ jobs:
       target: "all.t"
       save_build_as_artifacts: false
       run_unit_tests: true
-      cxx_standard: cpp17
+      cxx_standard: cpp23
 
   unit_tests_python:
     name: UT [python]
@@ -339,9 +339,9 @@ jobs:
         env:
           PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
         run: |
-          cmake --preset gh-prometheus-ubuntu-latest-cpp17 -S .
+          cmake --preset gh-prometheus-ubuntu-latest-cpp23 -S .
           echo "::add-matcher::.github/workflows/problem-matchers/cpp-prometheus.json"
-          cmake --build --preset gh-prometheus-ubuntu-latest-cpp17
+          cmake --build --preset gh-prometheus-ubuntu-latest-cpp23
           echo "::remove-matcher owner=cpp-prometheus"
 
       - name: Create prometheus dir

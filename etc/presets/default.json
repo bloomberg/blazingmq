@@ -10,8 +10,8 @@
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "1",
                 "CMAKE_BUILD_TYPE": "Debug",
                 "BDE_BUILD_TARGET_SAFE": true,
-                "CMAKE_CXX_STANDARD": "17",
-                "BDE_BUILD_TARGET_CPP17": "17",
+                "CMAKE_CXX_STANDARD": "23",
+                "BDE_BUILD_TARGET_CPP23": "ON",
                 "CMAKE_INSTALL_LIBDIR": "lib64"
             }
         }
