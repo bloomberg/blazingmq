@@ -192,8 +192,7 @@ int ChannelUtil::handleRead(const Reader& reader,
             return 0;  // RETURN
         }
 
-        // We have a complete message.  Move the bytes out of 'inBlob' into a
-        // standalone packet in 'outPackets'.
+        // We have a complete message.
         reader(*inBlob, consumedBytes, packetLength);
 
         consumedBytes += packetLength;

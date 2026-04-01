@@ -251,6 +251,23 @@ class TCPSessionFactory {
         void onDeleteChannelContext(bsl::uint16_t port);
     };
 
+    struct Reader {
+        TCPSessionFactory* d_owner_p;
+        ChannelInfo*       d_channelInfo_p;
+
+        explicit Reader(TCPSessionFactory* owner, ChannelInfo* channelInfo)
+        : d_owner_p(owner)
+        , d_channelInfo_p(channelInfo)
+        {
+            BSLS_ASSERT_SAFE(owner);
+        }
+
+        void operator()(const bdlbb::Blob& blob, int offset, int length)
+        {
+            d_owner_p->read(d_channelInfo_p, blob, offset, length);
+        }
+    };
+
     typedef bsl::shared_ptr<ChannelInfo> ChannelInfoSp;
 
     /// Map associating a `Channel` to its corresponding `ChannelInfo` (as

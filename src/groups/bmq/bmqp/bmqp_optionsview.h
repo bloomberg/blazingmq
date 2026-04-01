@@ -191,7 +191,7 @@ class OptionsView {
     /// Return an iterator pointing to the next available
     /// `bmqp::OptionType`, starting after the optionally specified
     /// `initialOffset`.
-    const_iterator advance(const int initialOffset = -1) const;
+    const_iterator advance(int initialOffset = -1) const;
 
     /// Load the specified `payloadPosition` and `payloadSizeBytes` with the
     /// position and the size respectively of the specified `optionType`
@@ -393,7 +393,7 @@ OptionsView::Iterator::operator==(const OptionsView::Iterator& rhs) const
 
 // PRIVATE ACCESSORS
 inline OptionsView::const_iterator
-OptionsView::advance(const int initialOffset) const
+OptionsView::advance(int initialOffset) const
 {
     const int startLookingAt = initialOffset + 1;
     BSLS_ASSERT_SAFE(startLookingAt >= 0);

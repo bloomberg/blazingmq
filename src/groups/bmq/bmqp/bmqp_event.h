@@ -404,7 +404,7 @@ inline Event::Event(const Event& src, bslma::Allocator* allocator)
 , d_blob_sp(0, allocator)
 , d_blob_p(0)
 {
-    d_blob_sp = src.d_blob_sp;  // src could be a clone
+    d_blob_sp = src.d_blob_sp;
     initialize(src.d_blob_p);
 }
 
@@ -425,7 +425,7 @@ inline Event& Event::operator=(const Event& rhs)
         return *this;
     }
 
-    d_blob_sp = rhs.d_blob_sp;  // src could be a clone
+    d_blob_sp = rhs.d_blob_sp;
     initialize(rhs.d_blob_p);
     return *this;
 }

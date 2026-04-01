@@ -83,7 +83,7 @@ struct EventUtilEventInfo {
     typedef bsl::vector<EventUtilQueueInfo> Ids;
 
     // PUBLIC DATA
-    const bsl::shared_ptr<bdlbb::Blob> d_blob;
+    const bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
 
     Ids d_ids;
 
@@ -100,7 +100,7 @@ struct EventUtilEventInfo {
     /// Create a `bmqp::EventUtil_EventInfo` object using the specified
     /// `blob` and `queueIds`.  All memory allocations will be done using
     /// the specified `allocator`.
-    EventUtilEventInfo(const bsl::shared_ptr<bdlbb::Blob>& blob,
+    EventUtilEventInfo(const bsl::shared_ptr<bdlbb::Blob>& blob_sp,
                        const Ids&                          queueIds,
                        bslma::Allocator*                   allocator);
 
@@ -168,17 +168,17 @@ inline EventUtilQueueInfo::EventUtilQueueInfo(
 
 // CREATORS
 inline EventUtilEventInfo::EventUtilEventInfo(bslma::Allocator* allocator)
-: d_blob()
+: d_blob_sp()
 , d_ids(allocator)
 {
     // NOTHING
 }
 
 inline EventUtilEventInfo::EventUtilEventInfo(
-    const bsl::shared_ptr<bdlbb::Blob>& blob,
+    const bsl::shared_ptr<bdlbb::Blob>& blob_sp,
     const Ids&                          ids,
     bslma::Allocator*                   allocator)
-: d_blob(blob)
+: d_blob_sp(blob_sp)
 , d_ids(ids, allocator)
 {
     // NOTHING
@@ -187,7 +187,7 @@ inline EventUtilEventInfo::EventUtilEventInfo(
 inline EventUtilEventInfo::EventUtilEventInfo(
     const EventUtilEventInfo& original,
     bslma::Allocator*         allocator)
-: d_blob(original.d_blob)
+: d_blob_sp(original.d_blob_sp)
 , d_ids(original.d_ids, allocator)
 {
     // NOTHING

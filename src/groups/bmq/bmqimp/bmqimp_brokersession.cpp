@@ -3554,7 +3554,7 @@ void BrokerSession::processPushEvent(const bmqp::Event& event)
 
         if (hasMessageWithMultipleSubQueueIds) {
             queueEvent = createEvent();
-            const bmqp::Event rawEvent(currEventInfo.d_blob, d_allocator_p);
+            const bmqp::Event rawEvent(currEventInfo.d_blob_sp, d_allocator_p);
             queueEvent->configureAsMessageEvent(rawEvent);
         }
         else if (i == 0) {
@@ -6992,7 +6992,7 @@ BrokerSession::lookupQueue(const bmqp::QueueId& queueId) const
 }
 
 bool BrokerSession::acceptUserEvent(
-    const bsl::shared_ptr<const bdlbb::Blob>& eventBlob)
+    const bsl::shared_ptr<const bdlbb::Blob>& blob_sp)
 {
     // executed by the APPLICATION thread
 
@@ -7022,7 +7022,7 @@ bool BrokerSession::acceptUserEvent(
     }
 
     // Accept the blob to the FSM
-    bmqt::GenericResult::Enum res = processPacket(eventBlob);
+    bmqt::GenericResult::Enum res = processPacket(blob_sp);
 
     return res == bmqt::GenericResult::e_SUCCESS;
 }
@@ -7085,17 +7085,17 @@ BrokerSession::createDTSpan(bsl::string_view              operation,
     return result;
 }
 
-int BrokerSession::post(const bsl::shared_ptr<const bdlbb::Blob>& eventBlob)
+int BrokerSession::post(const bsl::shared_ptr<const bdlbb::Blob>& blob_sp)
 {
     // Prevent send of an empty/invalid blob: when using the
     // MessageEventBuilder, if no messages were added (i.e., 'PackMessage()'
     // was not called), it returns a blob composed only of an EventHeader; no
     // need to send those.
-    if (eventBlob->length() <= static_cast<int>(sizeof(bmqp::EventHeader))) {
+    if (blob_sp->length() <= static_cast<int>(sizeof(bmqp::EventHeader))) {
         return bmqt::PostResult::e_INVALID_ARGUMENT;  // RETURN
     }
 
-    bmqp::Event event(eventBlob, d_allocator_p);
+    bmqp::Event event(blob_sp, d_allocator_p);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!event.isPutEvent())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         BALL_LOG_ERROR << id()
@@ -7144,7 +7144,7 @@ int BrokerSession::post(const bsl::shared_ptr<const bdlbb::Blob>& eventBlob)
         return bmqt::PostResult::e_NOT_CONNECTED;  // RETURN
     }
 
-    bool isAccepted = acceptUserEvent(eventBlob);
+    bool isAccepted = acceptUserEvent(blob_sp);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!isAccepted)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
@@ -7243,9 +7243,9 @@ int BrokerSession::confirmMessage(const bsl::shared_ptr<bmqimp::Queue>& queue,
 }
 
 int BrokerSession::confirmMessages(
-    const bsl::shared_ptr<const bdlbb::Blob>& blob)
+    const bsl::shared_ptr<const bdlbb::Blob>& blob_sp)
 {
-    if (blob->length() <= static_cast<int>(sizeof(bmqp::EventHeader))) {
+    if (blob_sp->length() <= static_cast<int>(sizeof(bmqp::EventHeader))) {
         return bmqt::GenericResult::e_INVALID_ARGUMENT;  // RETURN
     }
 
@@ -7258,7 +7258,7 @@ int BrokerSession::confirmMessages(
         return bmqt::GenericResult::e_NOT_CONNECTED;  // RETURN
     }
 
-    bmqp::Event event(blob, d_allocator_p);
+    bmqp::Event event(blob_sp, d_allocator_p);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!event.isConfirmEvent())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         BALL_LOG_ERROR << id()
@@ -7276,7 +7276,7 @@ int BrokerSession::confirmMessages(
         return bmqt::GenericResult::e_INVALID_ARGUMENT;  // RETURN
     }
 
-    bool isAccepted = acceptUserEvent(blob);
+    bool isAccepted = acceptUserEvent(blob_sp);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!isAccepted)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 

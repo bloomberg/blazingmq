@@ -124,11 +124,11 @@ class Flattener {
 
     /// Compile an appropriate integer return code using the specified
     /// `result` and `error` codes.
-    static int packError(const EventBuilderResult result, const int error);
+    static int packError(const EventBuilderResult result, int error);
 
     /// Compile an appropriate integer return code using the specified
     /// `error` and `context` codes.
-    static int packError(const int error, const int context);
+    static int packError(int error, int context);
 
     /// Return `true` if the specified `optionsView` indicates it has
     /// subqueue ids or SubQueueInfos.
@@ -200,12 +200,12 @@ class Flattener {
 // class Flattener
 // ---------------
 
-int Flattener::packError(const EventBuilderResult result, const int error)
+int Flattener::packError(const EventBuilderResult result, int error)
 {
     return packError(static_cast<int>(result), error);
 }
 
-int Flattener::packError(const int error, const int context)
+int Flattener::packError(int error, int context)
 {
     return 10 * error + context;
 }

@@ -125,7 +125,7 @@ bool operator==(const CustomAllocValueType& lhs,
     return (lhs.d_foo == rhs.d_foo) && (lhs.d_bar == rhs.d_bar);
 }
 
-bsl::string formatError(const int rc)
+bsl::string formatError(int rc)
 {
     bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
     os << "error: " << rc << "(" << k_LONG_STRING << ")";
@@ -140,7 +140,7 @@ class CustomErrorType {
     {
     }
 
-    CustomErrorType(const int rc)
+    CustomErrorType(int rc)
     : d_error(formatError(rc), bmqtst::TestHelperUtil::allocator())
     , d_rc(rc)
     {
@@ -175,7 +175,7 @@ class CustomAllocErrorType {
     {
     }
 
-    CustomAllocErrorType(const int rc, bslma::Allocator* basicAllocator)
+    CustomAllocErrorType(int rc, bslma::Allocator* basicAllocator)
     : d_error(formatError(rc), basicAllocator)
     , d_rc(rc)
     {

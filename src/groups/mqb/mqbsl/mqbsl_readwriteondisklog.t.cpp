@@ -105,7 +105,7 @@ static bdlbb::PooledBlobBufferFactory* g_bufferFactory_p     = 0;
 static bdlbb::PooledBlobBufferFactory* g_miniBufferFactory_p = 0;
 
 // FUNCTIONS
-void generateRandomString(char* s, const int len)
+void generateRandomString(char* s, int len)
 {
     static const char alphanum[] = "0123456789"
                                    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"

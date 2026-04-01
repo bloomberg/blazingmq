@@ -255,6 +255,7 @@ struct PortMatcher {
         return listener.port() == d_port;
     }
 };
+
 }  // close unnamed namespace
 
 // -----------------------------------------
@@ -435,15 +436,9 @@ void TCPSessionFactory::readCallback(const bmqio::Status& status,
         return;  // RETURN
     }
 
-    const int rc = bmqio::ChannelUtil::handleRead(
-        bdlf::BindUtil::bind(&TCPSessionFactory::read,
-                             this,
-                             channelInfo,
-                             bdlf::PlaceHolders::_1,
-                             bdlf::PlaceHolders::_2,
-                             bdlf::PlaceHolders::_3),
-        numNeeded,
-        blob);
+    Reader reader(this, channelInfo);
+
+    const int rc = bmqio::ChannelUtil::handleRead(reader, numNeeded, blob);
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -642,6 +637,7 @@ void TCPSessionFactory::initialConnectionComplete(
 
     // Do not initiate reading from the channel.  Transport observer(s) will
     // enable the read when they are ready.
+
     const bool result = operationContext->d_resultCb(
         bmqio::ChannelFactoryEvent::e_CHANNEL_UP,
         bmqio::Status(),

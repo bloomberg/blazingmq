@@ -93,7 +93,7 @@ class RcDescriptionError {
     /// `rc` and `description`.  Use the optionally specified
     /// `basicAllocator` to supply memory.  If `basicAllocator` is 0, the
     /// currently installed default allocator is used.
-    RcDescriptionError(const int                rc,
+    RcDescriptionError(int                      rc,
                        const bslstl::StringRef& description,
                        bslma::Allocator*        basicAllocator = 0);
 
