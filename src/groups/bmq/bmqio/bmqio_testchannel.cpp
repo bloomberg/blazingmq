@@ -56,6 +56,8 @@ TestChannel::~TestChannel()
 
 void TestChannel::reset()
 {
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+
     d_readStatus.reset();
     d_writeStatus.reset();
     d_executeRet = 0;

@@ -85,9 +85,6 @@ const double k_LOG_SUMMARY_INTERVAL = 60.0 * 5;  // 5 minutes
 
 const double k_QUEUE_GC_INTERVAL = 60.0;  // 1 minute
 
-/// Timeout duration for Partition FSM watchdog -- 5 minutes
-const bsls::Types::Int64 k_PARTITION_FSM_WATCHDOG_TIMEOUT_DURATION = 60 * 5;
-
 }  // close unnamed namespace
 
 // -------------------------------------
@@ -192,7 +189,12 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
                       &d_state,
                       d_clusterData.domainFactory(),
                       clusterDispatcher,
-                      k_PARTITION_FSM_WATCHDOG_TIMEOUT_DURATION,
+                      d_clusterData.clusterConfig()
+                          .clusterAttributes()
+                          .partitionFsmWatchdogTimeoutSec(),
+                      d_clusterData.clusterConfig()
+                          .clusterAttributes()
+                          .partitionFsmWatchdogNumRetries(),
                       bdlf::BindUtil::bind(&Cluster::onRecoveryStatus,
                                            this,
                                            bdlf::PlaceHolders::_1,  // status
@@ -777,7 +779,7 @@ void Cluster::onPutEvent(const mqbi::DispatcherPutEvent& event)
     int msgNum = 0;
 
     while ((rc = putIt.next()) == 1) {
-        const bmqp::QueueId queueId(putIt.header().queueId(),
+        const bmqp::QueueId     queueId(putIt.header().queueId(),
                                     bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
         QueueHandleMapConstIter queueIt = ns->queueHandles().find(
             queueId.id());

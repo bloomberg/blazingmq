@@ -57,12 +57,6 @@ class Domain;
 
 namespace mqbblp {
 
-namespace {
-/// Timeout duration for Cluster FSM watchdog -- 5 minutes
-const bsls::Types::Int64 k_WATCHDOG_TIMEOUT_DURATION = 60 * 5;
-
-}  // close unnamed namespace
-
 // ------------------------------------------------
 // class ClusterOrchestrator::OnElectorEventFunctor
 // ------------------------------------------------
@@ -593,7 +587,8 @@ ClusterOrchestrator::ClusterOrchestrator(
                             d_clusterData_p,
                             clusterState,
                             &d_clusterData_p->blobSpPool())),
-                    k_WATCHDOG_TIMEOUT_DURATION,
+                    clusterConfig.clusterAttributes()
+                        .clusterFsmWatchdogTimeoutSec(),
                     d_allocators.get("ClusterStateManager")))
           : static_cast<mqbi::ClusterStateManager*>(
                 new(*d_allocator_p) ClusterStateManager(

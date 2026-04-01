@@ -780,20 +780,37 @@
       <documentation>
         Type representing the attributes specific to a cluster.
 
-        isCSLModeEnabled.: indicates if CSL is enabled for this cluster
-        isFSMWorkflow....: indicates if CSL FSM workflow is enabled for this
-                           cluster.  This flag *must* be false if
-                           'isCSLModeEnabled' is false.
-        doesFSMwriteQLIST: indicates whether the broker still writes to the
-                           to-be-deprecated QLIST file when FSM workflow is
-                           enabled.  If above 'isFSMWorkflow' flag is false,
-                           this flag is ignored.
+        isCSLModeEnabled...............: 
+            indicates if CSL is enabled for this cluster
+        isFSMWorkflow..................: 
+            indicates if CSL FSM workflow is enabled for this cluster.  This
+            flag *must* be false if 'isCSLModeEnabled' is false.
+        doesFSMwriteQLIST..............: 
+            indicates whether the broker still writes to the to-be-deprecated
+            QLIST file when FSM workflow is enabled.  If above 'isFSMWorkflow'
+            flag is false, this flag is ignored.
+        clusterFsmWatchdogTimeoutSec...: 
+            timeout duration in seconds for Cluster FSM watchdog. Only applies
+            when 'isFSMWorkflow' is true.
+        clusterFsmWatchdogNumRetries...: 
+            number of retries for Cluster FSM watchdog before we give up and 
+            terminate the broker.  Only applies when 'isFSMWorkflow' is true.
+        partitionFsmWatchdogTimeoutSec.: 
+            timeout duration in seconds for Partition FSM watchdog. Only
+            applies when 'isFSMWorkflow' is true.
+        partitionFsmWatchdogNumRetries.: 
+            number of retries for Partition FSM watchdog before we give up and
+            terminate the broker.  Only applies when 'isFSMWorkflow' is true.
       </documentation>
     </annotation>
     <sequence>
       <element name='isCSLModeEnabled'  type ='boolean' default='false'/>
       <element name='isFSMWorkflow'     type ='boolean' default='false'/>
       <element name='doesFSMwriteQLIST' type ='boolean' default='true'/>
+      <element name='clusterFsmWatchdogTimeoutSec' type='int' default='300'/> <!-- 5 minutes -->
+      <element name='clusterFsmWatchdogNumRetries' type='int' default='1'/>
+      <element name='partitionFsmWatchdogTimeoutSec' type='int' default='300'/> <!-- 5 minutes -->
+      <element name='partitionFsmWatchdogNumRetries' type='int' default='1'/>
     </sequence>
   </complexType>
 

@@ -1,4 +1,4 @@
-// Copyright 2026 Bloomberg Finance L.P.
+// Copyright 2025-2026 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -418,14 +418,28 @@ namespace mqbcfg {
 
 class ClusterAttributes {
     // Type representing the attributes specific to a cluster.
-    // isCSLModeEnabled.: indicates if CSL is enabled for this cluster
-    // isFSMWorkflow....: indicates if CSL FSM workflow is enabled for this
-    // cluster.  This flag *must* be false if 'isCSLModeEnabled' is false.
-    // doesFSMwriteQLIST: indicates whether the broker still writes to the
-    // to-be-deprecated QLIST file when FSM workflow is enabled.  If above
-    // 'isFSMWorkflow' flag is false, this flag is ignored.
+    // isCSLModeEnabled...............:  indicates if CSL is enabled for this
+    // cluster isFSMWorkflow..................:  indicates if CSL FSM workflow
+    // is enabled for this cluster.  This flag *must* be false if
+    // 'isCSLModeEnabled' is false.  doesFSMwriteQLIST..............:
+    // indicates whether the broker still writes to the to-be-deprecated QLIST
+    // file when FSM workflow is enabled.  If above 'isFSMWorkflow' flag is
+    // false, this flag is ignored.  clusterFsmWatchdogTimeoutSec...:  timeout
+    // duration in seconds for Cluster FSM watchdog.  Only applies when
+    // 'isFSMWorkflow' is true.  clusterFsmWatchdogNumRetries...:  number of
+    // retries for Cluster FSM watchdog before we give up and  terminate the
+    // broker.  Only applies when 'isFSMWorkflow' is true.
+    // partitionFsmWatchdogTimeoutSec.:  timeout duration in seconds for
+    // Partition FSM watchdog.  Only applies when 'isFSMWorkflow' is true.
+    // partitionFsmWatchdogNumRetries.:  number of retries for Partition FSM
+    // watchdog before we give up and terminate the broker.  Only applies when
+    // 'isFSMWorkflow' is true.
 
     // INSTANCE DATA
+    int  d_clusterFsmWatchdogTimeoutSec;
+    int  d_clusterFsmWatchdogNumRetries;
+    int  d_partitionFsmWatchdogTimeoutSec;
+    int  d_partitionFsmWatchdogNumRetries;
     bool d_isCSLModeEnabled;
     bool d_isFSMWorkflow;
     bool d_doesFSMwriteQLIST;
@@ -434,20 +448,30 @@ class ClusterAttributes {
     template <typename t_HASH_ALGORITHM>
     void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
 
+    bool isEqualTo(const ClusterAttributes& rhs) const;
+
   public:
     // TYPES
     enum {
-        ATTRIBUTE_ID_IS_C_S_L_MODE_ENABLED     = 0,
-        ATTRIBUTE_ID_IS_F_S_M_WORKFLOW         = 1,
-        ATTRIBUTE_ID_DOES_F_S_MWRITE_Q_L_I_S_T = 2
+        ATTRIBUTE_ID_IS_C_S_L_MODE_ENABLED              = 0,
+        ATTRIBUTE_ID_IS_F_S_M_WORKFLOW                  = 1,
+        ATTRIBUTE_ID_DOES_F_S_MWRITE_Q_L_I_S_T          = 2,
+        ATTRIBUTE_ID_CLUSTER_FSM_WATCHDOG_TIMEOUT_SEC   = 3,
+        ATTRIBUTE_ID_CLUSTER_FSM_WATCHDOG_NUM_RETRIES   = 4,
+        ATTRIBUTE_ID_PARTITION_FSM_WATCHDOG_TIMEOUT_SEC = 5,
+        ATTRIBUTE_ID_PARTITION_FSM_WATCHDOG_NUM_RETRIES = 6
     };
 
-    enum { NUM_ATTRIBUTES = 3 };
+    enum { NUM_ATTRIBUTES = 7 };
 
     enum {
-        ATTRIBUTE_INDEX_IS_C_S_L_MODE_ENABLED     = 0,
-        ATTRIBUTE_INDEX_IS_F_S_M_WORKFLOW         = 1,
-        ATTRIBUTE_INDEX_DOES_F_S_MWRITE_Q_L_I_S_T = 2
+        ATTRIBUTE_INDEX_IS_C_S_L_MODE_ENABLED              = 0,
+        ATTRIBUTE_INDEX_IS_F_S_M_WORKFLOW                  = 1,
+        ATTRIBUTE_INDEX_DOES_F_S_MWRITE_Q_L_I_S_T          = 2,
+        ATTRIBUTE_INDEX_CLUSTER_FSM_WATCHDOG_TIMEOUT_SEC   = 3,
+        ATTRIBUTE_INDEX_CLUSTER_FSM_WATCHDOG_NUM_RETRIES   = 4,
+        ATTRIBUTE_INDEX_PARTITION_FSM_WATCHDOG_TIMEOUT_SEC = 5,
+        ATTRIBUTE_INDEX_PARTITION_FSM_WATCHDOG_NUM_RETRIES = 6
     };
 
     // CONSTANTS
@@ -458,6 +482,14 @@ class ClusterAttributes {
     static const bool DEFAULT_INITIALIZER_IS_F_S_M_WORKFLOW;
 
     static const bool DEFAULT_INITIALIZER_DOES_F_S_MWRITE_Q_L_I_S_T;
+
+    static const int DEFAULT_INITIALIZER_CLUSTER_FSM_WATCHDOG_TIMEOUT_SEC;
+
+    static const int DEFAULT_INITIALIZER_CLUSTER_FSM_WATCHDOG_NUM_RETRIES;
+
+    static const int DEFAULT_INITIALIZER_PARTITION_FSM_WATCHDOG_TIMEOUT_SEC;
+
+    static const int DEFAULT_INITIALIZER_PARTITION_FSM_WATCHDOG_NUM_RETRIES;
 
     static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
@@ -524,6 +556,22 @@ class ClusterAttributes {
     // Return a reference to the modifiable "DoesFSMwriteQLIST" attribute
     // of this object.
 
+    int& clusterFsmWatchdogTimeoutSec();
+    // Return a reference to the modifiable "ClusterFsmWatchdogTimeoutSec"
+    // attribute of this object.
+
+    int& clusterFsmWatchdogNumRetries();
+    // Return a reference to the modifiable "ClusterFsmWatchdogNumRetries"
+    // attribute of this object.
+
+    int& partitionFsmWatchdogTimeoutSec();
+    // Return a reference to the modifiable
+    // "PartitionFsmWatchdogTimeoutSec" attribute of this object.
+
+    int& partitionFsmWatchdogNumRetries();
+    // Return a reference to the modifiable
+    // "PartitionFsmWatchdogNumRetries" attribute of this object.
+
     // ACCESSORS
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
@@ -577,6 +625,22 @@ class ClusterAttributes {
     // Return the value of the "DoesFSMwriteQLIST" attribute of this
     // object.
 
+    int clusterFsmWatchdogTimeoutSec() const;
+    // Return the value of the "ClusterFsmWatchdogTimeoutSec" attribute of
+    // this object.
+
+    int clusterFsmWatchdogNumRetries() const;
+    // Return the value of the "ClusterFsmWatchdogNumRetries" attribute of
+    // this object.
+
+    int partitionFsmWatchdogTimeoutSec() const;
+    // Return the value of the "PartitionFsmWatchdogTimeoutSec" attribute
+    // of this object.
+
+    int partitionFsmWatchdogNumRetries() const;
+    // Return the value of the "PartitionFsmWatchdogNumRetries" attribute
+    // of this object.
+
     // HIDDEN FRIENDS
     friend bool operator==(const ClusterAttributes& lhs,
                            const ClusterAttributes& rhs)
@@ -584,9 +648,7 @@ class ClusterAttributes {
     // have the same value, and 'false' otherwise.  Two attribute objects
     // have the same value if each respective attribute has the same value.
     {
-        return lhs.isCSLModeEnabled() == rhs.isCSLModeEnabled() &&
-               lhs.isFSMWorkflow() == rhs.isFSMWorkflow() &&
-               lhs.doesFSMwriteQLIST() == rhs.doesFSMwriteQLIST();
+        return lhs.isEqualTo(rhs);
     }
 
     friend bool operator!=(const ClusterAttributes& lhs,
@@ -11323,6 +11385,25 @@ void ClusterAttributes::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     hashAppend(hashAlgorithm, this->isCSLModeEnabled());
     hashAppend(hashAlgorithm, this->isFSMWorkflow());
     hashAppend(hashAlgorithm, this->doesFSMwriteQLIST());
+    hashAppend(hashAlgorithm, this->clusterFsmWatchdogTimeoutSec());
+    hashAppend(hashAlgorithm, this->clusterFsmWatchdogNumRetries());
+    hashAppend(hashAlgorithm, this->partitionFsmWatchdogTimeoutSec());
+    hashAppend(hashAlgorithm, this->partitionFsmWatchdogNumRetries());
+}
+
+inline bool ClusterAttributes::isEqualTo(const ClusterAttributes& rhs) const
+{
+    return this->isCSLModeEnabled() == rhs.isCSLModeEnabled() &&
+           this->isFSMWorkflow() == rhs.isFSMWorkflow() &&
+           this->doesFSMwriteQLIST() == rhs.doesFSMwriteQLIST() &&
+           this->clusterFsmWatchdogTimeoutSec() ==
+               rhs.clusterFsmWatchdogTimeoutSec() &&
+           this->clusterFsmWatchdogNumRetries() ==
+               rhs.clusterFsmWatchdogNumRetries() &&
+           this->partitionFsmWatchdogTimeoutSec() ==
+               rhs.partitionFsmWatchdogTimeoutSec() &&
+           this->partitionFsmWatchdogNumRetries() ==
+               rhs.partitionFsmWatchdogNumRetries();
 }
 
 // CLASS METHODS
@@ -11352,6 +11433,36 @@ int ClusterAttributes::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
+    ret = manipulator(&d_clusterFsmWatchdogTimeoutSec,
+                      ATTRIBUTE_INFO_ARRAY
+                          [ATTRIBUTE_INDEX_CLUSTER_FSM_WATCHDOG_TIMEOUT_SEC]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_clusterFsmWatchdogNumRetries,
+                      ATTRIBUTE_INFO_ARRAY
+                          [ATTRIBUTE_INDEX_CLUSTER_FSM_WATCHDOG_NUM_RETRIES]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(
+        &d_partitionFsmWatchdogTimeoutSec,
+        ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_PARTITION_FSM_WATCHDOG_TIMEOUT_SEC]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(
+        &d_partitionFsmWatchdogNumRetries,
+        ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_PARTITION_FSM_WATCHDOG_NUM_RETRIES]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -11375,6 +11486,30 @@ int ClusterAttributes::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
         return manipulator(
             &d_doesFSMwriteQLIST,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DOES_F_S_MWRITE_Q_L_I_S_T]);
+    }
+    case ATTRIBUTE_ID_CLUSTER_FSM_WATCHDOG_TIMEOUT_SEC: {
+        return manipulator(
+            &d_clusterFsmWatchdogTimeoutSec,
+            ATTRIBUTE_INFO_ARRAY
+                [ATTRIBUTE_INDEX_CLUSTER_FSM_WATCHDOG_TIMEOUT_SEC]);
+    }
+    case ATTRIBUTE_ID_CLUSTER_FSM_WATCHDOG_NUM_RETRIES: {
+        return manipulator(
+            &d_clusterFsmWatchdogNumRetries,
+            ATTRIBUTE_INFO_ARRAY
+                [ATTRIBUTE_INDEX_CLUSTER_FSM_WATCHDOG_NUM_RETRIES]);
+    }
+    case ATTRIBUTE_ID_PARTITION_FSM_WATCHDOG_TIMEOUT_SEC: {
+        return manipulator(
+            &d_partitionFsmWatchdogTimeoutSec,
+            ATTRIBUTE_INFO_ARRAY
+                [ATTRIBUTE_INDEX_PARTITION_FSM_WATCHDOG_TIMEOUT_SEC]);
+    }
+    case ATTRIBUTE_ID_PARTITION_FSM_WATCHDOG_NUM_RETRIES: {
+        return manipulator(
+            &d_partitionFsmWatchdogNumRetries,
+            ATTRIBUTE_INFO_ARRAY
+                [ATTRIBUTE_INDEX_PARTITION_FSM_WATCHDOG_NUM_RETRIES]);
     }
     default: return NOT_FOUND;
     }
@@ -11411,6 +11546,26 @@ inline bool& ClusterAttributes::doesFSMwriteQLIST()
     return d_doesFSMwriteQLIST;
 }
 
+inline int& ClusterAttributes::clusterFsmWatchdogTimeoutSec()
+{
+    return d_clusterFsmWatchdogTimeoutSec;
+}
+
+inline int& ClusterAttributes::clusterFsmWatchdogNumRetries()
+{
+    return d_clusterFsmWatchdogNumRetries;
+}
+
+inline int& ClusterAttributes::partitionFsmWatchdogTimeoutSec()
+{
+    return d_partitionFsmWatchdogTimeoutSec;
+}
+
+inline int& ClusterAttributes::partitionFsmWatchdogNumRetries()
+{
+    return d_partitionFsmWatchdogNumRetries;
+}
+
 // ACCESSORS
 template <typename t_ACCESSOR>
 int ClusterAttributes::accessAttributes(t_ACCESSOR& accessor) const
@@ -11433,6 +11588,34 @@ int ClusterAttributes::accessAttributes(t_ACCESSOR& accessor) const
     ret = accessor(
         d_doesFSMwriteQLIST,
         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DOES_F_S_MWRITE_Q_L_I_S_T]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_clusterFsmWatchdogTimeoutSec,
+                   ATTRIBUTE_INFO_ARRAY
+                       [ATTRIBUTE_INDEX_CLUSTER_FSM_WATCHDOG_TIMEOUT_SEC]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_clusterFsmWatchdogNumRetries,
+                   ATTRIBUTE_INFO_ARRAY
+                       [ATTRIBUTE_INDEX_CLUSTER_FSM_WATCHDOG_NUM_RETRIES]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_partitionFsmWatchdogTimeoutSec,
+                   ATTRIBUTE_INFO_ARRAY
+                       [ATTRIBUTE_INDEX_PARTITION_FSM_WATCHDOG_TIMEOUT_SEC]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_partitionFsmWatchdogNumRetries,
+                   ATTRIBUTE_INFO_ARRAY
+                       [ATTRIBUTE_INDEX_PARTITION_FSM_WATCHDOG_NUM_RETRIES]);
     if (ret) {
         return ret;
     }
@@ -11460,6 +11643,30 @@ int ClusterAttributes::accessAttribute(t_ACCESSOR& accessor, int id) const
         return accessor(
             d_doesFSMwriteQLIST,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DOES_F_S_MWRITE_Q_L_I_S_T]);
+    }
+    case ATTRIBUTE_ID_CLUSTER_FSM_WATCHDOG_TIMEOUT_SEC: {
+        return accessor(
+            d_clusterFsmWatchdogTimeoutSec,
+            ATTRIBUTE_INFO_ARRAY
+                [ATTRIBUTE_INDEX_CLUSTER_FSM_WATCHDOG_TIMEOUT_SEC]);
+    }
+    case ATTRIBUTE_ID_CLUSTER_FSM_WATCHDOG_NUM_RETRIES: {
+        return accessor(
+            d_clusterFsmWatchdogNumRetries,
+            ATTRIBUTE_INFO_ARRAY
+                [ATTRIBUTE_INDEX_CLUSTER_FSM_WATCHDOG_NUM_RETRIES]);
+    }
+    case ATTRIBUTE_ID_PARTITION_FSM_WATCHDOG_TIMEOUT_SEC: {
+        return accessor(
+            d_partitionFsmWatchdogTimeoutSec,
+            ATTRIBUTE_INFO_ARRAY
+                [ATTRIBUTE_INDEX_PARTITION_FSM_WATCHDOG_TIMEOUT_SEC]);
+    }
+    case ATTRIBUTE_ID_PARTITION_FSM_WATCHDOG_NUM_RETRIES: {
+        return accessor(
+            d_partitionFsmWatchdogNumRetries,
+            ATTRIBUTE_INFO_ARRAY
+                [ATTRIBUTE_INDEX_PARTITION_FSM_WATCHDOG_NUM_RETRIES]);
     }
     default: return NOT_FOUND;
     }
@@ -11494,6 +11701,26 @@ inline bool ClusterAttributes::isFSMWorkflow() const
 inline bool ClusterAttributes::doesFSMwriteQLIST() const
 {
     return d_doesFSMwriteQLIST;
+}
+
+inline int ClusterAttributes::clusterFsmWatchdogTimeoutSec() const
+{
+    return d_clusterFsmWatchdogTimeoutSec;
+}
+
+inline int ClusterAttributes::clusterFsmWatchdogNumRetries() const
+{
+    return d_clusterFsmWatchdogNumRetries;
+}
+
+inline int ClusterAttributes::partitionFsmWatchdogTimeoutSec() const
+{
+    return d_partitionFsmWatchdogTimeoutSec;
+}
+
+inline int ClusterAttributes::partitionFsmWatchdogNumRetries() const
+{
+    return d_partitionFsmWatchdogNumRetries;
 }
 
 // --------------------------
