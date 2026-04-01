@@ -731,7 +731,7 @@ inline ParametersVerbosity::Value Parameters::verbosity() const
     return d_verbosity;
 }
 
-inline const bsl::string &Parameters::logFormat() const
+inline const bsl::string& Parameters::logFormat() const
 {
     return d_logFormat;
 }
