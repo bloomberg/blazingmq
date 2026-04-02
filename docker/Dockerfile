@@ -6,6 +6,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     build-essential \
     gdb \
+    git \
     cmake \
     curl \
     python3 \
@@ -14,9 +15,9 @@ RUN apt-get update && \
     bison \
     libfl-dev \
     libbenchmark-dev \
-    libgmock-dev \
     libz-dev \
     libssl-dev \
+    sudo \
     && apt clean \
     && rm -rf /var/lib/apt/lists/*
 
