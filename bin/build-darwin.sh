@@ -137,6 +137,7 @@ if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
         ./configure --prefix "${DIR_INSTALL}" \
             --output "${DIR_BUILD}/ntf" \
             --toolchain "${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem/toolchains/darwin/clang-default.cmake" \
+            --generator Ninja \
             --without-warnings-as-errors \
             --without-usage-examples \
             --without-applications \
@@ -167,8 +168,8 @@ CMAKE_OPTIONS=(
     -DFLEX_ROOT="${FLEX_ROOT}")
 
 PKG_CONFIG_PATH="${DIR_INSTALL}/lib/pkgconfig:${BREW_PKG_CONFIG_PATH}" \
-    cmake -B "${DIR_BUILD}/blazingmq" -S "${DIR_ROOT}" "${CMAKE_OPTIONS[@]}"
-make -C "${DIR_BUILD}/blazingmq" -j 16
+    cmake -G Ninja -B "${DIR_BUILD}/blazingmq" -S "${DIR_ROOT}" "${CMAKE_OPTIONS[@]}"
+ninja -C "${DIR_BUILD}/blazingmq"
 
 echo broker is here: "${DIR_BUILD}/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
 echo to run the broker: "${DIR_BUILD}/blazingmq/src/applications/bmqbrkr/run"
