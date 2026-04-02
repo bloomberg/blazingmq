@@ -807,7 +807,11 @@ QueueEngineTester::getHandle(const bsl::string& clientText)
                 mqbi::QueueHandleRequesterContext(d_allocator_p),
             d_allocator_p);
 
+        bmqp_ctrlmsg::ClientIdentity identity(d_allocator_p);
+        identity.clientType() = bmqp_ctrlmsg::ClientType::E_TCPCLIENT;
+
         clientContext->setClient(d_mockDispatcherClient_mp.get())
+            .setIdentity(identity)
             .setDescription("test.tsk:1")
             .setIsClusterMember(true)
             .setRequesterId(mqbi::QueueHandleRequesterContext ::

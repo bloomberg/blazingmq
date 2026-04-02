@@ -181,7 +181,7 @@ void QueueHandle::confirmMessageDispatched(const bmqt::MessageGUID& msgGUID,
         BMQ_LOGTHROTTLE_WARN
             << "#CLIENT_IMPROPER_BEHAVIOR "
             << "Received a CONFIRM message from client '"
-            << d_clientDescription << "' for queue '"
+            << d_clientContext_sp->description() << "' for queue '"
             << d_queue_sp->description()
             << "' which doesn't have the READ "
                "flag; this usually indicates that the client is confirming "
@@ -201,7 +201,7 @@ void QueueHandle::confirmMessageDispatched(const bmqt::MessageGUID& msgGUID,
         BMQ_LOGTHROTTLE_WARN
             << "#CLIENT_IMPROPER_BEHAVIOR "
             << "Received a CONFIRM message from client '"
-            << d_clientDescription << "' for queue '"
+            << d_clientContext_sp->description() << "' for queue '"
             << d_queue_sp->description()
             << "' which doesn't have the subQueue: " << downstreamSubQueueId;
         return;
@@ -247,8 +247,8 @@ void QueueHandle::rejectMessageDispatched(const bmqt::MessageGUID& msgGUID,
         //       opened with READ flag.
         BMQ_LOGTHROTTLE_WARN << "#CLIENT_IMPROPER_BEHAVIOR "
                              << "Received a REJECT message from client '"
-                             << d_clientDescription << "' for queue '"
-                             << d_queue_sp->description()
+                             << d_clientContext_sp->description()
+                             << "' for queue '" << d_queue_sp->description()
                              << "' which doesn't have the READ flags";
         // NOTE: This is fine to return here and not do anything because there
         //       was supposed to be a rejection when the queue closed.
@@ -261,8 +261,9 @@ void QueueHandle::rejectMessageDispatched(const bmqt::MessageGUID& msgGUID,
 
         BMQ_LOGTHROTTLE_WARN
             << "#CLIENT_IMPROPER_BEHAVIOR "
-            << "Received a REJECT message from client '" << d_clientDescription
-            << "' for queue '" << d_queue_sp->description()
+            << "Received a REJECT message from client '"
+            << d_clientContext_sp->description() << "' for queue '"
+            << d_queue_sp->description()
             << "' which doesn't have the subQueue: " << downstreamSubQueueId;
         return;
     }
@@ -285,8 +286,9 @@ void QueueHandle::rejectMessageDispatched(const bmqt::MessageGUID& msgGUID,
 
         BMQ_LOGTHROTTLE_WARN
             << "#UNEXPECTED_REJECT "
-            << "Received a REJECT message from client '" << d_clientDescription
-            << "' for queue '" << d_queue_sp->description()
+            << "Received a REJECT message from client '"
+            << d_clientContext_sp->description() << "' for queue '"
+            << d_queue_sp->description()
             << "' for a message not in pending unconfirmed: " << msgGUID
             << ".";
     }
@@ -368,7 +370,7 @@ QueueHandle::updateMonitor(const bsl::shared_ptr<Downstream>& subStream,
             BALL_LOG_OUTPUT_STREAM
                 << "[THROTTLED] Received a " << eventType
                 << " message for guid [" << msgGUID << "] from client '"
-                << d_clientDescription << "' for queue '"
+                << d_clientContext_sp->description() << "' for queue '"
                 << d_queue_sp->description()
                 << "' for a message not in pending unconfirmed.";
             if (msgSize == -1) {
@@ -487,7 +489,7 @@ void QueueHandle::clearClientDispatched(bool hasLostClient)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queue_sp->inDispatcherThread());
 
-    d_clientContext_sp.reset();
+    d_haveClient = false;
 
     if (!hasLostClient) {
         return;  // RETURN
@@ -522,8 +524,8 @@ void QueueHandle::clearClientDispatched(bool hasLostClient)
                     bmqp::EventType::e_REJECT,
                     downstream->d_appId);
 
-                // Do not call 'onHandleUsable' because 'd_clientContext_sp' is
-                // reset
+                // Do not call 'onHandleUsable' because 'd_haveClient' is
+                // false
 
                 it = messages->erase(it);
             }
@@ -550,7 +552,7 @@ void QueueHandle::deliverMessageImpl(
     BSLS_ASSERT_SAFE(subscriptions.size() >= 1 &&
                      subscriptions.size() <= d_subscriptions.size());
 
-    if (!d_clientContext_sp) {
+    if (!d_haveClient) {
         // This client is gone
         return;  // RETURN
     }
@@ -652,7 +654,7 @@ QueueHandle::QueueHandle(
 , d_schemaLearnerPushContext(
       d_queue_sp ? d_queue_sp->schemaLearner().createContext() : 0)
 , d_producerStats()
-, d_clientDescription(allocator)
+, d_haveClient(true)
 , d_allocator_p(allocator)
 {
     // PRECONDITIONS
@@ -667,8 +669,6 @@ QueueHandle::QueueHandle(
         1,
         5 * bdlt::TimeUnitRatio::k_NS_PER_S);
     // One maximum log per 5 seconds
-
-    d_clientDescription = d_clientContext_sp->description();
 
     setHandleParameters(handleParameters);
 }
@@ -1034,7 +1034,7 @@ void QueueHandle::deliverMessage(
             BMQ_LOGTHROTTLE_INFO
                 << "Queue '" << d_queue_sp->description()
                 << "' with subscription [" << subscriptions[i] << "]"
-                << " of client '" << d_clientDescription
+                << " of client '" << d_clientContext_sp->description()
                 << "' has too many outstanding data ["
                 << bmqu::PrintUtil::prettyNumber(
                        subscription->d_unconfirmedMonitor.messages())
@@ -1111,9 +1111,9 @@ void QueueHandle::configureDispatched(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queue_sp->inDispatcherThread());
-    BSLS_ASSERT_SAFE(d_clientContext_sp);
+    BSLS_ASSERT_SAFE(d_haveClient);
 
-    BALL_LOG_INFO << "Client [" << d_clientDescription
+    BALL_LOG_INFO << "Client [" << d_clientContext_sp->description()
                   << "] requested to configure queue [" << d_queue_sp->uri()
                   << ", id: " << id()
                   << ", appId: " << streamParameters.appId()
@@ -1145,7 +1145,7 @@ void QueueHandle::deconfigureDispatched(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queue_sp->inDispatcherThread());
-    BSLS_ASSERT_SAFE(d_clientContext_sp);
+    BSLS_ASSERT_SAFE(d_haveClient);
 
     bsl::shared_ptr<DeconfigureContext> context(
         new (*d_allocator_p) DeconfigureContext(deconfiguredCb),
@@ -1287,7 +1287,7 @@ void QueueHandle::onAckMessage(const bmqp::AckMessage& ackMessage)
 
     // NOTE: ACK comes from upstream, and client may have gone away, so we
     //       check for it here.
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!d_clientContext_sp)) {
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!d_haveClient)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         if (d_throttledFailedAckMessages.requestPermission()) {
             BMQ_LOGTHROTTLE_INFO
@@ -1342,7 +1342,8 @@ void QueueHandle::onAckMessage(const bmqp::AckMessage& ackMessage)
             BALL_LOG_INFO << "Queue '" << d_queue_sp->description()
                           << "' NACK [status: " << status
                           << ", GUID: " << ackMessage.messageGUID()
-                          << ", node '" << d_clientDescription << "']";
+                          << ", node '" << d_clientContext_sp->description()
+                          << "']";
         }
     }
 
@@ -1350,7 +1351,7 @@ void QueueHandle::onAckMessage(const bmqp::AckMessage& ackMessage)
     BALL_LOG_TRACE << "Queue '" << d_queue_sp->description()
                    << "' sending ACK [status: " << status
                    << ", GUID: " << ackMessage.messageGUID() << ", node '"
-                   << d_clientDescription << "']";
+                   << d_clientContext_sp->description() << "']";
 
     mqbi::InlineResult::Enum result = inlineClient->sendAck(id(), ackMessage);
     // Override with correct downstream queueId
@@ -1388,9 +1389,8 @@ bool QueueHandle::canDeliver(unsigned int downstreamSubscriptionId) const
 
     BSLS_ASSERT_SAFE(cit != d_subscriptions.end());
 
-    return d_clientContext_sp &&
-           (cit->second->d_unconfirmedMonitor.state() !=
-            mqbu::ResourceUsageMonitorState::e_STATE_FULL);
+    return d_haveClient && (cit->second->d_unconfirmedMonitor.state() !=
+                            mqbu::ResourceUsageMonitorState::e_STATE_FULL);
 }
 
 const bsl::vector<const mqbu::ResourceUsageMonitor*>

@@ -432,7 +432,7 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
             BALL_LOG_WARN
                 << "#CLIENT_IMPROPER_BEHAVIOR "
                 << "Failed PUT message for queue [" << d_state_p->uri()
-                << "] from client [" << source->client()->description()
+                << "] from client [" << source->clientContext()->description()
                 << "]. Queue not opened in WRITE mode by the client.");
 
         bmqp::AckMessage ackMessage;
@@ -532,8 +532,8 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
             if (d_throttledDuplicateMessages.requestPermission()) {
                 BALL_LOG_WARN << "Duplicate PUT message queue ["
                               << d_state_p->uri() << "] from client ["
-                              << source->client()->description() << "], GUID ["
-                              << putHeader.messageGUID() << "]";
+                              << source->clientContext()->description()
+                              << "], GUID [" << putHeader.messageGUID() << "]";
             }
         }
         else {
