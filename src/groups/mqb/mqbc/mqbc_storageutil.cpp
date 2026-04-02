@@ -18,6 +18,7 @@
 
 #include <mqbscm_version.h>
 // MQB
+#include <mqbevt_dispatcherevent.h>
 #include <mqbi_queueengine.h>
 #include <mqbnet_cluster.h>
 #include <mqbs_datastore.h>
@@ -2490,19 +2491,17 @@ void StorageUtil::registerQueueAsPrimary(const mqbi::Cluster*    cluster,
             // 'updateQueuePrimaryDispatched' in the right thread to carry out
             // the addition/removal of those pairs.
 
-            mqbi::Dispatcher::DispatcherEventSp queueEvent =
-                cluster->getEvent();
-            (*queueEvent)
-                .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-                .setCallback(bdlf::BindUtil::bind(
-                    updateQueuePrimaryDispatched,
-                    storageSp.get(),
-                    storagesLock,
-                    fs,
-                    appIdKeyPairs,
-                    domain->config().mode().isFanoutValue()));
+            bsl::shared_ptr<mqbevt::DispatcherEvent> event_sp =
+                cluster->getEvent<mqbevt::DispatcherEvent>();
+            (*event_sp).setCallback(
+                bdlf::BindUtil::bind(updateQueuePrimaryDispatched,
+                                     storageSp.get(),
+                                     storagesLock,
+                                     fs,
+                                     appIdKeyPairs,
+                                     domain->config().mode().isFanoutValue()));
 
-            dispatcher->dispatchEvent(bslmf::MovableRefUtil::move(queueEvent),
+            dispatcher->dispatchEvent(bslmf::MovableRefUtil::move(event_sp),
                                       fs);
 
             // Wait for 'updateQueuePrimaryDispatched' operation to complete.
@@ -2527,20 +2526,19 @@ void StorageUtil::registerQueueAsPrimary(const mqbi::Cluster*    cluster,
     // Dispatch the registration of storage with the partition in appropriate
     // thread.
 
-    mqbi::Dispatcher::DispatcherEventSp queueEvent = cluster->getEvent();
+    bsl::shared_ptr<mqbevt::DispatcherEvent> event_sp =
+        cluster->getEvent<mqbevt::DispatcherEvent>();
 
-    (*queueEvent)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .setCallback(bdlf::BindUtil::bind(&createQueueStorageAsPrimary,
-                                          storageMap,
-                                          storagesLock,
-                                          fs,
-                                          uri,
-                                          queueKey,
-                                          appIdKeyPairs,
-                                          domain));
+    (*event_sp).setCallback(bdlf::BindUtil::bind(&createQueueStorageAsPrimary,
+                                                 storageMap,
+                                                 storagesLock,
+                                                 fs,
+                                                 uri,
+                                                 queueKey,
+                                                 appIdKeyPairs,
+                                                 domain));
 
-    fs->dispatchEvent(bslmf::MovableRefUtil::move(queueEvent));
+    fs->dispatchEvent(bslmf::MovableRefUtil::move(event_sp));
 
     // Not checking the result.  If not successful, storage is not in the
     // 'storageMap'.  Subsequent queue configure will then fail.

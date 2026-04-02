@@ -78,6 +78,10 @@ class FileStore;
 namespace mqbs {
 class ReplicatedStorage;
 }
+namespace mqbevt {
+class RecoveryEvent;
+class StorageEvent;
+}
 
 namespace mqbi {
 
@@ -355,8 +359,7 @@ class StorageManager {
                      const mqbconfm::StorageDefinition& storageDef) = 0;
 
     /// Executed in cluster dispatcher thread.
-    virtual void
-    processStorageEvent(const mqbi::DispatcherStorageEvent& event) = 0;
+    virtual void processStorageEvent(const mqbevt::StorageEvent& event) = 0;
 
     /// Executed by any thread.
     virtual void
@@ -379,8 +382,7 @@ class StorageManager {
         mqbnet::ClusterNode*                source) = 0;
 
     /// Executed in cluster dispatcher thread.
-    virtual void
-    processRecoveryEvent(const mqbi::DispatcherRecoveryEvent& event) = 0;
+    virtual void processRecoveryEvent(const mqbevt::RecoveryEvent& event) = 0;
 
     /// Executed in IO thread.
     virtual void processReceiptEvent(const bmqp::Event&   event,

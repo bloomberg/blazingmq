@@ -142,59 +142,6 @@ class Dispatcher_Executor {
     void dispatch(const bsl::function<void()>& f) const;
 };
 
-// ============================
-// class Dispatcher_EventSource
-// ============================
-
-class Dispatcher_EventSource BSLS_KEYWORD_FINAL
-: public mqbi::DispatcherEventSource {
-  public:
-    // PUBLIC TYPES
-    typedef bsl::shared_ptr<mqbi::DispatcherEvent> DispatcherEventSp;
-    typedef bslmf::MovableRef<DispatcherEventSp>   DispatcherEventRvRef;
-
-  private:
-    // TYPES
-
-    /// `CreatorFn` is an alias for a functor creating an object
-    /// in the specified `arena` using the specified `allocator`.
-    typedef bsl::function<void(void* arena, bslma::Allocator* allocator)>
-        CreatorFn;
-
-    typedef bdlcc::SharedObjectPool<
-        mqbi::DispatcherEvent,
-        CreatorFn,
-        bdlcc::ObjectPoolFunctors::Reset<mqbi::DispatcherEvent> >
-        EventPool;
-
-    // DATA
-    EventPool d_pool;
-
-    // PRIVATE CLASS METHODS
-
-    /// Creator function passed to `d_pool` to create an event in the
-    /// specified `arena` using the specified `allocator`.
-    static void eventCreator(void* arena, bslma::Allocator* allocator);
-
-  public:
-    // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(Dispatcher_EventSource,
-                                   bslma::UsesBslmaAllocator)
-
-    // CREATORS
-    explicit Dispatcher_EventSource(bslma::Allocator* allocator = 0);
-    ~Dispatcher_EventSource() BSLS_KEYWORD_OVERRIDE;
-
-    // MANIPULATORS
-
-    /// @brief Get an event for mqbi::Dispatcher.
-    /// @return A shared pointer to event.
-    /// The behaviour is undefined unless all the shared pointers to events
-    /// acquired with `getEvent` are destructed before destructor is called
-    /// for this event source.
-    DispatcherEventSp getEvent() BSLS_KEYWORD_OVERRIDE;
-};
-
 // ================
 // class Dispatcher
 // ================
@@ -463,6 +410,13 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
     void
     unregisterClient(mqbi::DispatcherClient* client) BSLS_KEYWORD_OVERRIDE;
 
+#if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+    // C++03: bring in base class template overloads hidden by the overrides
+    // below (MovableRef<shared_ptr<Derived>> does not convert to
+    // MovableRef<shared_ptr<Base>> in C++03).
+    using mqbi::Dispatcher::dispatchEvent;
+#endif
+
     /// Dispatch the specified `event` to the specified `destination`.
     void
     dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
@@ -561,28 +515,6 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
-
-// ----------------------------
-// class Dispatcher_EventSource
-// ----------------------------
-
-inline void Dispatcher_EventSource::eventCreator(void*             arena,
-                                                 bslma::Allocator* allocator)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT(arena);
-    BSLS_ASSERT(allocator);
-
-    bslalg::ScalarPrimitives::construct(
-        reinterpret_cast<mqbi::DispatcherEvent*>(arena),
-        allocator);
-}
-
-inline Dispatcher_EventSource::DispatcherEventSp
-Dispatcher_EventSource::getEvent()
-{
-    return d_pool.getObject();
-}
 
 // ----------------
 // class Dispatcher

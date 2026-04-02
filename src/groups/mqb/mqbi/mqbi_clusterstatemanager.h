@@ -59,6 +59,9 @@ class ClusterState;
 namespace mqbnet {
 class ClusterNode;
 }
+namespace mqbevt {
+class ClusterStateEvent;
+}
 
 namespace mqbi {
 
@@ -279,8 +282,8 @@ class ClusterStateManager {
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    virtual void processClusterStateEvent(
-        const mqbi::DispatcherClusterStateEvent& event) = 0;
+    virtual void
+    processClusterStateEvent(const mqbevt::ClusterStateEvent& event) = 0;
 
     /// Process the queue assignment in the specified `request`, received
     /// from the specified `requester`.  Return the queue assignment result.

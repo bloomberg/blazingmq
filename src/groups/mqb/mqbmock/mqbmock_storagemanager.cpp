@@ -202,7 +202,7 @@ int StorageManager::configureStorage(
 }
 
 void StorageManager::processStorageEvent(
-    BSLA_MAYBE_UNUSED const mqbi::DispatcherStorageEvent& event)
+    BSLA_MAYBE_UNUSED const mqbevt::StorageEvent& event)
 {
     // NOTHING
 }
@@ -236,7 +236,7 @@ void StorageManager::processPartitionSyncDataRequestStatus(
 }
 
 void StorageManager::processRecoveryEvent(
-    BSLA_MAYBE_UNUSED const mqbi::DispatcherRecoveryEvent& event)
+    BSLA_MAYBE_UNUSED const mqbevt::RecoveryEvent& event)
 {
     // NOTHING
 }
