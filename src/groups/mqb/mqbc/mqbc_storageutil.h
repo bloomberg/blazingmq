@@ -27,8 +27,6 @@
 #include <mqbc_clusterdata.h>
 #include <mqbc_clusterstate.h>
 #include <mqbcfg_messages.h>
-#include <mqbcmd_messages.h>
-#include <mqbconfm_messages.h>
 #include <mqbi_cluster.h>
 #include <mqbi_dispatcher.h>
 #include <mqbi_domain.h>
@@ -76,6 +74,18 @@ namespace BloombergLP {
 // FORWARD DECLARATION
 namespace bslmt {
 class Mutex;
+}
+namespace mqbcmd {
+class ClusterStorageSummary;
+class PurgeQueueResult;
+class ReplicationCommand;
+class ReplicationResult;
+class StorageCommand;
+class StorageQueueInfo;
+class StorageResult;
+}
+namespace mqbconfm {
+class StorageDefinition;
 }
 namespace mqbnet {
 class ClusterNode;

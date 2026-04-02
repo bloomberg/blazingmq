@@ -18,6 +18,8 @@
 
 #include <mqbscm_version.h>
 // MQB
+#include <mqbcmd_messages.h>
+#include <mqbconfm_messages.h>
 #include <mqbevt_dispatcherevent.h>
 #include <mqbi_queueengine.h>
 #include <mqbnet_cluster.h>

@@ -468,30 +468,5 @@ bsl::ostream& CapacityMeter::printShortSummary(bsl::ostream& stream) const
     return stream;
 }
 
-// ------------------------
-// struct CapacityMeterUtil
-// ------------------------
-
-void CapacityMeterUtil::loadState(mqbcmd::CapacityMeter* state,
-                                  const CapacityMeter&   capacityMeter)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(state);
-
-    state->name()                = capacityMeter.d_name;
-    state->isDisabled()          = capacityMeter.d_isDisabled;
-    state->numMessages()         = capacityMeter.d_monitor.messages();
-    state->messageCapacity()     = capacityMeter.d_monitor.messageCapacity();
-    state->numMessagesReserved() = capacityMeter.d_nbMessagesReserved;
-    state->numBytes()            = capacityMeter.d_monitor.bytes();
-    state->byteCapacity()        = capacityMeter.d_monitor.byteCapacity();
-    state->numBytesReserved()    = capacityMeter.d_nbBytesReserved;
-
-    if (capacityMeter.d_parent_p) {
-        mqbcmd::CapacityMeter& parent = state->parent().makeValue();
-        loadState(&parent, *capacityMeter.d_parent_p);
-    }
-}
-
 }  // close package namespace
 }  // close enterprise namespace

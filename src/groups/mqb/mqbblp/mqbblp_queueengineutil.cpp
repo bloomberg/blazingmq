@@ -30,6 +30,7 @@
 #include <mqbblp_queuestate.h>
 #include <mqbblp_routers.h>
 #include <mqbcfg_brokerconfig.h>
+#include <mqbcmd_messages.h>
 #include <mqbi_domain.h>
 #include <mqbi_queue.h>
 #include <mqbs_storageutil.h>
