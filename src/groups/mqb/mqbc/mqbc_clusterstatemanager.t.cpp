@@ -1415,8 +1415,9 @@ static void test14_leaderCSLCommitFailure()
 // LEADER CSL COMMIT FAILURE
 //
 // Concerns:
-//   Verify that the leader transitions back to unknown upon CSL commit
-//   callback failure.
+//   Verify that the leader restarts healing upon CSL commit callback
+//   failure.  CSL_CMT_FAIL triggers the watchdog, which fires and
+//   transitions through UNKNOWN back to LDR_HEALING_STG1.
 //
 // Testing:
 //   Leader upon CSL commit callback failure
@@ -1474,17 +1475,27 @@ static void test14_leaderCSLCommitFailure()
     tester.d_clusterStateLedger_p->_commitAdvisories(
         mqbc::ClusterStateLedgerCommitStatus::e_CANCELED);
 
-    // Verify that self transitions back to unknown
+    // CSL_CMT_FAIL triggers the watchdog (reschedules to now) but stays in
+    // LDR_HEALING_STG2.  Advance time so the triggered watchdog fires.
+    // The e_WATCH_DOG transition goes to UNKNOWN, which re-applies
+    // SLCT_LDR, landing in LDR_HEALING_STG1.
+    BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
+                    mqbc::ClusterStateTableState::e_LDR_HEALING_STG2);
+    tester.d_cluster_mp->advanceTime(1);
+    tester.d_cluster_mp->waitForScheduler();
+
+    // Verify that self restarts healing
     BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
-                     mqbc::ClusterStateTableState::e_UNKNOWN);
+                     mqbc::ClusterStateTableState::e_LDR_HEALING_STG1);
 }
 
 static void test15_followerCSLCommitFailure()
 // FOLLOWER CSL COMMIT FAILURE
 //
 // Concerns:
-//   Verify that the follower transitions back to unknown upon CSL commit
-//   callback failure.
+//   Verify that the follower restarts healing upon CSL commit callback
+//   failure.  CSL_CMT_FAIL triggers the watchdog, which fires and
+//   transitions through UNKNOWN back to FOL_HEALING.
 //
 // Testing:
 //   Follower upon CSL commit callback failure
@@ -1514,9 +1525,18 @@ static void test15_followerCSLCommitFailure()
     tester.d_clusterStateLedger_p->_commitAdvisories(
         mqbc::ClusterStateLedgerCommitStatus::e_CANCELED);
 
-    // Verify that self transitions back to unknown
+    // CSL_CMT_FAIL triggers the watchdog (reschedules to now) but stays in
+    // FOL_HEALING.  Advance time so the triggered watchdog fires.
+    // The e_WATCH_DOG transition goes to UNKNOWN, which re-applies
+    // SLCT_FOL, landing back in FOL_HEALING.
+    BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
+                    mqbc::ClusterStateTableState::e_FOL_HEALING);
+    tester.d_cluster_mp->advanceTime(1);
+    tester.d_cluster_mp->waitForScheduler();
+
+    // Verify that self restarts healing
     BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
-                     mqbc::ClusterStateTableState::e_UNKNOWN);
+                     mqbc::ClusterStateTableState::e_FOL_HEALING);
 }
 
 static void test16_followerClusterStateRespFailureLeaderNext()
