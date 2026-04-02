@@ -23,12 +23,10 @@ from time import sleep
 from typing import Dict
 
 import blazingmq.dev.it.testconstants as tc
-from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
+from blazingmq.dev.it.fixtures import (
     Cluster,
     order,
-    cluster,
     test_logger,
-    multi_node,
     tweak,
     start_cluster,
 )

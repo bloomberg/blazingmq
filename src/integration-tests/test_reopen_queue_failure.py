@@ -21,18 +21,17 @@ the fix.
 """
 
 import blazingmq.dev.it.testconstants as tc
-from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
+from blazingmq.dev.it.fixtures import (
     Cluster,
-    multi_node as cluster,
     order,
 )
 
 pytestmark = order(6)
 
 
-def test_reopen_queue_failure(cluster: Cluster, domain_urls: tc.DomainUrls):
+def test_reopen_queue_failure(multi_node: Cluster, domain_urls: tc.DomainUrls):
     du = domain_urls
-    proxies = cluster.proxy_cycle()
+    proxies = multi_node.proxy_cycle()
 
     # We want proxy connected to a replica
     next(proxies)
@@ -44,10 +43,10 @@ def test_reopen_queue_failure(cluster: Cluster, domain_urls: tc.DomainUrls):
 
     # Set the quorum of all non-leader nodes to 99 to prevent them from
     # becoming a new leader
-    leader = cluster.last_known_leader
+    leader = multi_node.last_known_leader
     next_leader = None
-    for node in cluster.nodes():
-        # NOTE: Following assumes 4-node cluster
+    for node in multi_node.nodes():
+        # NOTE: Following assumes 4-node multi_node
         if node != leader:
             node.set_quorum(99)
             if node.datacenter == leader.datacenter:
@@ -55,14 +54,14 @@ def test_reopen_queue_failure(cluster: Cluster, domain_urls: tc.DomainUrls):
     assert leader != next_leader
 
     # Kill the leader
-    cluster.drain()
+    multi_node.drain()
     leader.check_exit_code = False
     leader.kill()
     leader.wait()
 
     # Remove routing config on the next leader (to cause reopen
     # queue failure)
-    cluster.work_dir.joinpath(
+    multi_node.work_dir.joinpath(
         next_leader.name, "etc", "domains", f"{du.domain_priority}.json"
     ).unlink()
     next_leader.command("DOMAINS RESOLVER CACHE_CLEAR ALL")
@@ -71,7 +70,7 @@ def test_reopen_queue_failure(cluster: Cluster, domain_urls: tc.DomainUrls):
     next_leader.set_quorum(1)
 
     # Wait for new leader
-    cluster.wait_leader()
-    assert cluster.last_known_leader == next_leader
+    multi_node.wait_leader()
+    assert multi_node.last_known_leader == next_leader
 
     consumer.stop_session()

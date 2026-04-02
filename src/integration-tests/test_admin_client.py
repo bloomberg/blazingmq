@@ -24,12 +24,9 @@ import time
 from typing import Dict, Optional, Union
 
 import blazingmq.dev.it.testconstants as tc
-from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
+from blazingmq.dev.it.fixtures import (
     Cluster,
     order,
-    single_node,
-    multi_node,
-    tweak,
 )
 from blazingmq.dev.it.data import data_metrics as dt
 from blazingmq.dev.it.process.admin import AdminClient

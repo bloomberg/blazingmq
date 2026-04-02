@@ -22,8 +22,7 @@ transitioning from PASSIVE to ACTIVE.
 
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import Cluster
-from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
-    multi_node as cluster,
+from blazingmq.dev.it.fixtures import (
     order,
 )
 
@@ -31,11 +30,10 @@ pytestmark = order(6)
 
 
 def test_leader_node_delay(
-    cluster: Cluster,
-    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+    multi_node: Cluster,
 ):
-    leader = cluster.last_known_leader
-    followers = [node for node in cluster.nodes() if node is not leader]
+    leader = multi_node.last_known_leader
+    followers = [node for node in multi_node.nodes() if node is not leader]
 
     # 1. Suspend leader node and wait until followers notice:
 

@@ -20,9 +20,8 @@ consumers .
 
 from blazingmq.dev.it.fixtures import (
     Cluster,
-    cluster,
     order,
-)  # pylint: disable=unused-import
+)
 from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.testconstants import DomainUrls
 from blazingmq.dev.it.util import wait_until

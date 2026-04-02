@@ -15,15 +15,9 @@
 
 import blazingmq.dev.it.testconstants as tc
 
-from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
+from blazingmq.dev.it.fixtures import (
     Cluster,
-    cluster,
-    Mode,
-    test_logger,
-    order,
-    multi_node,
     tweak,
-    virtual_cluster_config,
 )
 from blazingmq.dev.it.process.client import Client
 

@@ -18,10 +18,9 @@ Testing poison message detection and handling.
 """
 
 import blazingmq.dev.it.testconstants as tc
-from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
+from blazingmq.dev.it.fixtures import (
     Cluster,
     order,
-    multi_node,
     start_cluster,
     tweak,
 )
