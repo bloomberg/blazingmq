@@ -149,7 +149,6 @@
 
 // MQB
 
-#include <mqbcmd_messages.h>
 #include <mqbu_resourceusagemonitor.h>
 #include <mqbu_storagekey.h>
 
@@ -399,9 +398,10 @@ class CapacityMeter {
 /// CapacityMeter objects.
 struct CapacityMeterUtil {
     /// Load the state of the specified `capacityMeter` into the specified
-    /// `state`.
-    static void loadState(mqbcmd::CapacityMeter* state,
-                          const CapacityMeter&   capacityMeter);
+    /// `state`.  The `STATE_TYPE` is compatible with `mqbcmd::CapacityMeter`.
+    template <class STATE_TYPE>
+    static void loadState(STATE_TYPE*          state,
+                          const CapacityMeter& capacityMeter);
 };
 
 // ============================================================================
@@ -458,6 +458,32 @@ inline bsls::Types::Int64 CapacityMeter::byteCapacity() const
 inline const CapacityMeter* CapacityMeter::parent() const
 {
     return d_parent_p;
+}
+
+// ------------------------
+// struct CapacityMeterUtil
+// ------------------------
+
+template <class STATE_TYPE>
+void CapacityMeterUtil::loadState(STATE_TYPE*          state,
+                                  const CapacityMeter& capacityMeter)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(state);
+
+    state->name()                = capacityMeter.d_name;
+    state->isDisabled()          = capacityMeter.d_isDisabled;
+    state->numMessages()         = capacityMeter.d_monitor.messages();
+    state->messageCapacity()     = capacityMeter.d_monitor.messageCapacity();
+    state->numMessagesReserved() = capacityMeter.d_nbMessagesReserved;
+    state->numBytes()            = capacityMeter.d_monitor.bytes();
+    state->byteCapacity()        = capacityMeter.d_monitor.byteCapacity();
+    state->numBytesReserved()    = capacityMeter.d_nbBytesReserved;
+
+    if (capacityMeter.d_parent_p) {
+        STATE_TYPE& parent = state->parent().makeValue();
+        loadState(&parent, *capacityMeter.d_parent_p);
+    }
 }
 
 }  // close package namespace

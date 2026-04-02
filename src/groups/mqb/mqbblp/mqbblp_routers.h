@@ -155,7 +155,6 @@
 /// NOT Thread-Safe.
 
 // MQB
-#include <mqbcmd_messages.h>
 #include <mqbi_queue.h>
 #include <mqbi_storage.h>
 
@@ -186,6 +185,7 @@ namespace BloombergLP {
 // FORWARD DECLARATION
 namespace mqbcmd {
 class RoundRobinRouter;
+class Routing;
 }
 
 namespace mqbblp {
