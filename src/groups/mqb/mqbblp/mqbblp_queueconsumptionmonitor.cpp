@@ -168,8 +168,6 @@ QueueConsumptionMonitor::setMaxIdleTime(bsls::Types::Int64 value)
         int rc = d_queueState_p->scheduler()->cancelEventAndWait(
             &d_alarmEventHandle);
         if (rc == 0) {
-            d_alarmEventHandle.release();
-
             if (d_maxIdleTimeSec > 0) {
                 alarmEventDispatched();
             }
@@ -220,11 +218,7 @@ void QueueConsumptionMonitor::reset()
     d_maxIdleTimeSec = 0;
 
     if (d_alarmEventHandle) {
-        int rc = d_queueState_p->scheduler()->cancelEventAndWait(
-            &d_alarmEventHandle);
-        if (rc == 0) {
-            d_alarmEventHandle.release();
-        }
+        d_queueState_p->scheduler()->cancelEventAndWait(&d_alarmEventHandle);
     }
 
     cancelIdleEvents(false);
@@ -301,11 +295,8 @@ void QueueConsumptionMonitor::onTransitionToAlive(SubStreamInfo* subStreamInfo,
 
     if (subStreamInfo->d_idleEventHandle) {
         // Cancel the idle event if it was scheduled.
-        int rc = d_queueState_p->scheduler()->cancelEventAndWait(
+        d_queueState_p->scheduler()->cancelEventAndWait(
             &subStreamInfo->d_idleEventHandle);
-        if (rc == 0) {
-            subStreamInfo->d_idleEventHandle.release();
-        }
     }
 
     subStreamInfo->d_state = State::e_ALIVE;
@@ -445,9 +436,6 @@ void QueueConsumptionMonitor::cancelIdleEvents(SubStreamInfo* info)
         // Cancel the event if it was scheduled.
         d_queueState_p->scheduler()->cancelEventAndWait(
             &info->d_idleEventHandle);
-
-        // "it is guaranteed that `*handle` will be released whether this call
-        // is successful or not."
     }
 }
 
