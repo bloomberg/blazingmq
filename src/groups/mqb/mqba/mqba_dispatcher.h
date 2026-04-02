@@ -448,24 +448,24 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
     /// clients of the specified `type`, and invoke the optionally specified
     /// `doneCallback` (if any) when all the relevant processors are done
     /// executing the `functor`.
-    void executeOnAllQueues(const mqbi::Dispatcher::VoidFunctor& functor,
-                            mqbi::DispatcherClientType::Enum     type,
-                            const mqbi::Dispatcher::VoidFunctor& doneCallback =
-                                mqbi::Dispatcher::VoidFunctor())
-        BSLS_KEYWORD_OVERRIDE;
+    void executeOnAllQueues(
+        const mqbi::Dispatcher::VoidFunction& functor,
+        mqbi::DispatcherClientType::Enum      type,
+        const mqbi::Dispatcher::VoidFunction& doneCallback =
+            mqbi::Dispatcher::VoidFunction()) BSLS_KEYWORD_OVERRIDE;
 
     /// Execute the specified `functor`, using the specified dispatcher `type`,
     /// in the processor associated with the specified `client`.  The behavior
     /// is undefined unless `type` is `e_DISPATCHER` or `e_CALLBACK`.
-    void execute(const mqbi::Dispatcher::VoidFunctor& functor,
-                 mqbi::DispatcherClient*              client,
+    void execute(const mqbi::Dispatcher::VoidFunction& functor,
+                 mqbi::DispatcherClient*               client,
                  mqbi::DispatcherEventType::Enum type) BSLS_KEYWORD_OVERRIDE;
 
     /// Execute the specified `functor` using the `e_DISPATCHER` event type, in
     /// the processor associated with the specified `client`.
     void
-    execute(const mqbi::Dispatcher::VoidFunctor& functor,
-            const mqbi::DispatcherClientData&    client) BSLS_KEYWORD_OVERRIDE;
+    execute(const mqbi::Dispatcher::VoidFunction& functor,
+            const mqbi::DispatcherClientData& client) BSLS_KEYWORD_OVERRIDE;
 
     /// Enqueue an event to the processor associated with the specified
     /// `client` and block until this event gets dequeued.  This is typically

@@ -553,9 +553,9 @@ void Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
 }
 
 void Dispatcher::executeOnAllQueues(
-    const mqbi::Dispatcher::VoidFunctor& functor,
-    mqbi::DispatcherClientType::Enum     type,
-    const mqbi::Dispatcher::VoidFunctor& doneCallback)
+    const mqbi::Dispatcher::VoidFunction& functor,
+    mqbi::DispatcherClientType::Enum      type,
+    const mqbi::Dispatcher::VoidFunction& doneCallback)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(type != mqbi::DispatcherClientType::e_UNDEFINED);
@@ -590,9 +590,9 @@ void Dispatcher::executeOnAllQueues(
     }
 }
 
-void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
-                         mqbi::DispatcherClient*              client,
-                         mqbi::DispatcherEventType::Enum      type)
+void Dispatcher::execute(const mqbi::Dispatcher::VoidFunction& functor,
+                         mqbi::DispatcherClient*               client,
+                         mqbi::DispatcherEventType::Enum       type)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(client);
@@ -616,8 +616,8 @@ void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
     }
 }
 
-void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
-                         const mqbi::DispatcherClientData&    client)
+void Dispatcher::execute(const mqbi::Dispatcher::VoidFunction& functor,
+                         const mqbi::DispatcherClientData&     client)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(functor);

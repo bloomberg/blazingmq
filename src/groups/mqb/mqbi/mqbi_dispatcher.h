@@ -105,19 +105,9 @@
 #include <mqbi_dispatchereventsource.h>
 
 // BMQ
-#include <bmqp_ctrlmsg_messages.h>
-#include <bmqp_protocol.h>
-#include <bmqt_compressionalgorithmtype.h>
-#include <bmqt_messageguid.h>
-
 #include <bmqex_executor.h>
 
-#include <bmqu_atomicstate.h>
-#include <bmqu_managedcallback.h>
-
 // BDE
-#include <bdlbb_blob.h>
-#include <bsl_functional.h>
 #include <bsl_iostream.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
@@ -126,7 +116,6 @@
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bslmt_threadutil.h>
 #include <bsls_assert.h>
-#include <bsls_nullptr.h>
 
 namespace BloombergLP {
 
@@ -324,8 +313,8 @@ class Dispatcher {
     /// Type representing a handle to a processor in the dispatcher.
     typedef int ProcessorHandle;
 
-    /// Signature of a `void` functor method.
-    typedef bmqu::ManagedCallback::VoidFunctor VoidFunctor;
+    /// Signature of a `void` function method.
+    typedef bsl::function<void(void)> VoidFunction;
 
     // PUBLIC CLASS DATA
 
@@ -421,7 +410,7 @@ class Dispatcher {
     /// `client`.  The behavior is undefined unless `type` is `e_DISPATCHER`
     /// or `e_CALLBACK`.
     virtual void execute(
-        const VoidFunctor&        functor,
+        const VoidFunction&       function,
         DispatcherClient*         client,
         DispatcherEventType::Enum type = DispatcherEventType::e_CALLBACK) = 0;
 
@@ -431,7 +420,7 @@ class Dispatcher {
     /// TBD: `DispatcherClientData` is considered an internal imp-detail
     ///      type used by Dispatcher, and this `execute` overload should
     ///      ideally be removed.
-    virtual void execute(const VoidFunctor&          functor,
+    virtual void execute(const VoidFunction&         function,
                          const DispatcherClientData& client) = 0;
 
     /// Execute the specified `functor` in the processors in charge of
@@ -439,9 +428,9 @@ class Dispatcher {
     /// `doneCallback` (if any) when all the relevant processors are done
     /// executing the `functor`.
     virtual void
-    executeOnAllQueues(const VoidFunctor&         functor,
+    executeOnAllQueues(const VoidFunction&        function,
                        DispatcherClientType::Enum type,
-                       const VoidFunctor& doneCallback = VoidFunctor()) = 0;
+                       const VoidFunction& doneCallback = VoidFunction()) = 0;
 
     /// Enqueue an event to the processor associated to the specified
     /// `client` or pair of the specified `type` and `handle` and block

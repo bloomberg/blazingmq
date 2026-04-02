@@ -5724,7 +5724,7 @@ void ClusterQueueHelper::checkUnconfirmedV2Dispatched(
     // Synchronize with all Queue Dispatcher threads
     bslmt::Latch latch(1);
     d_cluster_p->dispatcher()->executeOnAllQueues(
-        mqbi::Dispatcher::VoidFunctor(),  // empty
+        mqbi::Dispatcher::VoidFunction(),  // empty
         mqbi::DispatcherClientType::e_QUEUE,
         bdlf::BindUtil::bindS(d_allocator_p, &bslmt::Latch::arrive, &latch));
 

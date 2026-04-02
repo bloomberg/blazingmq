@@ -31,6 +31,7 @@
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqt_messageguid.h>
+#include <bmqu_managedcallback.h>
 
 // BDE
 #include <ball_log.h>

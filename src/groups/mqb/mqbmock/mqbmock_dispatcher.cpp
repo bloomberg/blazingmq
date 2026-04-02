@@ -91,7 +91,7 @@ void Dispatcher::dispatchEvent(
 }
 
 void Dispatcher::execute(
-    const mqbi::Dispatcher::VoidFunctor& functor,
+    const mqbi::Dispatcher::VoidFunction& functor,
     BSLA_MAYBE_UNUSED mqbi::DispatcherClient* client,
     BSLA_MAYBE_UNUSED mqbi::DispatcherEventType::Enum type)
 {
@@ -99,16 +99,16 @@ void Dispatcher::execute(
 }
 
 void Dispatcher::execute(
-    const mqbi::Dispatcher::VoidFunctor& functor,
+    const mqbi::Dispatcher::VoidFunction& functor,
     BSLA_MAYBE_UNUSED const mqbi::DispatcherClientData& client)
 {
     _execute(functor);
 }
 
 void Dispatcher::executeOnAllQueues(
-    const mqbi::Dispatcher::VoidFunctor& functor,
+    const mqbi::Dispatcher::VoidFunction& functor,
     BSLA_MAYBE_UNUSED mqbi::DispatcherClientType::Enum type,
-    const mqbi::Dispatcher::VoidFunctor&               doneCallback)
+    const mqbi::Dispatcher::VoidFunction&              doneCallback)
 {
     if (functor) {
         _execute(functor);
@@ -119,7 +119,7 @@ void Dispatcher::executeOnAllQueues(
     }
 }
 
-void Dispatcher::_execute(const mqbi::Dispatcher::VoidFunctor& functor)
+void Dispatcher::_execute(const mqbi::Dispatcher::VoidFunction& functor)
 {
     bool run = false;
 
@@ -135,7 +135,7 @@ void Dispatcher::_execute(const mqbi::Dispatcher::VoidFunctor& functor)
     }
 
     while (run) {
-        mqbi::Dispatcher::VoidFunctor next;
+        mqbi::Dispatcher::VoidFunction next;
         {
             bslmt::LockGuard<bslmt::Mutex> lock(&mutex());
 

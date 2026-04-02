@@ -90,16 +90,16 @@ class DispatcherEvent : public mqbi::DispatcherEvent {
 
     /// Set the callback to the specified `value` and return a reference
     /// offering modifiable access to this object.
-    DispatcherEvent& setCallback(const mqbi::Dispatcher::VoidFunctor& value);
+    DispatcherEvent& setCallback(const mqbi::Dispatcher::VoidFunction& value);
     DispatcherEvent&
-    setCallback(bslmf::MovableRef<mqbi::Dispatcher::VoidFunctor> value);
+    setCallback(bslmf::MovableRef<mqbi::Dispatcher::VoidFunction> value);
 
     /// Set the finalize callback to the specified `value` and return a
     /// reference offering modifiable access to this object.
     DispatcherEvent&
-    setFinalizeCallback(const mqbi::Dispatcher::VoidFunctor& value);
+    setFinalizeCallback(const mqbi::Dispatcher::VoidFunction& value);
     DispatcherEvent& setFinalizeCallback(
-        bslmf::MovableRef<mqbi::Dispatcher::VoidFunctor> value);
+        bslmf::MovableRef<mqbi::Dispatcher::VoidFunction> value);
 
     /// Set the source client to the specified `value` and return a
     /// reference offering modifiable access to this object.
@@ -169,28 +169,28 @@ inline mqbi::DispatcherEventType::Enum DispatcherEvent::type() const
 }
 
 inline DispatcherEvent&
-DispatcherEvent::setCallback(const mqbi::Dispatcher::VoidFunctor& value)
+DispatcherEvent::setCallback(const mqbi::Dispatcher::VoidFunction& value)
 {
     d_callback.set(value);
     return *this;
 }
 
 inline DispatcherEvent& DispatcherEvent::setCallback(
-    bslmf::MovableRef<mqbi::Dispatcher::VoidFunctor> value)
+    bslmf::MovableRef<mqbi::Dispatcher::VoidFunction> value)
 {
     d_callback.set(value);
     return *this;
 }
 
 inline DispatcherEvent& DispatcherEvent::setFinalizeCallback(
-    const mqbi::Dispatcher::VoidFunctor& value)
+    const mqbi::Dispatcher::VoidFunction& value)
 {
     d_finalizeCallback.set(value);
     return *this;
 }
 
 inline DispatcherEvent& DispatcherEvent::setFinalizeCallback(
-    bslmf::MovableRef<mqbi::Dispatcher::VoidFunctor> value)
+    bslmf::MovableRef<mqbi::Dispatcher::VoidFunction> value)
 {
     d_finalizeCallback.set(value);
     return *this;
