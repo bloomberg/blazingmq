@@ -6675,7 +6675,7 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
                       << primaryNode->nodeDescription()
                       << " with primaryLeaseId: " << d_primaryLeaseId
                       << ", and sequence number: " << d_sequenceNum << ".";
-        return;
+        return;  // RETURN
     }
 
     if (primaryLeaseId > d_primaryLeaseId) {
