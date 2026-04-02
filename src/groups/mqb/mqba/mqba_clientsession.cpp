@@ -772,7 +772,7 @@ void ClientSession::tearDownImpl(bslmt::Semaphore*            semaphore,
     // with the 'tearDownAllQueuesDone' finalize callback having the 'handle'
     // bound to it (so that the session is not yet destroyed).
     dispatcher()->executeOnAllQueues(
-        mqbi::Dispatcher::VoidFunctor(),  // empty
+        mqbi::Dispatcher::VoidFunction(),  // empty
         mqbi::DispatcherClientType::e_QUEUE,
         bdlf::BindUtil::bind(&ClientSession::tearDownAllQueuesDone,
                              this,
@@ -1032,7 +1032,7 @@ void ClientSession::processDisconnectAllQueues(
     // type, refer to top level documention for explanation (paragraph about
     // the bmqu::SharedResource).
     dispatcher()->executeOnAllQueues(
-        mqbi::Dispatcher::VoidFunctor(),  // empty
+        mqbi::Dispatcher::VoidFunction(),  // empty
         mqbi::DispatcherClientType::e_QUEUE,
         bdlf::BindUtil::bind(
             bmqu::WeakMemFnUtil::weakMemFn(
@@ -2538,7 +2538,7 @@ void ClientSession::processEvent(const bmqp::Event& event,
         }
 
         // Control messages are enqueued to be processed in dispatcher thread.
-        mqbi::Dispatcher::VoidFunctor eventCallback;
+        mqbi::Dispatcher::VoidFunction eventCallback;
 
         typedef bmqp_ctrlmsg::ControlMessageChoice MsgChoice;  // shortcut
 

@@ -692,7 +692,7 @@ static void test5_executeOnAllQueues()
             ExecuteOnAllQueuesHelper helper(0);
 
             dispatcher.executeOnAllQueues(
-                mqbi::Dispatcher::VoidFunctor(),
+                mqbi::Dispatcher::VoidFunction(),
                 mqbi::DispatcherClientType::e_QUEUE,
                 bdlf::BindUtil::bindS(alloc,
                                       &ExecuteOnAllQueuesHelper::signalDone,

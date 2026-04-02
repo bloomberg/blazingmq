@@ -607,12 +607,12 @@ void QueueEngineUtil_ReleaseHandleProctor::invokeCallback()
             // represents 'mqbblp::ClusterNodeSession').
 
             d_queueState_p->queue()->dispatcher()->executeOnAllQueues(
-                mqbi::Dispatcher::VoidFunctor(),
+                mqbi::Dispatcher::VoidFunction(),
                 mqbi::DispatcherClientType::e_SESSION,
                 bdlf::BindUtil::bind(&queueHandleHolderDummy, d_handleSp));
 
             d_queueState_p->queue()->dispatcher()->executeOnAllQueues(
-                mqbi::Dispatcher::VoidFunctor(),
+                mqbi::Dispatcher::VoidFunction(),
                 mqbi::DispatcherClientType::e_CLUSTER,
                 bdlf::BindUtil::bind(&queueHandleHolderDummy, d_handleSp));
         }

@@ -657,7 +657,7 @@ bool Application::initiateShutdown()
     {
         bslmt::Latch latch(1);
         d_dispatcher_mp->executeOnAllQueues(
-            mqbi::Dispatcher::VoidFunctor(),
+            mqbi::Dispatcher::VoidFunction(),
             mqbi::DispatcherClientType::e_QUEUE,
             bdlf::BindUtil::bind(&bslmt::Latch::arrive, &latch));
         latch.wait();
@@ -665,7 +665,7 @@ bool Application::initiateShutdown()
     {
         bslmt::Latch latch(1);
         d_dispatcher_mp->executeOnAllQueues(
-            mqbi::Dispatcher::VoidFunctor(),
+            mqbi::Dispatcher::VoidFunction(),
             mqbi::DispatcherClientType::e_CLUSTER,
             bdlf::BindUtil::bind(&bslmt::Latch::arrive, &latch));
         latch.wait();

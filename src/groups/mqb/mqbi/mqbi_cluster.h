@@ -65,6 +65,9 @@ namespace BloombergLP {
 namespace bdlmt {
 class FixedThreadPool;
 }
+namespace bmqu {
+class AtomicState;
+}
 namespace bmqt {
 class Uri;
 }

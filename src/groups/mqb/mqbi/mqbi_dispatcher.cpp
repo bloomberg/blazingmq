@@ -18,19 +18,10 @@
 
 #include <mqbscm_version.h>
 
-// BMQ
-#include <bmqu_memoutstream.h>
-
-// MQB
-#include <mqbi_storage.h>
-
 // BDE
 #include <bdlb_print.h>
 #include <bdlb_string.h>
-#include <bdlf_bind.h>
-#include <bdlf_placeholder.h>
 #include <bsl_ostream.h>
-#include <bsla_annotations.h>
 #include <bslim_printer.h>
 
 namespace BloombergLP {

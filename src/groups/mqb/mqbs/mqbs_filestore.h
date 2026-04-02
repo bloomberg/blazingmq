@@ -768,7 +768,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     /// Execute the specified `functor`, using the `e_CALLBACK` event
     /// type, in the processor associated to this object.
-    void execute(const mqbi::Dispatcher::VoidFunctor& functor);
+    void execute(const mqbi::Dispatcher::VoidFunction& functor);
 
     // MANIPULATORS
 
@@ -1232,7 +1232,7 @@ FileStore::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event)
     dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(event), this);
 }
 
-inline void FileStore::execute(const mqbi::Dispatcher::VoidFunctor& functor)
+inline void FileStore::execute(const mqbi::Dispatcher::VoidFunction& functor)
 {
     dispatcher()->execute(functor,
                           this,

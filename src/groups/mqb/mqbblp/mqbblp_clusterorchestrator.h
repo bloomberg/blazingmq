@@ -46,6 +46,7 @@
 #include <bmqma_countingallocatorstore.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_event.h>
+#include <bmqu_managedcallback.h>
 
 // BDE
 #include <ball_log.h>
