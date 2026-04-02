@@ -151,25 +151,10 @@ if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
     touch "${DIR_BUILD}/ntf/.complete"
 fi
 
-BREW_PKG_CONFIG_PATH="/opt/homebrew/lib/pkgconfig:/opt/homebrew/opt/zlib/lib/pkgconfig:/opt/homebrew/opt/googletest/lib/pkgconfig"
-FLEX_ROOT="/opt/homebrew/opt/flex"
-
 # :: Build the BlazingMQ repo :::::::::::::::::::::::::::::::::::::::::::::::::
-CMAKE_OPTIONS=(
-    -DBDE_BUILD_TARGET_64=1
-    -DCMAKE_BUILD_TYPE=Debug
-    -DCMAKE_INSTALL_LIBDIR="lib"
-    -DCMAKE_INSTALL_PREFIX="${DIR_INSTALL}"
-    -DCMAKE_MODULE_PATH="${DIR_THIRDPARTY}/bde-tools/cmake;${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem"
-    -DCMAKE_PREFIX_PATH="${DIR_INSTALL}"
-    -DCMAKE_TOOLCHAIN_FILE="${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem/toolchains/darwin/clang-default.cmake"
-    -DCMAKE_CXX_STANDARD=17
-    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-    -DFLEX_ROOT="${FLEX_ROOT}")
-
-PKG_CONFIG_PATH="${DIR_INSTALL}/lib/pkgconfig:${BREW_PKG_CONFIG_PATH}" \
-    cmake -G Ninja -B "${DIR_BUILD}/blazingmq" -S "${DIR_ROOT}" "${CMAKE_OPTIONS[@]}"
-ninja -C "${DIR_BUILD}/blazingmq"
+export DIR_THIRDPARTY DIR_BUILD DIR_INSTALL
+cmake --preset darwin-arm64
+cmake --build --preset darwin-arm64
 
 echo broker is here: "${DIR_BUILD}/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
 echo to run the broker: "${DIR_BUILD}/blazingmq/src/applications/bmqbrkr/run"

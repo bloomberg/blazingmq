@@ -1,0 +1,46 @@
+{
+    "version": 6,
+    "include": [
+        "default.json"
+    ],
+    "configurePresets": [
+        {
+            "name": "darwin-base",
+            "hidden": true,
+            "description":
+                "Base configuration for building on macOS with BDE dependencies",
+            "inherits": "base",
+            "generator": "Ninja",
+            "toolchainFile":
+                "$env{DIR_THIRDPARTY}/bde-tools/BdeBuildSystem/toolchains/darwin/clang-default.cmake",
+            "cacheVariables": {
+                "CMAKE_INSTALL_LIBDIR": "lib",
+                "CMAKE_INSTALL_PREFIX": "$env{DIR_INSTALL}",
+                "CMAKE_MODULE_PATH":
+                    "$env{DIR_THIRDPARTY}/bde-tools/cmake;$env{DIR_THIRDPARTY}/bde-tools/BdeBuildSystem"
+            }
+        },
+        {
+            "name": "darwin-arm64",
+            "description":
+                "macOS ARM64 build with Homebrew dependencies (Apple Silicon)",
+            "inherits": "darwin-base",
+            "binaryDir": "$env{DIR_BUILD}/blazingmq",
+            "environment": {
+                "PKG_CONFIG_PATH":
+                    "$env{DIR_INSTALL}/lib/pkgconfig:/opt/homebrew/lib/pkgconfig:/opt/homebrew/opt/zlib/lib/pkgconfig:/opt/homebrew/opt/googletest/lib/pkgconfig"
+            },
+            "cacheVariables": {
+                "CMAKE_PREFIX_PATH": "$env{DIR_INSTALL}",
+                "FLEX_ROOT": "/opt/homebrew/opt/flex"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "darwin-arm64",
+            "description": "Build on macOS ARM64 (Apple Silicon)",
+            "configurePreset": "darwin-arm64"
+        }
+    ]
+}
