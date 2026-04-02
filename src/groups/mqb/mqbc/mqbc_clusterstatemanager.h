@@ -38,6 +38,7 @@
 #include <mqbc_clusterstateledger.h>
 #include <mqbc_clusterstatetable.h>
 #include <mqbc_electorinfo.h>
+#include <mqbc_watchdogcontext.h>
 #include <mqbcfg_messages.h>
 #include <mqbi_clusterstatemanager.h>
 
@@ -131,11 +132,15 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     /// Allocator store to spawn new allocators for sub-components.
     bmqma::CountingAllocatorStore d_allocators;
 
-    /// Event handle for the watchdog.
-    bdlmt::EventSchedulerEventHandle d_watchDogEventHandle;
+    /// Watchdog context.
+    WatchdogContext d_watchdogCtx;
 
     /// Timeout interval for the watchdog.
-    bsls::TimeInterval d_watchDogTimeoutInterval;
+    const bsls::TimeInterval d_watchdogTimeoutInterval;
+
+    /// Number of watchdog retries per FSM healing session, before terminating
+    /// the broker.
+    const int d_watchdogNumRetries;
 
     /// Cluster configuration to use.
     const mqbcfg::ClusterDefinition& d_clusterConfig;
@@ -319,18 +324,22 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     int loadClusterStateSnapshot(ClusterState* out);
     int loadClusterStateSnapshot(bmqp_ctrlmsg::LeaderAdvisory* out);
 
-    /// Process the watchdog trigger event, indicating unhealthiness in the
-    /// Cluster FSM.
+    /// Process the watchdog trigger event for the specified watchdog
+    /// `generation, indicating unhealthiness in the Cluster FSM.  If the
+    /// generation does not match the current generation, the event is ignored
+    /// as stale.
     ///
     /// THREAD: Executed by the scheduler thread.
-    void onWatchDog();
+    void onWatchdog(int generation);
 
-    /// Process the watchdog trigger event, indicating unhealthiness in the
-    /// Cluster FSM.
+    /// Process the watchdog trigger event for the specified watchdog
+    /// `generation, indicating unhealthiness in the Cluster FSM.  If the
+    /// generation does not match the current generation, the event is ignored
+    /// as stale.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    void onWatchDogDispatched();
+    void onWatchdogDispatched(int generation);
 
     /// Process the follower LSN response contained in the specified
     /// `requestContext`.
@@ -365,13 +374,14 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
 
     /// Create an instance with the specified `clusterConfig`, `cluster`,
     /// `clusterData`, `clusterState`, `clusterStateLedger`,
-    /// `watchDogTimeoutDuration` and `allocator`.
+    /// `watchdogTimeoutDuration`, `watchdogNumRetries` and `allocator`.
     ClusterStateManager(const mqbcfg::ClusterDefinition& clusterConfig,
                         mqbi::Cluster*                   cluster,
                         mqbc::ClusterData*               clusterData,
                         mqbc::ClusterState*              clusterState,
                         ClusterStateLedgerMp             clusterStateLedger,
-                        bsls::Types::Int64 watchDogTimeoutDuration,
+                        bsls::Types::Int64 watchdogTimeoutDuration,
+                        int                watchdogNumRetries,
                         bslma::Allocator*  allocator);
 
     /// Destroy this instance.  Behavior is undefined unless this instance
@@ -643,6 +653,21 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
 
     /// Get the quorum value.
     unsigned int getLsnQuorum() const;
+
+    /// Return the number of watchdog retries remaining.
+    ///
+    /// @note Used for testing purposes only.
+    int watchdogRetriesRemaining() const;
+
+    /// Return the current watchdog generation.
+    ///
+    /// @note Used for testing purposes only.
+    int watchdogGeneration() const;
+
+    /// Return whether the watchdog timer is currently active.
+    ///
+    /// @note Used for testing purposes only.
+    bool isWatchdogActive() const;
 };
 
 // ============================================================================
@@ -693,6 +718,21 @@ ClusterStateManager::nodeToLSNMap() const
 inline unsigned int ClusterStateManager::getLsnQuorum() const
 {
     return d_clusterData_p->quorumManager().quorum();
+}
+
+inline int ClusterStateManager::watchdogRetriesRemaining() const
+{
+    return d_watchdogCtx.d_retriesRemaining;
+}
+
+inline int ClusterStateManager::watchdogGeneration() const
+{
+    return d_watchdogCtx.d_generation;
+}
+
+inline bool ClusterStateManager::isWatchdogActive() const
+{
+    return d_watchdogCtx.d_active;
 }
 
 }  // close package namespace

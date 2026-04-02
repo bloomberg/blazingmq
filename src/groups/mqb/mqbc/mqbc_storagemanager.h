@@ -222,7 +222,8 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// Timeout interval for the watchdog.
     const bsls::TimeInterval d_watchdogTimeoutInterval;
 
-    /// Number of watchdog retries before terminating the broker.
+    /// Number of watchdog retries per FSM healing session, before terminating
+    /// the broker.
     const int d_watchdogNumRetries;
 
     /// Flag to denote if a low disk space warning was issued.  This flag is

@@ -47,6 +47,9 @@
 #include <bsls_systemtime.h>
 #include <bsls_types.h>
 
+// SYS
+#include <bsl_c_signal.h>  // sigaction, sig_atomic_t
+
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
 
@@ -63,6 +66,22 @@ static const char* k_REFUSAL_MESSAGE = "Not a follower";
 
 static const bsls::Types::Int64 k_WATCHDOG_TIMEOUT_DURATION = 5 * 60;
 // 5 minutes
+
+static const bsls::Types::Int64 k_WATCHDOG_TIMEOUT_DURATION_SHORT = 5;
+// 5 seconds, used for retry tests
+
+static const int k_WATCHDOG_NUM_RETRIES = 5;
+
+/// Flag set by `testSigintHandler` when SIGINT is received.  Used to
+/// verify that `mqbu::ExitUtil::shutdown` was invoked (which sends
+/// SIGINT to the process) without actually terminating the test.
+static volatile sig_atomic_t s_sigintReceived = 0;
+
+/// Signal handler that captures SIGINT instead of terminating.
+static void testSigintHandler(int /* signum */)
+{
+    s_sigintReceived = 1;
+}
 
 // TYPES
 typedef mqbmock::Cluster::TestChannelMapCIter TestChannelMapCIter;
@@ -94,7 +113,9 @@ struct Tester {
 
   public:
     // CREATORS
-    Tester(bool isLeader)
+    Tester(bool               isLeader,
+           int                numRetries      = k_WATCHDOG_NUM_RETRIES,
+           bsls::Types::Int64 watchdogTimeout = k_WATCHDOG_TIMEOUT_DURATION)
     : d_isLeader(isLeader)
     , d_tempDir(bmqtst::TestHelperUtil::allocator())
     , d_cluster_mp(0)
@@ -174,7 +195,8 @@ struct Tester {
                                           d_cluster_mp->_clusterData(),
                                           d_cluster_mp->_state(),
                                           clusterStateLedger_mp,
-                                          k_WATCHDOG_TIMEOUT_DURATION,
+                                          watchdogTimeout,
+                                          numRetries,
                                           bmqtst::TestHelperUtil::allocator()),
             bmqtst::TestHelperUtil::allocator());
         d_clusterStateManager_mp->setStorageManager(&d_storageManager);
@@ -2455,17 +2477,33 @@ static void test23_selectLeaderFromFollower()
     tester.verifyFollowerLSNRequestsSent();
 }
 
-static void test24_watchDogLeader()
+static void test24_watchdogLeader()
 // ------------------------------------------------------------------------
 // WATCHDOG LEADER
 //
 // Concerns:
-//   Verify that the watchdog triggers upon timeout when the leader is
-//   healing.
+//   When the watchdog fires with retries remaining for a leader, healing
+//   restarts (FSM cycles through UNKNOWN back to LDR_HEALING_STG1) and
+//   the retry counter decrements.  After healing succeeds, the watchdog
+//   is stopped and its state is reset.
+//
+// Plan:
+//  1) Create a ClusterStateManager with numRetries = 5
+//  2) Elect leader -> LDR_HEALING_STG1
+//  3) Verify initial watchdog context (retries = 5, generation = 0,
+//     active = true)
+//  4) Advance time -> watchdog fires -> verify state cycled back to
+//     LDR_HEALING_STG1, retries = 4
+//  5) Transition to LDR_HEALING_STG2 via follower LSN responses
+//  6) Advance time -> watchdog fires -> verify state cycled back to
+//     LDR_HEALING_STG1, retries = 3
+//  7) Transition to LDR_HEALED via follower LSN responses + CSL commit
+//  8) Verify watchdog stopped (generation = 1, retries reset, active =
+//     false)
+//  9) Advance time -> verify watchdog does not trigger
 //
 // Testing:
-//   Watchdog for healing leader
-// ------------------------------------------------------------------------
+//   Watchdog retry and state reset for healing leader.
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
@@ -2481,14 +2519,22 @@ static void test24_watchDogLeader()
     selfLSN.sequenceNumber() = 8U;
     tester.setSelfLedgerLSN(selfLSN);
 
-    // 1.a.) Transition to Leader Healing Stage 1
+    // Transition to Leader Healing Stage 1
     tester.electLeader(2U);
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
                     mqbc::ClusterStateTableState::e_LDR_HEALING_STG1);
     tester.verifyFollowerLSNRequestsSent();
     tester.clearChannels();
 
-    // 1.b.) Trigger watchdog via timeout
+    // Verify initial watchdog state
+    BMQTST_ASSERT_EQ(
+        tester.d_clusterStateManager_mp->watchdogRetriesRemaining(),
+        k_WATCHDOG_NUM_RETRIES);
+    BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->watchdogGeneration(), 0);
+    BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->isWatchdogActive(),
+                     true);
+
+    // Trigger watchdog via timeout
     tester.d_cluster_mp->advanceTime(k_WATCHDOG_TIMEOUT_DURATION);
     tester.d_cluster_mp->waitForScheduler();
 
@@ -2499,11 +2545,19 @@ static void test24_watchDogLeader()
     tester.verifyFollowerLSNRequestsSent();
     tester.clearChannels();
 
+    // Verify watchdog retry counter decremented
+    BMQTST_ASSERT_EQ(
+        tester.d_clusterStateManager_mp->watchdogRetriesRemaining(),
+        k_WATCHDOG_NUM_RETRIES - 1);
+    BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->watchdogGeneration(), 0);
+    BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->isWatchdogActive(),
+                     true);
+
     const NodeToLSNMap& lsnMap =
         tester.d_clusterStateManager_mp->nodeToLSNMap();
     BMQTST_ASSERT_EQ(lsnMap.size(), 1U);
 
-    // 2.a.) Transition to Leader Healing Stage 2
+    // Transition to Leader Healing Stage 2
     bmqp_ctrlmsg::ControlMessage         followerLSNResponse;
     bmqp_ctrlmsg::LeaderMessageSequence& lms =
         followerLSNResponse.choice()
@@ -2526,7 +2580,7 @@ static void test24_watchDogLeader()
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
                     mqbc::ClusterStateTableState::e_LDR_HEALING_STG2);
 
-    // 2.b.) Trigger watchdog via timeout
+    // Trigger watchdog via timeout
     tester.d_cluster_mp->advanceTime(k_WATCHDOG_TIMEOUT_DURATION);
     tester.d_cluster_mp->waitForScheduler();
 
@@ -2538,7 +2592,15 @@ static void test24_watchDogLeader()
     tester.clearChannels();
     BMQTST_ASSERT_EQ(lsnMap.size(), 1U);
 
-    // 3.a.) Transition to Leader Healed
+    // Verify watchdog retry counter decremented again
+    BMQTST_ASSERT_EQ(
+        tester.d_clusterStateManager_mp->watchdogRetriesRemaining(),
+        k_WATCHDOG_NUM_RETRIES - 2);
+    BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->watchdogGeneration(), 0);
+    BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->isWatchdogActive(),
+                     true);
+
+    // Transition to Leader Healed
     followerLSNResponse.rId() = 7;
     tester.d_cluster_mp->requestManager().processResponse(followerLSNResponse);
     followerLSNResponse.rId() = 8;
@@ -2552,7 +2614,15 @@ static void test24_watchDogLeader()
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
                     mqbc::ClusterStateTableState::e_LDR_HEALED);
 
-    // 3.b.) Attempt to trigger watchdog via timeout, but should fail
+    // Verify watchdog stopped: generation incremented, retries reset, inactive
+    BMQTST_ASSERT_EQ(
+        tester.d_clusterStateManager_mp->watchdogRetriesRemaining(),
+        k_WATCHDOG_NUM_RETRIES);
+    BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->watchdogGeneration(), 1);
+    BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->isWatchdogActive(),
+                     false);
+
+    // Attempt to trigger watchdog via timeout, but should fail
     tester.d_cluster_mp->advanceTime(k_WATCHDOG_TIMEOUT_DURATION);
     tester.d_cluster_mp->waitForScheduler();
 
@@ -2561,17 +2631,30 @@ static void test24_watchDogLeader()
                      mqbc::ClusterStateTableState::e_LDR_HEALED);
 }
 
-static void test25_watchDogFollower()
+static void test25_watchdogFollower()
 // ------------------------------------------------------------------------
 // WATCHDOG FOLLOWER
 //
 // Concerns:
-//   Verify that the watchdog triggers upon timeout when the follower is
-//   healing.
+//   When the watchdog fires with retries remaining for a follower,
+//   healing restarts (FSM cycles through UNKNOWN back to FOL_HEALING)
+//   and the retry counter decrements.  After healing succeeds, the
+//   watchdog is stopped and its state is reset.
+//
+// Plan:
+//  1) Create a ClusterStateManager with numRetries = 5
+//  2) Elect leader (self is follower) -> FOL_HEALING
+//  3) Verify initial watchdog context (retries = 5, generation = 0,
+//     active = true)
+//  4) Advance time -> watchdog fires -> verify state cycled back to
+//     FOL_HEALING, retries = 4
+//  5) Transition to FOL_HEALED via CSL advisory + commit
+//  6) Verify watchdog stopped (generation = 1, retries reset, active =
+//     false)
+//  7) Advance time -> verify watchdog does not trigger
 //
 // Testing:
-//   Watchdog for healing follower
-// ------------------------------------------------------------------------
+//   Watchdog retry and state reset for healing follower.
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
@@ -2584,25 +2667,41 @@ static void test25_watchDogFollower()
     selfLSN.sequenceNumber() = 3U;
     tester.setSelfLedgerLSN(selfLSN);
 
-    // 1.a.) Transition to Follower Healing
+    // Transition to Follower Healing
     tester.electLeader(2U);
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
                     mqbc::ClusterStateTableState::e_FOL_HEALING);
     tester.verifyRegistrationRequestSent(selfLSN);
     tester.clearChannels();
 
-    // 1.b.) Trigger watch dog via timeout
+    // Verify initial watchdog state
+    BMQTST_ASSERT_EQ(
+        tester.d_clusterStateManager_mp->watchdogRetriesRemaining(),
+        k_WATCHDOG_NUM_RETRIES);
+    BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->watchdogGeneration(), 0);
+    BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->isWatchdogActive(),
+                     true);
+
+    // Trigger watchdog via timeout
     tester.d_cluster_mp->advanceTime(k_WATCHDOG_TIMEOUT_DURATION);
     tester.d_cluster_mp->waitForScheduler();
 
-    // Verify that the watch dog triggers re-transition to Follower Healing.
+    // Verify that the watchdog triggers re-transition to Follower Healing.
     // where we send registration request again.
     BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
                      mqbc::ClusterStateTableState::e_FOL_HEALING);
     tester.verifyRegistrationRequestSent(selfLSN);
     tester.clearChannels();
 
-    // 2.a.) Transition to Follower Healed
+    // Verify watchdog retry counter decremented
+    BMQTST_ASSERT_EQ(
+        tester.d_clusterStateManager_mp->watchdogRetriesRemaining(),
+        k_WATCHDOG_NUM_RETRIES - 1);
+    BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->watchdogGeneration(), 0);
+    BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->isWatchdogActive(),
+                     true);
+
+    // Transition to Follower Healed
     bmqp_ctrlmsg::LeaderAdvisory cslAdvisory;
     cslAdvisory.sequenceNumber().electorTerm()    = 2U;
     cslAdvisory.sequenceNumber().sequenceNumber() = 1U;
@@ -2614,13 +2713,222 @@ static void test25_watchDogFollower()
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
                     mqbc::ClusterStateTableState::e_FOL_HEALED);
 
-    // 2.b.) Attempt to trigger watch dog via timeout, but should fail
+    // Verify watchdog stopped: generation incremented, retries reset, inactive
+    BMQTST_ASSERT_EQ(
+        tester.d_clusterStateManager_mp->watchdogRetriesRemaining(),
+        k_WATCHDOG_NUM_RETRIES);
+    BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->watchdogGeneration(), 1);
+    BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->isWatchdogActive(),
+                     false);
+
+    // Attempt to trigger watchdog via timeout, but should fail
     tester.d_cluster_mp->advanceTime(k_WATCHDOG_TIMEOUT_DURATION);
     tester.d_cluster_mp->waitForScheduler();
 
-    // Verify that watch dog did not trigger
+    // Verify that watchdog did not trigger
     BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
                      mqbc::ClusterStateTableState::e_FOL_HEALED);
+}
+
+static void test26_watchdogStopResetsState()
+// ------------------------------------------------------------------------
+// WATCHDOG STOP RESETS STATE
+//
+// Concerns:
+//   do_stopWatchDog (via stop / STOP_NODE) increments generation and
+//   resets retries.
+//
+// Plan:
+//  1) Create a ClusterStateManager with numRetries = 2
+//  2) Elect leader -> LDR_HEALING_STG1
+//  3) Verify initial watchdog context (retries = 2, generation = 0,
+//     active = true)
+//  4) Call stop() -> triggers STOP_NODE -> calls do_stopWatchDog
+//  5) Verify generation incremented, retries reset, active = false,
+//     state = STOPPED
+//
+// Testing:
+//   Watchdog state reset on stop.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
+                                      "WATCHDOG STOP RESETS STATE");
+
+    static const int k_NUM_RETRIES = 2;
+
+    Tester tester(true,  // isLeader
+                  k_NUM_RETRIES);
+
+    // Transition to Leader Healing Stage 1
+    tester.electLeader(2U);
+    BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
+                    mqbc::ClusterStateTableState::e_LDR_HEALING_STG1);
+    tester.clearChannels();
+
+    // Verify initial watchdog state
+    BMQTST_ASSERT_EQ(
+        tester.d_clusterStateManager_mp->watchdogRetriesRemaining(),
+        k_NUM_RETRIES);
+    BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->watchdogGeneration(), 0);
+    BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->isWatchdogActive(),
+                     true);
+
+    // Stop -> triggers STOP_NODE -> calls do_stopWatchDog
+    tester.d_clusterStateManager_mp->stop();
+
+    // Verify state transitioned to STOPPED
+    BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
+                     mqbc::ClusterStateTableState::e_STOPPED);
+
+    // Verify watchdog state was reset
+    BMQTST_ASSERT_EQ(
+        tester.d_clusterStateManager_mp->watchdogRetriesRemaining(),
+        k_NUM_RETRIES);
+    BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->watchdogGeneration(), 1);
+    BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->isWatchdogActive(),
+                     false);
+}
+
+static void test27_watchdogFollowerRetryExhaustion()
+// ------------------------------------------------------------------------
+// WATCHDOG FOLLOWER RETRY EXHAUSTION
+//
+// Concerns:
+//   With numRetries = 1, the watchdog fires once (counter: 1 -> 0),
+//   healing restarts.  On the second fire (retries exhausted),
+//   ExitUtil::shutdown is called, which sends SIGINT to the process.
+//
+// Plan:
+//  1) Create a ClusterStateManager with numRetries = 1
+//  2) Elect leader (self is follower) -> FOL_HEALING
+//  3) Advance time -> watchdog fires -> verify retries = 0, state
+//     restarts to FOL_HEALING
+//  4) Install a SIGINT handler
+//  5) Advance time -> watchdog fires -> retries exhausted ->
+//     ExitUtil::shutdown -> verify SIGINT received
+//  6) Restore original SIGINT handler
+//
+// Testing:
+//   Watchdog retry exhaustion and broker shutdown for follower.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
+                                      "WATCHDOG FOLLOWER RETRY EXHAUSTION");
+
+    Tester tester(false,  // isLeader
+                  1,      // numRetries
+                  k_WATCHDOG_TIMEOUT_DURATION_SHORT);
+
+    bmqp_ctrlmsg::LeaderMessageSequence selfLSN;
+    selfLSN.electorTerm()    = 1U;
+    selfLSN.sequenceNumber() = 3U;
+    tester.setSelfLedgerLSN(selfLSN);
+
+    // 1.) Transition to Follower Healing
+    tester.electLeader(2U);
+    BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
+                    mqbc::ClusterStateTableState::e_FOL_HEALING);
+    tester.verifyRegistrationRequestSent(selfLSN);
+    tester.clearChannels();
+
+    // 2.) First watchdog fire -> retries=0, state restarts
+    tester.d_cluster_mp->advanceTime(k_WATCHDOG_TIMEOUT_DURATION_SHORT);
+    tester.d_cluster_mp->waitForScheduler();
+    BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
+                     mqbc::ClusterStateTableState::e_FOL_HEALING);
+    BMQTST_ASSERT_EQ(
+        tester.d_clusterStateManager_mp->watchdogRetriesRemaining(),
+        0);
+    tester.verifyRegistrationRequestSent(selfLSN);
+    tester.clearChannels();
+
+    // 3.) Second watchdog fire -> retries exhausted -> ExitUtil::shutdown
+    s_sigintReceived = 0;
+
+    struct sigaction sa, oldSa;
+    sa.sa_handler = testSigintHandler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sigaction(SIGINT, &sa, &oldSa);
+
+    tester.d_cluster_mp->advanceTime(k_WATCHDOG_TIMEOUT_DURATION_SHORT);
+    tester.d_cluster_mp->waitForScheduler();
+
+    BMQTST_ASSERT_EQ(static_cast<int>(s_sigintReceived), 1);
+
+    // Restore original handler
+    sigaction(SIGINT, &oldSa, NULL);
+}
+
+static void test28_watchdogLeaderRetryExhaustion()
+// ------------------------------------------------------------------------
+// WATCHDOG LEADER RETRY EXHAUSTION
+//
+// Concerns:
+//   With numRetries = 1, the leader watchdog fires once (counter:
+//   1 -> 0), healing restarts.  On the second fire (retries exhausted),
+//   ExitUtil::shutdown is called, which sends SIGINT to the process.
+//
+// Plan:
+//  1) Create a ClusterStateManager with numRetries = 1
+//  2) Elect leader -> LDR_HEALING_STG1
+//  3) Advance time -> watchdog fires -> verify retries = 0, state
+//     restarts to LDR_HEALING_STG1
+//  4) Install a SIGINT handler
+//  5) Advance time -> watchdog fires -> retries exhausted ->
+//     ExitUtil::shutdown -> verify SIGINT received
+//  6) Restore original SIGINT handler
+//
+// Testing:
+//   Watchdog retry exhaustion and broker shutdown for leader.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
+                                      "WATCHDOG LEADER RETRY EXHAUSTION");
+
+    Tester tester(true,  // isLeader
+                  1,     // numRetries
+                  k_WATCHDOG_TIMEOUT_DURATION_SHORT);
+
+    bmqp_ctrlmsg::LeaderMessageSequence selfLSN;
+    selfLSN.electorTerm()    = 1U;
+    selfLSN.sequenceNumber() = 8U;
+    tester.setSelfLedgerLSN(selfLSN);
+
+    // 1.) Transition to Leader Healing Stage 1
+    tester.electLeader(2U);
+    BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
+                    mqbc::ClusterStateTableState::e_LDR_HEALING_STG1);
+    tester.verifyFollowerLSNRequestsSent();
+    tester.clearChannels();
+
+    // 2.) First watchdog fire -> retries=0, state restarts
+    tester.d_cluster_mp->advanceTime(k_WATCHDOG_TIMEOUT_DURATION_SHORT);
+    tester.d_cluster_mp->waitForScheduler();
+    BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
+                     mqbc::ClusterStateTableState::e_LDR_HEALING_STG1);
+    BMQTST_ASSERT_EQ(
+        tester.d_clusterStateManager_mp->watchdogRetriesRemaining(),
+        0);
+    tester.verifyFollowerLSNRequestsSent();
+    tester.clearChannels();
+
+    // 3.) Second watchdog fire -> retries exhausted -> ExitUtil::shutdown
+    s_sigintReceived = 0;
+
+    struct sigaction sa, oldSa;
+    sa.sa_handler = testSigintHandler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sigaction(SIGINT, &sa, &oldSa);
+
+    tester.d_cluster_mp->advanceTime(k_WATCHDOG_TIMEOUT_DURATION_SHORT);
+    tester.d_cluster_mp->waitForScheduler();
+
+    BMQTST_ASSERT_EQ(static_cast<int>(s_sigintReceived), 1);
+
+    // Restore original handler
+    sigaction(SIGINT, &oldSa, NULL);
 }
 
 // ============================================================================
@@ -2635,8 +2943,11 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
-    case 25: test25_watchDogFollower(); break;
-    case 24: test24_watchDogLeader(); break;
+    case 28: test28_watchdogLeaderRetryExhaustion(); break;
+    case 27: test27_watchdogFollowerRetryExhaustion(); break;
+    case 26: test26_watchdogStopResetsState(); break;
+    case 25: test25_watchdogFollower(); break;
+    case 24: test24_watchdogLeader(); break;
     case 23: test23_selectLeaderFromFollower(); break;
     case 22: test22_selectFollowerFromLeader(); break;
     case 21: test21_resetUnknownFollower(); break;
