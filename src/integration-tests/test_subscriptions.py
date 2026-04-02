@@ -70,12 +70,10 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import blazingmq.dev.it.testconstants as tc
 import pytest
-from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
+from blazingmq.dev.it.fixtures import (
     Cluster,
-    cluster,
     test_logger,
     order,
-    multi_node,
     tweak,
 )
 from blazingmq.dev.it.process.broker import Broker

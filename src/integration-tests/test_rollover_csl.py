@@ -21,7 +21,6 @@ import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (
     Cluster,
     order,
-    test_logger,
     tweak,
 )
 from blazingmq.dev.it.cluster_util import (

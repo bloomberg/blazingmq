@@ -20,9 +20,8 @@ functionality (i.e., no PUTs/CONFIRMs etc are retransmitted).
 """
 
 import blazingmq.dev.it.testconstants as tc
-from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
+from blazingmq.dev.it.fixtures import (
     Cluster,
-    multi7_node,
     start_cluster,
     tweak,
 )

@@ -22,16 +22,14 @@ local.
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (
     Cluster,
-    multi_node as cluster,
-    order,  # pylint: disable=unused-import
 )
 from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.util import wait_until
 
 
-def test_confirm_after_killing_primary(cluster: Cluster, domain_urls: tc.DomainUrls):
+def test_confirm_after_killing_primary(multi_node: Cluster, domain_urls: tc.DomainUrls):
     uri_priority = domain_urls.uri_priority
-    proxies = cluster.proxy_cycle()
+    proxies = multi_node.proxy_cycle()
 
     # we want proxy connected to a replica
     next(proxies)
@@ -51,8 +49,8 @@ def test_confirm_after_killing_primary(cluster: Cluster, domain_urls: tc.DomainU
     assert msgs[0].payload == "msg1"
 
     # make the quorum for replica to be 1 so it becomes new primary
-    replica = cluster.process(proxy.get_active_node())
-    for node in cluster.nodes():
+    replica = multi_node.process(proxy.get_active_node())
+    for node in multi_node.nodes():
         if node == replica:
             node.set_quorum(1)
         else:
@@ -60,15 +58,15 @@ def test_confirm_after_killing_primary(cluster: Cluster, domain_urls: tc.DomainU
 
     # kill the primary
     replica.drain()
-    cluster.drain()
-    leader = cluster.last_known_leader
+    multi_node.drain()
+    leader = multi_node.last_known_leader
     leader.check_exit_code = False
     leader.kill()
     leader.wait()
 
     # wait for new leader
-    cluster.wait_leader()
-    assert cluster.last_known_leader == replica
+    multi_node.wait_leader()
+    assert multi_node.last_known_leader == replica
 
     # need to wait for remote queue converted to local
     # otherwise CONFIRM/PUT can get rejected if happen in between the

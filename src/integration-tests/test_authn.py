@@ -36,10 +36,9 @@ from blazingmq.dev.it.process.rawclient import RawClient
 from blazingmq.dev.it.process.admin import AdminClient
 from blazingmq.dev.it.process.proc import ProcessExitError
 
-from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
+from blazingmq.dev.it.fixtures import (
     Cluster,
     order,
-    single_node,
     tweak,
     start_cluster,
 )

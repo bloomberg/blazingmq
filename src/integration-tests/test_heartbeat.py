@@ -19,9 +19,8 @@ heartbeats followed by dead channel detection
 """
 
 import blazingmq.dev.it.testconstants as tc
-from blazingmq.dev.it.fixtures import Cluster
-from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
-    multi_node as cluster,
+from blazingmq.dev.it.cluster import Cluster
+from blazingmq.dev.it.fixtures import (
     order,
     tweak,
 )
@@ -45,11 +44,6 @@ def _verify_delivery_to_new_consumer(proxy, uri, messages, timeout=2):
     consumer.exit_gracefully()
 
 
-def _verify_delivery_and_confirm(consumer, uri, messages):
-    _verify_delivery(consumer, uri, messages)
-    assert consumer.confirm(uri, "*", block=True) == Client.e_SUCCESS
-
-
 """
 `cluster_peer`        cluster node -> cluster node
 `upstream_broker`     proxy -> cluster node
@@ -62,11 +56,10 @@ def _verify_delivery_and_confirm(consumer, uri, messages):
 @tweak.broker.app_config.network_interfaces.heartbeats.upstream_broker(2)
 @tweak.broker.app_config.network_interfaces.tcp_interface.heartbeat_interval_ms(100)
 def test_dead_leader(
-    cluster: Cluster,
-    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+    multi_node: Cluster,
 ):
-    leader = cluster.last_known_leader
-    proxies = cluster.proxy_cycle()
+    leader = multi_node.last_known_leader
+    proxies = multi_node.proxy_cycle()
     next(proxies)
     proxy = next(proxies)
 
@@ -81,7 +74,7 @@ def test_dead_leader(
 
     _verify_delivery(consumer, tc.URI_FANOUT_SC_FOO, ["msg1"], timeout=2)
 
-    replica = cluster.process(proxy.get_active_node())
+    replica = multi_node.process(proxy.get_active_node())
 
     # replica.set_quorum(1, succeed=True)
     # leader.set_quorum(10, succeed=True)
@@ -115,7 +108,7 @@ def test_dead_leader(
     _verify_delivery(consumer, tc.URI_FANOUT_SC_FOO, ["msg1", "msg2"], timeout=2)
 
     # since the leader is still suspended (see above), kill it to stop the
-    # cluster gracefully
+    # multi_node gracefully
     leader.check_exit_code = False
     leader.kill()
 
@@ -133,11 +126,9 @@ def test_dead_leader(
 @tweak.broker.app_config.network_interfaces.heartbeats.client(3)
 @tweak.broker.app_config.network_interfaces.tcp_interface.heartbeat_interval_ms(100)
 def test_dead_proxy(
-    cluster: Cluster,
-    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+    multi_node: Cluster,
 ):
-    leader = cluster.last_known_leader
-    proxies = cluster.proxy_cycle()
+    proxies = multi_node.proxy_cycle()
     next(proxies)
     proxy = next(proxies)
 
@@ -152,7 +143,7 @@ def test_dead_proxy(
 
     _verify_delivery(consumer, tc.URI_FANOUT_SC_FOO, ["msg1"], timeout=2)
 
-    replica = cluster.process(proxy.get_active_node())
+    replica = multi_node.process(proxy.get_active_node())
 
     # imitate dead channel by suspending the proxy to which SDK is connected
     proxy.suspend()
@@ -192,11 +183,10 @@ def test_dead_proxy(
 @tweak.broker.app_config.network_interfaces.heartbeats.client(2)
 @tweak.broker.app_config.network_interfaces.tcp_interface.heartbeat_interval_ms(100)
 def test_dead_replica(
-    cluster: Cluster,
-    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+    multi_node: Cluster,
 ):
-    leader = cluster.last_known_leader
-    proxies = cluster.proxy_cycle()
+    leader = multi_node.last_known_leader
+    proxies = multi_node.proxy_cycle()
     next(proxies)
     proxy = next(proxies)
 
@@ -212,7 +202,7 @@ def test_dead_replica(
 
     _verify_delivery(consumer, tc.URI_FANOUT_SC_FOO, ["msg1"], timeout=2)
 
-    replica = cluster.process(proxy.get_active_node())
+    replica = multi_node.process(proxy.get_active_node())
 
     # imitate dead channel by suspending the active node of the proxy
     replica.suspend()
@@ -224,7 +214,7 @@ def test_dead_replica(
     proxy.capture(r"#TCP_DEAD_CHANNEL", 5)
 
     # proxy should fail over to another active node
-    failover = cluster.process(proxy.get_active_node())
+    failover = multi_node.process(proxy.get_active_node())
     assert failover
     assert not failover == replica
 

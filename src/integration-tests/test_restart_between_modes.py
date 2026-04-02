@@ -28,14 +28,10 @@ import pytest
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (
     Cluster,
-    Mode,
-    cluster_fixture,
-    multi_node_cluster_config,
-    single_node_cluster_config,
     test_logger,
     order,
     tweak,
-)  # pylint: disable=unused-import
+)
 from blazingmq.dev.it.process.broker import Broker
 from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.util import wait_until

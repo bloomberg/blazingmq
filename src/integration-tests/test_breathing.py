@@ -21,13 +21,9 @@ types of queues.
 from collections import namedtuple
 
 import blazingmq.dev.it.testconstants as tc
-from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
+from blazingmq.dev.it.fixtures import (
     Cluster,
-    cartesian_product_cluster,
-    cluster,
     order,
-    multi_node,
-    multi_interface,
     start_cluster,
     tweak,
 )

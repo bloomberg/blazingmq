@@ -20,12 +20,10 @@ from typing import Iterator
 import blazingmq.dev.it.testconstants as tc
 import pytest
 from blazingmq.dev.it import fixtures
-from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
+from blazingmq.dev.it.fixtures import (
     Cluster,
     Mode,
     test_logger,
-    order,
-    multi_node,
     tweak,
     virtual_cluster_config,
 )

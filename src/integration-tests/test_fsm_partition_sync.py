@@ -18,12 +18,11 @@ Testing primary-replica partition synchronization in FSM mode.
 """
 
 import blazingmq.dev.it.testconstants as tc
-from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
+from blazingmq.dev.it.fixtures import (
     Cluster,
     tweak,
     start_cluster,
     test_logger,
-    fsm_multi_cluster,
 )
 from blazingmq.dev.it.cluster_util import (
     stop_cluster_and_compare_journal_files,
