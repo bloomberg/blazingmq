@@ -625,6 +625,11 @@ class TweakFactory:
 
                         port = Port()
 
+                        class Tls(metaclass=TweakMetaclass):
+                            def __call__(self, value: bool) -> Callable: ...
+
+                        tls = Tls()
+
                         def __call__(self, value: None) -> Callable: ...
 
                     listeners = Listeners()
@@ -855,6 +860,42 @@ class TweakFactory:
                 ) -> Callable: ...
 
             authentication = Authentication()
+
+            class TlsConfig(metaclass=TweakMetaclass):
+                class CertificateAuthority(metaclass=TweakMetaclass):
+                    def __call__(
+                        self, value: typing.Union[str, NoneType]
+                    ) -> Callable: ...
+
+                certificate_authority = CertificateAuthority()
+
+                class Certificate(metaclass=TweakMetaclass):
+                    def __call__(
+                        self, value: typing.Union[str, NoneType]
+                    ) -> Callable: ...
+
+                certificate = Certificate()
+
+                class Key(metaclass=TweakMetaclass):
+                    def __call__(
+                        self, value: typing.Union[str, NoneType]
+                    ) -> Callable: ...
+
+                key = Key()
+
+                class Versions(metaclass=TweakMetaclass):
+                    def __call__(
+                        self, value: typing.Union[str, NoneType]
+                    ) -> Callable: ...
+
+                versions = Versions()
+
+                def __call__(
+                    self,
+                    value: typing.Union[blazingmq.schemas.mqbcfg.TlsConfig, NoneType],
+                ) -> Callable: ...
+
+            tls_config = TlsConfig()
 
             def __call__(
                 self, value: typing.Union[blazingmq.schemas.mqbcfg.AppConfig, NoneType]
