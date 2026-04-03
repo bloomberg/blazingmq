@@ -870,12 +870,10 @@ inline void MultiQueueThreadPool<TYPE>::stop()
         if (d_alarmMonitorEventHandle) {
             d_config.d_eventScheduler_p->cancelEventAndWait(
                 &d_alarmMonitorEventHandle);
-            d_alarmMonitorEventHandle.release();
         }
         if (d_warningMonitorEventHandle) {
             d_config.d_eventScheduler_p->cancelEventAndWait(
                 &d_warningMonitorEventHandle);
-            d_warningMonitorEventHandle.release();
         }
     }
 

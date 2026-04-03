@@ -224,11 +224,9 @@ void printJournalFileMeta(bsl::ostream&                    ostream,
                 }
                 p << epochValue;
 
-                const mqbs::JournalOpRecord::SyncPointData& spd =
-                    syncPt.syncPointData();
-                p << spd.sequenceNum() << spd.primaryNodeId()
-                  << spd.primaryLeaseId() << spd.dataFileOffsetDwords()
-                  << spd.qlistFileOffsetWords();
+                p << syncPt.sequenceNum() << syncPt.primaryNodeId()
+                  << syncPt.primaryLeaseId() << syncPt.dataFileOffsetDwords()
+                  << syncPt.qlistFileOffsetWords();
             }
         }
         printer << s.str();

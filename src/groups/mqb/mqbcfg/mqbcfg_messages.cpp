@@ -1,4 +1,4 @@
-// Copyright 2026 Bloomberg Finance L.P.
+// Copyright 2025-2026 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -47,9 +47,9 @@ namespace mqbcfg {
 const char AllocatorType::CLASS_NAME[] = "AllocatorType";
 
 const bdlat_EnumeratorInfo AllocatorType::ENUMERATOR_INFO_ARRAY[] = {
-    {AllocatorType::e_NEWDELETE, "NEWDELETE", sizeof("NEWDELETE") - 1, ""},
-    {AllocatorType::e_COUNTING, "COUNTING", sizeof("COUNTING") - 1, ""},
-    {AllocatorType::e_STACKTRACETEST,
+    {AllocatorType::NEWDELETE, "NEWDELETE", sizeof("NEWDELETE") - 1, ""},
+    {AllocatorType::COUNTING, "COUNTING", sizeof("COUNTING") - 1, ""},
+    {AllocatorType::STACKTRACETEST,
      "STACKTRACETEST",
      sizeof("STACKTRACETEST") - 1,
      ""}};
@@ -59,9 +59,9 @@ const bdlat_EnumeratorInfo AllocatorType::ENUMERATOR_INFO_ARRAY[] = {
 int AllocatorType::fromInt(AllocatorType::Value* result, int number)
 {
     switch (number) {
-    case AllocatorType::e_NEWDELETE:
-    case AllocatorType::e_COUNTING:
-    case AllocatorType::e_STACKTRACETEST:
+    case AllocatorType::NEWDELETE:
+    case AllocatorType::COUNTING:
+    case AllocatorType::STACKTRACETEST:
         *result = static_cast<AllocatorType::Value>(number);
         return 0;
     default: return -1;
@@ -90,13 +90,13 @@ int AllocatorType::fromString(AllocatorType::Value* result,
 const char* AllocatorType::toString(AllocatorType::Value value)
 {
     switch (value) {
-    case e_NEWDELETE: {
+    case NEWDELETE: {
         return "NEWDELETE";
     }
-    case e_COUNTING: {
+    case COUNTING: {
         return "COUNTING";
     }
-    case e_STACKTRACETEST: {
+    case STACKTRACETEST: {
         return "STACKTRACETEST";
     }
     }
@@ -189,6 +189,22 @@ const bool ClusterAttributes::DEFAULT_INITIALIZER_IS_F_S_M_WORKFLOW = false;
 const bool ClusterAttributes::DEFAULT_INITIALIZER_DOES_F_S_MWRITE_Q_L_I_S_T =
     true;
 
+const int
+    ClusterAttributes::DEFAULT_INITIALIZER_CLUSTER_FSM_WATCHDOG_TIMEOUT_SEC =
+        300;
+
+const int
+    ClusterAttributes::DEFAULT_INITIALIZER_CLUSTER_FSM_WATCHDOG_NUM_RETRIES =
+        1;
+
+const int
+    ClusterAttributes::DEFAULT_INITIALIZER_PARTITION_FSM_WATCHDOG_TIMEOUT_SEC =
+        300;
+
+const int
+    ClusterAttributes::DEFAULT_INITIALIZER_PARTITION_FSM_WATCHDOG_NUM_RETRIES =
+        1;
+
 const bdlat_AttributeInfo ClusterAttributes::ATTRIBUTE_INFO_ARRAY[] = {
     {ATTRIBUTE_ID_IS_C_S_L_MODE_ENABLED,
      "isCSLModeEnabled",
@@ -204,14 +220,34 @@ const bdlat_AttributeInfo ClusterAttributes::ATTRIBUTE_INFO_ARRAY[] = {
      "doesFSMwriteQLIST",
      sizeof("doesFSMwriteQLIST") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
+    {ATTRIBUTE_ID_CLUSTER_FSM_WATCHDOG_TIMEOUT_SEC,
+     "clusterFsmWatchdogTimeoutSec",
+     sizeof("clusterFsmWatchdogTimeoutSec") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+    {ATTRIBUTE_ID_CLUSTER_FSM_WATCHDOG_NUM_RETRIES,
+     "clusterFsmWatchdogNumRetries",
+     sizeof("clusterFsmWatchdogNumRetries") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+    {ATTRIBUTE_ID_PARTITION_FSM_WATCHDOG_TIMEOUT_SEC,
+     "partitionFsmWatchdogTimeoutSec",
+     sizeof("partitionFsmWatchdogTimeoutSec") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+    {ATTRIBUTE_ID_PARTITION_FSM_WATCHDOG_NUM_RETRIES,
+     "partitionFsmWatchdogNumRetries",
+     sizeof("partitionFsmWatchdogNumRetries") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
 const bdlat_AttributeInfo*
 ClusterAttributes::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 7; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             ClusterAttributes::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -234,6 +270,18 @@ const bdlat_AttributeInfo* ClusterAttributes::lookupAttributeInfo(int id)
     case ATTRIBUTE_ID_DOES_F_S_MWRITE_Q_L_I_S_T:
         return &ATTRIBUTE_INFO_ARRAY
             [ATTRIBUTE_INDEX_DOES_F_S_MWRITE_Q_L_I_S_T];
+    case ATTRIBUTE_ID_CLUSTER_FSM_WATCHDOG_TIMEOUT_SEC:
+        return &ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_CLUSTER_FSM_WATCHDOG_TIMEOUT_SEC];
+    case ATTRIBUTE_ID_CLUSTER_FSM_WATCHDOG_NUM_RETRIES:
+        return &ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_CLUSTER_FSM_WATCHDOG_NUM_RETRIES];
+    case ATTRIBUTE_ID_PARTITION_FSM_WATCHDOG_TIMEOUT_SEC:
+        return &ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_PARTITION_FSM_WATCHDOG_TIMEOUT_SEC];
+    case ATTRIBUTE_ID_PARTITION_FSM_WATCHDOG_NUM_RETRIES:
+        return &ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_PARTITION_FSM_WATCHDOG_NUM_RETRIES];
     default: return 0;
     }
 }
@@ -241,7 +289,15 @@ const bdlat_AttributeInfo* ClusterAttributes::lookupAttributeInfo(int id)
 // CREATORS
 
 ClusterAttributes::ClusterAttributes()
-: d_isCSLModeEnabled(DEFAULT_INITIALIZER_IS_C_S_L_MODE_ENABLED)
+: d_clusterFsmWatchdogTimeoutSec(
+      DEFAULT_INITIALIZER_CLUSTER_FSM_WATCHDOG_TIMEOUT_SEC)
+, d_clusterFsmWatchdogNumRetries(
+      DEFAULT_INITIALIZER_CLUSTER_FSM_WATCHDOG_NUM_RETRIES)
+, d_partitionFsmWatchdogTimeoutSec(
+      DEFAULT_INITIALIZER_PARTITION_FSM_WATCHDOG_TIMEOUT_SEC)
+, d_partitionFsmWatchdogNumRetries(
+      DEFAULT_INITIALIZER_PARTITION_FSM_WATCHDOG_NUM_RETRIES)
+, d_isCSLModeEnabled(DEFAULT_INITIALIZER_IS_C_S_L_MODE_ENABLED)
 , d_isFSMWorkflow(DEFAULT_INITIALIZER_IS_F_S_M_WORKFLOW)
 , d_doesFSMwriteQLIST(DEFAULT_INITIALIZER_DOES_F_S_MWRITE_Q_L_I_S_T)
 {
@@ -254,6 +310,14 @@ void ClusterAttributes::reset()
     d_isCSLModeEnabled  = DEFAULT_INITIALIZER_IS_C_S_L_MODE_ENABLED;
     d_isFSMWorkflow     = DEFAULT_INITIALIZER_IS_F_S_M_WORKFLOW;
     d_doesFSMwriteQLIST = DEFAULT_INITIALIZER_DOES_F_S_MWRITE_Q_L_I_S_T;
+    d_clusterFsmWatchdogTimeoutSec =
+        DEFAULT_INITIALIZER_CLUSTER_FSM_WATCHDOG_TIMEOUT_SEC;
+    d_clusterFsmWatchdogNumRetries =
+        DEFAULT_INITIALIZER_CLUSTER_FSM_WATCHDOG_NUM_RETRIES;
+    d_partitionFsmWatchdogTimeoutSec =
+        DEFAULT_INITIALIZER_PARTITION_FSM_WATCHDOG_TIMEOUT_SEC;
+    d_partitionFsmWatchdogNumRetries =
+        DEFAULT_INITIALIZER_PARTITION_FSM_WATCHDOG_NUM_RETRIES;
 }
 
 // ACCESSORS
@@ -267,6 +331,14 @@ bsl::ostream& ClusterAttributes::print(bsl::ostream& stream,
     printer.printAttribute("isCSLModeEnabled", this->isCSLModeEnabled());
     printer.printAttribute("isFSMWorkflow", this->isFSMWorkflow());
     printer.printAttribute("doesFSMwriteQLIST", this->doesFSMwriteQLIST());
+    printer.printAttribute("clusterFsmWatchdogTimeoutSec",
+                           this->clusterFsmWatchdogTimeoutSec());
+    printer.printAttribute("clusterFsmWatchdogNumRetries",
+                           this->clusterFsmWatchdogNumRetries());
+    printer.printAttribute("partitionFsmWatchdogTimeoutSec",
+                           this->partitionFsmWatchdogTimeoutSec());
+    printer.printAttribute("partitionFsmWatchdogNumRetries",
+                           this->partitionFsmWatchdogNumRetries());
     printer.end();
     return stream;
 }
@@ -878,16 +950,16 @@ ElectorConfig::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 const char ExportMode::CLASS_NAME[] = "ExportMode";
 
 const bdlat_EnumeratorInfo ExportMode::ENUMERATOR_INFO_ARRAY[] = {
-    {ExportMode::e_E_PUSH, "E_PUSH", sizeof("E_PUSH") - 1, ""},
-    {ExportMode::e_E_PULL, "E_PULL", sizeof("E_PULL") - 1, ""}};
+    {ExportMode::E_PUSH, "E_PUSH", sizeof("E_PUSH") - 1, ""},
+    {ExportMode::E_PULL, "E_PULL", sizeof("E_PULL") - 1, ""}};
 
 // CLASS METHODS
 
 int ExportMode::fromInt(ExportMode::Value* result, int number)
 {
     switch (number) {
-    case ExportMode::e_E_PUSH:
-    case ExportMode::e_E_PULL:
+    case ExportMode::E_PUSH:
+    case ExportMode::E_PULL:
         *result = static_cast<ExportMode::Value>(number);
         return 0;
     default: return -1;
@@ -915,10 +987,10 @@ int ExportMode::fromString(ExportMode::Value* result,
 const char* ExportMode::toString(ExportMode::Value value)
 {
     switch (value) {
-    case e_E_PUSH: {
+    case E_PUSH: {
         return "E_PUSH";
     }
-    case e_E_PULL: {
+    case E_PULL: {
         return "E_PULL";
     }
     }
@@ -1192,11 +1264,11 @@ const char MasterAssignmentAlgorithm::CLASS_NAME[] =
     "MasterAssignmentAlgorithm";
 
 const bdlat_EnumeratorInfo MasterAssignmentAlgorithm::ENUMERATOR_INFO_ARRAY[] =
-    {{MasterAssignmentAlgorithm::e_E_LEADER_IS_MASTER_ALL,
+    {{MasterAssignmentAlgorithm::E_LEADER_IS_MASTER_ALL,
       "E_LEADER_IS_MASTER_ALL",
       sizeof("E_LEADER_IS_MASTER_ALL") - 1,
       ""},
-     {MasterAssignmentAlgorithm::e_E_LEAST_ASSIGNED,
+     {MasterAssignmentAlgorithm::E_LEAST_ASSIGNED,
       "E_LEAST_ASSIGNED",
       sizeof("E_LEAST_ASSIGNED") - 1,
       ""}};
@@ -1208,8 +1280,8 @@ int MasterAssignmentAlgorithm::fromInt(
     int                               number)
 {
     switch (number) {
-    case MasterAssignmentAlgorithm::e_E_LEADER_IS_MASTER_ALL:
-    case MasterAssignmentAlgorithm::e_E_LEAST_ASSIGNED:
+    case MasterAssignmentAlgorithm::E_LEADER_IS_MASTER_ALL:
+    case MasterAssignmentAlgorithm::E_LEAST_ASSIGNED:
         *result = static_cast<MasterAssignmentAlgorithm::Value>(number);
         return 0;
     default: return -1;
@@ -1240,10 +1312,10 @@ const char*
 MasterAssignmentAlgorithm::toString(MasterAssignmentAlgorithm::Value value)
 {
     switch (value) {
-    case e_E_LEADER_IS_MASTER_ALL: {
+    case E_LEADER_IS_MASTER_ALL: {
         return "E_LEADER_IS_MASTER_ALL";
     }
-    case e_E_LEAST_ASSIGNED: {
+    case E_LEAST_ASSIGNED: {
         return "E_LEAST_ASSIGNED";
     }
     }
@@ -4296,11 +4368,6 @@ const char PartitionConfig::CLASS_NAME[] = "PartitionConfig";
 const bsls::Types::Uint64
     PartitionConfig::DEFAULT_INITIALIZER_MAX_C_S_L_FILE_SIZE = 67108864;
 
-const unsigned int PartitionConfig::DEFAULT_INITIALIZER_GROW_STEP_PERCENT = 50;
-
-const unsigned int
-    PartitionConfig::DEFAULT_INITIALIZER_MIN_AVAIL_SPACE_PERCENT = 20;
-
 const bool PartitionConfig::DEFAULT_INITIALIZER_PREALLOCATE = false;
 
 const bool PartitionConfig::DEFAULT_INITIALIZER_PREFAULT_PAGES = false;
@@ -4343,31 +4410,6 @@ const bdlat_AttributeInfo PartitionConfig::ATTRIBUTE_INFO_ARRAY[] = {
      sizeof("maxCSLFileSize") - 1,
      "",
      bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
-    {ATTRIBUTE_ID_DATA_FILE_GROW_LIMIT,
-     "dataFileGrowLimit",
-     sizeof("dataFileGrowLimit") - 1,
-     "",
-     bdlat_FormattingMode::e_DEC},
-    {ATTRIBUTE_ID_JOURNAL_FILE_GROW_LIMIT,
-     "journalFileGrowLimit",
-     sizeof("journalFileGrowLimit") - 1,
-     "",
-     bdlat_FormattingMode::e_DEC},
-    {ATTRIBUTE_ID_Q_LIST_FILE_GROW_LIMIT,
-     "qListFileGrowLimit",
-     sizeof("qListFileGrowLimit") - 1,
-     "",
-     bdlat_FormattingMode::e_DEC},
-    {ATTRIBUTE_ID_GROW_STEP_PERCENT,
-     "growStepPercent",
-     sizeof("growStepPercent") - 1,
-     "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
-    {ATTRIBUTE_ID_MIN_AVAIL_SPACE_PERCENT,
-     "minAvailSpacePercent",
-     sizeof("minAvailSpacePercent") - 1,
-     "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_PREALLOCATE,
      "preallocate",
      sizeof("preallocate") - 1,
@@ -4399,7 +4441,7 @@ const bdlat_AttributeInfo PartitionConfig::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo*
 PartitionConfig::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 17; ++i) {
+    for (int i = 0; i < 12; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             PartitionConfig::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -4429,16 +4471,6 @@ const bdlat_AttributeInfo* PartitionConfig::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_QLIST_FILE_SIZE];
     case ATTRIBUTE_ID_MAX_C_S_L_FILE_SIZE:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_C_S_L_FILE_SIZE];
-    case ATTRIBUTE_ID_DATA_FILE_GROW_LIMIT:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DATA_FILE_GROW_LIMIT];
-    case ATTRIBUTE_ID_JOURNAL_FILE_GROW_LIMIT:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_JOURNAL_FILE_GROW_LIMIT];
-    case ATTRIBUTE_ID_Q_LIST_FILE_GROW_LIMIT:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_Q_LIST_FILE_GROW_LIMIT];
-    case ATTRIBUTE_ID_GROW_STEP_PERCENT:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_GROW_STEP_PERCENT];
-    case ATTRIBUTE_ID_MIN_AVAIL_SPACE_PERCENT:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MIN_AVAIL_SPACE_PERCENT];
     case ATTRIBUTE_ID_PREALLOCATE:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PREALLOCATE];
     case ATTRIBUTE_ID_MAX_ARCHIVED_FILE_SETS:
@@ -4460,14 +4492,9 @@ PartitionConfig::PartitionConfig(bslma::Allocator* basicAllocator)
 , d_maxJournalFileSize()
 , d_maxQlistFileSize()
 , d_maxCSLFileSize(DEFAULT_INITIALIZER_MAX_C_S_L_FILE_SIZE)
-, d_dataFileGrowLimit()
-, d_journalFileGrowLimit()
-, d_qListFileGrowLimit()
 , d_location(basicAllocator)
 , d_archiveLocation(basicAllocator)
 , d_syncConfig()
-, d_growStepPercent(DEFAULT_INITIALIZER_GROW_STEP_PERCENT)
-, d_minAvailSpacePercent(DEFAULT_INITIALIZER_MIN_AVAIL_SPACE_PERCENT)
 , d_numPartitions()
 , d_maxArchivedFileSets()
 , d_preallocate(DEFAULT_INITIALIZER_PREALLOCATE)
@@ -4482,14 +4509,9 @@ PartitionConfig::PartitionConfig(const PartitionConfig& original,
 , d_maxJournalFileSize(original.d_maxJournalFileSize)
 , d_maxQlistFileSize(original.d_maxQlistFileSize)
 , d_maxCSLFileSize(original.d_maxCSLFileSize)
-, d_dataFileGrowLimit(original.d_dataFileGrowLimit)
-, d_journalFileGrowLimit(original.d_journalFileGrowLimit)
-, d_qListFileGrowLimit(original.d_qListFileGrowLimit)
 , d_location(original.d_location, basicAllocator)
 , d_archiveLocation(original.d_archiveLocation, basicAllocator)
 , d_syncConfig(original.d_syncConfig)
-, d_growStepPercent(original.d_growStepPercent)
-, d_minAvailSpacePercent(original.d_minAvailSpacePercent)
 , d_numPartitions(original.d_numPartitions)
 , d_maxArchivedFileSets(original.d_maxArchivedFileSets)
 , d_preallocate(original.d_preallocate)
@@ -4505,14 +4527,9 @@ PartitionConfig::PartitionConfig(PartitionConfig&& original) noexcept
   d_maxJournalFileSize(bsl::move(original.d_maxJournalFileSize)),
   d_maxQlistFileSize(bsl::move(original.d_maxQlistFileSize)),
   d_maxCSLFileSize(bsl::move(original.d_maxCSLFileSize)),
-  d_dataFileGrowLimit(bsl::move(original.d_dataFileGrowLimit)),
-  d_journalFileGrowLimit(bsl::move(original.d_journalFileGrowLimit)),
-  d_qListFileGrowLimit(bsl::move(original.d_qListFileGrowLimit)),
   d_location(bsl::move(original.d_location)),
   d_archiveLocation(bsl::move(original.d_archiveLocation)),
   d_syncConfig(bsl::move(original.d_syncConfig)),
-  d_growStepPercent(bsl::move(original.d_growStepPercent)),
-  d_minAvailSpacePercent(bsl::move(original.d_minAvailSpacePercent)),
   d_numPartitions(bsl::move(original.d_numPartitions)),
   d_maxArchivedFileSets(bsl::move(original.d_maxArchivedFileSets)),
   d_preallocate(bsl::move(original.d_preallocate)),
@@ -4527,14 +4544,9 @@ PartitionConfig::PartitionConfig(PartitionConfig&& original,
 , d_maxJournalFileSize(bsl::move(original.d_maxJournalFileSize))
 , d_maxQlistFileSize(bsl::move(original.d_maxQlistFileSize))
 , d_maxCSLFileSize(bsl::move(original.d_maxCSLFileSize))
-, d_dataFileGrowLimit(bsl::move(original.d_dataFileGrowLimit))
-, d_journalFileGrowLimit(bsl::move(original.d_journalFileGrowLimit))
-, d_qListFileGrowLimit(bsl::move(original.d_qListFileGrowLimit))
 , d_location(bsl::move(original.d_location), basicAllocator)
 , d_archiveLocation(bsl::move(original.d_archiveLocation), basicAllocator)
 , d_syncConfig(bsl::move(original.d_syncConfig))
-, d_growStepPercent(bsl::move(original.d_growStepPercent))
-, d_minAvailSpacePercent(bsl::move(original.d_minAvailSpacePercent))
 , d_numPartitions(bsl::move(original.d_numPartitions))
 , d_maxArchivedFileSets(bsl::move(original.d_maxArchivedFileSets))
 , d_preallocate(bsl::move(original.d_preallocate))
@@ -4553,23 +4565,18 @@ PartitionConfig::~PartitionConfig()
 PartitionConfig& PartitionConfig::operator=(const PartitionConfig& rhs)
 {
     if (this != &rhs) {
-        d_numPartitions        = rhs.d_numPartitions;
-        d_location             = rhs.d_location;
-        d_archiveLocation      = rhs.d_archiveLocation;
-        d_maxDataFileSize      = rhs.d_maxDataFileSize;
-        d_maxJournalFileSize   = rhs.d_maxJournalFileSize;
-        d_maxQlistFileSize     = rhs.d_maxQlistFileSize;
-        d_maxCSLFileSize       = rhs.d_maxCSLFileSize;
-        d_dataFileGrowLimit    = rhs.d_dataFileGrowLimit;
-        d_journalFileGrowLimit = rhs.d_journalFileGrowLimit;
-        d_qListFileGrowLimit   = rhs.d_qListFileGrowLimit;
-        d_growStepPercent      = rhs.d_growStepPercent;
-        d_minAvailSpacePercent = rhs.d_minAvailSpacePercent;
-        d_preallocate          = rhs.d_preallocate;
-        d_maxArchivedFileSets  = rhs.d_maxArchivedFileSets;
-        d_prefaultPages        = rhs.d_prefaultPages;
-        d_flushAtShutdown      = rhs.d_flushAtShutdown;
-        d_syncConfig           = rhs.d_syncConfig;
+        d_numPartitions       = rhs.d_numPartitions;
+        d_location            = rhs.d_location;
+        d_archiveLocation     = rhs.d_archiveLocation;
+        d_maxDataFileSize     = rhs.d_maxDataFileSize;
+        d_maxJournalFileSize  = rhs.d_maxJournalFileSize;
+        d_maxQlistFileSize    = rhs.d_maxQlistFileSize;
+        d_maxCSLFileSize      = rhs.d_maxCSLFileSize;
+        d_preallocate         = rhs.d_preallocate;
+        d_maxArchivedFileSets = rhs.d_maxArchivedFileSets;
+        d_prefaultPages       = rhs.d_prefaultPages;
+        d_flushAtShutdown     = rhs.d_flushAtShutdown;
+        d_syncConfig          = rhs.d_syncConfig;
     }
 
     return *this;
@@ -4580,23 +4587,18 @@ PartitionConfig& PartitionConfig::operator=(const PartitionConfig& rhs)
 PartitionConfig& PartitionConfig::operator=(PartitionConfig&& rhs)
 {
     if (this != &rhs) {
-        d_numPartitions        = bsl::move(rhs.d_numPartitions);
-        d_location             = bsl::move(rhs.d_location);
-        d_archiveLocation      = bsl::move(rhs.d_archiveLocation);
-        d_maxDataFileSize      = bsl::move(rhs.d_maxDataFileSize);
-        d_maxJournalFileSize   = bsl::move(rhs.d_maxJournalFileSize);
-        d_maxQlistFileSize     = bsl::move(rhs.d_maxQlistFileSize);
-        d_maxCSLFileSize       = bsl::move(rhs.d_maxCSLFileSize);
-        d_dataFileGrowLimit    = bsl::move(rhs.d_dataFileGrowLimit);
-        d_journalFileGrowLimit = bsl::move(rhs.d_journalFileGrowLimit);
-        d_qListFileGrowLimit   = bsl::move(rhs.d_qListFileGrowLimit);
-        d_growStepPercent      = bsl::move(rhs.d_growStepPercent);
-        d_minAvailSpacePercent = bsl::move(rhs.d_minAvailSpacePercent);
-        d_preallocate          = bsl::move(rhs.d_preallocate);
-        d_maxArchivedFileSets  = bsl::move(rhs.d_maxArchivedFileSets);
-        d_prefaultPages        = bsl::move(rhs.d_prefaultPages);
-        d_flushAtShutdown      = bsl::move(rhs.d_flushAtShutdown);
-        d_syncConfig           = bsl::move(rhs.d_syncConfig);
+        d_numPartitions       = bsl::move(rhs.d_numPartitions);
+        d_location            = bsl::move(rhs.d_location);
+        d_archiveLocation     = bsl::move(rhs.d_archiveLocation);
+        d_maxDataFileSize     = bsl::move(rhs.d_maxDataFileSize);
+        d_maxJournalFileSize  = bsl::move(rhs.d_maxJournalFileSize);
+        d_maxQlistFileSize    = bsl::move(rhs.d_maxQlistFileSize);
+        d_maxCSLFileSize      = bsl::move(rhs.d_maxCSLFileSize);
+        d_preallocate         = bsl::move(rhs.d_preallocate);
+        d_maxArchivedFileSets = bsl::move(rhs.d_maxArchivedFileSets);
+        d_prefaultPages       = bsl::move(rhs.d_prefaultPages);
+        d_flushAtShutdown     = bsl::move(rhs.d_flushAtShutdown);
+        d_syncConfig          = bsl::move(rhs.d_syncConfig);
     }
 
     return *this;
@@ -4612,12 +4614,7 @@ void PartitionConfig::reset()
     bdlat_ValueTypeFunctions::reset(&d_maxJournalFileSize);
     bdlat_ValueTypeFunctions::reset(&d_maxQlistFileSize);
     d_maxCSLFileSize = DEFAULT_INITIALIZER_MAX_C_S_L_FILE_SIZE;
-    bdlat_ValueTypeFunctions::reset(&d_dataFileGrowLimit);
-    bdlat_ValueTypeFunctions::reset(&d_journalFileGrowLimit);
-    bdlat_ValueTypeFunctions::reset(&d_qListFileGrowLimit);
-    d_growStepPercent      = DEFAULT_INITIALIZER_GROW_STEP_PERCENT;
-    d_minAvailSpacePercent = DEFAULT_INITIALIZER_MIN_AVAIL_SPACE_PERCENT;
-    d_preallocate          = DEFAULT_INITIALIZER_PREALLOCATE;
+    d_preallocate    = DEFAULT_INITIALIZER_PREALLOCATE;
     bdlat_ValueTypeFunctions::reset(&d_maxArchivedFileSets);
     d_prefaultPages   = DEFAULT_INITIALIZER_PREFAULT_PAGES;
     d_flushAtShutdown = DEFAULT_INITIALIZER_FLUSH_AT_SHUTDOWN;
@@ -4639,13 +4636,6 @@ bsl::ostream& PartitionConfig::print(bsl::ostream& stream,
     printer.printAttribute("maxJournalFileSize", this->maxJournalFileSize());
     printer.printAttribute("maxQlistFileSize", this->maxQlistFileSize());
     printer.printAttribute("maxCSLFileSize", this->maxCSLFileSize());
-    printer.printAttribute("dataFileGrowLimit", this->dataFileGrowLimit());
-    printer.printAttribute("journalFileGrowLimit",
-                           this->journalFileGrowLimit());
-    printer.printAttribute("qListFileGrowLimit", this->qListFileGrowLimit());
-    printer.printAttribute("growStepPercent", this->growStepPercent());
-    printer.printAttribute("minAvailSpacePercent",
-                           this->minAvailSpacePercent());
     printer.printAttribute("preallocate", this->preallocate());
     printer.printAttribute("maxArchivedFileSets", this->maxArchivedFileSets());
     printer.printAttribute("prefaultPages", this->prefaultPages());
@@ -6150,12 +6140,12 @@ const bdlat_AttributeInfo AuthenticatorConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "minThreads",
      sizeof("minThreads") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_MAX_THREADS,
      "maxThreads",
      sizeof("maxThreads") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_DEC}};
 
 // CLASS METHODS
 

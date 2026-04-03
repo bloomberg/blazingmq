@@ -9,7 +9,7 @@ handle all messages gracefully, even if message is malformed.
 
 # Launching #
 
-- Build the BlazingMQ broker (the build dir might be `cmake.bld/Linux/src/applications/bmqbrkr`)
+- Build the BlazingMQ broker (the build dir might be `build/blazingmq/src/applications/bmqbrkr`)
 
 - Set up the repo dir for convenience
 
@@ -22,7 +22,7 @@ export BLAZINGMQ_REPO=`pwd`
 ```shell
 python3 -m venv ${BLAZINGMQ_REPO}/venv
 source ${BLAZINGMQ_REPO}/venv/bin/activate
-pip3 install -r "${BLAZINGMQ_REPO}/src/python/blazingmq/dev/requirements.txt"
+pip3 install -r "${BLAZINGMQ_REPO}/src/python/requirements-dev.txt"
 ```
 
 - Launch fuzz testing:
@@ -30,5 +30,5 @@ pip3 install -r "${BLAZINGMQ_REPO}/src/python/blazingmq/dev/requirements.txt"
 ```shell
 source ${BLAZINGMQ_REPO}/venv/bin/activate
 cd ${BLAZINGMQ_REPO}/src/python
-python3 -m blazingmq.dev.fuzztest --broker-dir "${BLAZINGMQ_REPO}/cmake.bld/Linux/src/applications/bmqbrkr"
+python3 -m blazingmq.dev.fuzztest --broker-dir "${BLAZINGMQ_REPO}/build/blazingmq/src/applications/bmqbrkr"
 ```

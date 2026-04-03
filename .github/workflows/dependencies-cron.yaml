@@ -1,0 +1,18 @@
+name: Dependencies (nightly)
+
+on:
+  schedule:
+    # Rebuild dependencies cache from the "main" branch at the beginning of a new day,
+    # so it is accessible from other branches' PRs
+    - cron: "10 0 * * *"
+
+jobs:
+  build_dependencies_cpp03:
+    uses: ./.github/workflows/dependencies.yaml
+    with:
+      cxx_standard: cpp03
+
+  build_dependencies_cpp23:
+    uses: ./.github/workflows/dependencies.yaml
+    with:
+      cxx_standard: cpp23

@@ -63,6 +63,9 @@
 #include <bsls_systemtime.h>
 #include <bsls_types.h>
 
+// SYS
+#include <bsl_c_signal.h>  // sigaction, sig_atomic_t
+
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
 #include <bmqu_tempdirectory.h>
@@ -79,12 +82,30 @@ namespace {
 static const bsls::Types::Int64 k_WATCHDOG_TIMEOUT_DURATION = 5 * 60;
 // 5 minutes
 
+static const int k_WATCHDOG_NUM_RETRIES = 1;
+
+// Shorter watchdog timeout for retry tests, chosen to be less than the
+// 10-second request timeout so that advancing time fires the watchdog
+// without also expiring pending replica/primary state requests.
+static const bsls::Types::Int64 k_WATCHDOG_TIMEOUT_DURATION_SHORT = 5;
+
+/// Flag set by `testSigintHandler` when SIGINT is received.  Used to
+/// verify that `mqbu::ExitUtil::shutdown` was invoked (which sends
+/// SIGINT to the process) without actually terminating the test.
+static volatile sig_atomic_t s_sigintReceived = 0;
+
+/// Signal handler that captures SIGINT instead of terminating.
+static void testSigintHandler(int /* signum */)
+{
+    s_sigintReceived = 1;
+}
+
 // TYPES
 typedef mqbmock::Cluster::TestChannelMapCIter TestChannelMapCIter;
 
-typedef mqbc::StorageManager::NodeToContextMap NodeToContextMap;
-typedef mqbc::StorageManager::NodeToContextMap::const_iterator
-    NodeToContextMapCIter;
+typedef mqbc::StorageManager::NodeToSeqNumCtxMap NodeToSeqNumCtxMap;
+typedef mqbc::StorageManager::NodeToSeqNumCtxMap::const_iterator
+    NodeToSeqNumCtxMapCIter;
 typedef bsl::pair<mqbnet::ClusterNode*, bmqp_ctrlmsg::PartitionSequenceNumber>
     NodeSeqNumPair;
 
@@ -185,6 +206,11 @@ struct TestHelper {
         d_cluster_mp->_clusterData()->stats().setIsMember(true);
 
         BSLS_ASSERT_OPT(d_cluster_mp->_channels().size() > 0);
+
+        // In some UTs, operations with cluster might be executed either
+        // from the main thread or from the scheduler thread.
+        // To pass `inDispatcherThread` checks (allow ANY thread):
+        d_cluster_mp->setThreadId(mqbi::DispatcherClient::k_ANY_THREAD_ID);
 
         bmqsys::Time::initialize(
             &bsls::SystemTime::nowRealtimeClock,
@@ -681,11 +707,6 @@ struct TestHelper {
 
         replicaStateResponse.partitionId()          = partitionId;
         replicaStateResponse.latestSequenceNumber() = seqNum;
-        replicaStateResponse.partitionMaxFileSizes().dataFileSize() =
-            mqbmock::Cluster::k_MAX_DATA_FILE_SIZE;
-        replicaStateResponse.partitionMaxFileSizes().journalFileSize() =
-            mqbmock::Cluster::k_MAX_JOURNAL_FILE_SIZE;
-        replicaStateResponse.partitionMaxFileSizes().qListFileSize() = 0;
 
         for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
              cit != d_cluster_mp->_channels().cend();
@@ -711,18 +732,18 @@ struct TestHelper {
     }
 
     NodeSeqNumPair
-    getHighestSeqNumNodeDetails(mqbnet::ClusterNode*    selfNode,
-                                const NodeToContextMap& nodeToContextMap)
+    getHighestSeqNumNodeDetails(mqbnet::ClusterNode*      selfNode,
+                                const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap)
     {
         // Return the highest sequence number (node, seqNum) pair in the
-        // specified 'nodeToContextMap'.  In case of a tie, the specified
+        // specified 'nodeToSeqNumCtxMap'.  In case of a tie, the specified
         // 'selfNode' is considered the highest.
 
         mqbnet::ClusterNode*                  highestSeqNumReplica = selfNode;
         bmqp_ctrlmsg::PartitionSequenceNumber highestSeqNum(
-            nodeToContextMap.at(selfNode).d_seqNum);
-        for (NodeToContextMapCIter cit = nodeToContextMap.cbegin();
-             cit != nodeToContextMap.cend();
+            nodeToSeqNumCtxMap.at(selfNode).d_seqNum);
+        for (NodeToSeqNumCtxMapCIter cit = nodeToSeqNumCtxMap.cbegin();
+             cit != nodeToSeqNumCtxMap.cend();
              ++cit) {
             if (cit->second.d_seqNum > highestSeqNum) {
                 highestSeqNumReplica = cit->first;
@@ -886,12 +907,7 @@ struct TestHelper {
             .setMaxDataFileSize(partitionCfg.maxDataFileSize())
             .setMaxJournalFileSize(partitionCfg.maxJournalFileSize())
             .setMaxQlistFileSize(partitionCfg.maxQlistFileSize())
-            .setMaxArchivedFileSets(partitionCfg.maxArchivedFileSets())
-            .setDataFileGrowLimit(partitionCfg.dataFileGrowLimit())
-            .setJournalFileGrowLimit(partitionCfg.journalFileGrowLimit())
-            .setQlistFileGrowLimit(partitionCfg.qListFileGrowLimit())
-            .setGrowStepPercent(partitionCfg.growStepPercent())
-            .setMinAvailSpacePercent(partitionCfg.minAvailSpacePercent());
+            .setMaxArchivedFileSets(partitionCfg.maxArchivedFileSets());
 
         bdlmt::FixedThreadPool threadPool(1,
                                           100,
@@ -972,6 +988,18 @@ struct TestHelper {
         }
     }
 
+    /// Allow any thread to pass `inDispatcherThread` checks on the
+    /// FileStores managed by the specified `storageManager`.  This is
+    /// needed in tests that fire scheduler callbacks (e.g. watchdog)
+    /// which eventually dispatch to partition threads.
+    void relaxFileStoreThreadChecks(mqbc::StorageManager* storageManager)
+    {
+        for (size_t pid = 0; pid < numPartitions(); ++pid) {
+            storageManager->fileStore(pid).setThreadId(
+                mqbi::DispatcherClient::k_ANY_THREAD_ID);
+        }
+    }
+
     ~TestHelper() { bmqsys::Time::shutdown(); }
 
     size_t numPartitions() const
@@ -1019,6 +1047,7 @@ static void test1_breathingTest()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -1069,6 +1098,7 @@ static void test2_unknownDetectSelfPrimary()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -1090,7 +1120,7 @@ static void test2_unknownDetectSelfPrimary()
 
     helper.startStorageManager(&storageManager, selfNode);
 
-    BMQTST_ASSERT_EQ(storageManager.nodeToContextMap(k_PARTITION_ID).size(),
+    BMQTST_ASSERT_EQ(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size(),
                      1U);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
@@ -1136,6 +1166,7 @@ static void test3_unknownDetectSelfReplica()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -1160,7 +1191,7 @@ static void test3_unknownDetectSelfReplica()
 
     helper.startStorageManager(&storageManager, primaryNode);
 
-    BMQTST_ASSERT_EQ(storageManager.nodeToContextMap(k_PARTITION_ID).size(),
+    BMQTST_ASSERT_EQ(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size(),
                      1U);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_REPLICA_WAITING);
@@ -1211,6 +1242,7 @@ static void test4_primaryHealingStage1ReceivesReplicaStateRqst()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -1242,10 +1274,10 @@ static void test4_primaryHealingStage1ReceivesReplicaStateRqst()
     }
     helper.clearChannels();
 
-    const NodeToContextMap& nodeToContextMap = storageManager.nodeToContextMap(
-        k_PARTITION_ID);
+    const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap =
+        storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID);
 
-    BSLS_ASSERT_OPT(nodeToContextMap.size() == 1);
+    BSLS_ASSERT_OPT(nodeToSeqNumCtxMap.size() == 1);
 
     // Receives ReplicaStateRequest from a rogue node.
     static const int             k_ROGUE_REQUEST_ID = 1;
@@ -1276,7 +1308,7 @@ static void test4_primaryHealingStage1ReceivesReplicaStateRqst()
     helper.verifyPrimarySendsFailedReplicaStateRspn(selfNodeId + 1,
                                                     k_ROGUE_REQUEST_ID);
 
-    BMQTST_ASSERT_EQ(storageManager.nodeToContextMap(k_PARTITION_ID).size(),
+    BMQTST_ASSERT_EQ(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size(),
                      1U);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
@@ -1322,6 +1354,7 @@ static void test5_primaryHealingStage1ReceivesReplicaStateRspnQuorum()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -1354,7 +1387,7 @@ static void test5_primaryHealingStage1ReceivesReplicaStateRspnQuorum()
     helper.clearChannels();
 
     // Receives ReplicaStateResponse from replica nodes.
-    BSLS_ASSERT_OPT(storageManager.nodeToContextMap(k_PARTITION_ID).size() ==
+    BSLS_ASSERT_OPT(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size() ==
                     1);
     static const int             k_REQUEST_ID = 1;
     bmqp_ctrlmsg::ControlMessage message;
@@ -1383,7 +1416,7 @@ static void test5_primaryHealingStage1ReceivesReplicaStateRspnQuorum()
     message.rId() = k_REQUEST_ID + 2;
     helper.d_cluster_mp->requestManager().processResponse(message);
 
-    BMQTST_ASSERT_EQ(storageManager.nodeToContextMap(k_PARTITION_ID).size(),
+    BMQTST_ASSERT_EQ(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size(),
                      4U);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG2);
@@ -1429,6 +1462,7 @@ static void test6_primaryHealingStage1ReceivesPrimaryStateRequestQuorum()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -1461,7 +1495,7 @@ static void test6_primaryHealingStage1ReceivesPrimaryStateRequestQuorum()
     helper.clearChannels();
 
     // Receives PrimaryStateRequest from replica nodes.
-    BSLS_ASSERT_OPT(storageManager.nodeToContextMap(k_PARTITION_ID).size() ==
+    BSLS_ASSERT_OPT(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size() ==
                     1);
     mqbnet::ClusterNode* replica1 =
         helper.d_cluster_mp->netCluster().lookupNode(selfNodeId + 1);
@@ -1495,7 +1529,7 @@ static void test6_primaryHealingStage1ReceivesPrimaryStateRequestQuorum()
         helper.d_cluster_mp->netCluster().lookupNode(selfNodeId - 1);
     storageManager.processPrimaryStateRequest(message, replica3);
 
-    BMQTST_ASSERT_EQ(storageManager.nodeToContextMap(k_PARTITION_ID).size(),
+    BMQTST_ASSERT_EQ(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size(),
                      4U);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG2);
@@ -1541,6 +1575,7 @@ static void test7_primaryHealingStage1ReceivesPrimaryStateRqst()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -1572,7 +1607,7 @@ static void test7_primaryHealingStage1ReceivesPrimaryStateRqst()
     }
     helper.clearChannels();
 
-    BSLS_ASSERT_OPT(storageManager.nodeToContextMap(k_PARTITION_ID).size() ==
+    BSLS_ASSERT_OPT(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size() ==
                     1);
 
     // Receives PrimaryStateRequest from a replica node.
@@ -1601,10 +1636,10 @@ static void test7_primaryHealingStage1ReceivesPrimaryStateRqst()
 
     storageManager.processPrimaryStateRequest(message, replicaNode);
 
-    BMQTST_ASSERT_EQ(storageManager.nodeToContextMap(k_PARTITION_ID).size(),
+    BMQTST_ASSERT_EQ(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size(),
                      2U);
     BMQTST_ASSERT_EQ(
-        storageManager.nodeToContextMap(k_PARTITION_ID).count(replicaNode),
+        storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).count(replicaNode),
         1U);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
@@ -1650,6 +1685,7 @@ static void test8_primaryHealingStage1ReceivesReplicaStateRspnNoQuorum()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -1682,7 +1718,7 @@ static void test8_primaryHealingStage1ReceivesReplicaStateRspnNoQuorum()
     helper.clearChannels();
 
     // Receives success ReplicaStateResponse from a replica node.
-    BSLS_ASSERT_OPT(storageManager.nodeToContextMap(k_PARTITION_ID).size() ==
+    BSLS_ASSERT_OPT(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size() ==
                     1);
     static const int             k_REQUEST_ID = 1;
     bmqp_ctrlmsg::ControlMessage message;
@@ -1716,7 +1752,7 @@ static void test8_primaryHealingStage1ReceivesReplicaStateRspnNoQuorum()
     failureMsg.rId() = 3;
     helper.d_cluster_mp->requestManager().processResponse(failureMsg);
 
-    BMQTST_ASSERT_EQ(storageManager.nodeToContextMap(k_PARTITION_ID).size(),
+    BMQTST_ASSERT_EQ(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size(),
                      2U);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
@@ -1764,6 +1800,7 @@ static void test9_primaryHealingStage1QuorumSendsReplicaDataRequestPull()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -1796,7 +1833,7 @@ static void test9_primaryHealingStage1QuorumSendsReplicaDataRequestPull()
     helper.clearChannels();
 
     // Receives ReplicaStateResponse from a replica node.
-    BSLS_ASSERT_OPT(storageManager.nodeToContextMap(k_PARTITION_ID).size() ==
+    BSLS_ASSERT_OPT(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size() ==
                     1);
     static const int             k_REQUEST_ID = 1;
     bmqp_ctrlmsg::ControlMessage message;
@@ -1816,12 +1853,6 @@ static void test9_primaryHealingStage1QuorumSendsReplicaDataRequestPull()
     replicaStateResponse.partitionId()          = k_PARTITION_ID;
     replicaStateResponse.latestSequenceNumber() = seqNum;
 
-    replicaStateResponse.partitionMaxFileSizes().dataFileSize() =
-        mqbmock::Cluster::k_MAX_DATA_FILE_SIZE;
-    replicaStateResponse.partitionMaxFileSizes().journalFileSize() =
-        mqbmock::Cluster::k_MAX_JOURNAL_FILE_SIZE;
-    replicaStateResponse.partitionMaxFileSizes().qListFileSize() = 0;
-
     helper.d_cluster_mp->requestManager().processResponse(message);
 
     message.rId()                               = k_REQUEST_ID + 1;
@@ -1836,7 +1867,7 @@ static void test9_primaryHealingStage1QuorumSendsReplicaDataRequestPull()
     replicaStateResponse.latestSequenceNumber() = seqNum;
     helper.d_cluster_mp->requestManager().processResponse(message);
 
-    BMQTST_ASSERT_EQ(storageManager.nodeToContextMap(k_PARTITION_ID).size(),
+    BMQTST_ASSERT_EQ(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size(),
                      4U);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG2);
@@ -1844,7 +1875,7 @@ static void test9_primaryHealingStage1QuorumSendsReplicaDataRequestPull()
     const NodeSeqNumPair& highestSeqNumNode =
         helper.getHighestSeqNumNodeDetails(
             selfNode,
-            storageManager.nodeToContextMap(k_PARTITION_ID));
+            storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID));
 
     BMQTST_ASSERT_NE(highestSeqNumNode.first, selfNode);
     BMQTST_ASSERT_EQ(highestSeqNumNode.second.sequenceNumber(), 7U);
@@ -1892,6 +1923,7 @@ static void test10_replicaWaitingDetectSelfPrimary()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -1929,9 +1961,9 @@ static void test10_replicaWaitingDetectSelfPrimary()
     }
     helper.clearChannels();
 
-    const NodeToContextMap& nodeToContextMap = storageManager.nodeToContextMap(
-        k_PARTITION_ID);
-    BSLS_ASSERT_OPT(nodeToContextMap.size() == 1);
+    const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap =
+        storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID);
+    BSLS_ASSERT_OPT(nodeToSeqNumCtxMap.size() == 1);
 
     // Apply Detect Self Primary event to Self Node.
     helper.setPartitionPrimary(&storageManager,
@@ -1942,7 +1974,7 @@ static void test10_replicaWaitingDetectSelfPrimary()
                                            selfNode,
                                            2);  // primaryLeaseId
 
-    BMQTST_ASSERT_EQ(storageManager.nodeToContextMap(k_PARTITION_ID).size(),
+    BMQTST_ASSERT_EQ(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size(),
                      1U);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
@@ -1992,6 +2024,7 @@ static void test11_replicaWaitingReceivesReplicaStateRqst()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -2024,10 +2057,10 @@ static void test11_replicaWaitingReceivesReplicaStateRqst()
     }
     helper.clearChannels();
 
-    const NodeToContextMap& nodeToContextMap = storageManager.nodeToContextMap(
-        k_PARTITION_ID);
+    const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap =
+        storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID);
 
-    BSLS_ASSERT_OPT(nodeToContextMap.size() == 1);
+    BSLS_ASSERT_OPT(nodeToSeqNumCtxMap.size() == 1);
 
     // Receives failure PrimaryStateResponse from the primary node.
     static const int             k_PRIMARY_STATE_REQUEST_ID = 1;
@@ -2066,8 +2099,8 @@ static void test11_replicaWaitingReceivesReplicaStateRqst()
 
     helper.verifyReplicaSendsReplicaStateRspn(k_PARTITION_ID, primaryNodeId);
 
-    BMQTST_ASSERT_EQ(nodeToContextMap.size(), 2U);
-    BMQTST_ASSERT_EQ(nodeToContextMap.at(primaryNode).d_seqNum, seqNum);
+    BMQTST_ASSERT_EQ(nodeToSeqNumCtxMap.size(), 2U);
+    BMQTST_ASSERT_EQ(nodeToSeqNumCtxMap.at(primaryNode).d_seqNum, seqNum);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_REPLICA_HEALING);
 
@@ -2111,6 +2144,7 @@ static void test12_replicaWaitingReceivesPrimaryStateRspn()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -2143,10 +2177,10 @@ static void test12_replicaWaitingReceivesPrimaryStateRspn()
     }
     helper.clearChannels();
 
-    const NodeToContextMap& nodeToContextMap = storageManager.nodeToContextMap(
-        k_PARTITION_ID);
+    const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap =
+        storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID);
 
-    BSLS_ASSERT_OPT(nodeToContextMap.size() == 1);
+    BSLS_ASSERT_OPT(nodeToSeqNumCtxMap.size() == 1);
 
     // Receives PrimaryStateResponse from the primary node.
     static const int             k_PRIMARY_REQUEST_ID = 1;
@@ -2169,8 +2203,8 @@ static void test12_replicaWaitingReceivesPrimaryStateRspn()
 
     helper.d_cluster_mp->requestManager().processResponse(message);
 
-    BMQTST_ASSERT_EQ(nodeToContextMap.size(), 2U);
-    BMQTST_ASSERT_EQ(nodeToContextMap.at(primaryNode).d_seqNum, seqNum);
+    BMQTST_ASSERT_EQ(nodeToSeqNumCtxMap.size(), 2U);
+    BMQTST_ASSERT_EQ(nodeToSeqNumCtxMap.at(primaryNode).d_seqNum, seqNum);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_REPLICA_HEALING);
 
@@ -2214,6 +2248,7 @@ static void test13_replicaWaitingReceivesFailedPrimaryStateRspn()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -2246,10 +2281,10 @@ static void test13_replicaWaitingReceivesFailedPrimaryStateRspn()
     }
     helper.clearChannels();
 
-    const NodeToContextMap& nodeToContextMap = storageManager.nodeToContextMap(
-        k_PARTITION_ID);
+    const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap =
+        storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID);
 
-    BSLS_ASSERT_OPT(nodeToContextMap.size() == 1);
+    BSLS_ASSERT_OPT(nodeToSeqNumCtxMap.size() == 1);
 
     // Receives Failed PrimaryStateResponse from the primary node.
     static const int             k_PRIMARY_REQUEST_ID = 1;
@@ -2262,7 +2297,7 @@ static void test13_replicaWaitingReceivesFailedPrimaryStateRspn()
 
     helper.d_cluster_mp->requestManager().processResponse(failureMsg);
 
-    BMQTST_ASSERT_EQ(nodeToContextMap.size(), 1U);
+    BMQTST_ASSERT_EQ(nodeToSeqNumCtxMap.size(), 1U);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_REPLICA_HEALING);
 
@@ -2306,6 +2341,7 @@ static void test14_replicaWaitingReceivesPrimaryStateRqst()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -2338,10 +2374,10 @@ static void test14_replicaWaitingReceivesPrimaryStateRqst()
     }
     helper.clearChannels();
 
-    const NodeToContextMap& nodeToContextMap = storageManager.nodeToContextMap(
-        k_PARTITION_ID);
+    const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap =
+        storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID);
 
-    BSLS_ASSERT_OPT(nodeToContextMap.size() == 1);
+    BSLS_ASSERT_OPT(nodeToSeqNumCtxMap.size() == 1);
 
     // Receives PrimaryStateRequest from a rogue node.
     const int            rogueNodeId = selfNodeId + 2;
@@ -2372,8 +2408,8 @@ static void test14_replicaWaitingReceivesPrimaryStateRqst()
     helper.verifyReplicaSendsFailedPrimaryStateRspn(rogueNodeId,
                                                     k_ROGUE_REQUEST_ID);
 
-    BMQTST_ASSERT_EQ(nodeToContextMap.size(), 1U);
-    BMQTST_ASSERT_EQ(nodeToContextMap.count(rogueNode), 0U);
+    BMQTST_ASSERT_EQ(nodeToSeqNumCtxMap.size(), 1U);
+    BMQTST_ASSERT_EQ(nodeToSeqNumCtxMap.count(rogueNode), 0U);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_REPLICA_WAITING);
 
@@ -2430,6 +2466,7 @@ static void test15_replicaWaitingReceivesReplicaDataRqstPull()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -2463,10 +2500,10 @@ static void test15_replicaWaitingReceivesReplicaDataRqstPull()
     }
     helper.clearChannels();
 
-    const NodeToContextMap& nodeToContextMap = storageManager.nodeToContextMap(
-        k_PARTITION_ID);
+    const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap =
+        storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID);
 
-    BSLS_ASSERT_OPT(nodeToContextMap.size() == 1);
+    BSLS_ASSERT_OPT(nodeToSeqNumCtxMap.size() == 1);
 
     // Receives failure PrimaryStateResponse from the primary node.
     static const int             k_PRIMARY_STATE_REQUEST_ID = 1;
@@ -2508,8 +2545,8 @@ static void test15_replicaWaitingReceivesReplicaDataRqstPull()
                                               selfSeqNum);
     helper.clearChannels();
 
-    BMQTST_ASSERT_EQ(nodeToContextMap.size(), 2U);
-    BMQTST_ASSERT_EQ(nodeToContextMap.at(primaryNode).d_seqNum,
+    BMQTST_ASSERT_EQ(nodeToSeqNumCtxMap.size(), 2U);
+    BMQTST_ASSERT_EQ(nodeToSeqNumCtxMap.at(primaryNode).d_seqNum,
                      k_PRIMARY_SEQ_NUM);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_REPLICA_HEALING);
@@ -2591,6 +2628,7 @@ static void test16_primaryHealingStage1SelfHighestSendsDataChunks()
         helper.d_cluster_mp->_clusterData()->domainFactory(),
         helper.d_cluster_mp->dispatcher(),
         k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
         bmqtst::TestHelperUtil::allocator());
@@ -2625,10 +2663,10 @@ static void test16_primaryHealingStage1SelfHighestSendsDataChunks()
     }
     helper.clearChannels();
 
-    const NodeToContextMap& nodeToContextMap = storageManager.nodeToContextMap(
-        k_PARTITION_ID);
+    const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap =
+        storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID);
 
-    BSLS_ASSERT_OPT(nodeToContextMap.size() == 1);
+    BSLS_ASSERT_OPT(nodeToSeqNumCtxMap.size() == 1);
 
     // Receives ReplicaStateResponse from replica nodes.
     static const int             k_REQUEST_ID = 1;
@@ -2648,12 +2686,6 @@ static void test16_primaryHealingStage1SelfHighestSendsDataChunks()
     replicaStateResponse.partitionId()          = k_PARTITION_ID;
     replicaStateResponse.latestSequenceNumber() = k_REPLICA_SEQ_NUM_1;
 
-    replicaStateResponse.partitionMaxFileSizes().dataFileSize() =
-        mqbmock::Cluster::k_MAX_DATA_FILE_SIZE;
-    replicaStateResponse.partitionMaxFileSizes().journalFileSize() =
-        mqbmock::Cluster::k_MAX_JOURNAL_FILE_SIZE;
-    replicaStateResponse.partitionMaxFileSizes().qListFileSize() = 0;
-
     helper.d_cluster_mp->requestManager().processResponse(message);
 
     bmqp_ctrlmsg::PartitionSequenceNumber k_REPLICA_SEQ_NUM_2;
@@ -2667,7 +2699,7 @@ static void test16_primaryHealingStage1SelfHighestSendsDataChunks()
     replicaStateResponse.latestSequenceNumber() = selfSeqNum;
     helper.d_cluster_mp->requestManager().processResponse(message);
 
-    BSLS_ASSERT_OPT(storageManager.nodeToContextMap(k_PARTITION_ID).size() ==
+    BSLS_ASSERT_OPT(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size() ==
                     4U);
     BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
                     mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG2);
@@ -2675,7 +2707,7 @@ static void test16_primaryHealingStage1SelfHighestSendsDataChunks()
     const NodeSeqNumPair& highestSeqNumNode =
         helper.getHighestSeqNumNodeDetails(
             selfNode,
-            storageManager.nodeToContextMap(k_PARTITION_ID));
+            storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID));
 
     BSLS_ASSERT_OPT(highestSeqNumNode.first->nodeId() == selfNodeId);
     BSLS_ASSERT_OPT(highestSeqNumNode.second.sequenceNumber() == 12U);
@@ -2750,6 +2782,7 @@ static void test17_fileSizesHardLimits()
                 helper.d_cluster_mp->_clusterData()->domainFactory(),
                 helper.d_cluster_mp->dispatcher(),
                 k_WATCHDOG_TIMEOUT_DURATION,
+                k_WATCHDOG_NUM_RETRIES,
                 mockOnRecoveryStatus,
                 mockOnPartitionPrimaryStatus,
                 bmqtst::TestHelperUtil::allocator());
@@ -2808,6 +2841,440 @@ static void test17_fileSizesHardLimits()
     helper.d_cluster_mp->stop();
 }
 
+static void test18_primaryHealingWatchdogRetry()
+// ------------------------------------------------------------------------
+// PRIMARY HEALING WATCHDOG RETRY
+//
+// Concerns:
+//   When the watchdog fires with retries remaining, healing restarts
+//   (FSM cycles through UNKNOWN back to PRIMARY_HEALING_STG1) and the
+//   retry counter decrements.
+//
+// Plan:
+//  1) Create a StorageManager with numRetries = 2
+//  2) Start as primary -> state = PRIMARY_HEALING_STG1
+//  3) Verify initial watchdog context
+//  4) Transition to PRIMARY_HEALING_STG2
+//  5) Advance time to fire watchdog
+//  6) Verify state cycled back to PRIMARY_HEALING_STG1 with retries
+//     decremented
+//
+// Testing:
+//   Watchdog retry for primary healing.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("PRIMARY HEALING WATCHDOG RETRY");
+
+    static const int k_NUM_RETRIES = 2;
+
+    TestHelper helper;
+
+    mqbc::StorageManager storageManager(
+        helper.d_cluster_mp->_clusterDefinition(),
+        helper.d_cluster_mp.get(),
+        helper.d_cluster_mp->_clusterData(),
+        helper.d_cluster_mp->_state(),
+        helper.d_cluster_mp->_clusterData()->domainFactory(),
+        helper.d_cluster_mp->dispatcher(),
+        k_WATCHDOG_TIMEOUT_DURATION_SHORT,
+        k_NUM_RETRIES,
+        mockOnRecoveryStatus,
+        mockOnPartitionPrimaryStatus,
+        bmqtst::TestHelperUtil::allocator());
+
+    static const int k_PARTITION_ID = 0;
+    const int        selfNodeId     = helper.d_cluster_mp->_clusterData()
+                               ->membership()
+                               .netCluster()
+                               ->selfNodeId();
+    mqbnet::ClusterNode* selfNode = helper.d_cluster_mp->_clusterData()
+                                        ->membership()
+                                        .netCluster()
+                                        ->lookupNode(selfNodeId);
+
+    helper.startStorageManager(&storageManager, selfNode);
+    helper.relaxFileStoreThreadChecks(&storageManager);
+
+    BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+                     mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
+
+    // Verify initial watchdog state
+    BMQTST_ASSERT_EQ(storageManager.watchdogRetriesRemaining(k_PARTITION_ID),
+                     k_NUM_RETRIES);
+    BMQTST_ASSERT_EQ(storageManager.watchdogGeneration(k_PARTITION_ID), 0);
+    BMQTST_ASSERT_EQ(storageManager.isWatchdogActive(k_PARTITION_ID), true);
+
+    for (size_t pid = 0; pid < helper.numPartitions(); ++pid) {
+        helper.verifyPrimarySendsReplicaStateRqst(selfNodeId);
+    }
+    helper.clearChannels();
+
+    // Transition to PRIMARY_HEALING_STG2
+    BSLS_ASSERT_OPT(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size() ==
+                    1);
+    static const int             k_REQUEST_ID = 1;
+    bmqp_ctrlmsg::ControlMessage message;
+    message.rId() = k_REQUEST_ID;
+
+    bmqp_ctrlmsg::ReplicaStateResponse& replicaStateResponse =
+        message.choice()
+            .makeClusterMessage()
+            .choice()
+            .makePartitionMessage()
+            .choice()
+            .makeReplicaStateResponse();
+
+    bmqp_ctrlmsg::PartitionSequenceNumber seqNum;
+    seqNum.sequenceNumber() = 1U;
+    seqNum.primaryLeaseId() = 1U;
+
+    replicaStateResponse.partitionId()          = k_PARTITION_ID;
+    replicaStateResponse.latestSequenceNumber() = seqNum;
+
+    helper.d_cluster_mp->requestManager().processResponse(message);
+
+    message.rId() = k_REQUEST_ID + 1;
+    helper.d_cluster_mp->requestManager().processResponse(message);
+
+    message.rId() = k_REQUEST_ID + 2;
+    helper.d_cluster_mp->requestManager().processResponse(message);
+
+    BMQTST_ASSERT_EQ(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size(),
+                     4U);
+    BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+                     mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG2);
+    helper.clearChannels();
+
+    // Fire the watchdog
+    helper.d_cluster_mp->advanceTime(k_WATCHDOG_TIMEOUT_DURATION_SHORT);
+    helper.d_cluster_mp->waitForScheduler();
+
+    // Verify state cycled back to PRIMARY_HEALING_STG1
+    BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+                     mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
+
+    // Verify retry counter decremented
+    BMQTST_ASSERT_EQ(storageManager.watchdogRetriesRemaining(k_PARTITION_ID),
+                     k_NUM_RETRIES - 1);
+    BMQTST_ASSERT_EQ(storageManager.watchdogGeneration(k_PARTITION_ID), 0);
+    BMQTST_ASSERT_EQ(storageManager.isWatchdogActive(k_PARTITION_ID), true);
+
+    // Verify new replica state requests sent
+    for (size_t pid = 0; pid < helper.numPartitions(); ++pid) {
+        helper.verifyPrimarySendsReplicaStateRqst(selfNodeId);
+    }
+
+    // Cleanup
+    storageManager.stopPFSMs();
+    storageManager.stop();
+    helper.d_cluster_mp->stop();
+}
+
+static void test19_replicaWaitingWatchdogRetry()
+// ------------------------------------------------------------------------
+// REPLICA WAITING WATCHDOG RETRY
+//
+// Concerns:
+//   When the watchdog fires with retries remaining for a replica, healing
+//   restarts (FSM cycles through UNKNOWN back to REPLICA_WAITING) and the
+//   retry counter decrements.
+//
+// Plan:
+//  1) Create a StorageManager with numRetries = 2
+//  2) Start with non-self node as primary -> state = REPLICA_WAITING
+//  3) Verify initial watchdog context
+//  4) Transition to REPLICA_HEALING
+//  5) Advance time to fire watchdog
+//  6) Verify state cycled back to REPLICA_WAITING with retries
+//     decremented
+//
+// Testing:
+//   Watchdog retry for replica waiting.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("REPLICA WAITING WATCHDOG RETRY");
+
+    static const int k_NUM_RETRIES = 2;
+
+    TestHelper helper;
+
+    mqbc::StorageManager storageManager(
+        helper.d_cluster_mp->_clusterDefinition(),
+        helper.d_cluster_mp.get(),
+        helper.d_cluster_mp->_clusterData(),
+        helper.d_cluster_mp->_state(),
+        helper.d_cluster_mp->_clusterData()->domainFactory(),
+        helper.d_cluster_mp->dispatcher(),
+        k_WATCHDOG_TIMEOUT_DURATION_SHORT,
+        k_NUM_RETRIES,
+        mockOnRecoveryStatus,
+        mockOnPartitionPrimaryStatus,
+        bmqtst::TestHelperUtil::allocator());
+
+    static const int k_PARTITION_ID = 0;
+    const int        selfNodeId     = helper.d_cluster_mp->_clusterData()
+                               ->membership()
+                               .netCluster()
+                               ->selfNodeId();
+    const int primaryNodeId = selfNodeId + 1;
+
+    mqbnet::ClusterNode* primaryNode = helper.d_cluster_mp->_clusterData()
+                                           ->membership()
+                                           .netCluster()
+                                           ->lookupNode(primaryNodeId);
+
+    helper.startStorageManager(&storageManager, primaryNode);
+    helper.relaxFileStoreThreadChecks(&storageManager);
+
+    BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+                     mqbc::PartitionFSM::State::e_REPLICA_WAITING);
+
+    // Verify initial watchdog state
+    BMQTST_ASSERT_EQ(storageManager.watchdogRetriesRemaining(k_PARTITION_ID),
+                     k_NUM_RETRIES);
+    BMQTST_ASSERT_EQ(storageManager.watchdogGeneration(k_PARTITION_ID), 0);
+    BMQTST_ASSERT_EQ(storageManager.isWatchdogActive(k_PARTITION_ID), true);
+
+    helper.clearChannels();
+
+    // Transition to REPLICA_HEALING
+    static const int             k_PRIMARY_REQUEST_ID = 1;
+    bmqp_ctrlmsg::ControlMessage message;
+    message.rId() = k_PRIMARY_REQUEST_ID;
+    bmqp_ctrlmsg::PrimaryStateResponse& primaryStateResponse =
+        message.choice()
+            .makeClusterMessage()
+            .choice()
+            .makePartitionMessage()
+            .choice()
+            .makePrimaryStateResponse();
+
+    bmqp_ctrlmsg::PartitionSequenceNumber seqNum;
+    seqNum.sequenceNumber() = 1U;
+    seqNum.primaryLeaseId() = 1U;
+
+    primaryStateResponse.partitionId()          = k_PARTITION_ID;
+    primaryStateResponse.latestSequenceNumber() = seqNum;
+
+    helper.d_cluster_mp->requestManager().processResponse(message);
+
+    BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+                     mqbc::PartitionFSM::State::e_REPLICA_HEALING);
+
+    // Fire the watchdog
+    helper.d_cluster_mp->advanceTime(k_WATCHDOG_TIMEOUT_DURATION_SHORT);
+    helper.d_cluster_mp->waitForScheduler();
+
+    // Verify state cycled back to REPLICA_WAITING
+    BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+                     mqbc::PartitionFSM::State::e_REPLICA_WAITING);
+
+    // Verify retry counter decremented
+    BMQTST_ASSERT_EQ(storageManager.watchdogRetriesRemaining(k_PARTITION_ID),
+                     k_NUM_RETRIES - 1);
+
+    // Cleanup
+    storageManager.stopPFSMs();
+    storageManager.stop();
+    helper.d_cluster_mp->stop();
+}
+
+static void test20_watchdogStopResetsState()
+// ------------------------------------------------------------------------
+// WATCHDOG STOP RESETS STATE
+//
+// Concerns:
+//   do_stopWatchDog (via stopPFSMs / STOP_NODE) increments generation
+//   and resets retries.
+//
+// Plan:
+//  1) Create a StorageManager with numRetries = 2
+//  2) Start as primary -> PRIMARY_HEALING_STG1
+//  3) Verify initial watchdog context
+//  4) Call stopPFSMs() -> triggers STOP_NODE -> calls do_stopWatchDog
+//  5) Verify generation incremented, retries reset, active = false
+//
+// Testing:
+//   Watchdog state reset on stop.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("WATCHDOG STOP RESETS STATE");
+
+    static const int k_NUM_RETRIES = 2;
+
+    TestHelper helper;
+
+    mqbc::StorageManager storageManager(
+        helper.d_cluster_mp->_clusterDefinition(),
+        helper.d_cluster_mp.get(),
+        helper.d_cluster_mp->_clusterData(),
+        helper.d_cluster_mp->_state(),
+        helper.d_cluster_mp->_clusterData()->domainFactory(),
+        helper.d_cluster_mp->dispatcher(),
+        k_WATCHDOG_TIMEOUT_DURATION,
+        k_NUM_RETRIES,
+        mockOnRecoveryStatus,
+        mockOnPartitionPrimaryStatus,
+        bmqtst::TestHelperUtil::allocator());
+
+    static const int k_PARTITION_ID = 0;
+    const int        selfNodeId     = helper.d_cluster_mp->_clusterData()
+                               ->membership()
+                               .netCluster()
+                               ->selfNodeId();
+    mqbnet::ClusterNode* selfNode = helper.d_cluster_mp->_clusterData()
+                                        ->membership()
+                                        .netCluster()
+                                        ->lookupNode(selfNodeId);
+
+    helper.startStorageManager(&storageManager, selfNode);
+
+    BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+                     mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
+
+    // Verify initial watchdog state
+    BMQTST_ASSERT_EQ(storageManager.watchdogGeneration(k_PARTITION_ID), 0);
+    BMQTST_ASSERT_EQ(storageManager.watchdogRetriesRemaining(k_PARTITION_ID),
+                     k_NUM_RETRIES);
+    BMQTST_ASSERT_EQ(storageManager.isWatchdogActive(k_PARTITION_ID), true);
+
+    helper.clearChannels();
+
+    // Stop PFSMs -> triggers STOP_NODE -> calls do_stopWatchDog
+    storageManager.stopPFSMs();
+
+    // Verify watchdog state was reset
+    BMQTST_ASSERT_EQ(storageManager.watchdogGeneration(k_PARTITION_ID), 1);
+    BMQTST_ASSERT_EQ(storageManager.watchdogRetriesRemaining(k_PARTITION_ID),
+                     k_NUM_RETRIES);
+    BMQTST_ASSERT_EQ(storageManager.isWatchdogActive(k_PARTITION_ID), false);
+
+    // Cleanup
+    storageManager.stop();
+    helper.d_cluster_mp->stop();
+}
+
+static void test21_watchdogMultipleRetries()
+// ------------------------------------------------------------------------
+// WATCHDOG MULTIPLE RETRIES
+//
+// Concerns:
+//   With numRetries = 2, the watchdog can fire and retry twice
+//   (counter: 2 -> 1 -> 0), with healing restarting each time.
+//   On the third fire (retries exhausted), ExitUtil::shutdown is called,
+//   which sends SIGINT to the process.
+//
+// Plan:
+//  1) Create a StorageManager with numRetries = 2
+//  2) Start as primary -> PRIMARY_HEALING_STG1
+//  3) Advance time -> watchdog fires -> verify retries = 1
+//  4) Clear channels, advance time again -> verify retries = 0
+//  5) Install a SIGINT handler, advance time again -> verify SIGINT
+//     received (ExitUtil::shutdown was called)
+//
+// Testing:
+//   Multiple watchdog retries end-to-end, including broker shutdown
+//   on retry exhaustion.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("WATCHDOG MULTIPLE RETRIES");
+
+    static const int k_NUM_RETRIES = 2;
+
+    TestHelper helper;
+
+    mqbc::StorageManager storageManager(
+        helper.d_cluster_mp->_clusterDefinition(),
+        helper.d_cluster_mp.get(),
+        helper.d_cluster_mp->_clusterData(),
+        helper.d_cluster_mp->_state(),
+        helper.d_cluster_mp->_clusterData()->domainFactory(),
+        helper.d_cluster_mp->dispatcher(),
+        k_WATCHDOG_TIMEOUT_DURATION_SHORT,
+        k_NUM_RETRIES,
+        mockOnRecoveryStatus,
+        mockOnPartitionPrimaryStatus,
+        bmqtst::TestHelperUtil::allocator());
+
+    static const int k_PARTITION_ID = 0;
+    const int        selfNodeId     = helper.d_cluster_mp->_clusterData()
+                               ->membership()
+                               .netCluster()
+                               ->selfNodeId();
+    mqbnet::ClusterNode* selfNode = helper.d_cluster_mp->_clusterData()
+                                        ->membership()
+                                        .netCluster()
+                                        ->lookupNode(selfNodeId);
+
+    helper.startStorageManager(&storageManager, selfNode);
+    helper.relaxFileStoreThreadChecks(&storageManager);
+
+    BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+                     mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
+
+    BMQTST_ASSERT_EQ(storageManager.watchdogRetriesRemaining(k_PARTITION_ID),
+                     k_NUM_RETRIES);
+
+    for (size_t pid = 0; pid < helper.numPartitions(); ++pid) {
+        helper.verifyPrimarySendsReplicaStateRqst(selfNodeId);
+    }
+    helper.clearChannels();
+
+    // First watchdog fire: retries 2 -> 1
+    helper.d_cluster_mp->advanceTime(k_WATCHDOG_TIMEOUT_DURATION_SHORT);
+    helper.d_cluster_mp->waitForScheduler();
+
+    BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+                     mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
+    BMQTST_ASSERT_EQ(storageManager.watchdogRetriesRemaining(k_PARTITION_ID),
+                     1);
+    BMQTST_ASSERT_EQ(storageManager.isWatchdogActive(k_PARTITION_ID), true);
+
+    for (size_t pid = 0; pid < helper.numPartitions(); ++pid) {
+        helper.verifyPrimarySendsReplicaStateRqst(selfNodeId);
+    }
+    helper.clearChannels();
+
+    // Second watchdog fire: retries 1 -> 0
+    helper.d_cluster_mp->advanceTime(k_WATCHDOG_TIMEOUT_DURATION_SHORT);
+    helper.d_cluster_mp->waitForScheduler();
+
+    BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+                     mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
+    BMQTST_ASSERT_EQ(storageManager.watchdogRetriesRemaining(k_PARTITION_ID),
+                     0);
+    BMQTST_ASSERT_EQ(storageManager.isWatchdogActive(k_PARTITION_ID), true);
+
+    for (size_t pid = 0; pid < helper.numPartitions(); ++pid) {
+        helper.verifyPrimarySendsReplicaStateRqst(selfNodeId);
+    }
+    helper.clearChannels();
+
+    // Third watchdog fire: retries exhausted -> ExitUtil::shutdown (SIGINT).
+    // Install a custom SIGINT handler so the process survives.  Note:
+    // ExitUtil::shutdown sends SIGINT via kill(pid, SIGINT).
+    s_sigintReceived = 0;
+
+    struct sigaction sa, oldSa;
+    sa.sa_handler = testSigintHandler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sigaction(SIGINT, &sa, &oldSa);
+
+    helper.d_cluster_mp->advanceTime(k_WATCHDOG_TIMEOUT_DURATION_SHORT);
+    helper.d_cluster_mp->waitForScheduler();
+
+    BMQTST_ASSERT_EQ(static_cast<int>(s_sigintReceived), 1);
+
+    // Restore original handler
+    sigaction(SIGINT, &oldSa, NULL);
+
+    // Cleanup
+    storageManager.stopPFSMs();
+    storageManager.stop();
+    helper.d_cluster_mp->stop();
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -2827,6 +3294,10 @@ int main(int argc, char* argv[])
         //      - test21_replicaHealingReceivesReplicaDataRqstDrop();
         //      - test20_replicaHealingReceivesReplicaDataRqstPush();
         //      - test19_primaryHealedSendsDataChunks();
+    case 21: test21_watchdogMultipleRetries(); break;
+    case 20: test20_watchdogStopResetsState(); break;
+    case 19: test19_replicaWaitingWatchdogRetry(); break;
+    case 18: test18_primaryHealingWatchdogRetry(); break;
     case 17: test17_fileSizesHardLimits(); break;
     case 16: test16_primaryHealingStage1SelfHighestSendsDataChunks(); break;
     case 15: test15_replicaWaitingReceivesReplicaDataRqstPull(); break;

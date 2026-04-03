@@ -30,6 +30,7 @@
 #include <mqbblp_queuestate.h>
 #include <mqbblp_routers.h>
 #include <mqbcfg_brokerconfig.h>
+#include <mqbcmd_messages.h>
 #include <mqbi_domain.h>
 #include <mqbi_queue.h>
 #include <mqbs_storageutil.h>
@@ -606,12 +607,12 @@ void QueueEngineUtil_ReleaseHandleProctor::invokeCallback()
             // represents 'mqbblp::ClusterNodeSession').
 
             d_queueState_p->queue()->dispatcher()->executeOnAllQueues(
-                mqbi::Dispatcher::VoidFunctor(),
+                mqbi::Dispatcher::VoidFunction(),
                 mqbi::DispatcherClientType::e_SESSION,
                 bdlf::BindUtil::bind(&queueHandleHolderDummy, d_handleSp));
 
             d_queueState_p->queue()->dispatcher()->executeOnAllQueues(
-                mqbi::Dispatcher::VoidFunctor(),
+                mqbi::Dispatcher::VoidFunction(),
                 mqbi::DispatcherClientType::e_CLUSTER,
                 bdlf::BindUtil::bind(&queueHandleHolderDummy, d_handleSp));
         }

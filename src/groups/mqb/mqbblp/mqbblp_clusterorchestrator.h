@@ -37,6 +37,7 @@
 #include <mqbc_clusternodesession.h>
 #include <mqbc_clusterstate.h>
 #include <mqbcfg_messages.h>
+#include <mqbconfm_messages.h>
 #include <mqbi_clusterstatemanager.h>
 #include <mqbi_dispatcher.h>
 #include <mqbnet_elector.h>
@@ -45,6 +46,7 @@
 #include <bmqma_countingallocatorstore.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_event.h>
+#include <bmqu_managedcallback.h>
 
 // BDE
 #include <ball_log.h>
@@ -359,8 +361,7 @@ class ClusterOrchestrator {
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    void
-    processClusterStateEvent(const mqbi::DispatcherClusterStateEvent& event);
+    void processClusterStateEvent(const mqbevt::ClusterStateEvent& event);
 
     /// Process the queue assignment in the specified `request`, received
     /// from the specified `requester`.

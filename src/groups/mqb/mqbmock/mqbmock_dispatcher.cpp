@@ -17,6 +17,11 @@
 #include <mqbmock_dispatcher.h>
 
 #include <mqbscm_version.h>
+
+// MQB
+#include <mqbevt_callbackevent.h>
+#include <mqbmock_dispatchereventsource.h>
+
 // BDE
 #include <bdlb_print.h>
 #include <bdlb_string.h>
@@ -28,27 +33,6 @@
 namespace BloombergLP {
 namespace mqbmock {
 
-// ----------------------------
-// class Dispatcher_EventSource
-// ----------------------------
-
-Dispatcher_EventSource::Dispatcher_EventSource(bslma::Allocator* allocator)
-: d_allocator_p(bslma::Default::allocator(allocator))
-{
-    // NOTHING
-}
-
-Dispatcher_EventSource::~Dispatcher_EventSource()
-{
-    // NOTHING
-}
-
-mqbi::DispatcherEventSource::DispatcherEventSp
-Dispatcher_EventSource::getEvent()
-{
-    return bsl::allocate_shared<mqbi::DispatcherEvent>(d_allocator_p);
-}
-
 // ----------------
 // class Dispatcher
 // ----------------
@@ -57,7 +41,7 @@ Dispatcher_EventSource::getEvent()
 Dispatcher::Dispatcher(bslma::Allocator* allocator)
 : d_allocator_p(allocator)
 , d_eventSource_sp(
-      bsl::allocate_shared<mqbmock::Dispatcher_EventSource>(allocator))
+      bsl::allocate_shared<mqbmock::DispatcherEventSource>(allocator))
 , d_eventsForClients(allocator)
 , d_mutex()
 , d_queue(allocator)
@@ -107,7 +91,7 @@ void Dispatcher::dispatchEvent(
 }
 
 void Dispatcher::execute(
-    const mqbi::Dispatcher::VoidFunctor& functor,
+    const mqbi::Dispatcher::VoidFunction& functor,
     BSLA_MAYBE_UNUSED mqbi::DispatcherClient* client,
     BSLA_MAYBE_UNUSED mqbi::DispatcherEventType::Enum type)
 {
@@ -115,16 +99,16 @@ void Dispatcher::execute(
 }
 
 void Dispatcher::execute(
-    const mqbi::Dispatcher::VoidFunctor& functor,
+    const mqbi::Dispatcher::VoidFunction& functor,
     BSLA_MAYBE_UNUSED const mqbi::DispatcherClientData& client)
 {
     _execute(functor);
 }
 
 void Dispatcher::executeOnAllQueues(
-    const mqbi::Dispatcher::VoidFunctor& functor,
+    const mqbi::Dispatcher::VoidFunction& functor,
     BSLA_MAYBE_UNUSED mqbi::DispatcherClientType::Enum type,
-    const mqbi::Dispatcher::VoidFunctor&               doneCallback)
+    const mqbi::Dispatcher::VoidFunction&              doneCallback)
 {
     if (functor) {
         _execute(functor);
@@ -135,7 +119,7 @@ void Dispatcher::executeOnAllQueues(
     }
 }
 
-void Dispatcher::_execute(const mqbi::Dispatcher::VoidFunctor& functor)
+void Dispatcher::_execute(const mqbi::Dispatcher::VoidFunction& functor)
 {
     bool run = false;
 
@@ -151,7 +135,7 @@ void Dispatcher::_execute(const mqbi::Dispatcher::VoidFunctor& functor)
     }
 
     while (run) {
-        mqbi::Dispatcher::VoidFunctor next;
+        mqbi::Dispatcher::VoidFunction next;
         {
             bslmt::LockGuard<bslmt::Mutex> lock(&mutex());
 
@@ -183,7 +167,7 @@ void Dispatcher::synchronize(
 bsl::shared_ptr<mqbi::DispatcherEventSource> Dispatcher::createEventSource()
 {
     bsl::shared_ptr<mqbi::DispatcherEventSource> res =
-        bsl::allocate_shared<mqbmock::Dispatcher_EventSource>(d_allocator_p);
+        bsl::allocate_shared<mqbmock::DispatcherEventSource>(d_allocator_p);
     {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_customEventSources_mtx);
         d_customEventSources.push_back(res);
@@ -291,8 +275,10 @@ mqbi::DispatcherClientData& DispatcherClient::dispatcherClientData()
 void DispatcherClient::onDispatcherEvent(const mqbi::DispatcherEvent& event)
 {
     if (event.type() == mqbi::DispatcherEventType::e_CALLBACK) {
-        BSLS_ASSERT_SAFE(!event.asCallbackEvent()->callback().empty());
-        event.asCallbackEvent()->callback()();
+        const bmqu::ManagedCallback& callback =
+            event.the<mqbevt::CallbackEvent>()->callback();
+        BSLS_ASSERT_SAFE(!callback.empty());
+        callback();
     }
 }
 

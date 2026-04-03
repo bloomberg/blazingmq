@@ -263,7 +263,7 @@ void Routers::AppContext::load(
     BSLS_ASSERT_SAFE(handle->queue());
 
     const bool isBroadcastBroker =
-        ((handle->queue()->isDeliverAll() && handle->clientContext())
+        (handle->queue()->isDeliverAll()
              ? !handle->clientContext()->isFirstHop()
              : false);
 
@@ -866,13 +866,8 @@ void Routers::AppContext::loadInternals(mqbcmd::RoundRobinRouter* out) const
                 rc.expression() = subscription.expression();
 
                 mqbcmd::QueueHandle& queueHandle = rc.queueHandle();
-                if (subscription.handle()->client()) {
-                    queueHandle.clientDescription() =
-                        subscription.handle()->client()->description();
-                }
-                else {
-                    queueHandle.clientDescription() = "<no client>";
-                }
+                queueHandle.clientDescription() =
+                    subscription.handle()->clientContext()->description();
             }
         }
     }
@@ -923,7 +918,9 @@ void Routers::RoundRobin::print(bsl::ostream& os,
                    << bmqu::PrintUtil::newlineAndIndent(level + 1,
                                                         spacesPerLevel)
                    << "client---- .......:"
-                   << subscriber.d_itConsumer->key()->client()->description();
+                   << subscriber.d_itConsumer->key()
+                          ->clientContext()
+                          ->description();
             }
         }
     }

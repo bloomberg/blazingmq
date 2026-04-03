@@ -162,9 +162,7 @@ inline bsl::ostream& operator<<(bsl::ostream& stream, const Event& event)
 
     if (event.d_isHandleKnown) {
         stream << "[ handle = " << event.d_handle_p << " client = \""
-               << (event.d_handle_p->client()
-                       ? event.d_handle_p->client()->description()
-                       : "<NULL>")
+               << event.d_handle_p->clientContext()->description()
                << "\" id = " << event.d_handle_p->id() << " queue = \""
                << event.d_queueState_p->uri() << "\" ]";
     }
@@ -1183,7 +1181,7 @@ mqbi::QueueHandle* RelayQueueEngine::getHandle(
     BSLS_ASSERT_SAFE(
         bmqp::QueueUtil::isValidSubset(queueHandle->handleParameters(),
                                        d_queueState_p->handleParameters()));
-    // The handle may not have 'd_clientContext_sp' in the case when in between
+    // The handle may have 'd_haveClient == false' in the case when in between
     // outgoing OpenQueue request and incoming OpenQueue response, the client
     // disconnects and calls 'QueueHandle::clearClient'/'clearClientDispatched'
     // Should not be a problem because 'QueueHandle::canDeliver' does check for

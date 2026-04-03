@@ -43,14 +43,27 @@ class BmqconfConfig:
 class ClusterAttributes:
     """Type representing the attributes specific to a cluster.
 
-    isCSLModeEnabled.: indicates if CSL is enabled for this cluster
-    isFSMWorkflow....: indicates if CSL FSM workflow is enabled for this
-    cluster.  This flag *must* be false if
-    'isCSLModeEnabled' is false.
-    doesFSMwriteQLIST: indicates whether the broker still writes to the
-    to-be-deprecated QLIST file when FSM workflow is
-    enabled.  If above 'isFSMWorkflow' flag is false,
-    this flag is ignored.
+    isCSLModeEnabled...............:
+    indicates if CSL is enabled for this cluster
+    isFSMWorkflow..................:
+    indicates if CSL FSM workflow is enabled for this cluster.  This
+    flag *must* be false if 'isCSLModeEnabled' is false.
+    doesFSMwriteQLIST..............:
+    indicates whether the broker still writes to the to-be-deprecated
+    QLIST file when FSM workflow is enabled.  If above 'isFSMWorkflow'
+    flag is false, this flag is ignored.
+    clusterFsmWatchdogTimeoutSec...:
+    timeout duration in seconds for Cluster FSM watchdog. Only applies
+    when 'isFSMWorkflow' is true.
+    clusterFsmWatchdogNumRetries...:
+    number of retries for Cluster FSM watchdog before we give up and
+    terminate the broker.  Only applies when 'isFSMWorkflow' is true.
+    partitionFsmWatchdogTimeoutSec.:
+    timeout duration in seconds for Partition FSM watchdog. Only
+    applies when 'isFSMWorkflow' is true.
+    partitionFsmWatchdogNumRetries.:
+    number of retries for Partition FSM watchdog before we give up and
+    terminate the broker.  Only applies when 'isFSMWorkflow' is true.
     """
 
     is_cslmode_enabled: bool = field(
@@ -75,6 +88,42 @@ class ClusterAttributes:
         default=True,
         metadata={
             "name": "doesFSMwriteQLIST",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    cluster_fsm_watchdog_timeout_sec: int = field(
+        default=300,
+        metadata={
+            "name": "clusterFsmWatchdogTimeoutSec",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    cluster_fsm_watchdog_num_retries: int = field(
+        default=1,
+        metadata={
+            "name": "clusterFsmWatchdogNumRetries",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    partition_fsm_watchdog_timeout_sec: int = field(
+        default=300,
+        metadata={
+            "name": "partitionFsmWatchdogTimeoutSec",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    partition_fsm_watchdog_num_retries: int = field(
+        default=1,
+        metadata={
+            "name": "partitionFsmWatchdogNumRetries",
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
@@ -1103,12 +1152,22 @@ class TcpInterfaceListener:
 
     name.................:
     A name to associate this listener to.
+    address..............:
+    The IPv4 address this listener will accept connections on.
     port.................:
     The port this listener will accept connections on.
     """
 
     name: Optional[str] = field(
         default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    address: str = field(
+        default="0.0.0.0",
         metadata={
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
@@ -1334,13 +1393,6 @@ class PartitionConfig:
     maxJournalFileSize...: maximum size of partitions' journal file
     maxQlistFileSize.....: maximum size of partitions' qlist file
     maxCSLFileSize.......: maximum size of partitions' CSL file
-    dataFileGrowLimit....: limit for data file growth during rollover
-    journalFileGrowLimit.: limit for journal file growth during rollover
-    qListFileGrowLimit...: limit for qlist file growth during rollover
-    growStepPercent......: step (in percents of max file size) for file
-    growth during rollover
-    minAvailSpacePercent.: minimum available free file space (in percents)
-    which will appear after rollover (rollover criteria)
     preallocate..........: flag to indicate whether files should be
     preallocated on disk
     maxArchivedFileSets..: maximum number of archived file sets per
@@ -1410,51 +1462,6 @@ class PartitionConfig:
         default=67108864,
         metadata={
             "name": "maxCSLFileSize",
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "required": True,
-        },
-    )
-    data_file_grow_limit: int = field(
-        default=None,
-        metadata={
-            "name": "dataFileGrowLimit",
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "required": True,
-        },
-    )
-    journal_file_grow_limit: int = field(
-        default=None,
-        metadata={
-            "name": "journalFileGrowLimit",
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "required": True,
-        },
-    )
-    q_list_file_grow_limit: int = field(
-        default=None,
-        metadata={
-            "name": "qListFileGrowLimit",
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "required": True,
-        },
-    )
-    grow_step_percent: int = field(
-        default=50,
-        metadata={
-            "name": "growStepPercent",
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "required": True,
-        },
-    )
-    min_avail_space_percent: int = field(
-        default=20,
-        metadata={
-            "name": "minAvailSpacePercent",
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,

@@ -413,15 +413,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     // `firstSyncPointOffsetWords`. It is used to determine if cluster node
     // missed rollover.
 
-    bmqp_ctrlmsg::PartitionMaxFileSizes d_partitionMaxFileSizes;
-    // Max file sizes for journal, data and qlist files for this partition.
-
-    bsl::optional<bmqp_ctrlmsg::PartitionMaxFileSizes>
-        d_overridenPartitionMaxFileSizes;
-    // Overriden (by storage manager) max file sizes for journal, data and
-    // qlist files for this partition. If it is not present,
-    // `d_partitionMaxFileSizes` is used.
-
     /// Control message transmitter to use.
     mqbnet::ControlMessageTransmitter d_messageTransmitter;
 
@@ -592,14 +583,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                                bool                           immediateFlush,
                                const bmqp_ctrlmsg::SyncPoint* syncPoint = 0);
 
-    /// Self primary writes a resize storage record with `maxFileSizes`
-    /// and replicates to all replicas.  Return zero on success,
-    /// non-zero value otherwise.
-    ///
-    /// THREAD: This method executes in the partition dispatcher thread.
-    int issueResizeStorage(
-        const bmqp_ctrlmsg::PartitionMaxFileSizes& maxFileSizes);
-
     int writeMessageRecord(const bmqp::StorageHeader&          header,
                            const mqbs::RecordHeader&           recHeader,
                            const bsl::shared_ptr<bdlbb::Blob>& event,
@@ -719,17 +702,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// replica nodes.
     void gcHistory();
 
-    /// Adjust the partition file size that satisfies rollover
-    /// policy based on the specified `outstandingBytes`,
-    /// `smallestMaxFileSize` and `fileSizeGrowLimit`.
-    /// Return the adjusted file size and set `availableSpacePercent`
-    /// if rollover policy is satisfied. Return zero value otherwise.
-    bsls::Types::Uint64
-    adjustPartitionFileSize(unsigned int*       availableSpacePercent,
-                            bsls::Types::Uint64 outstandingBytes,
-                            bsls::Types::Uint64 smallestMaxFileSize,
-                            bsls::Types::Uint64 fileSizeGrowLimit);
-
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(FileStore, bslma::UsesBslmaAllocator)
@@ -782,9 +754,21 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     void dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event);
 
+#if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+    // C++03 compatibility:
+    // It is not possible to cast mqbevt movable refs to mqbi movable ref.
+    template <class EVENT_TYPE>
+    void dispatchEvent(bslmf::MovableRef<bsl::shared_ptr<EVENT_TYPE> > event)
+    {
+        mqbi::Dispatcher::DispatcherEventSp base(
+            bslmf::MovableRefUtil::access(event));
+        dispatchEvent(bslmf::MovableRefUtil::move(base));
+    }
+#endif
+
     /// Execute the specified `functor`, using the `e_CALLBACK` event
     /// type, in the processor associated to this object.
-    void execute(const mqbi::Dispatcher::VoidFunctor& functor);
+    void execute(const mqbi::Dispatcher::VoidFunction& functor);
 
     // MANIPULATORS
 
@@ -872,12 +856,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     int writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint& syncPoint,
                              SyncPointType::Enum type) BSLS_KEYWORD_OVERRIDE;
-
-    /// Write a RESIZE_STORAGE record to the journal with the specified
-    /// `maxFileSizes`.
-    ///  Return zero on success, non-zero value otherwise.
-    int writeResizeStorageRecord(const bmqp_ctrlmsg::PartitionMaxFileSizes&
-                                     maxFileSizes) BSLS_KEYWORD_OVERRIDE;
 
     /// Remove the record identified by the specified `handle`.  Return zero
     /// on success, non-zero value if `handle` is invalid.  Behavior is
@@ -1003,12 +981,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     ///         specified `fileStore`'s partitionId.
     void loadSummary(mqbcmd::FileStore* fileStore) const;
 
-    /// Override the max file sizes for this partition with the specified
-    /// `maxFileSizes`. It is set by `StorageManager` when higher max file
-    /// sizes are found after quorum.
-    void overridePartitionMaxFileSizes(
-        const bmqp_ctrlmsg::PartitionMaxFileSizes& maxFileSizes);
-
     // ACCESSORS
 
     /// Return true if this instance is open, false otherwise.
@@ -1096,9 +1068,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Return the first sync point after rollover sequence number.
     const bmqp_ctrlmsg::PartitionSequenceNumber&
     firstSyncPointAfterRolloverSeqNum() const;
-
-    /// Return the max file sizes for this partition.
-    const bmqp_ctrlmsg::PartitionMaxFileSizes& partitionMaxFileSizes() const;
 };
 
 // =======================
@@ -1263,7 +1232,7 @@ FileStore::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event)
     dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(event), this);
 }
 
-inline void FileStore::execute(const mqbi::Dispatcher::VoidFunctor& functor)
+inline void FileStore::execute(const mqbi::Dispatcher::VoidFunction& functor)
 {
     dispatcher()->execute(functor,
                           this,
@@ -1282,12 +1251,6 @@ FileStore::setLastStrongConsistency(unsigned int        primaryLeaseId,
 {
     d_lastRecoveredStrongConsistency.d_primaryLeaseId = primaryLeaseId;
     d_lastRecoveredStrongConsistency.d_sequenceNum    = sequenceNum;
-}
-
-inline void FileStore::overridePartitionMaxFileSizes(
-    const bmqp_ctrlmsg::PartitionMaxFileSizes& maxFileSizes)
-{
-    d_overridenPartitionMaxFileSizes = maxFileSizes;
 }
 
 inline void
@@ -1391,12 +1354,6 @@ inline const bmqp_ctrlmsg::PartitionSequenceNumber&
 FileStore::firstSyncPointAfterRolloverSeqNum() const
 {
     return d_firstSyncPointAfterRolloverSeqNum;
-}
-
-inline const bmqp_ctrlmsg::PartitionMaxFileSizes&
-FileStore::partitionMaxFileSizes() const
-{
-    return d_partitionMaxFileSizes;
 }
 
 // -----------------------

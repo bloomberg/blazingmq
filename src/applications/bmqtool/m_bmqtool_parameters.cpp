@@ -35,6 +35,30 @@
 namespace BloombergLP {
 namespace m_bmqtool {
 
+namespace {
+
+/// Parse the specified `input` string of the form "msgs:bytes" into the
+/// specified `msgs` and `bytes`.  Return true on success, false on error.
+bool parseMaxUnconfirmed(int* msgs, int* bytes, const bsl::string& input)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(msgs);
+    BSLS_ASSERT_SAFE(bytes);
+
+    bsl::istringstream is(input);
+    char               delimiter = 0;
+    is >> *msgs >> delimiter >> *bytes;
+    if (is.fail() || delimiter != ':') {
+        return false;  // RETURN
+    }
+
+    // There should be no more non-whitespace characters
+    char trailing = 0;
+    return !(is >> trailing);
+}
+
+}  // close unnamed namespace
+
 // ==========================
 // struct ParametersVerbosity
 // ==========================
@@ -343,10 +367,9 @@ bool Parameters::from(bsl::ostream&                stream,
     // Extract out the two parameters from maxUnconfirmed string
     int maxUnconfirmedMsgs  = 0;
     int maxUnconfirmedBytes = 0;
-    if (sscanf(params.maxUnconfirmed().c_str(),
-               "%d:%d",
-               &maxUnconfirmedMsgs,
-               &maxUnconfirmedBytes) != 2) {
+    if (!parseMaxUnconfirmed(&maxUnconfirmedMsgs,
+                             &maxUnconfirmedBytes,
+                             params.maxUnconfirmed())) {
         stream << "Invalid maxUnconfirmed parameter "
                << "'" << params.maxUnconfirmed() << "'"
                << "\n";

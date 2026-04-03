@@ -27,8 +27,6 @@
 #include <mqbc_clusterdata.h>
 #include <mqbc_clusterstate.h>
 #include <mqbcfg_messages.h>
-#include <mqbcmd_messages.h>
-#include <mqbconfm_messages.h>
 #include <mqbi_cluster.h>
 #include <mqbi_dispatcher.h>
 #include <mqbi_domain.h>
@@ -76,6 +74,18 @@ namespace BloombergLP {
 // FORWARD DECLARATION
 namespace bslmt {
 class Mutex;
+}
+namespace mqbcmd {
+class ClusterStorageSummary;
+class PurgeQueueResult;
+class ReplicationCommand;
+class ReplicationResult;
+class StorageCommand;
+class StorageQueueInfo;
+class StorageResult;
+}
+namespace mqbconfm {
+class StorageDefinition;
 }
 namespace mqbnet {
 class ClusterNode;
@@ -309,24 +319,24 @@ struct StorageUtil {
                                  int                            partitionId,
                                  const FileStores&              fileStores);
 
-    static void
-    purgeDomainDispatched(bsl::vector<bsl::vector<mqbcmd::PurgeQueueResult> >*
-                                             purgedQueuesResultsVec,
-                          bslmt::Latch*      latch,
-                          int                partitionId,
-                          StorageSpMapVec*   storageMapVec,
-                          bslmt::Mutex*      storagesLock,
-                          const FileStores*  fileStores,
-                          const bsl::string& domainName);
+    static void purgeDomainDispatched(
+        bsl::vector<bsl::vector<mqbcmd::PurgeQueueResult> >*
+                                                     purgedQueuesResultsVec,
+        bslmt::Latch*                                latch,
+        int                                          partitionId,
+        StorageSpMapVec*                             storageMapVec,
+        bsl::vector<bsl::shared_ptr<bslmt::Mutex> >* storageLockVec,
+        const FileStores*                            fileStores,
+        const bsl::string&                           domainName);
     /// Execute the domain purge command for the specified `domainName` within
     /// the specified `partitionId`.  The specified `storageMapVec` contains
     /// mutable storages to search for domain's queues, while the specified
-    /// `storagesLock` controls thread-safe access to this container.  The
-    /// specified `latch` used to notify the calling thread that this operation
-    /// has finished.  The specified `purgedQueuesResultsVec` is used to store
-    /// execution results.  The specified `fileStores` contains FileStore
-    /// objects used to verify correctness and thread-safety of calling this
-    /// method.
+    /// `storageLockVec` (per-partition mutexes) control thread-safe access to
+    /// this container.  The specified `latch` used to notify the calling
+    /// thread that this operation has finished.  The specified
+    /// `purgedQueuesResultsVec` is used to store execution results.  The
+    /// specified `fileStores` contains FileStore objects used to verify
+    /// correctness and thread-safety of calling this method.
     ///
     /// NOTE: designed to be called for all `partitionId`s in parallel by
     ///       `executeForEachPartition`.
@@ -762,22 +772,24 @@ struct StorageUtil {
     /// `replicationFactor` and the corresponding value in each partition of
     /// the specified `fileStores`.  The specified `storageMapVec` might be
     /// used to find a storage for a specific queue, the specified
-    /// `storagesLock` is used to access this container safely.  Use the
-    /// specified `allocator` for memory allocations.  Return 0 if the command
-    /// was successfully processed, or a non-zero value otherwise.  This
-    /// function can be invoked from any thread, and will block until the
-    /// potentially asynchronous operation is complete.
+    /// `storageLockVec` (per-partition mutexes) are used to access this
+    /// container safely.  Use the specified `allocator` for memory
+    /// allocations.  Return 0 if the command was successfully processed, or
+    /// a non-zero value otherwise.  This function can be invoked from any
+    /// thread, and will block until the potentially asynchronous operation is
+    /// complete.
     //
     /// THREAD: Executed by the cluster-dispatcher thread.
-    static int processCommand(mqbcmd::StorageResult*        result,
-                              FileStores*                   fileStores,
-                              StorageSpMapVec*              storageMapVec,
-                              bslmt::Mutex*                 storagesLock,
-                              const mqbi::DomainFactory*    domainFactory,
-                              int*                          replicationFactor,
-                              const mqbcmd::StorageCommand& command,
-                              const bslstl::StringRef&      partitionLocation,
-                              bslma::Allocator*             allocator);
+    static int
+    processCommand(mqbcmd::StorageResult*                       result,
+                   FileStores*                                  fileStores,
+                   StorageSpMapVec*                             storageMapVec,
+                   bsl::vector<bsl::shared_ptr<bslmt::Mutex> >* storageLockVec,
+                   const mqbi::DomainFactory*                   domainFactory,
+                   int*                          replicationFactor,
+                   const mqbcmd::StorageCommand& command,
+                   const bslstl::StringRef&      partitionLocation,
+                   bslma::Allocator*             allocator);
 
     static void onDomain(const bmqp_ctrlmsg::Status& status,
                          mqbi::Domain*               domain,
@@ -794,11 +806,12 @@ struct StorageUtil {
                                             const PartitionInfo& pinfo);
 
     /// Purge the queues on a given domain.
-    static void purgeQueueOnDomain(mqbcmd::StorageResult* result,
-                                   const bsl::string&     domainName,
-                                   FileStores*            fileStores,
-                                   StorageSpMapVec*       storageMapVec,
-                                   bslmt::Mutex*          storagesLock);
+    static void purgeQueueOnDomain(
+        mqbcmd::StorageResult*                       result,
+        const bsl::string&                           domainName,
+        FileStores*                                  fileStores,
+        StorageSpMapVec*                             storageMapVec,
+        bsl::vector<bsl::shared_ptr<bslmt::Mutex> >* storageLockVec);
 };
 
 template <>

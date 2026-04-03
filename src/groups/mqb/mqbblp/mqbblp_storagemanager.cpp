@@ -22,6 +22,10 @@
 #include <mqbblp_recoverymanager.h>
 #include <mqbc_clustermembership.h>
 #include <mqbcmd_messages.h>
+#include <mqbevt_clusterstateevent.h>
+#include <mqbevt_dispatcherevent.h>
+#include <mqbevt_recoveryevent.h>
+#include <mqbevt_storageevent.h>
 #include <mqbi_cluster.h>
 #include <mqbi_queue.h>
 #include <mqbnet_cluster.h>
@@ -108,7 +112,7 @@ bool isZero(const bmqp_ctrlmsg::LeaderMessageSequence& lms)
 
 StorageManagerIterator::~StorageManagerIterator()
 {
-    d_manager_p->d_storagesLock.unlock();  // UNLOCK
+    d_lock_p->unlock();  // UNLOCK
 }
 
 // --------------------
@@ -288,7 +292,7 @@ void StorageManager::onPartitionRecovery(
     if (fs->isOpen()) {
         mqbs::StoragePrintUtil::printRecoveredStorages(
             out,
-            &d_storagesLock,
+            d_storageLockVec[partitionId].get(),
             d_storages[partitionId],
             partitionId,
             d_clusterData_p->identity().description(),
@@ -390,7 +394,7 @@ void StorageManager::queueCreationCb(int                     partitionId,
     if (isNewQueue) {
         mqbc::StorageUtil::createQueueStorageAsReplica(
             &d_storages[partitionId],
-            &d_storagesLock,
+            d_storageLockVec[partitionId].get(),
             fs,
             d_domainFactory_p,
             uri,
@@ -401,7 +405,7 @@ void StorageManager::queueCreationCb(int                     partitionId,
     else {
         mqbc::StorageUtil::updateQueueStorageDispatched(
             &d_storages[partitionId],
-            &d_storagesLock,
+            d_storageLockVec[partitionId].get(),
             d_domainFactory_p,
             fs->description(),
             uri,
@@ -434,7 +438,7 @@ void StorageManager::recoveredQueuesCb(int                    partitionId,
     // Main logic
     mqbc::StorageUtil::recoveredQueuesCb(
         &d_storages[partitionId],
-        &d_storagesLock,
+        d_storageLockVec[partitionId].get(),
         d_fileStores[partitionId].get(),
         d_domainFactory_p,
         &d_unrecognizedDomainsLock,
@@ -669,7 +673,7 @@ void StorageManager::processStorageEventDispatched(
 }
 
 void StorageManager::processPartitionSyncEvent(
-    const mqbi::DispatcherStorageEvent& event)
+    const mqbevt::StorageEvent& event)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
@@ -967,7 +971,7 @@ StorageManager::StorageManager(
 , d_numPartitionsRecoveredQueues(0)
 , d_recoveryStatusCb(recoveryStatusCb)
 , d_partitionPrimaryStatusCb(partitionPrimaryStatusCb)
-, d_storagesLock()
+, d_storageLockVec(allocator)
 , d_storages(allocator)
 , d_storageMonitorEventHandle()
 , d_gcMessagesEventHandle()
@@ -988,6 +992,10 @@ StorageManager::StorageManager(
     d_unrecognizedDomains.resize(partitionCfg.numPartitions());
     d_fileStores.resize(partitionCfg.numPartitions());
     d_storages.resize(partitionCfg.numPartitions());
+    d_storageLockVec.resize(partitionCfg.numPartitions());
+    for (int i = 0; i < partitionCfg.numPartitions(); ++i) {
+        d_storageLockVec[i].createInplace(allocator);
+    }
     d_recoveredPrimaryLeaseIds.resize(partitionCfg.numPartitions());
     d_partitionInfoVec.resize(partitionCfg.numPartitions());
 
@@ -1025,14 +1033,15 @@ void StorageManager::registerQueue(const bmqt::Uri&        uri,
                      partitionId < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(domain);
 
-    mqbc::StorageUtil::registerQueueAsPrimary(d_cluster_p,
-                                              &d_storages[partitionId],
-                                              &d_storagesLock,
-                                              d_fileStores[partitionId].get(),
-                                              uri,
-                                              queueKey,
-                                              appIdKeyPairs,
-                                              domain);
+    mqbc::StorageUtil::registerQueueAsPrimary(
+        d_cluster_p,
+        &d_storages[partitionId],
+        d_storageLockVec[partitionId].get(),
+        d_fileStores[partitionId].get(),
+        uri,
+        queueKey,
+        appIdKeyPairs,
+        domain);
 }
 
 void StorageManager::unregisterQueue(const bmqt::Uri& uri, int partitionId)
@@ -1046,21 +1055,19 @@ void StorageManager::unregisterQueue(const bmqt::Uri& uri, int partitionId)
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
 
-    mqbi::Dispatcher::DispatcherEventSp queueEvent = d_cluster_p->getEvent();
-    (*queueEvent)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .callback()
-        .set(
-            bdlf::BindUtil::bind(&mqbc::StorageUtil::unregisterQueueDispatched,
-                                 fs,
-                                 &d_storages[partitionId],
-                                 &d_storagesLock,
-                                 d_clusterData_p,
-                                 partitionId,
-                                 bsl::cref(d_partitionInfoVec[partitionId]),
-                                 uri));
+    bsl::shared_ptr<mqbevt::DispatcherEvent> event_sp =
+        d_cluster_p->getEvent<mqbevt::DispatcherEvent>();
+    (*event_sp).callback().set(
+        bdlf::BindUtil::bind(&mqbc::StorageUtil::unregisterQueueDispatched,
+                             fs,
+                             &d_storages[partitionId],
+                             d_storageLockVec[partitionId].get(),
+                             d_clusterData_p,
+                             partitionId,
+                             bsl::cref(d_partitionInfoVec[partitionId]),
+                             uri));
 
-    fs->dispatchEvent(bslmf::MovableRefUtil::move(queueEvent));
+    fs->dispatchEvent(bslmf::MovableRefUtil::move(event_sp));
 }
 
 int StorageManager::updateQueuePrimary(const bmqt::Uri& uri,
@@ -1077,7 +1084,7 @@ int StorageManager::updateQueuePrimary(const bmqt::Uri& uri,
 
     return mqbc::StorageUtil::updateQueuePrimary(
         &d_storages[partitionId],
-        &d_storagesLock,
+        d_storageLockVec[partitionId].get(),
         d_fileStores[partitionId].get(),
         uri,
         addedIdKeyPairs,
@@ -1100,22 +1107,20 @@ void StorageManager::registerQueueReplica(int                     partitionId,
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
 
-    mqbi::Dispatcher::DispatcherEventSp queueEvent = d_cluster_p->getEvent();
-    (*queueEvent)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .callback()
-        .set(bdlf::BindUtil::bind(
-            &mqbc::StorageUtil::createQueueStorageAsReplica,
-            &d_storages[partitionId],
-            &d_storagesLock,
-            fs,
-            d_domainFactory_p,
-            uri,
-            queueKey,
-            appIdKeyPairs,
-            domain));
+    bsl::shared_ptr<mqbevt::DispatcherEvent> event_sp =
+        d_cluster_p->getEvent<mqbevt::DispatcherEvent>();
+    (*event_sp).callback().set(
+        bdlf::BindUtil::bind(&mqbc::StorageUtil::createQueueStorageAsReplica,
+                             &d_storages[partitionId],
+                             d_storageLockVec[partitionId].get(),
+                             fs,
+                             d_domainFactory_p,
+                             uri,
+                             queueKey,
+                             appIdKeyPairs,
+                             domain));
 
-    fs->dispatchEvent(bslmf::MovableRefUtil::move(queueEvent));
+    fs->dispatchEvent(bslmf::MovableRefUtil::move(event_sp));
 }
 
 void StorageManager::unregisterQueueReplica(int              partitionId,
@@ -1133,20 +1138,18 @@ void StorageManager::unregisterQueueReplica(int              partitionId,
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
 
-    mqbi::Dispatcher::DispatcherEventSp queueEvent = d_cluster_p->getEvent();
-    (*queueEvent)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .callback()
-        .set(bdlf::BindUtil::bind(
-            &mqbc::StorageUtil::removeQueueStorageDispatched,
-            &d_storages[partitionId],
-            &d_storagesLock,
-            fs,
-            uri,
-            queueKey,
-            appKey));
+    bsl::shared_ptr<mqbevt::DispatcherEvent> event_sp =
+        d_cluster_p->getEvent<mqbevt::DispatcherEvent>();
+    (*event_sp).callback().set(
+        bdlf::BindUtil::bind(&mqbc::StorageUtil::removeQueueStorageDispatched,
+                             &d_storages[partitionId],
+                             d_storageLockVec[partitionId].get(),
+                             fs,
+                             uri,
+                             queueKey,
+                             appKey));
 
-    fs->dispatchEvent(bslmf::MovableRefUtil::move(queueEvent));
+    fs->dispatchEvent(bslmf::MovableRefUtil::move(event_sp));
 }
 
 void StorageManager::updateQueueReplica(int                     partitionId,
@@ -1165,22 +1168,20 @@ void StorageManager::updateQueueReplica(int                     partitionId,
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
 
-    mqbi::Dispatcher::DispatcherEventSp queueEvent = d_cluster_p->getEvent();
-    (*queueEvent)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .callback()
-        .set(bdlf::BindUtil::bind(
-            &mqbc::StorageUtil::updateQueueStorageDispatched,
-            &d_storages[partitionId],
-            &d_storagesLock,
-            d_domainFactory_p,
-            fs->description(),
-            uri,
-            queueKey,
-            appIdKeyPairs,
-            domain));
+    bsl::shared_ptr<mqbevt::DispatcherEvent> event_sp =
+        d_cluster_p->getEvent<mqbevt::DispatcherEvent>();
+    (*event_sp).callback().set(
+        bdlf::BindUtil::bind(&mqbc::StorageUtil::updateQueueStorageDispatched,
+                             &d_storages[partitionId],
+                             d_storageLockVec[partitionId].get(),
+                             d_domainFactory_p,
+                             fs->description(),
+                             uri,
+                             queueKey,
+                             appIdKeyPairs,
+                             domain));
 
-    fs->dispatchEvent(bslmf::MovableRefUtil::move(queueEvent));
+    fs->dispatchEvent(bslmf::MovableRefUtil::move(event_sp));
 }
 
 void StorageManager::resetQueue(const bmqt::Uri& uri,
@@ -1197,18 +1198,17 @@ void StorageManager::resetQueue(const bmqt::Uri& uri,
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
 
-    mqbi::Dispatcher::DispatcherEventSp queueEvent = d_cluster_p->getEvent();
-    (*queueEvent)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .callback()
-        .set(bdlf::BindUtil::bind(&mqbc::StorageUtil::resetQueueDispatched,
-                                  &d_storages[partitionId],
-                                  &d_storagesLock,
-                                  fs->description(),
-                                  uri,
-                                  queue_sp));
+    bsl::shared_ptr<mqbevt::DispatcherEvent> event_sp =
+        d_cluster_p->getEvent<mqbevt::DispatcherEvent>();
+    (*event_sp).callback().set(
+        bdlf::BindUtil::bind(&mqbc::StorageUtil::resetQueueDispatched,
+                             &d_storages[partitionId],
+                             d_storageLockVec[partitionId].get(),
+                             fs->description(),
+                             uri,
+                             queue_sp));
 
-    fs->dispatchEvent(bslmf::MovableRefUtil::move(queueEvent));
+    fs->dispatchEvent(bslmf::MovableRefUtil::move(event_sp));
 }
 
 int StorageManager::start(bsl::ostream& errorDescription)
@@ -1336,12 +1336,7 @@ int StorageManager::start(bsl::ostream& errorDescription)
         .setNodeId(d_clusterData_p->membership().selfNode()->nodeId())
         .setMaxDataFileSize(partitionCfg.maxDataFileSize())
         .setMaxJournalFileSize(partitionCfg.maxJournalFileSize())
-        .setMaxQlistFileSize(partitionCfg.maxQlistFileSize())
-        .setDataFileGrowLimit(partitionCfg.dataFileGrowLimit())
-        .setJournalFileGrowLimit(partitionCfg.journalFileGrowLimit())
-        .setQlistFileGrowLimit(partitionCfg.qListFileGrowLimit())
-        .setGrowStepPercent(partitionCfg.growStepPercent())
-        .setMinAvailSpacePercent(partitionCfg.minAvailSpacePercent());
+        .setMaxQlistFileSize(partitionCfg.maxQlistFileSize());
     // Only relevant fields of data store config are set.
 
     // Get named allocator from associated bmqma::CountingAllocatorStore
@@ -1601,26 +1596,25 @@ int StorageManager::configureStorage(
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
 
-    return mqbc::StorageUtil::configureStorage(errorDescription,
-                                               out,
-                                               &d_storages[partitionId],
-                                               &d_storagesLock,
-                                               uri,
-                                               queueKey,
-                                               partitionId,
-                                               messageTtl,
-                                               maxDeliveryAttempts,
-                                               storageDef);
+    return mqbc::StorageUtil::configureStorage(
+        errorDescription,
+        out,
+        &d_storages[partitionId],
+        d_storageLockVec[partitionId].get(),
+        uri,
+        queueKey,
+        partitionId,
+        messageTtl,
+        maxDeliveryAttempts,
+        storageDef);
 }
 
-void StorageManager::processStorageEvent(
-    const mqbi::DispatcherStorageEvent& event)
+void StorageManager::processStorageEvent(const mqbevt::StorageEvent& event)
 {
     // executed by *CLUSTER DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-    BSLS_ASSERT_SAFE(event.isRelay() == false);
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!d_isStarted)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -1857,15 +1851,13 @@ void StorageManager::processPartitionSyncDataRequestStatus(
         source));
 }
 
-void StorageManager::processRecoveryEvent(
-    const mqbi::DispatcherRecoveryEvent& event)
+void StorageManager::processRecoveryEvent(const mqbevt::RecoveryEvent& event)
 {
     // executed by *CLUSTER DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(event.blob());
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-    BSLS_ASSERT_SAFE(event.isRelay() == false);
 
     mqbnet::ClusterNode* source = event.clusterNode();
     bmqp::Event          rawEvent(event.blob().get(), d_allocator_p);
@@ -2066,7 +2058,7 @@ int StorageManager::processCommand(mqbcmd::StorageResult*        result,
         result,
         &d_fileStores,
         &d_storages,
-        &d_storagesLock,
+        &d_storageLockVec,
         d_domainFactory_p,
         &d_replicationFactor,
         command,
@@ -2098,7 +2090,7 @@ int StorageManager::purgeQueueOnDomain(mqbcmd::StorageResult* result,
                                           domainName,
                                           &d_fileStores,
                                           &d_storages,
-                                          &d_storagesLock);
+                                          &d_storageLockVec);
 
     return 0;
 }
@@ -2114,9 +2106,10 @@ bool StorageManager::isStorageEmpty(const bmqt::Uri& uri,
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
 
-    return mqbc::StorageUtil::isStorageEmpty(&d_storagesLock,
-                                             d_storages[partitionId],
-                                             uri);
+    return mqbc::StorageUtil::isStorageEmpty(
+        d_storageLockVec[partitionId].get(),
+        d_storages[partitionId],
+        uri);
 }
 
 }  // close package namespace

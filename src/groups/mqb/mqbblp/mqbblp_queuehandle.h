@@ -31,6 +31,7 @@
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqt_messageguid.h>
+#include <bmqu_managedcallback.h>
 
 // BDE
 #include <ball_log.h>
@@ -196,8 +197,9 @@ class QueueHandle : public mqbi::QueueHandle {
     /// cache producer stats to avoid lookup
     StatsSp d_producerStats;
 
-    /// Cache d_clientContext_sp->client()->description()
-    bsl::string d_clientDescription;
+    /// Whether the client is still connected (set to false by
+    /// clearClientDispatched).
+    bool d_haveClient;
 
     bslma::Allocator* d_allocator_p;
 
@@ -556,7 +558,7 @@ inline mqbi::Queue* QueueHandle::queue()
 
 inline mqbi::DispatcherClient* QueueHandle::client()
 {
-    if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(d_clientContext_sp)) {
+    if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(d_haveClient)) {
         return d_clientContext_sp->client();
     }
 
@@ -596,7 +598,7 @@ QueueHandle::downstream(unsigned int downstreamSubQueueId) const
 
 inline const mqbi::DispatcherClient* QueueHandle::client() const
 {
-    if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(d_clientContext_sp)) {
+    if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(d_haveClient)) {
         return d_clientContext_sp->client();
     }
 
@@ -636,6 +638,8 @@ inline bool QueueHandle::isClientClusterMember() const
 inline const mqbi::QueueHandleRequesterContext*
 QueueHandle::clientContext() const
 {
+    BSLS_ASSERT_SAFE(d_clientContext_sp);
+
     return d_clientContext_sp.get();
 }
 

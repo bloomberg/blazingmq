@@ -22,6 +22,8 @@
 #include <mqbblp_rootqueueengine.h>
 #include <mqbblp_storagemanager.h>
 #include <mqbcmd_messages.h>
+#include <mqbevt_callbackevent.h>
+#include <mqbevt_putevent.h>
 #include <mqbi_domain.h>
 #include <mqbi_queueengine.h>
 #include <mqbi_storage.h>
@@ -325,7 +327,8 @@ void LocalQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
 
     switch (event.type()) {
     case mqbi::DispatcherEventType::e_PUT: {
-        const mqbi::DispatcherPutEvent* realEvent = event.asPutEvent();
+        const mqbevt::PutEvent* const realEvent =
+            event.the<mqbevt::PutEvent>();
 
         postMessage(realEvent->putHeader(),
                     realEvent->blob(),
@@ -333,8 +336,8 @@ void LocalQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
                     realEvent->queueHandle());
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_CALLBACK: {
-        const mqbi::DispatcherCallbackEvent* realEvent =
-            event.asCallbackEvent();
+        const mqbevt::CallbackEvent* realEvent =
+            event.the<mqbevt::CallbackEvent>();
         BSLS_ASSERT_SAFE(!realEvent->callback().empty());
         realEvent->callback()();
     } break;  // BREAK
@@ -429,7 +432,7 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
             BALL_LOG_WARN
                 << "#CLIENT_IMPROPER_BEHAVIOR "
                 << "Failed PUT message for queue [" << d_state_p->uri()
-                << "] from client [" << source->client()->description()
+                << "] from client [" << source->clientContext()->description()
                 << "]. Queue not opened in WRITE mode by the client.");
 
         bmqp::AckMessage ackMessage;
@@ -529,8 +532,8 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
             if (d_throttledDuplicateMessages.requestPermission()) {
                 BALL_LOG_WARN << "Duplicate PUT message queue ["
                               << d_state_p->uri() << "] from client ["
-                              << source->client()->description() << "], GUID ["
-                              << putHeader.messageGUID() << "]";
+                              << source->clientContext()->description()
+                              << "], GUID [" << putHeader.messageGUID() << "]";
             }
         }
         else {

@@ -5,49 +5,49 @@
 #
 # Options:
 #   --only-download           Only download dependencies (skip build and install)
-#   --cxx-standard=VERSION    C++ version to use (cpp03, cpp17, etc.). Default: cpp17
+#   --cxx-standard=VERSION    C++ version to use (cpp03, cpp23, etc.). Default: cpp23
 
 set -euxo pipefail
 
 DO_BUILD=true
-CXX_STANDARD=cpp17
+CXX_STANDARD=cpp23
 
 while [ $# -gt 0 ]; do
     case $1 in
-        --only-download)
-            DO_BUILD=false
-            shift
-            ;;
-        --cxx-standard=*)
-            CXX_STANDARD="${1#*=}"
-            shift
-            ;;
-        --cxx-standard)
-            if [ -z "${2:-}" ]; then
-                echo "Error: --cxx-standard requires a value"
-                exit 1
-            fi
-            CXX_STANDARD="$2"
-            shift 2
-            ;;
-        *)
-            echo "Error: Unknown option '$1'"
-            echo "Usage: $0 [--only-download] [--cxx-standard=VERSION]"
+    --only-download)
+        DO_BUILD=false
+        shift
+        ;;
+    --cxx-standard=*)
+        CXX_STANDARD="${1#*=}"
+        shift
+        ;;
+    --cxx-standard)
+        if [ -z "${2:-}" ]; then
+            echo "Error: --cxx-standard requires a value"
             exit 1
-            ;;
+        fi
+        CXX_STANDARD="$2"
+        shift 2
+        ;;
+    *)
+        echo "Error: Unknown option '$1'"
+        echo "Usage: $0 [--only-download] [--cxx-standard=VERSION]"
+        exit 1
+        ;;
     esac
 done
 
 # Validate CXX_STANDARD
 case $CXX_STANDARD in
-    cpp03|cpp11|cpp14|cpp17|cpp20|cpp23)
-        # Valid C++ standard version
-        ;;
-    *)
-        echo "Error: Invalid C++ standard version '$CXX_STANDARD'"
-        echo "Supported standard versions: cpp03, cpp11, cpp14, cpp17, cpp20, cpp23"
-        exit 1
-        ;;
+cpp03 | cpp11 | cpp14 | cpp17 | cpp20 | cpp23)
+    # Valid C++ standard version
+    ;;
+*)
+    echo "Error: Invalid C++ standard version '$CXX_STANDARD'"
+    echo "Supported standard versions: cpp03, cpp11, cpp14, cpp17, cpp20, cpp23"
+    exit 1
+    ;;
 esac
 
 fetch_git() {
@@ -59,8 +59,7 @@ fetch_git() {
         return 0
     fi
 
-    if [ -z "${3:-}" ]
-    then
+    if [ -z "${3:-}" ]; then
         # Clone the latest 'main' branch if no specific release tag provided
         local branch="main"
         curl -SL "https://github.com/${org}/${repo}/archive/refs/heads/${branch}.tar.gz" | tar -xzC srcs/
@@ -73,9 +72,9 @@ fetch_git() {
 }
 
 fetch_deps() {
-    fetch_git bloomberg bde-tools 4.28.0.0
-    fetch_git bloomberg bde 4.28.0.0
-    fetch_git bloomberg ntf-core 2.6.10
+    fetch_git bloomberg bde-tools 4.35.0.0
+    fetch_git bloomberg bde 4.35.0.0
+    fetch_git bloomberg ntf-core 2.6.11
 }
 
 configure() {
@@ -93,17 +92,24 @@ build_bde() {
 }
 
 build_ntf() {
+    local standard="$CXX_STANDARD"
+    if [[ "$CXX_STANDARD" == "cpp03" ]]; then
+        # NTF doesn't correctly translate cpp03 to 98 in its toolchain, so we have to
+        # pass it cpp98 explicitly.
+        standard="cpp98"
+    fi
+
     pushd srcs/ntf-core
-    ./configure                      \
-        --keep                       \
-        --prefix /opt/bb             \
-        --without-usage-examples     \
-        --without-applications       \
+    ./configure \
+        --keep \
+        --prefix /opt/bb \
+        --without-usage-examples \
+        --without-applications \
         --without-warnings-as-errors \
-        --with-zlib                  \
-        --without-zstd               \
-        --without-lz4                \
-        --ufid "opt_64_$CXX_STANDARD"
+        --with-zlib \
+        --without-zstd \
+        --without-lz4 \
+        --ufid "opt_64_$standard"
     make -j8
     make install
     popd

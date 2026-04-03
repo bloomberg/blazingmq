@@ -20,12 +20,10 @@
 #include <bmqu_memoutstream.h>
 
 // BDE
-#include <bdlb_string.h>
 #include <bdlb_tokenizer.h>
 #include <bdlde_hexdecoder.h>
 #include <bsl_cstdlib.h>
 #include <bsl_fstream.h>
-#include <bsl_iostream.h>
 #include <bsl_string.h>
 #include <bsl_vector.h>
 #include <bsla_annotations.h>
@@ -36,22 +34,6 @@ namespace m_bmqtool {
 // ----------------
 // struct InputUtil
 // ----------------
-
-bool InputUtil::getLine(bsl::string* out)
-{
-    BSLS_ASSERT_SAFE(out);
-
-    bsl::cout << "> " << bsl::flush;
-    bsl::cin.clear();
-    bsl::getline(bsl::cin, *out);
-    bdlb::String::trim(out);
-    if (bsl::cin.eof()) {
-        // User typed Ctrl-D
-        bsl::cout << bsl::endl;
-        return false;  // RETURN
-    }
-    return true;
-}
 
 void InputUtil::preprocessInput(bsl::string*                     verb,
                                 bsl::string*                     output,

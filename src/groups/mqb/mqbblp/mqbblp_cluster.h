@@ -369,17 +369,36 @@ class Cluster : public mqbi::Cluster,
     processClusterControlMessage(const bmqp_ctrlmsg::ControlMessage& message,
                                  mqbnet::ClusterNode*                source);
 
-    void onPutEvent(const mqbi::DispatcherPutEvent& event);
+    /// @brief Pass a protocol event to the dispatcher.
+    ///
+    /// @tparam EVENT_TYPE Concrete event type (e.g., mqbevt::PutEvent)
+    /// @param event      bmqp::Event containing the blob to copy
+    /// @param source     Cluster node this event originates from
+    template <typename EVENT_TYPE>
+    void sendToDispatcher(const bmqp::Event&   event,
+                          mqbnet::ClusterNode* source);
 
-    void onRelayAckEvent(const mqbi::DispatcherAckEvent& event);
+    /// @brief Pass a protocol event to the dispatcher (Relay/Non-Relay).
+    ///
+    /// @tparam EVENT_TYPE Concrete event type (e.g., mqbevt::PutEvent)
+    /// @tparam IS_RELAY   Whether this event is a relay event
+    /// @param event      bmqp::Event containing the blob to copy
+    /// @param source     Cluster node this event originates from
+    template <typename EVENT_TYPE, bool IS_RELAY>
+    void sendToDispatcher(const bmqp::Event&   event,
+                          mqbnet::ClusterNode* source);
 
-    void onConfirmEvent(const mqbi::DispatcherConfirmEvent& event);
+    void onPutEvent(const mqbevt::PutEvent& event);
 
-    void onRejectEvent(const mqbi::DispatcherRejectEvent& event);
+    void onRelayAckEvent(const mqbevt::AckEvent& event);
 
-    void onRelayRejectEvent(const mqbi::DispatcherRejectEvent& event);
+    void onConfirmEvent(const mqbevt::ConfirmEvent& event);
 
-    void onRelayPushEvent(const mqbi::DispatcherPushEvent& event);
+    void onRejectEvent(const mqbevt::RejectEvent& event);
+
+    void onRelayRejectEvent(const mqbevt::RejectEvent& event);
+
+    void onRelayPushEvent(const mqbevt::PushEvent& event);
 
     /// Validate a message of the specified `eventType` using the specified
     /// `queueId` and `ns`. Return one of `ValidationResult` values. Populate

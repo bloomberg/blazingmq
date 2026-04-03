@@ -39,9 +39,6 @@
 ///-------------
 // Components implementing the 'mqbi::Domain' interface *MUST* be thread safe.
 
-// MQB
-#include <mqbconfm_messages.h>
-
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqt_uri.h>
@@ -62,6 +59,9 @@ class DomainCommand;
 }
 namespace mqbcmd {
 class DomainResult;
+}
+namespace mqbconfm {
+class Domain;
 }
 namespace mqbu {
 class CapacityMeter;

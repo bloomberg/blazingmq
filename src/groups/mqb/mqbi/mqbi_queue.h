@@ -47,15 +47,12 @@
 
 // MQB
 
-#include <mqbcfg_messages.h>
-#include <mqbconfm_messages.h>
 #include <mqbi_dispatcher.h>
 #include <mqbi_storage.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_protocol.h>
-#include <bmqp_queueid.h>
 #include <bmqp_schemalearner.h>
 #include <bmqt_compressionalgorithmtype.h>
 #include <bmqt_messageguid.h>
@@ -66,11 +63,9 @@
 // BDE
 #include <bdlbb_blob.h>
 #include <bsl_functional.h>
-#include <bsl_list.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>
-#include <bsl_unordered_set.h>
 #include <bsl_vector.h>
 #include <bslh_hash.h>
 #include <bslma_allocator.h>
@@ -88,6 +83,9 @@ class Uri;
 }
 namespace bmqst {
 class StatContext;
+}
+namespace mqbcfg {
+class MessageThrottleConfig;
 }
 namespace mqbcmd {
 class QueueCommand;

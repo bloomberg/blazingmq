@@ -112,6 +112,7 @@ struct TestStorage {
         bsl::shared_ptr<mqbi::QueueHandleRequesterContext> clientContext =
             bsl::allocate_shared<mqbi::QueueHandleRequesterContext>(
                 d_allocator_p);
+        clientContext->setDescription("test.tsk:1");
         bmqp_ctrlmsg::QueueHandleParameters handleParameters(d_allocator_p);
 
         return mqbmock::QueueHandle(d_queue_sp,

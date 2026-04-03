@@ -25,6 +25,8 @@
 #include <mqbc_clusterutil.h>
 #include <mqbc_incoreclusterstateledger.h>
 #include <mqbcmd_messages.h>
+#include <mqbevt_callbackevent.h>
+#include <mqbevt_clusterstateevent.h>
 #include <mqbi_queueengine.h>
 #include <mqbi_storagemanager.h>
 #include <mqbnet_cluster.h>
@@ -56,12 +58,6 @@ class Domain;
 }
 
 namespace mqbblp {
-
-namespace {
-/// Timeout duration for Cluster FSM watchdog -- 5 minutes
-const bsls::Types::Int64 k_WATCHDOG_TIMEOUT_DURATION = 60 * 5;
-
-}  // close unnamed namespace
 
 // ------------------------------------------------
 // class ClusterOrchestrator::OnElectorEventFunctor
@@ -593,7 +589,8 @@ ClusterOrchestrator::ClusterOrchestrator(
                             d_clusterData_p,
                             clusterState,
                             &d_clusterData_p->blobSpPool())),
-                    k_WATCHDOG_TIMEOUT_DURATION,
+                    clusterConfig.clusterAttributes()
+                        .clusterFsmWatchdogTimeoutSec(),
                     d_allocators.get("ClusterStateManager")))
           : static_cast<mqbi::ClusterStateManager*>(
                 new(*d_allocator_p) ClusterStateManager(
@@ -1004,6 +1001,17 @@ void ClusterOrchestrator::processNodeStoppingNotification(
             mqbc::ElectorInfoLeaderStatus::e_PASSIVE);
     }
 
+    // Cancel all pending requests to this stopping node
+    bmqp_ctrlmsg::ControlMessage response;
+    bmqp_ctrlmsg::Status&        failure = response.choice().makeStatus();
+    failure.category() = bmqp_ctrlmsg::StatusCategory::E_CANCELED;
+    failure.code()     = mqbi::ClusterErrorCode::e_STOPPING;
+    failure.message()  = "Peer node is stopping";
+
+    d_clusterData_p->requestManager().cancelAllRequests(
+        response,
+        ns->clusterNode()->nodeId());
+
     // Replica makes all open queues buffer PUTs (by calling 'onOpenUpstream').
     bsl::shared_ptr<ClusterQueueHelper::StopContext> context_sp =
         d_queueHelper.processNodeStoppingNotification(ns->clusterNode(),
@@ -1014,7 +1022,7 @@ void ClusterOrchestrator::processNodeStoppingNotification(
     // about the status of a peer node.  Self may end up issuing a
     // (non-scheduled) sync point to the node.
 
-    // 'processNodeStoppingNotification' is blocking for Ptimary (non-blocking)
+    // 'processNodeStoppingNotification' is blocking for Primary (non-blocking)
     // for Replicas.
     const bsl::vector<int>& partitions =
         d_clusterData_p->membership().selfNodeSession()->primaryPartitions();
@@ -1089,11 +1097,11 @@ void ClusterOrchestrator::processNodeStatusAdvisory(
         return;  // RETURN
     }
 
-    if (bmqp_ctrlmsg::NodeStatus::E_AVAILABLE == nsAdvisory.status()) {
-        if (bmqp_ctrlmsg::NodeStatus::E_STOPPING == selfStatus) {
-            return;  // RETURN
-        }
+    if (bmqp_ctrlmsg::NodeStatus::E_STOPPING == selfStatus) {
+        return;  // RETURN
+    }
 
+    if (bmqp_ctrlmsg::NodeStatus::E_AVAILABLE == nsAdvisory.status()) {
         if (mqbnet::ElectorState::e_LEADER ==
                 d_clusterData_p->electorInfo().electorState() &&
             mqbc::ElectorInfoLeaderStatus::e_ACTIVE ==
@@ -1296,18 +1304,18 @@ void ClusterOrchestrator::processElectorEvent(const bmqp::Event&   event,
     // certain events "out of order" (some cases were found out while testing).
 
     // TODO(678098): revisit, make per-IO thread contexts
-    mqbi::Dispatcher::DispatcherEventSp clusterEvent =
-        dispatcher()->getDefaultEventSource()->getEvent();
-    (*clusterEvent).setType(mqbi::DispatcherEventType::e_CALLBACK);
-
+    bsl::shared_ptr<mqbevt::CallbackEvent> event_sp =
+        dispatcher()
+            ->getDefaultEventSource()
+            ->getEvent<mqbevt::CallbackEvent>();
     bmqp::Event clonedEvent = event.clone(d_allocator_p);
-    clusterEvent->callback()
+    event_sp->callback()
         .createInplace<ClusterOrchestrator::OnElectorEventFunctor>(
             this,
             bslmf::MovableRefUtil::move(clonedEvent),
             source);
 
-    dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(clusterEvent),
+    dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(event_sp),
                                 d_cluster_p);
 }
 
@@ -1348,7 +1356,7 @@ void ClusterOrchestrator::processLeaderSyncDataQuery(
 }
 
 void ClusterOrchestrator::processClusterStateEvent(
-    const mqbi::DispatcherClusterStateEvent& event)
+    const mqbevt::ClusterStateEvent& event)
 {
     // executed by *CLUSTER DISPATCHER* thread
 

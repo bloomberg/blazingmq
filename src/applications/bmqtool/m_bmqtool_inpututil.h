@@ -50,10 +50,6 @@ namespace m_bmqtool {
 
 /// Input utility routines for bmqtool.
 struct InputUtil {
-    /// Read a line from stdin, using the standard `cin.getline` and save it
-    /// in the specified `out`. Return false if EOF has been encountered.
-    static bool getLine(bsl::string* out);
-
     /// Parse the specified `input` which is assumed to be a verb and a
     /// sequence of key/value pairs, and load the specified `verb` with the
     /// first word and the specified `output` with a JSON object containing

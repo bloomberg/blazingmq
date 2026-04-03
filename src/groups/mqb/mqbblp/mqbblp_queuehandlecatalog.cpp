@@ -359,7 +359,8 @@ void QueueHandleCatalog::loadInternals(
         out->resize(out->size() + 1);
         mqbi::QueueHandle* handle = it->key1();
         bmqu::MemOutStream description;
-        description << handle << "  ~ " << handle->client()->description();
+        description << handle << "  ~ "
+                    << handle->clientContext()->description();
         out->back().clientDescription() = description.str();
         handle->loadInternals(&out->back());
     }

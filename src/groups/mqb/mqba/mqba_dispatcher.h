@@ -142,59 +142,6 @@ class Dispatcher_Executor {
     void dispatch(const bsl::function<void()>& f) const;
 };
 
-// ============================
-// class Dispatcher_EventSource
-// ============================
-
-class Dispatcher_EventSource BSLS_KEYWORD_FINAL
-: public mqbi::DispatcherEventSource {
-  public:
-    // PUBLIC TYPES
-    typedef bsl::shared_ptr<mqbi::DispatcherEvent> DispatcherEventSp;
-    typedef bslmf::MovableRef<DispatcherEventSp>   DispatcherEventRvRef;
-
-  private:
-    // TYPES
-
-    /// `CreatorFn` is an alias for a functor creating an object
-    /// in the specified `arena` using the specified `allocator`.
-    typedef bsl::function<void(void* arena, bslma::Allocator* allocator)>
-        CreatorFn;
-
-    typedef bdlcc::SharedObjectPool<
-        mqbi::DispatcherEvent,
-        CreatorFn,
-        bdlcc::ObjectPoolFunctors::Reset<mqbi::DispatcherEvent> >
-        EventPool;
-
-    // DATA
-    EventPool d_pool;
-
-    // PRIVATE CLASS METHODS
-
-    /// Creator function passed to `d_pool` to create an event in the
-    /// specified `arena` using the specified `allocator`.
-    static void eventCreator(void* arena, bslma::Allocator* allocator);
-
-  public:
-    // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(Dispatcher_EventSource,
-                                   bslma::UsesBslmaAllocator)
-
-    // CREATORS
-    explicit Dispatcher_EventSource(bslma::Allocator* allocator = 0);
-    ~Dispatcher_EventSource() BSLS_KEYWORD_OVERRIDE;
-
-    // MANIPULATORS
-
-    /// @brief Get an event for mqbi::Dispatcher.
-    /// @return A shared pointer to event.
-    /// The behaviour is undefined unless all the shared pointers to events
-    /// acquired with `getEvent` are destructed before destructor is called
-    /// for this event source.
-    DispatcherEventSp getEvent() BSLS_KEYWORD_OVERRIDE;
-};
-
 // ================
 // class Dispatcher
 // ================
@@ -463,6 +410,13 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
     void
     unregisterClient(mqbi::DispatcherClient* client) BSLS_KEYWORD_OVERRIDE;
 
+#if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+    // C++03: bring in base class template overloads hidden by the overrides
+    // below (MovableRef<shared_ptr<Derived>> does not convert to
+    // MovableRef<shared_ptr<Base>> in C++03).
+    using mqbi::Dispatcher::dispatchEvent;
+#endif
+
     /// Dispatch the specified `event` to the specified `destination`.
     void
     dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
@@ -494,24 +448,24 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
     /// clients of the specified `type`, and invoke the optionally specified
     /// `doneCallback` (if any) when all the relevant processors are done
     /// executing the `functor`.
-    void executeOnAllQueues(const mqbi::Dispatcher::VoidFunctor& functor,
-                            mqbi::DispatcherClientType::Enum     type,
-                            const mqbi::Dispatcher::VoidFunctor& doneCallback =
-                                mqbi::Dispatcher::VoidFunctor())
-        BSLS_KEYWORD_OVERRIDE;
+    void executeOnAllQueues(
+        const mqbi::Dispatcher::VoidFunction& functor,
+        mqbi::DispatcherClientType::Enum      type,
+        const mqbi::Dispatcher::VoidFunction& doneCallback =
+            mqbi::Dispatcher::VoidFunction()) BSLS_KEYWORD_OVERRIDE;
 
     /// Execute the specified `functor`, using the specified dispatcher `type`,
     /// in the processor associated with the specified `client`.  The behavior
     /// is undefined unless `type` is `e_DISPATCHER` or `e_CALLBACK`.
-    void execute(const mqbi::Dispatcher::VoidFunctor& functor,
-                 mqbi::DispatcherClient*              client,
+    void execute(const mqbi::Dispatcher::VoidFunction& functor,
+                 mqbi::DispatcherClient*               client,
                  mqbi::DispatcherEventType::Enum type) BSLS_KEYWORD_OVERRIDE;
 
     /// Execute the specified `functor` using the `e_DISPATCHER` event type, in
     /// the processor associated with the specified `client`.
     void
-    execute(const mqbi::Dispatcher::VoidFunctor& functor,
-            const mqbi::DispatcherClientData&    client) BSLS_KEYWORD_OVERRIDE;
+    execute(const mqbi::Dispatcher::VoidFunction& functor,
+            const mqbi::DispatcherClientData& client) BSLS_KEYWORD_OVERRIDE;
 
     /// Enqueue an event to the processor associated with the specified
     /// `client` and block until this event gets dequeued.  This is typically
@@ -561,28 +515,6 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
-
-// ----------------------------
-// class Dispatcher_EventSource
-// ----------------------------
-
-inline void Dispatcher_EventSource::eventCreator(void*             arena,
-                                                 bslma::Allocator* allocator)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT(arena);
-    BSLS_ASSERT(allocator);
-
-    bslalg::ScalarPrimitives::construct(
-        reinterpret_cast<mqbi::DispatcherEvent*>(arena),
-        allocator);
-}
-
-inline Dispatcher_EventSource::DispatcherEventSp
-Dispatcher_EventSource::getEvent()
-{
-    return d_pool.getObject();
-}
 
 // ----------------
 // class Dispatcher

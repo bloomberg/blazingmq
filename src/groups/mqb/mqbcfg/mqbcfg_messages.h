@@ -1,4 +1,4 @@
-// Copyright 2026 Bloomberg Finance L.P.
+// Copyright 2025-2026 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -191,17 +191,9 @@ namespace mqbcfg {
 struct AllocatorType {
   public:
     // TYPES
-    enum Value {
-        e_NEWDELETE      = 0,
-        e_COUNTING       = 1,
-        e_STACKTRACETEST = 2,
+    enum Value { NEWDELETE = 0, COUNTING = 1, STACKTRACETEST = 2 };
 
-        NEWDELETE      = e_NEWDELETE,
-        COUNTING       = e_COUNTING,
-        STACKTRACETEST = e_STACKTRACETEST
-    };
-
-    enum { k_NUM_ENUMERATORS = 3, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
+    enum { NUM_ENUMERATORS = 3 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -249,7 +241,7 @@ struct AllocatorType {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(mqbcfg::AllocatorType);
+BDLAT_DECL_ENUMERATION_TRAITS(mqbcfg::AllocatorType)
 
 namespace mqbcfg {
 
@@ -414,7 +406,7 @@ class BmqconfConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::BmqconfConfig);
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::BmqconfConfig)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::BmqconfConfig> : bsl::true_type {};
 
@@ -426,14 +418,28 @@ namespace mqbcfg {
 
 class ClusterAttributes {
     // Type representing the attributes specific to a cluster.
-    // isCSLModeEnabled.: indicates if CSL is enabled for this cluster
-    // isFSMWorkflow....: indicates if CSL FSM workflow is enabled for this
-    // cluster.  This flag *must* be false if 'isCSLModeEnabled' is false.
-    // doesFSMwriteQLIST: indicates whether the broker still writes to the
-    // to-be-deprecated QLIST file when FSM workflow is enabled.  If above
-    // 'isFSMWorkflow' flag is false, this flag is ignored.
+    // isCSLModeEnabled...............:  indicates if CSL is enabled for this
+    // cluster isFSMWorkflow..................:  indicates if CSL FSM workflow
+    // is enabled for this cluster.  This flag *must* be false if
+    // 'isCSLModeEnabled' is false.  doesFSMwriteQLIST..............:
+    // indicates whether the broker still writes to the to-be-deprecated QLIST
+    // file when FSM workflow is enabled.  If above 'isFSMWorkflow' flag is
+    // false, this flag is ignored.  clusterFsmWatchdogTimeoutSec...:  timeout
+    // duration in seconds for Cluster FSM watchdog.  Only applies when
+    // 'isFSMWorkflow' is true.  clusterFsmWatchdogNumRetries...:  number of
+    // retries for Cluster FSM watchdog before we give up and  terminate the
+    // broker.  Only applies when 'isFSMWorkflow' is true.
+    // partitionFsmWatchdogTimeoutSec.:  timeout duration in seconds for
+    // Partition FSM watchdog.  Only applies when 'isFSMWorkflow' is true.
+    // partitionFsmWatchdogNumRetries.:  number of retries for Partition FSM
+    // watchdog before we give up and terminate the broker.  Only applies when
+    // 'isFSMWorkflow' is true.
 
     // INSTANCE DATA
+    int  d_clusterFsmWatchdogTimeoutSec;
+    int  d_clusterFsmWatchdogNumRetries;
+    int  d_partitionFsmWatchdogTimeoutSec;
+    int  d_partitionFsmWatchdogNumRetries;
     bool d_isCSLModeEnabled;
     bool d_isFSMWorkflow;
     bool d_doesFSMwriteQLIST;
@@ -442,20 +448,30 @@ class ClusterAttributes {
     template <typename t_HASH_ALGORITHM>
     void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
 
+    bool isEqualTo(const ClusterAttributes& rhs) const;
+
   public:
     // TYPES
     enum {
-        ATTRIBUTE_ID_IS_C_S_L_MODE_ENABLED     = 0,
-        ATTRIBUTE_ID_IS_F_S_M_WORKFLOW         = 1,
-        ATTRIBUTE_ID_DOES_F_S_MWRITE_Q_L_I_S_T = 2
+        ATTRIBUTE_ID_IS_C_S_L_MODE_ENABLED              = 0,
+        ATTRIBUTE_ID_IS_F_S_M_WORKFLOW                  = 1,
+        ATTRIBUTE_ID_DOES_F_S_MWRITE_Q_L_I_S_T          = 2,
+        ATTRIBUTE_ID_CLUSTER_FSM_WATCHDOG_TIMEOUT_SEC   = 3,
+        ATTRIBUTE_ID_CLUSTER_FSM_WATCHDOG_NUM_RETRIES   = 4,
+        ATTRIBUTE_ID_PARTITION_FSM_WATCHDOG_TIMEOUT_SEC = 5,
+        ATTRIBUTE_ID_PARTITION_FSM_WATCHDOG_NUM_RETRIES = 6
     };
 
-    enum { NUM_ATTRIBUTES = 3 };
+    enum { NUM_ATTRIBUTES = 7 };
 
     enum {
-        ATTRIBUTE_INDEX_IS_C_S_L_MODE_ENABLED     = 0,
-        ATTRIBUTE_INDEX_IS_F_S_M_WORKFLOW         = 1,
-        ATTRIBUTE_INDEX_DOES_F_S_MWRITE_Q_L_I_S_T = 2
+        ATTRIBUTE_INDEX_IS_C_S_L_MODE_ENABLED              = 0,
+        ATTRIBUTE_INDEX_IS_F_S_M_WORKFLOW                  = 1,
+        ATTRIBUTE_INDEX_DOES_F_S_MWRITE_Q_L_I_S_T          = 2,
+        ATTRIBUTE_INDEX_CLUSTER_FSM_WATCHDOG_TIMEOUT_SEC   = 3,
+        ATTRIBUTE_INDEX_CLUSTER_FSM_WATCHDOG_NUM_RETRIES   = 4,
+        ATTRIBUTE_INDEX_PARTITION_FSM_WATCHDOG_TIMEOUT_SEC = 5,
+        ATTRIBUTE_INDEX_PARTITION_FSM_WATCHDOG_NUM_RETRIES = 6
     };
 
     // CONSTANTS
@@ -466,6 +482,14 @@ class ClusterAttributes {
     static const bool DEFAULT_INITIALIZER_IS_F_S_M_WORKFLOW;
 
     static const bool DEFAULT_INITIALIZER_DOES_F_S_MWRITE_Q_L_I_S_T;
+
+    static const int DEFAULT_INITIALIZER_CLUSTER_FSM_WATCHDOG_TIMEOUT_SEC;
+
+    static const int DEFAULT_INITIALIZER_CLUSTER_FSM_WATCHDOG_NUM_RETRIES;
+
+    static const int DEFAULT_INITIALIZER_PARTITION_FSM_WATCHDOG_TIMEOUT_SEC;
+
+    static const int DEFAULT_INITIALIZER_PARTITION_FSM_WATCHDOG_NUM_RETRIES;
 
     static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
@@ -532,6 +556,22 @@ class ClusterAttributes {
     // Return a reference to the modifiable "DoesFSMwriteQLIST" attribute
     // of this object.
 
+    int& clusterFsmWatchdogTimeoutSec();
+    // Return a reference to the modifiable "ClusterFsmWatchdogTimeoutSec"
+    // attribute of this object.
+
+    int& clusterFsmWatchdogNumRetries();
+    // Return a reference to the modifiable "ClusterFsmWatchdogNumRetries"
+    // attribute of this object.
+
+    int& partitionFsmWatchdogTimeoutSec();
+    // Return a reference to the modifiable
+    // "PartitionFsmWatchdogTimeoutSec" attribute of this object.
+
+    int& partitionFsmWatchdogNumRetries();
+    // Return a reference to the modifiable
+    // "PartitionFsmWatchdogNumRetries" attribute of this object.
+
     // ACCESSORS
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
@@ -585,6 +625,22 @@ class ClusterAttributes {
     // Return the value of the "DoesFSMwriteQLIST" attribute of this
     // object.
 
+    int clusterFsmWatchdogTimeoutSec() const;
+    // Return the value of the "ClusterFsmWatchdogTimeoutSec" attribute of
+    // this object.
+
+    int clusterFsmWatchdogNumRetries() const;
+    // Return the value of the "ClusterFsmWatchdogNumRetries" attribute of
+    // this object.
+
+    int partitionFsmWatchdogTimeoutSec() const;
+    // Return the value of the "PartitionFsmWatchdogTimeoutSec" attribute
+    // of this object.
+
+    int partitionFsmWatchdogNumRetries() const;
+    // Return the value of the "PartitionFsmWatchdogNumRetries" attribute
+    // of this object.
+
     // HIDDEN FRIENDS
     friend bool operator==(const ClusterAttributes& lhs,
                            const ClusterAttributes& rhs)
@@ -592,9 +648,7 @@ class ClusterAttributes {
     // have the same value, and 'false' otherwise.  Two attribute objects
     // have the same value if each respective attribute has the same value.
     {
-        return lhs.isCSLModeEnabled() == rhs.isCSLModeEnabled() &&
-               lhs.isFSMWorkflow() == rhs.isFSMWorkflow() &&
-               lhs.doesFSMwriteQLIST() == rhs.doesFSMwriteQLIST();
+        return lhs.isEqualTo(rhs);
     }
 
     friend bool operator!=(const ClusterAttributes& lhs,
@@ -628,7 +682,7 @@ class ClusterAttributes {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ClusterAttributes);
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ClusterAttributes)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterAttributes> : bsl::true_type {
 };
@@ -917,7 +971,7 @@ class ClusterMonitorConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ClusterMonitorConfig);
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ClusterMonitorConfig)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterMonitorConfig>
 : bsl::true_type {};
@@ -1140,7 +1194,7 @@ class Credential {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::Credential);
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::Credential)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::Credential> : bsl::true_type {};
 
@@ -1291,7 +1345,7 @@ class Disallow {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::Disallow);
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::Disallow)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::Disallow> : bsl::true_type {};
 
@@ -1493,7 +1547,7 @@ class DispatcherProcessorParameters {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::DispatcherProcessorParameters);
+    mqbcfg::DispatcherProcessorParameters)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::DispatcherProcessorParameters>
 : bsl::true_type {};
@@ -1803,7 +1857,7 @@ class ElectorConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ElectorConfig);
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ElectorConfig)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::ElectorConfig> : bsl::true_type {};
 
@@ -1816,15 +1870,9 @@ namespace mqbcfg {
 struct ExportMode {
   public:
     // TYPES
-    enum Value {
-        e_E_PUSH = 0,
-        e_E_PULL = 1,
+    enum Value { E_PUSH = 0, E_PULL = 1 };
 
-        E_PUSH = e_E_PUSH,
-        E_PULL = e_E_PULL
-    };
-
-    enum { k_NUM_ENUMERATORS = 2, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
+    enum { NUM_ENUMERATORS = 2 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -1872,7 +1920,7 @@ struct ExportMode {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(mqbcfg::ExportMode);
+BDLAT_DECL_ENUMERATION_TRAITS(mqbcfg::ExportMode)
 
 namespace mqbcfg {
 
@@ -2095,7 +2143,7 @@ class Heartbeat {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::Heartbeat);
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::Heartbeat)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::Heartbeat> : bsl::true_type {};
 
@@ -2340,7 +2388,7 @@ class LogDumpConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::LogDumpConfig);
+    mqbcfg::LogDumpConfig)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::LogDumpConfig> : bsl::true_type {};
 
@@ -2358,15 +2406,9 @@ struct MasterAssignmentAlgorithm {
 
   public:
     // TYPES
-    enum Value {
-        e_E_LEADER_IS_MASTER_ALL = 0,
-        e_E_LEAST_ASSIGNED       = 1,
+    enum Value { E_LEADER_IS_MASTER_ALL = 0, E_LEAST_ASSIGNED = 1 };
 
-        E_LEADER_IS_MASTER_ALL = e_E_LEADER_IS_MASTER_ALL,
-        E_LEAST_ASSIGNED       = e_E_LEAST_ASSIGNED
-    };
-
-    enum { k_NUM_ENUMERATORS = 2, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
+    enum { NUM_ENUMERATORS = 2 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -2414,7 +2456,7 @@ struct MasterAssignmentAlgorithm {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(mqbcfg::MasterAssignmentAlgorithm);
+BDLAT_DECL_ENUMERATION_TRAITS(mqbcfg::MasterAssignmentAlgorithm)
 
 namespace mqbcfg {
 
@@ -2625,7 +2667,7 @@ class MessagePropertiesV2 {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::MessagePropertiesV2);
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::MessagePropertiesV2)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::MessagePropertiesV2>
 : bsl::true_type {};
@@ -2853,7 +2895,7 @@ class MessageThrottleConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::MessageThrottleConfig);
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::MessageThrottleConfig)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::MessageThrottleConfig>
 : bsl::true_type {};
@@ -3172,7 +3214,7 @@ class PluginSettingValue {
 // TRAITS
 
 BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::PluginSettingValue);
+    mqbcfg::PluginSettingValue)
 
 namespace mqbcfg {
 
@@ -3385,7 +3427,7 @@ class Plugins {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::Plugins);
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::Plugins)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::Plugins> : bsl::true_type {};
 
@@ -3746,7 +3788,7 @@ class QueueOperationsConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::QueueOperationsConfig);
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::QueueOperationsConfig)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::QueueOperationsConfig>
 : bsl::true_type {};
@@ -3978,7 +4020,7 @@ class ResolvedDomain {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::ResolvedDomain);
+    mqbcfg::ResolvedDomain)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::ResolvedDomain> : bsl::true_type {};
 
@@ -4245,7 +4287,7 @@ class StatsPrinterConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::StatsPrinterConfig);
+    mqbcfg::StatsPrinterConfig)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::StatsPrinterConfig>
 : bsl::true_type {};
@@ -4581,7 +4623,7 @@ class StorageSyncConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::StorageSyncConfig);
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::StorageSyncConfig)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::StorageSyncConfig> : bsl::true_type {
 };
@@ -4833,8 +4875,7 @@ class SyslogConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::SyslogConfig);
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::SyslogConfig)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::SyslogConfig> : bsl::true_type {};
 
@@ -5050,7 +5091,7 @@ class TcpClusterNodeConnection {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::TcpClusterNodeConnection);
+    mqbcfg::TcpClusterNodeConnection)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::TcpClusterNodeConnection>
 : bsl::true_type {};
@@ -5065,7 +5106,7 @@ class TcpInterfaceListener {
     // This type describes the information needed for the broker to open a TCP
     // listener.
     // name.................: A name to associate this listener to.
-    // address..............: The IPv4 address this listener will accept
+    // address..............: The IP address this listener will accept
     // connections on.  port.................: The port this listener will
     // accept connections on.
 
@@ -5301,7 +5342,7 @@ class TcpInterfaceListener {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::TcpInterfaceListener);
+    mqbcfg::TcpInterfaceListener)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::TcpInterfaceListener>
 : bsl::true_type {};
@@ -5530,7 +5571,7 @@ class VirtualClusterInformation {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::VirtualClusterInformation);
+    mqbcfg::VirtualClusterInformation)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::VirtualClusterInformation>
 : bsl::true_type {};
@@ -5788,7 +5829,7 @@ class AnonymousCredential {
 // TRAITS
 
 BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::AnonymousCredential);
+    mqbcfg::AnonymousCredential)
 
 namespace mqbcfg {
 
@@ -6011,7 +6052,7 @@ class ClusterNodeConnection {
 // TRAITS
 
 BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::ClusterNodeConnection);
+    mqbcfg::ClusterNodeConnection)
 
 namespace mqbcfg {
 
@@ -6197,7 +6238,7 @@ class DispatcherProcessorConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::DispatcherProcessorConfig);
+    mqbcfg::DispatcherProcessorConfig)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::DispatcherProcessorConfig>
 : bsl::true_type {};
@@ -6526,7 +6567,7 @@ class LogController {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::LogController);
+    mqbcfg::LogController)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::LogController> : bsl::true_type {};
 
@@ -6546,14 +6587,6 @@ class PartitionConfig {
     // maxJournalFileSize...: maximum size of partitions' journal file
     // maxQlistFileSize.....: maximum size of partitions' qlist file
     // maxCSLFileSize.......: maximum size of partitions' CSL file
-    // dataFileGrowLimit....: limit for data file growth during rollover, if
-    // set to 0, maxDataFileSize is used journalFileGrowLimit.: limit for
-    // journal file growth during rollover, if set to 0, maxJournalFileSize is
-    // used qListFileGrowLimit...: limit for qlist file growth during rollover,
-    // if set to 0, maxQlistFileSize is used growStepPercent.....  : step (in
-    // percents of max file size) for file growth during rollover
-    // minAvailSpacePercent.: minimum available free file space (in percents)
-    // which will appear after rollover (rollover criteria)
     // preallocate..........: flag to indicate whether files should be
     // preallocated on disk maxArchivedFileSets..: maximum number of archived
     // file sets per partition to keep prefaultPages........: flag to indicate
@@ -6567,14 +6600,9 @@ class PartitionConfig {
     bsls::Types::Uint64 d_maxJournalFileSize;
     bsls::Types::Uint64 d_maxQlistFileSize;
     bsls::Types::Uint64 d_maxCSLFileSize;
-    bsls::Types::Uint64 d_dataFileGrowLimit;
-    bsls::Types::Uint64 d_journalFileGrowLimit;
-    bsls::Types::Uint64 d_qListFileGrowLimit;
     bsl::string         d_location;
     bsl::string         d_archiveLocation;
     StorageSyncConfig   d_syncConfig;
-    unsigned int        d_growStepPercent;
-    unsigned int        d_minAvailSpacePercent;
     int                 d_numPartitions;
     int                 d_maxArchivedFileSets;
     bool                d_preallocate;
@@ -6590,55 +6618,41 @@ class PartitionConfig {
   public:
     // TYPES
     enum {
-        ATTRIBUTE_ID_NUM_PARTITIONS          = 0,
-        ATTRIBUTE_ID_LOCATION                = 1,
-        ATTRIBUTE_ID_ARCHIVE_LOCATION        = 2,
-        ATTRIBUTE_ID_MAX_DATA_FILE_SIZE      = 3,
-        ATTRIBUTE_ID_MAX_JOURNAL_FILE_SIZE   = 4,
-        ATTRIBUTE_ID_MAX_QLIST_FILE_SIZE     = 5,
-        ATTRIBUTE_ID_MAX_C_S_L_FILE_SIZE     = 6,
-        ATTRIBUTE_ID_DATA_FILE_GROW_LIMIT    = 7,
-        ATTRIBUTE_ID_JOURNAL_FILE_GROW_LIMIT = 8,
-        ATTRIBUTE_ID_Q_LIST_FILE_GROW_LIMIT  = 9,
-        ATTRIBUTE_ID_GROW_STEP_PERCENT       = 10,
-        ATTRIBUTE_ID_MIN_AVAIL_SPACE_PERCENT = 11,
-        ATTRIBUTE_ID_PREALLOCATE             = 12,
-        ATTRIBUTE_ID_MAX_ARCHIVED_FILE_SETS  = 13,
-        ATTRIBUTE_ID_PREFAULT_PAGES          = 14,
-        ATTRIBUTE_ID_FLUSH_AT_SHUTDOWN       = 15,
-        ATTRIBUTE_ID_SYNC_CONFIG             = 16
+        ATTRIBUTE_ID_NUM_PARTITIONS         = 0,
+        ATTRIBUTE_ID_LOCATION               = 1,
+        ATTRIBUTE_ID_ARCHIVE_LOCATION       = 2,
+        ATTRIBUTE_ID_MAX_DATA_FILE_SIZE     = 3,
+        ATTRIBUTE_ID_MAX_JOURNAL_FILE_SIZE  = 4,
+        ATTRIBUTE_ID_MAX_QLIST_FILE_SIZE    = 5,
+        ATTRIBUTE_ID_MAX_C_S_L_FILE_SIZE    = 6,
+        ATTRIBUTE_ID_PREALLOCATE            = 7,
+        ATTRIBUTE_ID_MAX_ARCHIVED_FILE_SETS = 8,
+        ATTRIBUTE_ID_PREFAULT_PAGES         = 9,
+        ATTRIBUTE_ID_FLUSH_AT_SHUTDOWN      = 10,
+        ATTRIBUTE_ID_SYNC_CONFIG            = 11
     };
 
-    enum { NUM_ATTRIBUTES = 17 };
+    enum { NUM_ATTRIBUTES = 12 };
 
     enum {
-        ATTRIBUTE_INDEX_NUM_PARTITIONS          = 0,
-        ATTRIBUTE_INDEX_LOCATION                = 1,
-        ATTRIBUTE_INDEX_ARCHIVE_LOCATION        = 2,
-        ATTRIBUTE_INDEX_MAX_DATA_FILE_SIZE      = 3,
-        ATTRIBUTE_INDEX_MAX_JOURNAL_FILE_SIZE   = 4,
-        ATTRIBUTE_INDEX_MAX_QLIST_FILE_SIZE     = 5,
-        ATTRIBUTE_INDEX_MAX_C_S_L_FILE_SIZE     = 6,
-        ATTRIBUTE_INDEX_DATA_FILE_GROW_LIMIT    = 7,
-        ATTRIBUTE_INDEX_JOURNAL_FILE_GROW_LIMIT = 8,
-        ATTRIBUTE_INDEX_Q_LIST_FILE_GROW_LIMIT  = 9,
-        ATTRIBUTE_INDEX_GROW_STEP_PERCENT       = 10,
-        ATTRIBUTE_INDEX_MIN_AVAIL_SPACE_PERCENT = 11,
-        ATTRIBUTE_INDEX_PREALLOCATE             = 12,
-        ATTRIBUTE_INDEX_MAX_ARCHIVED_FILE_SETS  = 13,
-        ATTRIBUTE_INDEX_PREFAULT_PAGES          = 14,
-        ATTRIBUTE_INDEX_FLUSH_AT_SHUTDOWN       = 15,
-        ATTRIBUTE_INDEX_SYNC_CONFIG             = 16
+        ATTRIBUTE_INDEX_NUM_PARTITIONS         = 0,
+        ATTRIBUTE_INDEX_LOCATION               = 1,
+        ATTRIBUTE_INDEX_ARCHIVE_LOCATION       = 2,
+        ATTRIBUTE_INDEX_MAX_DATA_FILE_SIZE     = 3,
+        ATTRIBUTE_INDEX_MAX_JOURNAL_FILE_SIZE  = 4,
+        ATTRIBUTE_INDEX_MAX_QLIST_FILE_SIZE    = 5,
+        ATTRIBUTE_INDEX_MAX_C_S_L_FILE_SIZE    = 6,
+        ATTRIBUTE_INDEX_PREALLOCATE            = 7,
+        ATTRIBUTE_INDEX_MAX_ARCHIVED_FILE_SETS = 8,
+        ATTRIBUTE_INDEX_PREFAULT_PAGES         = 9,
+        ATTRIBUTE_INDEX_FLUSH_AT_SHUTDOWN      = 10,
+        ATTRIBUTE_INDEX_SYNC_CONFIG            = 11
     };
 
     // CONSTANTS
     static const char CLASS_NAME[];
 
     static const bsls::Types::Uint64 DEFAULT_INITIALIZER_MAX_C_S_L_FILE_SIZE;
-
-    static const unsigned int DEFAULT_INITIALIZER_GROW_STEP_PERCENT;
-
-    static const unsigned int DEFAULT_INITIALIZER_MIN_AVAIL_SPACE_PERCENT;
 
     static const bool DEFAULT_INITIALIZER_PREALLOCATE;
 
@@ -6767,26 +6781,6 @@ class PartitionConfig {
     // Return a reference to the modifiable "MaxCSLFileSize" attribute of
     // this object.
 
-    bsls::Types::Uint64& dataFileGrowLimit();
-    // Return a reference to the modifiable "DataFileGrowLimit" attribute
-    // of this object.
-
-    bsls::Types::Uint64& journalFileGrowLimit();
-    // Return a reference to the modifiable "JournalFileGrowLimit"
-    // attribute of this object.
-
-    bsls::Types::Uint64& qListFileGrowLimit();
-    // Return a reference to the modifiable "QListFileGrowLimit" attribute
-    // of this object.
-
-    unsigned int& growStepPercent();
-    // Return a reference to the modifiable "GrowStepPercent" attribute of
-    // this object.
-
-    unsigned int& minAvailSpacePercent();
-    // Return a reference to the modifiable "MinAvailSpacePercent"
-    // attribute of this object.
-
     bool& preallocate();
     // Return a reference to the modifiable "Preallocate" attribute of this
     // object.
@@ -6874,25 +6868,6 @@ class PartitionConfig {
     bsls::Types::Uint64 maxCSLFileSize() const;
     // Return the value of the "MaxCSLFileSize" attribute of this object.
 
-    bsls::Types::Uint64 dataFileGrowLimit() const;
-    // Return the value of the "DataFileGrowLimit" attribute of this
-    // object.
-
-    bsls::Types::Uint64 journalFileGrowLimit() const;
-    // Return the value of the "JournalFileGrowLimit" attribute of this
-    // object.
-
-    bsls::Types::Uint64 qListFileGrowLimit() const;
-    // Return the value of the "QListFileGrowLimit" attribute of this
-    // object.
-
-    unsigned int growStepPercent() const;
-    // Return the value of the "GrowStepPercent" attribute of this object.
-
-    unsigned int minAvailSpacePercent() const;
-    // Return the value of the "MinAvailSpacePercent" attribute of this
-    // object.
-
     bool preallocate() const;
     // Return the value of the "Preallocate" attribute of this object.
 
@@ -6952,7 +6927,7 @@ class PartitionConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::PartitionConfig);
+    mqbcfg::PartitionConfig)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::PartitionConfig> : bsl::true_type {};
 
@@ -7176,7 +7151,7 @@ class PluginSettingKeyValue {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::PluginSettingKeyValue);
+    mqbcfg::PluginSettingKeyValue)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::PluginSettingKeyValue>
 : bsl::true_type {};
@@ -7425,7 +7400,7 @@ class StatPluginConfigPrometheus {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::StatPluginConfigPrometheus);
+    mqbcfg::StatPluginConfigPrometheus)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::StatPluginConfigPrometheus>
 : bsl::true_type {};
@@ -7760,7 +7735,7 @@ class TcpInterfaceConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::TcpInterfaceConfig);
+    mqbcfg::TcpInterfaceConfig)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::TcpInterfaceConfig>
 : bsl::true_type {};
@@ -7988,7 +7963,7 @@ class AuthenticatorPluginConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::AuthenticatorPluginConfig);
+    mqbcfg::AuthenticatorPluginConfig)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::AuthenticatorPluginConfig>
 : bsl::true_type {};
@@ -8242,7 +8217,7 @@ class ClusterNode {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::ClusterNode);
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::ClusterNode)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterNode> : bsl::true_type {};
 
@@ -8468,7 +8443,7 @@ class DispatcherConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::DispatcherConfig);
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::DispatcherConfig)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::DispatcherConfig> : bsl::true_type {
 };
@@ -8692,7 +8667,7 @@ class NetworkInterfaces {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::NetworkInterfaces);
+    mqbcfg::NetworkInterfaces)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::NetworkInterfaces> : bsl::true_type {
 };
@@ -9015,7 +8990,7 @@ class StatPluginConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::StatPluginConfig);
+    mqbcfg::StatPluginConfig)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::StatPluginConfig> : bsl::true_type {
 };
@@ -9251,7 +9226,7 @@ class TaskConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::TaskConfig);
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::TaskConfig)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::TaskConfig> : bsl::true_type {};
 
@@ -9520,7 +9495,7 @@ class AuthenticatorConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::AuthenticatorConfig);
+    mqbcfg::AuthenticatorConfig)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::AuthenticatorConfig>
 : bsl::true_type {};
@@ -9840,7 +9815,7 @@ class ClusterDefinition {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::ClusterDefinition);
+    mqbcfg::ClusterDefinition)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterDefinition> : bsl::true_type {
 };
@@ -10114,7 +10089,7 @@ class ClusterProxyDefinition {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::ClusterProxyDefinition);
+    mqbcfg::ClusterProxyDefinition)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterProxyDefinition>
 : bsl::true_type {};
@@ -10354,7 +10329,7 @@ class StatsConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::StatsConfig);
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::StatsConfig)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::StatsConfig> : bsl::true_type {};
 
@@ -10791,7 +10766,7 @@ class AppConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::AppConfig);
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::AppConfig)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::AppConfig> : bsl::true_type {};
 
@@ -11041,7 +11016,7 @@ class ClustersDefinition {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::ClustersDefinition);
+    mqbcfg::ClustersDefinition)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::ClustersDefinition>
 : bsl::true_type {};
@@ -11262,7 +11237,7 @@ class Configuration {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::Configuration);
+    mqbcfg::Configuration)
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcfg::Configuration> : bsl::true_type {};
 
@@ -11410,6 +11385,25 @@ void ClusterAttributes::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     hashAppend(hashAlgorithm, this->isCSLModeEnabled());
     hashAppend(hashAlgorithm, this->isFSMWorkflow());
     hashAppend(hashAlgorithm, this->doesFSMwriteQLIST());
+    hashAppend(hashAlgorithm, this->clusterFsmWatchdogTimeoutSec());
+    hashAppend(hashAlgorithm, this->clusterFsmWatchdogNumRetries());
+    hashAppend(hashAlgorithm, this->partitionFsmWatchdogTimeoutSec());
+    hashAppend(hashAlgorithm, this->partitionFsmWatchdogNumRetries());
+}
+
+inline bool ClusterAttributes::isEqualTo(const ClusterAttributes& rhs) const
+{
+    return this->isCSLModeEnabled() == rhs.isCSLModeEnabled() &&
+           this->isFSMWorkflow() == rhs.isFSMWorkflow() &&
+           this->doesFSMwriteQLIST() == rhs.doesFSMwriteQLIST() &&
+           this->clusterFsmWatchdogTimeoutSec() ==
+               rhs.clusterFsmWatchdogTimeoutSec() &&
+           this->clusterFsmWatchdogNumRetries() ==
+               rhs.clusterFsmWatchdogNumRetries() &&
+           this->partitionFsmWatchdogTimeoutSec() ==
+               rhs.partitionFsmWatchdogTimeoutSec() &&
+           this->partitionFsmWatchdogNumRetries() ==
+               rhs.partitionFsmWatchdogNumRetries();
 }
 
 // CLASS METHODS
@@ -11439,6 +11433,36 @@ int ClusterAttributes::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
+    ret = manipulator(&d_clusterFsmWatchdogTimeoutSec,
+                      ATTRIBUTE_INFO_ARRAY
+                          [ATTRIBUTE_INDEX_CLUSTER_FSM_WATCHDOG_TIMEOUT_SEC]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_clusterFsmWatchdogNumRetries,
+                      ATTRIBUTE_INFO_ARRAY
+                          [ATTRIBUTE_INDEX_CLUSTER_FSM_WATCHDOG_NUM_RETRIES]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(
+        &d_partitionFsmWatchdogTimeoutSec,
+        ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_PARTITION_FSM_WATCHDOG_TIMEOUT_SEC]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(
+        &d_partitionFsmWatchdogNumRetries,
+        ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_PARTITION_FSM_WATCHDOG_NUM_RETRIES]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -11462,6 +11486,30 @@ int ClusterAttributes::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
         return manipulator(
             &d_doesFSMwriteQLIST,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DOES_F_S_MWRITE_Q_L_I_S_T]);
+    }
+    case ATTRIBUTE_ID_CLUSTER_FSM_WATCHDOG_TIMEOUT_SEC: {
+        return manipulator(
+            &d_clusterFsmWatchdogTimeoutSec,
+            ATTRIBUTE_INFO_ARRAY
+                [ATTRIBUTE_INDEX_CLUSTER_FSM_WATCHDOG_TIMEOUT_SEC]);
+    }
+    case ATTRIBUTE_ID_CLUSTER_FSM_WATCHDOG_NUM_RETRIES: {
+        return manipulator(
+            &d_clusterFsmWatchdogNumRetries,
+            ATTRIBUTE_INFO_ARRAY
+                [ATTRIBUTE_INDEX_CLUSTER_FSM_WATCHDOG_NUM_RETRIES]);
+    }
+    case ATTRIBUTE_ID_PARTITION_FSM_WATCHDOG_TIMEOUT_SEC: {
+        return manipulator(
+            &d_partitionFsmWatchdogTimeoutSec,
+            ATTRIBUTE_INFO_ARRAY
+                [ATTRIBUTE_INDEX_PARTITION_FSM_WATCHDOG_TIMEOUT_SEC]);
+    }
+    case ATTRIBUTE_ID_PARTITION_FSM_WATCHDOG_NUM_RETRIES: {
+        return manipulator(
+            &d_partitionFsmWatchdogNumRetries,
+            ATTRIBUTE_INFO_ARRAY
+                [ATTRIBUTE_INDEX_PARTITION_FSM_WATCHDOG_NUM_RETRIES]);
     }
     default: return NOT_FOUND;
     }
@@ -11498,6 +11546,26 @@ inline bool& ClusterAttributes::doesFSMwriteQLIST()
     return d_doesFSMwriteQLIST;
 }
 
+inline int& ClusterAttributes::clusterFsmWatchdogTimeoutSec()
+{
+    return d_clusterFsmWatchdogTimeoutSec;
+}
+
+inline int& ClusterAttributes::clusterFsmWatchdogNumRetries()
+{
+    return d_clusterFsmWatchdogNumRetries;
+}
+
+inline int& ClusterAttributes::partitionFsmWatchdogTimeoutSec()
+{
+    return d_partitionFsmWatchdogTimeoutSec;
+}
+
+inline int& ClusterAttributes::partitionFsmWatchdogNumRetries()
+{
+    return d_partitionFsmWatchdogNumRetries;
+}
+
 // ACCESSORS
 template <typename t_ACCESSOR>
 int ClusterAttributes::accessAttributes(t_ACCESSOR& accessor) const
@@ -11520,6 +11588,34 @@ int ClusterAttributes::accessAttributes(t_ACCESSOR& accessor) const
     ret = accessor(
         d_doesFSMwriteQLIST,
         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DOES_F_S_MWRITE_Q_L_I_S_T]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_clusterFsmWatchdogTimeoutSec,
+                   ATTRIBUTE_INFO_ARRAY
+                       [ATTRIBUTE_INDEX_CLUSTER_FSM_WATCHDOG_TIMEOUT_SEC]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_clusterFsmWatchdogNumRetries,
+                   ATTRIBUTE_INFO_ARRAY
+                       [ATTRIBUTE_INDEX_CLUSTER_FSM_WATCHDOG_NUM_RETRIES]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_partitionFsmWatchdogTimeoutSec,
+                   ATTRIBUTE_INFO_ARRAY
+                       [ATTRIBUTE_INDEX_PARTITION_FSM_WATCHDOG_TIMEOUT_SEC]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_partitionFsmWatchdogNumRetries,
+                   ATTRIBUTE_INFO_ARRAY
+                       [ATTRIBUTE_INDEX_PARTITION_FSM_WATCHDOG_NUM_RETRIES]);
     if (ret) {
         return ret;
     }
@@ -11547,6 +11643,30 @@ int ClusterAttributes::accessAttribute(t_ACCESSOR& accessor, int id) const
         return accessor(
             d_doesFSMwriteQLIST,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DOES_F_S_MWRITE_Q_L_I_S_T]);
+    }
+    case ATTRIBUTE_ID_CLUSTER_FSM_WATCHDOG_TIMEOUT_SEC: {
+        return accessor(
+            d_clusterFsmWatchdogTimeoutSec,
+            ATTRIBUTE_INFO_ARRAY
+                [ATTRIBUTE_INDEX_CLUSTER_FSM_WATCHDOG_TIMEOUT_SEC]);
+    }
+    case ATTRIBUTE_ID_CLUSTER_FSM_WATCHDOG_NUM_RETRIES: {
+        return accessor(
+            d_clusterFsmWatchdogNumRetries,
+            ATTRIBUTE_INFO_ARRAY
+                [ATTRIBUTE_INDEX_CLUSTER_FSM_WATCHDOG_NUM_RETRIES]);
+    }
+    case ATTRIBUTE_ID_PARTITION_FSM_WATCHDOG_TIMEOUT_SEC: {
+        return accessor(
+            d_partitionFsmWatchdogTimeoutSec,
+            ATTRIBUTE_INFO_ARRAY
+                [ATTRIBUTE_INDEX_PARTITION_FSM_WATCHDOG_TIMEOUT_SEC]);
+    }
+    case ATTRIBUTE_ID_PARTITION_FSM_WATCHDOG_NUM_RETRIES: {
+        return accessor(
+            d_partitionFsmWatchdogNumRetries,
+            ATTRIBUTE_INFO_ARRAY
+                [ATTRIBUTE_INDEX_PARTITION_FSM_WATCHDOG_NUM_RETRIES]);
     }
     default: return NOT_FOUND;
     }
@@ -11581,6 +11701,26 @@ inline bool ClusterAttributes::isFSMWorkflow() const
 inline bool ClusterAttributes::doesFSMwriteQLIST() const
 {
     return d_doesFSMwriteQLIST;
+}
+
+inline int ClusterAttributes::clusterFsmWatchdogTimeoutSec() const
+{
+    return d_clusterFsmWatchdogTimeoutSec;
+}
+
+inline int ClusterAttributes::clusterFsmWatchdogNumRetries() const
+{
+    return d_clusterFsmWatchdogNumRetries;
+}
+
+inline int ClusterAttributes::partitionFsmWatchdogTimeoutSec() const
+{
+    return d_partitionFsmWatchdogTimeoutSec;
+}
+
+inline int ClusterAttributes::partitionFsmWatchdogNumRetries() const
+{
+    return d_partitionFsmWatchdogNumRetries;
 }
 
 // --------------------------
@@ -16704,11 +16844,6 @@ void PartitionConfig::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     hashAppend(hashAlgorithm, this->maxJournalFileSize());
     hashAppend(hashAlgorithm, this->maxQlistFileSize());
     hashAppend(hashAlgorithm, this->maxCSLFileSize());
-    hashAppend(hashAlgorithm, this->dataFileGrowLimit());
-    hashAppend(hashAlgorithm, this->journalFileGrowLimit());
-    hashAppend(hashAlgorithm, this->qListFileGrowLimit());
-    hashAppend(hashAlgorithm, this->growStepPercent());
-    hashAppend(hashAlgorithm, this->minAvailSpacePercent());
     hashAppend(hashAlgorithm, this->preallocate());
     hashAppend(hashAlgorithm, this->maxArchivedFileSets());
     hashAppend(hashAlgorithm, this->prefaultPages());
@@ -16725,11 +16860,6 @@ inline bool PartitionConfig::isEqualTo(const PartitionConfig& rhs) const
            this->maxJournalFileSize() == rhs.maxJournalFileSize() &&
            this->maxQlistFileSize() == rhs.maxQlistFileSize() &&
            this->maxCSLFileSize() == rhs.maxCSLFileSize() &&
-           this->dataFileGrowLimit() == rhs.dataFileGrowLimit() &&
-           this->journalFileGrowLimit() == rhs.journalFileGrowLimit() &&
-           this->qListFileGrowLimit() == rhs.qListFileGrowLimit() &&
-           this->growStepPercent() == rhs.growStepPercent() &&
-           this->minAvailSpacePercent() == rhs.minAvailSpacePercent() &&
            this->preallocate() == rhs.preallocate() &&
            this->maxArchivedFileSets() == rhs.maxArchivedFileSets() &&
            this->prefaultPages() == rhs.prefaultPages() &&
@@ -16786,40 +16916,6 @@ int PartitionConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
     ret = manipulator(
         &d_maxCSLFileSize,
         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_C_S_L_FILE_SIZE]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(
-        &d_dataFileGrowLimit,
-        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DATA_FILE_GROW_LIMIT]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(
-        &d_journalFileGrowLimit,
-        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_JOURNAL_FILE_GROW_LIMIT]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(
-        &d_qListFileGrowLimit,
-        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_Q_LIST_FILE_GROW_LIMIT]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_growStepPercent,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_GROW_STEP_PERCENT]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(
-        &d_minAvailSpacePercent,
-        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MIN_AVAIL_SPACE_PERCENT]);
     if (ret) {
         return ret;
     }
@@ -16897,31 +16993,6 @@ int PartitionConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
         return manipulator(
             &d_maxCSLFileSize,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_C_S_L_FILE_SIZE]);
-    }
-    case ATTRIBUTE_ID_DATA_FILE_GROW_LIMIT: {
-        return manipulator(
-            &d_dataFileGrowLimit,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DATA_FILE_GROW_LIMIT]);
-    }
-    case ATTRIBUTE_ID_JOURNAL_FILE_GROW_LIMIT: {
-        return manipulator(
-            &d_journalFileGrowLimit,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_JOURNAL_FILE_GROW_LIMIT]);
-    }
-    case ATTRIBUTE_ID_Q_LIST_FILE_GROW_LIMIT: {
-        return manipulator(
-            &d_qListFileGrowLimit,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_Q_LIST_FILE_GROW_LIMIT]);
-    }
-    case ATTRIBUTE_ID_GROW_STEP_PERCENT: {
-        return manipulator(
-            &d_growStepPercent,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_GROW_STEP_PERCENT]);
-    }
-    case ATTRIBUTE_ID_MIN_AVAIL_SPACE_PERCENT: {
-        return manipulator(
-            &d_minAvailSpacePercent,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MIN_AVAIL_SPACE_PERCENT]);
     }
     case ATTRIBUTE_ID_PREALLOCATE: {
         return manipulator(&d_preallocate,
@@ -17001,31 +17072,6 @@ inline bsls::Types::Uint64& PartitionConfig::maxCSLFileSize()
     return d_maxCSLFileSize;
 }
 
-inline bsls::Types::Uint64& PartitionConfig::dataFileGrowLimit()
-{
-    return d_dataFileGrowLimit;
-}
-
-inline bsls::Types::Uint64& PartitionConfig::journalFileGrowLimit()
-{
-    return d_journalFileGrowLimit;
-}
-
-inline bsls::Types::Uint64& PartitionConfig::qListFileGrowLimit()
-{
-    return d_qListFileGrowLimit;
-}
-
-inline unsigned int& PartitionConfig::growStepPercent()
-{
-    return d_growStepPercent;
-}
-
-inline unsigned int& PartitionConfig::minAvailSpacePercent()
-{
-    return d_minAvailSpacePercent;
-}
-
 inline bool& PartitionConfig::preallocate()
 {
     return d_preallocate;
@@ -17095,39 +17141,6 @@ int PartitionConfig::accessAttributes(t_ACCESSOR& accessor) const
 
     ret = accessor(d_maxCSLFileSize,
                    ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_C_S_L_FILE_SIZE]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_dataFileGrowLimit,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DATA_FILE_GROW_LIMIT]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(
-        d_journalFileGrowLimit,
-        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_JOURNAL_FILE_GROW_LIMIT]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(
-        d_qListFileGrowLimit,
-        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_Q_LIST_FILE_GROW_LIMIT]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_growStepPercent,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_GROW_STEP_PERCENT]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(
-        d_minAvailSpacePercent,
-        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MIN_AVAIL_SPACE_PERCENT]);
     if (ret) {
         return ret;
     }
@@ -17205,31 +17218,6 @@ int PartitionConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
             d_maxCSLFileSize,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_C_S_L_FILE_SIZE]);
     }
-    case ATTRIBUTE_ID_DATA_FILE_GROW_LIMIT: {
-        return accessor(
-            d_dataFileGrowLimit,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DATA_FILE_GROW_LIMIT]);
-    }
-    case ATTRIBUTE_ID_JOURNAL_FILE_GROW_LIMIT: {
-        return accessor(
-            d_journalFileGrowLimit,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_JOURNAL_FILE_GROW_LIMIT]);
-    }
-    case ATTRIBUTE_ID_Q_LIST_FILE_GROW_LIMIT: {
-        return accessor(
-            d_qListFileGrowLimit,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_Q_LIST_FILE_GROW_LIMIT]);
-    }
-    case ATTRIBUTE_ID_GROW_STEP_PERCENT: {
-        return accessor(
-            d_growStepPercent,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_GROW_STEP_PERCENT]);
-    }
-    case ATTRIBUTE_ID_MIN_AVAIL_SPACE_PERCENT: {
-        return accessor(
-            d_minAvailSpacePercent,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MIN_AVAIL_SPACE_PERCENT]);
-    }
     case ATTRIBUTE_ID_PREALLOCATE: {
         return accessor(d_preallocate,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PREALLOCATE]);
@@ -17305,31 +17293,6 @@ inline bsls::Types::Uint64 PartitionConfig::maxQlistFileSize() const
 inline bsls::Types::Uint64 PartitionConfig::maxCSLFileSize() const
 {
     return d_maxCSLFileSize;
-}
-
-inline bsls::Types::Uint64 PartitionConfig::dataFileGrowLimit() const
-{
-    return d_dataFileGrowLimit;
-}
-
-inline bsls::Types::Uint64 PartitionConfig::journalFileGrowLimit() const
-{
-    return d_journalFileGrowLimit;
-}
-
-inline bsls::Types::Uint64 PartitionConfig::qListFileGrowLimit() const
-{
-    return d_qListFileGrowLimit;
-}
-
-inline unsigned int PartitionConfig::growStepPercent() const
-{
-    return d_growStepPercent;
-}
-
-inline unsigned int PartitionConfig::minAvailSpacePercent() const
-{
-    return d_minAvailSpacePercent;
 }
 
 inline bool PartitionConfig::preallocate() const

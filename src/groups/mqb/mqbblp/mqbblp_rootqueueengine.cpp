@@ -879,8 +879,8 @@ mqbi::QueueHandle* RootQueueEngine::getHandle(
             BMQTSK_ALARMLOG_ALARM("FANOUT_UNREGISTERED_APPID")
                 << "AppId '" << appId << "' is not authorized for queue '"
                 << d_queueState_p->uri()
-                << "' - please contact BlazingMQ team to request configuration"
-                   " of this AppId"
+                << "' - please update the domain configuration to include "
+                   "the appId to enable consumption."
                 << BMQTSK_ALARMLOG_END;
 
             iter = makeSubStream(appId,
@@ -1993,7 +1993,7 @@ void RootQueueEngine::logAlarmCb(
             const int level = 2, spacesPerLevel = 2;
 
             ss << "\n  " << idx++ << ". "
-               << queueHandle_p->client()->description()
+               << queueHandle_p->clientContext()->description()
                << bmqu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
                << "Handle Parameters .....: "
                << queueHandle_p->handleParameters()

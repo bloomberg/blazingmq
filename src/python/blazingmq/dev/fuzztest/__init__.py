@@ -110,6 +110,15 @@ def schema_to_boofuzz(schema: broker.SchemaDescription) -> BoofuzzSequence:
 
         if isinstance(value, dict):
             res += schema_to_boofuzz(value)
+        elif isinstance(value, list):
+            res.append(boofuzz.Static(default_value="["))
+            for item in value:
+                res += schema_to_boofuzz(item)
+                res.append(boofuzz.Delim(default_value=",", fuzzable=fuzz_delimiters))
+            # last boofuzz.Delim "," should be removed if presented
+            if len(value) > 0:
+                res = res[:-1]
+            res.append(boofuzz.Static(default_value="]"))
         elif isinstance(value, str):
             res.append(boofuzz.String(default_value=f'"{value}"'))
         elif isinstance(value, bool):
@@ -397,6 +406,11 @@ def fuzz(host: str, port: int, request: Optional[str] = None) -> None:
         "OpenQueue", children=(make_control_message(broker.OPEN_QUEUE_SCHEMA))
     )
 
+    configure_stream = boofuzz.Request(
+        "ConfigureStream",
+        children=(make_control_message(broker.CONFIGURE_STREAM_SCHEMA)),
+    )
+
     configure_queue_stream = boofuzz.Request(
         "ConfigureQueueStream",
         children=(make_control_message(broker.CONFIGURE_QUEUE_STREAM_SCHEMA)),
@@ -418,6 +432,7 @@ def fuzz(host: str, port: int, request: Optional[str] = None) -> None:
         (authentication, "authentication"),
         (negotiation, "negotiation"),
         (open_queue, "open_queue"),
+        (configure_stream, "configure_stream"),
         (configure_queue_stream, "configure_queue_stream"),
         (put, "put"),
         (confirm, "confirm"),

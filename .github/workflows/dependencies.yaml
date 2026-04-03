@@ -7,15 +7,11 @@ on:
         description: "What C++ Standard to build with.  [cpp03, cpp11, cpp14, cpp17, cpp20, cpp23]"
         required: true
         type: string
-        default: "cpp17"
+        default: "cpp23"
     outputs:
       cache_key:
         description: "GH Actions Cache key associated with the built dependencies"
         value: ${{ jobs.build_dependencies.outputs.cache_key }}
-  schedule:
-    # Rebuild dependencies cache from the "main" branch at the beginning of a new day,
-    # so it is accessible from other branches' PRs
-    - cron: "10 0 * * *"
 
 concurrency:
   group: global-${{ inputs.cxx_standard }}

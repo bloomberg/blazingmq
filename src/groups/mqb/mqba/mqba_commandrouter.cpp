@@ -18,6 +18,7 @@
 
 // MQB
 #include <mqbcfg_brokerconfig.h>
+#include <mqbcfg_messages.h>
 #include <mqbcmd_jsonprinter.h>
 #include <mqbcmd_parseutil.h>
 #include <mqbi_cluster.h>

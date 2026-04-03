@@ -151,6 +151,12 @@
 #include <mqbblp_clustercatalog.h>
 #include <mqbblp_queueengineutil.h>
 #include <mqbcfg_brokerconfig.h>
+#include <mqbevt_ackevent.h>
+#include <mqbevt_callbackevent.h>
+#include <mqbevt_confirmevent.h>
+#include <mqbevt_pushevent.h>
+#include <mqbevt_putevent.h>
+#include <mqbevt_rejectevent.h>
 #include <mqbi_cluster.h>
 #include <mqbi_queue.h>
 #include <mqbnet_tcpsessionfactory.h>
@@ -342,6 +348,20 @@ struct BuildAckOverflowFunctor {
     // MANIPULATORS
     inline void operator()() { d_session.flush(); }
 };
+
+template <typename EVENT_TYPE>
+void dispatchEvent(const bsl::shared_ptr<bdlbb::Blob>& blob_sp,
+                   mqba::ClientSession*                source)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(source);
+
+    mqbi::Dispatcher*           dispatcher = source->dispatcher();
+    bsl::shared_ptr<EVENT_TYPE> event_sp =
+        dispatcher->getDefaultEventSource()->getEvent<EVENT_TYPE>();
+    event_sp->setBlob(blob_sp).setSource(source);
+    dispatcher->dispatchEvent(bslmf::MovableRefUtil::move(event_sp), source);
+}
 
 }  // close unnamed namespace
 
@@ -752,7 +772,7 @@ void ClientSession::tearDownImpl(bslmt::Semaphore*            semaphore,
     // with the 'tearDownAllQueuesDone' finalize callback having the 'handle'
     // bound to it (so that the session is not yet destroyed).
     dispatcher()->executeOnAllQueues(
-        mqbi::Dispatcher::VoidFunctor(),  // empty
+        mqbi::Dispatcher::VoidFunction(),  // empty
         mqbi::DispatcherClientType::e_QUEUE,
         bdlf::BindUtil::bind(&ClientSession::tearDownAllQueuesDone,
                              this,
@@ -1012,7 +1032,7 @@ void ClientSession::processDisconnectAllQueues(
     // type, refer to top level documention for explanation (paragraph about
     // the bmqu::SharedResource).
     dispatcher()->executeOnAllQueues(
-        mqbi::Dispatcher::VoidFunctor(),  // empty
+        mqbi::Dispatcher::VoidFunction(),  // empty
         mqbi::DispatcherClientType::e_QUEUE,
         bdlf::BindUtil::bind(
             bmqu::WeakMemFnUtil::weakMemFn(
@@ -1376,7 +1396,7 @@ void ClientSession::processConfigureStream(
             opLogger));
 }
 
-void ClientSession::onAckEvent(const mqbi::DispatcherAckEvent& event)
+void ClientSession::onAckEvent(const mqbevt::AckEvent& event)
 {
     // executed by the *CLIENT* dispatcher thread
 
@@ -1472,7 +1492,7 @@ void ClientSession::onAckEvent(const mqbi::DispatcherAckEvent& event)
             "onAckEvent");
 }
 
-void ClientSession::onConfirmEvent(const mqbi::DispatcherConfirmEvent& event)
+void ClientSession::onConfirmEvent(const mqbevt::ConfirmEvent& event)
 {
     // executed by the *CLIENT* dispatcher thread
 
@@ -1556,7 +1576,7 @@ void ClientSession::onConfirmEvent(const mqbi::DispatcherConfirmEvent& event)
     }
 }
 
-void ClientSession::onRejectEvent(const mqbi::DispatcherRejectEvent& event)
+void ClientSession::onRejectEvent(const mqbevt::RejectEvent& event)
 {
     // executed by the *CLIENT* dispatcher thread
 
@@ -1720,7 +1740,7 @@ bool ClientSession::validateMessage(mqbi::QueueHandle**   queueHandle,
     return true;
 }
 
-void ClientSession::onPushEvent(const mqbi::DispatcherPushEvent& event)
+void ClientSession::onPushEvent(const mqbevt::PushEvent& event)
 {
     // executed by the *CLIENT* dispatcher thread
 
@@ -1917,7 +1937,7 @@ void ClientSession::onPushEvent(const mqbi::DispatcherPushEvent& event)
     }
 }
 
-void ClientSession::onPutEvent(const mqbi::DispatcherPutEvent& event)
+void ClientSession::onPutEvent(const mqbevt::PutEvent& event)
 {
     // executed by the *CLIENT* dispatcher thread
 
@@ -2518,7 +2538,7 @@ void ClientSession::processEvent(const bmqp::Event& event,
         }
 
         // Control messages are enqueued to be processed in dispatcher thread.
-        mqbi::Dispatcher::VoidFunctor eventCallback;
+        mqbi::Dispatcher::VoidFunction eventCallback;
 
         typedef bmqp_ctrlmsg::ControlMessageChoice MsgChoice;  // shortcut
 
@@ -2641,33 +2661,27 @@ void ClientSession::processEvent(const bmqp::Event& event,
         }
 
         // Not a control or leader message, it's either a put or a confirm ..
-        mqbi::DispatcherEventType::Enum eventType;
 
+        bsl::shared_ptr<bdlbb::Blob> blob_sp =
+            d_state.d_blobSpPool_p->getObject();
+        *blob_sp = *(event.blob());
+
+        // Dispatch the event
+        // TODO(678098): revisit, use per-IO thread event source
         if (event.isPutEvent()) {
-            eventType = mqbi::DispatcherEventType::e_PUT;
+            dispatchEvent<mqbevt::PutEvent>(blob_sp, this);
         }
         else if (event.isConfirmEvent()) {
-            eventType = mqbi::DispatcherEventType::e_CONFIRM;
+            dispatchEvent<mqbevt::ConfirmEvent>(blob_sp, this);
         }
         else if (event.isRejectEvent()) {
-            eventType = mqbi::DispatcherEventType::e_REJECT;
+            dispatchEvent<mqbevt::RejectEvent>(blob_sp, this);
         }
         else {
             BALL_LOG_ERROR << "#CLIENT_UNEXPECTED_EVENT " << description()
                            << ": Unexpected event type: " << event;
             return;  // RETURN
         }
-
-        // Dispatch the event
-        // TODO(678098): revisit, use per-IO thread event source
-        mqbi::Dispatcher::DispatcherEventSp dispEvent =
-            dispatcher()->getDefaultEventSource()->getEvent();
-        bsl::shared_ptr<bdlbb::Blob> blobSp =
-            d_state.d_blobSpPool_p->getObject();
-        *blobSp = *(event.blob());
-        (*dispEvent).setType(eventType).setSource(this).setBlob(blobSp);
-        dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(dispEvent),
-                                    this);
     }
 }
 
@@ -2824,23 +2838,23 @@ void ClientSession::onDispatcherEvent(const mqbi::DispatcherEvent& event)
 
     switch (event.type()) {
     case mqbi::DispatcherEventType::e_CONFIRM: {
-        onConfirmEvent(*(event.asConfirmEvent()));
+        onConfirmEvent(*(event.the<mqbevt::ConfirmEvent>()));
     } break;
     case mqbi::DispatcherEventType::e_REJECT: {
-        onRejectEvent(*(event.asRejectEvent()));
+        onRejectEvent(*(event.the<mqbevt::RejectEvent>()));
     } break;
     case mqbi::DispatcherEventType::e_PUSH: {
-        onPushEvent(*(event.asPushEvent()));
+        onPushEvent(*(event.the<mqbevt::PushEvent>()));
     } break;
     case mqbi::DispatcherEventType::e_PUT: {
-        onPutEvent(*(event.asPutEvent()));
+        onPutEvent(*(event.the<mqbevt::PutEvent>()));
     } break;
     case mqbi::DispatcherEventType::e_ACK: {
-        onAckEvent(*(event.asAckEvent()));
+        onAckEvent(*(event.the<mqbevt::AckEvent>()));
     } break;
     case mqbi::DispatcherEventType::e_CALLBACK: {
-        const mqbi::DispatcherCallbackEvent* realEvent =
-            event.asCallbackEvent();
+        const mqbevt::CallbackEvent* const realEvent =
+            event.the<mqbevt::CallbackEvent>();
 
         BSLS_ASSERT_SAFE(!realEvent->callback().empty());
         flush();  // Flush any pending messages to guarantee ordering of events

@@ -35,6 +35,7 @@
 #include <mqbc_clusterstate.h>
 #include <mqbc_electorinfo.h>
 #include <mqbcfg_messages.h>
+#include <mqbconfm_messages.h>
 #include <mqbi_cluster.h>
 #include <mqbi_clusterstatemanager.h>
 #include <mqbi_domain.h>
@@ -190,6 +191,10 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
         bsl::vector<PendingClose> d_pendingCloseRequests;
 
+        /// To assist with discerning obsolete ReOpen requests when cluster
+        /// state (restoreStateHelper) flaps.
+        bsls::Types::Uint64 d_generationCount;
+
         SubQueueContext(
             const bmqt::Uri&                                         uri,
             const bdlb::NullableValue<bmqp_ctrlmsg::SubQueueIdInfo>& info,
@@ -197,6 +202,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         : d_state(k_OPEN)
         , d_numOpenRequestsInFlight(0)
         , d_pendingCloseRequests(a)
+        , d_generationCount(0)
         {
             d_parameters.uri()       = uri.asString();
             d_parameters.subIdInfo() = info;
@@ -426,6 +432,26 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// queue which have a proper valid unique queueId.
     typedef bsl::unordered_map<int, QueueContext*> QueueContextByIdMap;
 
+    struct PartitionReopenCycle {
+        ClusterQueueHelper* d_owner_p;
+        bsls::Types::Uint64 d_generationCount;
+        int                 d_partitionId;
+        bool                d_isSuccess;
+
+        explicit PartitionReopenCycle(ClusterQueueHelper* owner,
+                                      bsls::Types::Uint64 generationCount,
+                                      int                 partitionId);
+        ~PartitionReopenCycle();
+
+        void                setAsFailed();
+        bsls::Types::Uint64 generationCount() const;
+        int                 partitionId() const;
+        bool                isSuccess() const;
+    };
+
+    typedef bsl::unordered_map<int, bsl::weak_ptr<PartitionReopenCycle> >
+        ReopenCycles;
+
   private:
     // DATA
 
@@ -457,13 +483,11 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// the queues which are not local, since local queues all have a 0 id.
     QueueContextByIdMap d_queuesById;
 
-    /// Number of requests that have been send to reopen the queues after
-    /// active node switch or primary switch.  This variable is incremented
-    /// when a ReopenQueue request is sent.  If the Reopen request succeeds, it
-    /// is decremented upon consequent configure queue response.  If the Reopen
-    /// request fails, this variable is decremented immediately upon Reopen
-    /// (failed) response.
-    int d_numPendingReopenQueueRequests;
+    /// Track the state of partitions upon `restoreState`.
+    /// `d_reopenCycles` is non empty if there are either Reopen requests in
+    /// progress or some Reopen for some partition has failed.
+    /// In the latter case, cluster needs another `restoreState` to heal.
+    ReopenCycles d_reopenCycles;
 
     // Whether the alarm for primary and leader nodes being different has been
     // raised at least once when gc'ing expired queues.  This is important
@@ -563,11 +587,8 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     sendReopenQueueRequest(QueueContext*        queueContext,
                            SubQueueContext*     subQueueContext,
                            mqbnet::ClusterNode* activeNode,
-                           bsls::Types::Uint64  generationCount,
-                           int                  numAttempts);
-
-    void tryReopenQueueRequest(QueueContext*    queueContext,
-                               SubQueueContext* subQueueContext);
+                           const bsl::shared_ptr<PartitionReopenCycle>& cycle,
+                           int numAttempts);
 
     /// Assign the upstream subQueueId in the specified `context`.  If the
     /// queue has already been opened with the appId in the `context`,
@@ -589,8 +610,8 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     void
     onReopenQueueResponse(const RequestManagerType::RequestSp& requestContext,
                           mqbnet::ClusterNode*                 activeNode,
-                          bsls::Types::Uint64                  generationCount,
-                          int                                  numAttempts);
+                          const bsl::shared_ptr<PartitionReopenCycle>& cycle,
+                          int numAttempts);
 
     /// Response callback of a configure queue request, that was sent due to
     /// the state being restored, with the request and its associated
@@ -605,14 +626,14 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     void
     onReopenQueueRetry(const RequestManagerType::RequestSp& requestContext,
                        mqbnet::ClusterNode*                 activeNode,
-                       bsls::Types::Uint64                  generationCount,
-                       int                                  numAttempts);
+                       const bsl::shared_ptr<PartitionReopenCycle>& cycle,
+                       int numAttempts);
 
     void onReopenQueueRetryDispatched(
-        const RequestManagerType::RequestSp& requestContext,
-        mqbnet::ClusterNode*                 activeNode,
-        bsls::Types::Uint64                  generationCount,
-        int                                  numAttempts);
+        const RequestManagerType::RequestSp&         requestContext,
+        mqbnet::ClusterNode*                         activeNode,
+        const bsl::shared_ptr<PartitionReopenCycle>& cycle,
+        int                                          numAttempts);
 
     /// Custom deleter of the openQueue confirmationCookie (in the specified
     /// `value`), for an open queue from the specified `request`.
@@ -708,13 +729,10 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         mqbc::ClusterNodeSession*                  requester,
         const int                                  peerInstanceId);
 
-    void reconfigureCallback(
-        const bmqp_ctrlmsg::Status&           status,
-        const bmqp_ctrlmsg::StreamParameters& streamParameters);
-
-    /// Decrement `d_numPendingReopenQueueRequests` counter.  If the counter
-    /// drops to 0, `d_stateRestoredFn` if it is set.
-    void onReopenQueueCompletion();
+    void
+    reconfigureCallback(const bmqp_ctrlmsg::Status&           status,
+                        const bmqp_ctrlmsg::StreamParameters& streamParameters,
+                        const bsl::shared_ptr<PartitionReopenCycle>& cycle);
 
     /// Upon completion of queue reopening, if the specified `queueContext`
     /// references a queue, notify the queue about success or failure
@@ -792,7 +810,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     bmqt::GenericResult::Enum
     restoreStateHelper(QueueContext*        queueContext,
                        mqbnet::ClusterNode* activeNode,
-                       bsls::Types::Uint64  generationCount);
+                       const bsl::shared_ptr<PartitionReopenCycle>& cycle);
 
     void deleteQueue(QueueContext* queueContext);
 
@@ -832,6 +850,12 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
     void convertToLocal(const QueueContextSp& queueContext,
                         mqbi::Domain*         domain);
+
+    bsl::shared_ptr<PartitionReopenCycle>
+    startPartitionReopen(int partitionId, bsls::Types::Uint64 generationCount);
+
+    void completePartitionReopen(PartitionReopenCycle* cycle);
+
     // PRIVATE ACCESSORS
 
     /// Return true if for the specified `partitionId`, there is currently a
@@ -1153,9 +1177,99 @@ inline int ClusterQueueHelper::QueueContext::partitionId() const
                            : mqbi::Storage::k_INVALID_PARTITION_ID;
 }
 
+// ----------------------------------------------
+// class ClusterQueueHelper::PartitionReopenCycle
+// ----------------------------------------------
+
+inline ClusterQueueHelper::PartitionReopenCycle::PartitionReopenCycle(
+    ClusterQueueHelper* owner,
+    bsls::Types::Uint64 generationCount,
+    int                 partitionId)
+: d_owner_p(owner)
+, d_generationCount(generationCount)
+, d_partitionId(partitionId)
+, d_isSuccess(true)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_owner_p);
+}
+
+inline ClusterQueueHelper::PartitionReopenCycle::~PartitionReopenCycle()
+{
+    d_owner_p->completePartitionReopen(this);
+};
+
+inline void ClusterQueueHelper::PartitionReopenCycle::setAsFailed()
+{
+    d_isSuccess = false;
+}
+
+inline bsls::Types::Uint64
+ClusterQueueHelper::PartitionReopenCycle::generationCount() const
+{
+    return d_generationCount;
+}
+
+inline int ClusterQueueHelper::PartitionReopenCycle::partitionId() const
+{
+    return d_partitionId;
+}
+
+inline bool ClusterQueueHelper::PartitionReopenCycle::isSuccess() const
+{
+    return d_isSuccess;
+}
+
 // ------------------------
 // class ClusterQueueHelper
 // ------------------------
+
+inline bsl::shared_ptr<ClusterQueueHelper::PartitionReopenCycle>
+ClusterQueueHelper::startPartitionReopen(int                 partitionId,
+                                         bsls::Types::Uint64 generationCount)
+{
+    bsl::shared_ptr<PartitionReopenCycle> cycle =
+        d_reopenCycles[partitionId].lock();
+
+    if (cycle) {
+        if (generationCount == cycle->generationCount()) {
+            return cycle;  // RETURN
+        }
+        cycle->setAsFailed();
+        // this cycle does not count anymore; we will start a new one
+    }
+
+    // Start new restore cycle
+    cycle.reset(new (*d_allocator_p)
+                    PartitionReopenCycle(this, generationCount, partitionId),
+                d_allocator_p);
+    d_reopenCycles[partitionId] = cycle;
+
+    return cycle;
+}
+
+inline void
+ClusterQueueHelper::completePartitionReopen(PartitionReopenCycle* cycle)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(cycle);
+
+    int pid = cycle->partitionId();
+
+    if (cycle->isSuccess()) {
+        d_reopenCycles.erase(pid);
+        if (d_reopenCycles.empty()) {
+            BALL_LOG_INFO << d_cluster_p->description() << ": state restored";
+        }
+    }
+    else {
+        // Keep the entry (weak_ptr) as an indication of unhealthy partition.
+        // Next 'restoreState' call will retry and replace the entry.
+        BALL_LOG_INFO << d_cluster_p->description() << ": partition [" << pid
+                      << "] has failed to reopen";
+    }
+}
 
 inline bool ClusterQueueHelper::hasActiveAvailablePrimary(
     int                  partitionId,
@@ -1285,12 +1399,7 @@ inline mqbi::Queue* ClusterQueueHelper::lookupQueue(int id) const
 
 inline bool ClusterQueueHelper::isFailoverInProgress() const
 {
-    return d_numPendingReopenQueueRequests != 0;
-}
-
-inline int ClusterQueueHelper::numPendingReopenQueueRequests() const
-{
-    return d_numPendingReopenQueueRequests;
+    return !d_reopenCycles.empty();
 }
 
 inline bool ClusterQueueHelper::isShutdownLogicOn() const
