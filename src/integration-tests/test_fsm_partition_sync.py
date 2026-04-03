@@ -540,7 +540,7 @@ def test_sync_if_leader_missed_rollover(
     for node in cluster.nodes(exclude=[leader, next_leader]):
         assert node.outputs_substr("ROLLOVER COMPLETE", 3), (
             f"Node {node.name} did not complete rollover"
-        )        
+        )
 
     # Stop all running nodes
     for node in cluster.nodes(exclude=next_leader):
