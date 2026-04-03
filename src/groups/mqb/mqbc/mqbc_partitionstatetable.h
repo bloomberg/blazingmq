@@ -293,6 +293,10 @@ class PartitionStateTableActions {
 
     virtual void do_primaryStateResponse(const ARGS& args) = 0;
 
+    /// This method is called by primary to drop partition storage
+    /// if needed (e.g primary missed rollover).
+    virtual void do_primaryRemoveStorageIfNeeded(const ARGS& args) = 0;
+
     virtual void do_failurePrimaryStateResponse(const ARGS& args) = 0;
 
     virtual void do_replicaDataRequestPush(const ARGS& args) = 0;
@@ -302,6 +306,9 @@ class PartitionStateTableActions {
     virtual void do_replicaDataRequestDrop(const ARGS& args) = 0;
 
     virtual void do_replicaDataResponseDrop(const ARGS& args) = 0;
+
+    /// This method is called by replica to drop partition storage.
+    virtual void do_replicaRemoveStorage(const ARGS& args) = 0;
 
     virtual void do_replicaDataRequestPull(const ARGS& args) = 0;
 
@@ -346,8 +353,6 @@ class PartitionStateTableActions {
 
     virtual void do_updateStorage(const ARGS& args) = 0;
 
-    virtual void do_removeStorage(const ARGS& args) = 0;
-
     virtual void do_incrementNumRplcaDataRspn(const ARGS& args) = 0;
 
     virtual void do_checkQuorumRplcaDataRspn(const ARGS& args) = 0;
@@ -378,7 +383,8 @@ class PartitionStateTableActions {
 
     virtual void do_unsupportedPrimaryDowngrade(const ARGS& args) = 0;
 
-    void do_replicaDataResponseDrop_removeStorage_reapplyDetectSelfReplica(
+    void
+    do_replicaDataResponseDrop_replicaRemoveStorage_reapplyDetectSelfReplica(
         const ARGS& args);
 
     void
@@ -426,7 +432,9 @@ class PartitionStateTableActions {
     do_closeRecoveryFileSet_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
         const ARGS& args);
 
-    void do_setExpectedDataChunkRange_replicaDataRequestPull(const ARGS& args);
+    void
+    do_primaryRemoveStorageIfNeeded_setExpectedDataChunkRange_replicaDataRequestPull(
+        const ARGS& args);
 
     void do_setExpectedDataChunkRange_clearBufferedLiveData(const ARGS& args);
 
@@ -577,10 +585,11 @@ class PartitionStateTable
             SELF_HIGHEST_SEQ,
             closeRecoveryFileSet_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn,
             PRIMARY_HEALING_STG2);
-        PST_CFG(PRIMARY_HEALING_STG1,
-                REPLICA_HIGHEST_SEQ,
-                setExpectedDataChunkRange_replicaDataRequestPull,
-                PRIMARY_HEALING_STG2);
+        PST_CFG(
+            PRIMARY_HEALING_STG1,
+            REPLICA_HIGHEST_SEQ,
+            primaryRemoveStorageIfNeeded_setExpectedDataChunkRange_replicaDataRequestPull,
+            PRIMARY_HEALING_STG2);
         PST_CFG(PRIMARY_HEALING_STG1,
                 RST_UNKNOWN,
                 cleanupMetadata_closeRecoveryFileSet_stopWatchDog,
@@ -737,10 +746,11 @@ class PartitionStateTable
                 REPLICA_DATA_RQST_PUSH,
                 setExpectedDataChunkRange_clearBufferedLiveData,
                 REPLICA_HEALING);
-        PST_CFG(REPLICA_HEALING,
-                REPLICA_DATA_RQST_DROP,
-                replicaDataResponseDrop_removeStorage_reapplyDetectSelfReplica,
-                REPLICA_HEALING);
+        PST_CFG(
+            REPLICA_HEALING,
+            REPLICA_DATA_RQST_DROP,
+            replicaDataResponseDrop_replicaRemoveStorage_reapplyDetectSelfReplica,
+            REPLICA_HEALING);
         PST_CFG(
             REPLICA_HEALING,
             REPLICA_DATA_RQST_RESIZE,
@@ -852,11 +862,11 @@ void PartitionStateTableActions<ARGS>::do_none(const ARGS& args)
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_replicaDataResponseDrop_removeStorage_reapplyDetectSelfReplica(
+    do_replicaDataResponseDrop_replicaRemoveStorage_reapplyDetectSelfReplica(
         const ARGS& args)
 {
     do_replicaDataResponseDrop(args);
-    do_removeStorage(args);
+    do_replicaRemoveStorage(args);
     do_reapplyDetectSelfReplica(args);
 }
 
@@ -1012,8 +1022,10 @@ void PartitionStateTableActions<ARGS>::
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_setExpectedDataChunkRange_replicaDataRequestPull(const ARGS& args)
+    do_primaryRemoveStorageIfNeeded_setExpectedDataChunkRange_replicaDataRequestPull(
+        const ARGS& args)
 {
+    do_primaryRemoveStorageIfNeeded(args);
     do_setExpectedDataChunkRange(args);
     do_replicaDataRequestPull(args);
 }

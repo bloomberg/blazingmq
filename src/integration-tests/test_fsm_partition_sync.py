@@ -609,21 +609,18 @@ def test_sync_if_leader_missed_rollover(
         quorum = 3 if node == next_leader else 5
         node.set_quorum(quorum)
 
-    # TODO: at this point next_leader doesn't reach active state.
-    assert False, "Just to capture logs"
+    # Wait until cluster is ready
+    next_leader.wait_status(wait_leader=True, wait_ready=True)
+    assert next_leader.last_known_leader == next_leader, (
+        f"next_leader {next_leader} is not last_known_leader {next_leader.last_known_leader}"
+    )
+    cluster.last_known_leader = next_leader
 
-    # # Wait until cluster is ready
-    # next_leader.wait_status(wait_leader=True, wait_ready=True)
-    # assert next_leader.last_known_leader == next_leader, (
-    #     f"next_leader {next_leader} is not last_known_leader {next_leader.last_known_leader}"
-    # )
-    # cluster.last_known_leader = next_leader
+    # Select replica
+    replica = cluster.nodes(exclude=next_leader)[0]
 
-    # # Select replica
-    # replica = cluster.nodes(exclude=next_leader)[0]
-
-    # # Check that `next_leader` and replica journal files are equal, after stopping all nodes
-    # _stop_cluster_and_compare_journal_files(next_leader.name, replica.name, cluster)
+    # Check that `next_leader` and replica journal files are equal, after stopping all nodes
+    _stop_cluster_and_compare_journal_files(next_leader.name, replica.name, cluster)
 
 
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)
