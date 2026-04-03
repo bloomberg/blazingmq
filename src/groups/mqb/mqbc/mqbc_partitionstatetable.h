@@ -669,10 +669,11 @@ class PartitionStateTable
                 REPLICA_DATA_RQST_PUSH,
                 setExpectedDataChunkRange_clearBufferedLiveData,
                 REPLICA_HEALING);
-        PST_CFG(REPLICA_HEALING,
-                REPLICA_DATA_RQST_DROP,
-                replicaDataResponseDrop_replicaRemoveStorage_reapplyDetectSelfReplica,
-                REPLICA_HEALING);
+        PST_CFG(
+            REPLICA_HEALING,
+            REPLICA_DATA_RQST_DROP,
+            replicaDataResponseDrop_replicaRemoveStorage_reapplyDetectSelfReplica,
+            REPLICA_HEALING);
         PST_CFG(REPLICA_HEALING,
                 RECOVERY_DATA,
                 updateStorage,

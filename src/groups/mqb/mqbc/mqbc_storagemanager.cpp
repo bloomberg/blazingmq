@@ -3262,7 +3262,7 @@ void StorageManager::do_primaryRemoveStorageIfNeeded(
 
     NodeSeqNumContext& selfNodeContext =
         d_nodeToSeqNumCtxMapVec.at(partitionId)
-        .at(d_clusterData_p->membership().selfNode());
+            .at(d_clusterData_p->membership().selfNode());
 
     const bmqp_ctrlmsg::PartitionSequenceNumber&
         selfFirstSyncAfterRolloverSeqNum =
@@ -3467,8 +3467,8 @@ void StorageManager::do_findHighestSeq(const EventWithData& event)
     BSLS_ASSERT_SAFE(d_nodeToSeqNumCtxMapVec[partitionId].size() >=
                      getSeqNumQuorum());
 
-    const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap =
-        d_nodeToSeqNumCtxMapVec.at(partitionId);
+    const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap = d_nodeToSeqNumCtxMapVec.at(
+        partitionId);
 
     // Initialize highest sequence number with self/primary sequence
     // number.
