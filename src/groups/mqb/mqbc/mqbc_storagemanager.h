@@ -143,8 +143,9 @@ class StorageManager BSLS_KEYWORD_FINAL
     typedef bsl::vector<mqbnet::ClusterNode*> ClusterNodeVec;
     typedef ClusterNodeVec::const_iterator    ClusterNodeVecCIter;
 
-    typedef mqbs::DataStore::QueueKeyInfoMap QueueKeyInfoMap;
-    typedef bsl::vector<QueueKeyInfoMap>     QueueKeyInfoMapVec;
+    typedef mqbs::DataStore::QueueKeyInfoMap               QueueKeyInfoMap;
+    typedef bsl::shared_ptr<QueueKeyInfoMap>               QueueKeyInfoMapSp;
+    typedef bsl::vector<bsl::shared_ptr<QueueKeyInfoMap> > QueueKeyInfoMapVec;
 
     typedef ClusterState::DomainStatesCIter      DomainStatesCIter;
     typedef ClusterState::UriToQueueInfoMapCIter UriToQueueInfoMapCIter;
@@ -387,21 +388,15 @@ class StorageManager BSLS_KEYWORD_FINAL
     ///         for the i-th partitionId.
     bsl::vector<unsigned int> d_numReplicaDataResponsesReceivedVec;
 
-    /// Whether `d_queueKeyInfoMapVec` has been initialized.  This data
-    /// structure only needs to be initialized once at startup, and no more.
-    ///
-    /// THREAD: **Must** be accessed in the cluster dispatcher thread.
-    bool d_isQueueKeyInfoMapVecInitialized;
-
     /// Mapping from queue key to queue info indexed by partitionId, populated
-    /// from cluster state at startup.  This is used to validate against
-    /// `FileStore` on-disk content when recovering messages, and to create
-    /// domains and file-backed storages during `recoveredQueuesCb`.
+    /// from cluster state.  Each element is a `shared_ptr` so that the map
+    /// can be safely passed to partition threads (which hold their own
+    /// `shared_ptr` reference) while the cluster thread may rebuild new maps
+    /// into new `shared_ptr` objects.
     ///
-    /// THREAD: This data member **must** be initialized in the cluster
-    ///         dispatcher thread, where `d_isQueueKeyInfoMapVecInitialized`
-    ///         will be set to `true`.  Afterwards, it **must not** be modified
-    ///         again, and hence is safe to read from any thread.
+    /// THREAD: Elements are created/replaced in the cluster dispatcher
+    ///         thread.  Partition threads access only their own copies
+    ///         obtained via `shared_ptr`.
     QueueKeyInfoMapVec d_queueKeyInfoMapVec;
 
     /// The bare minimum space required for storage manager to be able to
@@ -605,135 +600,134 @@ class StorageManager BSLS_KEYWORD_FINAL
     void forceFlushFileStores();
 
     //   (virtual: mqbc::PartitionStateTableActions)
-    void do_startWatchDog(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+    void do_startWatchDog(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
-    void do_stopWatchDog(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+    void do_stopWatchDog(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
-    void
-    do_openRecoveryFileSet(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+    void do_openRecoveryFileSet(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
-    void
-    do_closeRecoveryFileSet(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+    void do_closeRecoveryFileSet(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
-    void do_storeSelfSeq(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+    void do_storeSelfSeq(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
-    void do_storePrimarySeq(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+    void do_storePrimarySeq(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
-    void do_storeReplicaSeq(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+    void do_storeReplicaSeq(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
-    void
-    do_replicaStateRequest(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+    void do_replicaStateRequest(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
-    void
-    do_replicaStateResponse(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void do_failureReplicaStateResponse(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_logFailureReplicaStateResponse(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_logFailurePrimaryStateResponse(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_logUnexpectedPrimaryStateResponse(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_logUnexpectedFailurePrimaryStateResponse(
-        const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+    void do_replicaStateResponse(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
     void
-    do_primaryStateRequest(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+    do_failureReplicaStateResponse(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_logFailureReplicaStateResponse(EventWithData& event)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_logFailurePrimaryStateResponse(EventWithData& event)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_logUnexpectedPrimaryStateResponse(EventWithData& event)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_logUnexpectedFailurePrimaryStateResponse(EventWithData& event)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_primaryStateRequest(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_primaryStateResponse(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
     void
-    do_primaryStateResponse(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+    do_failurePrimaryStateResponse(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
-    void do_failurePrimaryStateResponse(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_replicaDataRequestPush(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_replicaDataResponsePush(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_replicaDataRequestDrop(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_replicaDataResponseDrop(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_replicaDataRequestPull(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_replicaDataResponsePull(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_failureReplicaDataResponsePull(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_failureReplicaDataResponsePush(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_bufferLiveData(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void do_processBufferedLiveData(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
+    void do_replicaDataRequestPush(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
     void
-    do_clearBufferedLiveData(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+    do_replicaDataResponsePush(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
-    void do_processBufferedPrimaryStatusAdvisories(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_processLiveData(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void do_setPrimary(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void do_cleanupMetadata(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+    void do_replicaDataRequestDrop(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
     void
-    do_startSendDataChunks(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+    do_replicaDataResponseDrop(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
-    void do_setExpectedDataChunkRange(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void
-    do_resetReceiveDataCtx(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+    void do_replicaDataRequestPull(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
     void
-    do_attemptOpenStorage(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+    do_replicaDataResponsePull(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
-    void do_updateStorage(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void do_removeStorage(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void do_incrementNumRplcaDataRspn(const EventWithData& event)
+    void do_failureReplicaDataResponsePull(EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_checkQuorumRplcaDataRspn(const EventWithData& event)
+    void do_failureReplicaDataResponsePush(EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_reapplyEvent(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void do_checkQuorumSeq(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void do_findHighestSeq(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+    void do_bufferLiveData(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
     void
-    do_flagFailedReplicaSeq(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+    do_processBufferedLiveData(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
-    void do_transitionToActivePrimary(const EventWithData& event)
+    void do_clearBufferedLiveData(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_processBufferedPrimaryStatusAdvisories(EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_reapplyDetectSelfPrimary(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
+    void do_processLiveData(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
-    void do_reapplyDetectSelfReplica(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
+    void do_setPrimary(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
-    void do_unsupportedPrimaryDowngrade(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
+    void do_cleanupMetadata(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_startSendDataChunks(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void
+    do_setExpectedDataChunkRange(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_resetReceiveDataCtx(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_attemptOpenStorage(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_updateStorage(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_removeStorage(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void
+    do_incrementNumRplcaDataRspn(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void
+    do_checkQuorumRplcaDataRspn(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_reapplyEvent(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_checkQuorumSeq(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_findHighestSeq(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_flagFailedReplicaSeq(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void
+    do_transitionToActivePrimary(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void
+    do_reapplyDetectSelfPrimary(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void
+    do_reapplyDetectSelfReplica(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void
+    do_unsupportedPrimaryDowngrade(EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    /// Build the queue key info map on the cluster dispatcher thread for
+    /// the specified `partitionId`, then dispatch to the partition thread
+    /// to open storage and resume the frozen FSM.
+    ///
+    /// THREAD: Executed by the cluster dispatcher thread.
+    void buildQueueKeyInfoMapAndResume(int partitionId);
+
+    /// Open the file store for the specified `partitionId` using the
+    /// specified `mapSp` and unfreeze the partition FSM.
+    ///
+    /// THREAD: Executed by the partition's dispatcher thread.
+    void openStorageAndResume(int partitionId, const QueueKeyInfoMapSp& mapSp);
 
     // PRIVATE ACCESSORS
 

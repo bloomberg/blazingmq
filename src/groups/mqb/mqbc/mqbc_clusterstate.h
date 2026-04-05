@@ -573,6 +573,11 @@ class ClusterState {
 
     PartitionIdExtractor d_partitionIdExtractor;
 
+    /// Whether the cluster state has been updated (e.g., queue
+    /// assignment/unassignment committed) since the last time the
+    /// StorageManager rebuilt its QueueKeyInfoMap cache.
+    bool d_isUpdated;
+
     /// TODO (FSM); remove after switching to FSM
     Assignments d_doubleAssignments;
 
@@ -701,6 +706,12 @@ class ClusterState {
 
     bmqu::GateKeeper& gatePrimary(int partitionId);
 
+    /// Mark the cluster state as updated.
+    void setAsUpdated();
+
+    /// Clear the updated flag.
+    void resetAsUpdated();
+
     /// TODO (FSM); remove after switching to FSM
     bool cacheDoubleAssignment(const bmqt::Uri& uri, int partitionId);
 
@@ -727,6 +738,10 @@ class ClusterState {
     /// Return true if self is *active* primary for the specified
     /// `partitionId`.
     bool isSelfActivePrimary(int partitionId) const;
+
+    /// Return true if the cluster state has been updated since the last
+    /// call to `resetAsUpdated`.
+    bool isUpdated() const;
 
     /// Return the number of partitions.
     int partitionsCount() const;
@@ -1033,6 +1048,7 @@ inline ClusterState::ClusterState(mqbi::Cluster*    cluster,
 , d_observers(allocator)
 , d_gatePrimary(partitionsCount, allocator)
 , d_partitionIdExtractor(allocator)
+, d_isUpdated(true)
 , d_doubleAssignments(allocator)
 {
     // PRECONDITIONS
@@ -1070,6 +1086,16 @@ inline bmqu::GateKeeper& ClusterState::gatePrimary(int partitionId)
     return d_gatePrimary[partitionId];
 }
 
+inline void ClusterState::setAsUpdated()
+{
+    d_isUpdated = true;
+}
+
+inline void ClusterState::resetAsUpdated()
+{
+    d_isUpdated = false;
+}
+
 // ACCESSORS
 inline const mqbi::Cluster* ClusterState::cluster() const
 {
@@ -1089,6 +1115,11 @@ inline const ClusterState::DomainStates& ClusterState::domainStates() const
 inline const ClusterState::QueueKeys& ClusterState::queueKeys() const
 {
     return d_queueKeys;
+}
+
+inline bool ClusterState::isUpdated() const
+{
+    return d_isUpdated;
 }
 
 inline const ClusterState::ObserversSet& ClusterState::observers() const

@@ -216,14 +216,37 @@ class PartitionFSM {
 
   public:
     // TYPES
-    typedef bsl::pair<PartitionStateTableEvent::Enum,
-                      bsl::vector<PartitionFSMEventData> >
-        EventWithData;
+    /// Event data passed through the FSM action chain.  The control
+    /// fields `d_chainResumeIndex` and `d_isFreezeRequested` are written by
+    /// actions (e.g., `do_attemptOpenStorage`) and read by
+    /// `executeChain` to support mid-chain freeze/resume.
+    struct EventWithData {
+        const PartitionStateTableEvent::Enum     d_event;
+        const bsl::vector<PartitionFSMEventData> d_data;
+        size_t                                   d_chainResumeIndex;
+        bool                                     d_isFreezeRequested;
+
+        EventWithData()
+        : d_event()
+        , d_data()
+        , d_chainResumeIndex(0)
+        , d_isFreezeRequested(false)
+        {
+        }
+
+        EventWithData(PartitionStateTableEvent::Enum            event,
+                      const bsl::vector<PartitionFSMEventData>& data)
+        : d_event(event)
+        , d_data(data)
+        , d_chainResumeIndex(0)
+        , d_isFreezeRequested(false)
+        {
+        }
+    };
 
     typedef PartitionStateTable<EventWithData> StateTable;
     typedef StateTable::State                  State;
     typedef StateTable::Event                  Event;
-    typedef StateTable::ActionFunctor          ActionFunctor;
     typedef StateTable::Transition             Transition;
 
     /// A set of PartitionFSM observers.
@@ -247,6 +270,15 @@ class PartitionFSM {
     /// Observers of this object.
     ObserversSet d_observers;
 
+    /// Whether the FSM is frozen.  When frozen, no new events are
+    /// processed (they queue up in `d_eventsQueue`) and the action chain
+    /// is suspended.
+    bool d_isFrozen;
+
+    /// The state the FSM was in before the transition that froze.  Used
+    /// to notify observers after unfreeze completes.
+    State::Enum d_frozenOldState;
+
   private:
     // NOT IMPLEMENTED
     PartitionFSM(const PartitionFSM&);
@@ -254,8 +286,14 @@ class PartitionFSM {
 
     // PRIVATE MANIPULATORS
 
-    /// Process the specified `event` and notify observers.
-    void processEvent(const EventWithData& event);
+    /// Notify observers of a state transition from the specified
+    /// `oldState` for the specified `partitionId`.
+    void notifyObservers(int partitionId, State::Enum oldState);
+
+    /// Process the specified `event` and notify observers.  If
+    /// `event.d_chainResumeIndex > 0`, resume the frozen chain instead of
+    /// starting a new state transition.
+    void processEvent(EventWithData& event);
 
   public:
     // TRAITS
@@ -284,7 +322,15 @@ class PartitionFSM {
     /// processed as an input to the FSM.
     void enqueueEvent(const EventWithData& event);
 
+    /// Resume the frozen FSM.  The frozen event at the front of the queue
+    /// has `d_chainResumeIndex > 0`, which `processEvent` uses to resume
+    /// the chain.  Queued events are then drained normally.
+    void unfreeze();
+
     // ACCESSORS
+
+    /// Return true if the FSM is currently frozen.
+    bool isFrozen() const;
 
     /// Return the current partition state.
     State::Enum state() const;
@@ -507,8 +553,15 @@ inline PartitionFSM::PartitionFSM(
 , d_actions(actions)
 , d_eventsQueue(allocator)
 , d_observers(allocator)
+, d_isFrozen(false)
+, d_frozenOldState(State::e_UNKNOWN)
 {
     // NOTHING
+}
+
+inline bool PartitionFSM::isFrozen() const
+{
+    return d_isFrozen;
 }
 
 inline PartitionFSM::State::Enum PartitionFSM::state() const

@@ -1132,6 +1132,8 @@ void ClusterStateManager::onCommit(
                              *d_clusterData_p,
                              &modifiedPartitions);
 
+    d_state_p->setAsUpdated();
+
     applyFSMEvent(ClusterFSM::Event::e_CSL_CMT_SUCCESS,
                   ClusterFSMEventMetadata(modifiedPartitions, d_allocator_p));
 }
