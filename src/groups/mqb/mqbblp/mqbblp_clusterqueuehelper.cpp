@@ -5325,11 +5325,12 @@ void ClusterQueueHelper::processShutdownEvent()
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-    BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
 
     // Need to delete and unregister all queues which have no handles from the
     // domain.  Such queues will eventually be gc'd but that may take a while,
     // something that we don't want when shutting down.
+    // This works for both cluster members and proxies: 'deleteQueue' skips
+    // storage reset when 'isRemote()' and 'unregisterQueue' is proxy-safe.
 
     for (QueueContextMapIter it = d_queues.begin(); it != d_queues.end();
          ++it) {

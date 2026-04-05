@@ -247,6 +247,10 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// in the cluster-dispatcher thread.
     void initiateShutdownDispatched(const VoidFunctor& callback);
 
+    /// Continue shutdown after unconfirmed messages have been drained.
+    /// Deletes and unregisters queues with no handles from the domain.
+    void continueShutdown(const VoidFunctor& completionCb);
+
     /// Stop the `Cluster`.
     void stopDispatched();
 
