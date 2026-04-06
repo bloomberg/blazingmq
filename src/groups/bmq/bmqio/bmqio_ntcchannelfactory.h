@@ -199,12 +199,12 @@ class NtcChannelFactory : public bmqio::ChannelFactory {
 
     /// Start the channel factory. Return 0 on success and a non-zero value
     /// otherwise.
-    int start();
+    int start() BSLS_KEYWORD_OVERRIDE;
 
     /// Stop the channel factory. Note that the behavior is undefined unless
     /// the thread calling this function is the same thread that called
     /// `start()` and is not one of the I/O threads used by this object.
-    void stop();
+    void stop() BSLS_KEYWORD_OVERRIDE;
 
     /// Listen for connections according to the specified `options` (whose
     /// meaning is implementation-defined), and invoke the specified `cb`

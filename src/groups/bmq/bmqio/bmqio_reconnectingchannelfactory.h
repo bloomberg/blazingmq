@@ -131,10 +131,23 @@ class ReconnectingChannelFactoryConfig {
                                    bslma::UsesBslmaAllocator)
 
     // CREATORS
+
+    /// Create a `ReconnectingChannelFactoryConfig` object initialized with the
+    /// specified `base` and `scheduler`.  Optionally specify a
+    /// `basicAllocator` used to supply memory.  If `basicAllocator` is 0, the
+    /// default memory allocator is used.
+    ///
+    /// @pre The behavior of this object is undefined unless `base` is not
+    /// `NULL`.
     explicit ReconnectingChannelFactoryConfig(
         ChannelFactory*        base,
         bdlmt::EventScheduler* scheduler,
         bslma::Allocator*      basicAllocator = 0);
+
+    /// Create a `ReconnectingChannelFactoryConfig` object having the same
+    /// value as the specified `original` object.  Optionally specify a
+    /// `basicAllocator` used to supply memory.  If `basicAllocator` is 0,
+    /// the default memory allocator is used.
     ReconnectingChannelFactoryConfig(
         const ReconnectingChannelFactoryConfig& original,
         bslma::Allocator*                       basicAllocator = 0);
@@ -297,10 +310,15 @@ class ReconnectingChannelFactory : public ChannelFactory {
     ~ReconnectingChannelFactory() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
-    int start();
 
-    /// Cancel any pending reconnect attempts.
-    void stop();
+    /// Start the channel factory. Return 0 on success and a non-zero value
+    /// otherwise.
+    int start() BSLS_KEYWORD_OVERRIDE;
+
+    /// Stop the channel factory. Note that the behavior is undefined unless
+    /// the thread calling this function is the same thread that called
+    /// `start()` and is not one of the I/O threads used by this object.
+    void stop() BSLS_KEYWORD_OVERRIDE;
 
     // ChannelFactory
 

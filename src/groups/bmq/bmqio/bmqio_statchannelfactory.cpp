@@ -49,6 +49,7 @@ StatChannelFactoryConfig::StatChannelFactoryConfig(
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_statContextCreator);
+    BSLS_ASSERT(d_baseFactory_p);
 }
 
 StatChannelFactoryConfig::StatChannelFactoryConfig(
@@ -205,6 +206,18 @@ void StatChannelFactory::connect(Status*                      status,
                              bdlf::PlaceHolders::_1,    // event
                              bdlf::PlaceHolders::_2,    // status
                              bdlf::PlaceHolders::_3));  // channel
+}
+
+int StatChannelFactory::start()
+{
+    // Pass through
+    return d_config.d_baseFactory_p->start();
+}
+
+void StatChannelFactory::stop()
+{
+    // Pass through
+    d_config.d_baseFactory_p->stop();
 }
 
 // -----------------------------

@@ -104,6 +104,9 @@ class ResolvingChannelFactoryConfig {
     /// specified `baseFactory` and `executionPolicy`.  Optionally specify a
     /// `basicAllocator` used to supply memory.  If `basicAllocator` is 0,
     /// the default memory allocator is used.
+    ///
+    /// @pre The behavior of this object is undefined unless `base` is not
+    /// `NULL`.
     ResolvingChannelFactoryConfig(ChannelFactory*        baseFactory,
                                   const ExecutionPolicy& executionPolicy,
                                   bslma::Allocator*      basicAllocator = 0);
@@ -254,6 +257,15 @@ class ResolvingChannelFactory : public ChannelFactory {
                  bslma::ManagedPtr<OpHandle>* handle,
                  const ConnectOptions&        options,
                  const ResultCallback&        cb) BSLS_KEYWORD_OVERRIDE;
+
+    /// Start the channel factory. Return 0 on success and a non-zero value
+    /// otherwise.
+    int start() BSLS_KEYWORD_OVERRIDE;
+
+    /// Stop the channel factory. Note that the behavior is undefined unless
+    /// the thread calling this function is the same thread that called
+    /// `start()` and is not one of the I/O threads used by this object.
+    void stop() BSLS_KEYWORD_OVERRIDE;
 };
 
 // ==================================

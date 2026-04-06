@@ -398,5 +398,15 @@ void NegotiatedChannelFactory::connect(bmqio::Status*               status,
                              bdlf::PlaceHolders::_3));  // channel
 }
 
+int NegotiatedChannelFactory::start()
+{
+    return d_config.d_baseFactory_p->start();
+}
+
+void NegotiatedChannelFactory::stop()
+{
+    d_config.d_baseFactory_p->stop();
+}
+
 }  // close package namespace
 }  // close enterprise namespace

@@ -205,6 +205,15 @@ class AuthenticatedChannelFactory : public bmqio::ChannelFactory {
     processAuthenticationEvent(const bmqp::Event&                     event,
                                const ResultCallback&                  cb,
                                const bsl::shared_ptr<bmqio::Channel>& channel);
+
+    /// Start the channel factory. Return 0 on success and a non-zero value
+    /// otherwise.
+    int start() BSLS_KEYWORD_OVERRIDE;
+
+    /// Stop the channel factory. Note that the behavior is undefined unless
+    /// the thread calling this function is the same thread that called
+    /// `start()` and is not one of the I/O threads used by this object.
+    void stop() BSLS_KEYWORD_OVERRIDE;
 };
 
 }  // close package namespace
