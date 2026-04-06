@@ -857,12 +857,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     int writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint& syncPoint,
                              SyncPointType::Enum type) BSLS_KEYWORD_OVERRIDE;
 
-    /// Remove the record identified by the specified `handle`.  Return zero
-    /// on success, non-zero value if `handle` is invalid.  Behavior is
-    /// undefined unless `handle` represents a record in the data store.
-    int
-    removeRecord(const DataStoreRecordHandle& handle) BSLS_KEYWORD_OVERRIDE;
-
     /// Remove the record identified by the specified `handle`.  The
     /// behavior is undefined unless `handle` is valid and represents a
     /// record in the data store.

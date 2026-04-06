@@ -6112,32 +6112,6 @@ int FileStore::writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint& syncPoint,
     return rc_SUCCESS;
 }
 
-int FileStore::removeRecord(const DataStoreRecordHandle& handle)
-{
-    enum RcEnum {
-        // Value for the various RC error categories
-        /// Success
-        rc_SUCCESS = 0,
-        /// Invalid handle
-        rc_INVALID_HANDLE = -1,
-        /// Handle not found
-        rc_HANDLE_NOT_FOUND = -2
-    };
-
-    if (!handle.isValid()) {
-        return rc_INVALID_HANDLE;  // RETURN
-    }
-
-    const RecordIterator& recordIt = *reinterpret_cast<const RecordIterator*>(
-        &handle);
-    if (d_records.end() == d_records.find(recordIt->first)) {
-        return rc_HANDLE_NOT_FOUND;  // RETURN
-    }
-
-    removeRecordRaw(handle);
-    return rc_SUCCESS;
-}
-
 void FileStore::removeRecordRaw(const DataStoreRecordHandle& handle)
 {
     BSLS_ASSERT_SAFE(handle.isValid());

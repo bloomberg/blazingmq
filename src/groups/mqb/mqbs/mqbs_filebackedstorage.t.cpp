@@ -437,11 +437,6 @@ class MockDataStore : public mqbs::DataStore {
         return 0;
     }
 
-    int removeRecord(const mqbs::DataStoreRecordHandle&) BSLS_KEYWORD_OVERRIDE
-    {
-        return 0;
-    }
-
     void removeRecordRaw(const mqbs::DataStoreRecordHandle& handle)
         BSLS_KEYWORD_OVERRIDE
     {
