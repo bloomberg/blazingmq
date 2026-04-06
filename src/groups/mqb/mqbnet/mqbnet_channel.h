@@ -48,7 +48,6 @@
 // Internally, 'mqbnet::Channel' starts a new thread and unconditionally
 // buffers everything it needs to write into single consumer queue.  The thread
 // reads the channel state which can be
-//  - e_INITIAL, not connected
 //  - e_RESET,   indicating a need to reset because of a connection change;
 //  - e_READY,   low-watermark
 //  - e_HWM,     high-watermark
@@ -349,17 +348,15 @@ class Channel {
   public:
     // PUBLIC TYPES
     enum EnumState {
-        /// Not connected
-        e_INITIAL = 0,
         /// Need resetting because of a connection change
-        e_RESET = 1,
+        e_RESET = 0,
         /// Between 'Channel::close; and 'resetChannel'
-        e_CLOSE = 2,
-        e_READY = 3,
+        e_CLOSE = 1,
+        e_READY = 2,
         /// LWM
-        e_LWM = 4,
+        e_LWM = 3,
         /// HWM
-        e_HWM = 5
+        e_HWM = 4
     };
 
   private:
@@ -421,6 +418,10 @@ class Channel {
     // Mechanism to check if a method is called
     // in the internal thread.
     Stats d_stats;
+
+    /// Indicates graceful shutdown.  Drain the buffer if possible and then
+    /// close the channel.
+    bsls::AtomicBool d_isClosing;
 
   private:
     // NOT IMPLEMENTED
@@ -1085,7 +1086,7 @@ Channel::enqueue(bslma::ManagedPtr<Item>& item)
 // ACCESSORS
 inline bool Channel::isAvailable() const
 {
-    return d_state != e_INITIAL && d_state != e_RESET && d_state != e_CLOSE;
+    return d_state != e_RESET && d_state != e_CLOSE && !d_isClosing;
 }
 
 inline const bsl::shared_ptr<bmqio::Channel> Channel::channel() const
