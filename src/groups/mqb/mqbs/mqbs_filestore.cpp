@@ -3151,10 +3151,10 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
         }
 
         unsigned int availableSpacePercent = 0;
-        if (FileType::e_JOURNAL == fileType) {
+        if (FileType::e_JOURNAL == cannotRolloverFileType) {
             availableSpacePercent = availableSpacePercentJournal;
         }
-        else if (FileType::e_QLIST == fileType) {
+        else if (FileType::e_QLIST == cannotRolloverFileType) {
             BSLS_ASSERT_SAFE(d_qListAware);
             availableSpacePercent = availableSpacePercentQlist;
         }
