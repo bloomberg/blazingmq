@@ -24,7 +24,7 @@
 //  mqbs::FileStoreIterator: Iterator over records in a 'mqbs::FileStore'
 //  mqbs::FileStore_AliasedBufferDeleter
 //
-//@SEE ALSO: mqbs::FileStoreProtcol
+//@SEE ALSO: mqbs::FileStoreProtocol
 //
 //@DESCRIPTION: This component provides a mechanism, 'mqbs:FileStore', to store
 // BlazingMQ data in files on disk.  An instance of 'mqbs::FileStore' is also
@@ -385,11 +385,10 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     // Whether CSL mode is enabled
 
     bool d_isFSMWorkflow;
-    // Whether CSL FSM worklow is in
-    // effect
+    // Whether FSM workflow is enabled
 
     bool d_qListAware;
-    // Whether the broker still read and writes to the to-be-deprecated Qlist
+    // Whether the broker still reads and writes to the to-be-deprecated Qlist
     // file.
 
     bool d_ignoreCrc32c;
@@ -506,7 +505,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Return zero on success, non zero value otherwise.  The behavior is
     /// undefined unless the journal iterator `jit` is in reverse mode.
     ///
-    /// WARNING：This method invalidates all iterators.
+    /// WARNING: This method invalidates all iterators.
     int recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                         bsls::Types::Uint64* journalOffset,
                         bsls::Types::Uint64* qlistOffset,
@@ -673,7 +672,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
         RecordType::Enum               recordType,
         bsls::Types::Uint64            recordOffset);
 
-    ///  if the specified `immediateFlush` is `true` or the
+    /// Flush the storage if the specified `immediateFlush` is `true` or the
     /// `d_storageEventBuilder` is over the `d_naglePacketCount` limit.
     void flushIfNeeded(bool immediateFlush);
 

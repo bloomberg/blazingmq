@@ -2343,8 +2343,8 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
             }
 
             if (1 == purgedQueueKeys.count(rec.queueKey())) {
-                // Queue has been purge.  No need to keep track of confirmed
-                // guid.
+                // Queue has been purged.
+                // No need to keep track of confirmed guid.
                 continue;  // CONTINUE
             }
 
@@ -3783,7 +3783,7 @@ void FileStore::writeRolledOverRecord(DataStoreRecord*    record,
 
             if (QueueOpType::e_CREATION == fromRec->type()) {
                 // Create an entry of this queueKey if its a queue creation
-                // record.  No need to this it in case of addition record.
+                // record.  No need to do this it in case of addition record.
 
                 queueKeyCounterMap->insert(
                     bsl::make_pair(toRec->queueKey(),
