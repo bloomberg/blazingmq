@@ -3301,6 +3301,7 @@ void FileStore::truncate(FileSet* fileSet)
             << "Failed to truncate data file [" << fileSet->d_dataFileName
             << "], rc: " << rc << ", error: " << errorDesc.str()
             << BMQTSK_ALARMLOG_END;
+        errorDesc.reset();
     }
 
     rc = FileSystemUtil::truncate(&fileSet->d_journalFile,
@@ -3311,6 +3312,7 @@ void FileStore::truncate(FileSet* fileSet)
             << partitionDesc() << "Failed to truncate journal ["
             << fileSet->d_journalFileName << "], rc: " << rc
             << ", error: " << errorDesc.str() << BMQTSK_ALARMLOG_END;
+        errorDesc.reset();
     }
 
     if (d_qListAware) {
@@ -3322,6 +3324,7 @@ void FileStore::truncate(FileSet* fileSet)
                 << partitionDesc() << "Failed to truncate qlist file ["
                 << fileSet->d_qlistFileName << "], rc: " << rc
                 << ", error: " << errorDesc.str() << BMQTSK_ALARMLOG_END;
+            errorDesc.reset();
         }
     }
 }
