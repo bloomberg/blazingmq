@@ -437,6 +437,9 @@ class Cluster : public mqbi::Cluster {
                   const bsl::shared_ptr<bmqu::AtomicState>& state,
                   bsls::Types::Uint64 genCount) BSLS_KEYWORD_OVERRIDE;
 
+    void processBufferedPrimaryStatusAdvisories(int partitionId)
+        BSLS_KEYWORD_OVERRIDE;
+
     // MANIPULATORS
     //   (specific to mqbmock::Cluster)
 

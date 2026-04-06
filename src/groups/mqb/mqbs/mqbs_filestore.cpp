@@ -6669,6 +6669,15 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
         return;  // RETURN
     }
 
+    // Idempotent
+    if (d_primaryLeaseId == primaryLeaseId && d_primaryNode_p == primaryNode) {
+        BALL_LOG_INFO << partitionDesc() << " already has primary as "
+                      << primaryNode->nodeDescription()
+                      << " with primaryLeaseId: " << d_primaryLeaseId
+                      << ", and sequence number: " << d_sequenceNum << ".";
+        return;  // RETURN
+    }
+
     if (primaryLeaseId > d_primaryLeaseId) {
         // Reset the sequence number only if primary leaseId has been bumped
         // up.

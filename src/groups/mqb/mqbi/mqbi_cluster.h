@@ -375,6 +375,10 @@ class Cluster : public DispatcherClient {
     virtual void purgeAndGCQueueOnDomain(mqbcmd::ClusterResult* result,
                                          const bsl::string& domainName) = 0;
 
+    /// PFSM signals when it transfers into `REPLICA_HEALED`.  Previously
+    /// buffered PrimaryStatusAdvisories should be reread.
+    virtual void processBufferedPrimaryStatusAdvisories(int partitionId) = 0;
+
     // ACCESSORS
 
     /// Return the name of this cluster.
