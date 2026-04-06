@@ -85,6 +85,7 @@ string(CONCAT TOOLCHAIN_CXX_FLAGS
        "-Wno-undef "
        "-Wno-zero-as-null-pointer-constant "
        "-Wno-unsafe-buffer-usage "
+       "-Wno-reserved-macro-identifier "
        )
 
 set( TOOLCHAIN_EXE_FLAGS "${TOOLCHAIN_LINKER_FLAGS}" )

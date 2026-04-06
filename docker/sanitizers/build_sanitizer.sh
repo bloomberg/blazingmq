@@ -328,7 +328,7 @@ cmake --preset fuzz-tests -B "${DIR_BUILD_BMQ}" -S "${DIR_SRC_BMQ}" -G Ninja \
     -DCMAKE_PREFIX_PATH="${DIR_SRCS_EXT}/bde-tools/BdeBuildSystem" \
     "${CMAKE_OPTIONS[@]}"
 cmake --build "${DIR_BUILD_BMQ}" -j${PARALLELISM} \
-      --target ${TARGETS} -v --clean-first
+      --target ${TARGETS} --clean-first
 print_disk_usage "BlazingMQ"
 
 if [ "${FUZZER}" == "on" ]; then
