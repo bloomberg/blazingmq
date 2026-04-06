@@ -591,6 +591,8 @@ ClusterOrchestrator::ClusterOrchestrator(
                             &d_clusterData_p->blobSpPool())),
                     clusterConfig.clusterAttributes()
                         .clusterFsmWatchdogTimeoutSec(),
+                    clusterConfig.clusterAttributes()
+                        .clusterFsmWatchdogNumRetries(),
                     d_allocators.get("ClusterStateManager")))
           : static_cast<mqbi::ClusterStateManager*>(
                 new(*d_allocator_p) ClusterStateManager(

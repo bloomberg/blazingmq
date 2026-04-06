@@ -39,6 +39,7 @@
 #include <mqbc_partitionfsmobserver.h>
 #include <mqbc_partitionstatetable.h>
 #include <mqbc_storageutil.h>
+#include <mqbc_watchdogcontext.h>
 #include <mqbcfg_messages.h>
 #include <mqbi_dispatcher.h>
 #include <mqbi_storagemanager.h>
@@ -161,49 +162,6 @@ class StorageManager BSLS_KEYWORD_FINAL
     typedef bsl::vector<PrimaryStatusAdvisoryInfos>
         PrimaryStatusAdvisoryInfosVec;
 
-    /// Per-partition watchdog context.
-    class WatchdogContext {
-      public:
-        // DATA
-
-        /// Generation count to detect and ignore stale watchdog triggers.
-        /// Incremented each time a watchdog is stopped
-        ///
-        /// THREAD: Except during the ctor, this data member is modified in the
-        ///         partition thread and accessed in both the cluster thread
-        ///         and the partition thread.
-        bsls::AtomicInt d_generation;
-
-        /// Whether the watchdog timer is currently active.  Since the event
-        /// handle does not invalidate upon watchdog firing, we must rely on
-        /// this flag.
-        ///
-        /// THREAD: Used in both the cluster thread and the partition thread.
-        bsls::AtomicBool d_active;
-
-        /// Event handle for the scheduled watchdog timer.
-        ///
-        /// THREAD: Used in the partition thread.
-        bdlmt::EventSchedulerEventHandle d_eventHandle;
-
-        /// Number of retries remaining before terminating the broker,
-        /// reset for each generation.
-        ///
-        /// THREAD: Used in both the cluster thread and the partition thread.
-        bsls::AtomicInt d_retriesRemaining;
-
-        // CREATORS
-
-        /// Create a default `WatchdogContext` with no active timer, zero
-        /// generation and zero retries remaining.
-        WatchdogContext();
-
-        // NOT IMPLEMENTED
-        WatchdogContext(const WatchdogContext&) BSLS_KEYWORD_DELETED;
-        WatchdogContext&
-        operator=(const WatchdogContext&) BSLS_KEYWORD_DELETED;
-    };
-
     /// VST representing node's sequence number, first sync point after
     /// rollover sequence number.
     class NodeSeqNumContext {
@@ -264,7 +222,8 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// Timeout interval for the watchdog.
     const bsls::TimeInterval d_watchdogTimeoutInterval;
 
-    /// Number of watchdog retries before terminating the broker.
+    /// Number of watchdog retries per FSM healing session, before terminating
+    /// the broker.
     const int d_watchdogNumRetries;
 
     /// Flag to denote if a low disk space warning was issued.  This flag is
@@ -1308,20 +1267,6 @@ inline bool StorageManager::isWatchdogActive(int partitionId) const
 inline unsigned int StorageManager::getSeqNumQuorum() const
 {
     return d_clusterData_p->quorumManager().quorum();
-}
-
-// =====================================
-// class StorageManager::WatchdogContext
-// =====================================
-
-// CREATORS
-inline StorageManager::WatchdogContext::WatchdogContext()
-: d_generation(0)
-, d_active(false)
-, d_eventHandle()
-, d_retriesRemaining(0)
-{
-    // NOTHING
 }
 
 // =======================================

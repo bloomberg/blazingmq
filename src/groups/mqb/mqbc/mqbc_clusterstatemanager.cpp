@@ -55,12 +55,14 @@ ClusterStateManager::ClusterStateManager(
     mqbc::ClusterData*               clusterData,
     mqbc::ClusterState*              clusterState,
     ClusterStateLedgerMp             clusterStateLedger,
-    bsls::Types::Int64               watchDogTimeoutDuration,
+    bsls::Types::Int64               watchdogTimeoutDuration,
+    int                              watchdogNumRetries,
     bslma::Allocator*                allocator)
 : d_allocator_p(allocator)
 , d_allocators(d_allocator_p)
-, d_watchDogEventHandle()
-, d_watchDogTimeoutInterval(watchDogTimeoutDuration)
+, d_watchdogCtx()
+, d_watchdogTimeoutInterval(watchdogTimeoutDuration)
+, d_watchdogNumRetries(watchdogNumRetries)
 , d_clusterConfig(clusterConfig)
 , d_cluster_p(cluster)
 , d_clusterData_p(clusterData)
@@ -78,6 +80,8 @@ ClusterStateManager::ClusterStateManager(
     BSLS_ASSERT_SAFE(d_clusterData_p);
     BSLS_ASSERT_SAFE(d_state_p);
     BSLS_ASSERT_SAFE(d_clusterStateLedger_mp);
+
+    d_watchdogCtx.d_retriesRemaining = d_watchdogNumRetries;
 
     d_clusterStateLedger_mp->setCommitCb(
         bdlf::BindUtil::bind(&ClusterStateManager::onCommit,
@@ -117,10 +121,21 @@ void ClusterStateManager::do_startWatchDog(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
+    if (d_watchdogCtx.d_active) {
+        return;  // RETURN
+    }
+
+    d_watchdogCtx.d_eventHandle.release();
+
+    const int generation = d_watchdogCtx.d_generation;
     d_clusterData_p->scheduler().scheduleEvent(
-        &d_watchDogEventHandle,
-        d_clusterData_p->scheduler().now() + d_watchDogTimeoutInterval,
-        bdlf::BindUtil::bind(&ClusterStateManager::onWatchDog, this));
+        &d_watchdogCtx.d_eventHandle,
+        d_clusterData_p->scheduler().now() + d_watchdogTimeoutInterval,
+        bdlf::BindUtil::bind(&ClusterStateManager::onWatchdog,
+                             this,
+                             generation));
+
+    d_watchdogCtx.d_active = true;
 }
 
 void ClusterStateManager::do_stopWatchDog(
@@ -131,9 +146,18 @@ void ClusterStateManager::do_stopWatchDog(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
-    if (d_clusterData_p->scheduler().cancelEvent(d_watchDogEventHandle) != 0) {
+    // Increment generation to invalidate any in-flight stale watchdog
+    // triggers from the previous healing session and reset the retry counter
+    // for the next healing session.
+    ++d_watchdogCtx.d_generation;
+    d_watchdogCtx.d_retriesRemaining = d_watchdogNumRetries;
+    d_watchdogCtx.d_active           = false;
+
+    const int rc = d_clusterData_p->scheduler().cancelEvent(
+        d_watchdogCtx.d_eventHandle);
+    if (rc != 0) {
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << ": Failed to cancel WatchDog.";
+                       << ": Failed to cancel Watchdog, rc: " << rc;
     }
 }
 
@@ -145,11 +169,19 @@ void ClusterStateManager::do_triggerWatchDog(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
+    if (!d_watchdogCtx.d_active) {
+        BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                       << ": Attempting to trigger watchdog while watchdog is "
+                       << "not active.  Please review Cluster FSM logic.";
+
+        return;  // RETURN
+    }
+
     if (d_clusterData_p->scheduler().rescheduleEvent(
-            d_watchDogEventHandle,
+            d_watchdogCtx.d_eventHandle,
             d_clusterData_p->scheduler().now()) != 0) {
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << ": Failed to trigger WatchDog.";
+                       << ": Failed to trigger Watchdog.";
     }
 }
 
@@ -1196,32 +1228,60 @@ int ClusterStateManager::loadClusterStateSnapshot(
     return 0;
 }
 
-void ClusterStateManager::onWatchDog()
+void ClusterStateManager::onWatchdog(int generation)
 {
     // executed by the *SCHEDULER* thread
 
     dispatcher()->execute(
-        bdlf::BindUtil::bind(&ClusterStateManager::onWatchDogDispatched, this),
+        bdlf::BindUtil::bind(&ClusterStateManager::onWatchdogDispatched,
+                             this,
+                             generation),
         d_cluster_p);
 }
 
-void ClusterStateManager::onWatchDogDispatched()
+void ClusterStateManager::onWatchdogDispatched(int generation)
 {
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
-    if (d_clusterFSM.isSelfHealed()) {
+    // Check if this watchdog is stale
+    if (generation != d_watchdogCtx.d_generation) {
+        BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << ": Ignoring stale watchdog event with generation "
+                      << generation << ", current generation is "
+                      << d_watchdogCtx.d_generation;
         return;  // RETURN
     }
 
-    BALL_LOG_WARN << d_clusterData_p->identity().description()
-                  << ": Watchdog triggered because node startup healing "
-                  << "sequence was not completed in the configured time of "
-                  << d_watchDogTimeoutInterval.totalSeconds() << " seconds.";
+    // Decrement retry counter
+    const int retriesRemaining = d_watchdogCtx.d_retriesRemaining--;
 
-    applyFSMEvent(ClusterFSM::Event::e_WATCH_DOG, ClusterFSMEventMetadata());
+    // Mark that watchdog has fired so that `do_startWatchDog` will schedule
+    // a fresh timer on the next invocation.
+    d_watchdogCtx.d_active = false;
+
+    BMQTSK_ALARMLOG_ALARM("RECOVERY")
+        << d_clusterData_p->identity().description()
+        << ": Watchdog triggered because cluster startup healing "
+        << "sequence was not completed in the configured time of "
+        << d_watchdogTimeoutInterval.totalSeconds() << " seconds. "
+        << "Retries remaining: " << retriesRemaining << " of "
+        << d_watchdogNumRetries << BMQTSK_ALARMLOG_END;
+
+    if (retriesRemaining > 0) {
+        applyFSMEvent(ClusterFSM::Event::e_WATCH_DOG,
+                      ClusterFSMEventMetadata());
+    }
+    else {
+        BMQTSK_ALARMLOG_ALARM("RECOVERY")
+            << d_clusterData_p->identity().description()
+            << ": Watchdog retries exhausted after " << d_watchdogNumRetries
+            << " attempts. Terminating broker." << BMQTSK_ALARMLOG_END;
+
+        mqbu::ExitUtil::shutdown(mqbu::ExitCode::e_RECOVERY_FAILURE);
+    }
 }
 
 void ClusterStateManager::onFollowerLSNResponse(

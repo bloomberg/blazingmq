@@ -20,3 +20,4 @@ mqbc_recoverymanager
 mqbc_recoveryutil
 mqbc_storagemanager
 mqbc_storageutil
+mqbc_watchdogcontext
