@@ -89,7 +89,7 @@ def _clean_output(output_str: str) -> str:
                 if key in journal_sync:
                     del journal_sync[key]
 
-    return json.dumps(data)
+    return json.dumps(data, indent=2)
 
 
 def _stop_cluster_and_compare_journal_files(
