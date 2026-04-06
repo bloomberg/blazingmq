@@ -116,7 +116,7 @@ if [ ! -e "${DIR_BUILD}/bde/.complete" ]; then
     (
         # Suppress warnings from BDE build (scoped to this subshell)
         # shellcheck disable=SC2030
-        export CXXFLAGS="-w" CFLAGS="-w"
+        export CXXFLAGS="-w -fsized-deallocation" CFLAGS="-w"
         cd "${DIR_THIRDPARTY}/bde"
         eval "$(bbs_build_env -p clang -u opt_64_cpp17 -b "${DIR_BUILD}/bde" -i "${DIR_INSTALL}")"
         bbs_build configure --prefix="${DIR_INSTALL}"
