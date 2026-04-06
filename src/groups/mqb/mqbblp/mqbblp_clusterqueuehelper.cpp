@@ -765,14 +765,12 @@ void ClusterQueueHelper::onQueueContextAssigned(
 
             haveActivePrimary = false;
         }
-        else if (!d_clusterState_p->isSelfPrimary(pid)) {
-            // This is a replica node, guaranteed.
 
-            // Note: It's possible that the queue has already been registered
-            // in the StorageMgr if it was a queue found during storage
-            // recovery. Therefore, we will allow for duplicate registration
-            // which will simply result in a no-op.
-
+        // Register queue storage on replicas regardless of primary status.
+        // The storage must exist in FileStore before the primary sends QLIST
+        // records; otherwise writeQueueCreationRecord fails with
+        // rc_QUEUE_CREATION_FAILURE.  Duplicate registration is a no-op.
+        if (!d_clusterState_p->isSelfPrimary(pid)) {
             const mqbc::ClusterStateQueueInfo& info =
                 *queueContext->d_stateQInfo_sp;
 
