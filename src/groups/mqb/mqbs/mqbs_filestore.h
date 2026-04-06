@@ -397,7 +397,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     // calculations.  We should only set
     // this to true during testing.
 
-    int d_nagglePacketCount;
+    int d_naglePacketCount;
     // Max number of messages in the
     // 'd_storageEventBuilder' before
     // flushing the builder.  Depending
@@ -674,7 +674,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
         bsls::Types::Uint64            recordOffset);
 
     ///  if the specified `immediateFlush` is `true` or the
-    /// `d_storageEventBuilder` is over the `d_nagglePacketCount` limit.
+    /// `d_storageEventBuilder` is over the `d_naglePacketCount` limit.
     void flushIfNeeded(bool immediateFlush);
 
     // PRIVATE ACCESSORS

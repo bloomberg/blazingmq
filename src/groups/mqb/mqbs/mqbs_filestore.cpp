@@ -5150,7 +5150,7 @@ void FileStore::aliasMessage(bsl::shared_ptr<bdlbb::Blob>* appData,
 void FileStore::flushIfNeeded(bool immediateFlush)
 {
     if (immediateFlush ||
-        d_storageEventBuilder.messageCount() >= d_nagglePacketCount) {
+        d_storageEventBuilder.messageCount() >= d_naglePacketCount) {
         // Should notify weak consistency queues after replicated batch
         flushStorage();
         notifyQueuesOnReplicatedBatch();
@@ -5207,7 +5207,7 @@ FileStore::FileStore(
 , d_isFSMWorkflow(isFSMWorkflow)
 , d_qListAware(!d_isFSMWorkflow || doesFSMwriteQLIST)
 , d_ignoreCrc32c(false)
-, d_nagglePacketCount(k_NAGLE_PACKET_COUNT)
+, d_naglePacketCount(k_NAGLE_PACKET_COUNT)
 , d_storageEventBuilder(FileStoreProtocol::k_VERSION,
                         bmqp::EventType::e_STORAGE,
                         d_blobSpPool_p,
@@ -6955,13 +6955,13 @@ void FileStore::flushStorage()
     const int maxChannelPendingItems = d_cluster_p->broadcast(
         d_storageEventBuilder.blob());
     if (maxChannelPendingItems > 0) {
-        if (d_nagglePacketCount < k_NAGLE_PACKET_COUNT) {
+        if (d_naglePacketCount < k_NAGLE_PACKET_COUNT) {
             // back off
-            ++d_nagglePacketCount;
+            ++d_naglePacketCount;
         }
     }
-    else if (d_nagglePacketCount) {
-        --d_nagglePacketCount;
+    else if (d_naglePacketCount) {
+        --d_naglePacketCount;
     }
     d_storageEventBuilder.reset();
 }
@@ -7327,7 +7327,7 @@ void FileStore::loadSummary(mqbcmd::FileStore* fileStore) const
                                     d_sequenceNum,
                                     d_records.size(),
                                     d_unreceipted.size(),
-                                    d_nagglePacketCount,
+                                    d_naglePacketCount,
                                     d_fileSets,
                                     d_storages);
 }
