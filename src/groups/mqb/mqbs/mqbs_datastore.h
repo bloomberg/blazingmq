@@ -653,11 +653,6 @@ class DataStore : public mqbi::DispatcherClient {
     virtual int writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint& syncPoint,
                                      SyncPointType::Enum            type) = 0;
 
-    /// Remove the record identified by the specified `handle`.  Return zero
-    /// on success, non-zero value if `handle` is invalid.  Behavior is
-    /// undefined unless `handle` represents a record in the data store.
-    virtual int removeRecord(const DataStoreRecordHandle& handle) = 0;
-
     /// Remove the record identified by the specified `handle`.  Behavior is
     /// undefined unless `handle` is valid and represents a record in the
     /// data store.
