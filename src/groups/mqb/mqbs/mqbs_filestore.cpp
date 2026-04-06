@@ -5607,10 +5607,7 @@ int FileStore::writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
         flags = bmqp::StorageHeaderFlags::e_RECEIPT_REQUESTED;
     }
     else {
-        if (d_replicationNotifications.find(queueKey) ==
-            d_replicationNotifications.end()) {
-            d_replicationNotifications.insert(queueKey);
-        }
+        d_replicationNotifications.insert(queueKey);
     }
 
     // Replicate the message.
