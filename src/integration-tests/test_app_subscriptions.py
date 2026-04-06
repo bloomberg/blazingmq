@@ -147,6 +147,13 @@ class TestAppSubscriptions:
         self.consumer_bar.confirm(du.uri_fanout_bar, "*", succeed=True)
         self.consumer_baz.confirm(du.uri_fanout_baz, "*", succeed=True)
 
+        # need to make sure confirm has made it to the primary since this is a
+        # non-blocking op.
+        # Must make different configuration, change maxUnconfirmedMessages
+        self.consumer_baz.configure(
+            du.uri_fanout_baz, maxUnconfirmedMessages=100, block=True
+        )
+
         self._verify(du.domain_fanout, 0)
 
         assert len(self.consumer_bar.list(block=True)) == 0
@@ -324,7 +331,7 @@ class TestAppSubscriptions:
 
         # need to make sure confirm has made it to the primary since this is a
         # non-blocking op.
-        # Must make different confgiuration, change maxUnconfirmedMessages
+        # Must make different configuration, change maxUnconfirmedMessages
         self.consumer_baz.configure(
             du.uri_fanout_baz, maxUnconfirmedMessages=100, block=True
         )

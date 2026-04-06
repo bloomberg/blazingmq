@@ -138,7 +138,7 @@ class TestReconfigureDomains:
 
         # need to make sure confirm has made it to the primary since this is a
         # non-blocking op.
-        # Must make different confgiuration, change maxUnconfirmedMessages
+        # Must make different configuration, change maxUnconfirmedMessages
         self.reader.configure(uri_priority_1, maxUnconfirmedMessages=100, block=True)
 
         assert self.post_n_msgs(uri_priority_2, 1)
@@ -202,7 +202,7 @@ class TestReconfigureDomains:
 
         # need to make sure confirm has made it to the primary since this is a
         # non-blocking op.
-        # Must make different confgiuration, change maxUnconfirmedMessages
+        # Must make different configuration, change maxUnconfirmedMessages
         self.reader.configure(uri_priority_1, maxUnconfirmedMessages=100, block=True)
 
         # Take the leader offline.
