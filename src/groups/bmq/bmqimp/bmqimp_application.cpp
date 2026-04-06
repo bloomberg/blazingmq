@@ -345,8 +345,7 @@ void Application::brokerSessionStopped(
         // This code assumes that there is no need to stop both factories upon
         // e_START_FAILURE.
         // If we wanted that, we would need another event.
-        d_reconnectingChannelFactory.stop();
-        d_channelFactory.stop();
+        d_negotiatedChannelFactory.stop();
     }
 
     d_scheduler.cancelAllEventsAndWait();
@@ -372,26 +371,16 @@ bmqt::GenericResult::Enum Application::startChannel()
     int rc = 0;
 
     // Start the channel factories.
-    rc = d_channelFactory.start();
-    if (rc != 0) {
-        BALL_LOG_ERROR << id() << "Failed to start channelFactory [rc: " << rc
-                       << "]";
-        return bmqt::GenericResult::e_UNKNOWN;  // RETURN
-    }
-    bdlb::ScopeExitAny tcpScopeGuard(
-        bdlf::BindUtil::bind(&bmqio::NtcChannelFactory::stop,
-                             &d_channelFactory));
-
-    rc = d_reconnectingChannelFactory.start();
+    rc = d_negotiatedChannelFactory.start();
     if (rc != 0) {
         BALL_LOG_ERROR << id()
-                       << "Failed to start reconnectingChannelFactory [rc: "
+                       << "Failed to start negotiatedChannelFactory [rc: "
                        << rc << "]";
         return bmqt::GenericResult::e_UNKNOWN;  // RETURN
     }
-    bdlb::ScopeExitAny reconnectingScopeGuard(
-        bdlf::BindUtil::bind(&bmqio::ReconnectingChannelFactory::stop,
-                             &d_reconnectingChannelFactory));
+    bdlb::ScopeExitAny negotiatedScopeGuard(
+        bdlf::BindUtil::bind(&NegotiatedChannelFactory::stop,
+                             &d_negotiatedChannelFactory));
 
     // Connect to the broker.
     bmqio::TCPEndpoint endpoint(d_sessionOptions.brokerUri());
@@ -449,8 +438,7 @@ bmqt::GenericResult::Enum Application::startChannel()
             bdlf::MemFnUtil::memFn(&Application::snapshotStats, this));
     }
 
-    reconnectingScopeGuard.release();
-    tcpScopeGuard.release();
+    negotiatedScopeGuard.release();
 
     return bmqt::GenericResult::e_SUCCESS;
 }

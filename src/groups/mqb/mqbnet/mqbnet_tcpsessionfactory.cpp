@@ -232,14 +232,6 @@ bool isClientOrProxy(const mqbnet::Session* session)
     return mqbnet::ClusterUtil::isClientOrProxy(session->negotiationMessage());
 }
 
-void stopChannelFactory(bmqio::ChannelFactory* channelFactory)
-{
-    bmqio::NtcChannelFactory* factory =
-        dynamic_cast<bmqio::NtcChannelFactory*>(channelFactory);
-    BSLS_ASSERT_SAFE(factory);
-    factory->stop();
-}
-
 /// A predicate functor for comparing a [mqbcfg::TcpInterfaceListener] by their
 /// `port()` member.
 struct PortMatcher {
@@ -1165,19 +1157,7 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
                                                   bdlf::PlaceHolders::_1,
                                                   bdlf::PlaceHolders::_2));
 
-    rc = channelFactory->start();
-    if (rc != 0) {
-        errorDescription << "Failed starting channel pool for "
-                         << "TCPSessionFactory '" << d_config.name()
-                         << "' [rc: " << rc << "]";
-        return rc;  // RETURN
-    }
-
     d_tcpChannelFactory_mp = channelFactory;
-
-    bdlb::ScopeExitAny tcpScopeGuard(
-        bdlf::BindUtil::bind(&stopChannelFactory,
-                             d_tcpChannelFactory_mp.get()));
 
     bslmt::ThreadAttributes attributes =
         bmqsys::ThreadUtil::defaultAttributes();
@@ -1217,18 +1197,6 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
             d_allocator_p),
         d_allocator_p);
 
-    rc = d_reconnectingChannelFactory_mp->start();
-    if (rc != 0) {
-        errorDescription << "Failed starting reconnecting channel factory for "
-                         << "TCPSessionFactory '" << d_config.name()
-                         << "' [rc: " << rc << "]";
-        return rc;  // RETURN
-    }
-
-    bdlb::ScopeExitAny reconnectingScopeGuard(
-        bdlf::BindUtil::bind(&bmqio::ReconnectingChannelFactory::stop,
-                             d_reconnectingChannelFactory_mp.get()));
-
     d_statChannelFactory_mp.load(
         new (*d_allocator_p) bmqio::StatChannelFactory(
             bmqio::StatChannelFactoryConfig(
@@ -1241,6 +1209,15 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
                 d_allocator_p),
             d_allocator_p),
         d_allocator_p);
+
+    rc = d_statChannelFactory_mp->start();
+
+    if (rc != 0) {
+        errorDescription << "Failed starting stat channel factory for "
+                         << "TCPSessionFactory '" << d_config.name()
+                         << "' [rc: " << rc << "]";
+        return rc;  // RETURN
+    }
 
     if (d_config.heartbeatIntervalMs() != 0) {
         BALL_LOG_INFO
@@ -1271,9 +1248,6 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
                   << "successfully started";
 
     d_isStarted = true;
-
-    reconnectingScopeGuard.release();
-    tcpScopeGuard.release();
 
     return 0;
 }
@@ -1405,12 +1379,8 @@ void TCPSessionFactory::stop()
     d_resolutionContext.stop();
     d_resolutionContext.join();
 
-    if (d_reconnectingChannelFactory_mp) {
-        d_reconnectingChannelFactory_mp->stop();
-    }
-
-    if (d_tcpChannelFactory_mp) {
-        stopChannelFactory(d_tcpChannelFactory_mp.get());
+    if (d_statChannelFactory_mp) {
+        d_statChannelFactory_mp->stop();
     }
 
     // Wait for all sessions to have been destroyed
