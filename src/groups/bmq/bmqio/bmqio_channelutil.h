@@ -27,7 +27,6 @@
 
 // BDE
 #include <bdlbb_blob.h>
-#include <bdlcc_sharedobjectpool.h>
 #include <bsl_string.h>
 #include <bsl_vector.h>
 
