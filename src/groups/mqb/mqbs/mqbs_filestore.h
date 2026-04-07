@@ -393,13 +393,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     // calculations.  We should only set
     // this to true during testing.
 
-    int d_naglePacketCount;
-    // Max number of messages in the
-    // 'd_storageEventBuilder' before
-    // flushing the builder.  Depending
-    // the cluster channels load, it can
-    // grow or shrink.
-
     bmqp::StorageEventBuilder d_storageEventBuilder;
     // Storage event builder to use.
 
@@ -670,7 +663,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
         bsls::Types::Uint64            recordOffset);
 
     /// Flush the storage if the specified `immediateFlush` is `true` or the
-    /// `d_storageEventBuilder` is over the `d_naglePacketCount` limit.
+    /// `d_storageEventBuilder` is over the `k_NAGLE_PACKET_COUNT` limit.
     void flushIfNeeded(bool immediateFlush);
 
     // PRIVATE ACCESSORS

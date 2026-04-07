@@ -197,8 +197,8 @@ Cluster* MockCluster::unregisterObserver(ClusterObserver* observer)
     return this;
 }
 
-int MockCluster::writeAll(const bsl::shared_ptr<bdlbb::Blob>& blob,
-                          bmqp::EventType::Enum               type)
+void MockCluster::writeAll(const bsl::shared_ptr<bdlbb::Blob>& blob,
+                           bmqp::EventType::Enum               type)
 {
     for (bsl::list<MockClusterNode>::iterator it = d_nodes.begin();
          it != d_nodes.end();
@@ -208,19 +208,17 @@ int MockCluster::writeAll(const bsl::shared_ptr<bdlbb::Blob>& blob,
             it->write(blob, type);
         }
     }
-
-    return 0;
 }
 
-int MockCluster::broadcast(const bsl::shared_ptr<bdlbb::Blob>& blob)
+void MockCluster::broadcast(const bsl::shared_ptr<bdlbb::Blob>& blob)
 {
     if (d_disableBroadcast) {
-        return 0;  // RETURN
+        return;  // RETURN
     }
 
     // No multicast support in mock cluster, just forward to the individual
     // nodes.
-    return writeAll(blob, bmqp::EventType::e_STORAGE);
+    writeAll(blob, bmqp::EventType::e_STORAGE);
 }
 
 void MockCluster::closeChannels()
