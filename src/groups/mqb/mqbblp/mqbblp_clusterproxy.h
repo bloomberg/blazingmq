@@ -74,7 +74,6 @@
 #include <ball_log.h>
 #include <bdlbb_blob.h>
 #include <bdlcc_objectpool.h>
-#include <bdlcc_sharedobjectpool.h>
 #include <bdld_manageddatum.h>
 #include <bsl_deque.h>
 #include <bsl_functional.h>
@@ -122,16 +121,6 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBBLP.CLUSTERPROXY");
-
-  public:
-    // TYPES
-
-    /// Pool of shared pointers to Blobs
-    typedef bdlcc::SharedObjectPool<
-        bdlbb::Blob,
-        bdlcc::ObjectPoolFunctors::DefaultCreator,
-        bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
-        BlobSpPool;
 
   private:
     // PRIVATE TYPES

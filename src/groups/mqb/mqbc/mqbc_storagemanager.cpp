@@ -2526,7 +2526,7 @@ void StorageManager::do_bufferLiveData(const EventWithData& event)
     const int                    partitionId = eventData.partitionId();
     mqbnet::ClusterNode*         source      = eventData.source();
 
-    bmqp::Event rawEvent(eventData.storageEvent().get(), d_allocator_p);
+    bmqp::Event rawEvent(eventData.storageEvent(), d_allocator_p);
     BSLS_ASSERT_SAFE(rawEvent.isStorageEvent());
 
     const PartitionInfo& pinfo = d_partitionInfoVec[partitionId];
@@ -2694,7 +2694,7 @@ void StorageManager::do_processLiveData(const EventWithData& event)
 
     // Do process events while Stopping, otherwise can miss sync point.
 
-    bmqp::Event rawEvent(eventData.storageEvent().get(), d_allocator_p);
+    bmqp::Event rawEvent(eventData.storageEvent(), d_allocator_p);
     BSLS_ASSERT_SAFE(rawEvent.isStorageEvent());
 
     const PartitionInfo& pinfo = d_partitionInfoVec[partitionId];
@@ -3094,7 +3094,7 @@ void StorageManager::do_updateStorage(const EventWithData& event)
     const int                    partitionId = eventData.partitionId();
     mqbnet::ClusterNode*         source      = eventData.source();
 
-    bmqp::Event rawEvent(eventData.storageEvent().get(), d_allocator_p);
+    bmqp::Event rawEvent(eventData.storageEvent(), d_allocator_p);
     BSLS_ASSERT_SAFE(rawEvent.isPartitionSyncEvent());
 
     // A partition-sync event is received in one of the following

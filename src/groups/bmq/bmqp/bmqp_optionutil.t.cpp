@@ -41,7 +41,7 @@ namespace {
 
 typedef bsl::pair<int, bmqt::EventBuilderResult::Enum> LimitT;
 
-LimitT maxCanBeAdded(const int contentSize, const int payloadSize)
+LimitT maxCanBeAdded(int contentSize, int payloadSize)
 {
     typedef bmqp::OptionUtil::OptionMeta OptionMeta;
     typedef bmqp::OptionUtil::OptionsBox OptionsBox;

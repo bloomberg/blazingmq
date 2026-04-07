@@ -251,6 +251,23 @@ class TCPSessionFactory {
         void onDeleteChannelContext(bsl::uint16_t port);
     };
 
+    struct Reader {
+        TCPSessionFactory* d_owner_p;
+        ChannelInfo*       d_channelInfo_p;
+
+        explicit Reader(TCPSessionFactory* owner, ChannelInfo* channelInfo)
+        : d_owner_p(owner)
+        , d_channelInfo_p(channelInfo)
+        {
+            BSLS_ASSERT_SAFE(owner);
+        }
+
+        void operator()(const bdlbb::Blob& blob, int offset, int length)
+        {
+            d_owner_p->read(d_channelInfo_p, blob, offset, length);
+        }
+    };
+
     typedef bsl::shared_ptr<ChannelInfo> ChannelInfoSp;
 
     /// Map associating a `Channel` to its corresponding `ChannelInfo` (as
@@ -299,6 +316,11 @@ class TCPSessionFactory {
 
     /// BlobBuffer factory to use (passed to the ChannelFactory)
     bdlbb::BlobBufferFactory* d_blobBufferFactory_p;
+
+    bdlcc::SharedObjectPool<bdlbb::Blob,
+                            bdlcc::ObjectPoolFunctors::DefaultCreator,
+                            bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
+        d_blobSpPool;
 
     /// Authenticator to use for authentication
     Authenticator* d_authenticator_p;
@@ -426,6 +448,11 @@ class TCPSessionFactory {
                       int*                 numNeeded,
                       bdlbb::Blob*         blob,
                       ChannelInfo*         channelInfo);
+
+    void read(ChannelInfo*       channelInfo,
+              const bdlbb::Blob& source,
+              int                offset,
+              int                length);
 
     /// Method invoked when the initial connection (including authentication
     /// and negotiation) of the specified `channel` is complete, whether it be

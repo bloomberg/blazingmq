@@ -425,7 +425,7 @@ struct Post : public Operation {
     // CREATORS
 
     /// Creates a new `Post`, posting the specified `value` to the queue.
-    Post(const int value)
+    Post(int value)
     : d_value(value)
     {
     }

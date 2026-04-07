@@ -376,7 +376,7 @@ class QueueEngineTester {
     /// undefined unless `numMessages >= 0` and 'numMessages <= No. of
     /// messages that were posted but for which afterNewMessage() was not
     /// called', or if `createQueueEngine()` was not called.
-    void afterNewMessage(const int numMessages);
+    void afterNewMessage(int numMessages);
 
     /// Invoke the `confirmMessage()` method on the handle associated with
     /// the client identified with the specified `clientText` for the
@@ -422,7 +422,7 @@ class QueueEngineTester {
     /// The behavior is undefined unless `numMessages >= 0` and 'numMessages
     /// <= No. of messages that were posted but for which afterNewMessage()
     /// was not called', or if `createQueueEngine()` was not called.
-    void garbageCollectMessages(const int numMessages);
+    void garbageCollectMessages(int numMessages);
 
     /// Remove all outstanding messages from the subStream identified by the
     /// optionally specified `appId` in the queue associated with the Queue

@@ -76,10 +76,9 @@ class Event {
     bslma::Allocator* d_allocator_p;
     // Allocator to use by this object.
 
-    bsl::shared_ptr<const bdlbb::Blob> d_clonedBlob_sp;
+    bsl::shared_ptr<const bdlbb::Blob> d_blob_sp;
     // SharedPtr that might be pointing
-    // to a blob (in case of cloned
-    // event).
+    // to a blob.
 
     const bdlbb::Blob* d_blob_p;
     // Raw pointer that always points to
@@ -98,7 +97,9 @@ class Event {
     /// `clone` is true, the event will copy the blob to its internal shared
     /// pointer and take ownership of that copy; otherwise the event is only
     /// valid from within the scope of the `blob`.
-    void initialize(const bdlbb::Blob* blob, bool clone);
+    void initialize(const bdlbb::Blob* blob);
+
+    void initialize(const bsl::shared_ptr<const bdlbb::Blob>& blob);
 
     // PRIVATE ACCESSORS
 
@@ -126,9 +127,10 @@ class Event {
     /// using the specified `allocator`.  If the optionally specified
     /// `clone` is true, this object will clone the blob into its internal
     /// shared pointer.
-    Event(const bdlbb::Blob* blob,
-          bslma::Allocator*  allocator,
-          bool               clone = false);
+    Event(const bdlbb::Blob* blob, bslma::Allocator* allocator);
+
+    Event(const bsl::shared_ptr<const bdlbb::Blob>& blob,
+          bslma::Allocator*                         allocator);
 
     /// Copy constructor of the specified `src` event, using the optionally
     /// specified `allocator`.
@@ -152,7 +154,9 @@ class Event {
     /// Reset this Event to use the specified `blob`.  If the optionally
     /// specified `clone` is true, this object will clone the blob into its
     /// internal shared pointer.
-    void reset(const bdlbb::Blob* blob, bool clone = false);
+    void reset(const bdlbb::Blob* blob);
+
+    void reset(const bsl::shared_ptr<const bdlbb::Blob>& blob);
 
     /// Set internal state of this instance as if it is default constructed.
     void clear();
@@ -161,16 +165,6 @@ class Event {
 
     /// Return true is this Event is initialized with a valid blob.
     bool isValid() const;
-
-    /// Return true if this instance, or the instance from which this
-    /// instance was initialized (copy-constructed), was cloned.  Return
-    /// false in all other cases.
-    bool isCloned() const;
-
-    /// Return a new Event, that is a clone of this event, using the
-    /// specified `allocator`.  The behavior is undefined unless `isValid()`
-    /// returns true.
-    Event clone(bslma::Allocator* allocator) const;
 
     /// Return the encoding type of this Authentication event.  The
     /// behavior is undefined unless `isAuthenticationEvent()` returns true.
@@ -237,6 +231,7 @@ class Event {
 
     /// Return a pointer to the blob associated to this event.
     const bdlbb::Blob* blob() const;
+    const bsl::shared_ptr<const bdlbb::Blob>& sharedBlob() const;
 
     /// Write the string representation of the specified `event` to the
     /// specified output `stream`, and return a reference to `stream`.
@@ -266,15 +261,16 @@ bsl::ostream& operator<<(bsl::ostream& stream, const Event& event);
 // class Event
 // -----------
 
-inline void Event::initialize(const bdlbb::Blob* blob, bool clone)
+inline void Event::initialize(const bsl::shared_ptr<const bdlbb::Blob>& blob)
+{
+    d_blob_sp = blob;
+
+    initialize(d_blob_sp.get());
+}
+
+inline void Event::initialize(const bdlbb::Blob* blob)
 {
     d_blob_p = blob;
-
-    if (clone) {
-        d_clonedBlob_sp.createInplace(d_allocator_p, *d_blob_p, d_allocator_p);
-        d_blob_p = d_clonedBlob_sp.get();
-    }
-
     // Read EventHeader, supporting protocol evolution by reading up to size of
     // the struct bytes (-1 parameter), and then resizing the proxy to match
     // the size declared in the header
@@ -356,7 +352,7 @@ int Event::loadSchemaEvent(TYPE* message) const
     bmqu::MemOutStream os;
     int                rc = ProtocolUtil::decodeMessage(os,
                                          message,
-                                         *d_blob_p,
+                                         *blob(),
                                          d_header->headerWords() *
                                              Protocol::k_WORD_SIZE,
                                          // Skip the EventHeader
@@ -372,42 +368,53 @@ int Event::loadSchemaEvent(TYPE* message) const
 
 inline Event::Event(bslma::Allocator* allocator)
 : d_allocator_p(allocator)
-, d_clonedBlob_sp(0, allocator)
+, d_blob_sp(0, allocator)
 , d_blob_p(0)
 {
     // NOTHING
 }
 
-inline Event::Event(const bdlbb::Blob* blob,
-                    bslma::Allocator*  allocator,
-                    bool               clone)
+inline Event::Event(const bdlbb::Blob* blob, bslma::Allocator* allocator)
 : d_allocator_p(allocator)
-, d_clonedBlob_sp(0, allocator)
+, d_blob_sp(0, allocator)
 , d_blob_p(0)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_allocator_p);
     BSLS_ASSERT_SAFE(blob);
 
-    initialize(blob, clone);
+    initialize(blob);
+}
+
+inline Event::Event(const bsl::shared_ptr<const bdlbb::Blob>& blob,
+                    bslma::Allocator*                         allocator)
+: d_allocator_p(allocator)
+, d_blob_sp(0, allocator)
+, d_blob_p(0)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_allocator_p);
+    BSLS_ASSERT_SAFE(blob);
+
+    initialize(blob);
 }
 
 inline Event::Event(const Event& src, bslma::Allocator* allocator)
 : d_allocator_p(allocator)
-, d_clonedBlob_sp(0, allocator)
+, d_blob_sp(0, allocator)
 , d_blob_p(0)
 {
-    d_clonedBlob_sp = src.d_clonedBlob_sp;  // src could be a clone
-    initialize(src.d_blob_p, false);
+    d_blob_sp = src.d_blob_sp;
+    initialize(src.d_blob_p);
 }
 
 inline Event::Event(bslmf::MovableRef<Event> src, bslma::Allocator* allocator)
 : d_allocator_p(allocator)
-, d_clonedBlob_sp(0, allocator)
+, d_blob_sp(0, allocator)
 , d_blob_p(0)
 {
-    d_clonedBlob_sp = bslmf::MovableRefUtil::access(src).d_clonedBlob_sp;
-    initialize(bslmf::MovableRefUtil::access(src).d_blob_p, false);
+    d_blob_sp = bslmf::MovableRefUtil::access(src).d_blob_sp;
+    initialize(bslmf::MovableRefUtil::access(src).d_blob_p);
 }
 
 inline Event& Event::operator=(const Event& rhs)
@@ -418,8 +425,8 @@ inline Event& Event::operator=(const Event& rhs)
         return *this;
     }
 
-    d_clonedBlob_sp = rhs.d_clonedBlob_sp;  // src could be a clone
-    initialize(rhs.d_blob_p, false);
+    d_blob_sp = rhs.d_blob_sp;
+    initialize(rhs.d_blob_p);
     return *this;
 }
 
@@ -432,23 +439,32 @@ inline Event& Event::operator=(bslmf::MovableRef<Event> rhs)
         return *this;
     }
 
-    d_clonedBlob_sp = bslmf::MovableRefUtil::access(rhs).d_clonedBlob_sp;
-    initialize(bslmf::MovableRefUtil::access(rhs).d_blob_p, false);
+    d_blob_sp = bslmf::MovableRefUtil::access(rhs).d_blob_sp;
+    initialize(bslmf::MovableRefUtil::access(rhs).d_blob_p);
     return *this;
 }
 
-inline void Event::reset(const bdlbb::Blob* blob, bool clone)
+inline void Event::reset(const bdlbb::Blob* blob)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(blob);
 
-    d_clonedBlob_sp.reset();
-    initialize(blob, clone);
+    d_blob_sp.reset();
+    initialize(blob);
+}
+
+inline void Event::reset(const bsl::shared_ptr<const bdlbb::Blob>& blob)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(blob);
+
+    d_blob_sp.reset();
+    initialize(blob);
 }
 
 inline void Event::clear()
 {
-    d_clonedBlob_sp.reset();
+    d_blob_sp.reset();
     d_blob_p = 0;
     d_header.reset();
 }
@@ -456,19 +472,6 @@ inline void Event::clear()
 inline bool Event::isValid() const
 {
     return d_header.isSet();
-}
-
-inline bool Event::isCloned() const
-{
-    return d_clonedBlob_sp.get() != 0;
-}
-
-inline Event Event::clone(bslma::Allocator* allocator) const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(allocator);
-
-    return Event(d_blob_p, allocator, true /* clone == true */);
 }
 
 inline EncodingType::Enum Event::authenticationEventEncodingType() const
@@ -640,7 +643,7 @@ inline void Event::loadAckMessageIterator(AckMessageIterator* iterator) const
     BSLS_ASSERT_SAFE(isAckEvent());
     BSLS_ASSERT_SAFE(isValid());
 
-    iterator->reset(d_blob_p, *d_header);
+    iterator->reset(blob(), *d_header);
 }
 
 inline void
@@ -650,7 +653,7 @@ Event::loadConfirmMessageIterator(ConfirmMessageIterator* iterator) const
     BSLS_ASSERT_SAFE(isConfirmEvent());
     BSLS_ASSERT_SAFE(isValid());
 
-    iterator->reset(d_blob_p, *d_header);
+    iterator->reset(blob(), *d_header);
 }
 
 inline void Event::loadPushMessageIterator(PushMessageIterator* iterator,
@@ -660,7 +663,7 @@ inline void Event::loadPushMessageIterator(PushMessageIterator* iterator,
     BSLS_ASSERT_SAFE(isPushEvent());
     BSLS_ASSERT_SAFE(isValid());
 
-    iterator->reset(d_blob_p, *d_header, decompressFlag);
+    iterator->reset(blob(), *d_header, decompressFlag);
 }
 
 inline void Event::loadPutMessageIterator(PutMessageIterator* iterator,
@@ -670,7 +673,7 @@ inline void Event::loadPutMessageIterator(PutMessageIterator* iterator,
     BSLS_ASSERT_SAFE(isPutEvent());
     BSLS_ASSERT_SAFE(isValid());
 
-    iterator->reset(d_blob_p, *d_header, decompressFlag);
+    iterator->reset(blob(), *d_header, decompressFlag);
 }
 
 inline void
@@ -680,7 +683,7 @@ Event::loadStorageMessageIterator(StorageMessageIterator* iterator) const
     BSLS_ASSERT_SAFE(isStorageEvent() || isPartitionSyncEvent());
     BSLS_ASSERT_SAFE(isValid());
 
-    iterator->reset(d_blob_p, *d_header);
+    iterator->reset(blob(), *d_header);
 }
 
 inline void
@@ -690,7 +693,7 @@ Event::loadRecoveryMessageIterator(RecoveryMessageIterator* iterator) const
     BSLS_ASSERT_SAFE(isRecoveryEvent());
     BSLS_ASSERT_SAFE(isValid());
 
-    iterator->reset(d_blob_p, *d_header);
+    iterator->reset(blob(), *d_header);
 }
 
 inline void
@@ -700,12 +703,17 @@ Event::loadRejectMessageIterator(RejectMessageIterator* iterator) const
     BSLS_ASSERT_SAFE(isRejectEvent());
     BSLS_ASSERT_SAFE(isValid());
 
-    iterator->reset(d_blob_p, *d_header);
+    iterator->reset(blob(), *d_header);
 }
 
 inline const bdlbb::Blob* Event::blob() const
 {
     return d_blob_p;
+}
+
+inline const bsl::shared_ptr<const bdlbb::Blob>& Event::sharedBlob() const
+{
+    return d_blob_sp;
 }
 
 }  // close package namespace

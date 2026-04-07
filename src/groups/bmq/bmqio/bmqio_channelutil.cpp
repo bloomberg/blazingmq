@@ -148,13 +148,12 @@ int ChannelUtil::handleRead(bdlbb::Blob* outPacket,
     return 0;
 }
 
-int ChannelUtil::handleRead(bsl::vector<bdlbb::Blob>* outPackets,
-                            int*                      numNeeded,
-                            bdlbb::Blob*              inBlob)
+int ChannelUtil::handleRead(const Reader& reader,
+                            int*          numNeeded,
+                            bdlbb::Blob*  inBlob)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(outPackets);
-    BSLS_ASSERT_SAFE(outPackets->empty());  // The out blobs should be empty
+    BSLS_ASSERT_SAFE(reader);
 
     int consumedBytes = 0;  // Offset in input blob
     int packetLength  = 0;  // The full length of the packet, as
@@ -193,13 +192,8 @@ int ChannelUtil::handleRead(bsl::vector<bdlbb::Blob>* outPackets,
             return 0;  // RETURN
         }
 
-        // We have a complete message.  Move the bytes out of 'inBlob' into a
-        // standalone packet in 'outPackets'.
-        outPackets->emplace_back();
-        bdlbb::BlobUtil::append(&outPackets->back(),
-                                *inBlob,
-                                consumedBytes,
-                                packetLength);
+        // We have a complete message.
+        reader(*inBlob, consumedBytes, packetLength);
 
         consumedBytes += packetLength;
     }

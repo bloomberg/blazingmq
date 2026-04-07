@@ -758,7 +758,7 @@ class TestBench {
 
     /// Sends an `OpenQueue` event for the specified `uri` and `queuId`, to
     /// this testbench's `ClientSession`.
-    void openQueue(const bsl::string& uri, const int queueId)
+    void openQueue(const bsl::string& uri, int queueId)
     {
         bmqp::SchemaEventBuilder     obj(&d_blobSpPool,
                                      bmqp::EncodingType::e_BER,
@@ -785,7 +785,7 @@ class TestBench {
 
     /// Sends an `CloseQueue` event for the specified `uri` and `queuId`, to
     /// this testbench's `ClientSession`.
-    void closeQueue(const bsl::string& uri, const int queueId)
+    void closeQueue(const bsl::string& uri, int queueId)
     {
         bmqp::SchemaEventBuilder     obj(&d_blobSpPool,
                                      bmqp::EncodingType::e_BER,

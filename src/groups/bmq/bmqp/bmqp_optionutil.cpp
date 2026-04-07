@@ -153,8 +153,7 @@ void OptionUtil::OptionsBox::add(bdlbb::Blob*      blob,
 
 // ACCESSORS
 bmqt::EventBuilderResult::Enum
-OptionUtil::OptionsBox::canAdd(const int         currentSize,
-                               const OptionMeta& option) const
+OptionUtil::OptionsBox::canAdd(int currentSize, const OptionMeta& option) const
 {
     // At minimum, a header is expected
     BSLS_ASSERT_SAFE(currentSize >= bmqp::Protocol::k_WORD_SIZE);

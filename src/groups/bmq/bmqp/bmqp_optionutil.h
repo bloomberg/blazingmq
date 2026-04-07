@@ -190,7 +190,7 @@ struct OptionUtil {
         /// fact that there will be at least something more than a header on
         /// the blob.  This isn't a functional requirement but just a sanity
         /// test.
-        bmqt::EventBuilderResult::Enum canAdd(const int         currentSize,
+        bmqt::EventBuilderResult::Enum canAdd(int               currentSize,
                                               const OptionMeta& option) const;
 
         /// Return the total size of options area associated with the

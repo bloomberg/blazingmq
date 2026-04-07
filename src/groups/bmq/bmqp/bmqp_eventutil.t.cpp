@@ -312,7 +312,7 @@ static void test1_breathingTest()
 
     // Create event
     appendMessages(&pushEventBuilder, data);
-    bmqp::Event event(pushEventBuilder.blob().get(),
+    bmqp::Event event(pushEventBuilder.blob(),
                       bmqtst::TestHelperUtil::allocator());
 
     // 2) Flatten the event
@@ -330,7 +330,7 @@ static void test1_breathingTest()
     BMQTST_ASSERT_EQ(eventInfos.size(), 1u);
 
     // 3) Verify that the flattened event has the expected messages.
-    bmqp::Event               flattenedEvent(&(eventInfos[0].d_blob),
+    bmqp::Event               flattenedEvent(eventInfos[0].d_blob_sp,
                                bmqtst::TestHelperUtil::allocator());
     bmqp::PushMessageIterator msgIterator(&bufferFactory,
                                           bmqtst::TestHelperUtil::allocator());
@@ -492,7 +492,7 @@ static void test2_flattenExplodesEvent()
 
     // Create event
     appendMessages(&pushEventBuilder, data);
-    bmqp::Event event(pushEventBuilder.blob().get(),
+    bmqp::Event event(pushEventBuilder.blob(),
                       bmqtst::TestHelperUtil::allocator());
 
     // 2) Flatten the event
@@ -517,7 +517,7 @@ static void test2_flattenExplodesEvent()
     int                       idx = 0;
 
     // 1st flattened event
-    bmqp::Event flattenedEvent1(&(eventInfos[0].d_blob),
+    bmqp::Event flattenedEvent1(eventInfos[0].d_blob_sp,
                                 bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT_EQ(eventInfos[0].d_ids.size(),
                      static_cast<size_t>(count * numSubQueueIds - 1));
@@ -608,7 +608,7 @@ static void test2_flattenExplodesEvent()
     idx = count - 1;  // the last one did not fit the first event
 
     // 2nd flattened event
-    bmqp::Event flattenedEvent2(&(eventInfos[1].d_blob),
+    bmqp::Event flattenedEvent2(eventInfos[1].d_blob_sp,
                                 bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT_EQ(eventInfos[1].d_ids.size(), 1u);
 
@@ -774,7 +774,7 @@ static void test3_flattenWithMessageProperties()
                                           logic);
     BSLS_ASSERT_OPT(result == bmqt::EventBuilderResult::e_SUCCESS);
 
-    bmqp::Event event(pushEventBuilder.blob().get(),
+    bmqp::Event event(pushEventBuilder.blob(),
                       bmqtst::TestHelperUtil::allocator());
 
     // 2) Flatten the event.
@@ -794,7 +794,7 @@ static void test3_flattenWithMessageProperties()
     // 3) Verify that the flattening results in one event blob containing
     //    two messages with the original message properties and message
     //    payload and corresponding to the respective SubQueueIds.
-    bmqp::Event flattenedEvent(&(eventInfos[0].d_blob),
+    bmqp::Event flattenedEvent(eventInfos[0].d_blob_sp,
                                bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT(flattenedEvent.isPushEvent());
 

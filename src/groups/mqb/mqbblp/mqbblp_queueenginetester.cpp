@@ -1036,7 +1036,7 @@ void QueueEngineTester::post(const bslstl::StringRef& messages,
     }
 }
 
-void QueueEngineTester::afterNewMessage(const int numMessages)
+void QueueEngineTester::afterNewMessage(int numMessages)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(d_queueEngine_mp &&
@@ -1179,7 +1179,7 @@ void QueueEngineTester::reject(const bsl::string&       clientText,
     }
 }
 
-void QueueEngineTester::garbageCollectMessages(const int numMessages)
+void QueueEngineTester::garbageCollectMessages(int numMessages)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(d_queueEngine_mp &&
