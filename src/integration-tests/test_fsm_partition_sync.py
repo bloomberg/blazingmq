@@ -484,6 +484,97 @@ def test_sync_if_leader_missed_records(
 
 
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)
+def test_sync_if_leader_missed_rollover(
+    fsm_multi_cluster: Cluster,
+    domain_urls: tc.DomainUrls,
+) -> None:
+    """
+    Test leader journal file synchronization with cluster when it missed rollover.
+    - start cluster, leader is east1
+    - put 2 messages
+    - kill replica east2, mark it as a `next_leader`
+    - put 2 more messages
+    - initiate rollover via admin command
+    - ensure that all nodes complete rollover
+    - stop all running nodes
+    - start all nodes, force `next_leader` (east2) to be a leader
+    - check that leader (which is behind replicas) is synchronized with replicas (leader and replica journal files content is equal)
+    """
+
+    cluster = fsm_multi_cluster
+    uri_priority = domain_urls.uri_priority
+
+    # Start cluster with leader `east1`
+    leader = cluster.last_known_leader
+
+    # Create producer and consumer
+    producer = leader.create_client("producer")
+    producer.open(uri_priority, flags=["write,ack"], succeed=True)
+
+    consumer = leader.create_client("consumer")
+    consumer.open(uri_priority, flags=["read"], succeed=True)
+
+    # Put 2 messages
+    for i in range(1, 3):
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+
+    # Mark `next_leader` node (east2)
+    next_leader = cluster.nodes(exclude=leader)[0]
+
+    # Kill `next_leader` node
+    cluster.drain()
+    next_leader.check_exit_code = False
+    next_leader.kill()
+    next_leader.wait()
+    test_logger.info(f"Killed node {next_leader} who will be the next leader")
+
+    # Put 2 more messages
+    for i in range(3, 5):
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+
+    # Initiate rollover via admin command
+    res = leader.trigger_rollover(0, succeed=True)
+    assert not res is None
+
+    # Wait until rollover completed for other nodes
+    for node in cluster.nodes(exclude=[leader, next_leader]):
+        assert node.outputs_substr("ROLLOVER COMPLETE", 3), (
+            f"Node {node.name} did not complete rollover"
+        )
+
+    # Stop all running nodes
+    for node in cluster.nodes(exclude=next_leader):
+        node.check_exit_code = False
+        node.stop()
+        cluster.make_sure_node_stopped(node)
+
+    cluster.drain()
+
+    # Start all nodes, `next_leader` is the first, force it to be a leader
+    sorted_nodes = sorted(
+        cluster.nodes(), key=lambda node: 0 if node == next_leader else 1
+    )
+    for node in sorted_nodes:
+        node.start()
+        node.wait_until_started()
+        quorum = 3 if node == next_leader else 5
+        node.set_quorum(quorum)
+
+    # Wait until cluster is ready
+    next_leader.wait_status(wait_leader=True, wait_ready=True)
+    assert next_leader.last_known_leader == next_leader, (
+        f"next_leader {next_leader} is not last_known_leader {next_leader.last_known_leader}"
+    )
+    cluster.last_known_leader = next_leader
+
+    # Select replica
+    replica = cluster.nodes(exclude=next_leader)[0]
+
+    # Check that `next_leader` and replica journal files are equal, after stopping all nodes
+    _stop_cluster_and_compare_journal_files(next_leader.name, replica.name, cluster)
+
+
+@tweak.cluster.queue_operations.shutdown_timeout_ms(100)
 def test_sync_after_replicas_missed_various_records(
     fsm_multi_cluster: Cluster,
     domain_urls: tc.DomainUrls,
