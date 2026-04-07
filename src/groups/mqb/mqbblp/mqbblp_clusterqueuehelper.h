@@ -1286,10 +1286,6 @@ inline bool ClusterQueueHelper::hasActiveAvailablePrimary(
         return false;  // RETURN
     }
 
-    if (d_cluster_p->isFSMWorkflow()) {
-        return true;  // RETURN
-    }
-
     mqbc::ClusterNodeSession* ns =
         d_clusterData_p->membership().getClusterNodeSession(
             pinfo.primaryNode());
