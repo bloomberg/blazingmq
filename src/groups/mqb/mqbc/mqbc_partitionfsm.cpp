@@ -46,37 +46,8 @@ const bsls::Types::Int64 k_NS_PER_MESSAGE =
 // ==================
 
 // PRIVATE MANIPULATORS
-void PartitionFSM::processEvent(const EventWithData& event)
+void PartitionFSM::notifyObservers(int partitionId, State::Enum oldState)
 {
-    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!event.second.empty());
-
-    const int partitionId = event.second[0].partitionId();
-
-    State::Enum oldState   = d_state;
-    Transition  transition = d_stateTable.transition(oldState, event.first);
-    // Transition state
-    d_state = static_cast<State::Enum>(transition.first);
-
-    if (event.first == PartitionStateTableEvent::e_RECOVERY_DATA ||
-        event.first == PartitionStateTableEvent::e_LIVE_DATA) {
-        BMQ_LOGTHROTTLE_INFO << "Partition FSM for Partition [" << partitionId
-                             << "] on Event '" << event.first
-                             << "', transition: State '" << oldState
-                             << "' =>  State '" << d_state << "'";
-    }
-    else {
-        BALL_LOG_INFO << "Partition FSM for Partition [" << partitionId
-                      << "] on Event '" << event.first
-                      << "', transition: State '" << oldState
-                      << "' =>  State '" << d_state << "'";
-    }
-
-    (d_actions.*(transition.second))(event);
-
-    // Notify observers
     if (d_state != oldState) {
         switch (d_state) {
         case State::e_UNKNOWN: {
@@ -123,6 +94,68 @@ void PartitionFSM::processEvent(const EventWithData& event)
     }
 }
 
+void PartitionFSM::processEvent(EventWithData& event)
+{
+    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!d_isFrozen);
+    BSLS_ASSERT_SAFE(!event.d_data.empty());
+
+    const int   partitionId = event.d_data[0].partitionId();
+    State::Enum oldState;
+
+    event.d_isFreezeRequested = false;
+
+    if (event.d_chainResumeIndex > 0) {
+        // Resuming a frozen chain — state was already transitioned.
+        oldState = d_frozenOldState;
+
+        BALL_LOG_INFO << "Partition FSM for Partition [" << partitionId
+                      << "] resuming frozen chain, State '" << d_state << "'";
+    }
+    else {
+        oldState = d_state;
+    }
+
+    Transition transition = d_stateTable.transition(oldState, event.d_event);
+
+    if (event.d_chainResumeIndex == 0) {
+        // Fresh event — transition state and log.
+        d_state = static_cast<State::Enum>(transition.first);
+
+        if (event.d_event == PartitionStateTableEvent::e_RECOVERY_DATA ||
+            event.d_event == PartitionStateTableEvent::e_LIVE_DATA) {
+            BMQ_LOGTHROTTLE_INFO
+                << "Partition FSM for Partition [" << partitionId
+                << "] on Event '" << event.d_event << "', transition: State '"
+                << oldState << "' =>  State '" << d_state << "'";
+        }
+        else {
+            BALL_LOG_INFO << "Partition FSM for Partition [" << partitionId
+                          << "] on Event '" << event.d_event
+                          << "', transition: State '" << oldState
+                          << "' =>  State '" << d_state << "'";
+        }
+    }
+
+    (d_actions.*(transition.second))(event);
+
+    if (event.d_isFreezeRequested) {
+        // An action in the chain requested a freeze.  executeChain has
+        // already saved the resume index in event.d_chainResumeIndex.
+        // The state has already been set to the target; no events will be
+        // processed until unfreeze.  The event remains at the front of
+        // d_eventsQueue (the caller must not pop it).
+        d_isFrozen       = true;
+        d_frozenOldState = oldState;
+        return;  // RETURN
+    }
+
+    // Notify observers
+    notifyObservers(partitionId, oldState);
+}
+
 // MANIPULATORS
 PartitionFSM& PartitionFSM::registerObserver(PartitionFSMObserver* observer)
 {
@@ -155,16 +188,45 @@ void PartitionFSM::enqueueEvent(const EventWithData& event)
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!event.second.empty());
+    BSLS_ASSERT_SAFE(!event.d_data.empty());
 
     d_eventsQueue.push(event);
     if (d_eventsQueue.size() > 1) {
         // There is already an ongoing processing, so just return.
-        return;
+        return;  // RETURN
     }
 
-    while (!d_eventsQueue.empty()) {
+    while (!d_eventsQueue.empty() && !d_isFrozen) {
         processEvent(d_eventsQueue.front());
+        if (d_isFrozen) {
+            // The event stays in the queue as a sentinel so that nested
+            // enqueueEvent calls during unfreeze see size() > 1 and do
+            // not process events inline.
+            break;
+        }
+        d_eventsQueue.pop();
+    }
+}
+
+void PartitionFSM::unfreeze()
+{
+    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_isFrozen);
+    BSLS_ASSERT_SAFE(!d_eventsQueue.empty());
+
+    d_isFrozen = false;
+
+    // The frozen event is at the front of the queue with
+    // d_chainResumeIndex > 0.  processEvent detects this and resumes the
+    // chain instead of starting a new transition.  Subsequent queued
+    // events are drained in the same loop.
+    while (!d_eventsQueue.empty() && !d_isFrozen) {
+        processEvent(d_eventsQueue.front());
+        if (d_isFrozen) {
+            break;
+        }
         d_eventsQueue.pop();
     }
 }

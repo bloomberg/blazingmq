@@ -228,205 +228,115 @@ class PartitionStateTableActions {
   public:
     // TYPES
     typedef void (PartitionStateTableActions<ARGS>::*ActionFunctor)(
-        const ARGS& args);
+        ARGS& args);
 
   public:
     virtual ~PartitionStateTableActions();
 
-    virtual void do_none(const ARGS& args);
+    virtual void do_none(ARGS& args);
 
-    virtual void do_startWatchDog(const ARGS& args) = 0;
+    virtual void do_startWatchDog(ARGS& args) = 0;
 
-    virtual void do_stopWatchDog(const ARGS& args) = 0;
+    virtual void do_stopWatchDog(ARGS& args) = 0;
 
-    virtual void do_openRecoveryFileSet(const ARGS& args) = 0;
+    virtual void do_openRecoveryFileSet(ARGS& args) = 0;
 
-    virtual void do_closeRecoveryFileSet(const ARGS& args) = 0;
+    virtual void do_closeRecoveryFileSet(ARGS& args) = 0;
 
-    virtual void do_storeSelfSeq(const ARGS& args) = 0;
+    virtual void do_storeSelfSeq(ARGS& args) = 0;
 
-    virtual void do_storePrimarySeq(const ARGS& args) = 0;
+    virtual void do_storePrimarySeq(ARGS& args) = 0;
 
-    virtual void do_storeReplicaSeq(const ARGS& args) = 0;
+    virtual void do_storeReplicaSeq(ARGS& args) = 0;
 
-    virtual void do_replicaStateRequest(const ARGS& args) = 0;
+    virtual void do_replicaStateRequest(ARGS& args) = 0;
 
-    virtual void do_replicaStateResponse(const ARGS& args) = 0;
+    virtual void do_replicaStateResponse(ARGS& args) = 0;
 
-    virtual void do_failureReplicaStateResponse(const ARGS& args) = 0;
+    virtual void do_failureReplicaStateResponse(ARGS& args) = 0;
 
-    virtual void do_logFailureReplicaStateResponse(const ARGS& args) = 0;
+    virtual void do_logFailureReplicaStateResponse(ARGS& args) = 0;
 
-    virtual void do_logFailurePrimaryStateResponse(const ARGS& args) = 0;
+    virtual void do_logFailurePrimaryStateResponse(ARGS& args) = 0;
 
-    virtual void do_logUnexpectedPrimaryStateResponse(const ARGS& args) = 0;
+    virtual void do_logUnexpectedPrimaryStateResponse(ARGS& args) = 0;
 
-    virtual void
-    do_logUnexpectedFailurePrimaryStateResponse(const ARGS& args) = 0;
+    virtual void do_logUnexpectedFailurePrimaryStateResponse(ARGS& args) = 0;
 
-    virtual void do_primaryStateRequest(const ARGS& args) = 0;
+    virtual void do_primaryStateRequest(ARGS& args) = 0;
 
-    virtual void do_primaryStateResponse(const ARGS& args) = 0;
+    virtual void do_primaryStateResponse(ARGS& args) = 0;
 
-    virtual void do_failurePrimaryStateResponse(const ARGS& args) = 0;
+    virtual void do_failurePrimaryStateResponse(ARGS& args) = 0;
 
-    virtual void do_replicaDataRequestPush(const ARGS& args) = 0;
+    virtual void do_replicaDataRequestPush(ARGS& args) = 0;
 
-    virtual void do_replicaDataResponsePush(const ARGS& args) = 0;
+    virtual void do_replicaDataResponsePush(ARGS& args) = 0;
 
-    virtual void do_replicaDataRequestDrop(const ARGS& args) = 0;
+    virtual void do_replicaDataRequestDrop(ARGS& args) = 0;
 
-    virtual void do_replicaDataResponseDrop(const ARGS& args) = 0;
+    virtual void do_replicaDataResponseDrop(ARGS& args) = 0;
 
-    virtual void do_replicaDataRequestPull(const ARGS& args) = 0;
+    virtual void do_replicaDataRequestPull(ARGS& args) = 0;
 
-    virtual void do_replicaDataResponsePull(const ARGS& args) = 0;
+    virtual void do_replicaDataResponsePull(ARGS& args) = 0;
 
-    virtual void do_failureReplicaDataResponsePull(const ARGS& args) = 0;
+    virtual void do_failureReplicaDataResponsePull(ARGS& args) = 0;
 
-    virtual void do_failureReplicaDataResponsePush(const ARGS& args) = 0;
+    virtual void do_failureReplicaDataResponsePush(ARGS& args) = 0;
 
-    virtual void do_bufferLiveData(const ARGS& args) = 0;
+    virtual void do_bufferLiveData(ARGS& args) = 0;
 
-    virtual void do_processBufferedLiveData(const ARGS& args) = 0;
+    virtual void do_processBufferedLiveData(ARGS& args) = 0;
 
-    virtual void do_clearBufferedLiveData(const ARGS& args) = 0;
+    virtual void do_clearBufferedLiveData(ARGS& args) = 0;
 
-    virtual void
-    do_processBufferedPrimaryStatusAdvisories(const ARGS& args) = 0;
+    virtual void do_processBufferedPrimaryStatusAdvisories(ARGS& args) = 0;
 
-    virtual void do_processLiveData(const ARGS& args) = 0;
+    virtual void do_processLiveData(ARGS& args) = 0;
 
-    virtual void do_setPrimary(const ARGS& args) = 0;
+    virtual void do_setPrimary(ARGS& args) = 0;
 
-    virtual void do_cleanupMetadata(const ARGS& args) = 0;
+    virtual void do_cleanupMetadata(ARGS& args) = 0;
 
-    virtual void do_startSendDataChunks(const ARGS& args) = 0;
+    virtual void do_startSendDataChunks(ARGS& args) = 0;
 
-    virtual void do_setExpectedDataChunkRange(const ARGS& args) = 0;
+    virtual void do_setExpectedDataChunkRange(ARGS& args) = 0;
 
-    virtual void do_resetReceiveDataCtx(const ARGS& args) = 0;
+    virtual void do_resetReceiveDataCtx(ARGS& args) = 0;
 
-    virtual void do_attemptOpenStorage(const ARGS& args) = 0;
+    virtual void do_attemptOpenStorage(ARGS& args) = 0;
 
-    virtual void do_updateStorage(const ARGS& args) = 0;
+    virtual void do_updateStorage(ARGS& args) = 0;
 
-    virtual void do_removeStorage(const ARGS& args) = 0;
+    virtual void do_removeStorage(ARGS& args) = 0;
 
-    virtual void do_incrementNumRplcaDataRspn(const ARGS& args) = 0;
+    virtual void do_incrementNumRplcaDataRspn(ARGS& args) = 0;
 
-    virtual void do_checkQuorumRplcaDataRspn(const ARGS& args) = 0;
+    virtual void do_checkQuorumRplcaDataRspn(ARGS& args) = 0;
 
-    virtual void do_reapplyEvent(const ARGS& args) = 0;
+    virtual void do_reapplyEvent(ARGS& args) = 0;
 
-    virtual void do_checkQuorumSeq(const ARGS& args) = 0;
+    virtual void do_checkQuorumSeq(ARGS& args) = 0;
 
-    virtual void do_findHighestSeq(const ARGS& args) = 0;
+    virtual void do_findHighestSeq(ARGS& args) = 0;
 
-    virtual void do_flagFailedReplicaSeq(const ARGS& args) = 0;
+    virtual void do_flagFailedReplicaSeq(ARGS& args) = 0;
 
-    virtual void do_transitionToActivePrimary(const ARGS& args) = 0;
+    virtual void do_transitionToActivePrimary(ARGS& args) = 0;
 
-    virtual void do_reapplyDetectSelfPrimary(const ARGS& args) = 0;
+    virtual void do_reapplyDetectSelfPrimary(ARGS& args) = 0;
 
-    virtual void do_reapplyDetectSelfReplica(const ARGS& args) = 0;
+    virtual void do_reapplyDetectSelfReplica(ARGS& args) = 0;
 
-    virtual void do_unsupportedPrimaryDowngrade(const ARGS& args) = 0;
+    virtual void do_unsupportedPrimaryDowngrade(ARGS& args) = 0;
 
-    void do_replicaDataResponseDrop_removeStorage_reapplyDetectSelfReplica(
-        const ARGS& args);
-
-    void
-    do_setPrimary_startWatchDog_openRecoveryFileSet_storeSelfSeq_replicaStateRequest_checkQuorumSeq(
-        const ARGS& args);
-
-    void
-    do_setPrimary_startWatchDog_openRecoveryFileSet_storeSelfSeq_primaryStateRequest(
-        const ARGS& args);
-
-    void
-    do_storeReplicaSeq_primaryStateResponse_checkQuorumSeq(const ARGS& args);
-
-    void do_storeReplicaSeq_checkQuorumSeq(const ARGS& args);
-
-    void do_storePrimarySeq_replicaStateResponse(const ARGS& args);
-
-    void do_cleanupMetadata_reapplyEvent(const ARGS& args);
-
-    void do_cleanupMetadata_stopWatchDog_reapplyEvent(const ARGS& args);
-
-    void
-    do_cleanupMetadata_closeRecoveryFileSet_stopWatchDog(const ARGS& args);
-
-    void do_reapplyDetectSelfPrimary_cleanupMetadata_closeRecoveryFileSet(
-        const ARGS& args);
-
-    void do_resetReceiveDataCtx_flagFailedReplicaSeq_checkQuorumSeq(
-        const ARGS& args);
-
-    void do_resetReceiveDataCtx_closeRecoveryFileSet(const ARGS& args);
-
-    void do_closeRecoveryFileSet_attemptOpenStorage_startSendDataChunks(
-        const ARGS& args);
-
-    void
-    do_closeRecoveryFileSet_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
-        const ARGS& args);
-
-    void do_setExpectedDataChunkRange_replicaDataRequestPull(const ARGS& args);
-
-    void do_setExpectedDataChunkRange_clearBufferedLiveData(const ARGS& args);
-
-    void
-    do_resetReceiveDataCtx_closeRecoveryFileSet_storeSelfSeq_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
-        const ARGS& args);
-
-    void do_stopWatchDog_transitionToActivePrimary(const ARGS& args);
-
-    void do_replicaStateResponse_storePrimarySeq(const ARGS& args);
-
-    void do_reapplyDetectSelfReplica_cleanupMetadata(const ARGS& args);
-
-    void
-    do_resetReceiveDataCtx_closeRecoveryFileSet_stopWatchDog(const ARGS& args);
-
-    void do_reapplyDetectSelfReplica_cleanupMetadata_closeRecoveryFileSet(
-        const ARGS& args);
-
-    void
-    do_replicaDataResponsePull_processBufferedLiveData_processBufferedPrimaryStatusAdvisories_stopWatchDog(
-        const ARGS& args);
-
-    void
-    do_failureReplicaDataResponsePull_reapplyDetectSelfReplica_cleanupMetadata_closeRecoveryFileSet(
-        const ARGS& args);
-
-    void
-    do_failureReplicaDataResponsePush_reapplyDetectSelfReplica_cleanupMetadata_closeRecoveryFileSet(
-        const ARGS& args);
-
-    void
-    do_replicaDataResponsePush_resetReceiveDataCtx_closeRecoveryFileSet_attemptOpenStorage_processBufferedLiveData_processBufferedPrimaryStatusAdvisories_stopWatchDog(
-        const ARGS& args);
-
-    void
-    do_storeReplicaSeq_primaryStateResponse_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
-        const ARGS& args);
-
-    void
-    do_storeSelfSeq_storeReplicaSeq_primaryStateResponse_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
-        const ARGS& args);
-
-    void
-    do_storeReplicaSeq_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
-        const ARGS& args);
-
-    void
-    do_storeSelfSeq_storeReplicaSeq_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
-        const ARGS& args);
-
-    void
-    do_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(const ARGS& args);
+    /// Execute a compile-time chain of action functions sequentially,
+    /// starting from `args.d_chainResumeIndex`.  If any action sets
+    /// `args.d_isFreezeRequested`, the resume index is saved and execution
+    /// stops.
+    template <ActionFunctor... Fns>
+    void executeChain(ARGS& args);
 };
 
 // =========================
@@ -456,28 +366,44 @@ class PartitionStateTable
     PartitionStateTable()
     : Table(&PartitionStateTableActions<ARGS>::do_none)
     {
+        typedef PartitionStateTableActions<ARGS> A;
+
 #define PST_CFG(s, e, a, n)                                                   \
     Table::configure(State::e_##s,                                            \
                      Event::e_##e,                                            \
+                     Transition(State::e_##n, &A::do_##a));
+
+#define PST_CHAIN(s, e, n, ...)                                               \
+    Table::configure(State::e_##s,                                            \
+                     Event::e_##e,                                            \
                      Transition(State::e_##n,                                 \
-                                &PartitionStateTableActions<ARGS>::do_##a));
-        //       state                 event                         action
-        //       next state
-        PST_CFG(
-            UNKNOWN,
-            DETECT_SELF_PRIMARY,
-            setPrimary_startWatchDog_openRecoveryFileSet_storeSelfSeq_replicaStateRequest_checkQuorumSeq,
-            PRIMARY_HEALING_STG1);
-        PST_CFG(
-            UNKNOWN,
-            DETECT_SELF_REPLICA,
-            setPrimary_startWatchDog_openRecoveryFileSet_storeSelfSeq_primaryStateRequest,
-            REPLICA_WAITING);
+                                &A::template executeChain<__VA_ARGS__>));
+
+        // ===== UNKNOWN =====
+        PST_CHAIN(UNKNOWN,
+                  DETECT_SELF_PRIMARY,
+                  PRIMARY_HEALING_STG1,
+                  &A::do_setPrimary,
+                  &A::do_startWatchDog,
+                  &A::do_openRecoveryFileSet,
+                  &A::do_storeSelfSeq,
+                  &A::do_replicaStateRequest,
+                  &A::do_checkQuorumSeq);
+        PST_CHAIN(UNKNOWN,
+                  DETECT_SELF_REPLICA,
+                  REPLICA_WAITING,
+                  &A::do_setPrimary,
+                  &A::do_startWatchDog,
+                  &A::do_openRecoveryFileSet,
+                  &A::do_storeSelfSeq,
+                  &A::do_primaryStateRequest);
         PST_CFG(UNKNOWN,
                 PRIMARY_STATE_RQST,
                 failurePrimaryStateResponse,
                 UNKNOWN);
         PST_CFG(UNKNOWN, STOP_NODE, none, STOPPED);
+
+        // ===== PRIMARY_HEALING_STG1 =====
         PST_CFG(PRIMARY_HEALING_STG1,
                 DETECT_SELF_REPLICA,
                 unsupportedPrimaryDowngrade,
@@ -486,110 +412,159 @@ class PartitionStateTable
                 REPLICA_STATE_RQST,
                 failureReplicaStateResponse,
                 PRIMARY_HEALING_STG1);
-        PST_CFG(PRIMARY_HEALING_STG1,
-                REPLICA_STATE_RSPN,
-                storeReplicaSeq_checkQuorumSeq,
-                PRIMARY_HEALING_STG1);
+        PST_CHAIN(PRIMARY_HEALING_STG1,
+                  REPLICA_STATE_RSPN,
+                  PRIMARY_HEALING_STG1,
+                  &A::do_storeReplicaSeq,
+                  &A::do_checkQuorumSeq);
         PST_CFG(PRIMARY_HEALING_STG1,
                 FAIL_REPLICA_STATE_RSPN,
                 logFailureReplicaStateResponse,
                 PRIMARY_HEALING_STG1);
-        PST_CFG(PRIMARY_HEALING_STG1,
-                PRIMARY_STATE_RQST,
-                storeReplicaSeq_primaryStateResponse_checkQuorumSeq,
-                PRIMARY_HEALING_STG1);
+        PST_CHAIN(PRIMARY_HEALING_STG1,
+                  PRIMARY_STATE_RQST,
+                  PRIMARY_HEALING_STG1,
+                  &A::do_storeReplicaSeq,
+                  &A::do_primaryStateResponse,
+                  &A::do_checkQuorumSeq);
         PST_CFG(PRIMARY_HEALING_STG1,
                 QUORUM_REPLICA_SEQ,
                 findHighestSeq,
                 PRIMARY_HEALING_STG1);
-        PST_CFG(
-            PRIMARY_HEALING_STG1,
-            SELF_HIGHEST_SEQ,
-            closeRecoveryFileSet_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn,
-            PRIMARY_HEALING_STG2);
-        PST_CFG(PRIMARY_HEALING_STG1,
-                REPLICA_HIGHEST_SEQ,
-                setExpectedDataChunkRange_replicaDataRequestPull,
-                PRIMARY_HEALING_STG2);
-        PST_CFG(PRIMARY_HEALING_STG1,
-                RST_UNKNOWN,
-                cleanupMetadata_closeRecoveryFileSet_stopWatchDog,
-                UNKNOWN);
-        PST_CFG(PRIMARY_HEALING_STG1,
-                STOP_NODE,
-                cleanupMetadata_closeRecoveryFileSet_stopWatchDog,
-                STOPPED);
-        PST_CFG(PRIMARY_HEALING_STG1,
-                WATCH_DOG,
-                reapplyDetectSelfPrimary_cleanupMetadata_closeRecoveryFileSet,
-                UNKNOWN);
+        PST_CHAIN(PRIMARY_HEALING_STG1,
+                  SELF_HIGHEST_SEQ,
+                  PRIMARY_HEALING_STG2,
+                  &A::do_closeRecoveryFileSet,
+                  &A::do_attemptOpenStorage,
+                  &A::do_replicaDataRequestPush,
+                  &A::do_replicaDataRequestDrop,
+                  &A::do_startSendDataChunks,
+                  &A::do_incrementNumRplcaDataRspn,
+                  &A::do_checkQuorumRplcaDataRspn);
+        PST_CHAIN(PRIMARY_HEALING_STG1,
+                  REPLICA_HIGHEST_SEQ,
+                  PRIMARY_HEALING_STG2,
+                  &A::do_setExpectedDataChunkRange,
+                  &A::do_replicaDataRequestPull);
+        PST_CHAIN(PRIMARY_HEALING_STG1,
+                  RST_UNKNOWN,
+                  UNKNOWN,
+                  &A::do_cleanupMetadata,
+                  &A::do_closeRecoveryFileSet,
+                  &A::do_stopWatchDog);
+        PST_CHAIN(PRIMARY_HEALING_STG1,
+                  STOP_NODE,
+                  STOPPED,
+                  &A::do_cleanupMetadata,
+                  &A::do_closeRecoveryFileSet,
+                  &A::do_stopWatchDog);
+        PST_CHAIN(PRIMARY_HEALING_STG1,
+                  WATCH_DOG,
+                  UNKNOWN,
+                  &A::do_reapplyDetectSelfPrimary,
+                  &A::do_cleanupMetadata,
+                  &A::do_closeRecoveryFileSet);
+
+        // ===== PRIMARY_HEALING_STG2 =====
         PST_CFG(PRIMARY_HEALING_STG2,
                 DETECT_SELF_REPLICA,
                 unsupportedPrimaryDowngrade,
                 UNKNOWN);
-        PST_CFG(PRIMARY_HEALING_STG2,
-                FAIL_REPLICA_DATA_RSPN_PULL,
-                resetReceiveDataCtx_flagFailedReplicaSeq_checkQuorumSeq,
-                PRIMARY_HEALING_STG1);
-        PST_CFG(PRIMARY_HEALING_STG2,
-                CRASH_REPLICA_DATA_RSPN_PULL,
-                resetReceiveDataCtx_flagFailedReplicaSeq_checkQuorumSeq,
-                PRIMARY_HEALING_STG1);
-        PST_CFG(
-            PRIMARY_HEALING_STG2,
-            REPLICA_STATE_RSPN,
-            storeReplicaSeq_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks,
-            PRIMARY_HEALING_STG2);
+        PST_CHAIN(PRIMARY_HEALING_STG2,
+                  FAIL_REPLICA_DATA_RSPN_PULL,
+                  PRIMARY_HEALING_STG1,
+                  &A::do_resetReceiveDataCtx,
+                  &A::do_flagFailedReplicaSeq,
+                  &A::do_checkQuorumSeq);
+        PST_CHAIN(PRIMARY_HEALING_STG2,
+                  CRASH_REPLICA_DATA_RSPN_PULL,
+                  PRIMARY_HEALING_STG1,
+                  &A::do_resetReceiveDataCtx,
+                  &A::do_flagFailedReplicaSeq,
+                  &A::do_checkQuorumSeq);
+        PST_CHAIN(PRIMARY_HEALING_STG2,
+                  REPLICA_STATE_RSPN,
+                  PRIMARY_HEALING_STG2,
+                  &A::do_storeReplicaSeq,
+                  &A::do_replicaDataRequestPush,
+                  &A::do_replicaDataRequestDrop,
+                  &A::do_startSendDataChunks);
         PST_CFG(PRIMARY_HEALING_STG2,
                 FAIL_REPLICA_STATE_RSPN,
                 logFailureReplicaStateResponse,
                 PRIMARY_HEALING_STG2);
-        PST_CFG(
-            PRIMARY_HEALING_STG2,
-            PRIMARY_STATE_RQST,
-            storeReplicaSeq_primaryStateResponse_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks,
-            PRIMARY_HEALING_STG2)
+        PST_CHAIN(PRIMARY_HEALING_STG2,
+                  PRIMARY_STATE_RQST,
+                  PRIMARY_HEALING_STG2,
+                  &A::do_storeReplicaSeq,
+                  &A::do_primaryStateResponse,
+                  &A::do_replicaDataRequestPush,
+                  &A::do_replicaDataRequestDrop,
+                  &A::do_startSendDataChunks);
         PST_CFG(PRIMARY_HEALING_STG2,
                 RECOVERY_DATA,
                 updateStorage,
                 PRIMARY_HEALING_STG2);
-        PST_CFG(PRIMARY_HEALING_STG2,
-                ERROR_RECEIVING_DATA_CHUNKS,
-                reapplyDetectSelfPrimary_cleanupMetadata_closeRecoveryFileSet,
-                UNKNOWN);
-        PST_CFG(
-            PRIMARY_HEALING_STG2,
-            REPLICA_DATA_RSPN_PULL,
-            resetReceiveDataCtx_closeRecoveryFileSet_storeSelfSeq_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn,
-            PRIMARY_HEALING_STG2);
-        PST_CFG(PRIMARY_HEALING_STG2,
-                REPLICA_DATA_RSPN_PUSH,
-                incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn,
-                PRIMARY_HEALING_STG2);
-        PST_CFG(PRIMARY_HEALING_STG2,
-                QUORUM_REPLICA_DATA_RSPN,
-                stopWatchDog_transitionToActivePrimary,
-                PRIMARY_HEALED);
-        PST_CFG(PRIMARY_HEALING_STG2,
-                RST_UNKNOWN,
-                cleanupMetadata_closeRecoveryFileSet_stopWatchDog,
-                UNKNOWN);
-        PST_CFG(PRIMARY_HEALING_STG2,
-                WATCH_DOG,
-                reapplyDetectSelfPrimary_cleanupMetadata_closeRecoveryFileSet,
-                UNKNOWN);
-        PST_CFG(PRIMARY_HEALING_STG2,
-                STOP_NODE,
-                cleanupMetadata_closeRecoveryFileSet_stopWatchDog,
-                STOPPED);
-        PST_CFG(REPLICA_WAITING,
-                DETECT_SELF_PRIMARY,
-                cleanupMetadata_stopWatchDog_reapplyEvent,
-                UNKNOWN);
-        PST_CFG(REPLICA_WAITING,
-                DETECT_SELF_REPLICA,
-                cleanupMetadata_stopWatchDog_reapplyEvent,
-                UNKNOWN);
+        PST_CHAIN(PRIMARY_HEALING_STG2,
+                  ERROR_RECEIVING_DATA_CHUNKS,
+                  UNKNOWN,
+                  &A::do_reapplyDetectSelfPrimary,
+                  &A::do_cleanupMetadata,
+                  &A::do_closeRecoveryFileSet);
+        PST_CHAIN(PRIMARY_HEALING_STG2,
+                  REPLICA_DATA_RSPN_PULL,
+                  PRIMARY_HEALING_STG2,
+                  &A::do_resetReceiveDataCtx,
+                  &A::do_closeRecoveryFileSet,
+                  &A::do_storeSelfSeq,
+                  &A::do_attemptOpenStorage,
+                  &A::do_replicaDataRequestPush,
+                  &A::do_replicaDataRequestDrop,
+                  &A::do_startSendDataChunks,
+                  &A::do_incrementNumRplcaDataRspn,
+                  &A::do_checkQuorumRplcaDataRspn);
+        PST_CHAIN(PRIMARY_HEALING_STG2,
+                  REPLICA_DATA_RSPN_PUSH,
+                  PRIMARY_HEALING_STG2,
+                  &A::do_incrementNumRplcaDataRspn,
+                  &A::do_checkQuorumRplcaDataRspn);
+        PST_CHAIN(PRIMARY_HEALING_STG2,
+                  QUORUM_REPLICA_DATA_RSPN,
+                  PRIMARY_HEALED,
+                  &A::do_stopWatchDog,
+                  &A::do_transitionToActivePrimary);
+        PST_CHAIN(PRIMARY_HEALING_STG2,
+                  RST_UNKNOWN,
+                  UNKNOWN,
+                  &A::do_cleanupMetadata,
+                  &A::do_closeRecoveryFileSet,
+                  &A::do_stopWatchDog);
+        PST_CHAIN(PRIMARY_HEALING_STG2,
+                  WATCH_DOG,
+                  UNKNOWN,
+                  &A::do_reapplyDetectSelfPrimary,
+                  &A::do_cleanupMetadata,
+                  &A::do_closeRecoveryFileSet);
+        PST_CHAIN(PRIMARY_HEALING_STG2,
+                  STOP_NODE,
+                  STOPPED,
+                  &A::do_cleanupMetadata,
+                  &A::do_closeRecoveryFileSet,
+                  &A::do_stopWatchDog);
+
+        // ===== REPLICA_WAITING =====
+        PST_CHAIN(REPLICA_WAITING,
+                  DETECT_SELF_PRIMARY,
+                  UNKNOWN,
+                  &A::do_cleanupMetadata,
+                  &A::do_stopWatchDog,
+                  &A::do_reapplyEvent);
+        PST_CHAIN(REPLICA_WAITING,
+                  DETECT_SELF_REPLICA,
+                  UNKNOWN,
+                  &A::do_cleanupMetadata,
+                  &A::do_stopWatchDog,
+                  &A::do_reapplyEvent);
         PST_CFG(REPLICA_WAITING,
                 REPLICA_STATE_RQST,
                 failureReplicaStateResponse,
@@ -606,30 +581,43 @@ class PartitionStateTable
                 FAIL_PRIMARY_STATE_RSPN,
                 logFailurePrimaryStateResponse,
                 REPLICA_HEALING);
-        PST_CFG(REPLICA_WAITING,
-                RST_UNKNOWN,
-                cleanupMetadata_closeRecoveryFileSet_stopWatchDog,
-                UNKNOWN);
-        PST_CFG(REPLICA_WAITING,
-                WATCH_DOG,
-                reapplyDetectSelfReplica_cleanupMetadata_closeRecoveryFileSet,
-                UNKNOWN);
-        PST_CFG(REPLICA_WAITING,
-                STOP_NODE,
-                cleanupMetadata_closeRecoveryFileSet_stopWatchDog,
-                STOPPED);
-        PST_CFG(REPLICA_HEALING,
-                DETECT_SELF_PRIMARY,
-                cleanupMetadata_stopWatchDog_reapplyEvent,
-                UNKNOWN);
-        PST_CFG(REPLICA_HEALING,
-                DETECT_SELF_REPLICA,
-                cleanupMetadata_stopWatchDog_reapplyEvent,
-                UNKNOWN);
-        PST_CFG(REPLICA_HEALING,
-                REPLICA_STATE_RQST,
-                storePrimarySeq_replicaStateResponse,
-                REPLICA_HEALING);
+        PST_CHAIN(REPLICA_WAITING,
+                  RST_UNKNOWN,
+                  UNKNOWN,
+                  &A::do_cleanupMetadata,
+                  &A::do_closeRecoveryFileSet,
+                  &A::do_stopWatchDog);
+        PST_CHAIN(REPLICA_WAITING,
+                  WATCH_DOG,
+                  UNKNOWN,
+                  &A::do_reapplyDetectSelfReplica,
+                  &A::do_cleanupMetadata,
+                  &A::do_closeRecoveryFileSet);
+        PST_CHAIN(REPLICA_WAITING,
+                  STOP_NODE,
+                  STOPPED,
+                  &A::do_cleanupMetadata,
+                  &A::do_closeRecoveryFileSet,
+                  &A::do_stopWatchDog);
+
+        // ===== REPLICA_HEALING =====
+        PST_CHAIN(REPLICA_HEALING,
+                  DETECT_SELF_PRIMARY,
+                  UNKNOWN,
+                  &A::do_cleanupMetadata,
+                  &A::do_stopWatchDog,
+                  &A::do_reapplyEvent);
+        PST_CHAIN(REPLICA_HEALING,
+                  DETECT_SELF_REPLICA,
+                  UNKNOWN,
+                  &A::do_cleanupMetadata,
+                  &A::do_stopWatchDog,
+                  &A::do_reapplyEvent);
+        PST_CHAIN(REPLICA_HEALING,
+                  REPLICA_STATE_RQST,
+                  REPLICA_HEALING,
+                  &A::do_storePrimarySeq,
+                  &A::do_replicaStateResponse);
         PST_CFG(REPLICA_HEALING,
                 PRIMARY_STATE_RQST,
                 failurePrimaryStateResponse,
@@ -642,63 +630,89 @@ class PartitionStateTable
                 FAIL_PRIMARY_STATE_RSPN,
                 logUnexpectedFailurePrimaryStateResponse,
                 REPLICA_HEALING);
-        PST_CFG(REPLICA_HEALING,
-                REPLICA_DATA_RQST_PULL,
-                closeRecoveryFileSet_attemptOpenStorage_startSendDataChunks,
-                REPLICA_HEALING);
-        PST_CFG(
-            REPLICA_HEALING,
-            DONE_SENDING_DATA_CHUNKS,
-            replicaDataResponsePull_processBufferedLiveData_processBufferedPrimaryStatusAdvisories_stopWatchDog,
-            REPLICA_HEALED);
-        PST_CFG(
-            REPLICA_HEALING,
-            ERROR_SENDING_DATA_CHUNKS,
-            failureReplicaDataResponsePull_reapplyDetectSelfReplica_cleanupMetadata_closeRecoveryFileSet,
-            UNKNOWN);
-        PST_CFG(REPLICA_HEALING,
-                REPLICA_DATA_RQST_PUSH,
-                setExpectedDataChunkRange_clearBufferedLiveData,
-                REPLICA_HEALING);
-        PST_CFG(REPLICA_HEALING,
-                REPLICA_DATA_RQST_DROP,
-                replicaDataResponseDrop_removeStorage_reapplyDetectSelfReplica,
-                REPLICA_HEALING);
+        PST_CHAIN(REPLICA_HEALING,
+                  REPLICA_DATA_RQST_PULL,
+                  REPLICA_HEALING,
+                  &A::do_closeRecoveryFileSet,
+                  &A::do_attemptOpenStorage,
+                  &A::do_startSendDataChunks);
+        PST_CHAIN(REPLICA_HEALING,
+                  DONE_SENDING_DATA_CHUNKS,
+                  REPLICA_HEALED,
+                  &A::do_replicaDataResponsePull,
+                  &A::do_processBufferedLiveData,
+                  &A::do_processBufferedPrimaryStatusAdvisories,
+                  &A::do_stopWatchDog);
+        PST_CHAIN(REPLICA_HEALING,
+                  ERROR_SENDING_DATA_CHUNKS,
+                  UNKNOWN,
+                  &A::do_failureReplicaDataResponsePull,
+                  &A::do_reapplyDetectSelfReplica,
+                  &A::do_cleanupMetadata,
+                  &A::do_closeRecoveryFileSet);
+        PST_CHAIN(REPLICA_HEALING,
+                  REPLICA_DATA_RQST_PUSH,
+                  REPLICA_HEALING,
+                  &A::do_setExpectedDataChunkRange,
+                  &A::do_clearBufferedLiveData);
+        PST_CHAIN(REPLICA_HEALING,
+                  REPLICA_DATA_RQST_DROP,
+                  REPLICA_HEALING,
+                  &A::do_replicaDataResponseDrop,
+                  &A::do_removeStorage,
+                  &A::do_reapplyDetectSelfReplica);
         PST_CFG(REPLICA_HEALING,
                 RECOVERY_DATA,
                 updateStorage,
                 REPLICA_HEALING);
-        PST_CFG(
-            REPLICA_HEALING,
-            DONE_RECEIVING_DATA_CHUNKS,
-            replicaDataResponsePush_resetReceiveDataCtx_closeRecoveryFileSet_attemptOpenStorage_processBufferedLiveData_processBufferedPrimaryStatusAdvisories_stopWatchDog,
-            REPLICA_HEALED);
-        PST_CFG(
-            REPLICA_HEALING,
-            ERROR_RECEIVING_DATA_CHUNKS,
-            failureReplicaDataResponsePush_reapplyDetectSelfReplica_cleanupMetadata_closeRecoveryFileSet,
-            UNKNOWN);
+        PST_CHAIN(REPLICA_HEALING,
+                  DONE_RECEIVING_DATA_CHUNKS,
+                  REPLICA_HEALED,
+                  &A::do_replicaDataResponsePush,
+                  &A::do_resetReceiveDataCtx,
+                  &A::do_closeRecoveryFileSet,
+                  &A::do_attemptOpenStorage,
+                  &A::do_processBufferedLiveData,
+                  &A::do_processBufferedPrimaryStatusAdvisories,
+                  &A::do_stopWatchDog);
+        PST_CHAIN(REPLICA_HEALING,
+                  ERROR_RECEIVING_DATA_CHUNKS,
+                  UNKNOWN,
+                  &A::do_failureReplicaDataResponsePush,
+                  &A::do_reapplyDetectSelfReplica,
+                  &A::do_cleanupMetadata,
+                  &A::do_closeRecoveryFileSet);
         PST_CFG(REPLICA_HEALING, LIVE_DATA, bufferLiveData, REPLICA_HEALING);
-        PST_CFG(REPLICA_HEALING,
-                RST_UNKNOWN,
-                cleanupMetadata_closeRecoveryFileSet_stopWatchDog,
-                UNKNOWN);
-        PST_CFG(REPLICA_HEALING,
-                WATCH_DOG,
-                reapplyDetectSelfReplica_cleanupMetadata_closeRecoveryFileSet,
-                UNKNOWN);
-        PST_CFG(REPLICA_HEALING,
-                STOP_NODE,
-                cleanupMetadata_closeRecoveryFileSet_stopWatchDog,
-                STOPPED);
-        PST_CFG(REPLICA_HEALED,
-                DETECT_SELF_PRIMARY,
-                cleanupMetadata_reapplyEvent,
-                UNKNOWN);
-        PST_CFG(REPLICA_HEALED,
-                DETECT_SELF_REPLICA,
-                cleanupMetadata_reapplyEvent,
-                UNKNOWN);
+        PST_CHAIN(REPLICA_HEALING,
+                  RST_UNKNOWN,
+                  UNKNOWN,
+                  &A::do_cleanupMetadata,
+                  &A::do_closeRecoveryFileSet,
+                  &A::do_stopWatchDog);
+        PST_CHAIN(REPLICA_HEALING,
+                  WATCH_DOG,
+                  UNKNOWN,
+                  &A::do_reapplyDetectSelfReplica,
+                  &A::do_cleanupMetadata,
+                  &A::do_closeRecoveryFileSet);
+        PST_CHAIN(REPLICA_HEALING,
+                  STOP_NODE,
+                  STOPPED,
+                  &A::do_cleanupMetadata,
+                  &A::do_closeRecoveryFileSet,
+                  &A::do_stopWatchDog);
+
+        // ===== REPLICA_HEALED =====
+        PST_CHAIN(REPLICA_HEALED,
+                  DETECT_SELF_PRIMARY,
+                  UNKNOWN,
+                  &A::do_cleanupMetadata,
+                  &A::do_reapplyEvent);
+        PST_CHAIN(REPLICA_HEALED,
+                  DETECT_SELF_REPLICA,
+                  UNKNOWN,
+                  &A::do_cleanupMetadata,
+                  &A::do_reapplyEvent);
         PST_CFG(REPLICA_HEALED,
                 REPLICA_STATE_RQST,
                 replicaStateResponse,
@@ -712,33 +726,44 @@ class PartitionStateTable
                 replicaDataResponsePush,
                 REPLICA_HEALED);
         PST_CFG(REPLICA_HEALED, LIVE_DATA, processLiveData, REPLICA_HEALED);
-        PST_CFG(REPLICA_HEALED,
-                ISSUE_LIVESTREAM,
-                reapplyDetectSelfReplica_cleanupMetadata,
-                UNKNOWN);
+        PST_CHAIN(REPLICA_HEALED,
+                  ISSUE_LIVESTREAM,
+                  UNKNOWN,
+                  &A::do_reapplyDetectSelfReplica,
+                  &A::do_cleanupMetadata);
         PST_CFG(REPLICA_HEALED, RST_UNKNOWN, cleanupMetadata, UNKNOWN);
         PST_CFG(REPLICA_HEALED, STOP_NODE, cleanupMetadata, STOPPED);
+
+        // ===== PRIMARY_HEALED =====
         PST_CFG(PRIMARY_HEALED,
                 DETECT_SELF_REPLICA,
                 unsupportedPrimaryDowngrade,
                 UNKNOWN);
-        PST_CFG(
-            PRIMARY_HEALED,
-            REPLICA_STATE_RSPN,
-            storeSelfSeq_storeReplicaSeq_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks,
-            PRIMARY_HEALED);
+        PST_CHAIN(PRIMARY_HEALED,
+                  REPLICA_STATE_RSPN,
+                  PRIMARY_HEALED,
+                  &A::do_storeSelfSeq,
+                  &A::do_storeReplicaSeq,
+                  &A::do_replicaDataRequestPush,
+                  &A::do_replicaDataRequestDrop,
+                  &A::do_startSendDataChunks);
         PST_CFG(PRIMARY_HEALED,
                 FAIL_REPLICA_STATE_RSPN,
                 logFailureReplicaStateResponse,
                 PRIMARY_HEALED);
-        PST_CFG(
-            PRIMARY_HEALED,
-            PRIMARY_STATE_RQST,
-            storeSelfSeq_storeReplicaSeq_primaryStateResponse_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks,
-            PRIMARY_HEALED);
+        PST_CHAIN(PRIMARY_HEALED,
+                  PRIMARY_STATE_RQST,
+                  PRIMARY_HEALED,
+                  &A::do_storeSelfSeq,
+                  &A::do_storeReplicaSeq,
+                  &A::do_primaryStateResponse,
+                  &A::do_replicaDataRequestPush,
+                  &A::do_replicaDataRequestDrop,
+                  &A::do_startSendDataChunks);
         PST_CFG(PRIMARY_HEALED, RST_UNKNOWN, cleanupMetadata, UNKNOWN);
         PST_CFG(PRIMARY_HEALED, STOP_NODE, cleanupMetadata, STOPPED);
 
+#undef PST_CHAIN
 #undef PST_CFG
     }
 };
@@ -759,329 +784,27 @@ PartitionStateTableActions<ARGS>::~PartitionStateTableActions()
 }
 
 template <typename ARGS>
-void PartitionStateTableActions<ARGS>::do_none(const ARGS& args)
+void PartitionStateTableActions<ARGS>::do_none(ARGS& args)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!args.second.empty());
+    BSLS_ASSERT_SAFE(!args.d_data.empty());
 
-    const int partitionId = args.second[0].partitionId();
+    const int partitionId = args.d_data[0].partitionId();
     BALL_LOG_INFO << "Partition [" << partitionId << "]: NO ACTION PERFORMED.";
 }
 
 template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
-    do_replicaDataResponseDrop_removeStorage_reapplyDetectSelfReplica(
-        const ARGS& args)
+template <typename PartitionStateTableActions<ARGS>::ActionFunctor... Fns>
+void PartitionStateTableActions<ARGS>::executeChain(ARGS& args)
 {
-    do_replicaDataResponseDrop(args);
-    do_removeStorage(args);
-    do_reapplyDetectSelfReplica(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
-    do_setPrimary_startWatchDog_openRecoveryFileSet_storeSelfSeq_replicaStateRequest_checkQuorumSeq(
-        const ARGS& args)
-{
-    do_setPrimary(args);
-    do_startWatchDog(args);
-    do_openRecoveryFileSet(args);
-    do_storeSelfSeq(args);
-    do_replicaStateRequest(args);
-    do_checkQuorumSeq(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
-    do_setPrimary_startWatchDog_openRecoveryFileSet_storeSelfSeq_primaryStateRequest(
-        const ARGS& args)
-{
-    do_setPrimary(args);
-    do_startWatchDog(args);
-    do_openRecoveryFileSet(args);
-    do_storeSelfSeq(args);
-    do_primaryStateRequest(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
-    do_storeReplicaSeq_primaryStateResponse_checkQuorumSeq(const ARGS& args)
-{
-    do_storeReplicaSeq(args);
-    do_primaryStateResponse(args);
-    do_checkQuorumSeq(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::do_storeReplicaSeq_checkQuorumSeq(
-    const ARGS& args)
-{
-    do_storeReplicaSeq(args);
-    do_checkQuorumSeq(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::do_storePrimarySeq_replicaStateResponse(
-    const ARGS& args)
-{
-    do_storePrimarySeq(args);
-    do_replicaStateResponse(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::do_cleanupMetadata_reapplyEvent(
-    const ARGS& args)
-{
-    do_cleanupMetadata(args);
-    do_reapplyEvent(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<
-    ARGS>::do_cleanupMetadata_stopWatchDog_reapplyEvent(const ARGS& args)
-{
-    do_cleanupMetadata(args);
-    do_stopWatchDog(args);
-    do_reapplyEvent(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
-    do_cleanupMetadata_closeRecoveryFileSet_stopWatchDog(const ARGS& args)
-{
-    do_cleanupMetadata(args);
-    do_closeRecoveryFileSet(args);
-    do_stopWatchDog(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
-    do_reapplyDetectSelfPrimary_cleanupMetadata_closeRecoveryFileSet(
-        const ARGS& args)
-{
-    do_reapplyDetectSelfPrimary(args);
-    do_cleanupMetadata(args);
-    do_closeRecoveryFileSet(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
-    do_resetReceiveDataCtx_flagFailedReplicaSeq_checkQuorumSeq(
-        const ARGS& args)
-{
-    do_resetReceiveDataCtx(args);
-    do_flagFailedReplicaSeq(args);
-    do_checkQuorumSeq(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<
-    ARGS>::do_resetReceiveDataCtx_closeRecoveryFileSet(const ARGS& args)
-{
-    do_resetReceiveDataCtx(args);
-    do_closeRecoveryFileSet(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
-    do_closeRecoveryFileSet_attemptOpenStorage_startSendDataChunks(
-        const ARGS& args)
-{
-    do_closeRecoveryFileSet(args);
-    do_attemptOpenStorage(args);
-    do_startSendDataChunks(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
-    do_closeRecoveryFileSet_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
-        const ARGS& args)
-{
-    do_closeRecoveryFileSet(args);
-    do_attemptOpenStorage(args);
-    do_replicaDataRequestPush(args);
-    do_replicaDataRequestDrop(args);
-    do_startSendDataChunks(args);
-    do_incrementNumRplcaDataRspn(args);
-    do_checkQuorumRplcaDataRspn(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
-    do_setExpectedDataChunkRange_replicaDataRequestPull(const ARGS& args)
-{
-    do_setExpectedDataChunkRange(args);
-    do_replicaDataRequestPull(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<
-    ARGS>::do_setExpectedDataChunkRange_clearBufferedLiveData(const ARGS& args)
-{
-    do_setExpectedDataChunkRange(args);
-    do_clearBufferedLiveData(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
-    do_resetReceiveDataCtx_closeRecoveryFileSet_storeSelfSeq_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
-        const ARGS& args)
-{
-    do_resetReceiveDataCtx(args);
-    do_closeRecoveryFileSet(args);
-    do_storeSelfSeq(args);
-    do_attemptOpenStorage(args);
-    do_replicaDataRequestPush(args);
-    do_replicaDataRequestDrop(args);
-    do_startSendDataChunks(args);
-    do_incrementNumRplcaDataRspn(args);
-    do_checkQuorumRplcaDataRspn(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<
-    ARGS>::do_stopWatchDog_transitionToActivePrimary(const ARGS& args)
-{
-    do_stopWatchDog(args);
-    do_transitionToActivePrimary(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::do_replicaStateResponse_storePrimarySeq(
-    const ARGS& args)
-{
-    do_replicaStateResponse(args);
-    do_storePrimarySeq(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<
-    ARGS>::do_reapplyDetectSelfReplica_cleanupMetadata(const ARGS& args)
-{
-    do_reapplyDetectSelfReplica(args);
-    do_cleanupMetadata(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
-    do_resetReceiveDataCtx_closeRecoveryFileSet_stopWatchDog(const ARGS& args)
-{
-    do_resetReceiveDataCtx(args);
-    do_closeRecoveryFileSet(args);
-    do_stopWatchDog(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
-    do_reapplyDetectSelfReplica_cleanupMetadata_closeRecoveryFileSet(
-        const ARGS& args)
-{
-    do_reapplyDetectSelfReplica(args);
-    do_cleanupMetadata(args);
-    do_closeRecoveryFileSet(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
-    do_replicaDataResponsePull_processBufferedLiveData_processBufferedPrimaryStatusAdvisories_stopWatchDog(
-        const ARGS& args)
-{
-    do_replicaDataResponsePull(args);
-    do_processBufferedLiveData(args);
-    do_processBufferedPrimaryStatusAdvisories(args);
-    do_stopWatchDog(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
-    do_failureReplicaDataResponsePull_reapplyDetectSelfReplica_cleanupMetadata_closeRecoveryFileSet(
-        const ARGS& args)
-{
-    do_failureReplicaDataResponsePull(args);
-    do_reapplyDetectSelfReplica(args);
-    do_cleanupMetadata(args);
-    do_closeRecoveryFileSet(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
-    do_failureReplicaDataResponsePush_reapplyDetectSelfReplica_cleanupMetadata_closeRecoveryFileSet(
-        const ARGS& args)
-{
-    do_failureReplicaDataResponsePush(args);
-    do_reapplyDetectSelfReplica(args);
-    do_cleanupMetadata(args);
-    do_closeRecoveryFileSet(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
-    do_replicaDataResponsePush_resetReceiveDataCtx_closeRecoveryFileSet_attemptOpenStorage_processBufferedLiveData_processBufferedPrimaryStatusAdvisories_stopWatchDog(
-        const ARGS& args)
-{
-    do_replicaDataResponsePush(args);
-    do_resetReceiveDataCtx(args);
-    do_closeRecoveryFileSet(args);
-    do_attemptOpenStorage(args);
-    do_processBufferedLiveData(args);
-    do_processBufferedPrimaryStatusAdvisories(args);
-    do_stopWatchDog(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
-    do_storeReplicaSeq_primaryStateResponse_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
-        const ARGS& args)
-{
-    do_storeReplicaSeq(args);
-    do_primaryStateResponse(args);
-    do_replicaDataRequestPush(args);
-    do_replicaDataRequestDrop(args);
-    do_startSendDataChunks(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
-    do_storeSelfSeq_storeReplicaSeq_primaryStateResponse_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
-        const ARGS& args)
-{
-    do_storeSelfSeq(args);
-    do_storeReplicaSeq(args);
-    do_primaryStateResponse(args);
-    do_replicaDataRequestPush(args);
-    do_replicaDataRequestDrop(args);
-    do_startSendDataChunks(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
-    do_storeReplicaSeq_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
-        const ARGS& args)
-{
-    do_storeReplicaSeq(args);
-    do_replicaDataRequestPush(args);
-    do_replicaDataRequestDrop(args);
-    do_startSendDataChunks(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
-    do_storeSelfSeq_storeReplicaSeq_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
-        const ARGS& args)
-{
-    do_storeSelfSeq(args);
-    do_storeReplicaSeq(args);
-    do_replicaDataRequestPush(args);
-    do_replicaDataRequestDrop(args);
-    do_startSendDataChunks(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
-    do_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(const ARGS& args)
-{
-    do_incrementNumRplcaDataRspn(args);
-    do_checkQuorumRplcaDataRspn(args);
+    static BSLS_KEYWORD_CONSTEXPR ActionFunctor chain[] = {Fns...};
+    for (size_t i = args.d_chainResumeIndex; i < sizeof...(Fns); ++i) {
+        (this->*chain[i])(args);
+        if (args.d_isFreezeRequested) {
+            args.d_chainResumeIndex = i + 1;
+            return;  // RETURN
+        }
+    }
 }
 
 }  // close package namespace
