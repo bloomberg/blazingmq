@@ -82,7 +82,7 @@ ln -sf /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++
 ln -sf /usr/bin/llvm-symbolizer-${LLVM_VERSION} /usr/bin/llvm-symbolizer
 
 # Set some initial constants
-PARALLELISM=8
+PARALLELISM=$(nproc)
 
 # Helper function to print disk usage
 print_disk_usage() {
