@@ -180,6 +180,8 @@ if [ "${FUZZER}" == "off" ]; then
             -DCMAKE_C_COMPILER="clang" \
             -DCMAKE_CXX_COMPILER="clang++" \
             -DCMAKE_CXX_STANDARD=20 \
+            -DCMAKE_C_FLAGS="-Wno-reserved-macro-identifier" \
+            -DCMAKE_CXX_FLAGS="-Wno-reserved-macro-identifier" \
             -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" \
             -DLLVM_USE_SANITIZER="${LLVM_SANITIZER_NAME}" \
             "${LLVM_SPECIFIC_CMAKE_OPTIONS}"
