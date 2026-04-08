@@ -17,12 +17,6 @@
 Testing primary-replica partition synchronization in FSM mode.
 """
 
-import glob
-import json
-from pathlib import Path
-import subprocess
-
-
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
@@ -31,138 +25,13 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     test_logger,
     fsm_multi_cluster,
 )
-
-from blazingmq.dev import paths
+from blazingmq.dev.it.cluster_util import (
+    stop_cluster_and_compare_journal_files,
+)
 
 
 # Set max journal file size to a small value to force rollover during the test
 MAX_JOURNAL_FILE_SIZE = 884
-
-
-def _run_storage_tool(journal_file: Path, mode: str) -> subprocess.CompletedProcess:
-    """Run storage tool on `journal_file` in the specified `mode`."""
-
-    return subprocess.run(
-        [
-            paths.required_paths.storagetool,
-            "--journal-file",
-            journal_file,
-            f"--{mode}",
-            "--print-mode=json-pretty",
-        ],
-        capture_output=True,
-        check=True,
-    )
-
-
-def _clean_output(output_str: str) -> str:
-    """
-    Clean the output by removing any non-deterministic parts, such as timestamps/epochs.
-    """
-    RECORDS_KEYS_TO_REMOVE = [
-        "Timestamp",
-        "Epoch",
-    ]
-    SUMMARY_KEYS_TO_REMOVE = [
-        "First SyncPointRecord timestamp",
-        "First SyncPointRecord epoch",
-        "Record Timestamp",
-        "Record Epoch",
-        "SyncPoint Timestamp",
-        "SyncPoint Epoch",
-    ]
-    data = json.loads(output_str)
-    if "Records" in data:
-        for record in data["Records"]:
-            for key in RECORDS_KEYS_TO_REMOVE:
-                if key in record:
-                    del record[key]
-    elif "JournalFileDetails" in data:
-        journal_details = data["JournalFileDetails"]
-        journal_hdr = journal_details["Journal File Header"]
-        for key in SUMMARY_KEYS_TO_REMOVE:
-            if key in journal_hdr:
-                del journal_hdr[key]
-        if "Journal SyncPoint" in journal_details:
-            journal_sync = journal_details["Journal SyncPoint"]
-            for key in SUMMARY_KEYS_TO_REMOVE:
-                if key in journal_sync:
-                    del journal_sync[key]
-
-    return json.dumps(data, indent=2)
-
-
-def _stop_cluster_and_compare_journal_files(
-    leader_name: str, replica_name: str, cluster: Cluster
-) -> None:
-    """
-    Stop cluster after bumping quorum on all replicas to prevent primary switch. Then, compare leader and replica journal files content, and assert that they are equal.
-
-    NOTE: Stopping all nodes ensures that all journal files are closed and flushed to disk, and that there are no discrepancies due to in-flight sync points.
-    """
-
-    for node in cluster.nodes():
-        if node.is_alive():
-            node.set_quorum(5)
-    if cluster.last_known_leader:
-        cluster.last_known_leader.stop()
-        cluster.make_sure_node_stopped(cluster.last_known_leader)
-    cluster.stop_nodes()
-
-    leader_journal_files = glob.glob(
-        str(cluster.work_dir.joinpath(leader_name, "storage")) + "/*journal*"
-    )
-    replica_journal_files = glob.glob(
-        str(cluster.work_dir.joinpath(replica_name, "storage")) + "/*journal*"
-    )
-
-    # Check that number of journal files equal to partitions number
-    num_partitions = cluster.config.definition.partition_config.num_partitions
-    assert len(leader_journal_files) == num_partitions, (
-        f"Expected {num_partitions} leader journal files, got {len(leader_journal_files)}"
-    )
-    assert len(replica_journal_files) == num_partitions, (
-        f"Expected {num_partitions} replica journal files, got {len(replica_journal_files)}"
-    )
-
-    # Check that content of leader and replica journal files is equal
-    for leader_file, replica_file in zip(
-        sorted(leader_journal_files),
-        sorted(replica_journal_files),
-    ):
-        # Run storage tool on leader journal file in "detail" mode to check record order and content
-        leader_res = _run_storage_tool(leader_file, "details")
-        assert leader_res.returncode == 0, (
-            f"Leader storage tool failed on {leader_file} with rc {leader_res.returncode}"
-        )
-
-        # Run storage tool on replica journal file in "detail" mode to check record order and content
-        replica_res = _run_storage_tool(replica_file, "details")
-        assert replica_res.returncode == 0, (
-            f"Replica storage tool failed on {replica_file} with rc {replica_res.returncode}"
-        )
-
-        # Check that content of leader and replica journal files is equal
-        assert _clean_output(leader_res.stdout) == _clean_output(replica_res.stdout), (
-            f"Leader and replica journal file contents differ for {leader_file} and {replica_file}"
-        )
-
-        # Run storage tool on leader journal file in "summary" mode to check journal file headers
-        leader_res = _run_storage_tool(leader_file, "summary")
-        assert leader_res.returncode == 0, (
-            f"Leader storage tool (summary) failed on {leader_file} with rc {leader_res.returncode}"
-        )
-
-        # Run storage tool on replica journal file in "summary" mode to check journal file headers
-        replica_res = _run_storage_tool(replica_file, "summary")
-        assert replica_res.returncode == 0, (
-            f"Replica storage tool (summary) failed on {replica_file} with rc {replica_res.returncode}"
-        )
-
-        # Check that content of leader and replica journal files is equal
-        assert _clean_output(leader_res.stdout) == _clean_output(replica_res.stdout), (
-            f"Leader and replica journal file summary differ for {leader_file} and {replica_file}"
-        )
 
 
 @tweak.cluster.partition_config.max_journal_file_size(MAX_JOURNAL_FILE_SIZE)
@@ -233,7 +102,7 @@ def test_sync_after_missed_rollover(
     )
 
     # Check that leader and replica journal files are equal, after stopping all nodes
-    _stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
+    stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
 
 
 @start_cluster(False)
@@ -342,7 +211,7 @@ def test_sync_after_missed_rollover_after_restart(
     )
 
     # Check that leader `east1` and replica `east2` (which is missed rollover) journal files are equal, after stopping all nodes
-    _stop_cluster_and_compare_journal_files(east1.name, east2.name, cluster)
+    stop_cluster_and_compare_journal_files(east1.name, east2.name, cluster)
 
 
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)
@@ -401,7 +270,7 @@ def test_sync_after_missed_records(
     )
 
     # Check that leader and replica journal files are equal, after stopping all nodes
-    _stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
+    stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
 
 
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)
@@ -480,7 +349,7 @@ def test_sync_if_leader_missed_records(
     replica = cluster.nodes(exclude=next_leader)[0]
 
     # Check that `next_leader` and replica journal files are equal, after stopping all nodes
-    _stop_cluster_and_compare_journal_files(next_leader.name, replica.name, cluster)
+    stop_cluster_and_compare_journal_files(next_leader.name, replica.name, cluster)
 
 
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)
@@ -571,7 +440,7 @@ def test_sync_if_leader_missed_rollover(
     replica = cluster.nodes(exclude=next_leader)[0]
 
     # Check that `next_leader` and replica journal files are equal, after stopping all nodes
-    _stop_cluster_and_compare_journal_files(next_leader.name, replica.name, cluster)
+    stop_cluster_and_compare_journal_files(next_leader.name, replica.name, cluster)
 
 
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)
@@ -664,7 +533,7 @@ def test_sync_after_replicas_missed_various_records(
 
     # Check that leader and replicas' journal files are equal, after stopping all nodes
     for replica in (replica1, replica2, replica3):
-        _stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
+        stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
 
 
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)
@@ -766,4 +635,4 @@ def test_sync_after_replicas_missed_or_extra_records(
 
     # # Check that new primary and replicas' journal files are equal
     # for replica in (replica1, replica2, leader):
-    #     _stop_cluster_and_compare_journal_files(replica3.name, replica.name, cluster)
+    #     stop_cluster_and_compare_journal_files(replica3.name, replica.name, cluster)

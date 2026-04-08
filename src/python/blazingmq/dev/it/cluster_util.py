@@ -13,10 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import glob
+import json
 import re
-import time
+import subprocess
+from pathlib import Path
 
 import blazingmq.dev.it.testconstants as tc
+from blazingmq.dev import paths
 
 from blazingmq.dev.it.fixtures import test_logger, Cluster
 
@@ -123,3 +127,132 @@ def check_if_queue_has_n_messages(consumer: Client, queue: str, expected_count: 
     ), f"Queue {queue} does not have {expected_count} messages, has {len(msgs)} instead"
     consumer.close(queue, succeed=True)
     return msgs
+
+
+def run_storage_tool(journal_file: Path, mode: str) -> subprocess.CompletedProcess:
+    """Run storage tool on `journal_file` in the specified `mode`."""
+
+    return subprocess.run(
+        [
+            paths.required_paths.storagetool,
+            "--journal-file",
+            journal_file,
+            f"--{mode}",
+            "--print-mode=json-pretty",
+        ],
+        capture_output=True,
+        check=True,
+    )
+
+
+def clean_storage_output(output_str: str) -> str:
+    """
+    Clean the output by removing any non-deterministic parts, such as
+    timestamps/epochs.
+    """
+    RECORDS_KEYS_TO_REMOVE = [
+        "Timestamp",
+        "Epoch",
+    ]
+    SUMMARY_KEYS_TO_REMOVE = [
+        "First SyncPointRecord timestamp",
+        "First SyncPointRecord epoch",
+        "Record Timestamp",
+        "Record Epoch",
+        "SyncPoint Timestamp",
+        "SyncPoint Epoch",
+    ]
+    data = json.loads(output_str)
+    if "Records" in data:
+        for record in data["Records"]:
+            for key in RECORDS_KEYS_TO_REMOVE:
+                if key in record:
+                    del record[key]
+    elif "JournalFileDetails" in data:
+        journal_details = data["JournalFileDetails"]
+        journal_hdr = journal_details["Journal File Header"]
+        for key in SUMMARY_KEYS_TO_REMOVE:
+            if key in journal_hdr:
+                del journal_hdr[key]
+        if "Journal SyncPoint" in journal_details:
+            journal_sync = journal_details["Journal SyncPoint"]
+            for key in SUMMARY_KEYS_TO_REMOVE:
+                if key in journal_sync:
+                    del journal_sync[key]
+
+    return json.dumps(data, indent=2)
+
+
+def stop_cluster_and_compare_journal_files(
+    leader_name: str, replica_name: str, cluster: Cluster
+) -> None:
+    """
+    Stop cluster after bumping quorum on all replicas to prevent primary
+    switch.  Then, compare leader and replica journal files content, and
+    assert that they are equal.
+
+    NOTE: Stopping all nodes ensures that all journal files are closed and
+    flushed to disk, and that there are no discrepancies due to in-flight
+    sync points.
+    """
+
+    for node in cluster.nodes():
+        if node.is_alive():
+            node.set_quorum(5)
+    if cluster.last_known_leader:
+        cluster.last_known_leader.stop()
+        cluster.make_sure_node_stopped(cluster.last_known_leader)
+    cluster.stop_nodes()
+
+    leader_journal_files = glob.glob(
+        str(cluster.work_dir.joinpath(leader_name, "storage")) + "/*journal*"
+    )
+    replica_journal_files = glob.glob(
+        str(cluster.work_dir.joinpath(replica_name, "storage")) + "/*journal*"
+    )
+
+    num_partitions = cluster.config.definition.partition_config.num_partitions
+    assert len(leader_journal_files) == num_partitions, (
+        f"Expected {num_partitions} leader journal files, got {len(leader_journal_files)}"
+    )
+    assert len(replica_journal_files) == num_partitions, (
+        f"Expected {num_partitions} replica journal files, got {len(replica_journal_files)}"
+    )
+
+    for leader_file, replica_file in zip(
+        sorted(leader_journal_files),
+        sorted(replica_journal_files),
+    ):
+        leader_res = run_storage_tool(leader_file, "details")
+        assert leader_res.returncode == 0, (
+            f"Leader storage tool failed on {leader_file} with rc {leader_res.returncode}"
+        )
+
+        replica_res = run_storage_tool(replica_file, "details")
+        assert replica_res.returncode == 0, (
+            f"Replica storage tool failed on {replica_file} with rc {replica_res.returncode}"
+        )
+
+        assert clean_storage_output(leader_res.stdout) == clean_storage_output(
+            replica_res.stdout
+        ), (
+            f"Leader and replica journal file contents differ for "
+            f"{leader_file} and {replica_file}"
+        )
+
+        leader_res = run_storage_tool(leader_file, "summary")
+        assert leader_res.returncode == 0, (
+            f"Leader storage tool (summary) failed on {leader_file} with rc {leader_res.returncode}"
+        )
+
+        replica_res = run_storage_tool(replica_file, "summary")
+        assert replica_res.returncode == 0, (
+            f"Replica storage tool (summary) failed on {replica_file} with rc {replica_res.returncode}"
+        )
+
+        assert clean_storage_output(leader_res.stdout) == clean_storage_output(
+            replica_res.stdout
+        ), (
+            f"Leader and replica journal file summary differ for "
+            f"{leader_file} and {replica_file}"
+        )
