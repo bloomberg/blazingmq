@@ -422,13 +422,13 @@ static void test2_instanceInvariants()
 // INSTANCE INVARIANTS:
 //   Ensure that 'AbstractSession' and deriving classes can yield an
 //   instance, and that any method of that instance that has not been
-//   overriden fires an assert upon attempted use.
+//   overridden fires an assert upon attempted use.
 //
 // Concerns:
 //: 1 The protocol is NOT abstract: objects of it can be created.
 //:
 //: 2 Instances of the class are dysfunctional: methods that have not been
-//:   overriden fire an assert upon attempted usage.
+//:   overridden fire an assert upon attempted usage.
 //:
 // Plan:
 //: 1 Define a concrete derived implementation, 'AbstractSessionDummyImp',
@@ -437,9 +437,9 @@ static void test2_instanceInvariants()
 //: 2 Create an object of the 'AbstractSessionDummyImp' and use it to
 //:   verify that:
 //:
-//:   1 Methods that have not been overriden fire an assert.
+//:   1 Methods that have not been overridden fire an assert.
 //:
-//:   2 Methods that have been overriden do not fire an assert.
+//:   2 Methods that have been overridden do not fire an assert.
 //:
 // Testing:
 //   INSTANCE INVARIANTS
@@ -456,7 +456,7 @@ static void test2_instanceInvariants()
     PV("Creating a test object");
     AbstractSessionDummyImp testObj;
 
-    PV("Verify that non-overriden methods fire an assert");
+    PV("Verify that non-overridden methods fire an assert");
 
     bmqa::ConfirmEventBuilder*      dummyConfirmEventBuilderPtr = 0;
     bmqa::Message                   dummyMessage;
@@ -614,7 +614,7 @@ static void test2_instanceInvariants()
     BMQTST_ASSERT_OPT_FAIL(
         testObj.confirmMessages(dummyConfirmEventBuilderPtr));
 
-    PV("Verify that overriden methods execute as intended");
+    PV("Verify that overridden methods execute as intended");
 
     BMQTST_ASSERT_OPT_PASS(testObj.configureMessageDumping(""));
     BMQTST_ASSERT_EQ(testObj.configureMessageDumping(""), -1497);
