@@ -341,7 +341,7 @@ static void test4_printTest()
 
 static void test5_comparisionTest()
 // --------------------------------------------------------------------
-// COMPARISION TEST
+// COMPARISON TEST
 //
 // Concerns:
 //   Exercise bmqimp::Queue comparison
@@ -357,7 +357,7 @@ static void test5_comparisionTest()
 //   bool operator==(const bmqimp::Queue& lhs, const bmqimp::Queue& rhs);
 // --------------------------------------------------------------------
 {
-    bmqtst::TestHelper::printTestName("COMPARISION TEST");
+    bmqtst::TestHelper::printTestName("COMPARISON TEST");
 
     bmqimp::Queue obj1(bmqtst::TestHelperUtil::allocator());
     bmqimp::Queue obj2(bmqtst::TestHelperUtil::allocator());
