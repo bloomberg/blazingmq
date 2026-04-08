@@ -22,12 +22,14 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     multi_node,
     order,
+    test_logger,
     tweak,
 )
 from blazingmq.dev.it.cluster_util import (
     stop_cluster_and_compare_journal_files,
     wipe_files,
 )
+from blazingmq.dev.it.util import wait_until
 
 pytestmark = order(4)
 
@@ -38,12 +40,14 @@ def test_wipe_single_partition_files(
     domain_urls: tc.DomainUrls,
 ) -> None:
     """
-    Test that a replica can recover after one partition's files are wiped.
+    Test that a replica can recover after one partition's files are wiped,
+    and that a consumer connected to the healed replica can receive messages.
     - start cluster
     - post messages
     - stop a replica
     - wipe partition 0's journal, data, and qlist files on the replica
     - restart the replica
+    - connect a consumer to the healed replica, verify messages are received
     - verify the replica synchronizes with the primary
     """
     cluster = multi_node
@@ -54,9 +58,6 @@ def test_wipe_single_partition_files(
 
     producer = proxy.create_client("producer")
     producer.open(uri_priority, flags=["write,ack"], succeed=True)
-
-    consumer = proxy.create_client("consumer")
-    consumer.open(uri_priority, flags=["read"], succeed=True)
 
     # Post messages
     for i in range(1, 5):
@@ -89,6 +90,18 @@ def test_wipe_single_partition_files(
         f"Leader {leader} is not cluster.last_known_leader {cluster.last_known_leader}"
     )
 
+    # Verify a consumer connected to the healed replica can receive messages
+    replica_consumer = replica.create_client("replica_consumer")
+    replica_consumer.open(uri_priority, flags=["read"], succeed=True)
+
+    assert wait_until(
+        lambda: len(replica_consumer.list(uri_priority, block=True)) == 4,
+        3,
+    ), "Consumer on healed replica did not receive 4 messages"
+
+    replica_consumer.confirm(uri_priority, "*", succeed=True)
+    replica_consumer.close(uri_priority, succeed=True)
+
     stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
 
 
@@ -99,12 +112,14 @@ def test_wipe_all_partitions_and_csl(
 ) -> None:
     """
     Test that a replica can recover after ALL partition files and the CSL
-    file are wiped.
+    file are wiped, and that a consumer connected to the healed replica can
+    receive messages.
     - start cluster
     - post messages
     - stop a replica
     - wipe all journal, data, qlist, and CSL files on the replica
     - restart the replica
+    - connect a consumer to the healed replica, verify messages are received
     - verify the replica synchronizes with the primary
     """
     cluster = multi_node
@@ -115,9 +130,6 @@ def test_wipe_all_partitions_and_csl(
 
     producer = proxy.create_client("producer")
     producer.open(uri_priority, flags=["write,ack"], succeed=True)
-
-    consumer = proxy.create_client("consumer")
-    consumer.open(uri_priority, flags=["read"], succeed=True)
 
     # Post messages
     for i in range(1, 5):
@@ -149,5 +161,17 @@ def test_wipe_all_partitions_and_csl(
     assert leader == cluster.last_known_leader, (
         f"Leader {leader} is not cluster.last_known_leader {cluster.last_known_leader}"
     )
+
+    # Verify a consumer connected to the healed replica can receive messages
+    replica_consumer = replica.create_client("replica_consumer")
+    replica_consumer.open(uri_priority, flags=["read"], succeed=True)
+
+    assert wait_until(
+        lambda: len(replica_consumer.list(uri_priority, block=True)) == 4,
+        3,
+    ), "Consumer on healed replica did not receive 4 messages"
+
+    replica_consumer.confirm(uri_priority, "*", succeed=True)
+    replica_consumer.close(uri_priority, succeed=True)
 
     stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
