@@ -328,11 +328,6 @@ static void test1_breathingTest()
     bmqt::Uri                       dummyUri;
     bsls::TimeInterval              dummyTimeInterval(0);
 
-    bmqa::OpenQueueStatus openQueueResult(bmqtst::TestHelperUtil::allocator());
-    bmqa::ConfigureQueueStatus configureQueueResult(
-        bmqtst::TestHelperUtil::allocator());
-    bmqa::CloseQueueStatus closeQueueResult(
-        bmqtst::TestHelperUtil::allocator());
 
     const bmqa::AbstractSession::OpenQueueCallback      openQueueCallback;
     const bmqa::AbstractSession::ConfigureQueueCallback configureQueueCallback;
@@ -470,11 +465,6 @@ static void test2_instanceInvariants()
     bmqt::Uri dummyUri(bmqtst::TestHelperUtil::allocator());
     bsls::TimeInterval              dummyTimeInterval(0);
 
-    bmqa::OpenQueueStatus openQueueResult(bmqtst::TestHelperUtil::allocator());
-    bmqa::ConfigureQueueStatus configureQueueResult(
-        bmqtst::TestHelperUtil::allocator());
-    bmqa::CloseQueueStatus closeQueueResult(
-        bmqtst::TestHelperUtil::allocator());
 
     const bmqa::AbstractSession::OpenQueueCallback      openQueueCallback;
     const bmqa::AbstractSession::ConfigureQueueCallback configureQueueCallback;
