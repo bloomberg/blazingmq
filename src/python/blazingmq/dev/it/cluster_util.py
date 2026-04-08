@@ -15,6 +15,7 @@
 
 import glob
 import json
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -256,3 +257,12 @@ def stop_cluster_and_compare_journal_files(
             f"Leader and replica journal file summary differ for "
             f"{leader_file} and {replica_file}"
         )
+
+
+def wipe_files(file_patterns: list, storage_dir: str) -> None:
+    """Delete all files matching the given glob patterns in storage_dir."""
+    for pattern in file_patterns:
+        files = glob.glob(os.path.join(storage_dir, pattern))
+        for f in files:
+            test_logger.info(f"Removing file: {f}")
+            os.remove(f)
