@@ -806,20 +806,15 @@ inline MessageProperties::PropertyMapIter
 MessageProperties::findProperty(bsl::string_view name) const
 {
     PropertyMapIter cit = d_properties.find(name);
-    if (cit == d_properties.end()) {
-        if (!d_schema) {
-            return cit;  // RETURN
-        }
+    if (cit != d_properties.end()) {
+        // Property might be removed
+        return (cit->second.d_isValid) ? cit : d_properties.end();  // RETURN
     }
-    else if (cit->second.d_isValid) {
-        return cit;  // RETURN
-    }
-    else {
-        // Removed property
+    // else: cit == d_properties.end()
+
+    if (!d_schema) {
         return d_properties.end();  // RETURN
     }
-
-    BSLS_ASSERT_SAFE(d_schema);
 
     int index;
     if (d_schema->loadIndex(&index, name)) {
@@ -866,10 +861,10 @@ MessageProperties::findProperty(bsl::string_view name) const
         PropertyMapInsertRc insert = d_properties.insert(
             bsl::make_pair(name, theProperty));
         BSLS_ASSERT_SAFE(insert.second);
-        cit = insert.first;
+        return insert.first;
     }
 
-    return cit;
+    return d_properties.end();
 }
 
 // MANIPULATORS
