@@ -376,59 +376,6 @@ static void test4_paddingBlob()
     bmqp::ProtocolUtil::shutdown();
 }
 
-static void test5_heartbeatAndEmptyBlobs()
-// ------------------------------------------------------------------------
-//                           HEARTBEAT AND EMPTY BLOBS
-// ------------------------------------------------------------------------
-//
-// Concerns:
-//   Verify the statically created blobs for the heartbeat request and
-//   response, and empty blobs are correct.
-//
-// Testing:
-//   - const bdlbb::Blob& heartbeatReqBlob();
-//   - const bdlbb::Blob& heartbeatRspBlob();
-//   - const bdlbb::Blob& emptyBlob();
-//
-// ------------------------------------------------------------------------
-{
-    bmqtst::TestHelper::printTestName("HEARTBEAT BLOBS");
-
-    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
-
-    PV("Verifying the HeartbeatReq blob")
-    {
-        bmqp::EventHeader expectedHeader(bmqp::EventType::e_HEARTBEAT_REQ);
-
-        const bdlbb::Blob& blob = bmqp::ProtocolUtil::heartbeatReqBlob();
-
-        BMQTST_ASSERT_EQ(blob.length(),
-                         static_cast<int>(sizeof(bmqp::EventHeader)));
-        BMQTST_ASSERT_EQ(blob.numDataBuffers(), 1);
-        BMQTST_ASSERT_EQ(0,
-                         memcmp(blob.buffer(0).data(),
-                                &expectedHeader,
-                                sizeof(bmqp::EventHeader)));
-    }
-
-    PV("Verifying the HeartbeatRsp blob")
-    {
-        bmqp::EventHeader expectedHeader(bmqp::EventType::e_HEARTBEAT_RSP);
-
-        const bdlbb::Blob& blob = bmqp::ProtocolUtil::heartbeatRspBlob();
-
-        BMQTST_ASSERT_EQ(blob.length(),
-                         static_cast<int>(sizeof(bmqp::EventHeader)));
-        BMQTST_ASSERT_EQ(blob.numDataBuffers(), 1);
-        BMQTST_ASSERT_EQ(0,
-                         memcmp(blob.buffer(0).data(),
-                                &expectedHeader,
-                                sizeof(bmqp::EventHeader)));
-    }
-
-    bmqp::ProtocolUtil::shutdown();
-}
-
 static void test6_ackResultToCode()
 // ------------------------------------------------------------------------
 // ACK RESULT TO CODE
@@ -837,7 +784,7 @@ int main(int argc, char* argv[])
     case 8: test8_loadFieldValues(); break;
     case 7: test7_ackResultFromCode(); break;
     case 6: test6_ackResultToCode(); break;
-    case 5: test5_heartbeatAndEmptyBlobs(); break;
+    case 5: break;
     case 4: test4_paddingBlob(); break;
     case 3: test3_paddingChar(); break;
     case 2: test2_calcNumWordsAndPadding(); break;

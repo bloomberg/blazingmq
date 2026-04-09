@@ -15,7 +15,12 @@
 
 // bmqp_heartbeatmonitor.cpp                                          -*-C++-*-
 #include <bmqp_heartbeatmonitor.h>
-#include <bmqp_protocolutil.h>
+
+// BDE
+#include <bsl_memory.h>
+#include <bslma_default.h>
+#include <bslmt_once.h>
+#include <bsls_objectbuffer.h>
 
 namespace BloombergLP {
 namespace bmqp {
@@ -23,6 +28,44 @@ namespace bmqp {
 // -----------------------
 // struct HeartbeatMonitor
 // -----------------------
+
+const bdlbb::Blob& HeartbeatMonitor::heartbeatReqBlob()
+{
+    static bsls::ObjectBuffer<bdlbb::Blob> blob;
+    BSLMT_ONCE_DO
+    {
+        static const EventHeader header(EventType::e_HEARTBEAT_REQ);
+        bslma::Allocator*        alloc = bslma::Default::globalAllocator();
+        bsl::shared_ptr<char>    data;
+        data.reset(static_cast<char*>(
+                       const_cast<void*>(static_cast<const void*>(&header))),
+                   bslstl::SharedPtrNilDeleter(),
+                   alloc);
+        bdlbb::BlobBuffer blobBuffer(data, sizeof(header));
+        new (blob.buffer()) bdlbb::Blob(alloc);
+        blob.object().appendDataBuffer(blobBuffer);
+    }
+    return blob.object();
+}
+
+const bdlbb::Blob& HeartbeatMonitor::heartbeatRspBlob()
+{
+    static bsls::ObjectBuffer<bdlbb::Blob> blob;
+    BSLMT_ONCE_DO
+    {
+        static const EventHeader header(EventType::e_HEARTBEAT_RSP);
+        bslma::Allocator*        alloc = bslma::Default::globalAllocator();
+        bsl::shared_ptr<char>    data;
+        data.reset(static_cast<char*>(
+                       const_cast<void*>(static_cast<const void*>(&header))),
+                   bslstl::SharedPtrNilDeleter(),
+                   alloc);
+        bdlbb::BlobBuffer blobBuffer(data, sizeof(header));
+        new (blob.buffer()) bdlbb::Blob(alloc);
+        blob.object().appendDataBuffer(blobBuffer);
+    }
+    return blob.object();
+}
 
 HeartbeatMonitor::HeartbeatMonitor(int maxMissedHeartbeats,
                                    int initialMissedHeartbeatCounter)
@@ -66,7 +109,7 @@ bool HeartbeatMonitor::checkHeartbeat(bmqio::Channel* channel)
         if (d_missedHeartbeatCounter < d_maxMissedHeartbeats) {
             // Send heartbeat
             channel->write(0,  // status
-                           bmqp::ProtocolUtil::heartbeatReqBlob());
+                           heartbeatReqBlob());
             // We explicitly ignore any failure as failure implies issues with
             // the channel, which is what the heartbeat is trying to expose.
         }

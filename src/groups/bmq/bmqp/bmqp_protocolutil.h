@@ -60,7 +60,6 @@
 #include <bdlbb_blob.h>
 #include <bdlbb_blobstreambuf.h>
 #include <bdlsb_fixedmeminstreambuf.h>
-#include <bdlsb_fixedmemoutstreambuf.h>
 #include <bsl_functional.h>
 #include <bsl_ios.h>
 #include <bsl_ostream.h>
@@ -268,15 +267,6 @@ struct ProtocolUtil {
     /// Return the length of un-padded data given the specified `blob` and
     /// `length`.  Note that `length` can be less than length of the `blob`.
     static int calcUnpaddedLength(const bdlbb::Blob& blob, int length);
-
-    /// HEARTBEAT
-    ///---------
-    static const bdlbb::Blob& heartbeatReqBlob();
-
-    /// Return a read-only reference to the statically created and prefilled
-    /// blob corresponding to a heartbeat request or heartbeat response
-    /// event.
-    static const bdlbb::Blob& heartbeatRspBlob();
 
     /// Message encoding/decoding
     ///-------------------------
