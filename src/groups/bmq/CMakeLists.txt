@@ -43,6 +43,12 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|(Apple)?Clang")
   set_property(SOURCE "bmqu/bmqu_weakmemfn.t.cpp"
     APPEND
     PROPERTY COMPILE_FLAGS "-Wno-ignored-qualifiers")
+
+  # Turn off warnings in generated GMock classes.
+  set_property(SOURCE "bmqio/bmqio_channelfactorypipeline.g.cpp"
+                APPEND
+                PROPERTY COMPILE_OPTIONS "-Wno-unused-member-function"
+  )
 endif()
 
 set(BMQ_PRIVATE_PACKAGES

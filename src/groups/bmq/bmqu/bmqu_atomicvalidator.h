@@ -211,6 +211,14 @@ class AtomicValidatorGuard {
     bool isValid() const;
 };
 
+struct AtomicValidatorGuardUtil {
+    /// Release the underlying validator from management by the provided
+    /// `guard` and, if the underlying validator is still valid, invalidate it.
+    ///
+    /// @pre The behavior is undefined if `guard` is null.
+    static void releaseAndInvalidate(AtomicValidatorGuard* guard);
+};
+
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
