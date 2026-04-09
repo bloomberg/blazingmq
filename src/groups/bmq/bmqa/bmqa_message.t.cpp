@@ -116,6 +116,7 @@ static void test1_messageOnStackIsInvalid()
     BMQTST_ASSERT_SAFE_FAIL(msg.confirmationCookie());
     BMQTST_ASSERT_SAFE_FAIL(msg.ackStatus());
     BMQTST_ASSERT_SAFE_FAIL(msg.dataSize());
+    BMQTST_ASSERT_SAFE_FAIL(msg.totalSize());
     BMQTST_ASSERT_SAFE_FAIL(msg.hasProperties());
 #ifdef BMQ_ENABLE_MSG_GROUPID
     BMQTST_ASSERT_SAFE_FAIL(msg.hasGroupId());
@@ -134,6 +135,7 @@ static void test1_messageOnStackIsInvalid()
     BMQTST_ASSERT_SAFE_FAIL(clone.confirmationCookie());
     BMQTST_ASSERT_SAFE_FAIL(clone.ackStatus());
     BMQTST_ASSERT_SAFE_FAIL(clone.dataSize());
+    BMQTST_ASSERT_SAFE_FAIL(clone.totalSize());
     BMQTST_ASSERT_SAFE_FAIL(clone.hasProperties());
 #ifdef BMQ_ENABLE_MSG_GROUPID
     BMQTST_ASSERT_SAFE_FAIL(clone.hasGroupId());
@@ -331,6 +333,13 @@ static void test3_messageProperties()
 
     bmqa::MessageProperties out1(bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT_EQ(0, message.loadProperties(&out1));
+
+    // get EventHeader length
+    bmqp::EventHeader* eh = reinterpret_cast<bmqp::EventHeader*>(
+        peb.blob()->buffer(0).data());
+    const int ehSize = eh->headerWords() * bmqp::Protocol::k_WORD_SIZE;
+
+    BMQTST_ASSERT_EQ(message.totalSize(), peb.blob()->length() - ehSize);
 
     // 1st setProperty w/o getProperty and then getProperty
     {
@@ -588,6 +597,14 @@ static void test4_subscriptionHandle()
         BMQTST_ASSERT(mIter.nextMessage());
         bmqa::Message message = mIter.message();
         PVVV("Message: " << message);
+
+        // get EventHeader length
+        bmqp::EventHeader* eh = reinterpret_cast<bmqp::EventHeader*>(
+            builder.blob()->buffer(0).data());
+        const int ehSize = eh->headerWords() * bmqp::Protocol::k_WORD_SIZE;
+
+        BMQTST_ASSERT_EQ(message.totalSize(),
+                         builder.blob()->length() - ehSize);
 
         BMQTST_ASSERT_OPT_FAIL(message.subscriptionHandle());
     }

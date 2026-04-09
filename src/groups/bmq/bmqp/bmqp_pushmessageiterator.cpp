@@ -474,6 +474,11 @@ void PushMessageIterator::extractMsgGroupId(
     BSLS_ASSERT_SAFE(rc == 0);
 }
 
+int PushMessageIterator::totalSize() const
+{
+    return d_header.messageWords() * Protocol::k_WORD_SIZE;
+}
+
 // MANIPULATORS
 
 int PushMessageIterator::next()

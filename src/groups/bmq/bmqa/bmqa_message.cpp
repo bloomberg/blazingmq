@@ -429,15 +429,41 @@ int Message::dataSize() const
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(isInitialized());
 
+    bmqimp::Event* event = d_impl.d_event_p;
+
+    BSLS_ASSERT_SAFE(event);
+
     const bmqp::Event& rawEvent = d_impl.d_event_p->rawEvent();
 
     if (rawEvent.isPushEvent()) {
-        return d_impl.d_event_p->pushMessageIterator()
-            ->messagePayloadSize();  // RETURN
+        return event->pushMessageIterator()->messagePayloadSize();  // RETURN
     }
     else if (rawEvent.isPutEvent()) {
-        return d_impl.d_event_p->putMessageIterator()
-            ->messagePayloadSize();  // RETURN
+        return event->putMessageIterator()->messagePayloadSize();  // RETURN
+    }
+    else {
+        BSLS_ASSERT_OPT(false && "Invalid raw event type");
+        return -1;  // Compiler Happiness                              //
+                    // RETURN
+    }
+}
+
+int Message::totalSize() const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(isInitialized());
+
+    bmqimp::Event* event = d_impl.d_event_p;
+
+    BSLS_ASSERT_SAFE(event);
+
+    const bmqp::Event& rawEvent = event->rawEvent();
+
+    if (rawEvent.isPushEvent()) {
+        return event->pushMessageIterator()->totalSize();  // RETURN
+    }
+    else if (rawEvent.isPutEvent()) {
+        return event->putMessageIterator()->totalSize();  // RETURN
     }
     else {
         BSLS_ASSERT_OPT(false && "Invalid raw event type");
