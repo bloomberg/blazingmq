@@ -902,6 +902,12 @@ void TCPSessionFactory::enableHeartbeat(
 {
     // executed by the *SCHEDULER* thread
 
+    BALL_LOG_INFO << "Enabling TCPSessionFactory '" << d_config.name()
+                  << "' Heartbeat for [session: '"
+                  << channelInfo_sp->d_session_sp->description()
+                  << "', channel: '" << channelInfo_sp->d_channel_sp.get()
+                  << "' ]";
+
     d_heartbeatChannels[channelInfo_sp->d_channel_sp.get()] = channelInfo_sp;
 }
 
