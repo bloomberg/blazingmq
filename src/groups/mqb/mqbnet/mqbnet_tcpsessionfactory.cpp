@@ -828,9 +828,11 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
                 //       'disableHeartbeat' in this case.
                 d_scheduler_p->scheduleEvent(
                     bsls::SystemTime::nowMonotonicClock(),
-                    bdlf::BindUtil::bind(&TCPSessionFactory::disableHeartbeat,
-                                         this,
-                                         channel.get()));
+                    bdlf::BindUtil::bind(
+                        bmqu::WeakMemFnUtil::weakMemFn(
+                            &TCPSessionFactory::disableHeartbeat,
+                            d_self.acquireWeak()),
+                        channel.get()));
             }
         }
 
