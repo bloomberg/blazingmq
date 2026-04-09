@@ -227,7 +227,7 @@ jobs:
       - name: Print Fuzz Log tail
         if: failure()
         run: |
-          cd src/python && tail -n 2000 ${{ matrix.request}}_fuzz.log
+          cd src/python && cat ${{ matrix.request}}_fuzz.log
 
       - name: Print core information
         if: failure()
