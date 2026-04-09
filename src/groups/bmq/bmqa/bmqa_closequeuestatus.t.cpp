@@ -134,16 +134,19 @@ static void test1_breathingTest()
 
 static void test2_comparison()
 // ------------------------------------------------------------------------
-// COMPARISION
+// COMPARISON
 //
 // Concerns:
 //   Exercise 'bmqa::CloseQueueStatus' comparison operators
 //
 // Plan:
-//   1) Create two equivalent 'bmqa::CloseQueueStatus' objects and verify
-//      that they compare equal.
-//   2) Create two non-equivalent 'bmqa::CloseQueueStatus' objects and
-//      verify that they do not compare equal.
+//   1) Create a 'bmqa::CloseQueueStatus' object 'obj1', copy-construct
+//      'obj2' from it, and independently construct 'obj3' from the same
+//      arguments.  Verify that all three compare equal via '==' and that
+//      '!=' returns false for each pair.
+//   2) Create 'bmqa::CloseQueueStatus' objects that differ in exactly one
+//      attribute (status code, queue id, or error description) and verify
+//      that '!=' returns true and '==' returns false for each pair.
 //
 // Testing:
 //   bool operator==(const bmqa::CloseQueueStatus& lhs,
@@ -165,16 +168,33 @@ static void test2_comparison()
         const bsl::string errorDescription =
             bsl::string("ERROR", bmqtst::TestHelperUtil::allocator());
 
+        // obj1: valued constructor
         bmqa::CloseQueueStatus obj1(queueId,
                                     statusCode,
                                     errorDescription,
                                     bmqtst::TestHelperUtil::allocator());
+
+        // obj2: copy-constructed from obj1
         bmqa::CloseQueueStatus obj2(obj1, bmqtst::TestHelperUtil::allocator());
 
-        BMQTST_ASSERT(obj1 == obj2);
+        // obj3: independently constructed from the same arguments
+        bmqa::CloseQueueStatus obj3(queueId,
+                                    statusCode,
+                                    errorDescription,
+                                    bmqtst::TestHelperUtil::allocator());
+
+        // Verify equality across all pairs
+        BMQTST_ASSERT_EQ(obj1, obj2);
+        BMQTST_ASSERT_EQ(obj1, obj3);
+        BMQTST_ASSERT_EQ(obj2, obj3);
+
+        // Verify that '!=' is false for equal objects
+        BMQTST_ASSERT(!(obj1 != obj2));
+        BMQTST_ASSERT(!(obj1 != obj3));
+        BMQTST_ASSERT(!(obj2 != obj3));
     }
 
-    PV("Inequality");
+    PV("Inequality: different status codes");
     {
         const bmqt::CorrelationId correlationId =
             bmqt::CorrelationId::autoValue();
@@ -196,7 +216,62 @@ static void test2_comparison()
                                     errorDescription,
                                     bmqtst::TestHelperUtil::allocator());
 
-        BMQTST_ASSERT(obj1 != obj2);
+        BMQTST_ASSERT_NE(obj1, obj2);
+        BMQTST_ASSERT(!(obj1 == obj2));
+    }
+
+    PV("Inequality: different queue ids");
+    {
+        const bmqt::CorrelationId correlationId1 =
+            bmqt::CorrelationId::autoValue();
+        const bmqt::CorrelationId correlationId2 =
+            bmqt::CorrelationId::autoValue();
+        const bmqa::QueueId queueId1 =
+            bmqa::QueueId(correlationId1, bmqtst::TestHelperUtil::allocator());
+        const bmqa::QueueId queueId2 =
+            bmqa::QueueId(correlationId2, bmqtst::TestHelperUtil::allocator());
+        const bmqt::CloseQueueResult::Enum statusCode =
+            bmqt::CloseQueueResult::e_UNKNOWN;
+        const bsl::string errorDescription =
+            bsl::string("ERROR", bmqtst::TestHelperUtil::allocator());
+
+        bmqa::CloseQueueStatus obj1(queueId1,
+                                    statusCode,
+                                    errorDescription,
+                                    bmqtst::TestHelperUtil::allocator());
+        bmqa::CloseQueueStatus obj2(queueId2,
+                                    statusCode,
+                                    errorDescription,
+                                    bmqtst::TestHelperUtil::allocator());
+
+        BMQTST_ASSERT_NE(obj1, obj2);
+        BMQTST_ASSERT(!(obj1 == obj2));
+    }
+
+    PV("Inequality: different error descriptions");
+    {
+        const bmqt::CorrelationId correlationId =
+            bmqt::CorrelationId::autoValue();
+        const bmqa::QueueId queueId =
+            bmqa::QueueId(correlationId, bmqtst::TestHelperUtil::allocator());
+        const bmqt::CloseQueueResult::Enum statusCode =
+            bmqt::CloseQueueResult::e_UNKNOWN;
+        const bsl::string errorDescription1 =
+            bsl::string("ERROR", bmqtst::TestHelperUtil::allocator());
+        const bsl::string errorDescription2 =
+            bsl::string("OTHER ERROR", bmqtst::TestHelperUtil::allocator());
+
+        bmqa::CloseQueueStatus obj1(queueId,
+                                    statusCode,
+                                    errorDescription1,
+                                    bmqtst::TestHelperUtil::allocator());
+        bmqa::CloseQueueStatus obj2(queueId,
+                                    statusCode,
+                                    errorDescription2,
+                                    bmqtst::TestHelperUtil::allocator());
+
+        BMQTST_ASSERT_NE(obj1, obj2);
+        BMQTST_ASSERT(!(obj1 == obj2));
     }
 }
 
