@@ -41,12 +41,17 @@
 // BMQ
 #include <bmqex_executionutil.h>
 #include <bmqex_systemexecutor.h>
+#include <bmqio_channelfactory.h>
+#include <bmqio_channelfactorypipeline.h>
 #include <bmqio_channelutil.h>
 #include <bmqio_connectoptions.h>
 #include <bmqio_ntcchannel.h>
 #include <bmqio_ntcchannelfactory.h>
+#include <bmqio_reconnectingchannelfactory.h>
 #include <bmqio_resolveutil.h>
 #include <bmqio_statchannel.h>
+#include <bmqio_statchannelfactory.h>
+#include <bmqio_status.h>
 #include <bmqio_tcpendpoint.h>
 #include <bmqp_event.h>
 #include <bmqp_protocol.h>
@@ -71,7 +76,9 @@
 #include <bsl_cstdlib.h>
 #include <bsl_iostream.h>
 #include <bsl_limits.h>
+#include <bsl_memory.h>
 #include <bsl_utility.h>
+#include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bslalg_swaputil.h>
 #include <bslmf_movableref.h>
@@ -85,7 +92,7 @@
 #include <bsls_types.h>
 
 // NTC
-#include <bsl_vector.h>
+#include <ntcf_system.h>
 #include <ntsa_error.h>
 #include <ntsa_ipaddress.h>
 
@@ -245,6 +252,71 @@ struct PortMatcher {
     bool operator()(const mqbcfg::TcpInterfaceListener& listener)
     {
         return listener.port() == d_port;
+    }
+};
+/// Helpers for building ChannelFactoryPipeline's
+struct ChannelFactoryBuilders {
+    typedef bmqio::ChannelFactoryPipeline::ChannelFactorySP ChannelFactorySP;
+
+    static bsl::shared_ptr<bmqio::NtcChannelFactory>
+    ntcChannelFactory(bslma::Allocator*                       allocator,
+                      const bsl::shared_ptr<ntci::Interface>& interface)
+    {
+        bsl::shared_ptr<bmqio::NtcChannelFactory> factory =
+            bsl::allocate_shared<bmqio::NtcChannelFactory>(allocator,
+                                                           interface);
+        factory->onCreate(bdlf::BindUtil::bind(&ntcChannelPreCreation,
+                                               bdlf::PlaceHolders::_1,
+                                               bdlf::PlaceHolders::_2));
+        return factory;
+    }
+
+    static ChannelFactorySP
+    resolvingChannelFactory(bslma::Allocator*               allocator,
+                            ChannelFactorySP&               prev,
+                            const bmqex::SequentialContext& resolutionContext)
+    {
+        return bsl::allocate_shared<bmqio::ResolvingChannelFactory>(
+            allocator,
+            bmqio::ResolvingChannelFactoryConfig(
+                prev.get(),
+                bmqex::ExecutionPolicyUtil::neverBlocking().useExecutor(
+                    resolutionContext.executor()))
+                .resolutionFn(bdlf::BindUtil::bind(
+                    &monitoredDNSResolution,
+                    bdlf::PlaceHolders::_1,   // resolvedUri
+                    bdlf::PlaceHolders::_2))  // channel
+        );
+    }
+
+    static ChannelFactorySP
+    reconnectingChannelFactory(bslma::Allocator*      allocator,
+                               ChannelFactorySP&      prev,
+                               bdlmt::EventScheduler* scheduler)
+    {
+        return bsl::allocate_shared<bmqio::ReconnectingChannelFactory>(
+            allocator,
+            bmqio::ReconnectingChannelFactoryConfig(prev.get(), scheduler)
+                .setReconnectIntervalFn(bdlf::BindUtil::bind(
+                    &bmqio::ReconnectingChannelFactoryUtil::
+                        defaultConnectIntervalFn,
+                    bdlf::PlaceHolders::_1,        // interval
+                    bdlf::PlaceHolders::_2,        // options
+                    bdlf::PlaceHolders::_3,        // timeSinceLastAttempt
+                    bsls::TimeInterval(3 * 60.0),  // resetReconnectTime
+                    bsls::TimeInterval(30.0)))     // maxInterval
+        );
+    }
+
+    static ChannelFactorySP statChannelFactory(
+        bslma::Allocator* allocator,
+        ChannelFactorySP& prev,
+        const bmqio::StatChannelFactoryConfig::StatContextCreatorFn&
+            statContextCreator)
+    {
+        return bsl::allocate_shared<bmqio::StatChannelFactory>(
+            allocator,
+            bmqio::StatChannelFactoryConfig(prev.get(), statContextCreator));
     }
 };
 
@@ -1046,11 +1118,8 @@ TCPSessionFactory::TCPSessionFactory(
 , d_authenticator_p(authenticator)
 , d_negotiator_p(negotiator)
 , d_statController_p(statController)
-, d_tcpChannelFactory_mp()
 , d_resolutionContext(allocator)
-, d_resolvingChannelFactory_mp()
-, d_reconnectingChannelFactory_mp()
-, d_statChannelFactory_mp()
+, d_channelFactoryPipeline_mp()
 , d_threadName(allocator)
 , d_nbActiveChannels(0)
 , d_nbOpenClients(0)
@@ -1148,18 +1217,15 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
 
     ntca::InterfaceConfig interfaceConfig = ntcCreateInterfaceConfig(d_config);
 
-    bslma::ManagedPtr<bmqio::NtcChannelFactory> channelFactory;
-    channelFactory.load(new (*d_allocator_p)
-                            bmqio::NtcChannelFactory(interfaceConfig,
-                                                     d_blobBufferFactory_p,
-                                                     d_allocator_p),
-                        d_allocator_p);
+    bsl::shared_ptr<bdlbb::BlobBufferFactory> blobBufferFactory_sp(
+        d_blobBufferFactory_p,
+        bslstl::SharedPtrNilDeleter(),
+        d_allocator_p);
 
-    channelFactory->onCreate(bdlf::BindUtil::bind(&ntcChannelPreCreation,
-                                                  bdlf::PlaceHolders::_1,
-                                                  bdlf::PlaceHolders::_2));
-
-    d_tcpChannelFactory_mp = channelFactory;
+    bsl::shared_ptr<ntci::Interface> interface = ntcf::System::createInterface(
+        interfaceConfig,
+        blobBufferFactory_sp,
+        d_allocator_p);
 
     bslmt::ThreadAttributes attributes =
         bmqsys::ThreadUtil::defaultAttributes();
@@ -1167,51 +1233,59 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
     rc = d_resolutionContext.start(attributes);
     BSLS_ASSERT_SAFE(rc == 0);
 
-    d_resolvingChannelFactory_mp.load(
-        new (*d_allocator_p) bmqio::ResolvingChannelFactory(
-            bmqio::ResolvingChannelFactoryConfig(
-                d_tcpChannelFactory_mp.get(),
-                bmqex::ExecutionPolicyUtil::neverBlocking().useExecutor(
-                    d_resolutionContext.executor()),
-                d_allocator_p)
-                .resolutionFn(bdlf::BindUtil::bind(
-                    &monitoredDNSResolution,
-                    bdlf::PlaceHolders::_1,    // resolvedUri
-                    bdlf::PlaceHolders::_2)),  // channel
-            d_allocator_p),
-        d_allocator_p);
+    bmqio::StatChannelFactoryConfig::StatContextCreatorFn statContextCreator(
+        bdlf::BindUtil::bind(&TCPSessionFactory::channelStatContextCreator,
+                             this,
+                             bdlf::PlaceHolders::_1,  // channel
+                             bdlf::PlaceHolders::_2)  // handle
+    );
 
-    d_reconnectingChannelFactory_mp.load(
-        new (*d_allocator_p) bmqio::ReconnectingChannelFactory(
-            bmqio::ReconnectingChannelFactoryConfig(
-                d_resolvingChannelFactory_mp.get(),
-                d_scheduler_p,
-                d_allocator_p)
-                .setReconnectIntervalFn(bdlf::BindUtil::bind(
-                    &bmqio::ReconnectingChannelFactoryUtil ::
-                        defaultConnectIntervalFn,
-                    bdlf::PlaceHolders::_1,        // interval
-                    bdlf::PlaceHolders::_2,        // options
-                    bdlf::PlaceHolders::_3,        // timeSinceLastAttempt
-                    bsls::TimeInterval(3 * 60.0),  // resetReconnectTime
-                    bsls::TimeInterval(30.0))),    // maxInterval
-            d_allocator_p),
-        d_allocator_p);
+    typedef bmqio::ChannelFactoryPipeline::Builder::ChannelFactoryBuilder
+        ChannelFactoryBuilder;
 
-    d_statChannelFactory_mp.load(
-        new (*d_allocator_p) bmqio::StatChannelFactory(
-            bmqio::StatChannelFactoryConfig(
-                d_reconnectingChannelFactory_mp.get(),
-                bdlf::BindUtil::bind(
-                    &TCPSessionFactory::channelStatContextCreator,
-                    this,
-                    bdlf::PlaceHolders::_1,   // channel
-                    bdlf::PlaceHolders::_2),  // handle
-                d_allocator_p),
-            d_allocator_p),
-        d_allocator_p);
+    bsl::shared_ptr<bmqio::NtcChannelFactory> ntcChannelFactory =
+        ChannelFactoryBuilders::ntcChannelFactory(d_allocator_p, interface);
+    ChannelFactoryBuilder resolvingChannelFactoryBuilder =
+        bdlf::BindUtil::bind(ChannelFactoryBuilders::resolvingChannelFactory,
+                             d_allocator_p,
+                             bdlf::PlaceHolders::_1,
+                             bsl::cref(d_resolutionContext));
+    ChannelFactoryBuilder reconnectingChannelFactoryBuilder =
+        bdlf::BindUtil::bind(
+            ChannelFactoryBuilders::reconnectingChannelFactory,
+            d_allocator_p,
+            bdlf::PlaceHolders::_1,
+            d_scheduler_p);
+    ChannelFactoryBuilder statChannelFactoryBuilder = bdlf::BindUtil::bind(
+        ChannelFactoryBuilders::statChannelFactory,
+        d_allocator_p,
+        bdlf::PlaceHolders::_1,
+        statContextCreator);
 
-    rc = d_statChannelFactory_mp->start();
+    {
+        bslma::ManagedPtr<bmqio::ChannelFactoryPipeline>
+            channelFactoryPipeline_mp = bslma::ManagedPtrUtil::allocateManaged<
+                bmqio::ChannelFactoryPipeline>(
+                d_allocator_p,
+                bslmf::MovableRefUtil::move(
+                    bmqio::ChannelFactoryPipeline::Builder(d_allocator_p)
+                        .add(ntcChannelFactory)
+                        .addWith(resolvingChannelFactoryBuilder)
+                        .addWith(reconnectingChannelFactoryBuilder)
+                        .addWith(statChannelFactoryBuilder)));
+
+        rc = channelFactoryPipeline_mp->start();
+        if (rc != 0) {
+            errorDescription << "Failed starting channel pool for "
+                             << "TCPSessionFactory '" << d_config.name()
+                             << "' [rc: " << rc << "]";
+            return rc;  // RETURN
+        }
+
+        d_channelFactoryPipeline_mp = channelFactoryPipeline_mp;
+    }
+
+    rc = d_channelFactoryPipeline_mp->start();
 
     if (rc != 0) {
         errorDescription << "Failed starting stat channel factory for "
@@ -1380,8 +1454,8 @@ void TCPSessionFactory::stop()
     d_resolutionContext.stop();
     d_resolutionContext.join();
 
-    if (d_statChannelFactory_mp) {
-        d_statChannelFactory_mp->stop();
+    if (d_channelFactoryPipeline_mp) {
+        d_channelFactoryPipeline_mp->stop();
     }
 
     // Wait for all sessions to have been destroyed
@@ -1427,20 +1501,7 @@ void TCPSessionFactory::stop()
     d_mutex.unlock();
 
     // DESTROY
-    // We destroy the channel factories here for symmetry since it's created in
-    // 'start'.
-    if (d_statChannelFactory_mp) {
-        d_statChannelFactory_mp.clear();
-    }
-    if (d_reconnectingChannelFactory_mp) {
-        d_reconnectingChannelFactory_mp.clear();
-    }
-    if (d_resolvingChannelFactory_mp) {
-        d_resolvingChannelFactory_mp.clear();
-    }
-    if (d_tcpChannelFactory_mp) {
-        d_tcpChannelFactory_mp.clear();
-    }
+    d_channelFactoryPipeline_mp.reset();
 
     BALL_LOG_INFO << "Stopped TCPSessionFactory '" << d_config.name() << "'";
 }
@@ -1474,7 +1535,7 @@ int TCPSessionFactory::listen(const mqbcfg::TcpInterfaceListener& listener,
 
     bslma::ManagedPtr<bmqio::ChannelFactory::OpHandle> listeningHandle_mp;
     bmqio::Status                                      status;
-    d_statChannelFactory_mp->listen(
+    d_channelFactoryPipeline_mp->listen(
         &status,
         &listeningHandle_mp,
         listenOptions,
@@ -1532,7 +1593,7 @@ int TCPSessionFactory::connect(const bslstl::StringRef& endpoint,
         .setAutoReconnect(shouldAutoReconnect);
 
     bmqio::Status status;
-    d_statChannelFactory_mp->connect(
+    d_channelFactoryPipeline_mp->connect(
         &status,
         0,  // no handle ..
         options,
@@ -1561,34 +1622,17 @@ int TCPSessionFactory::connect(const bslstl::StringRef& endpoint,
 bool TCPSessionFactory::setNodeWriteQueueWatermarks(const Session& session)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_tcpChannelFactory_mp);
     BSLS_ASSERT_SAFE(d_config.nodeLowWatermark() > 0);
     BSLS_ASSERT_SAFE(d_config.nodeLowWatermark() <=
                      d_config.nodeHighWatermark());
 
-    int channelId;
+    bsl::shared_ptr<bmqio::NtcChannel> ntcChannel =
+        bsl::dynamic_pointer_cast<bmqio::NtcChannel>(session.channel());
 
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-            !session.channel()->properties().load(
-                &channelId,
-                k_CHANNEL_PROPERTY_CHANNEL_ID))) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        BALL_LOG_ERROR << "TCPSessionFactory '" << d_config.name() << "' "
-                       << "failed to get channel id out of '"
-                       << session.description() << "'";
-        return false;  // RETURN
-    }
-
-    bmqio::NtcChannelFactory* factory =
-        dynamic_cast<bmqio::NtcChannelFactory*>(d_tcpChannelFactory_mp.get());
-    BSLS_ASSERT_SAFE(factory);
-
-    bsl::shared_ptr<bmqio::NtcChannel> ntcChannel;
-    int rc = factory->lookupChannel(&ntcChannel, channelId);
-    if (rc != 0) {
+    if (ntcChannel == NULL) {
         BALL_LOG_ERROR << "TCPSessionFactory '" << d_config.name() << "' "
                        << "failed to set watermarks for '"
-                       << session.description() << "' [rc: " << rc << "]";
+                       << session.description() << "'";
         return false;  // RETURN
     }
 
