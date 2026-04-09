@@ -448,7 +448,7 @@ int Message::dataSize() const
     }
 }
 
-int Message::messagePropertiesAndPaddingSize() const
+int Message::totalSize() const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(isInitialized());
@@ -460,11 +460,10 @@ int Message::messagePropertiesAndPaddingSize() const
     const bmqp::Event& rawEvent = event->rawEvent();
 
     if (rawEvent.isPushEvent()) {
-        return event->pushMessageIterator()
-            ->messagePropertiesSize();  // RETURN
+        return event->pushMessageIterator()->totalSize();  // RETURN
     }
     else if (rawEvent.isPutEvent()) {
-        return event->putMessageIterator()->messagePropertiesSize();  // RETURN
+        return event->putMessageIterator()->totalSize();  // RETURN
     }
     else {
         BSLS_ASSERT_OPT(false && "Invalid raw event type");

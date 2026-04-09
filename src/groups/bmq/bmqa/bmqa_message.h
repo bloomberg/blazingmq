@@ -368,10 +368,10 @@ class Message {
     /// undefined unless this instance represents a `PUT` or a `PUSH` message.
     int dataSize() const;
 
-    /// Return the size (in bytes) of message properties including the padding
-    /// if any).  The behavior is undefined unless this instance represents a
+    /// Return the size (in bytes) of wire representation for the message.
+    /// The behavior is undefined unless this instance represents a
     /// `PUT` or a `PUSH` message.
-    int messagePropertiesAndPaddingSize() const;
+    int totalSize() const;
 
     /// Return `true` if this instance has at least one message property
     /// associated with it, `false` otherwise.  Behavior is undefined unless

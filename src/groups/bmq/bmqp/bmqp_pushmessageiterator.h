@@ -382,6 +382,9 @@ class PushMessageIterator {
     /// the load was successful or `false` otherwise.  Behavior is undefined
     /// unless latest call to `next()` returned 1.
     void extractMsgGroupId(bmqp::Protocol::MsgGroupId* msgGroupId) const;
+
+    /// Return the size (in bytes) of wire representation for the message.
+    int totalSize() const;
 };
 
 // ============================================================================

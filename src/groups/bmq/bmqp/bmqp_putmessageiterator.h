@@ -402,6 +402,9 @@ class PutMessageIterator {
     /// the load was successfully or `false` otherwise.  Behavior is
     /// undefined unless latest call to `next()` returned 1.
     bool extractMsgGroupId(bmqp::Protocol::MsgGroupId* msgGroupId) const;
+
+    /// Return the size (in bytes) of wire representation for the message.
+    int totalSize() const;
 };
 
 // ============================================================================

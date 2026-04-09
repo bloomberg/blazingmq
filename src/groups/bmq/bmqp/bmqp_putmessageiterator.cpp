@@ -461,6 +461,11 @@ bool PutMessageIterator::extractMsgGroupId(
     return (rc == 0);
 }
 
+int PutMessageIterator::totalSize() const
+{
+    return d_header.messageWords() * Protocol::k_WORD_SIZE;
+}
+
 // MANIPULATORS
 int PutMessageIterator::next()
 {
