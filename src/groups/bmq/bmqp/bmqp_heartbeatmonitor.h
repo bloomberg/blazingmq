@@ -28,6 +28,7 @@
 #include <bmqp_event.h>
 
 // BDE
+#include <bdlbb_blob.h>
 #include <bsls_atomic.h>
 
 namespace BloombergLP {
@@ -61,6 +62,16 @@ struct HeartbeatMonitor {
     int d_missedHeartbeatCounter;
 
   public:
+    // CLASS METHODS
+
+    /// Return a read-only reference to a lazily created blob corresponding
+    /// to a heartbeat request event.
+    static const bdlbb::Blob& heartbeatReqBlob();
+
+    /// Return a read-only reference to a lazily created blob corresponding
+    /// to a heartbeat response event.
+    static const bdlbb::Blob& heartbeatRspBlob();
+
     // CREATORS
     explicit HeartbeatMonitor(int maxMissedHeartbeats,
                               int initialMissedHeartbeatCounter = 0);
@@ -107,7 +118,7 @@ inline bool HeartbeatMonitor::checkData(bmqio::Channel*    channel,
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
         channel->write(0,  // status
-                       bmqp::ProtocolUtil::heartbeatRspBlob());
+                       heartbeatRspBlob());
         // We explicitly ignore any failure as failure implies issues with
         // the channel, which is what the heartbeat is trying to expose.
     }

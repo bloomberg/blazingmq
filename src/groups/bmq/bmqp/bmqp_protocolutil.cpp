@@ -61,11 +61,6 @@ const char k_PADDING_DATA[9][8] = {
 /// Array of all potential padding buffers used for word and dword padding.
 bsls::ObjectBuffer<bdlbb::BlobBuffer> g_paddingBlobBuffer[9];
 
-/// Static prefilled blobs respectively containing a heartbeat request and
-/// a heartbeat response.
-bsls::ObjectBuffer<bdlbb::Blob> g_heartbeatReqBlob;
-bsls::ObjectBuffer<bdlbb::Blob> g_heartbeatRspBlob;
-
 /// Integer to keep track of the number of calls to `initialize` for the
 /// `ProtocolUtil`.  If the value is non-zero, then it has already been
 /// initialized, otherwise it can be initialized.  Each call to `initialize`
@@ -111,30 +106,6 @@ void ProtocolUtil::initialize(bslma::Allocator* allocator)
                    alloc);
         new (g_paddingBlobBuffer[i].buffer()) bdlbb::BlobBuffer(data, i);
     }
-
-    // Prefill the heartbeat blobs
-    {
-        static const EventHeader header(EventType::e_HEARTBEAT_REQ);
-        bsl::shared_ptr<char>    data;
-        data.reset(static_cast<char*>(
-                       const_cast<void*>(static_cast<const void*>(&header))),
-                   bslstl::SharedPtrNilDeleter(),
-                   alloc);
-        bdlbb::BlobBuffer buffer(data, sizeof(header));
-        new (g_heartbeatReqBlob.buffer()) bdlbb::Blob(alloc);
-        g_heartbeatReqBlob.object().appendDataBuffer(buffer);
-    }
-    {
-        static const EventHeader header(EventType::e_HEARTBEAT_RSP);
-        bsl::shared_ptr<char>    data;
-        data.reset(static_cast<char*>(
-                       const_cast<void*>(static_cast<const void*>(&header))),
-                   bslstl::SharedPtrNilDeleter(),
-                   alloc);
-        bdlbb::BlobBuffer buffer(data, sizeof(header));
-        new (g_heartbeatRspBlob.buffer()) bdlbb::Blob(alloc);
-        g_heartbeatRspBlob.object().appendDataBuffer(buffer);
-    }
 }
 
 void ProtocolUtil::shutdown()
@@ -147,9 +118,6 @@ void ProtocolUtil::shutdown()
     if (--g_initialized != 0) {
         return;  // RETURN
     }
-
-    g_heartbeatRspBlob.object().bdlbb::Blob::~Blob();
-    g_heartbeatReqBlob.object().bdlbb::Blob::~Blob();
 
     for (int i = 0; i < 9; ++i) {
         g_paddingBlobBuffer[i].object().reset();
@@ -217,16 +185,6 @@ int ProtocolUtil::calcUnpaddedLength(const bdlbb::Blob& blob, int length)
     BSLS_ASSERT(pos.second < buf.size());
 
     return length - buf.data()[pos.second];
-}
-
-const bdlbb::Blob& ProtocolUtil::heartbeatReqBlob()
-{
-    return g_heartbeatReqBlob.object();
-}
-
-const bdlbb::Blob& ProtocolUtil::heartbeatRspBlob()
-{
-    return g_heartbeatRspBlob.object();
 }
 
 int ProtocolUtil::ackResultToCode(bmqt::AckResult::Enum value)
