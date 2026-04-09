@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "bmqu_atomicvalidator.h"
 #include <bmqio_reconnectingchannelfactory.h>
 
 #include <bmqscm_version.h>
@@ -487,9 +488,16 @@ int ReconnectingChannelFactory::start()
 
 void ReconnectingChannelFactory::stop()
 {
-    d_validator.invalidate();
+    // Support multiple 'stop'
+    {
+        bmqu::AtomicValidatorGuard guard(&d_validator);
 
-    cancelAllHandles();
+        if (guard.isValid()) {
+            bmqu::AtomicValidatorGuardUtil::releaseAndInvalidate(&guard);
+
+            cancelAllHandles();
+        }
+    }
 
     d_config.d_base_p->stop();
 }

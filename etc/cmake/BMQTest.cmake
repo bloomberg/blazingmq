@@ -45,6 +45,7 @@ function(bmq_add_test target)
     foreach(pkg ${${uor_name}_PACKAGES})
       bbs_configure_target_tests(${pkg}
         SOURCES ${${pkg}_TEST_SOURCES}
+        GTEST_SOURCES ${${pkg}_GTEST_SOURCES}
         TEST_DEPS ${${pkg}_DEPENDS}
         ${${pkg}_TEST_DEPENDS}
         ${${uor_name}_PCDEPS}
@@ -74,6 +75,7 @@ function(bmq_add_test target)
     # Configure standalone library ( no packages ) and tests from BDE metadata
     bbs_configure_target_tests(${target}
       SOURCES ${${uor_name}_TEST_SOURCES}
+      GTEST_SOURCES ${${uor_name}_GTEST_SOURCES}
       TEST_DEPS ${${uor_name}_PCDEPS}
       ${${uor_name}_TEST_PCDEPS}
       LABELS "unit;all" ${target})
@@ -118,6 +120,7 @@ function(bmq_add_application_test target)
 
   bbs_configure_target_tests(${lib_target}
     SOURCES    ${${uor_name}_TEST_SOURCES}
+    GTEST_SOURCES ${${uor_name}_GTEST_SOURCES}
     TEST_DEPS  ${${uor_name}_PCDEPS}
                ${${uor_name}_TEST_PCDEPS}
     LABELS     "unit;all" ${target})

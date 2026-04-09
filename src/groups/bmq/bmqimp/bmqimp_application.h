@@ -34,7 +34,6 @@
 // Thread safe.
 
 // BMQ
-
 #include <bmqimp_authenticatedchannelfactory.h>
 #include <bmqimp_brokersession.h>
 #include <bmqimp_eventqueue.h>
@@ -45,6 +44,7 @@
 
 #include <bmqio_channel.h>
 #include <bmqio_channelfactory.h>
+#include <bmqio_channelfactorypipeline.h>
 #include <bmqio_ntcchannelfactory.h>
 #include <bmqio_reconnectingchannelfactory.h>
 #include <bmqio_resolvingchannelfactory.h>
@@ -126,17 +126,10 @@ class Application {
     /// Scheduler
     bdlmt::EventScheduler d_scheduler;
 
-    bmqio::NtcChannelFactory d_channelFactory;
-
-    bmqio::ResolvingChannelFactory d_resolvingChannelFactory;
-
-    bmqio::ReconnectingChannelFactory d_reconnectingChannelFactory;
-
-    bmqio::StatChannelFactory d_statChannelFactory;
-
-    AuthenticatedChannelFactory d_authenticatedChannelFactory;
-
-    NegotiatedChannelFactory d_negotiatedChannelFactory;
+    /// The stack of channel factories used for customizing
+    /// connection/listening logic
+    bslma::ManagedPtr<bmqio::ChannelFactoryPipeline>
+        d_channelFactoryPipeline_mp;
 
     ChannelFactoryOpHandleMp d_connectHandle_mp;
 

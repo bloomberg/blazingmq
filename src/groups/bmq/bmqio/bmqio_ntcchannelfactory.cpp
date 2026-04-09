@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "bmqu_atomicvalidator.h"
 #include <bmqio_ntcchannelfactory.h>
 
 #include <bmqscm_version.h>
@@ -230,8 +231,7 @@ void NtcChannelFactory::stop()
         return;  // RETURN
     }
 
-    valGuard.release()->release();
-    d_validator.invalidate();  // Disallow new listen/connect
+    bmqu::AtomicValidatorGuardUtil::releaseAndInvalidate(&valGuard);
 
     BALL_LOG_TRACE << "NTC factory is stopping" << BALL_LOG_END;
 

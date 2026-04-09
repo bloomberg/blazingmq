@@ -82,5 +82,19 @@ AtomicValidator* AtomicValidatorGuard::release()
     return 0;
 }
 
+void AtomicValidatorGuardUtil::releaseAndInvalidate(
+    AtomicValidatorGuard* guard)
+{
+    BSLS_ASSERT(guard);
+
+    if (guard->isValid()) {
+        AtomicValidator* validator = guard->release();
+        if (validator) {
+            validator->release();
+            validator->invalidate();
+        }
+    }
+}
+
 }  // close package namespace
 }  // close enterprise namespace
