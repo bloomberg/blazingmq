@@ -89,14 +89,12 @@ const char ProtocolUtil::k_DEFAULT_APP_ID[] = "__default";
 
 void ProtocolUtil::initialize(bslma::Allocator*)
 {
-    // No-op.  Padding blob buffers are now lazily initialized via
-    // 'getPaddingBlobBuffer'.  This method is retained for API compatibility.
+    // NOTHING - deprecate and remove
 }
 
 void ProtocolUtil::shutdown()
 {
-    // No-op.  Padding blob buffers are now lazily initialized and never
-    // destroyed.  This method is retained for API compatibility.
+    // NOTHING - deprecate and remove
 }
 
 void ProtocolUtil::appendPaddingRaw(bdlbb::Blob* destination,

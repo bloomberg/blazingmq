@@ -19,7 +19,6 @@
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_event.h>
-#include <bmqp_protocolutil.h>
 #include <bmqscm_version.h>
 #include <bmqt_queueflags.h>
 
@@ -588,8 +587,6 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
-
     switch (_testCase) {
     case 0:
     case 2: test2_bestEncodingSupported(); break;
@@ -600,8 +597,6 @@ int main(int argc, char* argv[])
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
-
-    bmqp::ProtocolUtil::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

@@ -1601,8 +1601,6 @@ int main(int argc, char* argv[])
             bslmf::NestedTraitDeclaration<Data1, bslma::UsesBslmaAllocator> >(
             dummy1));
 
-    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
-
     unsigned int seed = bsl::time(0);
     bsl::srand(seed);
     PV("Seed: " << seed);
@@ -1621,8 +1619,6 @@ int main(int argc, char* argv[])
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
-
-    bmqp::ProtocolUtil::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

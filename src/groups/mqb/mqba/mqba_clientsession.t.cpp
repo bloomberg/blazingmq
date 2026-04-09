@@ -2496,7 +2496,6 @@ int main(int argc, char* argv[])
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     {
-        bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
         bmqsys::Time::initialize(bmqtst::TestHelperUtil::allocator());
 
         mqbcfg::AppConfig brokerConfig(bmqtst::TestHelperUtil::allocator());
@@ -2535,7 +2534,6 @@ int main(int argc, char* argv[])
         }
 
         bmqsys::Time::shutdown();
-        bmqp::ProtocolUtil::shutdown();
     }
 
     TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);

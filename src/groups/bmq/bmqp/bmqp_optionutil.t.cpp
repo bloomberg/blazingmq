@@ -17,7 +17,6 @@
 #include <bmqp_optionutil.h>
 
 // BMQ
-#include <bmqp_protocolutil.h>
 #include <bmqt_resultcode.h>
 
 // BDE
@@ -441,8 +440,6 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
-
     switch (_testCase) {
     case 0:
 #ifdef BMQ_ENABLE_MSG_GROUPID
@@ -456,8 +453,6 @@ int main(int argc, char* argv[])
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
-
-    bmqp::ProtocolUtil::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

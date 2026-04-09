@@ -20,7 +20,6 @@
 #include <bmqimp_event.h>
 #include <bmqimp_stat.h>
 #include <bmqp_crc32c.h>
-#include <bmqp_protocolutil.h>
 #include <bmqp_pusheventbuilder.h>
 #include <bmqp_puteventbuilder.h>
 #include <bmqt_resultcode.h>
@@ -788,8 +787,6 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
-
     switch (_testCase) {
     case 0:
     case 10: test10_putStatsTest(); break;
@@ -805,8 +802,6 @@ int main(int argc, char* argv[])
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
-
-    bmqp::ProtocolUtil::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 

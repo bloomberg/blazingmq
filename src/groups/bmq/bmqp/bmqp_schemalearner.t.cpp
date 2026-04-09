@@ -17,7 +17,6 @@
 
 // BMQ
 #include <bmqp_messageproperties.h>
-#include <bmqp_protocolutil.h>
 #include <bmqp_schemalearner.h>
 
 #include <bmqu_memoutstream.h>
@@ -480,7 +479,6 @@ static void test7_removeBeforeRead()
 int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
-    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
 
     switch (_testCase) {
     case 0:
@@ -497,6 +495,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    bmqp::ProtocolUtil::shutdown();
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
