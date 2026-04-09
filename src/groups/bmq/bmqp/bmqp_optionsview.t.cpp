@@ -19,7 +19,6 @@
 // BMQ
 #include <bmqp_optionutil.h>
 #include <bmqp_protocol.h>
-#include <bmqp_protocolutil.h>
 #include <bmqp_queueid.h>
 #include <bmqu_memoutstream.h>
 
@@ -1530,8 +1529,6 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
-
     switch (_testCase) {
     case 0:
     case 8: test8_dumpBlobSubQueueIdsOld(); break;
@@ -1547,8 +1544,6 @@ int main(int argc, char* argv[])
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
-
-    bmqp::ProtocolUtil::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

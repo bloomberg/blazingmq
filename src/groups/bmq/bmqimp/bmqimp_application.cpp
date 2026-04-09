@@ -28,7 +28,6 @@
 #include <bmqio_tcpendpoint.h>
 #include <bmqma_countingallocatorutil.h>
 #include <bmqp_crc32c.h>
-#include <bmqp_protocolutil.h>
 #include <bmqscm_version.h>
 #include <bmqst_statvalue.h>
 #include <bmqst_tableutil.h>
@@ -676,9 +675,6 @@ Application::Application(
         bmqsys::Time::initialize();
     }
 
-    // ProtocolUtil initialization/shutdown is thread-safe and refcounted
-    bmqp::ProtocolUtil::initialize();
-
     // Start the EventScheduler.  We do this here in constructor and not in
     // 'start()', because the 'finalizeCb', which is used to perform the final
     // shutdown sequence will use the scheduler to execute code in a different
@@ -730,9 +726,6 @@ Application::~Application()
     stop();
 
     d_scheduler.stop();
-
-    // ProtocolUtil::shutdown is thread-safe and ref-counted
-    bmqp::ProtocolUtil::shutdown();
 }
 
 int Application::start(const bsls::TimeInterval& timeout)

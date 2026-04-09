@@ -3283,8 +3283,6 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
-
     switch (_testCase) {
     case 0:
         // TODO: overview the removed tests or remove this comment
@@ -3326,8 +3324,6 @@ int main(int argc, char* argv[])
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
-
-    bmqp::ProtocolUtil::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
     // Can't ensure no default memory is allocated because

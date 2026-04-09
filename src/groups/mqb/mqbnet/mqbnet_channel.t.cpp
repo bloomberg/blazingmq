@@ -21,7 +21,6 @@
 #include <bmqp_event.h>
 #include <bmqp_messageguidgenerator.h>
 #include <bmqp_protocol.h>
-#include <bmqp_protocolutil.h>
 #include <bmqt_messageguid.h>
 
 #include <bmqio_testchannel.h>
@@ -1254,7 +1253,6 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
     // expect BALL_LOG_ERROR
     switch (_testCase) {
     case 0:
@@ -1268,8 +1266,6 @@ int main(int argc, char* argv[])
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
-
-    bmqp::ProtocolUtil::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

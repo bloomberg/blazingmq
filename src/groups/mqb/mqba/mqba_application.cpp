@@ -120,8 +120,6 @@ void Application::oneTimeInit()
 
         // Make MessageGUID generation thread-safe by calling initialize
         mqbu::MessageGUIDUtil::initialize();
-
-        bmqp::ProtocolUtil::initialize();
     }
 }
 
@@ -129,7 +127,6 @@ void Application::oneTimeShutdown()
 {
     BSLMT_ONCE_DO
     {
-        bmqp::ProtocolUtil::shutdown();
         bmqsys::Time::shutdown();
     }
 }

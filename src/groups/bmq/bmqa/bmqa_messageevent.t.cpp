@@ -23,7 +23,6 @@
 #include <bmqp_crc32c.h>
 #include <bmqp_event.h>
 #include <bmqp_messageguidgenerator.h>
-#include <bmqp_protocolutil.h>
 #include <bmqp_puteventbuilder.h>
 #include <bmqt_messageguid.h>
 
@@ -313,8 +312,6 @@ int main(int argc, char* argv[])
                                                   bslma::UsesBslmaAllocator> >(
             dummy));
 
-    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
-
     switch (_testCase) {
     case 0:
     case 3: test3_putMessageIteratorTest(); break;
@@ -325,8 +322,6 @@ int main(int argc, char* argv[])
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
-
-    bmqp::ProtocolUtil::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

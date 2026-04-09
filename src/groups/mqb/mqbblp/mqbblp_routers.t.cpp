@@ -21,7 +21,6 @@
 #include <bmqp_event.h>
 #include <bmqp_messageguidgenerator.h>
 #include <bmqp_protocol.h>
-#include <bmqp_protocolutil.h>
 #include <bmqt_messageguid.h>
 
 // MQB
@@ -554,8 +553,6 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
-
     mqbcfg::AppConfig brokerConfig(bmqtst::TestHelperUtil::allocator());
     mqbcfg::BrokerConfig::set(brokerConfig);
     // expect BALL_LOG_ERROR
@@ -570,8 +567,6 @@ int main(int argc, char* argv[])
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
-
-    bmqp::ProtocolUtil::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

@@ -25,7 +25,6 @@
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_event.h>
 #include <bmqp_protocol.h>
-#include <bmqp_protocolutil.h>
 #include <bmqp_schemaeventbuilder.h>
 #include <bmqsys_mocktime.h>
 #include <bmqt_authncredential.h>
@@ -853,11 +852,7 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
-
     bmqtst::runTest(_testCase);
-
-    bmqp::ProtocolUtil::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

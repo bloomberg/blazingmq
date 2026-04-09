@@ -33,7 +33,6 @@
 // BMQ
 #include <bmqp_crc32c.h>
 #include <bmqp_ctrlmsg_messages.h>
-#include <bmqp_protocolutil.h>
 
 #include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
@@ -2939,8 +2938,6 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
-
     switch (_testCase) {
     case 0:
     case 28: test28_watchdogLeaderRetryExhaustion(); break;
@@ -2976,8 +2973,6 @@ int main(int argc, char* argv[])
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
-
-    bmqp::ProtocolUtil::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
     // Can't ensure no default memory is allocated because

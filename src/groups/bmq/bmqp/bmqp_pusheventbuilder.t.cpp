@@ -19,7 +19,6 @@
 // BMQ
 #include <bmqp_event.h>
 #include <bmqp_messageproperties.h>
-#include <bmqp_protocolutil.h>
 #include <bmqp_pushmessageiterator.h>
 #include <bmqt_compressionalgorithmtype.h>
 #include <bmqt_messageguid.h>
@@ -1376,8 +1375,6 @@ int main(int argc, char* argv[])
             bslmf::NestedTraitDeclaration<Data, bslma::UsesBslmaAllocator> >(
             dummy));
 
-    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
-
     unsigned int seed = bsl::time(NULL);
     bsl::srand(seed);
     PV("Seed: " << seed);
@@ -1400,8 +1397,6 @@ int main(int argc, char* argv[])
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
-
-    bmqp::ProtocolUtil::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

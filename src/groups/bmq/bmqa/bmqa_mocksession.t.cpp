@@ -24,7 +24,6 @@
 #include <bmqa_session.h>
 #include <bmqimp_queue.h>
 #include <bmqp_blobpoolutil.h>
-#include <bmqp_protocolutil.h>
 #include <bmqt_queueoptions.h>
 
 #include <bmqu_memoutstream.h>
@@ -265,8 +264,6 @@ struct EventHandler : public bmqa::SessionEventHandler {
 
 static void test1_staticMethods()
 {
-    bmqp::ProtocolUtil::initialize();
-
     bmqtst::TestHelper::printTestName("STATIC METHODS");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(
@@ -404,8 +401,6 @@ static void test1_staticMethods()
         BMQTST_ASSERT_EQ(out.getPropertyAsInt32("x"),
                          properties.getPropertyAsInt32("x"));
     }
-
-    bmqp::ProtocolUtil::shutdown();
 }
 
 static void test2_call()

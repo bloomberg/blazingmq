@@ -30,7 +30,6 @@
 #include <bmqp_crc32c.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_protocol.h>
-#include <bmqp_protocolutil.h>
 
 #include <bmqu_memoutstream.h>
 
@@ -456,7 +455,6 @@ int main(int argc, char* argv[])
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqsys::Time::initialize(bmqtst::TestHelperUtil::allocator());
-    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
 
     switch (_testCase) {
     case 0:
@@ -467,7 +465,6 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    bmqp::ProtocolUtil::shutdown();
     bmqsys::Time::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);

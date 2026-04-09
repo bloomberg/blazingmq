@@ -33,7 +33,6 @@
 // BMQ
 #include <bmqp_blobpoolutil.h>
 #include <bmqp_ctrlmsg_messages.h>
-#include <bmqp_protocolutil.h>
 #include <bmqt_messageguid.h>
 #include <bmqt_uri.h>
 
@@ -953,7 +952,6 @@ int main(int argc, char* argv[])
 
     bmqsys::Time::initialize();
     mqbu::MessageGUIDUtil::initialize();
-    bmqp::ProtocolUtil::initialize();
 
     switch (_testCase) {
     case 0:
@@ -965,7 +963,6 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    bmqp::ProtocolUtil::shutdown();
     bmqsys::Time::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_ALLOC);

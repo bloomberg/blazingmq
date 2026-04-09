@@ -468,8 +468,6 @@ static void test4_eventLoading()
     // baljsn::Encoder constructor does not pass the allocator to the
     // formatter.
 
-    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
-
     int                            rc;
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
@@ -577,8 +575,6 @@ static void test4_eventLoading()
         obj.reset();
         BSLS_ASSERT_OPT(obj.blob()->length() == 0);
     }
-
-    bmqp::ProtocolUtil::shutdown();
 }
 
 static void test5_iteratorLoading()

@@ -18,7 +18,6 @@
 
 // BMQ
 #include <bmqp_protocol.h>
-#include <bmqp_protocolutil.h>
 #include <bmqt_messageguid.h>
 
 // BDE
@@ -573,8 +572,6 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
-
     switch (_testCase) {
     case 0:
     case 5: test5_dumpBlob(); break;
@@ -587,8 +584,6 @@ int main(int argc, char* argv[])
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
-
-    bmqp::ProtocolUtil::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

@@ -214,24 +214,10 @@ struct ProtocolUtil {
     /// Initialization
     ///--------------
 
-    /// Perform some one time initialization needed by the padding and
-    /// heartbeats related methods by preallocating the various size padding
-    /// buffers and blobs.  This method only needs to be called once before
-    /// any other method, but can be called multiple times provided that for
-    /// each call to `initialize` there is a corresponding call to
-    /// `shutdown`.  Use the optionally specified `allocator` for any memory
-    /// allocation, or the `global` allocator if none is provided.  Note
-    /// that specifying the allocator is provided for test drivers only, and
-    /// therefore users should let it default to the global allocator.
+    /// DEPRECATED: no-op, remove both initialize/shutdown.
     static void initialize(bslma::Allocator* allocator = 0);
 
-    /// Pendant operation of the `initialize` one.  The number of calls to
-    /// `shutdown` must equal the number of calls to `initialize`, without
-    /// corresponding `shutdown` calls, to fully destroy the objects.  It is
-    /// safe to call `initialize` after calling `shutdown`.  The behaviour
-    /// is undefined if `shutdown` is called without `initialize` first
-    /// being called.  Note that shutdown must not be called until all blobs
-    /// which had a padding buffer appended have been destroyed.
+    /// DEPRECATED: no-op, remove both initialize/shutdown.
     static void shutdown();
 
     /// Padding

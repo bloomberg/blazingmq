@@ -49,69 +49,6 @@ using namespace bsl;
 //                                    TESTS
 // ----------------------------------------------------------------------------
 
-static void test1_initializeShutdown()
-// ------------------------------------------------------------------------
-// INITIALIZE / SHUTDOWN
-//
-// Concerns:
-//   1. Calling 'shutdown' without a call to 'initialize' should assert.
-//   2. Should be able to call 'initialize()' after the instance has
-//      already started and have no effect.
-//   3. Should be able to call 'shutdown' after already calling 'shutdown'
-//      and have no effect, provided that the number of calls to 'shutdown'
-//      does not exceed to number of calls to 'initialize' without a
-//      corresponding call to 'shutdown'.
-//   4. It is safe to call 'initialize' after calling 'shutdown'.
-//
-// Plan:
-//   1. Assert failure of calling 'shutdown' without prior call to
-//      'initialize'.
-//   2. Assert pass of multiple calls to 'initialize'.
-//   3. Assert pass of multiple calls to 'shutdown' and then assert fail of
-//      one too many calls to 'shutdown'.
-//   4. Assert pass a call to 'initialize' and then a call to 'shutdown'.
-//
-// Testing:
-//   initialize
-//   shutdown
-//   ----------------------------------------------------------------------
-{
-    bmqtst::TestHelper::printTestName("INITIALIZE / SHUTDOWN");
-
-    // 1. Calling 'shutdown' without a call to 'initialize' should assert.
-    BMQTST_ASSERT_SAFE_FAIL(bmqp::ProtocolUtil::shutdown());
-
-    // 2. Should be able to call 'initialize()' after the instance has already
-    //    started and have no effect.
-    // Initialize the 'ProtocolUtil'
-    BMQTST_ASSERT_SAFE_PASS(
-        bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator()));
-
-    // 'initialize' should be a no-op
-    BMQTST_ASSERT_SAFE_PASS(
-        bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator()));
-
-    // 3. Should be able to call 'shutdown' after already calling 'shutdown'
-    //    and have no effect, provided that the number of calls to 'shutdown'
-    //    does not exceed to number of calls to 'initialize' without a
-    //    corresponding call to 'shutdown'.
-    // 'shutdown' should be a no-op
-    BMQTST_ASSERT_SAFE_PASS(bmqp::ProtocolUtil::shutdown());
-
-    // Shut down the 'ProtocolUtil'
-    BMQTST_ASSERT_SAFE_PASS(bmqp::ProtocolUtil::shutdown());
-
-    // 'shutdown' again should assert
-    BMQTST_ASSERT_SAFE_FAIL(bmqp::ProtocolUtil::shutdown());
-
-    // 4. It is safe to call 'initialize' after calling 'shutdown'.
-    BMQTST_ASSERT_SAFE_PASS(
-        bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator()));
-
-    // Finally, shutdown the 'ProtocolUtil'
-    BMQTST_ASSERT_SAFE_PASS(bmqp::ProtocolUtil::shutdown());
-}
-
 static void test2_calcNumWordsAndPadding()
 // ------------------------------------------------------------------------
 //                     CALC NUM WORDS AND PADDING
@@ -127,8 +64,6 @@ static void test2_calcNumWordsAndPadding()
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("CALC NUM WORDS AND PADDING");
-
-    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
 
     struct Test {
         int d_line;
@@ -180,8 +115,6 @@ static void test2_calcNumWordsAndPadding()
                            words,
                            test.d_dwordNumWords);
     }
-
-    bmqp::ProtocolUtil::shutdown();
 }
 
 static void test3_paddingChar()
@@ -199,8 +132,6 @@ static void test3_paddingChar()
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("APPEND PADDING (char)");
-
-    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
 
     PV("WORD");
     {
@@ -264,8 +195,6 @@ static void test3_paddingChar()
                                bsl::memcmp(test.d_expectedBuffer, buffer, 9));
         }
     }
-
-    bmqp::ProtocolUtil::shutdown();
 }
 
 static void test4_paddingBlob()
@@ -286,8 +215,6 @@ static void test4_paddingBlob()
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("APPEND PADDING (blob)");
-
-    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
 
     PV("blob with enough capacity in last buffer");
     {
@@ -372,8 +299,6 @@ static void test4_paddingBlob()
             0,
             bsl::memcmp(blob.buffer(0).data(), expectedBufferContent, 4));
     }
-
-    bmqp::ProtocolUtil::shutdown();
 }
 
 static void test6_ackResultToCode()
@@ -696,8 +621,6 @@ static void test10_parseMessageProperties()
 //
 // ------------------------------------------------------------------------
 {
-    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
-
     bmqtst::TestHelper::printTestName("TEST PARSING");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(
@@ -765,8 +688,6 @@ static void test10_parseMessageProperties()
     verify(out);
 
     BMQTST_ASSERT_EQ(0, bdlbb::BlobUtil::compare(payloadOut, payload));
-
-    bmqp::ProtocolUtil::shutdown();
 }
 
 // ============================================================================
@@ -788,7 +709,7 @@ int main(int argc, char* argv[])
     case 4: test4_paddingBlob(); break;
     case 3: test3_paddingChar(); break;
     case 2: test2_calcNumWordsAndPadding(); break;
-    case 1: test1_initializeShutdown(); break;
+    case 1: break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         bmqtst::TestHelperUtil::testStatus() = -1;

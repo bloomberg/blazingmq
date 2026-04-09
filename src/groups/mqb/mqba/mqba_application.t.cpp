@@ -20,9 +20,6 @@
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
 
-// BMQ
-#include <bmqp_protocolutil.h>
-
 // BDE
 #include <bdlmt_eventscheduler.h>
 #include <bsls_systemclocktype.h>
@@ -80,12 +77,6 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
-    // Force initialize protocolUtil before any 'mqba::Application' object
-    // gets created, so that we can pass in the test allocator, instead of
-    // having 'mqba::Application' initializing it with the global
-    // allocator.
-
     switch (_testCase) {
     case 0:
     case 1: test1_breathingTest(); break;
@@ -94,8 +85,6 @@ int main(int argc, char* argv[])
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
-
-    bmqp::ProtocolUtil::shutdown();
 
     // Disable default/global allocator check:
     //  - Logger uses the default allocator
