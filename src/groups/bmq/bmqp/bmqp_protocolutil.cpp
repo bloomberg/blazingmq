@@ -60,7 +60,7 @@ const char k_PADDING_DATA[9][8] = {
 const bdlbb::BlobBuffer& getPaddingBlobBuffer(int numPaddingBytes)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(1 <= numPaddingBytes && numPaddingBytes <= 8);
+    BSLS_ASSERT(1 <= numPaddingBytes && numPaddingBytes <= 8);
 
     static bsls::ObjectBuffer<bdlbb::BlobBuffer> buffers[9];
     BSLMT_ONCE_DO
@@ -101,8 +101,8 @@ void ProtocolUtil::appendPaddingRaw(bdlbb::Blob* destination,
                                     int          numPaddingBytes)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(1 <= numPaddingBytes && numPaddingBytes <= 8);
-    BSLS_ASSERT_SAFE(destination->numDataBuffers() >= 1);
+    BSLS_ASSERT(1 <= numPaddingBytes && numPaddingBytes <= 8);
+    BSLS_ASSERT(destination->numDataBuffers() >= 1);
     // It doesn't make sense to add padding to an empty blob, and assuming at
     // least one buffer simplifies the logic below.
 
