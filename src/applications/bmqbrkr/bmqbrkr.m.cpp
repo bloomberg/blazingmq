@@ -120,6 +120,13 @@ struct TaskEnvironment {
 /// the assert handler can access the needed data.
 static TaskEnvironment* s_taskEnv_p = 0;
 
+// forward declaration
+static void onProcessedAdminCommand(const bsl::string&       prefix,
+                                    const bsl::string&       command,
+                                    const bsls::Types::Int64 start,
+                                    int                      rc,
+                                    const bsl::string&       results);
+
 /// Handler functor for incoming commands
 struct MTrapHandler {
     TaskEnvironment* d_taskEnv_p;
