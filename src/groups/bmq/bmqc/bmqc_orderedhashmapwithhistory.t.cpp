@@ -16,7 +16,12 @@
 // bmqc_orderedhashmapwithhistory.t.cpp                               -*-C++-*-
 #include <bmqc_orderedhashmapwithhistory.h>
 
+// BDE
+#include <bsl_unordered_map.h>
+#include <bsls_timeutil.h>
+
 // TEST DRIVER
+#include <bmqtst_table.h>
 #include <bmqtst_testhelper.h>
 
 // CONVENIENCE
@@ -363,23 +368,235 @@ static void test7_gcThenInsert()
     setup(obj, 1, timeout);
 }
 
+static void testN1_insertPerformance()
+// ------------------------------------------------------------------------
+// INSERT PERFORMANCE
+//
+// Concerns:
+//   Performance comparison of insert() between OrderedHashMapWithHistory
+//   and bsl::unordered_map.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("INSERT PERFORMANCE");
+
+    const size_t k_NUM_ELEMENTS = 5000000;
+
+    bmqtst::Table table(bmqtst::TestHelperUtil::allocator());
+
+    // bmqc::OrderedHashMapWithHistory
+    {
+        typedef bmqc::OrderedHashMapWithHistory<size_t, size_t> MyMapType;
+
+        MyMapType          map(1, bmqtst::TestHelperUtil::allocator());
+        bsls::Types::Int64 now = 1;
+
+        bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
+        for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
+            map.insert(bsl::make_pair(i, i), now);
+        }
+        bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
+
+        table.column("Map").insertValue("bmqc::OrderedHashMapWithHistory");
+        table.column("Elements")
+            .insertValue(static_cast<bsls::Types::Uint64>(k_NUM_ELEMENTS));
+        table.column("Time (ns)")
+            .insertValue(static_cast<bsls::Types::Uint64>(end - begin));
+        table.column("Per op (ns)")
+            .insertValue(static_cast<bsls::Types::Uint64>((end - begin) /
+                                                          k_NUM_ELEMENTS));
+    }
+
+    // bsl::unordered_map
+    {
+        typedef bsl::unordered_map<size_t, size_t> MyMapType;
+
+        MyMapType map(bmqtst::TestHelperUtil::allocator());
+        map.reserve(k_NUM_ELEMENTS);
+
+        bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
+        for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
+            map.insert(bsl::make_pair(i, i));
+        }
+        bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
+
+        table.column("Map").insertValue("bsl::unordered_map");
+        table.column("Elements")
+            .insertValue(static_cast<bsls::Types::Uint64>(k_NUM_ELEMENTS));
+        table.column("Time (ns)")
+            .insertValue(static_cast<bsls::Types::Uint64>(end - begin));
+        table.column("Per op (ns)")
+            .insertValue(static_cast<bsls::Types::Uint64>((end - begin) /
+                                                          k_NUM_ELEMENTS));
+    }
+
+    table.print(bsl::cout);
+}
+
+static void testN2_erasePerformance()
+// ------------------------------------------------------------------------
+// ERASE PERFORMANCE
+//
+// Concerns:
+//   Performance comparison of erase() between OrderedHashMapWithHistory
+//   and bsl::unordered_map.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("ERASE PERFORMANCE");
+
+    const size_t k_NUM_ELEMENTS = 5000000;
+
+    bmqtst::Table table(bmqtst::TestHelperUtil::allocator());
+
+    // bmqc::OrderedHashMapWithHistory
+    {
+        typedef bmqc::OrderedHashMapWithHistory<size_t, size_t> MyMapType;
+        typedef MyMapType::iterator                             IterType;
+
+        MyMapType          map(1, bmqtst::TestHelperUtil::allocator());
+        bsls::Types::Int64 now = 1;
+        for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
+            map.insert(bsl::make_pair(i, i), now);
+        }
+
+        IterType           it    = map.begin();
+        bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
+        while (it != map.end()) {
+            map.erase(it++);
+        }
+        bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
+
+        table.column("Map").insertValue("bmqc::OrderedHashMapWithHistory");
+        table.column("Elements")
+            .insertValue(static_cast<bsls::Types::Uint64>(k_NUM_ELEMENTS));
+        table.column("Time (ns)")
+            .insertValue(static_cast<bsls::Types::Uint64>(end - begin));
+        table.column("Per op (ns)")
+            .insertValue(static_cast<bsls::Types::Uint64>((end - begin) /
+                                                          k_NUM_ELEMENTS));
+    }
+
+    // bsl::unordered_map
+    {
+        typedef bsl::unordered_map<size_t, size_t> MyMapType;
+        typedef MyMapType::iterator                IterType;
+
+        MyMapType map(bmqtst::TestHelperUtil::allocator());
+        for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
+            map.insert(bsl::make_pair(i, i));
+        }
+
+        IterType           it    = map.begin();
+        bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
+        while (it != map.end()) {
+            map.erase(it++);
+        }
+        bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
+
+        table.column("Map").insertValue("bsl::unordered_map");
+        table.column("Elements")
+            .insertValue(static_cast<bsls::Types::Uint64>(k_NUM_ELEMENTS));
+        table.column("Time (ns)")
+            .insertValue(static_cast<bsls::Types::Uint64>(end - begin));
+        table.column("Per op (ns)")
+            .insertValue(static_cast<bsls::Types::Uint64>((end - begin) /
+                                                          k_NUM_ELEMENTS));
+    }
+
+    table.print(bsl::cout);
+}
+
+static void testN3_findPerformance()
+// ------------------------------------------------------------------------
+// FIND PERFORMANCE
+//
+// Concerns:
+//   Performance comparison of find() between OrderedHashMapWithHistory
+//   and bsl::unordered_map.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("FIND PERFORMANCE");
+
+    const size_t k_NUM_ELEMENTS = 5000000;
+
+    bmqtst::Table table(bmqtst::TestHelperUtil::allocator());
+
+    // bmqc::OrderedHashMapWithHistory
+    {
+        typedef bmqc::OrderedHashMapWithHistory<size_t, size_t> MyMapType;
+
+        MyMapType          map(1, bmqtst::TestHelperUtil::allocator());
+        bsls::Types::Int64 now = 1;
+        for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
+            map.insert(bsl::make_pair(i, i), now);
+        }
+
+        bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
+        for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
+            map.find(i);
+        }
+        bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
+
+        table.column("Map").insertValue("bmqc::OrderedHashMapWithHistory");
+        table.column("Elements")
+            .insertValue(static_cast<bsls::Types::Uint64>(k_NUM_ELEMENTS));
+        table.column("Time (ns)")
+            .insertValue(static_cast<bsls::Types::Uint64>(end - begin));
+        table.column("Per op (ns)")
+            .insertValue(static_cast<bsls::Types::Uint64>((end - begin) /
+                                                          k_NUM_ELEMENTS));
+    }
+
+    // bsl::unordered_map
+    {
+        typedef bsl::unordered_map<size_t, size_t> MyMapType;
+
+        MyMapType map(bmqtst::TestHelperUtil::allocator());
+        map.reserve(k_NUM_ELEMENTS);
+        for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
+            map.insert(bsl::make_pair(i, i));
+        }
+
+        bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
+        for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
+            map.find(i);
+        }
+        bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
+
+        table.column("Map").insertValue("bsl::unordered_map");
+        table.column("Elements")
+            .insertValue(static_cast<bsls::Types::Uint64>(k_NUM_ELEMENTS));
+        table.column("Time (ns)")
+            .insertValue(static_cast<bsls::Types::Uint64>(end - begin));
+        table.column("Per op (ns)")
+            .insertValue(static_cast<bsls::Types::Uint64>((end - begin) /
+                                                          k_NUM_ELEMENTS));
+    }
+
+    table.print(bsl::cout);
+}
+
 //=============================================================================
 //                              MAIN PROGRAM
 //-----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
 {
+    bsls::TimeUtil::initialize();
+
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
-    case 1: test1_insert(); break;
-    case 2: test2_eraseMiddleToEnd(); break;
-    case 3: test3_eraseMiddleToBegin(); break;
-    case 4: test4_gc(); break;
-    case 5: test5_insertAfterEnd(); break;
-    case 6: test6_eraseThenGc(); break;
     case 7: test7_gcThenInsert(); break;
+    case 6: test6_eraseThenGc(); break;
+    case 5: test5_insertAfterEnd(); break;
+    case 4: test4_gc(); break;
+    case 3: test3_eraseMiddleToBegin(); break;
+    case 2: test2_eraseMiddleToEnd(); break;
+    case 1: test1_insert(); break;
+    case -1: testN1_insertPerformance(); break;
+    case -2: testN2_erasePerformance(); break;
+    case -3: testN3_findPerformance(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         bmqtst::TestHelperUtil::testStatus() = -1;
