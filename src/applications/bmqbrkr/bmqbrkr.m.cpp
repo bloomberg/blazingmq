@@ -474,15 +474,26 @@ initializeApplication(BSLA_MAYBE_UNUSED bsl::ostream& errorDescription,
                           task.allocatorStatContext(),
                           task.allocatorStore().get("Application"));
 
+    // Local functor replacing Bind
+    struct MTrapHandler {
+        TaskEnvironment* d_taskEnv_p;
+
+        explicit MTrapHandler(TaskEnvironment* taskEnv)
+        : d_taskEnv_p(taskEnv)
+        {
+        }
+
+        void operator()(const bsl::string& prefix, bsl::istream& stream) const
+        {
+            onMTrap(d_taskEnv_p, prefix, stream);
+        }
+    };
+
     // Register 'CMD' M-Trap
-    taskEnv->d_task.object().registerMTrapHandler(
-        "CMD",
-        "",
-        "bmqbrkr specific commands",
-        bdlf::BindUtil::bind(onMTrap,
-                             taskEnv,
-                             bdlf::PlaceHolders::_1,    // prefix
-                             bdlf::PlaceHolders::_2));  // istream
+    taskEnv->d_task.object().registerMTrapHandler("CMD",
+                                                  "",
+                                                  "bmqbrkr specific commands",
+                                                  MTrapHandler(taskEnv));
     return 0;
 }
 
