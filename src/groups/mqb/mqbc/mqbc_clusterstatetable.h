@@ -460,6 +460,10 @@ class ClusterStateTable
                 CSL_CMT_SUCCESS,
                 logUnexpectedCSLCommit_and_abort,
                 UNKNOWN);
+        CST_CFG(UNKNOWN,
+                CSL_CMT_FAIL,
+                logUnexpectedCSLCommit_and_abort,
+                UNKNOWN);
         CST_CFG(UNKNOWN, STOP_NODE, stopPFSMs, STOPPED);
         CST_CFG(UNKNOWN, RST_PRIMARY, updatePrimaryInPFSMs, UNKNOWN);
         CST_CFG(FOL_HEALING,
@@ -546,6 +550,10 @@ class ClusterStateTable
                 LDR_HEALING_STG2);
         CST_CFG(LDR_HEALING_STG1,
                 CSL_CMT_SUCCESS,
+                logUnexpectedCSLCommit_and_abort,
+                LDR_HEALING_STG1);
+        CST_CFG(LDR_HEALING_STG1,
+                CSL_CMT_FAIL,
                 logUnexpectedCSLCommit_and_abort,
                 LDR_HEALING_STG1);
         CST_CFG(LDR_HEALING_STG1,
