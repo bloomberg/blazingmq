@@ -120,6 +120,53 @@ struct TaskEnvironment {
 /// the assert handler can access the needed data.
 static TaskEnvironment* s_taskEnv_p = 0;
 
+/// Handler functor for incoming commands
+struct MTrapHandler {
+    TaskEnvironment* d_taskEnv_p;
+
+    explicit MTrapHandler(TaskEnvironment* taskEnv)
+    : d_taskEnv_p(taskEnv)
+    {
+        // PRECONDITIONS
+        BSLS_ASSERT(d_taskEnv_p);
+    }
+
+    void operator()(const bsl::string& prefix, bsl::istream& stream) const
+    {
+        BSLS_ASSERT_SAFE(d_taskEnv_p);
+
+        bsl::string cmd;
+
+        bsl::getline(stream, cmd);
+        cmd.erase(0, 1);  // cmd starts by a space, remove it
+
+        if (bdlb::String::areEqualCaseless(prefix, "EXIT")) {
+            d_taskEnv_p->d_shutdownSemaphore.post();
+            // Return now because as a consequence of the Task::shutdown()
+            // call, the BALL log system has been torn down.
+            return;  // RETURN
+        }
+        else if (bdlb::String::areEqualCaseless(prefix, "CMD")) {
+            const bsls::Types::Int64 start =
+                bmqsys::Time::highResolutionTimer();
+            d_taskEnv_p->d_app.object().enqueueCommand(
+                "MTRAP",
+                cmd,
+                bdlf::BindUtil::bind(
+                    onProcessedAdminCommand,
+                    prefix,
+                    cmd,
+                    start,
+                    bdlf::PlaceHolders::_1,    // rc
+                    bdlf::PlaceHolders::_2));  // commandExecResults
+            return;                            // RETURN
+        }
+
+        BALL_LOG_ERROR << "Unknown command '" << prefix << "'\n"
+                       << "Send 'HELP' to see a list of commands supported by "
+                       << "bmqbrkr.";
+    }
+};
 }  // close unnamed namespace
 
 extern "C" {
@@ -336,46 +383,6 @@ static void onProcessedAdminCommand(const bsl::string&       prefix,
     }
 }
 
-/// Callback when an M-Trap command is received for the specified `taskEnv`,
-/// with the specified `input` command having the specified `prefix` (being
-/// the command type).
-static void onMTrap(TaskEnvironment*   taskEnv,
-                    const bsl::string& prefix,
-                    bsl::istream&      input)
-{
-    BSLS_ASSERT_SAFE(taskEnv);
-
-    bsl::string cmd;
-
-    bsl::getline(input, cmd);
-    cmd.erase(0, 1);  // cmd starts by a space, remove it
-
-    if (bdlb::String::areEqualCaseless(prefix, "EXIT")) {
-        taskEnv->d_shutdownSemaphore.post();
-        // Return now because as a consequence of the Task::shutdown() call,
-        // the BALL log system has been torn down.
-        return;  // RETURN
-    }
-    else if (bdlb::String::areEqualCaseless(prefix, "CMD")) {
-        const bsls::Types::Int64 start = bmqsys::Time::highResolutionTimer();
-        taskEnv->d_app.object().enqueueCommand(
-            "MTRAP",
-            cmd,
-            bdlf::BindUtil::bind(
-                onProcessedAdminCommand,
-                prefix,
-                cmd,
-                start,
-                bdlf::PlaceHolders::_1,    // rc
-                bdlf::PlaceHolders::_2));  // commandExecResults
-        return;                            // RETURN
-    }
-
-    BALL_LOG_ERROR << "Unknown command '" << prefix << "'\n"
-                   << "Send 'HELP' to see a list of commands supported by "
-                   << "bmqbrkr.";
-}
-
 /// Create and initialize the Task object from the specified `taskEnv`.
 /// Return 0 on success, or a non-zero error code and populate the specified
 /// `errorDescription` with a description of the error otherwise.
@@ -398,9 +405,8 @@ static int initializeTask(bsl::ostream&    errorDescription,
         localError,
         taskEnv->d_config.taskConfig());
     if (rc != 0) {
-        errorDescription << "Failed to initialize task "
-                         << "[rc: " << rc << ", reason: '" << localError.str()
-                         << "']";
+        errorDescription << "Failed to initialize task " << "[rc: " << rc
+                         << ", reason: '" << localError.str() << "']";
 
         // Destroy the task
         taskEnv->d_task.object().m_bmqbrkr::Task::~Task();
@@ -412,10 +418,7 @@ static int initializeTask(bsl::ostream&    errorDescription,
         "EXIT",
         "",
         "Gracefully terminate bmqbrkr",
-        bdlf::BindUtil::bind(onMTrap,
-                             taskEnv,
-                             bdlf::PlaceHolders::_1,    // prefix
-                             bdlf::PlaceHolders::_2));  // istream
+        MTrapHandler(taskEnv));
 
     // Save the PID of the process in the '${BMQ_PREFIX}/bmqbrkr.pid' file
     const bsl::string pidFile = taskEnv->d_bmqPrefix + "/bmqbrkr.pid";
@@ -473,21 +476,6 @@ initializeApplication(BSLA_MAYBE_UNUSED bsl::ostream& errorDescription,
         mqba::Application(task.scheduler(),
                           task.allocatorStatContext(),
                           task.allocatorStore().get("Application"));
-
-    // Local functor replacing Bind
-    struct MTrapHandler {
-        TaskEnvironment* d_taskEnv_p;
-
-        explicit MTrapHandler(TaskEnvironment* taskEnv)
-        : d_taskEnv_p(taskEnv)
-        {
-        }
-
-        void operator()(const bsl::string& prefix, bsl::istream& stream) const
-        {
-            onMTrap(d_taskEnv_p, prefix, stream);
-        }
-    };
 
     // Register 'CMD' M-Trap
     taskEnv->d_task.object().registerMTrapHandler("CMD",
