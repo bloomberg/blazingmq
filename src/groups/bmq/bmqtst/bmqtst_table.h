@@ -130,7 +130,7 @@ class Table {
 
         /// @brief Insert the specified value to the end of the column.
         /// @param value The string value to insert
-        void insertValue(const bsl::string& value);
+        void insertValue(bsl::string_view value);
 
         /// @brief Insert the specified value to the end of the column.
         /// @param value The unsigned 64-bit value to insert
