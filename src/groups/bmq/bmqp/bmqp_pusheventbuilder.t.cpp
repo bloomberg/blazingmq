@@ -221,11 +221,9 @@ appendMessage(size_t                    iteration,
 #endif
 
     bdlbb::Blob payload(bufferFactory, allocator);
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    const int                        blobSize = generateRandomInteger(0, 1024);
-    const bmqp::Protocol::MsgGroupId str(blobSize, 'x', allocator);
+    const int         blobSize = generateRandomInteger(1, 1024);
+    const bsl::string str(blobSize, 'x', allocator);
     bdlbb::BlobUtil::append(&payload, str.c_str(), blobSize);
-#endif
 
     data.d_payload = payload;
 
