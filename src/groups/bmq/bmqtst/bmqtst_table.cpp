@@ -114,9 +114,10 @@ void Table::print(bsl::ostream& os) const
 // -----------------------
 
 // MANIPULATORS
-void Table::ColumnView::insertValue(const bsl::string& value)
+void Table::ColumnView::insertValue(bsl::string_view value)
 {
-    d_table.d_columns.at(d_columnIndex).push_back(value);
+    d_table.d_columns.at(d_columnIndex)
+        .push_back(bsl::string(value, d_table.d_allocator_p));
 }
 
 void Table::ColumnView::insertValue(const bsls::Types::Uint64& value)
