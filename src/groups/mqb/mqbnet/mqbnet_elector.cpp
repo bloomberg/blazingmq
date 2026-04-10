@@ -642,7 +642,7 @@ void ElectorStateMachine::applyLeaderHeartbeatEventToLeader(
     bsls::Types::Uint64        term,
     int                        sourceNodeId)
 {
-    if (d_term >= term) {
+    if (d_term > term) {
         BALL_LOG_WARN
             << "#ELECTOR_LEADER_HEARTBEAT "
             << "LEADER received LEADER_HEARTBEAT with stale term [" << term
