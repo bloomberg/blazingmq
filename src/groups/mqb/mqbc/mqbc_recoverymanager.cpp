@@ -1778,7 +1778,7 @@ int RecoveryManager::recoverSeqNum(
     return rc_SUCCESS;
 }
 
-int RecoveryManager::initHistoricHighestSeqNums(int partitionId)
+int RecoveryManager::initHighestSeqNums(int partitionId)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
@@ -1790,7 +1790,7 @@ int RecoveryManager::initHistoricHighestSeqNums(int partitionId)
     RecoveryContext& recoveryCtx = d_recoveryContextVec[partitionId];
 
     // Return early if already initialized for this partition
-    if (recoveryCtx.d_historicHighestSeqNumsInitialized) {
+    if (recoveryCtx.d_highestSeqNumsInitialized) {
         return rc_SUCCESS;  // RETURN
     }
 
@@ -1807,9 +1807,9 @@ int RecoveryManager::initHistoricHighestSeqNums(int partitionId)
     if (rc == 0) {
         BALL_LOG_INFO << d_clusterData.identity().description()
                       << " Partition [" << partitionId << "]: "
-                      << "Journal file has no record. No historic "
-                      << "highest sequence number to initialize.";
-        recoveryCtx.d_historicHighestSeqNumsInitialized = true;
+                      << "Journal file has no record. No highest sequence "
+                      << "number to initialize.";
+        recoveryCtx.d_highestSeqNumsInitialized = true;
         return rc_SUCCESS;  // RETURN
     }
     else if (rc != 1) {
@@ -1825,8 +1825,7 @@ int RecoveryManager::initHistoricHighestSeqNums(int partitionId)
         if (recordHeader.primaryLeaseId() != currPrimaryLeaseId) {
             BSLS_ASSERT_SAFE(recordHeader.primaryLeaseId() >
                              currPrimaryLeaseId);
-            recoveryCtx.d_historicHighestSeqNums[currPrimaryLeaseId] =
-                currSeqNum;
+            recoveryCtx.d_highestSeqNums[currPrimaryLeaseId] = currSeqNum;
 
             currPrimaryLeaseId = recordHeader.primaryLeaseId();
         }
@@ -1837,17 +1836,17 @@ int RecoveryManager::initHistoricHighestSeqNums(int partitionId)
         return rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
     }
     // Store the highest sequence number for the last primary lease id
-    recoveryCtx.d_historicHighestSeqNums[currPrimaryLeaseId] = currSeqNum;
+    recoveryCtx.d_highestSeqNums[currPrimaryLeaseId] = currSeqNum;
 
     BALL_LOG_INFO_BLOCK
     {
         BALL_LOG_OUTPUT_STREAM
             << d_clusterData.identity().description() << " Partition ["
-            << partitionId << "]: " << "Initialized historic highest sequence "
-            << "numbers for primary lease ids: { ";
+            << partitionId << "]: " << "Initialized highest sequence numbers "
+            << "for primary lease ids: { ";
         for (LeaseIdToSeqNumMap::const_iterator cit =
-                 recoveryCtx.d_historicHighestSeqNums.cbegin();
-             cit != recoveryCtx.d_historicHighestSeqNums.cend();
+                 recoveryCtx.d_highestSeqNums.cbegin();
+             cit != recoveryCtx.d_highestSeqNums.cend();
              ++cit) {
             BALL_LOG_OUTPUT_STREAM << cit->first << ": " << cit->second
                                    << ", ";
@@ -1855,7 +1854,7 @@ int RecoveryManager::initHistoricHighestSeqNums(int partitionId)
         BALL_LOG_OUTPUT_STREAM << " }";
     }
 
-    recoveryCtx.d_historicHighestSeqNumsInitialized = true;
+    recoveryCtx.d_highestSeqNumsInitialized = true;
 
     return rc_SUCCESS;
 }

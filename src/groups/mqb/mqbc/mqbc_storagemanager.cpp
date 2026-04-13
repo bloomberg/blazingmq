@@ -1441,14 +1441,13 @@ void StorageManager::do_storeSelfSeq(const EventWithData& event)
             nodeSeqNumCtx.d_seqNum.sequenceNumber() = fs->sequenceNumber();
         }
         else {
-            int rc = d_recoveryManager_mp->initHistoricHighestSeqNums(
-                partitionId);
+            int rc = d_recoveryManager_mp->initHighestSeqNums(partitionId);
             if (rc != 0) {
                 BMQTSK_ALARMLOG_ALARM("FILE_IO")
                     << d_clusterData_p->identity().description()
                     << " Partition [" << partitionId
-                    << "]: " << "Error while initializing historic highest "
-                    << "sequence numbers, rc: " << rc << BMQTSK_ALARMLOG_END;
+                    << "]: " << "Error while initializing highest sequence "
+                    << "numbers, rc: " << rc << BMQTSK_ALARMLOG_END;
 
                 mqbu::ExitUtil::terminate(
                     mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
@@ -2088,23 +2087,23 @@ void StorageManager::do_determineDataDestinations(const EventWithData& event)
             continue;  // CONTINUE
         }
 
-        const RecoveryManager::LeaseIdToSeqNumMap& historicHighestSeqNums =
-            d_recoveryManager_mp->historicHighestSeqNums(partitionId);
-        RecoveryManager::LeaseIdToSeqNumMap::const_iterator historicCit =
-            historicHighestSeqNums.find(nodeSeqNum.primaryLeaseId());
-        if (historicCit != historicHighestSeqNums.end() &&
-            nodeSeqNum.sequenceNumber() > historicCit->second) {
-            bmqp_ctrlmsg::PartitionSequenceNumber historicHighestSeqNum;
-            historicHighestSeqNum.primaryLeaseId() = historicCit->first;
-            historicHighestSeqNum.sequenceNumber() = historicCit->second;
+        const RecoveryManager::LeaseIdToSeqNumMap& highestSeqNums =
+            d_recoveryManager_mp->highestSeqNums(partitionId);
+        RecoveryManager::LeaseIdToSeqNumMap::const_iterator seqNumCit =
+            highestSeqNums.find(nodeSeqNum.primaryLeaseId());
+        if (seqNumCit != highestSeqNums.end() &&
+            nodeSeqNum.sequenceNumber() > seqNumCit->second) {
+            bmqp_ctrlmsg::PartitionSequenceNumber highestSeqNum;
+            highestSeqNum.primaryLeaseId() = seqNumCit->first;
+            highestSeqNum.sequenceNumber() = seqNumCit->second;
 
             BALL_LOG_WARN
                 << d_clusterData_p->identity().description() << " Partition ["
                 << partitionId << "]: " << "Replica "
                 << cit->first->nodeDescription()
                 << " has partition sequence number " << nodeSeqNum
-                << ", while the historic highest sequence number for the same "
-                << "primary lease ID is " << historicHighestSeqNum
+                << ", while the highest sequence number for the same primary "
+                << "lease ID is " << highestSeqNum
                 << ", implying that it has extra irreconcilable records.  We "
                 << "need to send ReplicaDataRequestDrop to this replica.";
 
