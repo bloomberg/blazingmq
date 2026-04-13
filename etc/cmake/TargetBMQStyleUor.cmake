@@ -59,6 +59,7 @@ function(target_bmq_style_uor TARGET)
   add_library(${TARGET}-flags INTERFACE IMPORTED)
 
   bbs_setup_target_uor(${TARGET}
+    SKIP_TESTS
     PRIVATE_PACKAGES "${_PRIVATE_PACKAGES}")
 
   get_target_property(uor_name ${TARGET} NAME)
@@ -83,6 +84,9 @@ function(target_bmq_style_uor TARGET)
       target_link_libraries(${pkg}-iface PUBLIC ${TARGET}-flags)
     endforeach()
   endif()
+
+  include(BMQTest)
+  bmq_add_test(${TARGET} COMPAT)
 endfunction()
 
 # :: bmq_install_target_headers ::::::::::::::::::::::::::::::::::::::::::::::::
