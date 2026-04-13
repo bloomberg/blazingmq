@@ -255,11 +255,11 @@ class StorageManager {
                                    const AppInfos&  addedIdKeyPairs,
                                    const AppInfos&  removedIdKeyPairs) = 0;
 
-    virtual void registerQueueReplica(int                     partitionId,
-                                      const bmqt::Uri&        uri,
-                                      const mqbu::StorageKey& queueKey,
-                                      const AppInfos&         appIdKeyPairs,
-                                      mqbi::Domain*           domain = 0) = 0;
+//    virtual void registerQueueReplica(int                     partitionId,
+//                                      const bmqt::Uri&        uri,
+//                                      const mqbu::StorageKey& queueKey,
+//                                      const AppInfos&         appIdKeyPairs,
+//                                      mqbi::Domain*           domain = 0) = 0;
 
     virtual void unregisterQueueReplica(int                     partitionId,
                                         const bmqt::Uri&        uri,

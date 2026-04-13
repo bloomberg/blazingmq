@@ -4374,7 +4374,7 @@ int FileStore::writeQueueCreationRecord(
         return 10 * rc + rc_WRITE_QUEUE_CREATION_RECORD_ERROR;  // RETURN
     }
 
-    if (!d_isFSMWorkflow) {
+//    if (!d_isFSMWorkflow) {
         // TODO: Temporarily. Remove after all versions wait for CSL commits
         // before calling onQueueAssigned/onQueueUpdated.
 
@@ -4387,7 +4387,7 @@ int FileStore::writeQueueCreationRecord(
         // Ignore the result.  In the case of storage creation failure, the
         // lookup below will fail.
         // Virtual storage creation currently fails on double creation only.
-    }
+//    }
 
     StorageMapIter sit = d_storages.find(queueKey);
     if (sit == d_storages.end()) {

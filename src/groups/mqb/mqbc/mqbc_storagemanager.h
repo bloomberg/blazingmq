@@ -406,6 +406,12 @@ class StorageManager BSLS_KEYWORD_FINAL
     ///         specified `partitionId`.
     void shutdownCb(int partitionId, bslmt::Latch* latch);
 
+    void queueCreationCb(int                     partitionId,
+                         const bmqt::Uri&        uri,
+                         const mqbu::StorageKey& queueKey,
+                         const AppInfos&         appIdKeyPairs,
+                         bool                    isNewQueue);
+
     /// Callback executed when the partition having the specified
     /// `partitionId` has performed recovery and recovered file-backed
     /// queues and their virtual storages in the specified
@@ -813,11 +819,11 @@ class StorageManager BSLS_KEYWORD_FINAL
                            const AppInfos&  removedIdKeyPairs)
         BSLS_KEYWORD_OVERRIDE;
 
-    void registerQueueReplica(int                     partitionId,
-                              const bmqt::Uri&        uri,
-                              const mqbu::StorageKey& queueKey,
-                              const AppInfos&         appIdKeyPairs,
-                              mqbi::Domain* domain = 0) BSLS_KEYWORD_OVERRIDE;
+//    void registerQueueReplica(int                     partitionId,
+//                              const bmqt::Uri&        uri,
+//                              const mqbu::StorageKey& queueKey,
+//                              const AppInfos&         appIdKeyPairs,
+//                              mqbi::Domain* domain = 0) BSLS_KEYWORD_OVERRIDE;
 
     void unregisterQueueReplica(int                     partitionId,
                                 const bmqt::Uri&        uri,
