@@ -477,6 +477,9 @@ class RecoveryManager {
 
     // ACCESSORS
 
+    /// Assert that the specified `partitionId` is a valid partition index.
+    void validatePartitionId(int partitionId) const;
+
     /// Return true if the specified `partitionId` is expecting data chunks,
     /// false otherwise.
     ///
@@ -602,14 +605,20 @@ inline RecoveryManager::RecoveryContext::RecoveryContext(
 // ---------------------
 
 // ACCESSORS
+inline void RecoveryManager::validatePartitionId(int partitionId) const
+{
+    BSLS_ASSERT_SAFE(partitionId >= 0 &&
+                     partitionId <
+                         d_clusterConfig.partitionConfig().numPartitions());
+    (void)partitionId;  // compiler happiness
+}
+
 inline bool RecoveryManager::expectedDataChunks(int partitionId) const
 {
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(partitionId >= 0 &&
-                     partitionId <
-                         d_clusterConfig.partitionConfig().numPartitions());
+    validatePartitionId(partitionId);
 
     return d_recoveryContextVec[partitionId]
         .d_receiveDataContext.d_expectChunks;
@@ -621,9 +630,7 @@ RecoveryManager::historicHighestSeqNums(int partitionId) const
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(partitionId >= 0 &&
-                     partitionId <
-                         d_clusterConfig.partitionConfig().numPartitions());
+    validatePartitionId(partitionId);
 
     return d_recoveryContextVec[partitionId].d_historicHighestSeqNums;
 }
