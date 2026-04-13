@@ -92,9 +92,28 @@ if( "${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|(Apple)?Clang" )
   endif()
 endif()
 
-if (NOT CMAKE_BUILD_TYPE STREQUAL "Release")
-  # In Debug/RelWithDebInfo build, ensure that BSLS_ASSERT_SAFE macro is enabled
+# Set BSLS assert level.  Defaults to SAFE for non-Release builds and OPT for
+# Release builds.  Can be overridden via the BMQ_ASSERT_LEVEL cache variable.
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+  set(_bmq_assert_level_default "OPT")
+else()
+  set(_bmq_assert_level_default "SAFE")
+endif()
+set(BMQ_ASSERT_LEVEL "${_bmq_assert_level_default}" CACHE STRING
+  "BSLS assert level (SAFE, ASSERT, OPT, NONE, or empty for BDE default).")
+string(TOUPPER "${BMQ_ASSERT_LEVEL}" _bmq_assert_level_upper)
+if (_bmq_assert_level_upper STREQUAL "SAFE")
   add_definitions("-DBSLS_ASSERT_LEVEL_ASSERT_SAFE")
+elseif (_bmq_assert_level_upper STREQUAL "ASSERT")
+  add_definitions("-DBSLS_ASSERT_LEVEL_ASSERT")
+elseif (_bmq_assert_level_upper STREQUAL "OPT")
+  add_definitions("-DBSLS_ASSERT_LEVEL_ASSERT_OPT")
+elseif (_bmq_assert_level_upper STREQUAL "NONE")
+  add_definitions("-DBSLS_ASSERT_LEVEL_NONE")
+elseif (NOT _bmq_assert_level_upper STREQUAL "")
+  message(FATAL_ERROR
+    "Invalid BMQ_ASSERT_LEVEL '${BMQ_ASSERT_LEVEL}'."
+    "  Valid values: SAFE, ASSERT, OPT, NONE, or empty.")
 endif()
 
 # This repo contains the canonical source of multiple, independently released,
