@@ -2064,6 +2064,26 @@ void StorageManager::do_determineDataDestinations(const EventWithData& event)
             dataDropDestinations.emplace_back(cit);
             continue;  // CONTINUE
         }
+        if (seqNumCit == highestSeqNums.end() &&
+            nodeSeqNum.primaryLeaseId() > 0 &&
+            nodeSeqNum.primaryLeaseId() < selfSeqNum.primaryLeaseId()) {
+            BALL_LOG_WARN
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId << "]: " << "Replica "
+                << cit->first->nodeDescription()
+                << " has partition sequence number " << nodeSeqNum
+                << ", whose primary lease ID is lower than self's partition "
+                   "sequence number "
+                << selfSeqNum
+                << ", and there is no known highest sequence number for the "
+                << "same primary lease ID.  This implies that this replica "
+                   "has "
+                << "extra irreconcilable records, and we need to send "
+                << "ReplicaDataRequestDrop to this replica.";
+
+            dataDropDestinations.emplace_back(cit);
+            continue;  // CONTINUE
+        }
 
         if (nodeSeqNum <= selfSeqNum) {
             // We need to send `ReplicaDataRequestPush` to all outdated and
