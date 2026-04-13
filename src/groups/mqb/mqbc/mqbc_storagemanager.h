@@ -470,19 +470,6 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// THREAD: Executed by the cluster's dispatcher thread.
     void onWatchdogDispatched(int partitionId, int generation);
 
-    /// Callback to generate an event for the associated PartitionFSM after
-    /// done sending data chunks of the specified `range` related to the
-    /// specified `requestId` for the specified `partitionId` to the
-    /// specified `destination`, resulting in the specified `status`.
-    ///
-    /// THREAD: This method is invoked in the associated Queue dispatcher
-    ///         thread for the specified `partitionId`.
-    void onPartitionDoneSendDataChunksCb(int partitionId,
-                                         int requestId,
-                                         const PartitionSeqNumDataRange& range,
-                                         mqbnet::ClusterNode* destination,
-                                         int*                 status);
-
     /// Callback invoked when the recovery for the specified `paritionId` is
     /// complete.
     ///

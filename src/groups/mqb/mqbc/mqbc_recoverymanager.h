@@ -248,21 +248,8 @@ class RecoveryManager {
   private:
     // PRIVATE TYPES
 
-    /// Callback provided by @bbref{mqbc::StorageManager} to this component to
-    /// indicate the status of sendDataChunks to the specified `destination`
-    /// i.e. peer to which current node is sending data for the specified
-    /// `partitionId`. The status is as per the specified `status`.
-    typedef bsl::function<
-        void(int partitionId, mqbnet::ClusterNode* destination, int* status)>
-        PartitionDoneSendDataChunksCb;
-
     /// Vector per partition of `RecoveryContext`.
     typedef bsl::vector<RecoveryContext> RecoveryContextVec;
-
-    // This callback is only used when the self node is a replica.
-    bsl::function<
-        void(int partitionId, mqbnet::ClusterNode* destination, int* status)>
-        PartitionDoneRcvDataChunksCb;
 
   public:
     // TYPES
@@ -360,19 +347,18 @@ class RecoveryManager {
 
     /// Send data chunks for the specified `partitionId` to the specified
     /// `destination` starting from specified `beginSeqNum` upto specified
-    /// `endSeqNum` using data from specified `fs`. Send the status of this
-    /// operation back to the caller using the specified `doneDataChunksCb`.
-    /// Note, we mmap the files for every call to this function.
+    /// `endSeqNum` using data from specified `fs`.  Return 0 on success and
+    /// non-zero on failure.  Note, we mmap the files for every call to this
+    /// function.
     ///
     /// THREAD: Executed in the dispatcher thread associated with the
     /// specified `partitionId`.
-    void processSendDataChunks(
+    int processSendDataChunks(
         int                                          partitionId,
         mqbnet::ClusterNode*                         destination,
         const bmqp_ctrlmsg::PartitionSequenceNumber& beginSeqNum,
         const bmqp_ctrlmsg::PartitionSequenceNumber& endSeqNum,
-        const mqbs::FileStore&                       fs,
-        PartitionDoneSendDataChunksCb                doneDataChunksCb);
+        const mqbs::FileStore&                       fs);
 
     /// Process the recovery data chunks contained in the specified `blob`
     /// sent by the specified `source` for the specified `partitionId`.

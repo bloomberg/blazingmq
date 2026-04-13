@@ -242,52 +242,6 @@ void StorageManager::onWatchdogDispatched(int partitionId, int generation)
     }
 }
 
-void StorageManager::onPartitionDoneSendDataChunksCb(
-    int                             partitionId,
-    int                             requestId,
-    const PartitionSeqNumDataRange& range,
-    mqbnet::ClusterNode*            destination,
-    int*                            status)
-{
-    // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(0 <= partitionId &&
-                     partitionId < static_cast<int>(d_fileStores.size()));
-
-    EventData eventDataVec;
-    eventDataVec.emplace_back(destination, requestId, partitionId, 1, range);
-
-    // Note that currently the two FSM events below are no-op if we are the
-    // primary.  As replica, we will send either success or failure
-    // ReplicaDataResponsePull depending on 'status'.  In the future, it might
-    // no longer be no-op for primary.
-    if (*status != 0) {
-        BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << " Partition [" << partitionId
-                       << "]: " << "Failure while sending data chunks "
-                       << ", beginSeqNum = " << range.first
-                       << ", endSeqNum = " << range.second
-                       << ", rc = " << *status;
-
-        enqueuePartitionFSMEvent(
-            PartitionFSM::Event::e_ERROR_SENDING_DATA_CHUNKS,
-            eventDataVec);
-    }
-    else {
-        BALL_LOG_INFO << d_clusterData_p->identity().description()
-                      << " Partition [" << partitionId
-                      << "]: " << "Finished sending data chunks "
-                      << ", beginSeqNum = " << range.first
-                      << ", endSeqNum = " << range.second
-                      << ", rc = " << *status;
-
-        enqueuePartitionFSMEvent(
-            PartitionFSM::Event::e_DONE_SENDING_DATA_CHUNKS,
-            eventDataVec);
-    }
-}
-
 void StorageManager::onPartitionRecovery(int partitionId)
 {
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
@@ -2867,21 +2821,43 @@ void StorageManager::do_startSendDataChunks(const EventWithData& event)
             endSeqNum ==
             d_nodeToSeqNumCtxMapVec[partitionId][selfNode].d_seqNum);
 
-        bsl::function<void(int, mqbnet::ClusterNode*, int*)> f =
-            bdlf::BindUtil::bind(
-                &StorageManager::onPartitionDoneSendDataChunksCb,
-                this,
-                bdlf::PlaceHolders::_1,  // partitionId
-                eventData.requestId(),
-                eventData.partitionSeqNumDataRange(),
-                bdlf::PlaceHolders::_2,   // destination
-                bdlf::PlaceHolders::_3);  // status
-        d_recoveryManager_mp->processSendDataChunks(partitionId,
-                                                    destNode,
-                                                    beginSeqNum,
-                                                    endSeqNum,
-                                                    fs,
-                                                    f);
+        int status = d_recoveryManager_mp->processSendDataChunks(partitionId,
+                                                                 destNode,
+                                                                 beginSeqNum,
+                                                                 endSeqNum,
+                                                                 fs);
+
+        EventData sendEventDataVec;
+        sendEventDataVec.emplace_back(destNode,
+                                      eventData.requestId(),
+                                      partitionId,
+                                      1,
+                                      eventData.partitionSeqNumDataRange());
+
+        if (status != 0) {
+            BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                           << " Partition [" << partitionId
+                           << "]: " << "Failure while sending data chunks "
+                           << ", beginSeqNum = " << beginSeqNum
+                           << ", endSeqNum = " << endSeqNum
+                           << ", rc = " << status;
+
+            enqueuePartitionFSMEvent(
+                PartitionFSM::Event::e_ERROR_SENDING_DATA_CHUNKS,
+                sendEventDataVec);
+        }
+        else {
+            BALL_LOG_INFO << d_clusterData_p->identity().description()
+                          << " Partition [" << partitionId
+                          << "]: " << "Finished sending data chunks "
+                          << ", beginSeqNum = " << beginSeqNum
+                          << ", endSeqNum = " << endSeqNum
+                          << ", rc = " << status;
+
+            enqueuePartitionFSMEvent(
+                PartitionFSM::Event::e_DONE_SENDING_DATA_CHUNKS,
+                sendEventDataVec);
+        }
         return;  // RETURN
     }
 
@@ -2909,21 +2885,43 @@ void StorageManager::do_startSendDataChunks(const EventWithData& event)
         BSLS_ASSERT_SAFE(beginSeqNum < endSeqNum);
 
         PartitionSeqNumDataRange dataRange(beginSeqNum, endSeqNum);
-        bsl::function<void(int, mqbnet::ClusterNode*, int*)> f =
-            bdlf::BindUtil::bind(
-                &StorageManager::onPartitionDoneSendDataChunksCb,
-                this,
-                bdlf::PlaceHolders::_1,  // partitionId
-                eventData.requestId(),
-                dataRange,
-                bdlf::PlaceHolders::_2,   // destination
-                bdlf::PlaceHolders::_3);  // status
-        d_recoveryManager_mp->processSendDataChunks(partitionId,
-                                                    destNode,
-                                                    beginSeqNum,
-                                                    endSeqNum,
-                                                    fs,
-                                                    f);
+        int status = d_recoveryManager_mp->processSendDataChunks(partitionId,
+                                                                 destNode,
+                                                                 beginSeqNum,
+                                                                 endSeqNum,
+                                                                 fs);
+
+        EventData sendEventDataVec;
+        sendEventDataVec.emplace_back(destNode,
+                                      eventData.requestId(),
+                                      partitionId,
+                                      1,
+                                      dataRange);
+
+        if (status != 0) {
+            BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                           << " Partition [" << partitionId
+                           << "]: " << "Failure while sending data chunks "
+                           << ", beginSeqNum = " << beginSeqNum
+                           << ", endSeqNum = " << endSeqNum
+                           << ", rc = " << status;
+
+            enqueuePartitionFSMEvent(
+                PartitionFSM::Event::e_ERROR_SENDING_DATA_CHUNKS,
+                sendEventDataVec);
+        }
+        else {
+            BALL_LOG_INFO << d_clusterData_p->identity().description()
+                          << " Partition [" << partitionId
+                          << "]: " << "Finished sending data chunks "
+                          << ", beginSeqNum = " << beginSeqNum
+                          << ", endSeqNum = " << endSeqNum
+                          << ", rc = " << status;
+
+            enqueuePartitionFSMEvent(
+                PartitionFSM::Event::e_DONE_SENDING_DATA_CHUNKS,
+                sendEventDataVec);
+        }
     }
 }
 
