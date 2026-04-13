@@ -8,7 +8,7 @@
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/blazingmq",
             "cacheVariables": {
-                "BDE_BUILD_TARGET_SAFE": "ON",
+                "BMQ_ASSERT_LEVEL": "SAFE",
                 "BDE_BUILD_TARGET_64": "ON",
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_PREFIX_PATH":
