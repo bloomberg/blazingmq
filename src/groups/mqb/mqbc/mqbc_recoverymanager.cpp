@@ -152,9 +152,7 @@ int RecoveryManager::deprecateFileSet(int partitionId)
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(partitionId >= 0 &&
-                     partitionId <
-                         d_clusterConfig.partitionConfig().numPartitions());
+    validatePartitionId(partitionId);
 
     enum rcEnum { rc_SUCCESS = 0, rc_FAILURE = 1 };
 
@@ -425,9 +423,7 @@ void RecoveryManager::setExpectedDataChunkRange(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(fs.inDispatcherThread());
-    BSLS_ASSERT_SAFE(partitionId >= 0 &&
-                     partitionId <
-                         d_clusterConfig.partitionConfig().numPartitions());
+    validatePartitionId(partitionId);
     BSLS_ASSERT_SAFE(source);
     BSLS_ASSERT_SAFE(beginSeqNum < endSeqNum);
 
@@ -486,9 +482,7 @@ void RecoveryManager::resetReceiveDataCtx(int partitionId)
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(partitionId >= 0 &&
-                     partitionId <
-                         d_clusterConfig.partitionConfig().numPartitions());
+    validatePartitionId(partitionId);
 
     d_recoveryContextVec[partitionId].d_receiveDataContext.reset();
 }
@@ -1176,9 +1170,7 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(partitionId >= 0 &&
-                     partitionId <
-                         d_clusterConfig.partitionConfig().numPartitions());
+    validatePartitionId(partitionId);
 
     enum RcEnum {
         // Value for the various RC error categories
@@ -1565,9 +1557,7 @@ int RecoveryManager::closeRecoveryFileSet(int partitionId)
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(partitionId >= 0 &&
-                     partitionId <
-                         d_clusterConfig.partitionConfig().numPartitions());
+    validatePartitionId(partitionId);
 
     enum RcEnum {
         // Value for the various RC error categories
@@ -1727,9 +1717,7 @@ int RecoveryManager::recoverSeqNum(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(seqNum);
-    BSLS_ASSERT_SAFE(partitionId >= 0 &&
-                     partitionId <
-                         d_clusterConfig.partitionConfig().numPartitions());
+    validatePartitionId(partitionId);
     enum {
         rc_SUCCESS               = 0,
         rc_UNKNOWN               = -1,
@@ -1793,9 +1781,7 @@ int RecoveryManager::initHistoricHighestSeqNums(int partitionId)
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(partitionId >= 0 &&
-                     partitionId <
-                         d_clusterConfig.partitionConfig().numPartitions());
+    validatePartitionId(partitionId);
 
     enum rcEnum { rc_SUCCESS = 0, rc_JOURNAL_ITERATOR_FAILURE = -1 };
 
@@ -2009,9 +1995,7 @@ void RecoveryManager::loadReplicaDataResponsePush(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(out);
-    BSLS_ASSERT_SAFE(partitionId >= 0 &&
-                     partitionId <
-                         d_clusterConfig.partitionConfig().numPartitions());
+    validatePartitionId(partitionId);
 
     const ReceiveDataContext& receiveDataCtx =
         d_recoveryContextVec[partitionId].d_receiveDataContext;
