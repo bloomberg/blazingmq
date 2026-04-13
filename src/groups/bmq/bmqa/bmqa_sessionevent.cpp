@@ -20,6 +20,7 @@
 // BMQ
 #include <bmqimp_brokersession.h>
 #include <bmqimp_event.h>
+#include <bmqt_sessioneventtype.h>
 
 // BDE
 #include <bsl_memory.h>
@@ -90,7 +91,11 @@ QueueId SessionEvent::queueId() const
                      d_impl_sp->sessionEventType() ==
                          bmqt::SessionEventType::e_QUEUE_REOPEN_RESULT ||
                      d_impl_sp->sessionEventType() ==
-                         bmqt::SessionEventType::e_QUEUE_CLOSE_RESULT);
+                         bmqt::SessionEventType::e_QUEUE_CLOSE_RESULT ||
+                     d_impl_sp->sessionEventType() ==
+                         bmqt::SessionEventType::e_QUEUE_SUSPENDED ||
+                     d_impl_sp->sessionEventType() ==
+                         bmqt::SessionEventType::e_QUEUE_RESUMED);
 
     QueueId                         queueId;
     const bmqimp::Event::QueuesMap& queues = d_impl_sp->queues();

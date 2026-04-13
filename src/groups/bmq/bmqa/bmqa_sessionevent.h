@@ -107,9 +107,9 @@ class SessionEvent {
     /// Return the correlationId associated to this event, if any.
     const bmqt::CorrelationId& correlationId() const;
 
-    /// Return the queueId associated to this event, if any.  The behavior
-    /// is undefined unless this event corresponds to a queue related event
-    /// (i.e. `OPEN`, `CONFIGURE`, `CLOSE`, `REOPEN`).
+    /// Return the queueId associated to this event, if any.  The behavior is
+    /// undefined unless this event corresponds to a queue related event
+    /// (i.e. `OPEN`, `CONFIGURE`, `CLOSE`, `REOPEN`, `SUSPENDED`, `RESUMED`).
     QueueId queueId() const;
 
     /// Return the status code that indicates success or the cause of a
