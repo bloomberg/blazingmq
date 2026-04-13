@@ -770,20 +770,20 @@ void ClusterQueueHelper::onQueueContextAssigned(
         // The storage must exist in FileStore before the primary sends QLIST
         // records; otherwise writeQueueCreationRecord fails with
         // rc_QUEUE_CREATION_FAILURE.  Duplicate registration is a no-op.
-        if (!d_clusterState_p->isSelfPrimary(pid)) {
-            const mqbc::ClusterStateQueueInfo& info =
-                *queueContext->d_stateQInfo_sp;
-
-            mqbc::ClusterState::DomainState& domainState =
-                *d_clusterState_p->domainStates().at(
-                    info.uri().qualifiedDomain());
-
-            d_storageManager_p->registerQueueReplica(pid,
-                                                     info.uri(),
-                                                     info.key(),
-                                                     info.appInfos(),
-                                                     domainState.domain());
-        }
+//        if (!d_clusterState_p->isSelfPrimary(pid)) {
+//            const mqbc::ClusterStateQueueInfo& info =
+//                *queueContext->d_stateQInfo_sp;
+//
+//            mqbc::ClusterState::DomainState& domainState =
+//                *d_clusterState_p->domainStates().at(
+//                    info.uri().qualifiedDomain());
+//
+//            d_storageManager_p->registerQueueReplica(pid,
+//                                                     info.uri(),
+//                                                     info.key(),
+//                                                     info.appInfos(),
+//                                                     domainState.domain());
+//        }
     }
 
     BALL_LOGTHROTTLE_INFO_BLOCK(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
