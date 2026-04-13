@@ -1794,78 +1794,69 @@ int RecoveryManager::initHistoricHighestSeqNums(int partitionId)
         return rc_SUCCESS;  // RETURN
     }
 
-    {
-        mqbs::JournalFileIterator journalIt;
-        int rc = journalIt.reset(&recoveryCtx.d_mappedJournalFd,
-                                 mqbs::FileStoreProtocolUtil::bmqHeader(
-                                     recoveryCtx.d_mappedJournalFd));
-        if (0 != rc) {
-            return rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
-        }
+    mqbs::JournalFileIterator journalIt;
+    int                       rc = journalIt.reset(
+        &recoveryCtx.d_mappedJournalFd,
+        mqbs::FileStoreProtocolUtil::bmqHeader(recoveryCtx.d_mappedJournalFd));
+    if (0 != rc) {
+        return rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
+    }
 
-        // Make initial 'journalIt.nextRecord()' call
-        rc = journalIt.nextRecord();
-        if (rc == 0) {
-            BALL_LOG_INFO << d_clusterData.identity().description()
-                          << " Partition [" << partitionId << "]: "
-                          << "Journal file has no record. No historic "
-                          << "highest sequence number to initialize.";
-            recoveryCtx.d_historicHighestSeqNumsInitialized = true;
-            return rc_SUCCESS;  // RETURN
-        }
-        else if (rc != 1) {
-            return rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
-        }
+    // Make initial 'journalIt.nextRecord()' call
+    rc = journalIt.nextRecord();
+    if (rc == 0) {
+        BALL_LOG_INFO << d_clusterData.identity().description()
+                      << " Partition [" << partitionId << "]: "
+                      << "Journal file has no record. No historic "
+                      << "highest sequence number to initialize.";
+        recoveryCtx.d_historicHighestSeqNumsInitialized = true;
+        return rc_SUCCESS;  // RETURN
+    }
+    else if (rc != 1) {
+        return rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
+    }
 
-        unsigned int currPrimaryLeaseId =
-            journalIt.recordHeader().primaryLeaseId();
-        bsls::Types::Uint64 currSeqNum =
-            journalIt.recordHeader().sequenceNumber();
+    unsigned int currPrimaryLeaseId =
+        journalIt.recordHeader().primaryLeaseId();
+    bsls::Types::Uint64 currSeqNum = journalIt.recordHeader().sequenceNumber();
 
-        while (1 == (rc = journalIt.nextRecord())) {
-            const mqbs::RecordHeader& recordHeader = journalIt.recordHeader();
-            if (recordHeader.primaryLeaseId() == currPrimaryLeaseId) {
-                currSeqNum = recordHeader.sequenceNumber();
-            }
-            else {
-                BSLS_ASSERT_SAFE(recordHeader.primaryLeaseId() >
-                                 currPrimaryLeaseId);
-                recoveryCtx.d_historicHighestSeqNums[currPrimaryLeaseId] =
-                    currSeqNum;
-
-                currPrimaryLeaseId = recordHeader.primaryLeaseId();
-                currSeqNum         = recordHeader.sequenceNumber();
-            }
-        }
-
-        if (rc != 0) {
-            return rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
-        }
-        else {
-            // Store the highest sequence number for the last primary lease id
+    while (1 == (rc = journalIt.nextRecord())) {
+        const mqbs::RecordHeader& recordHeader = journalIt.recordHeader();
+        if (recordHeader.primaryLeaseId() != currPrimaryLeaseId) {
+            BSLS_ASSERT_SAFE(recordHeader.primaryLeaseId() >
+                             currPrimaryLeaseId);
             recoveryCtx.d_historicHighestSeqNums[currPrimaryLeaseId] =
                 currSeqNum;
-        }
 
-        BALL_LOG_INFO_BLOCK
-        {
-            BALL_LOG_OUTPUT_STREAM
-                << d_clusterData.identity().description() << " Partition ["
-                << partitionId
-                << "]: " << "Initialized historic highest sequence "
-                << "numbers for primary lease ids: { ";
-            for (LeaseIdToSeqNumMap::const_iterator cit =
-                     recoveryCtx.d_historicHighestSeqNums.cbegin();
-                 cit != recoveryCtx.d_historicHighestSeqNums.cend();
-                 ++cit) {
-                BALL_LOG_OUTPUT_STREAM << cit->first << ": " << cit->second
-                                       << ", ";
-            }
-            BALL_LOG_OUTPUT_STREAM << " }";
+            currPrimaryLeaseId = recordHeader.primaryLeaseId();
         }
-
-        recoveryCtx.d_historicHighestSeqNumsInitialized = true;
+        currSeqNum = recordHeader.sequenceNumber();
     }
+
+    if (rc != 0) {
+        return rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
+    }
+    // Store the highest sequence number for the last primary lease id
+    recoveryCtx.d_historicHighestSeqNums[currPrimaryLeaseId] = currSeqNum;
+
+    BALL_LOG_INFO_BLOCK
+    {
+        BALL_LOG_OUTPUT_STREAM
+            << d_clusterData.identity().description() << " Partition ["
+            << partitionId << "]: " << "Initialized historic highest sequence "
+            << "numbers for primary lease ids: { ";
+        for (LeaseIdToSeqNumMap::const_iterator cit =
+                 recoveryCtx.d_historicHighestSeqNums.cbegin();
+             cit != recoveryCtx.d_historicHighestSeqNums.cend();
+             ++cit) {
+            BALL_LOG_OUTPUT_STREAM << cit->first << ": " << cit->second
+                                   << ", ";
+        }
+        BALL_LOG_OUTPUT_STREAM << " }";
+    }
+
+    recoveryCtx.d_historicHighestSeqNumsInitialized = true;
+
     return rc_SUCCESS;
 }
 
