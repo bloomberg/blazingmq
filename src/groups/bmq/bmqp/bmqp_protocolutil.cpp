@@ -23,6 +23,7 @@
 #include <bmqu_blobiterator.h>
 #include <bmqu_blobobjectproxy.h>
 #include <bmqu_memoutstream.h>
+#include <bmqu_singletonallocator.h>
 
 // BDE
 #include <bdlb_stringrefutil.h>
@@ -32,7 +33,6 @@
 #include <bsl_cstring.h>
 #include <bsl_memory.h>
 #include <bsl_utility.h>
-#include <bslma_default.h>
 #include <bslmt_once.h>
 #include <bsls_objectbuffer.h>
 
@@ -65,7 +65,7 @@ const bdlbb::BlobBuffer& getPaddingBlobBuffer(int numPaddingBytes)
     static bsls::ObjectBuffer<bdlbb::BlobBuffer> buffers[9];
     BSLMT_ONCE_DO
     {
-        bslma::Allocator* alloc = bslma::Default::globalAllocator();
+        bslma::Allocator* alloc = bmqu::SingletonAllocator::allocator();
         for (int i = 0; i < 9; ++i) {
             bsl::shared_ptr<char> data;
             data.reset(const_cast<char*>(k_PADDING_DATA[i]),

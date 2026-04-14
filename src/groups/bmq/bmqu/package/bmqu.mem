@@ -17,6 +17,7 @@ bmqu_outstreamformatsaver
 bmqu_printutil
 bmqu_samethreadchecker
 bmqu_sharedresource
+bmqu_singletonallocator
 bmqu_stringutil
 bmqu_tempdirectory
 bmqu_tempfile

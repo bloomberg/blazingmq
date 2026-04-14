@@ -16,9 +16,11 @@
 // bmqp_heartbeatmonitor.cpp                                          -*-C++-*-
 #include <bmqp_heartbeatmonitor.h>
 
+// BMQ
+#include <bmqu_singletonallocator.h>
+
 // BDE
 #include <bsl_memory.h>
-#include <bslma_default.h>
 #include <bslmt_once.h>
 #include <bsls_objectbuffer.h>
 
@@ -34,8 +36,8 @@ const bdlbb::Blob& HeartbeatMonitor::heartbeatReqBlob()
     static bsls::ObjectBuffer<bdlbb::Blob> blob;
     BSLMT_ONCE_DO
     {
+        bslma::Allocator*        alloc = bmqu::SingletonAllocator::allocator();
         static const EventHeader header(EventType::e_HEARTBEAT_REQ);
-        bslma::Allocator*        alloc = bslma::Default::globalAllocator();
         bsl::shared_ptr<char>    data;
         data.reset(static_cast<char*>(
                        const_cast<void*>(static_cast<const void*>(&header))),
@@ -53,8 +55,8 @@ const bdlbb::Blob& HeartbeatMonitor::heartbeatRspBlob()
     static bsls::ObjectBuffer<bdlbb::Blob> blob;
     BSLMT_ONCE_DO
     {
+        bslma::Allocator*        alloc = bmqu::SingletonAllocator::allocator();
         static const EventHeader header(EventType::e_HEARTBEAT_RSP);
-        bslma::Allocator*        alloc = bslma::Default::globalAllocator();
         bsl::shared_ptr<char>    data;
         data.reset(static_cast<char*>(
                        const_cast<void*>(static_cast<const void*>(&header))),

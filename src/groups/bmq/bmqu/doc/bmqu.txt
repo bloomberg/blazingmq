@@ -9,7 +9,7 @@ reused through various applications.
 
 /Hierarchical Synopsis
 /---------------------
-The 'bmqu' package currently has 18 components having 2 level of physical
+The 'bmqu' package currently has 19 components having 2 level of physical
 dependency.  The list below shows the hierarchal ordering of the components.
 ..
   2. bmqu_blobiterator
@@ -26,6 +26,7 @@ dependency.  The list below shows the hierarchal ordering of the components.
      bmqu_outstreamformatsaver
      bmqu_sharedresource
      bmqu_samethreadchecker
+     bmqu_singletonallocator
      bmqu_stringutil
      bmqu_tempfile
      bmqu_temputil
@@ -70,6 +71,9 @@ dependency.  The list below shows the hierarchal ordering of the components.
 :
 : 'bmqu_sharedresource':
 :      Provide a mechanism to manage the lifetime of a shared resource.
+:
+: 'bmqu_singletonallocator':
+:      Provide a process-lifetime allocator for static initialization.
 :
 : 'bmqu_stringutil':
 :      Provide utility functions for string manipulation.
