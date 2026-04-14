@@ -174,6 +174,11 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     typedef bsl::vector<StorageCollectionUtil::StorageFilter> StorageFilters;
     typedef StorageFilters::const_iterator StorageFiltersconstIter;
 
+    /// Map of primaryLeaseId -> highest sequence number
+    typedef bsl::unordered_map<unsigned int, bsls::Types::Uint64>
+                                               LeaseIdToSeqNumMap;
+    typedef LeaseIdToSeqNumMap::const_iterator LeaseIdToSeqNumMapCIter;
+
   private:
     // PRIVATE TYPES
     typedef FileStore_AliasedBufferDeleter        AliasedBufferDeleter;
@@ -412,6 +417,11 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     // `firstSyncPointOffsetWords`. It is used to determine if cluster node
     // missed rollover.
 
+    /// Map of primaryLeaseId -> highest sequence number observed, initialized
+    /// during recovery, namely `recoverMessages`.  Note that this map will
+    /// *not* contain the highest sequence number for the current primary.
+    LeaseIdToSeqNumMap d_highestSeqNums;
+
     /// Control message transmitter to use.
     mqbnet::ControlMessageTransmitter d_messageTransmitter;
 
@@ -502,7 +512,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// `d_qListAware` is true, and retrieve outstanding records for all those
     /// non-deleted queues in `queueKeyInfoMap` to populate into `d_records`.
     /// Moreover, update `journalOffset`, `dataOffset` and `qlistOffset` to the
-    /// end of the journal, data and qlist files respectively.
+    /// end of the journal, data and qlist files respectively.  Also, populate
+    /// the map of primaryLeaseId to highest sequence number.
     ///
     /// Return zero on success, non zero value otherwise.  The behavior is
     /// undefined unless the journal iterator `jit` is in reverse mode.
@@ -1063,6 +1074,10 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Return the first sync point after rollover sequence number.
     const bmqp_ctrlmsg::PartitionSequenceNumber&
     firstSyncPointAfterRolloverSeqNum() const;
+
+    /// Return the map of primaryLeaseId to highest sequence number, except for
+    /// the current primary.
+    const LeaseIdToSeqNumMap& highestSeqNums() const;
 };
 
 // =======================
@@ -1349,6 +1364,11 @@ inline const bmqp_ctrlmsg::PartitionSequenceNumber&
 FileStore::firstSyncPointAfterRolloverSeqNum() const
 {
     return d_firstSyncPointAfterRolloverSeqNum;
+}
+
+inline const FileStore::LeaseIdToSeqNumMap& FileStore::highestSeqNums() const
+{
+    return d_highestSeqNums;
 }
 
 // -----------------------

@@ -44,7 +44,6 @@
 #include <bsl_functional.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
-#include <bsl_unordered_map.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
@@ -168,10 +167,6 @@ class RecoveryManager {
         // TYPES
         typedef bsl::vector<bsl::shared_ptr<bdlbb::Blob> > StorageEvents;
 
-        /// Map of primaryLeaseId -> sequence number
-        typedef bsl::unordered_map<unsigned int, bsls::Types::Uint64>
-            LeaseIdToSeqNumMap;
-
       public:
         // DATA
 
@@ -211,19 +206,6 @@ class RecoveryManager {
         bmqp_ctrlmsg::PartitionSequenceNumber
             d_firstSyncPointAfterRolloverSeqNum;
 
-        /// Historic map of primaryLeaseId -> highest sequence number observed
-        /// for that primary.  Note that this map will *not* contain the
-        /// highest sequence number observed for the current primary.
-        ///
-        /// TODO During ReplicaDataResponsePull, we bump up our primaryLeaseId,
-        /// we need to update this map.  We will fix this in the future PR
-        /// which fixes receive data chunks logic.
-        LeaseIdToSeqNumMap d_highestSeqNums;
-
-        /// Flag indicating whether the map of highest sequence numbers have
-        /// been initialized.
-        bool d_highestSeqNumsInitialized;
-
       public:
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(RecoveryContext,
@@ -250,10 +232,6 @@ class RecoveryManager {
 
     /// Vector per partition of `RecoveryContext`.
     typedef bsl::vector<RecoveryContext> RecoveryContextVec;
-
-  public:
-    // TYPES
-    typedef RecoveryContext::LeaseIdToSeqNumMap LeaseIdToSeqNumMap;
 
   private:
     // DATA
@@ -404,17 +382,6 @@ class RecoveryManager {
     /// specified `partitionId`.
     int closeRecoveryFileSet(int partitionId);
 
-    /// Initialize the internal map of primaryLeaseId -> highest sequence
-    /// number observed for that primary, for the specified `partitionId`.
-    /// Return 0 on success and non-zero rc on failure.
-    ///
-    /// NOTE: The map only needs to be initialized once, hence successive calls
-    ///       to the method will return early.
-    ///
-    /// THREAD: Executed by the queue dispatcher thread associated with the
-    /// specified `partitionId`.
-    int initHighestSeqNums(int partitionId);
-
     /// Recover latest sequence number from storage for the specified
     /// `partitionId` and populate the output in the specified `seqNum`.
     /// If `firstSyncPointAfterRolllover` is true, recover the first sync point
@@ -472,13 +439,6 @@ class RecoveryManager {
     /// THREAD: Executed in the dispatcher thread associated with the
     /// specified `partitionId`.
     bool expectedDataChunks(int partitionId) const;
-
-    /// Return the map of primaryLeaseId -> highest sequence number observed
-    /// for that primary, for the specified `partitionId`.
-    ///
-    /// THREAD: Executed in the dispatcher thread associated with the
-    /// specified `partitionId`.
-    const LeaseIdToSeqNumMap& highestSeqNums(int partitionId) const;
 
     /// Load into the specified `out` a ReplicaDataResponsePush using
     /// information in self's ReceiveDataContext for the specified
@@ -558,8 +518,6 @@ inline RecoveryManager::RecoveryContext::RecoveryContext(
 , d_bufferedEvents(basicAllocator)
 , d_receiveDataContext()
 , d_firstSyncPointAfterRolloverSeqNum()
-, d_highestSeqNums(basicAllocator)
-, d_highestSeqNumsInitialized(false)
 {
     // NOTHING
 }
@@ -579,8 +537,6 @@ inline RecoveryManager::RecoveryContext::RecoveryContext(
 , d_receiveDataContext(other.d_receiveDataContext)
 , d_firstSyncPointAfterRolloverSeqNum(
       other.d_firstSyncPointAfterRolloverSeqNum)
-, d_highestSeqNums(other.d_highestSeqNums, basicAllocator)
-, d_highestSeqNumsInitialized(other.d_highestSeqNumsInitialized)
 {
     // NOTHING
 }
@@ -607,17 +563,6 @@ inline bool RecoveryManager::expectedDataChunks(int partitionId) const
 
     return d_recoveryContextVec[partitionId]
         .d_receiveDataContext.d_expectChunks;
-}
-
-inline const RecoveryManager::LeaseIdToSeqNumMap&
-RecoveryManager::highestSeqNums(int partitionId) const
-{
-    // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
-
-    // PRECONDITIONS
-    validatePartitionId(partitionId);
-
-    return d_recoveryContextVec[partitionId].d_highestSeqNums;
 }
 
 }  // close package namespace

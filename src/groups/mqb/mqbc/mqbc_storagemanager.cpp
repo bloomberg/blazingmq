@@ -1395,20 +1395,9 @@ void StorageManager::do_storeSelfSeq(const EventWithData& event)
             nodeSeqNumCtx.d_seqNum.sequenceNumber() = fs->sequenceNumber();
         }
         else {
-            int rc = d_recoveryManager_mp->initHighestSeqNums(partitionId);
-            if (rc != 0) {
-                BMQTSK_ALARMLOG_ALARM("FILE_IO")
-                    << d_clusterData_p->identity().description()
-                    << " Partition [" << partitionId
-                    << "]: " << "Error while initializing highest sequence "
-                    << "numbers, rc: " << rc << BMQTSK_ALARMLOG_END;
-
-                mqbu::ExitUtil::terminate(
-                    mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
-            }
-
-            rc = d_recoveryManager_mp->recoverSeqNum(&nodeSeqNumCtx.d_seqNum,
-                                                     partitionId);
+            const int rc = d_recoveryManager_mp->recoverSeqNum(
+                &nodeSeqNumCtx.d_seqNum,
+                partitionId);
             if (rc != 0) {
                 BMQTSK_ALARMLOG_ALARM("FILE_IO")
                     << d_clusterData_p->identity().description()
@@ -1952,6 +1941,20 @@ void StorageManager::do_determineDataDestinations(const EventWithData& event)
                      partitionId < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfPrimary());
 
+    if (d_recoveryManager_mp->expectedDataChunks(partitionId)) {
+        BALL_LOG_INFO
+            << d_clusterData_p->identity().description() << " Partition ["
+            << partitionId
+            << "]: " << "Not determining data destinations yet because self "
+            << "primary is still expecting recovery data chunks from the "
+            << "up-to-date replica.";
+
+        return;  // RETURN
+    }
+    // If self is not expecting data chunks, then self must be ready to serve
+    // data, hence the file store must be open.
+    BSLS_ASSERT_SAFE(fileStore(partitionId).isOpen());
+
     bsl::vector<NodeToSeqNumCtxMapCIter>& dataPushDestinations =
         d_tempDataDestinations[partitionId].d_dataPushDestinations;
     bsl::vector<NodeToSeqNumCtxMapCIter>& dataDropDestinations =
@@ -2041,9 +2044,9 @@ void StorageManager::do_determineDataDestinations(const EventWithData& event)
             continue;  // CONTINUE
         }
 
-        const RecoveryManager::LeaseIdToSeqNumMap& highestSeqNums =
-            d_recoveryManager_mp->highestSeqNums(partitionId);
-        RecoveryManager::LeaseIdToSeqNumMap::const_iterator seqNumCit =
+        const mqbs::FileStore::LeaseIdToSeqNumMap& highestSeqNums =
+            d_fileStores[partitionId]->highestSeqNums();
+        mqbs::FileStore::LeaseIdToSeqNumMapCIter seqNumCit =
             highestSeqNums.find(nodeSeqNum.primaryLeaseId());
         if (seqNumCit != highestSeqNums.end() &&
             nodeSeqNum.sequenceNumber() > seqNumCit->second) {
@@ -2072,11 +2075,11 @@ void StorageManager::do_determineDataDestinations(const EventWithData& event)
                 << partitionId << "]: " << "Replica "
                 << cit->first->nodeDescription()
                 << " has partition sequence number " << nodeSeqNum
-                << ", whose primary lease ID is lower than self's partition "
+                << ", whose primary lease id is lower than self's partition "
                    "sequence number "
                 << selfSeqNum
                 << ", and there is no known highest sequence number for the "
-                << "same primary lease ID.  This implies that this replica "
+                << "same primary lease id.  This implies that this replica "
                    "has "
                 << "extra irreconcilable records, and we need to send "
                 << "ReplicaDataRequestDrop to this replica.";

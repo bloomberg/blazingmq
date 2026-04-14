@@ -152,6 +152,9 @@ class StorageManager BSLS_KEYWORD_FINAL
 
     typedef ClusterStateQueueInfo::AppInfosCIter AppInfosCIter;
 
+    typedef mqbs::FileStore::LeaseIdToSeqNumMap      LeaseIdToSeqNumMap;
+    typedef mqbs::FileStore::LeaseIdToSeqNumMapCIter LeaseIdToSeqNumMapCIter;
+
     /// Vector of pairs of buffered primary status advisories and their source
     typedef bsl::vector<
         bsl::pair<bmqp_ctrlmsg::PrimaryStatusAdvisory, mqbnet::ClusterNode*> >
