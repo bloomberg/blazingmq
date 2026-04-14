@@ -369,6 +369,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     mqbnet::ClusterNode* d_primaryNode_p;
 
+    /// Lease id of the current primary.  When bumping this value, please
+    /// record the previous (leaseId, seqNum) into `d_highestSeqNums` if
+    /// the previous lease id was greater than zero.
     unsigned int d_primaryLeaseId;
 
     bsls::Types::Uint64 d_sequenceNum;
