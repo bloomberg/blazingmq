@@ -74,15 +74,6 @@ const double k_ACTIVE_NODE_INITIAL_WAIT = 10.0;
 // the same data center to come up - refer to the 'Active node
 // selection' documentation note in the header for more details.
 
-typedef bsl::function<void()> CompletionCallback;
-
-/// Utility function used in `bmqu::OperationChain` as the operation
-/// callback which just calls the completion callback.
-void completeShutDown(const CompletionCallback& callback)
-{
-    callback();
-}
-
 }  // close unnamed namespace
 
 // ------------------
@@ -165,11 +156,27 @@ void ClusterProxy::initiateShutdownDispatched(const VoidFunctor& callback)
                              bdlf::PlaceHolders::_1));  // completionCb
 
     // Add callback to be invoked once V2 finishes waiting for unconfirmed
-    d_shutdownChain.appendInplace(bdlf::BindUtil::bind(&completeShutDown,
-                                                       bdlf::PlaceHolders::_1),
-                                  callback);
+    d_shutdownChain.appendInplace(
+        bdlf::BindUtil::bind(&ClusterProxy::continueShutdown,
+                             this,
+                             bdlf::PlaceHolders::_1),
+        callback);
 
     d_shutdownChain.start();
+}
+
+void ClusterProxy::continueShutdown(const VoidFunctor& completionCb)
+{
+    // executed by the *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(inDispatcherThread());
+
+    // Delete and unregister all queues which have no handles from the domain.
+    // Symmetric with 'Cluster::continueShutdownDispatched'.
+    d_queueHelper.processShutdownEvent();
+
+    completionCb();
 }
 
 void ClusterProxy::stopDispatched()
