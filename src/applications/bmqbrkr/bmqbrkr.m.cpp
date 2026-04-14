@@ -119,61 +119,6 @@ struct TaskEnvironment {
 /// Raw pointer to the TaskEnvironment, used so that the signal handler, and
 /// the assert handler can access the needed data.
 static TaskEnvironment* s_taskEnv_p = 0;
-
-// forward declaration
-static void onProcessedAdminCommand(const bsl::string&       prefix,
-                                    const bsl::string&       command,
-                                    const bsls::Types::Int64 start,
-                                    int                      rc,
-                                    const bsl::string&       results);
-
-/// Handler functor for incoming commands
-struct MTrapHandler {
-    TaskEnvironment* d_taskEnv_p;
-
-    explicit MTrapHandler(TaskEnvironment* taskEnv)
-    : d_taskEnv_p(taskEnv)
-    {
-        // PRECONDITIONS
-        BSLS_ASSERT(d_taskEnv_p);
-    }
-
-    void operator()(const bsl::string& prefix, bsl::istream& stream) const
-    {
-        BSLS_ASSERT_SAFE(d_taskEnv_p);
-
-        bsl::string cmd;
-
-        bsl::getline(stream, cmd);
-        cmd.erase(0, 1);  // cmd starts by a space, remove it
-
-        if (bdlb::String::areEqualCaseless(prefix, "EXIT")) {
-            d_taskEnv_p->d_shutdownSemaphore.post();
-            // Return now because as a consequence of the Task::shutdown()
-            // call, the BALL log system has been torn down.
-            return;  // RETURN
-        }
-        else if (bdlb::String::areEqualCaseless(prefix, "CMD")) {
-            const bsls::Types::Int64 start =
-                bmqsys::Time::highResolutionTimer();
-            d_taskEnv_p->d_app.object().enqueueCommand(
-                "MTRAP",
-                cmd,
-                bdlf::BindUtil::bind(
-                    onProcessedAdminCommand,
-                    prefix,
-                    cmd,
-                    start,
-                    bdlf::PlaceHolders::_1,    // rc
-                    bdlf::PlaceHolders::_2));  // commandExecResults
-            return;                            // RETURN
-        }
-
-        BALL_LOG_ERROR << "Unknown command '" << prefix << "'\n"
-                       << "Send 'HELP' to see a list of commands supported by "
-                       << "bmqbrkr.";
-    }
-};
 }  // close unnamed namespace
 
 extern "C" {
@@ -389,6 +334,54 @@ static void onProcessedAdminCommand(const bsl::string&       prefix,
                       << results;
     }
 }
+
+/// Handler functor for incoming commands
+struct MTrapHandler {
+    TaskEnvironment* d_taskEnv_p;
+
+    explicit MTrapHandler(TaskEnvironment* taskEnv)
+    : d_taskEnv_p(taskEnv)
+    {
+        // PRECONDITIONS
+        BSLS_ASSERT(d_taskEnv_p);
+    }
+
+    void operator()(const bsl::string& prefix, bsl::istream& stream) const
+    {
+        BSLS_ASSERT_SAFE(d_taskEnv_p);
+
+        bsl::string cmd;
+
+        bsl::getline(stream, cmd);
+        cmd.erase(0, 1);  // cmd starts by a space, remove it
+
+        if (bdlb::String::areEqualCaseless(prefix, "EXIT")) {
+            d_taskEnv_p->d_shutdownSemaphore.post();
+            // Return now because as a consequence of the Task::shutdown()
+            // call, the BALL log system has been torn down.
+            return;  // RETURN
+        }
+        else if (bdlb::String::areEqualCaseless(prefix, "CMD")) {
+            const bsls::Types::Int64 start =
+                bmqsys::Time::highResolutionTimer();
+            d_taskEnv_p->d_app.object().enqueueCommand(
+                "MTRAP",
+                cmd,
+                bdlf::BindUtil::bind(
+                    onProcessedAdminCommand,
+                    prefix,
+                    cmd,
+                    start,
+                    bdlf::PlaceHolders::_1,    // rc
+                    bdlf::PlaceHolders::_2));  // commandExecResults
+            return;                            // RETURN
+        }
+
+        BALL_LOG_ERROR << "Unknown command '" << prefix << "'\n"
+                       << "Send 'HELP' to see a list of commands supported by "
+                       << "bmqbrkr.";
+    }
+};
 
 /// Create and initialize the Task object from the specified `taskEnv`.
 /// Return 0 on success, or a non-zero error code and populate the specified
