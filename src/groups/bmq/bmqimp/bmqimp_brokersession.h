@@ -264,8 +264,8 @@ class BrokerSession BSLS_CPP11_FINAL {
             e_CONFIG_CMD = 2,
             /// Close queue request
             e_CLOSE_CMD = 3,
-            /// Request is not sent to the broker
-            e_REQ_NOT_SENT = 4,
+            /// Request failed due to non-transport error
+            e_REQ_BAD = 4,
             /// Successful response
             e_RESP_OK = 5,
             /// Late response
@@ -289,7 +289,9 @@ class BrokerSession BSLS_CPP11_FINAL {
             /// Request is canceled by the SDK
             e_REQ_CANCELED = 14,
             /// Request is canceled due to the session goes down
-            e_SESSION_DOWN = 15
+            e_SESSION_DOWN = 15,
+            /// Request failed due to transport/write error
+            e_REQ_WRITE_ERROR = 16
         };
 
         // CLASS METHODS
@@ -650,9 +652,24 @@ class BrokerSession BSLS_CPP11_FINAL {
 
         /// Handle a case when a request to the broker has not been sent
         /// due to some error described with the specified `status`.
+        /// Dispatches to `handleRequestWriteError` for transport errors
+        /// or `handleRequestBad` for non-transport errors.
         void handleRequestNotSent(const bsl::shared_ptr<Queue>&        queue,
                                   const RequestManagerType::RequestSp& context,
                                   bmqp_ctrlmsg::StatusCategory::Value  status);
+
+        /// Handle a transport/write error when sending a request.  The
+        /// queue stays in its current state, waiting for CHANNEL_DOWN.
+        void
+        handleRequestWriteError(const bsl::shared_ptr<Queue>&        queue,
+                                const RequestManagerType::RequestSp& context,
+                                bmqp_ctrlmsg::StatusCategory::Value  status);
+
+        /// Handle a non-transport error when sending a request (e.g.,
+        /// session stopped, invalid state).
+        void handleRequestBad(const bsl::shared_ptr<Queue>&        queue,
+                              const RequestManagerType::RequestSp& context,
+                              bmqp_ctrlmsg::StatusCategory::Value  status);
 
         /// Handle response error.
         void handleResponseError(const bsl::shared_ptr<Queue>&        queue,

@@ -336,7 +336,8 @@ BrokerSession::QueueFsmEvent::toAscii(BrokerSession::QueueFsmEvent::Enum value)
         CASE(OPEN_CMD)
         CASE(CONFIG_CMD)
         CASE(CLOSE_CMD)
-        CASE(REQ_NOT_SENT)
+        CASE(REQ_WRITE_ERROR)
+        CASE(REQ_BAD)
         CASE(RESP_OK)
         CASE(LATE_RESP)
         CASE(RESP_BAD)
@@ -1410,14 +1411,15 @@ BrokerSession::QueueFsm::QueueFsm(BrokerSession& session)
         {S::e_CLOSED, E::e_OPEN_CMD, S::e_OPENING_OPN},
         //
         {S::e_OPENING_OPN, E::e_RESP_OK, S::e_OPENING_CFG},
-        {S::e_OPENING_OPN, E::e_REQ_NOT_SENT, S::e_CLOSED},
+        {S::e_OPENING_OPN, E::e_REQ_BAD, S::e_CLOSED},
         {S::e_OPENING_OPN, E::e_RESP_BAD, S::e_CLOSED},
         {S::e_OPENING_OPN, E::e_RESP_TIMEOUT, S::e_CLOSED},
         {S::e_OPENING_OPN, E::e_RESP_EXPIRED, S::e_CLOSED},
         {S::e_OPENING_OPN, E::e_SESSION_DOWN, S::e_CLOSED},
         //
         {S::e_REOPENING_OPN, E::e_RESP_OK, S::e_REOPENING_CFG},
-        {S::e_REOPENING_OPN, E::e_REQ_NOT_SENT, S::e_CLOSED},
+        {S::e_REOPENING_OPN, E::e_REQ_WRITE_ERROR, S::e_PENDING},
+        {S::e_REOPENING_OPN, E::e_REQ_BAD, S::e_CLOSED},
         {S::e_REOPENING_OPN, E::e_RESP_BAD, S::e_CLOSED},
         {S::e_REOPENING_OPN, E::e_RESP_TIMEOUT, S::e_REOPENING_OPN},
         {S::e_REOPENING_OPN, E::e_REQ_CANCELED, S::e_REOPENING_OPN},
@@ -1425,14 +1427,15 @@ BrokerSession::QueueFsm::QueueFsm(BrokerSession& session)
         {S::e_REOPENING_OPN, E::e_SESSION_DOWN, S::e_CLOSED},
         //
         {S::e_OPENING_CFG, E::e_RESP_OK, S::e_OPENED},
-        {S::e_OPENING_CFG, E::e_REQ_NOT_SENT, S::e_CLOSING_CLS},
+        {S::e_OPENING_CFG, E::e_REQ_BAD, S::e_CLOSING_CLS},
         {S::e_OPENING_CFG, E::e_RESP_BAD, S::e_CLOSING_CLS},
         {S::e_OPENING_CFG, E::e_RESP_TIMEOUT, S::e_CLOSED},
         {S::e_OPENING_CFG, E::e_RESP_EXPIRED, S::e_CLOSED},
         {S::e_OPENING_CFG, E::e_SESSION_DOWN, S::e_CLOSED},
         //
         {S::e_REOPENING_CFG, E::e_RESP_OK, S::e_OPENED},
-        {S::e_REOPENING_CFG, E::e_REQ_NOT_SENT, S::e_CLOSING_CLS},
+        {S::e_REOPENING_CFG, E::e_REQ_WRITE_ERROR, S::e_PENDING},
+        {S::e_REOPENING_CFG, E::e_REQ_BAD, S::e_CLOSING_CLS},
         {S::e_REOPENING_CFG, E::e_RESP_BAD, S::e_CLOSING_CLS},
         {S::e_REOPENING_CFG, E::e_RESP_TIMEOUT, S::e_REOPENING_CFG},
         {S::e_REOPENING_CFG, E::e_REQ_CANCELED, S::e_REOPENING_CFG},
@@ -1441,7 +1444,8 @@ BrokerSession::QueueFsm::QueueFsm(BrokerSession& session)
         //
         {S::e_OPENED, E::e_CLOSE_CMD, S::e_CLOSING_CFG},
         {S::e_OPENED, E::e_CONFIG_CMD, S::e_OPENED},
-        {S::e_OPENED, E::e_REQ_NOT_SENT, S::e_OPENED},
+        {S::e_OPENED, E::e_REQ_WRITE_ERROR, S::e_OPENED},
+        {S::e_OPENED, E::e_REQ_BAD, S::e_OPENED},
         {S::e_OPENED, E::e_REQ_CANCELED, S::e_OPENED},
         {S::e_OPENED, E::e_RESP_OK, S::e_OPENED},
         {S::e_OPENED, E::e_RESP_BAD, S::e_OPENED},
@@ -1453,14 +1457,16 @@ BrokerSession::QueueFsm::QueueFsm(BrokerSession& session)
         {S::e_OPENED, E::e_SESSION_DOWN, S::e_CLOSED},
         //
         {S::e_CLOSING_CFG, E::e_RESP_OK, S::e_CLOSING_CLS},
-        {S::e_CLOSING_CFG, E::e_REQ_NOT_SENT, S::e_CLOSED},
+        {S::e_CLOSING_CFG, E::e_REQ_WRITE_ERROR, S::e_CLOSED},
+        {S::e_CLOSING_CFG, E::e_REQ_BAD, S::e_CLOSED},
         {S::e_CLOSING_CFG, E::e_RESP_BAD, S::e_CLOSING_CLS},
         {S::e_CLOSING_CFG, E::e_RESP_TIMEOUT, S::e_CLOSED},
         {S::e_CLOSING_CFG, E::e_REQ_CANCELED, S::e_CLOSED},
         {S::e_CLOSING_CFG, E::e_SESSION_DOWN, S::e_CLOSED},
         //
         {S::e_CLOSING_CLS, E::e_RESP_OK, S::e_CLOSED},
-        {S::e_CLOSING_CLS, E::e_REQ_NOT_SENT, S::e_CLOSED},
+        {S::e_CLOSING_CLS, E::e_REQ_WRITE_ERROR, S::e_CLOSED},
+        {S::e_CLOSING_CLS, E::e_REQ_BAD, S::e_CLOSED},
         {S::e_CLOSING_CLS, E::e_RESP_BAD, S::e_CLOSED},
         {S::e_CLOSING_CLS, E::e_RESP_TIMEOUT, S::e_CLOSED},
         {S::e_CLOSING_CLS, E::e_REQ_CANCELED, S::e_CLOSED},
@@ -1554,8 +1560,117 @@ void BrokerSession::QueueFsm::handleRequestNotSent(
 
     BSLS_ASSERT_SAFE(d_session.d_fsmThreadChecker.inSameThread());
 
+    if (status == static_cast<bmqp_ctrlmsg::StatusCategory::Value>(
+                      bmqt::GenericResult::e_NOT_CONNECTED)) {
+        handleRequestWriteError(queue, context, status);
+    }
+    else {
+        handleRequestBad(queue, context, status);
+    }
+}
+
+void BrokerSession::QueueFsm::handleRequestWriteError(
+    const bsl::shared_ptr<Queue>&        queue,
+    const RequestManagerType::RequestSp& context,
+    bmqp_ctrlmsg::StatusCategory::Value  status)
+{
+    // executed by the FSM thread
+
+    BSLS_ASSERT_SAFE(d_session.d_fsmThreadChecker.inSameThread());
+
+    (void)context;
+    (void)status;
+
     const QueueState::Enum    state = queue->state();
-    const QueueFsmEvent::Enum event = QueueFsmEvent::e_REQ_NOT_SENT;
+    const QueueFsmEvent::Enum event = QueueFsmEvent::e_REQ_WRITE_ERROR;
+
+    BALL_LOG_INFO << id() << "Queue FSM Event: " << event << " ["
+                  << "QueueState: " << state << "]";
+
+    switch (state) {
+    case QueueState::e_REOPENING_OPN:
+    case QueueState::e_REOPENING_CFG: {
+        // Transport error during reopen.  Go to PENDING so the queue will
+        // be retried on the next CHANNEL_UP.
+        setQueueState(queue, QueueState::e_PENDING, event);
+
+        // This reopen attempt is done from the counter's perspective.
+        // Decrement but do NOT fire STATE_RESTORED.
+        BSLS_ASSERT_SAFE(0 < d_session.d_numPendingReopenQueues);
+        --d_session.d_numPendingReopenQueues;
+    } break;
+    case QueueState::e_OPENED: {
+        // Failed to send standalone configure queue request
+        BSLS_ASSERT_SAFE(isConfigure(context->request(), context->response()));
+        BSLS_ASSERT_SAFE(context->response().choice().isStatusValue());
+
+        // Keep the OPENED state
+        setQueueState(queue, QueueState::e_OPENED, event);
+
+        logOperationTime(queue->uri().asString(), "Configure queue");
+
+        // Notify about configure queue result
+        context->signal();
+    } break;
+    case QueueState::e_CLOSING_CFG: {
+        BSLS_ASSERT_SAFE(context->request().choice().isCloseQueueValue());
+        BSLS_ASSERT_SAFE(bmqt::QueueFlagsUtil::isReader(queue->flags()));
+
+        setQueueState(queue, QueueState::e_CLOSED, event);
+
+        injectErrorResponse(
+            context,
+            status,
+            "The request was canceled [reason: connection was lost]");
+
+        logOperationTime(queue->uri().asString(), "Close queue");
+
+        actionRemoveQueue(queue);
+
+        context->signal();
+
+        d_session.d_channel_sp->close();
+    } break;
+    case QueueState::e_CLOSING_CLS: {
+        BSLS_ASSERT_SAFE(context->request().choice().isCloseQueueValue());
+
+        setQueueState(queue, QueueState::e_CLOSED, event);
+
+        injectErrorResponse(
+            context,
+            status,
+            "Failed to send close queue request to the broker");
+
+        logOperationTime(queue->uri().asString(), "Close queue");
+
+        actionRemoveQueue(queue);
+
+        context->signal();
+
+        d_session.d_channel_sp->close();
+    } break;
+    case QueueState::e_OPENING_OPN:
+    case QueueState::e_OPENING_CFG:
+    case QueueState::e_PENDING:
+    case QueueState::e_CLOSED: {
+        // OPENING_OPN and OPENING_CFG are unreachable: initial opens use
+        // buffered requests, so write errors are swallowed.
+        BSLS_ASSERT_SAFE(false && "Unexpected Queue state for write error");
+    } break;
+    }
+}
+
+void BrokerSession::QueueFsm::handleRequestBad(
+    const bsl::shared_ptr<Queue>&        queue,
+    const RequestManagerType::RequestSp& context,
+    bmqp_ctrlmsg::StatusCategory::Value  status)
+{
+    // executed by the FSM thread
+
+    BSLS_ASSERT_SAFE(d_session.d_fsmThreadChecker.inSameThread());
+
+    const QueueState::Enum    state = queue->state();
+    const QueueFsmEvent::Enum event = QueueFsmEvent::e_REQ_BAD;
 
     BALL_LOG_INFO << id() << "Queue FSM Event: " << event << " ["
                   << "QueueState: " << state << "]";

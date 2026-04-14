@@ -6150,7 +6150,6 @@ static void reopenError(bsls::Types::Uint64 queueFlags)
 {
     bmqtst::TestHelper::printTestName("REOPEN ERROR TEST");
 
-    const bsls::TimeInterval timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions     sessionOptions;
     bmqt::QueueOptions       queueOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
@@ -6169,7 +6168,7 @@ static void reopenError(bsls::Types::Uint64 queueFlags)
     PVV_SAFE("Step 1. Start the session");
     obj.startAndConnect();
 
-    PVV_SAFE("Step 2. Check reopen 1st part error");
+    PVV_SAFE("Step 2. Check reopen 1st part write error (retryable)");
     {
         PVV_SAFE("Step 3. Open the queue");
         obj.openQueue(queue);
@@ -6191,24 +6190,32 @@ static void reopenError(bsls::Types::Uint64 queueFlags)
 
         BMQTST_ASSERT(obj.waitReconnectedEvent());
 
-        PVV_SAFE("Step 5. Verify reopen request was sent");
+        PVV_SAFE("Step 5. Verify reopen request was attempted");
         obj.verifyRequestSent(TestSession::e_REQ_OPEN_QUEUE);
 
-        BMQTST_ASSERT(obj.waitStateRestoredEvent());
+        PVV_SAFE("Step 5a. Queue goes to PENDING (write error is retryable)");
+        BMQTST_ASSERT(
+            obj.waitForQueueState(queue, bmqimp::QueueState::e_PENDING));
+        BMQTST_ASSERT(queue->isValid());
 
-        PVV_SAFE("Step 6. Verify the queue gets closed");
-        BMQTST_ASSERT(obj.waitForQueueRemoved(queue, timeout));
+        PVV_SAFE("Step 5b. Channel close triggers another reconnect cycle");
+        BMQTST_ASSERT(obj.waitForChannelClose());
+        BMQTST_ASSERT(obj.waitConnectionLostEvent());
 
         // Set normal write status
         obj.channel().setWriteStatus(bmqio::StatusCategory::e_SUCCESS);
+
+        PVV_SAFE("Step 6. Reconnect and verify queue reopens successfully");
+        obj.setChannel();
+        BMQTST_ASSERT(obj.waitReconnectedEvent());
+        obj.reopenQueue(queue);
+        BMQTST_ASSERT(obj.waitStateRestoredEvent());
+        BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
     }
 
-    PVV_SAFE("Step 7. Check reopen 2st part error");
+    PVV_SAFE("Step 7. Check reopen 2nd part write error (retryable)");
     {
-        PVV_SAFE("Step 8. Open the queue");
-        obj.openQueue(queue);
-
-        PVV_SAFE("Step 9. Reset the channel");
+        PVV_SAFE("Step 8. Reset the channel");
         obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
         BMQTST_ASSERT(obj.waitConnectionLostEvent());
@@ -6222,30 +6229,39 @@ static void reopenError(bsls::Types::Uint64 queueFlags)
 
         BMQTST_ASSERT(obj.waitReconnectedEvent());
 
-        PVV_SAFE("Step 10. Verify reopen request was sent");
+        PVV_SAFE("Step 9. Verify reopen request was sent");
         bmqp_ctrlmsg::ControlMessage request = obj.getNextOutboundRequest(
             TestSession::e_REQ_OPEN_QUEUE);
 
         // Set write error condition
         obj.channel().setWriteStatus(bmqio::StatusCategory::e_GENERIC_ERROR);
 
-        PVV_SAFE("Step 11. Send reopen response");
+        PVV_SAFE("Step 10. Send reopen response");
         obj.sendResponse(request);
 
         // Configuring is applicable only for the reader
         if (bmqt::QueueFlagsUtil::isReader(queue->flags())) {
-            PVV_SAFE("Step 12. Verify configure request was sent");
+            PVV_SAFE("Step 11. Verify configure request was attempted");
             obj.verifyRequestSent(TestSession::e_REQ_CONFIG_QUEUE);
 
-            BMQTST_ASSERT(obj.waitStateRestoredEvent());
-
-            PVV_SAFE("Step 13. Verify the queue is e_CLOSING_CLS");
-            obj.verifyRequestSent(TestSession::e_REQ_CLOSE_QUEUE);
-
+            PVV_SAFE("Step 11a. Queue goes to PENDING (write error)");
             BMQTST_ASSERT(
-                obj.waitForQueueState(queue,
-                                      bmqimp::QueueState::e_CLOSING_CLS));
-            BMQTST_ASSERT_EQ(queue->isValid(), false);
+                obj.waitForQueueState(queue, bmqimp::QueueState::e_PENDING));
+            BMQTST_ASSERT(queue->isValid());
+
+            PVV_SAFE("Step 11b. Channel close triggers reconnect cycle");
+            BMQTST_ASSERT(obj.waitForChannelClose());
+            BMQTST_ASSERT(obj.waitConnectionLostEvent());
+
+            // Set normal write status
+            obj.channel().setWriteStatus(bmqio::StatusCategory::e_SUCCESS);
+
+            PVV_SAFE("Step 12. Reconnect and reopen successfully");
+            obj.setChannel();
+            BMQTST_ASSERT(obj.waitReconnectedEvent());
+            obj.reopenQueue(queue);
+            BMQTST_ASSERT(obj.waitStateRestoredEvent());
+            BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
         }
         else {
             BMQTST_ASSERT(obj.verifyOperationResult(
@@ -6255,10 +6271,10 @@ static void reopenError(bsls::Types::Uint64 queueFlags)
             BMQTST_ASSERT(
                 obj.waitForQueueState(queue, bmqimp::QueueState::e_OPENED));
             BMQTST_ASSERT(queue->isValid());
-        }
 
-        // Set normal write status
-        obj.channel().setWriteStatus(bmqio::StatusCategory::e_SUCCESS);
+            // Set normal write status
+            obj.channel().setWriteStatus(bmqio::StatusCategory::e_SUCCESS);
+        }
     }
 
     PVV_SAFE("Step 14. Stop the session");
