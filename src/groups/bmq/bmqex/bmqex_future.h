@@ -25,9 +25,6 @@
 //  bmqex::FutureResult:      an established async result provider
 //  bmqex::FutureSharedState: a shared state
 //
-//@SEE ALSO:
-//  bmqex_promise
-//
 //@DESCRIPTION:
 // This component provides a mechanism, 'bmqex::Future', to access the result
 // of an asynchronous operation. In addition the generalized 'bmqex::Future<R>'
@@ -45,10 +42,9 @@
 // 'bmqex::FutureSharedState' object called the shared state. The shared state
 // is what will actually hold the async result (or the exception). Note that
 // Future objects are not meant to be created by users directly, but rather to
-// be obtained from an asynchronous result provider (an example of such
-// provider is 'bmqex::Promise'). Result providers do create a shared state and
-// assign it the result (or the exception) when it becomes ready. That result
-// may then be retrieved via an associated future object.
+// be obtained from an asynchronous result provider. Result providers do create
+// a shared state and assign it the result (or the exception) when it becomes
+// ready. That result may then be retrieved via an associated future object.
 //
 /// Thread safety
 ///-------------
@@ -68,49 +64,6 @@
 // only be made ready once, making concurrent calls to 'setValue',
 //'emplaceValue' or 'setException' undefined behavior. The same rule
 // applies to attaching the notification callback via a call to 'whenReady'.
-//
-/// Usage
-///-----
-// The simplest way to obtain a future object is from an async result
-// provider, such as 'bmqex::Promise'.
-//..
-//  bmqex::Promise<int> promise;
-//  bmqex::Future<int>  future = promise.future();
-//..
-// This future does not contain a result yet. The result (in this example an
-// 'int') is to be supplied by the result provider, possibly from another
-// thread.
-//..
-//  // supply the result
-//  promise.setValue(42);
-//..
-// The async result can be retrieved via a call to 'get' on the future
-// object. 'get' will block the calling thread until the result is available.
-//..
-//  int result = future.get();
-//  BSLS_ASSERT(result == 42);
-//..
-// It is also possible to retrieve the result asynchronously, by attaching a
-// callback to the future via a call to 'whenReady'.
-//..
-//  future.whenReady([](FutureResult<int> result) {
-//                       BSLS_ASSERT(result.get() == 42);
-//                   });
-//..
-// The attached callback shall accept an argument of type
-// 'bmqex::FutureResult<R>', where 'R' is the type of the result. Objects of
-// this type are implicitly convertible to the result type, so it is also
-// possible for the callback to accept an argument of type 'R', as long as 'R'
-// is not 'void'.
-//..
-//  future.whenReady([](int result) {
-//                       BSLS_ASSERT(result == 42);
-//                   });
-//..
-// Currently, only one callback can be attached to a future, or more
-// specifically, to the future's associated shared state. An important thing to
-// keep in mind is that the attached callback is always invoked from the
-// result-supplier thread.
 
 #include <bmqu_objectplaceholder.h>
 
@@ -148,12 +101,16 @@
 #include <bsls_timeinterval.h>
 
 #if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+// clang-format off
 // Include version that can be compiled with C++03
-// Generated on Wed Jun 18 14:44:15 2025
+// Generated on Tue Apr 14 18:45:06 2026
 // Command line: sim_cpp11_features.pl bmqex_future.h
-#define COMPILING_BMQEX_FUTURE_H
-#include <bmqex_future_cpp03.h>
-#undef COMPILING_BMQEX_FUTURE_H
+
+# define COMPILING_BMQEX_FUTURE_H
+# include <bmqex_future_cpp03.h>
+# undef COMPILING_BMQEX_FUTURE_H
+
+// clang-format on
 #else
 
 namespace BloombergLP {
@@ -1904,6 +1861,7 @@ inline void bmqex::swap(FutureResult<R>& lhs,
 }  // close enterprise namespace
 
 #endif  // End C++11 code
+
 #include <bsl_type_traits.h>
 
 #endif
