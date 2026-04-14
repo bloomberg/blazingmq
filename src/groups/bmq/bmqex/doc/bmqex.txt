@@ -9,7 +9,7 @@ utilites and mechanisms to be reused through various applications.
 
 /Hierarchical Synopsis
 /---------------------
-The 'bmqex' package currently has 17 components having 4 level of physical
+The 'bmqex' package currently has 16 components having 4 level of physical
 dependency.  The list below shows the hierarchical ordering of the components.
 ..
   4. bmqex_bindutil
@@ -18,7 +18,6 @@ dependency.  The list below shows the hierarchical ordering of the components.
 
   2. bmqex_executionpolicy
      bmqex_executor
-     bmqex_promise
      bmqex_sequentialcontext
      bmqex_strand
 
@@ -74,9 +73,6 @@ dependency.  The list below shows the hierarchical ordering of the components.
 :
 : 'bmqex_job':
 :      Provides a polymorphic function object wrapper.
-:
-: 'bmqex_promise':
-:      Provides a mechanism to store the result of an async operation.
 :
 : 'bmqex_sequentialcontext':
 :      Provides a single-threaded execution context.

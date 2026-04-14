@@ -13,8 +13,6 @@ bmqex_executortraits
 bmqex_future
 bmqex_future_cpp03
 bmqex_job
-bmqex_promise
-bmqex_promise_cpp03
 bmqex_sequentialcontext
 bmqex_strand
 bmqex_systemexecutor
