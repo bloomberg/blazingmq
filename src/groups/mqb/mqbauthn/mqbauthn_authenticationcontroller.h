@@ -161,10 +161,13 @@ class AuthenticationController {
     /// Return 0 on success, or a non-zero return code on error and fill in the
     /// specified `errorDescription` stream with the description of the error.
     /// Note that the `mechanism` is case insensitive.
+    /// Any memory allocated for the specified `result` uses the specified
+    /// `allocator`.
     int authenticate(bsl::ostream& errorDescription,
                      bsl::shared_ptr<mqbplug::AuthenticationResult>* result,
                      bsl::string_view                                mechanism,
-                     const mqbplug::AuthenticationData&              input);
+                     const mqbplug::AuthenticationData&              input,
+                     bslma::Allocator* allocator);
 
     /// Return the anonymous credential used for authentication.
     /// If no anonymous credential is set, return an empty optional.

@@ -266,11 +266,12 @@ void Authenticator::authenticate(
             : authenticationRequest.data().value(),
         channel->peerUri());
     const bsls::Types::Int64 start   = bmqsys::Time::highResolutionTimer();
-    const int authnRc = d_authnController_p->authenticate(
+    const int                authnRc = d_authnController_p->authenticate(
         authnErrStream,
         &result,
         authenticationRequest.mechanism(),
-        authenticationData);
+        authenticationData,
+        d_allocator_p);
     const bsls::Types::Int64 elapsed = bmqsys::Time::highResolutionTimer() -
                                        start;
 

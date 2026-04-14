@@ -451,7 +451,8 @@ int AuthenticationController::authenticate(
     bsl::ostream&                                   errorDescription,
     bsl::shared_ptr<mqbplug::AuthenticationResult>* result,
     bsl::string_view                                mechanism,
-    const mqbplug::AuthenticationData&              input)
+    const mqbplug::AuthenticationData&              input,
+    bslma::Allocator*                               allocator)
 {
     // executed by an *AUTHENTICATION* thread
 
@@ -475,7 +476,8 @@ int AuthenticationController::authenticate(
                        << "')";
 
         bmqu::MemOutStream errorStream(d_allocator_p);
-        const int rc = authenticator->authenticate(errorStream, result, input);
+        const int          rc =
+            authenticator->authenticate(errorStream, result, input, allocator);
         if (rc != rc_SUCCESS) {
             errorDescription << "Failed to authenticate with mechanism '"
                              << normMech << "'. (rc = " << rc

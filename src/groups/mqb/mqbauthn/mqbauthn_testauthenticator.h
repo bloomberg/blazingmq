@@ -101,8 +101,6 @@ class TestAuthenticator : public mqbplug::Authenticator {
     BALL_LOG_SET_CLASS_CATEGORY("MQBAUTHN.TESTAUTHENTICATOR");
 
     // DATA
-    bslma::Allocator* d_allocator_p;
-
     bool d_isStarted;
 
     int d_sleepTimeMs;  // Sleep time in milliseconds before authentication
@@ -120,8 +118,7 @@ class TestAuthenticator : public mqbplug::Authenticator {
 
     // CREATORS
 
-    TestAuthenticator(const mqbcfg::AuthenticatorPluginConfig* config,
-                      bslma::Allocator*                        allocator = 0);
+    TestAuthenticator(const mqbcfg::AuthenticatorPluginConfig* config);
 
     /// Destructor.
     ~TestAuthenticator() BSLS_KEYWORD_OVERRIDE;
@@ -143,8 +140,8 @@ class TestAuthenticator : public mqbplug::Authenticator {
     ///   logging purposes.
     int authenticate(bsl::ostream& errorDescription,
                      bsl::shared_ptr<mqbplug::AuthenticationResult>* result,
-                     const mqbplug::AuthenticationData& input) const
-        BSLS_KEYWORD_OVERRIDE;
+                     const mqbplug::AuthenticationData&              input,
+                     bslma::Allocator* allocator) const BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
 

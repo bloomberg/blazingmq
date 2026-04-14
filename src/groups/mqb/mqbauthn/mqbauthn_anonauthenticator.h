@@ -118,8 +118,6 @@ class AnonAuthenticator : public mqbplug::Authenticator {
     BALL_LOG_SET_CLASS_CATEGORY("MQBAUTHN.ANONAUTHENTICATOR");
 
     // DATA
-    bslma::Allocator* d_allocator_p;
-
     bool d_isStarted;
 
     /// If true, authentication always succeeds; if false, always fails.
@@ -161,8 +159,8 @@ class AnonAuthenticator : public mqbplug::Authenticator {
     /// Behavior depends on the `shouldPass` configuration.
     int authenticate(bsl::ostream& errorDescription,
                      bsl::shared_ptr<mqbplug::AuthenticationResult>* result,
-                     const mqbplug::AuthenticationData& input) const
-        BSLS_KEYWORD_OVERRIDE;
+                     const mqbplug::AuthenticationData&              input,
+                     bslma::Allocator* allocator) const BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
 

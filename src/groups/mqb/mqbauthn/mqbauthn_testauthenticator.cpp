@@ -81,10 +81,8 @@ TestAuthenticationResult::lifetimeMs() const
 // -----------------------
 
 TestAuthenticator::TestAuthenticator(
-    const mqbcfg::AuthenticatorPluginConfig* config,
-    bslma::Allocator*                        allocator)
-: d_allocator_p(allocator)
-, d_isStarted(false)
+    const mqbcfg::AuthenticatorPluginConfig* config)
+: d_isStarted(false)
 , d_sleepTimeMs(0)
 {
     if (!config) {
@@ -129,7 +127,8 @@ bsl::string_view TestAuthenticator::mechanism() const
 int TestAuthenticator::authenticate(
     BSLA_MAYBE_UNUSED bsl::ostream&                 errorDescription,
     bsl::shared_ptr<mqbplug::AuthenticationResult>* result,
-    BSLA_MAYBE_UNUSED const mqbplug::AuthenticationData& input) const
+    BSLA_MAYBE_UNUSED const mqbplug::AuthenticationData& input,
+    bslma::Allocator*                                    allocator) const
 {
     BALL_LOG_INFO << "TestAuthenticator: authentication using mechanism '"
                   << mechanism() << "'.";
@@ -147,7 +146,7 @@ int TestAuthenticator::authenticate(
     BALL_LOG_INFO << "TestAuthenticator: authentication successful";
 
     *result = bsl::allocate_shared<TestAuthenticationResult>(
-        d_allocator_p,
+        allocator,
         "TEST_USER",
         k_AUTHN_DURATION_SECONDS *
             bdlt::TimeUnitRatio::k_MILLISECONDS_PER_SECOND);
@@ -209,7 +208,7 @@ TestAuthenticatorPluginFactory::create(bslma::Allocator* allocator)
     allocator = bslma::Default::allocator(allocator);
 
     return bslma::ManagedPtr<mqbplug::Authenticator>(
-        new (*allocator) TestAuthenticator(config, allocator),
+        new (*allocator) TestAuthenticator(config),
         allocator);
 }
 

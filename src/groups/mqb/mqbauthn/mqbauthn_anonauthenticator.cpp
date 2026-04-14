@@ -71,9 +71,8 @@ AnonAuthenticationResult::lifetimeMs() const
 
 AnonAuthenticator::AnonAuthenticator(
     const mqbcfg::AuthenticatorPluginConfig* config,
-    bslma::Allocator*                        allocator)
-: d_allocator_p(allocator)
-, d_isStarted(false)
+    BSLA_MAYBE_UNUSED bslma::Allocator* allocator)
+: d_isStarted(false)
 , d_shouldPass(true)
 {
     if (!config) {
@@ -133,7 +132,8 @@ bsl::string_view AnonAuthenticator::mechanism() const
 int AnonAuthenticator::authenticate(
     bsl::ostream&                                   errorDescription,
     bsl::shared_ptr<mqbplug::AuthenticationResult>* result,
-    BSLA_MAYBE_UNUSED const mqbplug::AuthenticationData& input) const
+    BSLA_MAYBE_UNUSED const mqbplug::AuthenticationData& input,
+    bslma::Allocator*                                    allocator) const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(result);
@@ -146,7 +146,7 @@ int AnonAuthenticator::authenticate(
         // No `lifetime` is returned since we don't expect a user to
         // reauthenticate if they don't know how to authenticate in the first
         // place.
-        *result = bsl::allocate_shared<AnonAuthenticationResult>(d_allocator_p,
+        *result = bsl::allocate_shared<AnonAuthenticationResult>(allocator,
                                                                  k_PRINCIPAL,
                                                                  bsl::nullopt);
         return 0;  // RETURN

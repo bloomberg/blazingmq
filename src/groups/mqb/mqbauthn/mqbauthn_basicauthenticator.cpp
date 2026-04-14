@@ -135,7 +135,8 @@ bsl::string_view BasicAuthenticator::mechanism() const
 int BasicAuthenticator::authenticate(
     bsl::ostream&                                   errorDescription,
     bsl::shared_ptr<mqbplug::AuthenticationResult>* result,
-    const mqbplug::AuthenticationData&              input) const
+    const mqbplug::AuthenticationData&              input,
+    bslma::Allocator*                               allocator) const
 {
     BALL_LOG_DEBUG << "Authentication using mechanism '" << mechanism()
                    << "'.";
@@ -166,7 +167,7 @@ int BasicAuthenticator::authenticate(
                    << "'";
 
     *result = bsl::allocate_shared<BasicAuthenticationResult>(
-        d_allocator_p,
+        allocator,
         "BASIC_USER-" + bsl::string(username, d_allocator_p),
         k_AUTHN_DURATION_SECONDS *
             bdlt::TimeUnitRatio::k_MILLISECONDS_PER_SECOND);
