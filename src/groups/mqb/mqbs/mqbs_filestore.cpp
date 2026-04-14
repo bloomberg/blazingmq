@@ -1514,6 +1514,11 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
     // correctly.
     bsls::Types::Uint64 sequenceNum = d_sequenceNum + 1;
 
+    d_highestSeqNums.clear();
+    if (primaryLeaseId > 0) {
+        d_highestSeqNums[primaryLeaseId] = d_sequenceNum;
+    }
+
     // Second pass.
     while (1 == (rc = jit->nextRecord())) {
         const RecordHeader& recHeader = jit->recordHeader();
@@ -1571,6 +1576,16 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
 
                 return rc_INVALID_SEQ_NUMBER;  // RETURN
             }
+        }
+        else {
+            // Track highest sequence number per primary lease id.  Since we
+            // are iterating backward, the first record seen for a given lease
+            // id has the highest sequence number.
+            BSLS_ASSERT_SAFE(
+                d_highestSeqNums.find(recHeader.primaryLeaseId()) ==
+                d_highestSeqNums.end());
+            d_highestSeqNums[recHeader.primaryLeaseId()] =
+                recHeader.sequenceNumber();
         }
 
         primaryLeaseId = recHeader.primaryLeaseId();
@@ -2293,7 +2308,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 else {
                     BMQTSK_ALARMLOG_ALARM("RECOVERY")
                         << partitionDesc()
-                        << "Encountered a DELETION record for " << "queueKey ["
+                        << "Encountered a DELETION record for queueKey ["
                         << rec.queueKey()
                         << "], offset: " << jit->recordOffset()
                         << ", index: " << jit->recordIndex()
@@ -2655,6 +2670,21 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
 
     BALL_LOG_INFO << partitionDesc() << "Completed second pass over the "
                   << "journal with rc: " << rc;
+
+    BALL_LOG_INFO_BLOCK
+    {
+        BALL_LOG_OUTPUT_STREAM
+            << partitionDesc()
+            << "Initialized highest sequence numbers for primary lease "
+            << "ids: { ";
+        for (LeaseIdToSeqNumMapCIter cit = d_highestSeqNums.cbegin();
+             cit != d_highestSeqNums.cend();
+             ++cit) {
+            BALL_LOG_OUTPUT_STREAM << cit->first << ": " << cit->second
+                                   << ", ";
+        }
+        BALL_LOG_OUTPUT_STREAM << " }";
+    }
 
     return rc_SUCCESS;
 }
@@ -5266,6 +5296,7 @@ FileStore::FileStore(
                         d_blobSpPool_p,
                         allocator)
 , d_firstSyncPointAfterRolloverSeqNum()
+, d_highestSeqNums(allocator)
 , d_messageTransmitter(blobSpPool, cluster, allocator)
 {
     // PRECONDITIONS
