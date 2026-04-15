@@ -598,7 +598,7 @@ Application::Application(
 , d_resolvingChannelFactory(
       bmqio::ResolvingChannelFactoryConfig(
           &d_channelFactory,
-          bmqex::ExecutionPolicyUtil::oneWay().alwaysBlocking().useExecutor(
+          bmqex::ExecutionPolicyUtil::alwaysBlocking().useExecutor(
               bmqex::SystemExecutor()),
           allocator),
       allocator)

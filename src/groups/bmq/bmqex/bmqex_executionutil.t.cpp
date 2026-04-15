@@ -393,8 +393,7 @@ static void test2_execute_one_way_never_blocking()
 
         // submit function object for execution
         bmqex::ExecutionUtil::execute(
-            bmqex::ExecutionPolicyUtil::oneWay()
-                .neverBlocking()
+            bmqex::ExecutionPolicyUtil::neverBlocking()
                 .useExecutor(context.executor())
                 .useAllocator(&alloc),
             bdlf::BindUtil::bind(SynchronizeCallable(),
@@ -424,11 +423,11 @@ static void test2_execute_one_way_never_blocking()
     // 2. Submitted function object throws an exception.
     {
         // submit function object for execution
-        bmqex::ExecutionUtil::execute(bmqex::ExecutionPolicyUtil::oneWay()
-                                          .neverBlocking()
-                                          .useExecutor(context.executor())
-                                          .useAllocator(&alloc),
-                                      ThrowOnCall());
+        bmqex::ExecutionUtil::execute(
+            bmqex::ExecutionPolicyUtil::neverBlocking()
+                .useExecutor(context.executor())
+                .useAllocator(&alloc),
+            ThrowOnCall());
 
         // make sure all postconditions on the context are established
         context.drain();
@@ -477,8 +476,7 @@ static void test3_execute_one_way_possibly_blocking()
 
         // submit function object for execution
         bmqex::ExecutionUtil::execute(
-            bmqex::ExecutionPolicyUtil::oneWay()
-                .possiblyBlocking()
+            bmqex::ExecutionPolicyUtil::possiblyBlocking()
                 .useExecutor(context.executor())
                 .useAllocator(&alloc),
             bdlf::BindUtil::bind(SynchronizeCallable(),
@@ -508,11 +506,11 @@ static void test3_execute_one_way_possibly_blocking()
     // 2. Submitted function object throws an exception.
     {
         // submit function object for execution
-        bmqex::ExecutionUtil::execute(bmqex::ExecutionPolicyUtil::oneWay()
-                                          .possiblyBlocking()
-                                          .useExecutor(context.executor())
-                                          .useAllocator(&alloc),
-                                      ThrowOnCall());
+        bmqex::ExecutionUtil::execute(
+            bmqex::ExecutionPolicyUtil::possiblyBlocking()
+                .useExecutor(context.executor())
+                .useAllocator(&alloc),
+            ThrowOnCall());
 
         // make sure all postconditions on the context are established
         context.drain();
@@ -556,11 +554,11 @@ static void test4_execute_one_way_always_blocking()
         SetFlagOnCall toBeExecuted(&executed);
 
         // submit function object for execution
-        bmqex::ExecutionUtil::execute(bmqex::ExecutionPolicyUtil::oneWay()
-                                          .alwaysBlocking()
-                                          .useExecutor(context.executor())
-                                          .useAllocator(&alloc),
-                                      toBeExecuted);
+        bmqex::ExecutionUtil::execute(
+            bmqex::ExecutionPolicyUtil::alwaysBlocking()
+                .useExecutor(context.executor())
+                .useAllocator(&alloc),
+            toBeExecuted);
 
         // function object was submitted for execution via a call to
         // 'dispatch()' on the specified executor
@@ -579,11 +577,11 @@ static void test4_execute_one_way_always_blocking()
     // 2. Submitted function object throws an exception.
     {
         // submit function object for execution
-        bmqex::ExecutionUtil::execute(bmqex::ExecutionPolicyUtil::oneWay()
-                                          .alwaysBlocking()
-                                          .useExecutor(context.executor())
-                                          .useAllocator(&alloc),
-                                      ThrowOnCall());
+        bmqex::ExecutionUtil::execute(
+            bmqex::ExecutionPolicyUtil::alwaysBlocking()
+                .useExecutor(context.executor())
+                .useAllocator(&alloc),
+            ThrowOnCall());
 
         // make sure all postconditions on the context are established
         context.drain();

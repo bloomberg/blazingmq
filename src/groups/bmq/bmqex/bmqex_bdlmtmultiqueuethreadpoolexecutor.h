@@ -45,8 +45,7 @@
 //  bmqex::BdlmtMultiQueueThreadPoolExecutor ex(&d_threadPool, d_queueId);
 //
 //  // use it
-//  bmqex::ExecutionUtil::execute(bmqex::ExecutionPolicyUtil::oneWay()
-//                                                           .neverBlocking()
+//  bmqex::ExecutionUtil::execute(bmqex::ExecutionPolicyUtil::neverBlocking()
 //                                                           .useExecutor(ex),
 //                                [](){ bsl::cout << "Hello World!\n"; });
 //..

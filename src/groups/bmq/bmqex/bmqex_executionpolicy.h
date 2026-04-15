@@ -63,8 +63,7 @@
 // 'ExecutionPolicyUtil' namespace, they mirror each transformation operation
 // accessible on a policy object. For example:
 //..
-//  bmqex::ExecutionPolicyUtil::oneWay()
-//                             .neverBlocking()
+//  bmqex::ExecutionPolicyUtil::neverBlocking()
 //                             .useExecutor(myExecutor)
 //                             .useAllocator(myAllocator);
 //..
@@ -91,8 +90,7 @@
 //
 //  auto myFunction = []() -> void { bsl::cout << "It works!\n"; };
 //
-//  ExecutionUtil::execute(ExecutionPolicyUtil::oneWay()
-//                                             .neverBlocking()
+//  ExecutionUtil::execute(ExecutionPolicyUtil::neverBlocking()
 //                                             .useExecutor(myExecutor),
 //                         myFunction);
 //..
@@ -194,10 +192,6 @@ class ExecutionPolicy {
     // ACCESSORS
 
     /// Return a policy object having the same properties as this one,
-    /// except that it is One-Way.
-    typename RebindOneWay::Type oneWay() const;
-
-    /// Return a policy object having the same properties as this one,
     /// except that it is Never Blocking.
     ExecutionPolicy neverBlocking() const;
 
@@ -241,10 +235,6 @@ struct ExecutionPolicyUtil {
     /// Blocking policy using a default-constructed `bmqex::SystemExecutor`
     /// and the currently installed default allocator.
     static ExecutionPolicy<> defaultPolicy();
-
-    /// Return a One-Way execution policy as if by
-    /// `return defaultPolicy().oneWay()`.
-    static ExecutionPolicy<>::RebindOneWay::Type oneWay();
 
     /// Return a Never Blocking execution policy as if by
     /// `return defaultPolicy().neverBlocking()`.
@@ -305,13 +295,6 @@ ExecutionPolicy<DIRECTION, EXECUTOR>::ExecutionPolicy(
 }
 
 // ACCESSORS
-template <class DIRECTION, class EXECUTOR>
-inline typename ExecutionPolicy<DIRECTION, EXECUTOR>::RebindOneWay::Type
-ExecutionPolicy<DIRECTION, EXECUTOR>::oneWay() const
-{
-    return typename RebindOneWay::Type(d_blocking, d_executor, d_allocator_p);
-}
-
 template <class DIRECTION, class EXECUTOR>
 inline ExecutionPolicy<DIRECTION, EXECUTOR>
 ExecutionPolicy<DIRECTION, EXECUTOR>::neverBlocking() const
@@ -393,11 +376,6 @@ inline ExecutionPolicy<> ExecutionPolicyUtil::defaultPolicy()
     return ExecutionPolicy<>(ExecutionProperty::e_POSSIBLY_BLOCKING,
                              SystemExecutor(),
                              bslma::Default::allocator());
-}
-
-inline ExecutionPolicy<>::RebindOneWay::Type ExecutionPolicyUtil::oneWay()
-{
-    return defaultPolicy().oneWay();
 }
 
 inline ExecutionPolicy<> ExecutionPolicyUtil::neverBlocking()

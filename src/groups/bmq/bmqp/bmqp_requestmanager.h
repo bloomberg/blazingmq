@@ -1387,8 +1387,7 @@ bmqt::GenericResult::Enum RequestManager<REQUEST, RESPONSE>::sendRequest(
         &(request->d_timeoutSchedulerHandle),
         bmqsys::Time::nowMonotonicClock() + timeout,
         bmqex::BindUtil::bindExecute(
-            bmqex::ExecutionPolicyUtil::oneWay()
-                .possiblyBlocking()
+            bmqex::ExecutionPolicyUtil::possiblyBlocking()
                 .useExecutor(d_executor)
                 .useAllocator(d_allocator_p),
             bdlf::BindUtil::bind(&RequestManager::onRequestTimeout,

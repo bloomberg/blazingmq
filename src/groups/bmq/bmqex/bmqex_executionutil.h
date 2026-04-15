@@ -53,24 +53,22 @@
 //
 // 1. All we want is the function object to be executed. Don't want to wait
 //    for the function object completion. That use-case is commonly referred
-//    as "fire and forget". For that we may use a One-Way Never Blocking
-//    execution policy.
+//    as "fire and forget". For that we may use a Never Blocking execution
+//    policy.
 //..
 //  using bmqex;
 //
 //  // initiate the execution and "forget" about it
-//  ExecutionUtil::execute(ExecutionPolicyUtil::oneWay()
-//                                             .neverBlocking(),
+//  ExecutionUtil::execute(ExecutionPolicyUtil::neverBlocking(),
 //                         myFunction);
 //..
 // 2. We want to execute a function object and wait for its completion. In that
-//    case, we may use a One-Way Always Blocking execution policy.
+//    case, we may use an Always Blocking execution policy.
 //..
 //  using bmqex;
 //
 //  // initiate the execution and wait for completion
-//  ExecutionUtil::execute(ExecutionPolicyUtil::oneWay()
-//                                             .alwaysBlocking(),
+//  ExecutionUtil::execute(ExecutionPolicyUtil::alwaysBlocking(),
 //                         myFunction);
 //..
 
