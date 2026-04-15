@@ -240,7 +240,7 @@ class InitialConnectionContext {
     /// implementation before invoking the
     /// 'InitialConnectionCompleteCb'.  This is used to bind low level
     /// data (from transport layer) to the session; and
-    /// can be overriden/set by the negotiation
+    /// can be overridden/set by the negotiation
     /// implementation (typically for the case of
     /// 'listen' sessions, since those are
     /// 'sporadically' happening and there is not enough

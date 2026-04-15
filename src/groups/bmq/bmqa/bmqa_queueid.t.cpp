@@ -183,7 +183,7 @@ static void test1_breathingTest()
 
 static void test2_comparison()
 // ------------------------------------------------------------------------
-// COMPARISION
+// COMPARISON
 //
 // Concerns:
 //   Exercise 'bmqa::QueueId' comparison operators
