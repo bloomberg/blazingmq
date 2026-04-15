@@ -21,9 +21,8 @@ executor’s context.
 An **execution property** is a trait defining the behavior of an execution
 function. The design of this package deals with two such properties:
 
-* **Directionality**. Does the execution function allow to retrieve the result
-  of the submitted function object invocation? Lets call functions that do not
-  allow that **One-Way** functions, and the ones that do **Two-Way** functions.
+* **Directionality**. Execution functions are **One-Way**, meaning they do
+  not return a result from the submitted function object invocation.
 
 * **Blocking behavior**. Does the execution function blocks the calling thread
   pending completion of the submitted function object invocation? Possible
@@ -44,8 +43,7 @@ called an **execution policy**.
 In the table below, `f` denotes a function object of type `F&&` callable as
 `DECAY_COPY(std::forward<F>(f))()` and where `bsl::decay_t<F>` satisfies the
 Destructible and MoveConstructible requirements as specified in the C++
-standard, and `R` denotes the type of the expression `DECAY_COPY(
-bsl::forward<F>(f))()`.
+standard.
 ```
 //=============================================================================
 // Execution Policy | Return Type | Execution function behavior
@@ -101,53 +99,6 @@ bsl::forward<F>(f))()`.
 //                  |             | of 'f'. [NOTE: the treatment of exceptions
 //                  |             | thrown by submitted function objects is
 //                  |             | implementation defined.]
-//------------------|-------------|--------------------------------------------
-//                  |             |
-// Two-Way Never    | Future<R>   | Creates an execution agent which invokes
-// Blocking         |             | 'DECAY_COPY(bsl::forward<F>(f))()' at most
-//                  |             | once, with the call to 'DECAY_COPY' being
-//                  |             | evaluated in the current thread of
-//                  |             | execution. Stores the result of 'f's
-//                  |             | invocation (or any resulting exception) in
-//                  |             | in the associated shared state of the
-//                  |             | returned 'Future'. The execution function
-//                  |             | shall not block forward progress of the
-//                  |             | caller pending completion of 'f's
-//                  |             | invocation. The progress of 'f' may begin
-//                  |             | before the call to the execution function
-//                  |             | completes. The invocation of the execution
-//                  |             | function synchronizes with the invocation
-//                  |             | of 'f'.
-//------------------|-------------|--------------------------------------------
-//                  |             |
-// Two-Way Possibly | Future<R>   | Creates an execution agent which invokes
-// Blocking         |             | 'DECAY_COPY(bsl::forward<F>(f))()' at most
-//                  |             | once, with the call to 'DECAY_COPY' being
-//                  |             | evaluated in the current thread of
-//                  |             | execution. Stores the result of 'f's
-//                  |             | invocation (or any resulting exception) in
-//                  |             | in the associated shared state of the
-//                  |             | returned 'Future'. The execution function
-//                  |             | may block forward progress of the caller
-//                  |             | pending completion of 'f's invocation. The
-//                  |             | progress of 'f' may begin before the call
-//                  |             | to the execution function completes. The
-//                  |             | invocation of the execution function
-//                  |             | synchronizes with the invocation of 'f'.
-//------------------|-------------|--------------------------------------------
-//                  |             |
-// Two-Way Always   | Future<R>   | Creates an execution agent which invokes
-// Blocking         |             | 'DECAY_COPY(bsl::forward<F>(f))()' at most
-//                  |             | once, with the call to 'DECAY_COPY' being
-//                  |             | evaluated in the current thread of
-//                  |             | execution. Stores the result of 'f's
-//                  |             | invocation (or any resulting exception) in
-//                  |             | in the associated shared state of the
-//                  |             | returned 'Future'. The execution function
-//                  |             | does block forward progress of the caller
-//                  |             | pending completion of 'f's invocation. The
-//                  |             | invocation of the execution function
-//                  |             | synchronizes with the invocation of 'f'.
 ```
 
 ### Requirements on Executors
