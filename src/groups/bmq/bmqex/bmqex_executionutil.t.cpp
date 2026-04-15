@@ -327,53 +327,49 @@ static void test1_executeResult()
 //:    'DECAY_COPY(std::forward<F>(f))()'.
 //
 //   The type of 'bmqex::ExecutionUtil::ExecuteResult<P, F>::Type'
-//   expression is 'void' for One-Way policies.
+//   expression is 'void'.
 //
 // Testing:
 //   bmqex::ExecutionUtil::ExecuteResult
 // ------------------------------------------------------------------------
 {
-    // One-Way policy
-    {
-        typedef bmqex::ExecutionPolicy<bmqex::ExecutionProperty::OneWay>
-            PolicyType;
+    typedef bmqex::ExecutionPolicy<> PolicyType;
 
-        BMQTST_ASSERT((bsl::is_same<bmqex::ExecutionUtil::ExecuteResult<
-                                        PolicyType,
-                                        DummyNullaryFunction<void> >::Type,
-                                    void>::value));
+    BMQTST_ASSERT((bsl::is_same<bmqex::ExecutionUtil::ExecuteResult<
+                                    PolicyType,
+                                    DummyNullaryFunction<void> >::Type,
+                                void>::value));
 
-        BMQTST_ASSERT((bsl::is_same<bmqex::ExecutionUtil::ExecuteResult<
-                                        PolicyType,
-                                        DummyNullaryFunction<int> >::Type,
-                                    void>::value));
+    BMQTST_ASSERT((bsl::is_same<bmqex::ExecutionUtil::ExecuteResult<
+                                    PolicyType,
+                                    DummyNullaryFunction<int> >::Type,
+                                void>::value));
 
-        BMQTST_ASSERT((bsl::is_same<bmqex::ExecutionUtil::ExecuteResult<
-                                        PolicyType,
-                                        DummyNullaryFunction<int&> >::Type,
-                                    void>::value));
-    }
+    BMQTST_ASSERT((bsl::is_same<bmqex::ExecutionUtil::ExecuteResult<
+                                    PolicyType,
+                                    DummyNullaryFunction<int&> >::Type,
+                                void>::value));
 }
 
-static void test2_execute_one_way_never_blocking()
+static void test2_execute_never_blocking()
 // ------------------------------------------------------------------------
-// EXECUTE ONE WAY NEVER BLOCKING
+// EXECUTE NEVER BLOCKING
 //
 // Concerns:
-//   Ensure proper behavior of the 'execute' function accepting a One-Way
-//   Never Blocking execution policy.
+//   Ensure proper behavior of the 'execute' function accepting a Never
+//   Blocking execution policy.
 //
 // Plan:
 //   1. Execute a function object 'f' on an executor 'ex' specifying a
-//      One-Way Never Blocking execution policy. Check that:
+//      Never Blocking execution policy. Check that:
 //:     o The execution function does not block the calling thread pending
 //:       completion of the submitted function object invocation;
 //:     o The function object is executed as if by a call to 'ex.post(f)'.
 //
-//   2. Execute a function object 'f', according to a One-Way Never
-//      Blocking execution policy, and such that 'f()' throws an exception.
-//      Check that the execution was propagated to the caller of 'f' (but
-//      not to the caller of the execution function).
+//   2. Execute a function object 'f', according to a Never Blocking
+//      execution policy, and such that 'f()' throws an exception. Check
+//      that the execution was propagated to the caller of 'f' (but not to
+//      the caller of the execution function).
 //
 // Testing:
 //   bmqex::ExecutionUtil::execute
@@ -437,26 +433,26 @@ static void test2_execute_one_way_never_blocking()
     }
 }
 
-static void test3_execute_one_way_possibly_blocking()
+static void test3_execute_possibly_blocking()
 // ------------------------------------------------------------------------
-// EXECUTE ONE WAY POSSIBLY BLOCKING
+// EXECUTE POSSIBLY BLOCKING
 //
 // Concerns:
-//   Ensure proper behavior of the 'execute' function accepting a One-Way
-//   Possibly Blocking execution policy.
+//   Ensure proper behavior of the 'execute' function accepting a Possibly
+//   Blocking execution policy.
 //
 // Plan:
 //   1. Execute a function object 'f' on an executor 'ex' specifying a
-//      One-Way Possibly Blocking execution policy. Check that:
+//      Possibly Blocking execution policy. Check that:
 //:     o The execution function does not block the calling thread pending
 //:       completion of the submitted function object invocation;
 //:     o The function object is executed as if by a call to
 //:       'ex.dispatch(f)'.
 //
-//   2. Execute a function object 'f', according to a One-Way Possibly
-//      Blocking execution policy, and such that 'f()' throws an exception.
-//      Check that the execution was propagated to the caller of 'f' (but
-//      not to the caller of the execution function).
+//   2. Execute a function object 'f', according to a Possibly Blocking
+//      execution policy, and such that 'f()' throws an exception. Check
+//      that the execution was propagated to the caller of 'f' (but not to
+//      the caller of the execution function).
 //
 // Testing:
 //   bmqex::ExecutionUtil::execute
@@ -520,26 +516,26 @@ static void test3_execute_one_way_possibly_blocking()
     }
 }
 
-static void test4_execute_one_way_always_blocking()
+static void test4_execute_always_blocking()
 // ------------------------------------------------------------------------
-// EXECUTE ONE WAY ALWAYS BLOCKING
+// EXECUTE ALWAYS BLOCKING
 //
 // Concerns:
-//   Ensure proper behavior of the 'execute' function accepting a One-Way
-//   Always Blocking execution policy..
+//   Ensure proper behavior of the 'execute' function accepting an Always
+//   Blocking execution policy.
 //
 // Plan:
-//   1. Execute a function object 'f' on an executor 'ex' specifying a
-//      One-Way Always Blocking execution policy. Check that:
+//   1. Execute a function object 'f' on an executor 'ex' specifying an
+//      Always Blocking execution policy. Check that:
 //:     o The execution function does block the calling thread pending
 //:       completion of the submitted function object invocation;
 //:     o The function object is executed as if by a call to
 //:       'ex.dispatch(f)'.
 //
-//   2. Execute a function object 'f', according to a One-Way Always
-//      Blocking execution policy, and such that 'f()' throws an exception.
-//      Check that the execution was propagated to the caller of 'f' (but
-//      not to the caller of the execution function).
+//   2. Execute a function object 'f', according to an Always Blocking
+//      execution policy, and such that 'f()' throws an exception. Check
+//      that the execution was propagated to the caller of 'f' (but not to
+//      the caller of the execution function).
 //
 // Testing:
 //   bmqex::ExecutionUtil::execute
@@ -603,10 +599,10 @@ int main(int argc, char* argv[])
     // traits
     case 1: test1_executeResult(); break;
 
-    // One-Way execution
-    case 2: test2_execute_one_way_never_blocking(); break;
-    case 3: test3_execute_one_way_possibly_blocking(); break;
-    case 4: test4_execute_one_way_always_blocking(); break;
+    // execution
+    case 2: test2_execute_never_blocking(); break;
+    case 3: test3_execute_possibly_blocking(); break;
+    case 4: test4_execute_always_blocking(); break;
 
     default: {
         bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."

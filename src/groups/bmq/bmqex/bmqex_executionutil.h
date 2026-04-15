@@ -98,7 +98,7 @@ namespace BloombergLP {
 namespace bmqex {
 
 // FORWARD DECLARATION
-template <class, class>
+template <class>
 class ExecutionPolicy;
 
 // ==================================
@@ -108,14 +108,7 @@ class ExecutionPolicy;
 /// Provides a metafunction that determines, at compile time, the type
 /// returned by `bmqex::ExecutionUtil::execute`.
 template <class POLICY, class FUNCTION>
-struct ExecutionUtil_ExecuteResult {};
-
-/// Provides a specialization of `ExecutionUtil_ExecuteResult` for One-Way
-/// policies.
-template <class EXECUTOR, class FUNCTION>
-struct ExecutionUtil_ExecuteResult<
-    ExecutionPolicy<ExecutionProperty::OneWay, EXECUTOR>,
-    FUNCTION> {
+struct ExecutionUtil_ExecuteResult {
     // TYPES
     typedef void Type;
 };
@@ -270,7 +263,7 @@ class ExecutionUtil_OneOffFunction {
 };
 
 // ====================================
-// class ExecutionUtil_UniqueOneWayTask
+// class ExecutionUtil_UniqueTask
 // ====================================
 
 /// Provides a wrapper for a function object allowing to synchronize with
@@ -280,7 +273,7 @@ class ExecutionUtil_OneOffFunction {
 /// standard. Given an object `f` of type `F`, `f()` shall be a valid
 /// expression.
 template <class F>
-class ExecutionUtil_UniqueOneWayTask {
+class ExecutionUtil_UniqueTask {
   public:
     // TYPES
 
@@ -303,24 +296,23 @@ class ExecutionUtil_UniqueOneWayTask {
 
   private:
     // NOT IMPLEMENTED
-    ExecutionUtil_UniqueOneWayTask(const ExecutionUtil_UniqueOneWayTask&)
+    ExecutionUtil_UniqueTask(const ExecutionUtil_UniqueTask&)
         BSLS_KEYWORD_DELETED;
-    ExecutionUtil_UniqueOneWayTask&
-    operator=(const ExecutionUtil_UniqueOneWayTask&) BSLS_KEYWORD_DELETED;
+    ExecutionUtil_UniqueTask&
+    operator=(const ExecutionUtil_UniqueTask&) BSLS_KEYWORD_DELETED;
 
   public:
     // CREATORS
 
-    /// Create a `ExecutionUtil_UniqueOneWayTask` object containing an
+    /// Create a `ExecutionUtil_UniqueTask` object containing an
     /// object of type `F` direct-non-list-initialized with
     /// `bsl::forward<F_PARAM>(f)`. Specify an `allocator` used to supply
     /// memory.
     ///
     /// `F` must be constructible from `bsl::forward<F_PARAM>(f)`.
     template <class F_PARAM>
-    ExecutionUtil_UniqueOneWayTask(BSLS_COMPILERFEATURES_FORWARD_REF(F_PARAM)
-                                       f,
-                                   bslma::Allocator* allocator);
+    ExecutionUtil_UniqueTask(BSLS_COMPILERFEATURES_FORWARD_REF(F_PARAM) f,
+                             bslma::Allocator* allocator);
 
   public:
     // MANIPULATORS
@@ -376,7 +368,7 @@ struct ExecutionUtil {
     // CLASS METHODS
 
     /// Execute the specified function object `f` according to the specified
-    /// One-Way execution `policy`, as if by 'ExecutorTraits<EXECUTOR>::
+    /// execution `policy`, as if by 'ExecutorTraits<EXECUTOR>::
     /// post(policy.executor(), bsl::forward<FUNCTION>(f))' if the policy is
     /// Never Blocking, and as if 'ExecutorTraits<EXECUTOR>::dispatch(
     /// policy.executor(), bsl::forward<FUNCTION>(f))' otherwise. Use the
@@ -396,10 +388,8 @@ struct ExecutionUtil {
     /// and MoveConstructible as specified in the C++ standard. 'DECAY_COPY(
     /// bsl::forward<FUNCTION>(f))()' shall be a valid expression.
     template <class EXECUTOR, class FUNCTION>
-    static typename ExecuteResult<
-        ExecutionPolicy<ExecutionProperty::OneWay, EXECUTOR>,
-        FUNCTION>::Type
-    execute(const ExecutionPolicy<ExecutionProperty::OneWay, EXECUTOR>& policy,
+    static typename ExecuteResult<ExecutionPolicy<EXECUTOR>, FUNCTION>::Type
+    execute(const ExecutionPolicy<EXECUTOR>& policy,
             BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) f);
 };
 
@@ -518,13 +508,13 @@ inline ExecutionUtil_OneOffFunction<R, F>::DestroyFunctionOnScopeExit ::
 }
 
 // ------------------------------------
-// class ExecutionUtil_UniqueOneWayTask
+// class ExecutionUtil_UniqueTask
 // ------------------------------------
 
 // CREATORS
 template <class F>
 template <class F_PARAM>
-inline ExecutionUtil_UniqueOneWayTask<F>::ExecutionUtil_UniqueOneWayTask(
+inline ExecutionUtil_UniqueTask<F>::ExecutionUtil_UniqueTask(
     BSLS_COMPILERFEATURES_FORWARD_REF(F_PARAM) f,
     bslma::Allocator* allocator)
 : d_latch(1)
@@ -536,7 +526,7 @@ inline ExecutionUtil_UniqueOneWayTask<F>::ExecutionUtil_UniqueOneWayTask(
 
 // MANIPULATORS
 template <class F>
-inline void ExecutionUtil_UniqueOneWayTask<F>::operator()()
+inline void ExecutionUtil_UniqueTask<F>::operator()()
 {
     try {
         // invoke and destroy the function object
@@ -559,8 +549,7 @@ inline void ExecutionUtil_UniqueOneWayTask<F>::operator()()
 
 // ACCESSORS
 template <class F>
-inline void
-ExecutionUtil_UniqueOneWayTask<F>::wait() const BSLS_KEYWORD_NOEXCEPT
+inline void ExecutionUtil_UniqueTask<F>::wait() const BSLS_KEYWORD_NOEXCEPT
 {
     d_latch.wait();
 }
@@ -571,12 +560,10 @@ ExecutionUtil_UniqueOneWayTask<F>::wait() const BSLS_KEYWORD_NOEXCEPT
 
 // CLASS METHODS
 template <class EXECUTOR, class FUNCTION>
-inline typename ExecutionUtil::ExecuteResult<
-    ExecutionPolicy<ExecutionProperty::OneWay, EXECUTOR>,
-    FUNCTION>::Type
-ExecutionUtil::execute(
-    const ExecutionPolicy<ExecutionProperty::OneWay, EXECUTOR>& policy,
-    BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) f)
+inline typename ExecutionUtil::ExecuteResult<ExecutionPolicy<EXECUTOR>,
+                                             FUNCTION>::Type
+ExecutionUtil::execute(const ExecutionPolicy<EXECUTOR>& policy,
+                       BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) f)
 {
     switch (policy.blocking()) {
     case ExecutionProperty::e_NEVER_BLOCKING: {
@@ -596,8 +583,7 @@ ExecutionUtil::execute(
     }
 
     case ExecutionProperty::e_ALWAYS_BLOCKING: {
-        typedef ExecutionUtil_UniqueOneWayTask<
-            typename bsl::decay<FUNCTION>::type>
+        typedef ExecutionUtil_UniqueTask<typename bsl::decay<FUNCTION>::type>
             Task;
 
         // create a "task" to synchronize with the completion of the
