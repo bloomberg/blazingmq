@@ -339,9 +339,9 @@ static void test4_printTest()
     BMQTST_ASSERT_EQ(out.str(), expected.str());
 }
 
-static void test5_comparisionTest()
+static void test5_comparisonTest()
 // --------------------------------------------------------------------
-// COMPARISION TEST
+// COMPARISON TEST
 //
 // Concerns:
 //   Exercise bmqimp::Queue comparison
@@ -357,7 +357,7 @@ static void test5_comparisionTest()
 //   bool operator==(const bmqimp::Queue& lhs, const bmqimp::Queue& rhs);
 // --------------------------------------------------------------------
 {
-    bmqtst::TestHelper::printTestName("COMPARISION TEST");
+    bmqtst::TestHelper::printTestName("COMPARISON TEST");
 
     bmqimp::Queue obj1(bmqtst::TestHelperUtil::allocator());
     bmqimp::Queue obj2(bmqtst::TestHelperUtil::allocator());
@@ -525,7 +525,7 @@ int main(int argc, char* argv[])
     switch (_testCase) {
     case 0:
     case 6: test6_statTest(); break;
-    case 5: test5_comparisionTest(); break;
+    case 5: test5_comparisonTest(); break;
     case 4: test4_printTest(); break;
     case 3: test3_printQueueStateTest(); break;
     case 2: test2_settersTest(); break;
