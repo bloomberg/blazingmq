@@ -10,8 +10,6 @@ bmqex_executionproperty
 bmqex_executionutil
 bmqex_executor
 bmqex_executortraits
-bmqex_future
-bmqex_future_cpp03
 bmqex_job
 bmqex_sequentialcontext
 bmqex_strand

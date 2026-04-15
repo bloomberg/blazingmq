@@ -31,8 +31,8 @@
 // used to customize the behavior of execution functions provided by the
 // 'bmqex_executionutil' component. A policy object contains the following
 // properties:
-//: o Directionality. Is either One-Way, or Two-Way (for more information see
-//:   package documentation).
+//: o Directionality. Is One-Way (for more information see package
+//:   documentation).
 //:
 //: o Blocking behavior. Is Never Blocking, Possibly Blocking or Always
 //:   Blocking (for more information see package documentation).
@@ -42,9 +42,8 @@
 //:   'bmqex_systemexecutor').
 //:
 //: o The associated allocator. Is the allocator used by the execution function
-//:   to allocate the shared state used to store the result of the submitted
-//:   function object invocation, as well as for all internal purposes. By
-//:   default, the currently installed default allocator is used.
+//:   for all internal purposes. By default, the currently installed default
+//:   allocator is used.
 //
 /// Building policies
 ///-----------------
@@ -52,18 +51,17 @@
 // having some set of properties, a new policy 'p2' having a different set of
 // properties can be "built" from the first one by applying transformation
 // operations to it. For example, lets say we have a One-Way Never Blocking
-// policy 'p', and we want to transform it to a Two-Way Always Blocking policy.
+// policy 'p', and we want to transform it to a One-Way Always Blocking policy.
 // The corresponding expression looks like:
 //..
-//  p.twoWay()
-//   .alwaysBlocking();
+//  p.alwaysBlocking();
 //..
-// Here, 'twoWay' and 'alwaysBlocking' are member functions performing
-// transformation operations, each returning a new policy object having the
-// same set of properties as the original one, except for the transformed
-// property. An initial policy object can be obtained using factory methods
-// defined in the 'ExecutionPolicyUtil' namespace, they mirror each
-// transformation operation accessible on a policy object. For example:
+// Here, 'alwaysBlocking' is a member function performing a transformation
+// operation, returning a new policy object having the same set of properties
+// as the original one, except for the transformed property. An initial policy
+// object can be obtained using factory methods defined in the
+// 'ExecutionPolicyUtil' namespace, they mirror each transformation operation
+// accessible on a policy object. For example:
 //..
 //  bmqex::ExecutionPolicyUtil::oneWay()
 //                             .neverBlocking()
@@ -80,12 +78,9 @@
 // 'bmqex_executionutil' component that provides a set of execution functions
 // named 'execute', defined in the 'bmqex::ExecutionUtil' namespace. 'execute'
 // accepts an execution policy and a function object to be executed according
-// to the specified policy. Depending on the directionality and blocking
-// properties of the specified policy an execution function returns either
-// 'void' (for One-Way policies), or the result of the submitted function
-// object invocation, via a 'bmqex::Future' object. The exact type of the
-// execution function return value can be obtained at compile time using the
-// 'bmqex::ExecutionUtil::ExecuteResult' metafunction (see
+// to the specified policy. One-Way execution functions return 'void'. The
+// exact type of the execution function return value can be obtained at compile
+// time using the 'bmqex::ExecutionUtil::ExecuteResult' metafunction (see
 // 'bmqex_executionutil').
 //
 // Lets say we are to execute a function object 'myFunction' on an unspecified
@@ -101,87 +96,6 @@
 //                                             .useExecutor(myExecutor),
 //                         myFunction);
 //..
-// However, if we were to obtain the result (lets say an 'int') of the
-// submitted function object invocation, we would use a Two-Way policy:
-//..
-//  using bmqex;
-//
-//  auto myFunction = []() -> int { return 42; };
-//
-//  Future<int> result = ExecutionUtil::execute(
-//                                ExecutionPolicyUtil::twoWay()
-//                                                    .neverBlocking()
-//                                                    .useExecutor(myExecutor),
-//                                myFunction);
-//
-//  BSLS_ASSERT(result.get() == 42);
-//..
-//
-/// Using policies to execute continuations
-///---------------------------------------
-// A continuation callback is a function object that is executed after the
-// completion of a previously initiated asynchronous operation and is passed
-// the result of that operation. The 'bmqex::ExecutionUtil' namespace provides
-// a set of execution functions named 'thenExecute' used to execute
-// continuations. Similarly to 'execute', 'thenExecute' takes an execution
-// policy and a function object arguments, but also a 'bmqex::Future' object to
-// be attached the continuation callback to. When the shared state associated
-// with the future object becomes ready, the attached callback is executed as
-// if by a call to 'execute' with the same policy passed to 'thenExecute',
-// except that the callback is passed the result of the completed asynchronous
-// operation encoded in a 'bmqex::FutureResult' object. If the policy used is
-// Two-Way policy, the caller of 'thenExecute' is returned a 'bmqex::Future'
-// object to be containing the result of the continuation callback invocation.
-// The exact type of the execution function return value can be obtained at
-// compile time using the 'bmqex::ExecutionUtil::ThenExecuteResult'
-// metafunction (see 'bmqex_executionutil').
-//..
-//  using bmqex;
-//
-//  // initiate an async operation and obtain an associated future object
-//  Future<int> future1 = asyncDoStuff();
-//
-//  // attach a continuation callback to be executed after the result becomes
-//  // available, obtain another future to be containing the result of the
-//  // callback invocation
-//  auto callback = [](FutureResult<int> result) -> bsl::string
-//                  {
-//                      return bsl::to_string(result.get());
-//                  };
-//
-//  Future<bsl::string> future2 =
-//                            ExecutionUtil::thenExecute(
-//                                ExecutionPolicyUtil::twoWay()
-//                                                    .neverBlocking()
-//                                                    .useExecutor(myExecutor),
-//                                future1,
-//                                callback);
-//
-//  int         result1 = future1.get();
-//  bsl::string result2 = future2.get();
-//  BSLS_ASSERT(result2 == bsl::to_string(result1));
-//..
-//
-/// Explicitly specifying the result type
-///-------------------------------------
-// Normally, execution functions automatically detect the result type of the
-// submitted function object, which is done using the 'bsl::invoke_result'
-// metafunction. However, in C++03 it is not always possible to do so. For that
-// reason this component provides the ability to explicitly specify the desired
-// result type using the 'twoWayR' policy transformation operation, as shown
-// below:
-//..
-//  using bmqex;
-//  Future<int> result = ExecutionUtil::execute(
-//                                ExecutionPolicyUtil::twoWayR<int>()
-//                                                    .neverBlocking()
-//                                                    .useExecutor(myExecutor),
-//                                myFunction);
-//..
-// Note that it's possible to specify a result type that is not the exact same
-// type returned by the submitted function object. In that case, a conversion
-// does occur. If the specified result type is 'void' and the returned type is
-// not, the result of the function object invocation is discarded.
 
 #include <bmqex_executionproperty.h>
 #include <bmqex_systemexecutor.h>
@@ -198,34 +112,6 @@
 namespace BloombergLP {
 
 namespace bmqex {
-
-// ==================================
-// struct ExecutionPolicy_IsTwoWayTag
-// ==================================
-
-/// Provides a metafunction to determine if an execution tag type is a
-/// Two-Way tag type.
-template <class TAG>
-struct ExecutionPolicy_IsTwoWayTag {
-    // CLASS DATA
-    static BSLS_KEYWORD_CONSTEXPR_MEMBER bool k_VALUE = false;
-};
-
-/// Provides a specialization of `ExecutionPolicy_IsTwoWayTag` for a tag
-/// type with no encoded result type.
-template <>
-struct ExecutionPolicy_IsTwoWayTag<ExecutionProperty::TwoWay> {
-    // CLASS DATA
-    static BSLS_KEYWORD_CONSTEXPR_MEMBER bool k_VALUE = true;
-};
-
-/// Provides a specialization of `ExecutionPolicy_IsTwoWayTag` for a tag
-/// type with an encoded result type.
-template <class R>
-struct ExecutionPolicy_IsTwoWayTag<ExecutionProperty::TwoWayR<R> > {
-    // CLASS DATA
-    static BSLS_KEYWORD_CONSTEXPR_MEMBER bool k_VALUE = true;
-};
 
 // =====================
 // class ExecutionPolicy
@@ -253,22 +139,6 @@ class ExecutionPolicy {
         typedef ExecutionPolicy<ExecutionProperty::OneWay, EXECUTOR> Type;
     };
 
-    /// Provides a way to obtain the type of a Two-Way execution policy
-    /// otherwise having the same properties as this one.
-    struct RebindTwoWay {
-        // TYPES
-        typedef ExecutionPolicy<ExecutionProperty::TwoWay, EXECUTOR> Type;
-    };
-
-    /// Provides a way to obtain the type of a Two-Way execution policy
-    /// explicitly defining the result type of the execution function and
-    /// otherwise having the same properties as this one.
-    template <class R>
-    struct RebindTwoWayR {
-        // TYPES
-        typedef ExecutionPolicy<ExecutionProperty::TwoWayR<R>, EXECUTOR> Type;
-    };
-
     /// Provides a way to obtain the type of an execution policy having
     /// the specified associated `EXECUTOR_T` type and otherwise having
     /// the same properties as this one.
@@ -284,10 +154,6 @@ class ExecutionPolicy {
     /// Defines if this policy is One-Way.
     static BSLS_KEYWORD_CONSTEXPR_MEMBER bool k_IS_ONE_WAY =
         bsl::is_same<DIRECTION, ExecutionProperty::OneWay>::value;
-
-    /// Defines if this policy is Two-Way.
-    static BSLS_KEYWORD_CONSTEXPR_MEMBER bool k_IS_TWO_WAY =
-        ExecutionPolicy_IsTwoWayTag<DIRECTION>::k_VALUE;
 
   private:
     // PRIVATE DATA
@@ -330,16 +196,6 @@ class ExecutionPolicy {
     /// Return a policy object having the same properties as this one,
     /// except that it is One-Way.
     typename RebindOneWay::Type oneWay() const;
-
-    /// Return a policy object having the same properties as this one,
-    /// except that it is Two-Way.
-    typename RebindTwoWay::Type twoWay() const;
-
-    /// Return a policy object having the same properties as this one,
-    /// except that it is Two-Way and explicitly defines the result type
-    /// of the execution function.
-    template <class R>
-    typename RebindTwoWayR<R>::Type twoWayR() const;
 
     /// Return a policy object having the same properties as this one,
     /// except that it is Never Blocking.
@@ -389,15 +245,6 @@ struct ExecutionPolicyUtil {
     /// Return a One-Way execution policy as if by
     /// `return defaultPolicy().oneWay()`.
     static ExecutionPolicy<>::RebindOneWay::Type oneWay();
-
-    /// Return a Two-Way execution policy as if by
-    /// `return defaultPolicy().twoWay()`.
-    static ExecutionPolicy<>::RebindTwoWay::Type twoWay();
-
-    /// Return a Two-Way execution policy as if by
-    /// `return defaultPolicy().twoWayR<R>()`.
-    template <class R>
-    static typename ExecutionPolicy<>::RebindTwoWayR<R>::Type twoWayR();
 
     /// Return a Never Blocking execution policy as if by
     /// `return defaultPolicy().neverBlocking()`.
@@ -463,23 +310,6 @@ inline typename ExecutionPolicy<DIRECTION, EXECUTOR>::RebindOneWay::Type
 ExecutionPolicy<DIRECTION, EXECUTOR>::oneWay() const
 {
     return typename RebindOneWay::Type(d_blocking, d_executor, d_allocator_p);
-}
-
-template <class DIRECTION, class EXECUTOR>
-inline typename ExecutionPolicy<DIRECTION, EXECUTOR>::RebindTwoWay::Type
-ExecutionPolicy<DIRECTION, EXECUTOR>::twoWay() const
-{
-    return typename RebindTwoWay::Type(d_blocking, d_executor, d_allocator_p);
-}
-
-template <class DIRECTION, class EXECUTOR>
-template <class R>
-inline typename ExecutionPolicy<DIRECTION,
-                                EXECUTOR>::template RebindTwoWayR<R>::Type
-ExecutionPolicy<DIRECTION, EXECUTOR>::twoWayR() const
-{
-    return
-        typename RebindTwoWayR<R>::Type(d_blocking, d_executor, d_allocator_p);
 }
 
 template <class DIRECTION, class EXECUTOR>
@@ -568,18 +398,6 @@ inline ExecutionPolicy<> ExecutionPolicyUtil::defaultPolicy()
 inline ExecutionPolicy<>::RebindOneWay::Type ExecutionPolicyUtil::oneWay()
 {
     return defaultPolicy().oneWay();
-}
-
-inline ExecutionPolicy<>::RebindTwoWay::Type ExecutionPolicyUtil::twoWay()
-{
-    return defaultPolicy().twoWay();
-}
-
-template <class R>
-inline typename ExecutionPolicy<>::RebindTwoWayR<R>::Type
-ExecutionPolicyUtil::twoWayR()
-{
-    return defaultPolicy().twoWayR<R>();
 }
 
 inline ExecutionPolicy<> ExecutionPolicyUtil::neverBlocking()
