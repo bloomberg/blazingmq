@@ -146,8 +146,8 @@ class BasicAuthenticator : public mqbplug::Authenticator {
     ///   logging purposes.
     int authenticate(bsl::ostream& errorDescription,
                      bsl::shared_ptr<mqbplug::AuthenticationResult>* result,
-                     const mqbplug::AuthenticationData& input) const
-        BSLS_KEYWORD_OVERRIDE;
+                     const mqbplug::AuthenticationData&              input,
+                     bslma::Allocator* allocator) const BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
 

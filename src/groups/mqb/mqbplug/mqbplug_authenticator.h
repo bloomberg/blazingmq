@@ -44,6 +44,7 @@
 #include <bsl_string.h>
 #include <bsl_string_view.h>
 #include <bsl_vector.h>
+#include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
@@ -132,13 +133,16 @@ class Authenticator {
     /// - Return `0` on success, and populate the specified `result` with
     ///   client identity and its remaining lifetime if it has a fixed
     ///   duration.
+    /// - Allocate any memory used by the specified `result` using the
+    ///   specified non-null `allocator`.
     /// - Return a non-zero plugin-specific return code upon failure, and
     ///   populate the specified `errorDescription` with a brief reason for
     ///   logging purposes.
     virtual int
     authenticate(bsl::ostream& errorDescription,
                  bsl::shared_ptr<mqbplug::AuthenticationResult>* result,
-                 const AuthenticationData& input) const = 0;
+                 const AuthenticationData&                       input,
+                 bslma::Allocator* allocator) const = 0;
 
     // MANIPULATORS
 
