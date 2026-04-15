@@ -7180,20 +7180,45 @@ void FileStore::applyForEachQueue(const QueueFunctor& functor) const
 
 int FileStore::deprecateFileSet()
 {
-    enum rcEnum { rc_SUCCESS = 0, rc_ARHIVE_FAILURE = -1 };
+    enum rcEnum {
+        rc_SUCCESS        = 0,
+        rc_CLOSE_FAILURE  = -1,
+        rc_ARHIVE_FAILURE = -2
+    };
 
-    if (d_isOpen) {
+    if (d_fileSets.empty()) {
         BALL_LOG_ERROR << partitionDesc()
-                       << "Cannot deprecate the active file set as this "
-                       << "FileStore is still open.";
-
+                       << "No file sets available to deprecate.";
         return rc_SUCCESS;  // RETURN
     }
 
-    const int rc = archive(d_fileSets[0].get());
+    FileSetSp fileSetSp = d_fileSets[0];
+    FileSet*  fileSet   = fileSetSp.get();
+
+    if (d_isOpen) {
+        close(false);
+    }
+    // The file set might already have been closed and erased by close().
+    // If it's still in d_fileSets, close the physical files and erase it.
+    if (!d_fileSets.empty() && d_fileSets[0].get() == fileSet) {
+        const int rc = close(*fileSet, false);
+        if (rc != 0) {
+            BALL_LOG_ERROR << partitionDesc()
+                           << "Failed to close file set during deprecation, "
+                           << "rc: " << rc;
+            return rc * 10 + rc_CLOSE_FAILURE;  // RETURN
+        }
+        d_fileSets.erase(d_fileSets.begin());
+    }
+
+    const int rc = archive(fileSet);
     if (rc != 0) {
+        BALL_LOG_ERROR << partitionDesc()
+                       << "Failed to archive file set during deprecation, "
+                       << "rc: " << rc;
         return rc * 10 + rc_ARHIVE_FAILURE;  // RETURN
     }
+
     return rc_SUCCESS;
 }
 

@@ -936,8 +936,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     /// mqbs::FileStore specific MANIPULATORS
 
-    /// Deprecate the active file set.  Behavior is undefined unless this
-    /// instance is closed.  Return 0 on success and non-zero rc on failure.
+    /// Close and deprecate the active file set.  Return 0 on success and
+    /// non-zero rc on failure.
     ///
     /// NOTE: This routine is dangerous and archives storage files. Must be
     /// used with caution.
