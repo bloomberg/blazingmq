@@ -206,7 +206,7 @@ static void test2_channelFactory()
 
     ResolvingChannelFactoryConfig cfg(
         &baseFactory,
-        bmqex::ExecutionPolicyUtil::oneWay().neverBlocking().useExecutor(
+        bmqex::ExecutionPolicyUtil::neverBlocking().useExecutor(
             TestExecutor(&execStore)),
         bmqtst::TestHelperUtil::allocator());
     cfg.resolutionFn(

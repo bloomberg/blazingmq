@@ -1171,9 +1171,8 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
         new (*d_allocator_p) bmqio::ResolvingChannelFactory(
             bmqio::ResolvingChannelFactoryConfig(
                 d_tcpChannelFactory_mp.get(),
-                bmqex::ExecutionPolicyUtil::oneWay()
-                    .neverBlocking()
-                    .useExecutor(d_resolutionContext.executor()),
+                bmqex::ExecutionPolicyUtil::neverBlocking().useExecutor(
+                    d_resolutionContext.executor()),
                 d_allocator_p)
                 .resolutionFn(bdlf::BindUtil::bind(
                     &monitoredDNSResolution,

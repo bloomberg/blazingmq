@@ -43,8 +43,7 @@
 //  bmqex::BdlmtThreadPoolExecutor ex(&d_threadPool);
 //
 //  // use it
-//  bmqex::ExecutionUtil::execute(bmqex::ExecutionPolicyUtil::oneWay()
-//                                                           .neverBlocking()
+//  bmqex::ExecutionUtil::execute(bmqex::ExecutionPolicyUtil::neverBlocking()
 //                                                           .useExecutor(ex),
 //                                [](){ bsl::cout << "Hello World!\n"; });
 //..

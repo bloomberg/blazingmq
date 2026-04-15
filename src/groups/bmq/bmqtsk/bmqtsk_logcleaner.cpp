@@ -165,7 +165,7 @@ int LogCleaner::start(bslstl::StringRef         pattern,
         &d_logsCleaningEvent,
         cleanupPeriod,
         bmqex::BindUtil::bindExecute(
-            bmqex::ExecutionPolicyUtil::oneWay().neverBlocking().useExecutor(
+            bmqex::ExecutionPolicyUtil::neverBlocking().useExecutor(
                 d_logsCleaningContext.executor()),
             bdlf::MemFnUtil::memFn(&LogCleaner::cleanLogs, this)),
         bsls::SystemTime::now(d_scheduler_p->clockType()));

@@ -420,15 +420,13 @@ static void test3_executorsSupport()
         // submit two functors to be executed on the same processor, and wait
         // for the completion of submitted functors
         bmqex::ExecutionUtil::execute(
-            bmqex::ExecutionPolicyUtil::oneWay()
-                .alwaysBlocking()
+            bmqex::ExecutionPolicyUtil::alwaysBlocking()
                 .useExecutor(executor1)
                 .useAllocator(bmqtst::TestHelperUtil::allocator()),
             bdlf::BindUtil::bind(LoadSelfThreadId(), &threadId1));
 
         bmqex::ExecutionUtil::execute(
-            bmqex::ExecutionPolicyUtil::oneWay()
-                .alwaysBlocking()
+            bmqex::ExecutionPolicyUtil::alwaysBlocking()
                 .useExecutor(executor1)
                 .useAllocator(bmqtst::TestHelperUtil::allocator()),
             bdlf::BindUtil::bind(LoadSelfThreadId(), &threadId2));
@@ -455,15 +453,13 @@ static void test3_executorsSupport()
         // executor's 'dispatch' function, and wait for the completion of
         // submitted functors
         bmqex::ExecutionUtil::execute(
-            bmqex::ExecutionPolicyUtil::oneWay()
-                .alwaysBlocking()
+            bmqex::ExecutionPolicyUtil::alwaysBlocking()
                 .useExecutor(executor2)
                 .useAllocator(bmqtst::TestHelperUtil::allocator()),
             bdlf::BindUtil::bind(LoadSelfThreadId(), &threadId1));
 
         bmqex::ExecutionUtil::execute(
-            bmqex::ExecutionPolicyUtil::oneWay()
-                .alwaysBlocking()
+            bmqex::ExecutionPolicyUtil::alwaysBlocking()
                 .useExecutor(executor2)
                 .useAllocator(bmqtst::TestHelperUtil::allocator()),
             bdlf::BindUtil::bind(LoadSelfThreadId(), &threadId2));
@@ -481,13 +477,11 @@ static void test3_executorsSupport()
         // via the executor's 'dispatch' function and block the calling thread
         // until the nested functor completes
         bmqex::ExecutionUtil::execute(
-            bmqex::ExecutionPolicyUtil::oneWay()
-                .alwaysBlocking()
+            bmqex::ExecutionPolicyUtil::alwaysBlocking()
                 .useExecutor(executor1)
                 .useAllocator(bmqtst::TestHelperUtil::allocator()),
             bmqex::BindUtil::bindExecute(
-                bmqex::ExecutionPolicyUtil::oneWay()
-                    .alwaysBlocking()
+                bmqex::ExecutionPolicyUtil::alwaysBlocking()
                     .useExecutor(executor3)
                     .useAllocator(bmqtst::TestHelperUtil::allocator()),
                 bdlf::BindUtil::bind(LoadSelfThreadId(), &threadId1)));

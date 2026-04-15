@@ -39,8 +39,7 @@
 //  {
 //      // execute 'doHeavyStuff' in a separate thread (use system executor)
 //      bmqex::ExecutionUtil::execute(
-//                                 bmqex::ExecutionPolicyUtil::oneWay()
-//                                                            .neverBlocking(),
+//                                 bmqex::ExecutionPolicyUtil::neverBlocking(),
 //                                 &doHeavyStuff);
 //  }
 //
@@ -68,8 +67,7 @@
 //                             &g_heavyStuffEvent,
 //                             bsls::TimeInterval(10.0), // 10 sec
 //                             bmqex::BindUtil::bindExecute(
-//                                 bmqex::ExecutionPolicyUtil::oneWay()
-//                                                            .neverBlocking(),
+//                                 bmqex::ExecutionPolicyUtil::neverBlocking(),
 //                                 &doHeavyStuff));
 //..
 //
@@ -102,8 +100,7 @@
 //  {
 //      // execute 'processEvent' in a separate thread (use system executor)
 //      bmqex::ExecutionUtil::execute(
-//                             bmqex::ExecutionPolicyUtil::oneWay()
-//                                                        .neverBlocking(),
+//                             bmqex::ExecutionPolicyUtil::neverBlocking(),
 //                             bdlf::BindUtil::bind(&processEvent, eventCode));
 //  }
 //
@@ -125,8 +122,7 @@
 //..
 //  // subscribe to notifications
 //  g_observable_p->subscribe(bmqex::BindUtil::bindExecute(
-//                                 bmqex::ExecutionPolicyUtil::oneWay()
-//                                                            .neverBlocking(),
+//                                 bmqex::ExecutionPolicyUtil::neverBlocking(),
 //                                 &processEvent));
 //..
 //
