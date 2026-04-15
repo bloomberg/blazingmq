@@ -17,19 +17,19 @@
 #ifndef INCLUDED_BMQEX_EXECUTIONPROPERTY
 #define INCLUDED_BMQEX_EXECUTIONPROPERTY
 
-//@PURPOSE: Provides utility tag types to be used with 'bmqex::ExecutionPolicy'
+//@PURPOSE: Provides utility types to be used with 'bmqex::ExecutionPolicy'
 //
 //@CLASSES:
-//  ExecutionProperty: a namespace for utility tag types and enumeration values
+//  ExecutionProperty: a namespace for enumeration values
 //
 //@SEE ALSO:
 //  bmqex::ExecutionPolicy
 //
 //@DESCRIPTION:
 // This component provides a struct, 'bmqex::ExecutionProperty', that serves as
-// a namespace for utility tag types and enumeration values to be used with
-// 'bmqex::ExecutionPolicy' to specify the execution policy direction and
-// blocking properties.
+// a namespace for enumeration values to be used with
+// 'bmqex::ExecutionPolicy' to specify the execution policy blocking
+// properties.
 
 namespace BloombergLP {
 namespace bmqex {
@@ -38,14 +38,11 @@ namespace bmqex {
 // struct ExecutionProperty
 // ========================
 
-/// Provides a namespace for utility tag types and enumeration values to be
-/// used with `bmqex::ExecutionPolicy` to specify the execution policy
-/// direction and blocking properties.
+/// Provides a namespace for enumeration values to be used with
+/// `bmqex::ExecutionPolicy` to specify the execution policy blocking
+/// properties.
 struct ExecutionProperty {
     // TYPES
-
-    /// Provides a tag type defining the One-Way direction property.
-    struct OneWay {};
 
     enum Blocking {
         // Provides a enumeration type defining the blocking behavior property.

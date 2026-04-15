@@ -31,9 +31,6 @@
 // used to customize the behavior of execution functions provided by the
 // 'bmqex_executionutil' component. A policy object contains the following
 // properties:
-//: o Directionality. Is One-Way (for more information see package
-//:   documentation).
-//:
 //: o Blocking behavior. Is Never Blocking, Possibly Blocking or Always
 //:   Blocking (for more information see package documentation).
 //:
@@ -50,9 +47,9 @@
 // Policies are lightweight immutable objects. Given a policy object 'p1'
 // having some set of properties, a new policy 'p2' having a different set of
 // properties can be "built" from the first one by applying transformation
-// operations to it. For example, lets say we have a One-Way Never Blocking
-// policy 'p', and we want to transform it to a One-Way Always Blocking policy.
-// The corresponding expression looks like:
+// operations to it. For example, lets say we have a Never Blocking policy
+// 'p', and we want to transform it to an Always Blocking policy. The
+// corresponding expression looks like:
 //..
 //  p.alwaysBlocking();
 //..
@@ -67,9 +64,9 @@
 //                             .useExecutor(myExecutor)
 //                             .useAllocator(myAllocator);
 //..
-// The result of the expression below is a One-Way Never Blocking execution
-// policy that has its associated executor and its associated allocator set to
-// the specified 'myExecutor' and 'myAllocator' respectively.
+// The result of the expression below is a Never Blocking execution policy
+// that has its associated executor and its associated allocator set to the
+// specified 'myExecutor' and 'myAllocator' respectively.
 //
 /// Using policies to execute function objects
 ///------------------------------------------
@@ -77,14 +74,14 @@
 // 'bmqex_executionutil' component that provides a set of execution functions
 // named 'execute', defined in the 'bmqex::ExecutionUtil' namespace. 'execute'
 // accepts an execution policy and a function object to be executed according
-// to the specified policy. One-Way execution functions return 'void'. The
-// exact type of the execution function return value can be obtained at compile
-// time using the 'bmqex::ExecutionUtil::ExecuteResult' metafunction (see
+// to the specified policy. Execution functions return 'void'. The exact type
+// of the execution function return value can be obtained at compile time
+// using the 'bmqex::ExecutionUtil::ExecuteResult' metafunction (see
 // 'bmqex_executionutil').
 //
 // Lets say we are to execute a function object 'myFunction' on an unspecified
 // execution context associated with an executor object 'myExecutor'. If what
-// we desire is "fire and forget", then we would use a One-Way policy:
+// we desire is "fire and forget":
 //..
 //  using bmqex;
 //
@@ -101,7 +98,6 @@
 // BDE
 #include <bslma_allocator.h>
 #include <bslma_default.h>
-#include <bslmf_issame.h>
 #include <bslmf_movableref.h>
 #include <bslmf_util.h>
 #include <bsls_assert.h>
@@ -115,14 +111,12 @@ namespace bmqex {
 // class ExecutionPolicy
 // =====================
 
-/// Provides an execution policy having its direction property and
-/// associated executor type defined by the types of the specified
-/// `DIRECTION` and `EXECUTOR` template parameters.
+/// Provides an execution policy having its associated executor type
+/// defined by the type of the specified `EXECUTOR` template parameter.
 ///
 /// Note that instances of this class should not be created explicitly,
 /// instead use the `ExecutionPolicyUtil` factory methods.
-template <class DIRECTION = ExecutionProperty::OneWay,
-          class EXECUTOR  = SystemExecutor>
+template <class EXECUTOR = SystemExecutor>
 class ExecutionPolicy {
   public:
     // TYPES
@@ -130,28 +124,14 @@ class ExecutionPolicy {
     /// Defines the type of the associated executor.
     typedef EXECUTOR ExecutorType;
 
-    /// Provides a way to obtain the type of a One-Way execution policy
-    /// otherwise having the same properties as this one.
-    struct RebindOneWay {
-        // TYPES
-        typedef ExecutionPolicy<ExecutionProperty::OneWay, EXECUTOR> Type;
-    };
-
     /// Provides a way to obtain the type of an execution policy having
     /// the specified associated `EXECUTOR_T` type and otherwise having
     /// the same properties as this one.
     template <class EXECUTOR_T>
     struct RebindExecutor {
         // TYPES
-        typedef ExecutionPolicy<DIRECTION, EXECUTOR_T> Type;
+        typedef ExecutionPolicy<EXECUTOR_T> Type;
     };
-
-  public:
-    // CLASS DATA
-
-    /// Defines if this policy is One-Way.
-    static BSLS_KEYWORD_CONSTEXPR_MEMBER bool k_IS_ONE_WAY =
-        bsl::is_same<DIRECTION, ExecutionProperty::OneWay>::value;
 
   private:
     // PRIVATE DATA
@@ -162,7 +142,7 @@ class ExecutionPolicy {
     bslma::Allocator* d_allocator_p;
 
     // FRIENDS
-    template <class, class>
+    template <class>
     friend class ExecutionPolicy;
 
   private:
@@ -185,8 +165,8 @@ class ExecutionPolicy {
     ///
     /// `EXECUTOR` shall be constructible from `OTHER_EXECUTOR`.
     template <class OTHER_EXECUTOR>
-    BSLS_KEYWORD_CONSTEXPR_CPP14 ExecutionPolicy(
-        const ExecutionPolicy<DIRECTION, OTHER_EXECUTOR>& original);
+    BSLS_KEYWORD_CONSTEXPR_CPP14
+    ExecutionPolicy(const ExecutionPolicy<OTHER_EXECUTOR>& original);
 
   public:
     // ACCESSORS
@@ -231,9 +211,9 @@ class ExecutionPolicy {
 struct ExecutionPolicyUtil {
     // CLASS METHODS
 
-    /// Return the default execution policy, that is a One-Way Possibly
-    /// Blocking policy using a default-constructed `bmqex::SystemExecutor`
-    /// and the currently installed default allocator.
+    /// Return the default execution policy, that is a Possibly Blocking
+    /// policy using a default-constructed `bmqex::SystemExecutor` and the
+    /// currently installed default allocator.
     static ExecutionPolicy<> defaultPolicy();
 
     /// Return a Never Blocking execution policy as if by
@@ -268,9 +248,8 @@ struct ExecutionPolicyUtil {
 // ---------------------
 
 // CREATORS
-template <class DIRECTION, class EXECUTOR>
-inline BSLS_KEYWORD_CONSTEXPR_CPP14
-ExecutionPolicy<DIRECTION, EXECUTOR>::ExecutionPolicy(
+template <class EXECUTOR>
+inline BSLS_KEYWORD_CONSTEXPR_CPP14 ExecutionPolicy<EXECUTOR>::ExecutionPolicy(
     ExecutionProperty::Blocking blocking,
     EXECUTOR                    executor,
     bslma::Allocator*           allocator)
@@ -282,11 +261,10 @@ ExecutionPolicy<DIRECTION, EXECUTOR>::ExecutionPolicy(
     BSLS_ASSERT(allocator);
 }
 
-template <class DIRECTION, class EXECUTOR>
+template <class EXECUTOR>
 template <class OTHER_EXECUTOR>
-inline BSLS_KEYWORD_CONSTEXPR_CPP14
-ExecutionPolicy<DIRECTION, EXECUTOR>::ExecutionPolicy(
-    const ExecutionPolicy<DIRECTION, OTHER_EXECUTOR>& original)
+inline BSLS_KEYWORD_CONSTEXPR_CPP14 ExecutionPolicy<EXECUTOR>::ExecutionPolicy(
+    const ExecutionPolicy<OTHER_EXECUTOR>& original)
 : d_blocking(original.d_blocking)
 , d_executor(original.d_executor)
 , d_allocator_p(original.d_allocator_p)
@@ -295,39 +273,38 @@ ExecutionPolicy<DIRECTION, EXECUTOR>::ExecutionPolicy(
 }
 
 // ACCESSORS
-template <class DIRECTION, class EXECUTOR>
-inline ExecutionPolicy<DIRECTION, EXECUTOR>
-ExecutionPolicy<DIRECTION, EXECUTOR>::neverBlocking() const
+template <class EXECUTOR>
+inline ExecutionPolicy<EXECUTOR>
+ExecutionPolicy<EXECUTOR>::neverBlocking() const
 {
     return ExecutionPolicy(ExecutionProperty::e_NEVER_BLOCKING,
                            d_executor,
                            d_allocator_p);
 }
 
-template <class DIRECTION, class EXECUTOR>
-inline ExecutionPolicy<DIRECTION, EXECUTOR>
-ExecutionPolicy<DIRECTION, EXECUTOR>::possiblyBlocking() const
+template <class EXECUTOR>
+inline ExecutionPolicy<EXECUTOR>
+ExecutionPolicy<EXECUTOR>::possiblyBlocking() const
 {
     return ExecutionPolicy(ExecutionProperty::e_POSSIBLY_BLOCKING,
                            d_executor,
                            d_allocator_p);
 }
 
-template <class DIRECTION, class EXECUTOR>
-inline ExecutionPolicy<DIRECTION, EXECUTOR>
-ExecutionPolicy<DIRECTION, EXECUTOR>::alwaysBlocking() const
+template <class EXECUTOR>
+inline ExecutionPolicy<EXECUTOR>
+ExecutionPolicy<EXECUTOR>::alwaysBlocking() const
 {
     return ExecutionPolicy(ExecutionProperty::e_ALWAYS_BLOCKING,
                            d_executor,
                            d_allocator_p);
 }
 
-template <class DIRECTION, class EXECUTOR>
+template <class EXECUTOR>
 template <class EXECUTOR_PARAM>
-inline typename ExecutionPolicy<DIRECTION, EXECUTOR>::template RebindExecutor<
+inline typename ExecutionPolicy<EXECUTOR>::template RebindExecutor<
     EXECUTOR_PARAM>::Type
-ExecutionPolicy<DIRECTION, EXECUTOR>::useExecutor(
-    EXECUTOR_PARAM executor) const
+ExecutionPolicy<EXECUTOR>::useExecutor(EXECUTOR_PARAM executor) const
 {
     return typename RebindExecutor<EXECUTOR_PARAM>::Type(
         d_blocking,
@@ -335,10 +312,9 @@ ExecutionPolicy<DIRECTION, EXECUTOR>::useExecutor(
         d_allocator_p);
 }
 
-template <class DIRECTION, class EXECUTOR>
-inline ExecutionPolicy<DIRECTION, EXECUTOR>
-ExecutionPolicy<DIRECTION, EXECUTOR>::useAllocator(
-    bslma::Allocator* allocator) const
+template <class EXECUTOR>
+inline ExecutionPolicy<EXECUTOR>
+ExecutionPolicy<EXECUTOR>::useAllocator(bslma::Allocator* allocator) const
 {
     // PRECONDITIONS
     BSLS_ASSERT(allocator);
@@ -346,23 +322,23 @@ ExecutionPolicy<DIRECTION, EXECUTOR>::useAllocator(
     return ExecutionPolicy(d_blocking, d_executor, allocator);
 }
 
-template <class DIRECTION, class EXECUTOR>
+template <class EXECUTOR>
 inline ExecutionProperty::Blocking
-ExecutionPolicy<DIRECTION, EXECUTOR>::blocking() const BSLS_KEYWORD_NOEXCEPT
+ExecutionPolicy<EXECUTOR>::blocking() const BSLS_KEYWORD_NOEXCEPT
 {
     return d_blocking;
 }
 
-template <class DIRECTION, class EXECUTOR>
+template <class EXECUTOR>
 inline const EXECUTOR&
-ExecutionPolicy<DIRECTION, EXECUTOR>::executor() const BSLS_KEYWORD_NOEXCEPT
+ExecutionPolicy<EXECUTOR>::executor() const BSLS_KEYWORD_NOEXCEPT
 {
     return d_executor;
 }
 
-template <class DIRECTION, class EXECUTOR>
+template <class EXECUTOR>
 inline bslma::Allocator*
-ExecutionPolicy<DIRECTION, EXECUTOR>::allocator() const BSLS_KEYWORD_NOEXCEPT
+ExecutionPolicy<EXECUTOR>::allocator() const BSLS_KEYWORD_NOEXCEPT
 {
     return d_allocator_p;
 }

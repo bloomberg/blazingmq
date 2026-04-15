@@ -76,9 +76,7 @@ class ResolvingChannelFactoryConfig {
 
     /// An execution policy defining how the resolution callback is to be
     /// executed.
-    typedef bmqex::ExecutionPolicy<bmqex::ExecutionProperty::OneWay,
-                                   bmqex::Executor>
-        ExecutionPolicy;
+    typedef bmqex::ExecutionPolicy<bmqex::Executor> ExecutionPolicy;
 
   private:
     // PRIVATE DATA
