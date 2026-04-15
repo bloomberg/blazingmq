@@ -184,6 +184,38 @@ def clean_storage_output(output_str: str) -> str:
     return json.dumps(data, indent=2)
 
 
+def _wait_for_passive_advisories(leader: Broker, cluster: Cluster, timeout: int = 10):
+    """
+    Wait until every non-leader node has received a PASSIVE primary status
+    advisory from the leader for every partition.
+
+    During leader shutdown, each partition's queue dispatcher issues a forced
+    sync point and then broadcasts a PASSIVE advisory (flushing the sync point
+    first per PR #1202).  However, ``closeChannels()`` can tear down the TCP
+    connection before the channel thread drains all buffered data.  Waiting for
+    the PASSIVE advisory on each replica confirms that the preceding forced
+    sync point was also delivered (same TCP stream, guaranteed ordering).
+    """
+    num_partitions = cluster.config.definition.partition_config.num_partitions
+    patterns = [
+        (
+            f"received primary status advisory: "
+            f"\\[ partitionId = {pid} primaryLeaseId = \\d+ "
+            f"status = E_PASSIVE \\], from: \\[{re.escape(leader.name)}"
+        )
+        for pid in range(num_partitions)
+    ]
+    for node in cluster.nodes(exclude=leader):
+        if not node.is_alive():
+            continue
+        results = node.capture_n(patterns, timeout=timeout)
+        missing = [pid for pid, match in enumerate(results) if match is None]
+        assert not missing, (
+            f"Node {node.name} did not receive PASSIVE advisory from leader "
+            f"{leader.name} for partition(s) {missing} within {timeout}s"
+        )
+
+
 def stop_cluster_and_compare_journal_files(
     leader_name: str, replica_name: str, cluster: Cluster
 ) -> None:
@@ -200,9 +232,12 @@ def stop_cluster_and_compare_journal_files(
     for node in cluster.nodes():
         if node.is_alive():
             node.set_quorum(5)
-    if cluster.last_known_leader:
-        cluster.last_known_leader.stop()
-        cluster.make_sure_node_stopped(cluster.last_known_leader)
+
+    leader = cluster.last_known_leader
+    if leader:
+        leader.stop()
+        _wait_for_passive_advisories(leader, cluster)
+        cluster.make_sure_node_stopped(leader)
     cluster.stop_nodes()
 
     leader_journal_files = glob.glob(
