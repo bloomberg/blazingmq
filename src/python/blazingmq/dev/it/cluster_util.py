@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import difflib
 import glob
 import json
 import os
@@ -269,12 +270,22 @@ def stop_cluster_and_compare_journal_files(
             f"Replica storage tool failed on {replica_file} with rc {replica_res.returncode}"
         )
 
-        assert clean_storage_output(leader_res.stdout) == clean_storage_output(
-            replica_res.stdout
-        ), (
-            f"Leader and replica journal file contents differ for "
-            f"{leader_file} and {replica_file}"
-        )
+        leader_out = clean_storage_output(leader_res.stdout)
+        replica_out = clean_storage_output(replica_res.stdout)
+        if leader_out != replica_out:
+            diff = "\n".join(
+                difflib.unified_diff(
+                    leader_out.splitlines(),
+                    replica_out.splitlines(),
+                    fromfile=str(leader_file),
+                    tofile=str(replica_file),
+                    lineterm="",
+                )
+            )
+            assert False, (
+                f"Leader and replica journal file contents differ for "
+                f"{leader_file} and {replica_file}\n{diff}"
+            )
 
         leader_res = run_storage_tool(leader_file, "summary")
         assert leader_res.returncode == 0, (
@@ -286,12 +297,22 @@ def stop_cluster_and_compare_journal_files(
             f"Replica storage tool (summary) failed on {replica_file} with rc {replica_res.returncode}"
         )
 
-        assert clean_storage_output(leader_res.stdout) == clean_storage_output(
-            replica_res.stdout
-        ), (
-            f"Leader and replica journal file summary differ for "
-            f"{leader_file} and {replica_file}"
-        )
+        leader_out = clean_storage_output(leader_res.stdout)
+        replica_out = clean_storage_output(replica_res.stdout)
+        if leader_out != replica_out:
+            diff = "\n".join(
+                difflib.unified_diff(
+                    leader_out.splitlines(),
+                    replica_out.splitlines(),
+                    fromfile=str(leader_file),
+                    tofile=str(replica_file),
+                    lineterm="",
+                )
+            )
+            assert False, (
+                f"Leader and replica journal file summary differ for "
+                f"{leader_file} and {replica_file}\n{diff}"
+            )
 
 
 def wipe_files(file_patterns: list, storage_dir: str) -> None:
