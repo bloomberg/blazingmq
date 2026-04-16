@@ -291,7 +291,7 @@ class DataStoreConfigQueueInfo {
 
   private:
     // DATA
-    bool d_isCSL;
+    bool d_isFSM;
 
     bsl::string d_canonicalUri;
 
@@ -312,7 +312,7 @@ class DataStoreConfigQueueInfo {
                                    bslma::UsesBslmaAllocator)
 
     // CREATORS
-    explicit DataStoreConfigQueueInfo(bool              isCSL,
+    explicit DataStoreConfigQueueInfo(bool              isFSM,
                                       bslma::Allocator* basicAllocator = 0);
 
     DataStoreConfigQueueInfo(const DataStoreConfigQueueInfo& other,
@@ -873,9 +873,9 @@ DataStoreRecordKeyLess::operator()(const DataStoreRecordKey& lhs,
 
 // CREATORS
 inline DataStoreConfigQueueInfo::DataStoreConfigQueueInfo(
-    bool              isCSL,
+    bool              isFSM,
     bslma::Allocator* basicAllocator)
-: d_isCSL(isCSL)
+: d_isFSM(isFSM)
 , d_canonicalUri(basicAllocator)
 , d_partitionId(mqbi::Storage::k_INVALID_PARTITION_ID)
 , d_appIdKeyPairs(basicAllocator)
@@ -887,7 +887,7 @@ inline DataStoreConfigQueueInfo::DataStoreConfigQueueInfo(
 inline DataStoreConfigQueueInfo::DataStoreConfigQueueInfo(
     const DataStoreConfigQueueInfo& other,
     bslma::Allocator*               basicAllocator)
-: d_isCSL(other.d_isCSL)
+: d_isFSM(other.d_isFSM)
 , d_canonicalUri(other.d_canonicalUri, basicAllocator)
 , d_partitionId(other.d_partitionId)
 , d_appIdKeyPairs(other.d_appIdKeyPairs, basicAllocator)

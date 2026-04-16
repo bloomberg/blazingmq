@@ -924,7 +924,6 @@ struct TestHelper {
             &d_cluster_mp->_clusterData()->blobSpPool(),
             &d_cluster_mp->_clusterData()->stateSpPool(),
             &threadPool,
-            d_cluster_mp->isCSLModeEnabled(),
             d_cluster_mp->isFSMWorkflow(),
             d_cluster_mp->doesFSMwriteQLIST(),
             1,  // replicationFactor

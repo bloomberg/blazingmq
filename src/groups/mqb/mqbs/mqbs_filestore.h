@@ -381,9 +381,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     // Throttler for alarming on soft
     // limits of partition files
 
-    bool d_isCSLModeEnabled;
-    // Whether CSL mode is enabled
-
     bool d_isFSMWorkflow;
     // Whether FSM workflow is enabled
 
@@ -709,8 +706,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     /// Create an instance with the specified `config`, `processorId`,
     /// `dispatcher`, `cluster`, `clusterStats`, `blobSpPool`,
-    /// `miscWorkThreadPool`, `isCSLModeEnabled`, `isFSMWorkflow` and
-    /// `allocator`.
+    /// `miscWorkThreadPool`, `isFSMWorkflow` and `allocator`.
     FileStore(const DataStoreConfig&                          config,
               int                                             processorId,
               mqbi::Dispatcher*                               dispatcher,
@@ -719,7 +715,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
               BlobSpPool*                                     blobSpPool,
               StateSpPool*                                    statePool,
               bdlmt::FixedThreadPool* miscWorkThreadPool,
-              bool                    isCSLModeEnabled,
               bool                    isFSMWorkflow,
               bool                    doesFSMwriteQLIST,
               int                     replicationFactor,

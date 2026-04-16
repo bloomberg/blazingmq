@@ -4391,7 +4391,7 @@ int FileStore::writeQueueCreationRecord(
 
     StorageMapIter sit = d_storages.find(queueKey);
     if (sit == d_storages.end()) {
-        if (d_isCSLModeEnabled) {
+        if (d_isFSMWorkflow) {
             return rc_QUEUE_CREATION_FAILURE;  // RETURN
         }
         else {
@@ -5167,7 +5167,6 @@ FileStore::FileStore(
     BlobSpPool*                                     blobSpPool,
     StateSpPool*                                    statePool,
     bdlmt::FixedThreadPool*                         miscWorkThreadPool,
-    bool                                            isCSLModeEnabled,
     bool                                            isFSMWorkflow,
     bool                                            doesFSMwriteQLIST,
     int                                             replicationFactor,
@@ -5203,7 +5202,6 @@ FileStore::FileStore(
 , d_sequenceNum(0)
 , d_syncPoints(allocator)
 , d_storages(allocator)
-, d_isCSLModeEnabled(isCSLModeEnabled)
 , d_isFSMWorkflow(isFSMWorkflow)
 , d_qListAware(!d_isFSMWorkflow || doesFSMwriteQLIST)
 , d_ignoreCrc32c(false)
@@ -5220,9 +5218,6 @@ FileStore::FileStore(
     BSLS_ASSERT(dispatcher);
     BSLS_ASSERT(d_cluster_p);
     BSLS_ASSERT(1 <= clusterSize());
-    if (d_isFSMWorkflow) {
-        BSLS_ASSERT_SAFE(d_isCSLModeEnabled);
-    }
 
     bmqu::MemOutStream os;
     os << "Partition [" << d_config.partitionId()

@@ -1348,7 +1348,6 @@ int StorageUtil::assignPartitionDispatcherThreads(
                 blobSpPool,
                 &clusterData->stateSpPool(),
                 threadPool,
-                cluster.isCSLModeEnabled(),
                 cluster.isFSMWorkflow(),
                 cluster.doesFSMwriteQLIST(),
                 replicationFactor,
