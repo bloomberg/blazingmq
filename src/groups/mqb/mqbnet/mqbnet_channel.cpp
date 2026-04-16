@@ -80,12 +80,12 @@ Channel::Channel(bdlbb::BlobBufferFactory* blobBufferFactory,
              bsls::BlockGrowth::BSLS_CONSTANT,
              d_allocators.get("ItemPool"))
 , d_buffer(1024, allocator)
-, d_doStop(false)
+, d_isStopped(false)
 , d_state(e_RESET)
 , d_description(name + " - ", d_allocator_p)
 , d_name(name, d_allocator_p)
 , d_stats()
-, d_isClosing(false)
+, d_isStopping(false)
 {
     bslmt::ThreadAttributes attr = bmqsys::ThreadUtil::defaultAttributes();
     bsl::string             threadName("bmqNet-");
@@ -103,9 +103,28 @@ Channel::Channel(bdlbb::BlobBufferFactory* blobBufferFactory,
 
 Channel::~Channel()
 {
-    d_doStop = true;
+    if (!d_isStopping.load()) {
+        // Did not bother to call requestToStop()
+        requestToStop();
+        stop();
+    }
+    BSLS_ASSERT_SAFE(d_isStopped.load());
+}
 
-    resetChannel();
+void Channel::stop()
+{
+    BSLS_ASSERT_SAFE(d_isStopping.load());
+
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+
+        // Signal, in case the channel is waiting on 'd_stateCondition'.
+        // Do not 'e_RESET' the state to let the drain finish.
+
+        d_stateCondition.signal();
+    }
+
+    BALL_LOG_INFO << "Stopped " << d_description;
 
     BSLA_MAYBE_UNUSED const int rc = bslmt::ThreadUtil::join(d_threadHandle);
     BSLS_ASSERT_SAFE(rc == 0);
@@ -260,9 +279,9 @@ void Channel::resetChannel()
     wakeUp();
 }
 
-void Channel::closeChannel()
+void Channel::requestToStop()
 {
-    d_isClosing.store(true);
+    d_isStopping.store(true);
 
     // No need to 'signal' to interrupt the waiting.
     // Waiting means there is no connection and therefore nothing to close.
@@ -742,10 +761,11 @@ void Channel::threadFn()
     bsl::shared_ptr<bmqio::Channel> channel;
     bsl::string                     description;
     int                             mode = e_BLOCK;
+    bool                            doStop = false;
 
     BSLS_ASSERT(d_state == e_RESET);
 
-    while (!d_doStop) {
+    while (!doStop) {
         bmqc::MonitoredQueueState::Enum queueState;
         while (d_queueStates.tryPopFront(&queueState) == 0) {
             switch (queueState) {
@@ -792,9 +812,7 @@ void Channel::threadFn()
                 item.reset();
                 reset();
 
-                mode    = e_BLOCK;
-                d_isClosing.store(false);
-
+                mode        = e_BLOCK;
                 channel     = d_channel_wp.lock();
                 description = d_description;
 
@@ -818,6 +836,9 @@ void Channel::threadFn()
                               << " with " << numItems() << " items and "
                               << bmqu::PrintUtil::prettyBytes(numBytes())
                               << " pending bytes";
+            }
+            else if (d_isStopping) {
+                doStop = true;
             }
             else {
                 // wait for 'setChannel' or LWM
@@ -851,7 +872,7 @@ void Channel::threadFn()
                 }
                 // if draining, this is where it stops.
                 // Does not matter if 'flushAll' has failed; must close
-                if (d_isClosing) {
+                if (d_isStopping) {
                     channel->close();
                     d_state.testAndSwap(e_READY, e_CLOSE);
                     // bmqio::Channel observer will trigger 'resetChannel'
@@ -909,6 +930,7 @@ void Channel::threadFn()
         }
     }
     reset();
+    d_isStopped.store(true);
 }
 
 void Channel::onBufferStateChange(bmqc::MonitoredQueueState::Enum state)

@@ -142,9 +142,6 @@ class ClusterNodeImp : public ClusterNode {
     /// Reset the channel associated to this node.
     ClusterNode* resetChannel() BSLS_KEYWORD_OVERRIDE;
 
-    /// Close the channel associated to this node, if any.
-    void closeChannel() BSLS_KEYWORD_OVERRIDE;
-
     /// Enqueue the specified message `blob` of the specified `type`to be
     /// written to the channel associated to this node.  Return 0 on
     /// success, and a non-zero value otherwise.  Note that success does not
