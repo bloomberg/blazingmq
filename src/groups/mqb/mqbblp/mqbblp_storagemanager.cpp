@@ -381,12 +381,6 @@ void StorageManager::queueCreationCb(int                     partitionId,
                      partitionId < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
 
-//    if (d_cluster_p->isFSMWorkflow()) {
-//        // This callback is removed for CSL mode
-//
-//        return;  // RETURN
-//    }
-
     // This routine is executed at replica nodes when they received a queue
     // creation record from the primary in the partition stream.
 
@@ -415,6 +409,33 @@ void StorageManager::queueCreationCb(int                     partitionId,
         // Ignore the return code of addVirtualStoragesInternal which can only
         // indicate if the VirtualStorage is already created.
     }
+}
+
+void StorageManager::queueDeletionCb(int                     partitionId,
+                                     const bmqt::Uri&        uri,
+                                     const mqbu::StorageKey& queueKey,
+                                     const mqbu::StorageKey& appKey)
+{
+    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
+
+    BALL_LOG_INFO << ": deleting App for queue [" << uri << "], queueKey ["
+                  << queueKey << "], appKey [" << appKey << "] as replica.";
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
+
+    // This routine is executed at replica nodes when they received a queue
+    // deletion record from the primary in the partition stream.
+
+    mqbc::StorageUtil::removeQueueStorageDispatched(
+        &d_storages[partitionId],
+        d_storageLockVec[partitionId].get(),
+        d_fileStores[partitionId].get(),
+        uri,
+        queueKey,
+        appKey);
 }
 
 void StorageManager::recoveredQueuesCb(int                    partitionId,
@@ -1091,99 +1112,6 @@ int StorageManager::updateQueuePrimary(const bmqt::Uri& uri,
         removedIdKeyPairs);
 }
 
-//void StorageManager::registerQueueReplica(int                     partitionId,
-//                                          const bmqt::Uri&        uri,
-//                                          const mqbu::StorageKey& queueKey,
-//                                          const AppInfos& appIdKeyPairs,
-//                                          mqbi::Domain*   domain)
-//{
-//    // executed by the *CLUSTER DISPATCHER* thread
-//
-//    // PRECONDITIONS
-//    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-//
-//    // This routine is executed at follower nodes upon commit callback of Queue
-//    // Assignment Advisory from the leader.
-//
-//    mqbs::FileStore* fs = d_fileStores[partitionId].get();
-//
-//    bsl::shared_ptr<mqbevt::DispatcherEvent> event_sp =
-//        d_cluster_p->getEvent<mqbevt::DispatcherEvent>();
-//    (*event_sp).callback().set(
-//        bdlf::BindUtil::bind(&mqbc::StorageUtil::createQueueStorageAsReplica,
-//                             &d_storages[partitionId],
-//                             d_storageLockVec[partitionId].get(),
-//                             fs,
-//                             d_domainFactory_p,
-//                             uri,
-//                             queueKey,
-//                             appIdKeyPairs,
-//                             domain));
-//
-//    fs->dispatchEvent(bslmf::MovableRefUtil::move(event_sp));
-//}
-
-void StorageManager::unregisterQueueReplica(int              partitionId,
-                                            const bmqt::Uri& uri,
-                                            const mqbu::StorageKey& queueKey,
-                                            const mqbu::StorageKey& appKey)
-{
-    // executed by the *CLUSTER DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-
-    // This routine is executed at follower nodes upon commit callback of Queue
-    // Unassigned Advisory or Queue Update Advisory from the leader.
-
-    mqbs::FileStore* fs = d_fileStores[partitionId].get();
-
-    bsl::shared_ptr<mqbevt::DispatcherEvent> event_sp =
-        d_cluster_p->getEvent<mqbevt::DispatcherEvent>();
-    (*event_sp).callback().set(
-        bdlf::BindUtil::bind(&mqbc::StorageUtil::removeQueueStorageDispatched,
-                             &d_storages[partitionId],
-                             d_storageLockVec[partitionId].get(),
-                             fs,
-                             uri,
-                             queueKey,
-                             appKey));
-
-    fs->dispatchEvent(bslmf::MovableRefUtil::move(event_sp));
-}
-
-void StorageManager::updateQueueReplica(int                     partitionId,
-                                        const bmqt::Uri&        uri,
-                                        const mqbu::StorageKey& queueKey,
-                                        const AppInfos&         appIdKeyPairs,
-                                        mqbi::Domain*           domain)
-{
-    // executed by the *CLUSTER DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-
-    // This routine is executed at follower nodes upon commit callback of Queue
-    // Queue Update Advisory from the leader.
-
-    mqbs::FileStore* fs = d_fileStores[partitionId].get();
-
-    bsl::shared_ptr<mqbevt::DispatcherEvent> event_sp =
-        d_cluster_p->getEvent<mqbevt::DispatcherEvent>();
-    (*event_sp).callback().set(
-        bdlf::BindUtil::bind(&mqbc::StorageUtil::updateQueueStorageDispatched,
-                             &d_storages[partitionId],
-                             d_storageLockVec[partitionId].get(),
-                             d_domainFactory_p,
-                             fs->description(),
-                             uri,
-                             queueKey,
-                             appIdKeyPairs,
-                             domain));
-
-    fs->dispatchEvent(bslmf::MovableRefUtil::move(event_sp));
-}
-
 void StorageManager::resetQueue(const bmqt::Uri& uri,
                                 int              partitionId,
                                 const bsl::shared_ptr<mqbi::Queue>& queue_sp)
@@ -1311,11 +1239,17 @@ int StorageManager::start(bsl::ostream& errorDescription)
                              bdlf::PlaceHolders::_2),  // queueKeyUriMap)
         bdlf::BindUtil::bind(&StorageManager::queueCreationCb,
                              this,
+                             bdlf::PlaceHolders::_1,   // partitionId
+                             bdlf::PlaceHolders::_2,   // QueueUri
+                             bdlf::PlaceHolders::_3,   // QueueKey
+                             bdlf::PlaceHolders::_4,   // AppInfos
+                             bdlf::PlaceHolders::_5),  // IsNewQueue)
+        bdlf::BindUtil::bind(&StorageManager::queueDeletionCb,
+                             this,
                              bdlf::PlaceHolders::_1,    // partitionId
                              bdlf::PlaceHolders::_2,    // QueueUri
                              bdlf::PlaceHolders::_3,    // QueueKey
-                             bdlf::PlaceHolders::_4,    // AppInfos
-                             bdlf::PlaceHolders::_5));  // IsNewQueue)
+                             bdlf::PlaceHolders::_4));  // AppKey
 
     BALL_LOG_INFO_BLOCK
     {

@@ -4374,20 +4374,18 @@ int FileStore::writeQueueCreationRecord(
         return 10 * rc + rc_WRITE_QUEUE_CREATION_RECORD_ERROR;  // RETURN
     }
 
-//    if (!d_isFSMWorkflow) {
-        // TODO: Temporarily. Remove after all versions wait for CSL commits
-        // before calling onQueueAssigned/onQueueUpdated.
+    // Replicas create/update/delete storage upon Replication events
+    // (queueCreationCb/queueDeletionCb).
 
-        BSLS_ASSERT_SAFE(d_config.queueCreationCb());
-        d_config.queueCreationCb()(d_config.partitionId(),
-                                   quri,
-                                   queueKey,
-                                   appIdKeyPairs,
-                                   QueueOpType::e_CREATION == queueOpType);
-        // Ignore the result.  In the case of storage creation failure, the
-        // lookup below will fail.
-        // Virtual storage creation currently fails on double creation only.
-//    }
+    BSLS_ASSERT_SAFE(d_config.queueCreationCb());
+    d_config.queueCreationCb()(d_config.partitionId(),
+                               quri,
+                               queueKey,
+                               appIdKeyPairs,
+                               QueueOpType::e_CREATION == queueOpType);
+    // Ignore the result.  In the case of storage creation failure, the
+    // lookup below will fail.
+    // Virtual storage creation currently fails on double creation only.
 
     StorageMapIter sit = d_storages.find(queueKey);
     if (sit == d_storages.end()) {
@@ -4560,48 +4558,33 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
 
         BSLS_ASSERT_SAFE(!queueKey->isNull());
 
-        if (!(recordType == RecordType::e_QUEUE_OP &&
-              queueOpType == QueueOpType::e_DELETION)) {
-            // In ANY mode, the FileStore might receive the QueueDeletionRecord
-            // after the queue storage has already been removed in the CSL
-            // QueueUnassignment commit callback.  Therefore, we will relax the
-            // checks below.
+        StorageMapIter sit = d_storages.find(*queueKey);
+        if (sit == d_storages.end()) {
+            BALL_LOG_ERROR << partitionDesc() << " received message of "
+                           << "type '" << messageType << "' for an unknown"
+                           << " storage [queueKey: " << *queueKey << "]";
+            return rc_UNKNOWN_QUEUE_KEY;  // RETURN
+        }
 
-            StorageMapIter sit = d_storages.find(*queueKey);
-            if (sit == d_storages.end()) {
-                BALL_LOG_ERROR << partitionDesc() << " received message of "
-                               << "type '" << messageType << "' for an unknown"
-                               << " storage [queueKey: " << *queueKey << "]";
-                return rc_UNKNOWN_QUEUE_KEY;  // RETURN
+        rstorage = sit->second;
+        BSLS_ASSERT_SAFE(rstorage);
+
+        if (RecordType::e_QUEUE_OP != recordType) {
+            // It's one of CONFIRM/DELETION records.  Storage must be
+            // file-backed.
+
+            if (!rstorage->isPersistent()) {
+                return rc_INCOMPATIBLE_STORAGE;  // RETURN
             }
+        }
 
-            rstorage = sit->second;
-            BSLS_ASSERT_SAFE(rstorage);
+        if (!appKey->isNull()) {
+            if (!rstorage->hasVirtualStorage(*appKey)) {
+                BALL_LOG_ERROR << partitionDesc()
+                               << " storage does not have the key [" << *appKey
+                               << "]";
 
-            if (RecordType::e_QUEUE_OP != recordType) {
-                // It's one of CONFIRM/DELETION records.  Storage must be
-                // file-backed.
-
-                if (!rstorage->isPersistent()) {
-                    return rc_INCOMPATIBLE_STORAGE;  // RETURN
-                }
-            }
-
-            if (!appKey->isNull()) {
-                if (!(recordType == RecordType::e_QUEUE_OP &&
-                      queueOpType == QueueOpType::e_PURGE)) {
-                    // In ANY mode, if we are unregistering the 'appKey', then
-                    // we would have purged the subqueue and removed the
-                    // virtual storage for the 'appKey' before receiving this
-                    // QueueOp Purge record.
-                    if (!rstorage->hasVirtualStorage(*appKey)) {
-                        BALL_LOG_ERROR << partitionDesc()
-                                       << " storage does not have the key ["
-                                       << *appKey << "]";
-
-                        return rc_UNKNOWN_APP_KEY;  // RETURN
-                    }
-                }
+                return rc_UNKNOWN_APP_KEY;  // RETURN
             }
         }
     }
@@ -4817,15 +4800,29 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
         }
         else {
             BSLS_ASSERT_SAFE(QueueOpType::e_DELETION == queueOpType);
-
+            BSLS_ASSERT_SAFE(rstorage);
+            BSLS_ASSERT_SAFE(appKey);
             if (appKey->isNull()) {
                 // Entire queue is being deleted.
 
-                // In ANY mode, any outstanding QueueOp records are deleted
-                // upon receiving queue-unassigned advisory (see
-                // CQH::onQueueUnassigned and
-                // StorageMgr::unregisterQueueReplica).  In non-CSL mode,
-                // outstanding QueueOp records need to be deleted here.
+                // Replica runs legacy mode
+                const bsls::Types::Int64 numMsgs = rstorage->numMessages(
+                    mqbu::StorageKey::k_NULL_KEY);
+                if (0 != numMsgs) {
+                    BMQTSK_ALARMLOG_ALARM("REPLICATION")
+                        << partitionDesc()
+                        << "Received QueueOpRecord.DELETION for queue ["
+                        << rstorage->queueUri() << "] which has [" << numMsgs
+                        << "] outstanding messages." << BMQTSK_ALARMLOG_END;
+                    return rc_QUEUE_DELETION_ERROR;  // RETURN
+                }
+
+                const ReplicatedStorage::RecordHandles& recHandles =
+                    rstorage->queueOpRecordHandles();
+
+                for (size_t idx = 0; idx < recHandles.size(); ++idx) {
+                    removeRecordRaw(recHandles[idx]);
+                }
 
                 // Delete the QueueOpRecord.DELETION record written above.
                 // This needs to be done in both CSL and non-CSL modes.
@@ -4833,6 +4830,16 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
             }
             // else: a non-null appKey is specified in a QueueOpRecord.DELETION
             // record.  No need to remove any queueOpRecords.
+
+            // Once below callback returns, 'rstorage' will no longer be
+            // valid.  So invoking this callback should be the last thing
+            // to do in this 'else' snippet.
+
+            BSLS_ASSERT_SAFE(d_config.queueDeletionCb());
+            d_config.queueDeletionCb()(d_config.partitionId(),
+                                       rstorage->queueUri(),
+                                       *queueKey,
+                                       *appKey);
         }
     }
 
