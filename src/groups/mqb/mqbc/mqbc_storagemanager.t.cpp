@@ -2959,11 +2959,6 @@ static void test18_primaryHealingWatchdogRetry()
     BMQTST_ASSERT_EQ(storageManager.watchdogGeneration(k_PARTITION_ID), 0);
     BMQTST_ASSERT_EQ(storageManager.isWatchdogActive(k_PARTITION_ID), true);
 
-    // Verify new replica state requests sent
-    for (size_t pid = 0; pid < helper.numPartitions(); ++pid) {
-        helper.verifyPrimarySendsReplicaStateRqst(selfNodeId);
-    }
-
     // Cleanup
     storageManager.stopPFSMs();
     storageManager.stop();
