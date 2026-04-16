@@ -369,14 +369,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     mqbnet::ClusterNode* d_primaryNode_p;
 
-    /// Lease id of the current primary.  When bumping this value, please
-    /// record the previous (leaseId, seqNum) into `d_highestSeqNums` if
-    /// the previous lease id was greater than zero.
+    /// Lease id of the current primary.  The current sequence number is
+    /// always `d_highestSeqNums[d_primaryLeaseId]`.
     unsigned int d_primaryLeaseId;
-
-    bsls::Types::Uint64 d_sequenceNum;
-    // Sequence number of the last
-    // replicated message
 
     SyncPointOffsetPairs d_syncPoints;
     // List of (syncPoints, offset) pairs,
@@ -421,8 +416,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     // missed rollover.
 
     /// Map of primaryLeaseId -> highest sequence number observed, initialized
-    /// during recovery, namely `recoverMessages`.  Note that this map will
-    /// *not* contain the highest sequence number for the current primary.
+    /// during recovery, namely `recoverMessages`.  This map contains the
+    /// highest sequence number for all primary leases including the current
+    /// one.
     LeaseIdToSeqNumMap d_highestSeqNums;
 
     /// Control message transmitter to use.
@@ -437,6 +433,11 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
   private:
     // PRIVATE MANIPULATORS
+
+    /// Return a mutable reference to the current sequence number entry in
+    /// `d_highestSeqNums`, i.e., `d_highestSeqNums[d_primaryLeaseId]`.
+    /// Note that this will insert a zero entry if one does not exist.
+    bsls::Types::Uint64& currentSeqNumRef();
 
     /// Create all the relevant files names, open them for writing and
     /// populate the specified `fileSetSp` with relevant information.
@@ -1078,7 +1079,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     const bmqp_ctrlmsg::PartitionSequenceNumber&
     firstSyncPointAfterRolloverSeqNum() const;
 
-    /// Return the map of primaryLeaseId to highest sequence number, except for
+    /// Return the map of primaryLeaseId to highest sequence number, including
     /// the current primary.
     const LeaseIdToSeqNumMap& highestSeqNums() const;
 };
@@ -1190,6 +1191,11 @@ inline FileStore::NodeContext::NodeContext(BlobSpPool* blobSpPool_p,
 // ---------------
 
 // PRIVATE MANIPULATORS
+inline bsls::Types::Uint64& FileStore::currentSeqNumRef()
+{
+    return d_highestSeqNums[d_primaryLeaseId];
+}
+
 inline void FileStore::insertDataStoreRecord(RecordIterator* recordIt,
                                              const DataStoreRecordKey& key,
                                              const DataStoreRecord&    record)
@@ -1355,7 +1361,8 @@ inline unsigned int FileStore::primaryLeaseId() const
 
 inline bsls::Types::Uint64 FileStore::sequenceNumber() const
 {
-    return d_sequenceNum;
+    LeaseIdToSeqNumMapCIter cit = d_highestSeqNums.find(d_primaryLeaseId);
+    return (cit != d_highestSeqNums.end()) ? cit->second : 0;
 }
 
 inline int FileStore::replicationFactor() const
