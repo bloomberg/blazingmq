@@ -2904,14 +2904,22 @@ static void test18_primaryHealingWatchdogRetry()
     BMQTST_ASSERT_EQ(storageManager.watchdogGeneration(k_PARTITION_ID), 0);
     BMQTST_ASSERT_EQ(storageManager.isWatchdogActive(k_PARTITION_ID), true);
 
+    ReqIdToNodeIdMap reqIdToNodeIdMap;
     for (size_t pid = 0; pid < helper.numPartitions(); ++pid) {
-        helper.verifyPrimarySendsReplicaStateRqst(selfNodeId);
+        helper.verifyPrimarySendsReplicaStateRqst(selfNodeId,
+                                                  &reqIdToNodeIdMap);
     }
     helper.clearChannels();
 
     // Transition to PRIMARY_HEALING_STG2
     BSLS_ASSERT_OPT(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size() ==
                     1);
+
+    const int k_PRIMARY_LEASE_ID =
+        storageManager.fileStore(k_PARTITION_ID).primaryLeaseId();
+    const int k_PRIMARY_SEQ_NUM =
+        storageManager.fileStore(k_PARTITION_ID).sequenceNumber();
+
     static const int             k_REQUEST_ID = 1;
     bmqp_ctrlmsg::ControlMessage message;
     message.rId() = k_REQUEST_ID;
@@ -2925,8 +2933,8 @@ static void test18_primaryHealingWatchdogRetry()
             .makeReplicaStateResponse();
 
     bmqp_ctrlmsg::PartitionSequenceNumber seqNum;
-    seqNum.sequenceNumber() = 1U;
-    seqNum.primaryLeaseId() = 1U;
+    seqNum.sequenceNumber() = k_PRIMARY_SEQ_NUM;
+    seqNum.primaryLeaseId() = k_PRIMARY_LEASE_ID;
 
     replicaStateResponse.partitionId()          = k_PARTITION_ID;
     replicaStateResponse.latestSequenceNumber() = seqNum;
@@ -2943,6 +2951,14 @@ static void test18_primaryHealingWatchdogRetry()
                      4U);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG2);
+
+    NodeIdToSeqNumMap destinationReplicas;
+    destinationReplicas.insert(bsl::make_pair(reqIdToNodeIdMap.at(1), seqNum));
+    destinationReplicas.insert(bsl::make_pair(reqIdToNodeIdMap.at(2), seqNum));
+    destinationReplicas.insert(bsl::make_pair(reqIdToNodeIdMap.at(3), seqNum));
+    helper.verifyPrimarySendsReplicaDataRqstPush(k_PARTITION_ID,
+                                                 destinationReplicas,
+                                                 seqNum);
     helper.clearChannels();
 
     // Fire the watchdog
