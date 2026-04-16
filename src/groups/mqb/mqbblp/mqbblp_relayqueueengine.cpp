@@ -2111,7 +2111,10 @@ void RelayQueueEngine::storePushIfProxy(
                  cit != subQueueIds.end();
                  ++cit) {
                 if (cit->id() > 0) {
-                    dataStreamMessage->app(cit->id() - 1).setPushState();
+                    const int         ordinal = cit->id() - 1;
+                    mqbi::AppMessage& appMsg = dataStreamMessage->app(ordinal);
+                    appMsg.setPushState();
+                    appMsg.d_rdaInfo = cit->rdaInfo();
                 }
             }
         }
