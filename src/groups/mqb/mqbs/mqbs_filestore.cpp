@@ -356,8 +356,8 @@ int FileStore::openInNonRecoveryMode()
     return rc;
 }
 
-int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
-                                  const QueueKeyInfoMap& queueKeyInfoMap)
+int FileStore::openInRecoveryMode(bsl::ostream&    errorDescription,
+                                  QueueKeyInfoMap* queueKeyInfoMap)
 {
     // executed by the *DISPATCHER* thread
 
@@ -824,31 +824,30 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
     // Offsets where files should be written from (in other words, the offset
     // of the *end* of last valid record in each file).
 
-    QueueKeyInfoMap* queueKeyInfoMap_p = 0;
-    QueueKeyInfoMap  queueKeyInfoMapEmpty;
-    if (d_isFSMWorkflow) {
-        queueKeyInfoMap_p = const_cast<QueueKeyInfoMap*>(&queueKeyInfoMap);
-    }
-    else {
-        queueKeyInfoMap_p = &queueKeyInfoMapEmpty;
-    }
-
     bsls::Types::Uint64 journalFileOffset = 0;
     bsls::Types::Uint64 qlistFileOffset   = 0;
     bsls::Types::Uint64 dataFileOffset    = 0;
 
+    QueueKeyInfoMap temp(d_allocator_p);
+    bool            asPrimary = true;
+    if (!queueKeyInfoMap) {
+        asPrimary       = false;
+        queueKeyInfoMap = &temp;
+    }
     BALL_LOG_INFO << partitionDesc()
-                  << "Attempting to recover messages from the local storage.";
+                  << "Attempting to recover messages from the local storage "
+                  << (asPrimary ? "as primary." : "as replica.");
 
     // jit, qit & dit may get invalidated after the call below.
 
-    rc = recoverMessages(queueKeyInfoMap_p,
+    rc = recoverMessages(queueKeyInfoMap,
                          &journalFileOffset,
                          &qlistFileOffset,
                          &dataFileOffset,
                          &jit,
                          &qit,
-                         &dit);
+                         &dit,
+                         asPrimary);
     if (0 != rc) {
         BALL_LOG_ERROR << partitionDesc() << "Failed to recover messages from"
                        << " storage, rc: " << rc;
@@ -1054,7 +1053,7 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
     // Hand over recovered queues to the storage manager *after* files have
     // been successfully opened.
     BSLS_ASSERT_SAFE(d_config.recoveredQueuesCb());
-    d_config.recoveredQueuesCb()(d_config.partitionId(), *queueKeyInfoMap_p);
+    d_config.recoveredQueuesCb()(d_config.partitionId(), queueKeyInfoMap);
 
     if (d_isFSMWorkflow) {
         if (primaryLeaseIdCurr > d_primaryLeaseId ||
@@ -1083,11 +1082,12 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                                bsls::Types::Uint64* dataOffset,
                                JournalFileIterator* jit,
                                QlistFileIterator*   qit,
-                               DataFileIterator*    dit)
+                               DataFileIterator*    dit,
+                               bool                 asPrimary)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(queueKeyInfoMap);
-    if (!d_isFSMWorkflow) {
+    if (!asPrimary) {
         BSLS_ASSERT_SAFE(queueKeyInfoMap->empty());
     }
     BSLS_ASSERT_SAFE(journalOffset);
@@ -1221,7 +1221,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
         }
 
         if (QueueOpType::e_DELETION == queueOpType) {
-            if (d_isFSMWorkflow) {
+            if (asPrimary) {
                 if (appKey.isNull() && queueKeyInfoMap->end() !=
                                            queueKeyInfoMap->find(queueKey)) {
                     BALL_LOG_ERROR
@@ -1358,7 +1358,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 continue;  // CONTINUE
             }
 
-            if (d_isFSMWorkflow) {
+            if (asPrimary) {
                 if (queueKeyInfoMap->end() ==
                     queueKeyInfoMap->find(queueKey)) {
                     BALL_LOG_ERROR
@@ -1419,7 +1419,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 continue;  // CONTINUE
             }
 
-            if (d_isFSMWorkflow) {
+            if (asPrimary) {
                 if (queueKeyInfoMap->end() ==
                     queueKeyInfoMap->find(queueKey)) {
                     BALL_LOG_ERROR
@@ -1794,7 +1794,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                     queueKey);
 
                 if (iter == queueKeyInfoMap->end()) {
-                    if (d_isFSMWorkflow) {
+                    if (asPrimary) {
                         BALL_LOG_ERROR
                             << partitionDesc()
                             << "Encountered a QueueOp.PURGE record for "
@@ -2018,8 +2018,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 QueueKeyInfoMap::iterator iter = queueKeyInfoMap->find(
                     queueKey);
 
-                if (!d_isFSMWorkflow &&
-                    QueueOpType::e_ADDITION == queueOpType &&
+                if (!asPrimary && QueueOpType::e_ADDITION == queueOpType &&
                     iter == queueKeyInfoMap->end()) {
                     BMQTSK_ALARMLOG_ALARM("RECOVERY")
                         << partitionDesc()
@@ -2079,7 +2078,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                                           paddedUriLen -
                                               uriBegin[paddedUriLen - 1]);
 
-                    if (d_isFSMWorkflow) {
+                    if (asPrimary) {
                         BSLS_ASSERT_SAFE(!qinfo.canonicalQueueUri().empty());
                         if (qinfo.canonicalQueueUri() != uri) {
                             BMQTSK_ALARMLOG_ALARM("RECOVERY")
@@ -2148,7 +2147,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                          cit != appIdKeyPairs.cend();
                          ++cit) {
                         if (0 == deletedAppKeysOffsets.count(cit->second)) {
-                            if (d_isFSMWorkflow) {
+                            if (asPrimary) {
                                 DataStoreConfigQueueInfo::AppInfos::
                                     const_iterator qinfoAppCit =
                                         qinfo.appIdKeyPairs().find(
@@ -2275,7 +2274,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
             }
 
             if (0 == queueKeyInfoMap->count(rec.queueKey())) {
-                if (d_isFSMWorkflow) {
+                if (asPrimary) {
                     BALL_LOG_ERROR
                         << partitionDesc()
                         << "Encountered a DELETION record for queueKey ["
@@ -2354,7 +2353,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
             }
 
             if (0 == queueKeyInfoMap->count(rec.queueKey())) {
-                if (d_isFSMWorkflow) {
+                if (asPrimary) {
                     BALL_LOG_ERROR
                         << partitionDesc()
                         << "Encountered a CONFIRM record for queueKey ["
@@ -2575,7 +2574,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
             }
 
             if (0 == queueKeyInfoMap->count(rec.queueKey())) {
-                if (d_isFSMWorkflow) {
+                if (asPrimary) {
                     BALL_LOG_ERROR
                         << partitionDesc()
                         << "Encountered a MESSAGE record for queueKey ["
@@ -5248,7 +5247,7 @@ FileStore::~FileStore()
 }
 
 // MANIPULATORS
-int FileStore::open(const QueueKeyInfoMap& queueKeyInfoMap)
+int FileStore::open(QueueKeyInfoMap* queueKeyInfoMap)
 {
     // executed by the *DISPATCHER* thread
 

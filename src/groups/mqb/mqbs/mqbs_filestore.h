@@ -482,8 +482,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// be treated as fatal.  Also note that file store will attempt to
     /// recover any outstanding messages from the files found at the
     /// location indicated by the configuration of this instance.
-    int openInRecoveryMode(bsl::ostream&          errorDescription,
-                           const QueueKeyInfoMap& queueKeyInfoMap);
+    int openInRecoveryMode(bsl::ostream&    errorDescription,
+                           QueueKeyInfoMap* queueKeyInfoMap);
 
     /// Make two passes over the journal file iterator `jit` in reverse
     /// iteration.
@@ -509,7 +509,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                         bsls::Types::Uint64* dataOffset,
                         JournalFileIterator* jit,
                         QlistFileIterator*   qit,
-                        DataFileIterator*    dit);
+                        DataFileIterator*    dit,
+                        bool                 asPrimary);
 
     /// Rollover the outstanding messages belonging to the storages mapped
     /// to this file store, from active file set into the rollover file set,
@@ -768,8 +769,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     /// Open this instance using the specified `queueKeyInfoMap`. Return
     /// zero on success, non-zero value otherwise.
-    int open(const QueueKeyInfoMap& queueKeyInfoMap = QueueKeyInfoMap())
-        BSLS_KEYWORD_OVERRIDE;
+    int open(QueueKeyInfoMap* queueKeyInfoMap) BSLS_KEYWORD_OVERRIDE;
 
     /// Close this instance.  If the optional `flush` flag is true, flush
     /// the data store to disk.

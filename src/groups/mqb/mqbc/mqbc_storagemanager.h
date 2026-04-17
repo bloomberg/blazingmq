@@ -145,7 +145,7 @@ class StorageManager BSLS_KEYWORD_FINAL
     typedef ClusterNodeVec::const_iterator    ClusterNodeVecCIter;
 
     typedef mqbs::DataStore::QueueKeyInfoMap QueueKeyInfoMap;
-    typedef bsl::vector<QueueKeyInfoMap>     QueueKeyInfoMapVec;
+    typedef bsl::vector<bsl::shared_ptr<QueueKeyInfoMap> > QueueKeyInfoMapVec;
 
     typedef ClusterState::DomainStatesCIter      DomainStatesCIter;
     typedef ClusterState::UriToQueueInfoMapCIter UriToQueueInfoMapCIter;
@@ -426,7 +426,7 @@ class StorageManager BSLS_KEYWORD_FINAL
     ///
     /// THREAD: Executed by the dispatcher thread of the partition.
     void recoveredQueuesCb(int                    partitionId,
-                           const QueueKeyInfoMap& queueKeyInfoMap);
+                           const QueueKeyInfoMap* queueKeyInfoMap);
 
     /// Process the watchdog trigger event for the specified
     /// `partitionId` and watchdog `generation`, indicating unhealthiness in

@@ -195,7 +195,7 @@ void StorageManager::queueDeletionCb(int                     partitionId,
 }
 
 void StorageManager::recoveredQueuesCb(int                    partitionId,
-                                       const QueueKeyInfoMap& queueKeyInfoMap)
+                                       const QueueKeyInfoMap* queueKeyInfoMap)
 {
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
 
@@ -3137,7 +3137,7 @@ void StorageManager::do_attemptOpenStorage(const EventWithData& event)
         return;  // RETURN
     }
 
-    const int rc = fs->open(d_queueKeyInfoMapVec.at(partitionId));
+    const int rc = fs->open(d_queueKeyInfoMapVec.at(partitionId).get());
     if (0 != rc) {
         BMQTSK_ALARMLOG_ALARM("FILE_IO")
             << d_clusterData_p->identity().description() << " Partition ["
@@ -4027,10 +4027,13 @@ void StorageManager::initializeQueueKeyInfoMap(
         return;  // RETURN
     }
 
-    BSLS_ASSERT_SAFE(
-        bsl::all_of(d_queueKeyInfoMapVec.cbegin(),
-                    d_queueKeyInfoMapVec.cend(),
-                    bdlf::MemFnUtil::memFn(&QueueKeyInfoMap::empty)));
+    for (QueueKeyInfoMapVec::iterator it = d_queueKeyInfoMapVec.begin();
+         it != d_queueKeyInfoMapVec.end();
+         ++it) {
+        BSLS_ASSERT_SAFE(!it->get());
+        it->reset(new (*d_allocator_p) QueueKeyInfoMap(d_allocator_p),
+                  d_allocator_p);
+    }
 
     // Populate 'd_queueKeyInfoMapVec' from cluster state
     for (DomainStatesCIter dscit = clusterState.domainStates().cbegin();
@@ -4052,7 +4055,7 @@ void StorageManager::initializeQueueKeyInfoMap(
             }
 
             d_queueKeyInfoMapVec.at(csQinfo.partitionId())
-                .insert(bsl::make_pair(csQinfo.key(), qinfo));
+                ->insert(bsl::make_pair(csQinfo.key(), qinfo));
         }
     }
 

@@ -931,7 +931,7 @@ struct TestHelper {
 
         dynamic_cast<mqbnet::MockCluster&>(d_cluster_mp->netCluster())
             ._setDisableBroadcast(true);
-        fs.open();
+        fs.open(0);
         // TODO: clean this up since its a hack to set replica node as primary!
         // had to explicitly setActivePrimary for fileStore because of the
         // assert in writeRecords which allows writes only if current node is

@@ -356,6 +356,8 @@ class ClusterStateTableActions {
     void do_stopWatchDog_initializeQueueKeyInfoMap_updatePrimaryInPFSMs(
         const ARGS& args);
 
+    void do_stopWatchDog_updatePrimaryInPFSMs(const ARGS& args);
+
     void do_stopWatchDog_cleanupLSNs_cancelRequests(const ARGS& args);
 
     void
@@ -492,7 +494,7 @@ class ClusterStateTable
                 FOL_HEALING);
         CST_CFG(FOL_HEALING,
                 CSL_CMT_SUCCESS,
-                stopWatchDog_initializeQueueKeyInfoMap_updatePrimaryInPFSMs,
+                stopWatchDog_updatePrimaryInPFSMs,
                 FOL_HEALED);
         CST_CFG(FOL_HEALING, CSL_CMT_FAIL, triggerWatchDog, FOL_HEALING);
         CST_CFG(FOL_HEALING,
@@ -762,6 +764,14 @@ void ClusterStateTableActions<ARGS>::
 {
     do_stopWatchDog(args);
     do_initializeQueueKeyInfoMap(args);
+    do_updatePrimaryInPFSMs(args);
+}
+
+template <typename ARGS>
+void ClusterStateTableActions<ARGS>::do_stopWatchDog_updatePrimaryInPFSMs(
+    const ARGS& args)
+{
+    do_stopWatchDog(args);
     do_updatePrimaryInPFSMs(args);
 }
 
