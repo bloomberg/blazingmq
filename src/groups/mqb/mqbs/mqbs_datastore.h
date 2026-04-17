@@ -395,7 +395,7 @@ class DataStoreConfig {
     /// Signature of callback used by `mqbs::FileStore` to indicate the list
     /// of file-backed queues (and metadata) retrieved during recovery
     /// phase.
-    typedef bsl::function<void(int partitionId, const QueueKeyInfoMap& queues)>
+    typedef bsl::function<void(int partitionId, const QueueKeyInfoMap* queues)>
         RecoveredQueuesCb;
 
   private:
@@ -583,8 +583,7 @@ class DataStore : public mqbi::DispatcherClient {
 
     /// Open this instance using the specified `queueKeyInfoMap`. Return
     /// zero on success, non-zero value otherwise.
-    virtual int
-    open(const QueueKeyInfoMap& queueKeyInfoMap = QueueKeyInfoMap()) = 0;
+    virtual int open(QueueKeyInfoMap* queueKeyInfoMap) = 0;
 
     /// Close this instance.  If the optional `flush` flag is true, flush
     /// the data store to the backup storage (e.g., disk) if applicable.

@@ -344,7 +344,7 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
     ///
     /// THREAD: Executed by the dispatcher thread of the partition.
     void recoveredQueuesCb(int                    partitionId,
-                           const QueueKeyInfoMap& queueKeyInfoMap);
+                           const QueueKeyInfoMap* queueKeyInfoMap);
 
     /// Executed by queue/file-store dispatcher thread.
     void setPrimaryForPartitionDispatched(int                  partitionId,

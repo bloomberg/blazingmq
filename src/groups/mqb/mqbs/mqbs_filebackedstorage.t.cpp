@@ -392,7 +392,7 @@ class MockDataStore : public mqbs::DataStore {
         return d_description;
     }
 
-    int open(const QueueKeyInfoMap&) BSLS_KEYWORD_OVERRIDE { return 0; }
+    int open(QueueKeyInfoMap*) BSLS_KEYWORD_OVERRIDE { return 0; }
 
     void close(bool) BSLS_KEYWORD_OVERRIDE {}
 

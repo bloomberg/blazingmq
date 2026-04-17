@@ -1524,7 +1524,7 @@ void StorageUtil::recoveredQueuesCb(
     mqbc::ClusterState*          clusterState,
     const bsl::string&           clusterDescription,
     int                          partitionId,
-    const QueueKeyInfoMap&       queueKeyInfoMap,
+    const QueueKeyInfoMap*       queueKeyInfoMap,
     bslma::Allocator*            allocator)
 {
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
@@ -1536,10 +1536,11 @@ void StorageUtil::recoveredQueuesCb(
     BSLS_ASSERT_SAFE(unrecognizedDomains && unrecognizedDomains->empty());
     BSLS_ASSERT_SAFE(clusterState);
     BSLS_ASSERT_SAFE(0 <= partitionId);
+    BSLS_ASSERT_SAFE(queueKeyInfoMap);
     BSLS_ASSERT_SAFE(fs->inDispatcherThread());
 
     BALL_LOG_INFO << clusterDescription << " Partition [" << partitionId
-                  << "]: " << "Recovered [" << queueKeyInfoMap.size()
+                  << "]: " << "Recovered [" << queueKeyInfoMap->size()
                   << "] queues";
 
     if (domainFactory == 0) {
@@ -1569,8 +1570,8 @@ void StorageUtil::recoveredQueuesCb(
     // a global list of AppIds (in fact, we can't have that, because AppIds can
     // clash), so we check uniqueness of AppIds only for a given queue.
 
-    for (QueueKeyInfoMapConstIter qit = queueKeyInfoMap.begin();
-         qit != queueKeyInfoMap.end();
+    for (QueueKeyInfoMapConstIter qit = queueKeyInfoMap->begin();
+         qit != queueKeyInfoMap->end();
          ++qit) {
         const mqbs::DataStoreConfigQueueInfo& qinfo = qit->second;
         bmqt::Uri                             uri(qinfo.canonicalQueueUri());
@@ -1623,7 +1624,7 @@ void StorageUtil::recoveredQueuesCb(
     os << clusterDescription << ": Partition [" << partitionId
        << "]: " << "retrieved "
        << bmqu::PrintUtil::prettyNumber(
-              static_cast<bsls::Types::Int64>(queueKeyInfoMap.size()))
+              static_cast<bsls::Types::Int64>(queueKeyInfoMap->size()))
        << " queues belonging to "
        << bmqu::PrintUtil::prettyNumber(
               static_cast<bsls::Types::Int64>(domainMap.size()))
@@ -1711,8 +1712,8 @@ void StorageUtil::recoveredQueuesCb(
     // All domains have been created.  Now make 2nd pass over 'queueKeyUriMap'
     // and create file-backed storages for each recovered queue.
 
-    for (QueueKeyInfoMapConstIter qit = queueKeyInfoMap.begin();
-         qit != queueKeyInfoMap.end();
+    for (QueueKeyInfoMapConstIter qit = queueKeyInfoMap->begin();
+         qit != queueKeyInfoMap->end();
          ++qit) {
         const mqbu::StorageKey&                         queueKey = qit->first;
         const mqbs::DataStoreConfigQueueInfo&           qinfo    = qit->second;
@@ -1998,11 +1999,11 @@ void StorageUtil::recoveredQueuesCb(
         // If queue is either not recovered or belongs to an unrecognized
         // domain.
         if (storageMapIt == queueKeyStorageMap.end()) {
-            QueueKeyInfoMapConstIter infoMapCit = queueKeyInfoMap.find(
+            QueueKeyInfoMapConstIter infoMapCit = queueKeyInfoMap->find(
                 queueKey);
             // If queue is recovered, implying that it belongs to an
             // unrecognized domain.
-            if (infoMapCit != queueKeyInfoMap.cend()) {
+            if (infoMapCit != queueKeyInfoMap->cend()) {
                 const bmqt::Uri uri(infoMapCit->second.canonicalQueueUri());
 
                 DomainQueueMessagesCountMap::iterator domIt =
@@ -2082,9 +2083,9 @@ void StorageUtil::recoveredQueuesCb(
             // even if indicated by the storage record.
         }
         else if (mqbs::RecordType::e_MESSAGE == fsIt.type()) {
-            QueueKeyInfoMapConstIter infoMapCit = queueKeyInfoMap.find(
+            QueueKeyInfoMapConstIter infoMapCit = queueKeyInfoMap->find(
                 queueKey);
-            BSLS_ASSERT_SAFE(infoMapCit != queueKeyInfoMap.end());
+            BSLS_ASSERT_SAFE(infoMapCit != queueKeyInfoMap->end());
 
             const mqbs::DataStoreRecordKey current(handle.sequenceNum(),
                                                    handle.primaryLeaseId());

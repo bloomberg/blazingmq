@@ -237,7 +237,7 @@ void StorageManager::onPartitionRecovery(
                                        : "**NA**")
                       << ", and will now be opened.";
 
-        int rc = fs->open();
+        int rc = fs->open(0);
         if (0 != rc) {
             BMQTSK_ALARMLOG_ALARM("FILE_IO")
                 << d_clusterData_p->identity().description()
@@ -439,7 +439,7 @@ void StorageManager::queueDeletionCb(int                     partitionId,
 }
 
 void StorageManager::recoveredQueuesCb(int                    partitionId,
-                                       const QueueKeyInfoMap& queueKeyInfoMap)
+                                       const QueueKeyInfoMap* queueKeyInfoMap)
 {
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
 

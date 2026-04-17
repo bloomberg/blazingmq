@@ -589,7 +589,7 @@ struct StorageUtil {
                       mqbc::ClusterState*          clusterState,
                       const bsl::string&           clusterDescription,
                       int                          partitionId,
-                      const QueueKeyInfoMap&       queueKeyInfoMap,
+                      const QueueKeyInfoMap*       queueKeyInfoMap,
                       bslma::Allocator*            allocator);
 
     /// Print statistics regarding the specified 'unrecognizedDomains',
