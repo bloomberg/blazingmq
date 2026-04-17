@@ -356,6 +356,23 @@ struct MTrapHandler {
         cmd.erase(0, 1);  // cmd starts by a space, remove it
 
         if (bdlb::String::areEqualCaseless(prefix, "EXIT")) {
+            // The functor-based callback execution (from MTrapHandler)
+            // is more efficient than the previous bind-based approach, but it
+            // creates a race condition during shutdown. When EXIT is received,
+            // any pending admin commands like domain reconfigurations may
+            // still be queued in the thread pool but not yet dequeued. If we
+            // immediately post the shutdown semaphore, the main thread will
+            // unblock and call Application::stop(), which stops thread pools
+            // before pending jobs are processed, causing commands like
+            // domainReconfigure to never execute. The following sleep ensures
+            // the thread pool has time to pick up queued jobs before we
+            // initiate shutdown. See GitHub issue #678098.
+            static const int k_SHUTDOWN_DELAY_MS = 100;  // milliseconds
+            bsl::cout << "Waiting " << k_SHUTDOWN_DELAY_MS
+                      << "ms for pending commands to be dequeued...\n"
+                      << bsl::flush;
+            usleep(k_SHUTDOWN_DELAY_MS * 1000);  // Convert ms to microseconds
+
             d_taskEnv_p->d_shutdownSemaphore.post();
             // Return now because as a consequence of the Task::shutdown()
             // call, the BALL log system has been torn down.
