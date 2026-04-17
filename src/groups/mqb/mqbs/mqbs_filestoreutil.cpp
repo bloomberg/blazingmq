@@ -1666,10 +1666,9 @@ int FileStoreUtil::writeQueueCreationRecordImpl(
                                     queueRecHeaderLen + paddedUriLen +
                                     FileStoreProtocol::k_HASH_LENGTH,
                                 appIdsAreaSize);
-        // Observe that `appIdKeyPairs` is only populated if `qListAware` is
-        // true.  That is okay because `appIdKeyPairs` is only being used by
-        // the caller when `d_isCSLModeEnabled` is false, and by design
-        // `d_isCSLModeEnabled == false` implies `qListAware == true`.
+        // NOTE: `appIdKeyPairs` is only populated if `qListAware` is true.
+        // Please handle `appIdKeyPairs` properly if we want to run a cluster
+        // with `qListAware = false`.
         FileStoreProtocolUtil::loadAppInfos(appIdKeyPairs,
                                             appIdsBlock,
                                             queueRecHeader->numAppIds());

@@ -222,7 +222,6 @@ struct Tester {
                                          d_blobSpPool_sp.get(),
                                          &d_statePool,
                                          &d_miscWorkThreadPool,
-                                         true,  // isCSLModeEnabled
                                          true,  // isFSMWorkflow
                                          true,  // doesFSMwriteQLIST
                                          1,     // replicationFactor

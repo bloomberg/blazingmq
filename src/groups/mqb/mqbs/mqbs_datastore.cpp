@@ -42,9 +42,9 @@ void DataStoreConfigQueueInfo::addAppInfo(const bsl::string&      appId,
     // Comparing ages of Apps and messages relies on chronological order
     // (hence 'OrderedHashMap'.
     // The Legacy mode recreates Apps by reverse iterating Journal (w/ QList)
-    // The CSL node recreates Apps in chronological order.
+    // The FSM node recreates Apps in chronological order.
 
-    if (d_isCSL) {
+    if (d_isFSM) {
         d_appIdKeyPairs.insert(bsl::make_pair(appKey, appId));
     }
     else {
