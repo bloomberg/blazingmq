@@ -76,21 +76,45 @@ struct Counter {
 
 void onHandleDeconfigured(
     const bmqp_ctrlmsg::Status&,
-    const bmqp_ctrlmsg::StreamParameters&,
-    mqbi::Queue*                               queue,
-    mqbi::QueueHandle*                         handle,
-    const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
-    const bsl::shared_ptr<Counter>&            counter)
+    const bmqp_ctrlmsg::StreamParameters& streamParameters,
+    mqbi::Queue*                          queue,
+    mqbi::QueueHandle*                    handle,
+
+    const bsl::shared_ptr<Counter>& counter)
 {
     BSLS_ASSERT_SAFE(queue);
     BSLS_ASSERT_SAFE(handle);
 
-    const bool isFinal = (counter->decrement() == 0);
+    // Re-read current counts from the handle because cookie rollback may have
+    // already decremented some counts between de-confgigure request and now.
+    mqbi::QueueHandle::SubStreams::const_iterator cit =
+        handle->subStreamInfos().find(streamParameters.appId());
 
-    queue->releaseHandle(handle,
-                         handleParameters,
-                         isFinal,
-                         mqbi::QueueHandle::HandleReleasedCallback());
+    if (cit == handle->subStreamInfos().end()) {
+        // Already fully released by cookie rollback — nothing to do.
+        return;
+    }
+
+    const bool                           isFinal = (counter->decrement() == 0);
+    const bsl::string&                   appId   = cit->first;
+    const mqbi::QueueHandle::StreamInfo& info    = cit->second;
+
+    BSLS_ASSERT_SAFE(appId != bmqp::ProtocolUtil::k_NULL_APP_ID);
+
+    if (info.d_counts.d_readCount == 0) {
+        // Already fully released by cookie rollback — nothing to do.
+    }
+
+    bmqp_ctrlmsg::SubQueueIdInfo subStreamInfo;
+    subStreamInfo.appId() = appId;
+    subStreamInfo.subId() = info.d_downstreamSubQueueId;
+    queue->releaseHandle(
+        handle,
+        bmqp::QueueUtil::createHandleParameters(handle->handleParameters(),
+                                                subStreamInfo,
+                                                info.d_counts.d_readCount),
+        isFinal,
+        mqbi::QueueHandle::HandleReleasedCallback());
 }
 
 }
@@ -276,7 +300,6 @@ void Queue::dropHandleDispatched(mqbi::QueueHandle* handle, bool doDeconfigure)
     // Execute the 'configureHandle' & 'releaseHandle' sequence to drop each
     // subStream of the handle in turn.
 
-    int totalReadCount = handle->handleParameters().readCount();
     mqbi::QueueHandle::SubStreams::const_iterator citer =
         handle->subStreamInfos().begin();
     bool isFinal = (citer == handle->subStreamInfos().end());
@@ -290,13 +313,7 @@ void Queue::dropHandleDispatched(mqbi::QueueHandle* handle, bool doDeconfigure)
         subStreamInfo.appId() = appId;
         subStreamInfo.subId() = info.d_downstreamSubQueueId;
 
-        bmqp_ctrlmsg::QueueHandleParameters consumerHandleParams =
-            bmqp::QueueUtil::createHandleParameters(handle->handleParameters(),
-                                                    subStreamInfo,
-                                                    info.d_counts.d_readCount);
-
         isFinal = ((++citer) == handle->subStreamInfos().end());
-        totalReadCount -= consumerHandleParams.readCount();
 
         BALL_LOG_INFO << "Dropping subStream for queue ["
                       << handle->queue()->description() << "] and handle ["
@@ -319,7 +336,6 @@ void Queue::dropHandleDispatched(mqbi::QueueHandle* handle, bool doDeconfigure)
                                                  bdlf::PlaceHolders::_2,
                                                  this,
                                                  handle,
-                                                 consumerHandleParams,
                                                  counter));
         }
         else {
@@ -327,13 +343,14 @@ void Queue::dropHandleDispatched(mqbi::QueueHandle* handle, bool doDeconfigure)
             // invalidating the iterator.
             releaseHandleDispatched(
                 handle,
-                consumerHandleParams,
+                bmqp::QueueUtil::createHandleParameters(
+                    handle->handleParameters(),
+                    subStreamInfo,
+                    info.d_counts.d_readCount),
                 isFinal,  // isFinal flag
                 mqbi::QueueHandle::HandleReleasedCallback());
         }
     }
-
-    BSLS_ASSERT_SAFE(0 == totalReadCount);
 }
 
 void Queue::closeDispatched()
