@@ -885,7 +885,7 @@ void ClusterQueueHelper::finishReopening(QueueContext*        queueContext,
     pendingClose.swap(sqit->value().d_pendingCloseRequests);
 
     const bool isOpen  = (sqit->value().d_state == SubQueueContext::k_OPEN);
-    bool isValid = true;
+    bool       isValid = true;
 
     for (size_t i = 0; i < pendingClose.size(); ++i) {
         if (isOpen && isValid) {
@@ -1548,7 +1548,7 @@ void ClusterQueueHelper::onReopenQueueResponse(
         return;  // RETURN
     }
 
-    SubQueueContext& subQueueContext = sqit->value();
+    SubQueueContext&          subQueueContext = sqit->value();
     const bsls::Types::Uint64 generationCount = cycle->generationCount();
 
     if (subQueueContext.d_generationCount != generationCount) {
@@ -4018,7 +4018,7 @@ bmqt::GenericResult::Enum ClusterQueueHelper::restoreStateHelper(
 
     QueueLiveState&           queueInfo = queueContext->d_liveQInfo;
     bmqt::GenericResult::Enum rc        = bmqt::GenericResult::e_SUCCESS;
-    const mqbi::Queue* queuePtr = queueInfo.d_queue_sp.get();
+    const mqbi::Queue*        queuePtr  = queueInfo.d_queue_sp.get();
 
     BSLS_ASSERT_SAFE(queuePtr);
 
@@ -6018,17 +6018,6 @@ int ClusterQueueHelper::gcExpiredQueues(bool               immediate,
             keyCopy,
             pid,
             *d_clusterState_p);
-
-        if (!d_cluster_p->isCSLModeEnabled()) {
-            // Broadcast 'QueueUnAssignmentAdvisory' to all followers
-            //
-            // NOTE: We must broadcast this control message before applying to
-            // CSL, because if CSL is running in eventual consistency it will
-            // immediately apply a commit with a higher seqeuence number than
-            // the QueueUnAssignmentAdvisory.  If we ever receive the commit
-            // before the QUA, we will alarm due to out-of-sequence advisory.
-            d_clusterData_p->messageTransmitter().broadcastMessage(controlMsg);
-        }
 
         // Apply 'QueueUnAssignmentAdvisory' to CSL
         d_clusterStateManager_p->unassignQueue(queueAdvisory);

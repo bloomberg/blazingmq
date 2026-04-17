@@ -542,7 +542,6 @@ static void test5_appIdMetrics()
     // Create a mock cluster/domain
     const bool isClusterMember = true;
     const bool isLeader        = true;
-    const bool isCSL           = false;
     const bool isFSM           = false;
 
     mqbmock::Cluster::ClusterNodeDefs clusterNodeDefs(
@@ -578,7 +577,6 @@ static void test5_appIdMetrics()
     mqbmock::Cluster mockCluster(bmqtst::TestHelperUtil::allocator(),
                                  isClusterMember,
                                  isLeader,
-                                 isCSL,
                                  isFSM,
                                  false,  // doesFSMWriteQLIST
                                  clusterNodeDefs);

@@ -252,13 +252,12 @@ class Cluster : public mqbi::Cluster {
     // PRIVATE MANIPULATORS
 
     /// Initialize the internal cluster definition with the specified
-    /// `name`, `location`, `archive` location, `nodes`, `isCSLMode`,
-    /// `isFSMWorkflow` and `doesFSMwriteQLIST`.
+    /// `name`, `location`, `archive` location, `nodes`, `isFSMWorkflow` and
+    /// `doesFSMwriteQLIST`.
     void _initializeClusterDefinition(const bslstl::StringRef& name,
                                       const bslstl::StringRef& location,
                                       const bslstl::StringRef& archive,
                                       const ClusterNodeDefs&   nodes,
-                                      bool                     isCSLMode,
                                       bool                     isFSMWorkflow,
                                       bool doesFSMwriteQLIST);
 
@@ -275,17 +274,15 @@ class Cluster : public mqbi::Cluster {
     // CREATORS
 
     /// Create a `mqbmock::Cluster` object having the optionally specified
-    /// `name`, `location`, `archive`, `clusterNodeDefs`, `isCSLMode`,
-    /// `isFSMWorkflow` and `doesFSMwriteQLIST`, and using the specified
-    /// `bufferFactory` and `allocator`.  If the optionally specified
-    /// `isClusterMember` is true, self will be a member of the cluster.  If
-    /// the optionally specified `isLeader` is true, self will become the
-    /// leader of the cluster.  Note that if `isClusterMember` is false,
-    /// `isLeader` cannot be true.
+    /// `name`, `location`, `archive`, `clusterNodeDefs`, `isFSMWorkflow` and
+    /// `doesFSMwriteQLIST`, and using the specified `bufferFactory` and
+    /// `allocator`.  If the optionally specified `isClusterMember` is true,
+    /// self will be a member of the cluster.  If the optionally specified
+    /// `isLeader` is true, self will become the leader of the cluster.  Note
+    /// that if `isClusterMember` is false, `isLeader` cannot be true.
     Cluster(bslma::Allocator*        allocator,
             bool                     isClusterMember   = false,
             bool                     isLeader          = false,
-            bool                     isCSLMode         = false,
             bool                     isFSMWorkflow     = false,
             bool                     doesFSMwriteQLIST = false,
             const ClusterNodeDefs&   clusterNodeDefs   = ClusterNodeDefs(),
@@ -544,9 +541,6 @@ class Cluster : public mqbi::Cluster {
                                   int           spacesPerLevel = 0) const
         BSLS_KEYWORD_OVERRIDE;
 
-    /// Return boolean flag indicating if CSL Mode is enabled.
-    bool isCSLModeEnabled() const BSLS_KEYWORD_OVERRIDE;
-
     /// Return boolean flag indicating if CSL FSM workflow is in effect.
     bool isFSMWorkflow() const BSLS_KEYWORD_OVERRIDE;
 
@@ -675,11 +669,6 @@ inline void Cluster::getPartitionPrimaryNode(int*,
 
 // ACCESSORS
 //   (virtual: mqbi::Cluster)
-inline bool Cluster::isCSLModeEnabled() const
-{
-    return d_clusterDefinition.clusterAttributes().isCSLModeEnabled();
-}
-
 inline bool Cluster::isFSMWorkflow() const
 {
     return d_clusterDefinition.clusterAttributes().isFSMWorkflow();

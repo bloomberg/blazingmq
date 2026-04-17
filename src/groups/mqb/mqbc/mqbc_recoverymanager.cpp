@@ -124,8 +124,7 @@ RecoveryManager::RecoveryManager(
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(allocator);
-    BSLS_ASSERT_SAFE(d_clusterConfig.clusterAttributes().isCSLModeEnabled() &&
-                     d_clusterConfig.clusterAttributes().isFSMWorkflow());
+    BSLS_ASSERT_SAFE(d_clusterConfig.clusterAttributes().isFSMWorkflow());
 
     d_recoveryContextVec.resize(
         clusterConfig.partitionConfig().numPartitions());
