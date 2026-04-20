@@ -390,10 +390,13 @@ static int initializeTask(bsl::ostream&    errorDescription,
 
     // Create the Task
     new (taskEnv->d_task.buffer())
-        m_bmqbrkr::Task(taskEnv->d_bmqPrefix, taskEnv->d_config.taskConfig());
+        m_bmqbrkr::Task(taskEnv->d_bmqPrefix,
+                        taskEnv->d_config.taskConfig().allocatorType());
 
     bmqu::MemOutStream localError;
-    const int          rc = taskEnv->d_task.object().initialize(localError);
+    const int          rc = taskEnv->d_task.object().initialize(
+        localError,
+        taskEnv->d_config.taskConfig());
     if (rc != 0) {
         errorDescription << "Failed to initialize task "
                          << "[rc: " << rc << ", reason: '" << localError.str()
@@ -605,64 +608,66 @@ int main(int argc, const char* argv[])
     int         port    = 0;
     bool        version = false;
 
-    balcl::OptionInfo specTable[] = {
-        {"",
-         "config",
-         "Path to the configuration directory",
-         balcl::TypeInfo(&configDir),
-         balcl::OccurrenceInfo::e_OPTIONAL},
-        {"i|instanceId",
-         "instanceId",
-         "The instance ID ('default' if not provided)",
-         balcl::TypeInfo(&instanceId),
-         balcl::OccurrenceInfo::e_OPTIONAL},
-        {"h|hostName",
-         "hostName",
-         "Override host name",
-         balcl::TypeInfo(&hostName),
-         balcl::OccurrenceInfo::e_OPTIONAL},
-        {"t|hostTags",
-         "hostTags",
-         "Override host tags",
-         balcl::TypeInfo(&hostTags),
-         balcl::OccurrenceInfo::e_OPTIONAL},
-        {"d|hostDataCenter",
-         "hostDataCenter",
-         "Override host data center",
-         balcl::TypeInfo(&hostDataCenter),
-         balcl::OccurrenceInfo::e_OPTIONAL},
-        {"p|port",
-         "port",
-         "Override port",
-         balcl::TypeInfo(&port),
-         balcl::OccurrenceInfo::e_OPTIONAL},
-        {"v|version",
-         "version",
-         "Show broker version number",
-         balcl::TypeInfo(&version),
-         balcl::OccurrenceInfo::e_OPTIONAL},
-    };
+    {
+        balcl::OptionInfo specTable[] = {
+            {"",
+             "config",
+             "Path to the configuration directory",
+             balcl::TypeInfo(&configDir),
+             balcl::OccurrenceInfo::e_OPTIONAL},
+            {"i|instanceId",
+             "instanceId",
+             "The instance ID ('default' if not provided)",
+             balcl::TypeInfo(&instanceId),
+             balcl::OccurrenceInfo::e_OPTIONAL},
+            {"h|hostName",
+             "hostName",
+             "Override host name",
+             balcl::TypeInfo(&hostName),
+             balcl::OccurrenceInfo::e_OPTIONAL},
+            {"t|hostTags",
+             "hostTags",
+             "Override host tags",
+             balcl::TypeInfo(&hostTags),
+             balcl::OccurrenceInfo::e_OPTIONAL},
+            {"d|hostDataCenter",
+             "hostDataCenter",
+             "Override host data center",
+             balcl::TypeInfo(&hostDataCenter),
+             balcl::OccurrenceInfo::e_OPTIONAL},
+            {"p|port",
+             "port",
+             "Override port",
+             balcl::TypeInfo(&port),
+             balcl::OccurrenceInfo::e_OPTIONAL},
+            {"v|version",
+             "version",
+             "Show broker version number",
+             balcl::TypeInfo(&version),
+             balcl::OccurrenceInfo::e_OPTIONAL},
+        };
 
-    balcl::CommandLine commandLine(specTable);
+        balcl::CommandLine commandLine(specTable);
 
-    if (commandLine.parse(argc, argv)) {
-        bsl::cerr << "PANIC [STARTUP] Failed to parse command line\n"
-                  << bsl::flush;
-        commandLine.printUsage();
-        return mqbu::ExitCode::e_COMMAND_LINE;  // RETURN
-    }
+        if (commandLine.parse(argc, argv)) {
+            bsl::cerr << "PANIC [STARTUP] Failed to parse command line\n"
+                      << bsl::flush;
+            commandLine.printUsage();
+            return mqbu::ExitCode::e_COMMAND_LINE;  // RETURN
+        }
 
-    if (version) {
-        bsl::cout << "BlazingMQ broker version: "
-                  << bmqbrkrscm::Version::version() << "\n";
-        return 0;
-    }
+        if (version) {
+            bsl::cout << "BlazingMQ broker version: "
+                      << bmqbrkrscm::Version::version() << "\n";
+            return 0;
+        }
 
-    if (configDir.empty()) {
-        bsl::cerr << "Error: No value supplied for the non-option argument "
-                     "\"config\".\n";
-        return mqbu::ExitCode::e_COMMAND_LINE;  // RETURN
-    }
+        if (configDir.empty()) {
+            bsl::cerr << "Error: No value supplied for the non-option "
+                         "argument \"config\".\n";
+            return mqbu::ExitCode::e_COMMAND_LINE;  // RETURN
+        }
+    }  // specTable and commandLine are destroyed here
 
     printStartStopTrace("STARTING");
 

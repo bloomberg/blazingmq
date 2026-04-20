@@ -191,10 +191,6 @@ class Task {
     // member so that other members can be
     // initialized with a proper allocator from it.
 
-    const mqbcfg::TaskConfig& d_config;
-    // Configuration to use, const reference to the
-    // one held in main.
-
     bool d_isInitialized;
     // True is this object has been initialized.
 
@@ -239,8 +235,10 @@ class Task {
     // CREATORS
 
     /// Create a new task, creating the pipe control channel in the
-    /// specified `bmqPrefix` directory and using the specified `config`.
-    Task(const bsl::string& bmqPrefix, const mqbcfg::TaskConfig& config);
+    /// specified `bmqPrefix` directory.  Use the specified `allocatorType`
+    /// for memory allocations.
+    Task(const bsl::string&           bmqPrefix,
+         mqbcfg::AllocatorType::Value allocatorType);
 
     /// Destroy this object.  If the task was successfully initialized,
     /// `shutdown()` must be called prior to destruction of this object.
@@ -251,9 +249,9 @@ class Task {
     /// Initialize this object.  Return 0 on success and a non-zero value
     /// otherwise, populating the specified `errorDescription` with a
     /// description of the error.  The initialization leverages the
-    /// properties from the `config` parameter supplied at construction of
-    /// this object.
-    int initialize(bsl::ostream& errorDescription);
+    /// properties from the `config` argument.
+    int initialize(bsl::ostream&             errorDescription,
+                   const mqbcfg::TaskConfig& config);
 
     /// Shutdown the object, effectively closing the pipe control channel
     /// and doing a teardown of the logging system.
