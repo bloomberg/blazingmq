@@ -167,6 +167,7 @@ fi
 # :: Build the BlazingMQ repo :::::::::::::::::::::::::::::::::::::::::::::::::
 CMAKE_OPTIONS=(
     -DBDE_BUILD_TARGET_64=1
+    -DBDE_BUILD_TARGET_CPP23=1
     -DCMAKE_BUILD_TYPE=Debug
     -DCMAKE_INSTALL_LIBDIR="lib"
     -DCMAKE_INSTALL_PREFIX="${DIR_INSTALL}"
