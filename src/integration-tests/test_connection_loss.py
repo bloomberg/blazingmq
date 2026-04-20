@@ -125,9 +125,6 @@ def test_force_leader_primary_divergence(
      partitions is "east1". The node that loses leadership ("east1") terminates itself gracefully.
     """
 
-    # TODO (kaikulimu): temporarily disabled
-    return
-
     cluster = multi_node
     tproxies: Dict[str, Process] = {}
 
@@ -168,7 +165,8 @@ def test_force_leader_primary_divergence(
     assert old_leader.name == "east1"
 
     # Start "east2" and kill two tproxies disconnecting "east2" and "west1" from "east1".
-    cluster.start_node("east2")
+    east2 = cluster.start_node("east2")
+    east2.wait_status(wait_leader=True, wait_ready=True)
     tproxies["tproxy_east2"].kill()
     tproxies["tproxy_west1"].kill()
 
