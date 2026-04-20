@@ -62,7 +62,7 @@ class TestStrongConsistency:
     strong consistency queue should not.
     """
 
-    def setup_cluster(self, cluster):
+    def setup_cluster(self, cluster, domain_urls: tc.DomainUrls = None):  # pylint: disable=unused-argument
         proxies = cluster.proxy_cycle()
         # pick proxy in datacenter opposite to the primary's
         next(proxies)

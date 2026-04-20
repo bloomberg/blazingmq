@@ -409,10 +409,16 @@ def cluster_fixture(request, configure) -> Iterator[Cluster]:
                         if request.instance is not None and hasattr(
                             request.instance, "setup_cluster"
                         ):
-                            if "domain_urls" in request.fixturenames:
-                                request.instance.setup_cluster(
-                                    cluster, request.getfixturevalue("domain_urls")
-                                )
+                            for urls_fixture in (
+                                "domain_urls",
+                                "sc_domain_urls",
+                                "ec_domain_urls",
+                            ):
+                                if urls_fixture in request.fixturenames:
+                                    request.instance.setup_cluster(
+                                        cluster, request.getfixturevalue(urls_fixture)
+                                    )
+                                    break
                             else:
                                 request.instance.setup_cluster(cluster)
 
