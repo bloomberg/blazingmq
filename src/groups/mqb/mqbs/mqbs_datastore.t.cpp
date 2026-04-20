@@ -44,9 +44,9 @@ static mqbs::DataStoreRecordKey makeBrokerLikeKey(bsls::Types::Int64 index)
 {
     const bsls::Types::Int64 k_KEYS_PER_LEASE = 1000000;
 
-    const unsigned int        primaryLeaseId = static_cast<unsigned int>(
-                                                   index / k_KEYS_PER_LEASE) +
-                                               1;
+    const unsigned int primaryLeaseId = static_cast<unsigned int>(
+                                            index / k_KEYS_PER_LEASE) +
+                                        1;
     const bsls::Types::Uint64 sequenceNum = static_cast<bsls::Types::Uint64>(
                                                 index % k_KEYS_PER_LEASE) +
                                             1;
