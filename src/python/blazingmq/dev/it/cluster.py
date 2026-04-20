@@ -110,7 +110,7 @@ class Cluster(contextlib.AbstractContextManager):
         self._internal_logger = logging.LoggerAdapter(
             logging.getLogger(__name__), extra=log_extra
         )
-        self._logger = blazingmq.dev.it.process.proc.BallLoggerAdapter(
+        self._logger = blazingmq.dev.it.logging.BallLoggerAdapter(
             logging.getLogger("blazingmq.test"), extra=log_extra
         )
 
