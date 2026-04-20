@@ -31,6 +31,22 @@ from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.util import wait_until
 
 
+def set_config_quorum(cluster: Cluster, node: str, quorum: int):
+    """
+    For the given `node` in the `cluster`, update the cluster config file to
+    set the elector quorum to `quorum`.
+    """
+    config_path = cluster.work_dir.joinpath(
+        cluster.config.nodes[node].config_dir, "clusters.json"
+    )
+    with open(config_path, "r+", encoding="utf-8") as f:
+        data = json.load(f)
+        data["myClusters"][0]["elector"]["quorum"] = quorum
+        f.seek(0)
+        json.dump(data, f, indent=4)
+        f.truncate()
+
+
 def ensure_message_at_storage_layer(
     cluster: Cluster,
     partition_id: int,
