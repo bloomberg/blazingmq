@@ -884,8 +884,7 @@ void ClusterOrchestrator::processClusterStateFSMMessage(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-    BSLS_ASSERT_SAFE(d_clusterConfig.clusterAttributes().isCSLModeEnabled() &&
-                     d_clusterConfig.clusterAttributes().isFSMWorkflow());
+    BSLS_ASSERT_SAFE(d_clusterConfig.clusterAttributes().isFSMWorkflow());
     BSLS_ASSERT(message.choice().isClusterMessageValue());
     BSLS_ASSERT(message.choice()
                     .clusterMessage()
@@ -943,8 +942,7 @@ void ClusterOrchestrator::processPartitionMessage(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-    BSLS_ASSERT_SAFE(d_clusterConfig.clusterAttributes().isCSLModeEnabled() &&
-                     d_clusterConfig.clusterAttributes().isFSMWorkflow());
+    BSLS_ASSERT_SAFE(d_clusterConfig.clusterAttributes().isFSMWorkflow());
     BSLS_ASSERT(message.choice().isClusterMessageValue());
     BSLS_ASSERT(
         message.choice().clusterMessage().choice().isPartitionMessageValue());

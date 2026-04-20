@@ -233,7 +233,6 @@ TestContext::TestContext(int nodesCount, bslma::Allocator* allocator)
                    d_allocator_p,
                    true,   // isClusterMember
                    false,  // isLeader
-                   false,  // isCSLMode
                    false,  // isFSMWorkflow
                    false,  // doesFSMwriteQLIST
                    generateNodeDefs(nodesCount, d_allocator_p),
@@ -455,7 +454,6 @@ static void test1_contextTest()
         mqbmock::Cluster    cluster(bmqtst::TestHelperUtil::allocator(),
                                  true,   // isClusterMember
                                  false,  // isLeader
-                                 false,  // isCSLMode
                                  false,  // isFSMWorkflow
                                  false,  // doesFSMwriteQLIST
                                  defs,

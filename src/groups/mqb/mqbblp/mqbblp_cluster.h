@@ -775,9 +775,6 @@ class Cluster : public mqbi::Cluster,
                                   int           spacesPerLevel = 0) const
         BSLS_KEYWORD_OVERRIDE;
 
-    /// Return boolean flag indicating if CSL Mode is enabled.
-    bool isCSLModeEnabled() const BSLS_KEYWORD_OVERRIDE;
-
     /// Return boolean flag indicating if CSL FSM workflow is in effect.
     bool isFSMWorkflow() const BSLS_KEYWORD_OVERRIDE;
 

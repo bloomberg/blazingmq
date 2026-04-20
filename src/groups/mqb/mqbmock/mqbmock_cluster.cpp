@@ -83,7 +83,6 @@ void Cluster::_initializeClusterDefinition(
     const bslstl::StringRef&                location,
     const bslstl::StringRef&                archive,
     const bsl::vector<mqbcfg::ClusterNode>& nodes,
-    bool                                    isCSLMode,
     bool                                    isFSMWorkflow,
     bool                                    doesFSMwriteQLIST)
 {
@@ -91,14 +90,10 @@ void Cluster::_initializeClusterDefinition(
     BSLS_ASSERT_OPT(!d_isStarted &&
                     "_initializeClusterDefinition() must be called before"
                     " start()");
-    if (isFSMWorkflow) {
-        BSLS_ASSERT_SAFE(isCSLMode);
-    }
 
     d_clusterDefinition.name() = name;
 
-    d_clusterDefinition.clusterAttributes().isCSLModeEnabled() = isCSLMode;
-    d_clusterDefinition.clusterAttributes().isFSMWorkflow()    = isFSMWorkflow;
+    d_clusterDefinition.clusterAttributes().isFSMWorkflow() = isFSMWorkflow;
     d_clusterDefinition.clusterAttributes().doesFSMwriteQLIST() =
         doesFSMwriteQLIST;
 
@@ -214,7 +209,6 @@ void Cluster::_initializeNodeSessions()
 Cluster::Cluster(bslma::Allocator*        allocator,
                  bool                     isClusterMember,
                  bool                     isLeader,
-                 bool                     isCSLMode,
                  bool                     isFSMWorkflow,
                  bool                     doesFSMwriteQLIST,
                  const ClusterNodeDefs&   clusterNodeDefs,
@@ -274,7 +268,6 @@ Cluster::Cluster(bslma::Allocator*        allocator,
                                  location,
                                  archive,
                                  clusterNodeDefs,
-                                 isCSLMode,
                                  isFSMWorkflow,
                                  doesFSMwriteQLIST);
     _initializeNetcluster();

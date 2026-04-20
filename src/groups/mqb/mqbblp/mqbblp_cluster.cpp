@@ -3234,13 +3234,6 @@ void Cluster::printClusterStateSummary(bsl::ostream& out,
     mqbcmd::HumanPrinter::print(out, result, level, spacesPerLevel);
 }
 
-bool Cluster::isCSLModeEnabled() const
-{
-    return d_clusterData.clusterConfig()
-        .clusterAttributes()
-        .isCSLModeEnabled();
-}
-
 bool Cluster::isFSMWorkflow() const
 {
     return d_clusterData.clusterConfig().clusterAttributes().isFSMWorkflow();

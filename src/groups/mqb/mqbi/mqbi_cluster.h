@@ -423,9 +423,6 @@ class Cluster : public DispatcherClient {
                                           int           level = 0,
                                           int spacesPerLevel  = 0) const = 0;
 
-    /// Return boolean flag indicating if CSL Mode is enabled.
-    virtual bool isCSLModeEnabled() const;
-
     /// Return boolean flag indicating if CSL FSM workflow is in effect.
     virtual bool isFSMWorkflow() const;
 
@@ -537,11 +534,6 @@ struct ClusterResources {
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
-
-inline bool Cluster::isCSLModeEnabled() const
-{
-    return false;
-}
 
 inline bool Cluster::isFSMWorkflow() const
 {

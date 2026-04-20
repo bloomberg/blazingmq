@@ -194,7 +194,6 @@ struct TestHelper {
                 mqbmock::Cluster(bmqtst::TestHelperUtil::allocator(),
                                  true,   // isClusterMember
                                  false,  // isLeader
-                                 true,   // isCSLMode
                                  true,   // isFSMWorkflow
                                  false,  // doesFSMwriteQLIST
                                  clusterNodeDefs,
