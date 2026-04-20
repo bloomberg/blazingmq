@@ -40,6 +40,20 @@ using namespace bsl;
 //                                    TESTS
 // ----------------------------------------------------------------------------
 
+static mqbs::DataStoreRecordKey makeBrokerLikeKey(bsls::Types::Int64 index)
+{
+    const bsls::Types::Int64 k_KEYS_PER_LEASE = 1000000;
+
+    const unsigned int        primaryLeaseId = static_cast<unsigned int>(
+                                                   index / k_KEYS_PER_LEASE) +
+                                               1;
+    const bsls::Types::Uint64 sequenceNum = static_cast<bsls::Types::Uint64>(
+                                                index % k_KEYS_PER_LEASE) +
+                                            1;
+
+    return mqbs::DataStoreRecordKey(sequenceNum, primaryLeaseId);
+}
+
 static void test1_breathingTest()
 // ------------------------------------------------------------------------
 // BREATHING TEST
@@ -139,7 +153,7 @@ static void test2_defaultHashUniqueness()
     bmqtst::TestHelper::printTestName("DEFAULT HASH UNIQUENESS");
 
 #ifdef BSLS_PLATFORM_OS_SOLARIS
-    // This test case times out if 'k_NUM_GUIDS' is close to 1 million
+    // This test case times out if 'k_NUM_KEYS' is close to 1 million
     const bsls::Types::Int64 k_NUM_KEYS = 1000000;  // 1M
 #elif defined(__has_feature)
     // Avoid timeout under MemorySanitizer
@@ -166,7 +180,7 @@ static void test2_defaultHashUniqueness()
 
     // Generate Keys and update the 'hashes' map
     for (bsls::Types::Int64 i = 0; i < k_NUM_KEYS; ++i) {
-        mqbs::DataStoreRecordKey key(i, 7);
+        mqbs::DataStoreRecordKey key = makeBrokerLikeKey(i);
 
         size_t hash = hasher(key);
 
@@ -178,9 +192,8 @@ static void test2_defaultHashUniqueness()
         }
     }
 
-    // Above value is just chosen after looking at the number of collisions
-    // by running this test case manually.  In most runs, number of
-    // collisions was in the range of [0, 3].
+    // Keep a small guardrail for the broker-like key pattern above while
+    // still flagging unexpected collision growth.
     const size_t k_MAX_EXPECTED_COLLISIONS = 4;
 
     BMQTST_ASSERT_LT(maxCollisions, k_MAX_EXPECTED_COLLISIONS);
@@ -209,14 +222,16 @@ static void test3_customHashUniqueness()
 // CUSTOM HASH UNIQUENESS
 //
 // Concerns:
-//   Verify the uniqueness of the hash of a GUID using custom hash algo.
+//   Verify the uniqueness of the hash of a DataStoreRecordKey using
+//   custom hash algo.
 //
 // Plan:
-//   - Generate a lots of GUIDs, compute their hash, and measure some
-//     collisions statistics.
+//   - Generate lots of DataStoreRecordKeys, compute their hash, and
+//     measure some collisions statistics.
 //
 // Testing:
-//   Hash uniqueness of the generated GUIDs.
+//   Hash uniqueness of the generated DataStoreRecordKeys using the
+//   custom hash.
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
@@ -252,7 +267,7 @@ static void test3_customHashUniqueness()
 
     // Generate Keys and update the 'hashes' map
     for (bsls::Types::Int64 i = 0; i < k_NUM_KEYS; ++i) {
-        mqbs::DataStoreRecordKey key(i, 7);
+        mqbs::DataStoreRecordKey key = makeBrokerLikeKey(i);
 
         size_t hash = hasher(key);
 
@@ -264,9 +279,8 @@ static void test3_customHashUniqueness()
         }
     }
 
-    // Above value is just chosen after looking at the number of collisions
-    // by running this test case manually.  In most runs, number of
-    // collisions was in the range of [0, 3].
+    // Keep a small guardrail for the broker-like key pattern above while
+    // still flagging unexpected collision growth.
     const size_t k_MAX_EXPECTED_COLLISIONS = 4;
 
     BMQTST_ASSERT_LT(maxCollisions, k_MAX_EXPECTED_COLLISIONS);
