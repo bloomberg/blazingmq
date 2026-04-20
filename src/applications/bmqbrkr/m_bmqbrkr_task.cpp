@@ -229,9 +229,9 @@ void Task::onLogCommand(const bsl::string& prefix, bsl::istream& input)
     }
 }
 
-Task::Task(const bsl::string& bmqPrefix, const mqbcfg::TaskConfig& config)
-: d_allocatorManager(config.allocatorType())
-, d_config(config)
+Task::Task(const bsl::string&           bmqPrefix,
+           mqbcfg::AllocatorType::Value allocatorType)
+: d_allocatorManager(allocatorType)
 , d_isInitialized(false)
 , d_bmqPrefix(bmqPrefix, d_allocatorManager.store().get("Task"))
 , d_scheduler(bsls::SystemClockType::e_MONOTONIC,
@@ -253,7 +253,8 @@ Task::~Task()
                     "shutdown() must be called before destroying this object");
 }
 
-int Task::initialize(bsl::ostream& errorDescription)
+int Task::initialize(bsl::ostream&             errorDescription,
+                     const mqbcfg::TaskConfig& config)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(!d_isInitialized &&
@@ -287,7 +288,7 @@ int Task::initialize(bsl::ostream& errorDescription)
     // -------------
     // LogController
     bmqtsk::LogControllerConfig logConfig;
-    rc = logConfig.fromObj(localError, d_config.logController());
+    rc = logConfig.fromObj(localError, config.logController());
     if (rc != 0) {
         d_scheduler.stop();
         errorDescription << "failed to initialize LogControllerConfig from "
@@ -307,13 +308,13 @@ int Task::initialize(bsl::ostream& errorDescription)
     // Allocation limit
     // Set allocation limit if enabled and using counting allocator
     if (d_allocatorManager.type() == mqbcfg::AllocatorType::COUNTING) {
-        if (d_config.allocationLimit() == 0) {
+        if (config.allocationLimit() == 0) {
             BALL_LOG_INFO << "No memory allocation limit set!";
         }
         else {
             BALL_LOG_INFO << "Memory allocation limit set to "
                           << bmqu::PrintUtil::prettyBytes(
-                                 d_config.allocationLimit());
+                                 config.allocationLimit());
 
             bmqma::CountingAllocator* topAllocator =
                 dynamic_cast<bmqma::CountingAllocator*>(
@@ -322,9 +323,9 @@ int Task::initialize(bsl::ostream& errorDescription)
 
             BSLS_ASSERT_OPT(topAllocator);
             topAllocator->setAllocationLimit(
-                d_config.allocationLimit(),
+                config.allocationLimit(),
                 bdlf::BindUtil::bind(&onAllocationLimit,
-                                     d_config.allocationLimit()));
+                                     config.allocationLimit()));
         }
     }
 
