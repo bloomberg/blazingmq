@@ -6322,7 +6322,8 @@ int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
     rawEvent.loadStorageMessageIterator(&iter);
     BSLS_ASSERT_SAFE(iter.isValid());
 
-    bool hasValidLeaseIdSeqNum = false;
+    FileStore::NodeContext* nodeContext           = 0;
+    bool                    hasValidLeaseIdSeqNum = false;
 
     if (0 < d_primaryLeaseId) {
         // File store encountered valid primaryLeaseId and sequence number in
@@ -6436,6 +6437,14 @@ int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
 
         if (bmqp::StorageMessageType::e_DATA == header.messageType()) {
             rc = writeMessageRecord(header, *recHeader, blob, recordPosition);
+
+            if (0 == rc && (header.flags() &
+                            bmqp::StorageHeaderFlags::e_RECEIPT_REQUESTED)) {
+                nodeContext = generateReceipt(nodeContext,
+                                              d_primaryNode_p,
+                                              recHeader->primaryLeaseId(),
+                                              recHeader->sequenceNumber());
+            }
         }
         else if (bmqp::StorageMessageType::e_QLIST == header.messageType()) {
             rc = writeQueueCreationRecord(header,
@@ -6463,6 +6472,8 @@ int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
             return 10 * rc + rc_WRITE_FAILURE;  // RETURN
         }
     }
+
+    sendReceipt(d_primaryNode_p, nodeContext);
 
     return rc_SUCCESS;
 }
@@ -6529,6 +6540,13 @@ void FileStore::sendReceipt(mqbnet::ClusterNode* node,
                             NodeContext*         nodeContext)
 {
     if (nodeContext == 0) {
+        return;  // RETURN
+    }
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!node)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        BALL_LOG_ERROR << partitionDesc()
+                       << "Cannot send Receipt: primary node is null.";
         return;  // RETURN
     }
 
