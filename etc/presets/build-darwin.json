@@ -17,7 +17,9 @@
                 "CMAKE_INSTALL_LIBDIR": "lib",
                 "CMAKE_INSTALL_PREFIX": "$env{DIR_INSTALL}",
                 "CMAKE_MODULE_PATH":
-                    "$env{DIR_THIRDPARTY}/bde-tools/cmake;$env{DIR_THIRDPARTY}/bde-tools/BdeBuildSystem"
+                    "$env{DIR_THIRDPARTY}/bde-tools/cmake;$env{DIR_THIRDPARTY}/bde-tools/BdeBuildSystem",
+                "CMAKE_CXX_STANDARD": "17",
+                "BDE_BUILD_TARGET_CPP17": "ON"
             }
         },
         {
