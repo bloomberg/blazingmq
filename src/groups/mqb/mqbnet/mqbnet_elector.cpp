@@ -30,6 +30,7 @@
 #include <mqbcfg_clusterquorummanager.h>
 
 // BDE
+#include <ball_logthrottle.h>
 #include <bdlb_print.h>
 #include <bdlb_string.h>
 #include <bdlb_stringrefutil.h>
@@ -52,6 +53,17 @@ namespace BloombergLP {
 namespace mqbnet {
 
 namespace {
+
+const int k_MAX_INSTANT_MESSAGES = 10;
+// Maximum messages logged with throttling in a short period of time.
+
+const bsls::Types::Int64 k_NS_PER_MESSAGE =
+    bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
+// Time interval between messages logged with throttling.
+
+#define BMQ_LOGTHROTTLE_WARN                                                  \
+    BALL_LOGTHROTTLE_WARN(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)           \
+        << "[THROTTLED] "
 
 /// Return the ElectorIOEventType corresponding to the specified elector
 /// schema `message`.
@@ -541,7 +553,7 @@ void ElectorStateMachine::applyLeaderHeartbeatEventToFollower(
     }
 
     if (d_term > term) {
-        BALL_LOG_WARN
+        BMQ_LOGTHROTTLE_WARN
             << "#ELECTOR_LEADER_HEARTBEAT "
             << "FOLLOWER received LEADER_HEARTBEAT with stale term [" << term
             << "] from node [" << sourceNodeId << "]. Current term [" << d_term
@@ -595,7 +607,7 @@ void ElectorStateMachine::applyLeaderHeartbeatEventToCandidate(
     int                        sourceNodeId)
 {
     if (d_term > term) {
-        BALL_LOG_WARN
+        BMQ_LOGTHROTTLE_WARN
             << "#ELECTOR_LEADER_HEARTBEAT "
             << "CANDIDATE received LEADER_HEARTBEAT with stale term [" << term
             << "] from node [" << sourceNodeId << "]. Current term [" << d_term
@@ -643,7 +655,7 @@ void ElectorStateMachine::applyLeaderHeartbeatEventToLeader(
     int                        sourceNodeId)
 {
     if (d_term >= term) {
-        BALL_LOG_WARN
+        BMQ_LOGTHROTTLE_WARN
             << "#ELECTOR_LEADER_HEARTBEAT "
             << "LEADER received LEADER_HEARTBEAT with stale term [" << term
             << "] from node [" << sourceNodeId << "]. Current term [" << d_term
