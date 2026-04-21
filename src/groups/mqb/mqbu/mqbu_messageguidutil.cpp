@@ -95,9 +95,9 @@ char g_brokerIdHex[k_BROKER_ID_LEN_HEX + 1] = {0};
 // NOTE: each character takes two char in hex, and we add a terminating
 //       null character.
 
-/// Initialize `g_counter` to -1, so that pre-incremented value starts from
-/// zero.
-bsls::AtomicInt g_counter(-1);
+/// Initialize `g_counter` to max UINT, so the pre-incremented value starts
+/// from zero.
+bsls::AtomicUint g_counter(bsl::numeric_limits<unsigned int>::max());
 
 }  // close unnamed namespace
 
@@ -112,7 +112,7 @@ void MessageGUIDUtil::initialize()
     //       big-endian (network byte order).
 
     // PRECONDITIONS
-    BSLS_ASSERT_OPT(g_counter == -1);
+    BSLS_ASSERT_OPT(g_counter == bsl::numeric_limits<unsigned int>::max());
 
     // Get hostname
 
@@ -189,7 +189,7 @@ void MessageGUIDUtil::generateGUID(bmqt::MessageGUID* guid)
 
     // Get a snapshot of timer tick  and counter values
     bsls::Types::Int64 timerTick = bsls::TimeUtil::getTimer();
-    unsigned int       counter   = static_cast<unsigned int>(++g_counter);
+    unsigned int       counter   = ++g_counter;
 
     // Below, we use our knowledge of internal memory layout of
     // bmqt::MessageGUID to populate its data member.  Alternatives are:
