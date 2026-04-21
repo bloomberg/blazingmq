@@ -20,8 +20,10 @@
 
 // BDE
 #include <bdlma_bufferedsequentialallocator.h>
+#include <bdlma_concurrentallocatoradapter.h>
 #include <bsl_new.h>
 #include <bslma_default.h>
+#include <bslmt_mutex.h>
 #include <bslmt_once.h>
 #include <bsls_objectbuffer.h>
 
@@ -34,18 +36,24 @@ namespace bmqu {
 
 bslma::Allocator* SingletonAllocator::allocator()
 {
-    typedef bdlma::BufferedSequentialAllocator AllocType;
+    typedef bdlma::BufferedSequentialAllocator SeqAllocType;
+    typedef bdlma::ConcurrentAllocatorAdapter  AdapterType;
 
-    static char                          buffer[4096];
-    static bsls::ObjectBuffer<AllocType> alloc;
+    static char                             buffer[4096];
+    static bsls::ObjectBuffer<bslmt::Mutex> mutex;
+    static bsls::ObjectBuffer<SeqAllocType> seqAlloc;
+    static bsls::ObjectBuffer<AdapterType>  adapter;
     BSLMT_ONCE_DO
     {
-        new (static_cast<void*>(alloc.buffer()))
-            AllocType(buffer,
-                      sizeof(buffer),
-                      bslma::Default::globalAllocator());
+        new (static_cast<void*>(mutex.buffer())) bslmt::Mutex();
+        new (static_cast<void*>(seqAlloc.buffer()))
+            SeqAllocType(buffer,
+                         sizeof(buffer),
+                         bslma::Default::globalAllocator());
+        new (static_cast<void*>(adapter.buffer()))
+            AdapterType(&mutex.object(), &seqAlloc.object());
     }
-    return &alloc.object();
+    return &adapter.object();
 }
 
 }  // close package namespace
