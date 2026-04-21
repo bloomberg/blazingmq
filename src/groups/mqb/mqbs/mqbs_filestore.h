@@ -174,6 +174,11 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     typedef bsl::vector<StorageCollectionUtil::StorageFilter> StorageFilters;
     typedef StorageFilters::const_iterator StorageFiltersconstIter;
 
+    /// Map of primaryLeaseId -> highest sequence number
+    typedef bsl::unordered_map<unsigned int, bsls::Types::Uint64>
+                                               LeaseIdToSeqNumMap;
+    typedef LeaseIdToSeqNumMap::const_iterator LeaseIdToSeqNumMapCIter;
+
   private:
     // PRIVATE TYPES
     typedef FileStore_AliasedBufferDeleter        AliasedBufferDeleter;
@@ -364,11 +369,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     mqbnet::ClusterNode* d_primaryNode_p;
 
+    /// Lease id of the current primary.  The current sequence number is
+    /// always `d_highestSeqNums[d_primaryLeaseId]`.
     unsigned int d_primaryLeaseId;
-
-    bsls::Types::Uint64 d_sequenceNum;
-    // Sequence number of the last
-    // replicated message
 
     SyncPointOffsetPairs d_syncPoints;
     // List of (syncPoints, offset) pairs,
@@ -409,6 +412,12 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     // `firstSyncPointOffsetWords`. It is used to determine if cluster node
     // missed rollover.
 
+    /// Map of primaryLeaseId -> highest sequence number observed, initialized
+    /// during recovery, namely `recoverMessages`.  This map contains the
+    /// highest sequence number for all primary leases including the current
+    /// one.
+    LeaseIdToSeqNumMap d_highestSeqNums;
+
     /// Control message transmitter to use.
     mqbnet::ControlMessageTransmitter d_messageTransmitter;
 
@@ -421,6 +430,11 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
   private:
     // PRIVATE MANIPULATORS
+
+    /// Return a mutable reference to the current sequence number entry in
+    /// `d_highestSeqNums`, i.e., `d_highestSeqNums[d_primaryLeaseId]`.
+    /// Note that this will insert a zero entry if one does not exist.
+    bsls::Types::Uint64& currentSeqNumRef();
 
     /// Create all the relevant files names, open them for writing and
     /// populate the specified `fileSetSp` with relevant information.
@@ -441,13 +455,15 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// method will be typically preceded by an invocation to `truncate()`.
     /// Note that choice of a reference instead of a pointer for
     /// `fileSetRef` is deliberate, in order to avoid the accidental
-    /// invocation of other flavor of `close`.
-    void close(FileSet& fileSetRef, bool flush);
+    /// invocation of other flavor of `close`.  Return 0 on success and
+    /// non-zero rc on failure.
+    int close(FileSet& fileSetRef, bool flush);
 
     /// Move all files contained in the specified `fileSet` to the archive
     /// location as specified in this instance's configuration provided at
-    /// construction.  Note that files are not truncated or closed.
-    void archive(FileSet* fileSet);
+    /// construction.  Note that files are not truncated or closed.  Return 0
+    /// on success and non-zero rc on failure.
+    int archive(FileSet* fileSet);
 
     /// Garbage-collect the specified `fileSet` by calling a standalone
     /// worker thread to close and archive all files in the `fileSet`.
@@ -497,7 +513,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// `d_qListAware` is true, and retrieve outstanding records for all those
     /// non-deleted queues in `queueKeyInfoMap` to populate into `d_records`.
     /// Moreover, update `journalOffset`, `dataOffset` and `qlistOffset` to the
-    /// end of the journal, data and qlist files respectively.
+    /// end of the journal, data and qlist files respectively.  Also, populate
+    /// the map of primaryLeaseId to highest sequence number.
     ///
     /// Return zero on success, non zero value otherwise.  The behavior is
     /// undefined unless the journal iterator `jit` is in reverse mode.
@@ -915,12 +932,12 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     /// mqbs::FileStore specific MANIPULATORS
 
-    /// Deprecate the active file set.  Behavior is undefined unless this
-    /// instance is closed.
+    /// Close and deprecate the active file set.  Return 0 on success and
+    /// non-zero rc on failure.
     ///
     /// NOTE: This routine is dangerous and archives storage files. Must be
     /// used with caution.
-    void deprecateFileSet();
+    int deprecateFileSet();
 
     /// Perform complete rollover of this partition and issue necessary sync
     /// points.
@@ -1056,6 +1073,10 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Return the first sync point after rollover sequence number.
     const bmqp_ctrlmsg::PartitionSequenceNumber&
     firstSyncPointAfterRolloverSeqNum() const;
+
+    /// Return the map of primaryLeaseId to highest sequence number, including
+    /// the current primary.
+    const LeaseIdToSeqNumMap& highestSeqNums() const;
 };
 
 // =======================
@@ -1165,6 +1186,11 @@ inline FileStore::NodeContext::NodeContext(BlobSpPool* blobSpPool_p,
 // ---------------
 
 // PRIVATE MANIPULATORS
+inline bsls::Types::Uint64& FileStore::currentSeqNumRef()
+{
+    return d_highestSeqNums[d_primaryLeaseId];
+}
+
 inline void FileStore::insertDataStoreRecord(RecordIterator* recordIt,
                                              const DataStoreRecordKey& key,
                                              const DataStoreRecord&    record)
@@ -1330,7 +1356,8 @@ inline unsigned int FileStore::primaryLeaseId() const
 
 inline bsls::Types::Uint64 FileStore::sequenceNumber() const
 {
-    return d_sequenceNum;
+    LeaseIdToSeqNumMapCIter cit = d_highestSeqNums.find(d_primaryLeaseId);
+    return (cit != d_highestSeqNums.end()) ? cit->second : 0;
 }
 
 inline int FileStore::replicationFactor() const
@@ -1342,6 +1369,11 @@ inline const bmqp_ctrlmsg::PartitionSequenceNumber&
 FileStore::firstSyncPointAfterRolloverSeqNum() const
 {
     return d_firstSyncPointAfterRolloverSeqNum;
+}
+
+inline const FileStore::LeaseIdToSeqNumMap& FileStore::highestSeqNums() const
+{
+    return d_highestSeqNums;
 }
 
 // -----------------------

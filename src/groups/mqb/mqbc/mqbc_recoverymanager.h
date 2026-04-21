@@ -221,11 +221,6 @@ class RecoveryManager {
         /// using the specified `basicAllocator` for memory allocations.
         RecoveryContext(const RecoveryContext& other,
                         bslma::Allocator*      basicAllocator = 0);
-
-        // MANIPULATORS
-
-        /// Reset the members of this object.
-        void reset();
     };
 
   private:
@@ -235,21 +230,8 @@ class RecoveryManager {
   private:
     // PRIVATE TYPES
 
-    /// Callback provided by @bbref{mqbc::StorageManager} to this component to
-    /// indicate the status of sendDataChunks to the specified `destination`
-    /// i.e. peer to which current node is sending data for the specified
-    /// `partitionId`. The status is as per the specified `status`.
-    typedef bsl::function<
-        void(int partitionId, mqbnet::ClusterNode* destination, int status)>
-        PartitionDoneSendDataChunksCb;
-
     /// Vector per partition of `RecoveryContext`.
     typedef bsl::vector<RecoveryContext> RecoveryContextVec;
-
-    // This callback is only used when the self node is a replica.
-    bsl::function<
-        void(int partitionId, mqbnet::ClusterNode* destination, int status)>
-        PartitionDoneRcvDataChunksCb;
 
   private:
     // DATA
@@ -315,11 +297,11 @@ class RecoveryManager {
 
     /// Deprecate the active file set of the specified `partitionId`, called
     /// when self's storage is out of sync with primary and cannot be healed
-    /// trivially.
+    /// trivially.  Return 0 on success and non-zero rc on failure.
     ///
     /// THREAD: Executed by the queue dispatcher thread associated with the
     /// specified `partitionId`.
-    void deprecateFileSet(int partitionId);
+    int deprecateFileSet(int partitionId);
 
     /// Set the expected receive data chunk range for the specified
     /// 'partitionId' to be from the specified 'source' from the specified
@@ -343,10 +325,9 @@ class RecoveryManager {
 
     /// Send data chunks for the specified `partitionId` to the specified
     /// `destination` starting from specified `beginSeqNum` upto specified
-    /// `endSeqNum` using data from specified `fs`. Send the status of this
-    /// operation back to the caller using the specified `doneDataChunksCb`.
-    /// Note, we mmap the files for every call to this function. Return 0 on
-    /// success and non-zero otherwise.
+    /// `endSeqNum` using data from specified `fs`.  Return 0 on success and
+    /// non-zero on failure.  Note, we mmap the files for every call to this
+    /// function.
     ///
     /// THREAD: Executed in the dispatcher thread associated with the
     /// specified `partitionId`.
@@ -355,8 +336,7 @@ class RecoveryManager {
         mqbnet::ClusterNode*                         destination,
         const bmqp_ctrlmsg::PartitionSequenceNumber& beginSeqNum,
         const bmqp_ctrlmsg::PartitionSequenceNumber& endSeqNum,
-        const mqbs::FileStore&                       fs,
-        PartitionDoneSendDataChunksCb                doneDataChunksCb);
+        const mqbs::FileStore&                       fs);
 
     /// Process the recovery data chunks contained in the specified `blob`
     /// sent by the specified `source` for the specified `partitionId`.
@@ -449,6 +429,9 @@ class RecoveryManager {
     void clearBufferedStorageEvent(int partitionId);
 
     // ACCESSORS
+
+    /// Assert that the specified `partitionId` is a valid partition index.
+    void validatePartitionId(int partitionId) const;
 
     /// Return true if the specified `partitionId` is expecting data chunks,
     /// false otherwise.
@@ -563,14 +546,20 @@ inline RecoveryManager::RecoveryContext::RecoveryContext(
 // ---------------------
 
 // ACCESSORS
+inline void RecoveryManager::validatePartitionId(int partitionId) const
+{
+    BSLS_ASSERT_SAFE(partitionId >= 0 &&
+                     partitionId <
+                         d_clusterConfig.partitionConfig().numPartitions());
+    (void)partitionId;  // compiler happiness
+}
+
 inline bool RecoveryManager::expectedDataChunks(int partitionId) const
 {
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(partitionId >= 0 &&
-                     partitionId <
-                         d_clusterConfig.partitionConfig().numPartitions());
+    validatePartitionId(partitionId);
 
     return d_recoveryContextVec[partitionId]
         .d_receiveDataContext.d_expectChunks;

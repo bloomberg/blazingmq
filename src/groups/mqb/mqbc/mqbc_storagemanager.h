@@ -152,6 +152,9 @@ class StorageManager BSLS_KEYWORD_FINAL
 
     typedef ClusterStateQueueInfo::AppInfosCIter AppInfosCIter;
 
+    typedef mqbs::FileStore::LeaseIdToSeqNumMap      LeaseIdToSeqNumMap;
+    typedef mqbs::FileStore::LeaseIdToSeqNumMapCIter LeaseIdToSeqNumMapCIter;
+
     /// Vector of pairs of buffered primary status advisories and their source
     typedef bsl::vector<
         bsl::pair<bmqp_ctrlmsg::PrimaryStatusAdvisory, mqbnet::ClusterNode*> >
@@ -199,6 +202,36 @@ class StorageManager BSLS_KEYWORD_FINAL
 
     typedef StorageUtil::DomainQueueMessagesCountMaps
         DomainQueueMessagesCountMaps;
+
+  private:
+    // PRIVATE TYPES
+    /// VST representing data push/drop destinations for the immediate next
+    /// sends.
+    struct DataDestinations {
+      public:
+        // DATA
+
+        /// Data push destinations
+        bsl::vector<NodeToSeqNumCtxMapCIter> d_dataPushDestinations;
+
+        /// Data drop destinations
+        bsl::vector<NodeToSeqNumCtxMapCIter> d_dataDropDestinations;
+
+      public:
+        // TRAITS
+        BSLMF_NESTED_TRAIT_DECLARATION(DataDestinations,
+                                       bslma::UsesBslmaAllocator)
+
+        // CREATORS
+
+        /// Create a default `DataDestinations` object using `allocator`.
+        DataDestinations(bslma::Allocator* allocator);
+
+        /// Create a `DataDestinations` object copying 'other' using
+        /// `allocator`.
+        DataDestinations(const DataDestinations& other,
+                         bslma::Allocator*       allocator);
+    };
 
   private:
     // DATA
@@ -338,6 +371,15 @@ class StorageManager BSLS_KEYWORD_FINAL
     ///         for the i-th partitionId.
     NodeToSeqNumCtxMapPartitionVec d_nodeToSeqNumCtxMapVec;
 
+    /// Vector indexed by partitionId, of temporary data push/drop destinations
+    /// for the immediate next sends, as per the logic of the Partition FSMs.
+    /// We need to recalculate the destinations before each send.
+    ///
+    /// THREAD: Except during the ctor, the i-th index of this data member
+    ///         **must** be accessed in the associated Queue dispatcher thread
+    ///         for the i-th partitionId.
+    bsl::vector<DataDestinations> d_tempDataDestinations;
+
     /// Vector of number of replica data responses received, indexed by
     /// partitionId.
     ///
@@ -430,19 +472,6 @@ class StorageManager BSLS_KEYWORD_FINAL
     ///
     /// THREAD: Executed by the cluster's dispatcher thread.
     void onWatchdogDispatched(int partitionId, int generation);
-
-    /// Callback to generate an event for the associated PartitionFSM after
-    /// done sending data chunks of the specified `range` related to the
-    /// specified `requestId` for the specified `partitionId` to the
-    /// specified `destination`, resulting in the specified `status`.
-    ///
-    /// THREAD: This method is invoked in the associated Queue dispatcher
-    ///         thread for the specified `partitionId`.
-    void onPartitionDoneSendDataChunksCb(int partitionId,
-                                         int requestId,
-                                         const PartitionSeqNumDataRange& range,
-                                         mqbnet::ClusterNode* destination,
-                                         int                  status);
 
     /// Callback invoked when the recovery for the specified `paritionId` is
     /// complete.
@@ -613,6 +642,9 @@ class StorageManager BSLS_KEYWORD_FINAL
     void do_failurePrimaryStateResponse(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
 
+    void do_determineDataDestinations(const EventWithData& event)
+        BSLS_KEYWORD_OVERRIDE;
+
     void do_replicaDataRequestPush(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
 
@@ -621,12 +653,6 @@ class StorageManager BSLS_KEYWORD_FINAL
 
     void do_replicaDataRequestDrop(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
-
-    void do_replicaDataResponseDrop(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void
-    do_replicaRemoveStorage(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
     void do_replicaDataRequestPull(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
@@ -670,6 +696,9 @@ class StorageManager BSLS_KEYWORD_FINAL
     do_attemptOpenStorage(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
     void do_updateStorage(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void do_removeStorageAndSendReplicaDataDropResponse(
+        const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
     void do_incrementNumRplcaDataRspn(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
@@ -1188,6 +1217,28 @@ inline const mqbs::ReplicatedStorage* StorageManagerIterator::storage() const
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(*this);
     return (d_iterator->second).get();
+}
+
+// ----------------------
+// class DataDestinations
+// ----------------------
+
+// CREATORS
+inline StorageManager::DataDestinations::DataDestinations(
+    bslma::Allocator* allocator)
+: d_dataPushDestinations(allocator)
+, d_dataDropDestinations(allocator)
+{
+    // NOTHING
+}
+
+inline StorageManager::DataDestinations::DataDestinations(
+    const DataDestinations& other,
+    bslma::Allocator*       allocator)
+: d_dataPushDestinations(other.d_dataPushDestinations, allocator)
+, d_dataDropDestinations(other.d_dataDropDestinations, allocator)
+{
+    // NOTHING
 }
 
 // --------------------

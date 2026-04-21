@@ -376,8 +376,9 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
         rc_INVALID_SYNC_PT                     = -6,
         rc_CONFIGURATION_ERROR                 = -7,
         rc_PARTITION_FULL                      = -8,
-        rc_OPEN_FAILURE                        = -9,
-        rc_SYNC_POINT_FAILURE                  = -10
+        rc_CLOSE_FAILURE                       = -9,
+        rc_OPEN_FAILURE                        = -10,
+        rc_SYNC_POINT_FAILURE                  = -11
     };
 
     MappedFileDescriptor journalFd;
@@ -509,7 +510,7 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
 
     bool                appendSyncPoint    = false;
     unsigned int        primaryLeaseIdCurr = d_primaryLeaseId;
-    bsls::Types::Uint64 sequenceNumcurr    = d_sequenceNum;
+    bsls::Types::Uint64 sequenceNumcurr    = sequenceNumber();
 
     if (d_isFSMWorkflow) {
         // In FSM workflow, we always point to last record regardless of sync
@@ -522,7 +523,6 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
             BSLS_ASSERT_SAFE(0 == jit.lastRecordPosition());
             BSLS_ASSERT_SAFE(0 == jit.lastSyncPointPosition());
 
-            d_sequenceNum    = 0;
             d_primaryLeaseId = 0;
         }
         else {
@@ -530,7 +530,7 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
 
             const RecordHeader& recHeader = jit.lastRecordHeader();
             d_primaryLeaseId              = recHeader.primaryLeaseId();
-            d_sequenceNum                 = recHeader.sequenceNumber();
+            currentSeqNumRef()            = recHeader.sequenceNumber();
         }
     }
     else {
@@ -567,7 +567,6 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
 
                 needTruncation   = true;
                 d_primaryLeaseId = 0;
-                d_sequenceNum    = 0;
 
                 journalOffset = (FileStoreProtocolUtil::bmqHeader(journalFd)
                                      .headerWords() +
@@ -603,8 +602,8 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
                 // numbers can differ in case last SyncPt was issued by new
                 // primary on behalf of the old one, and we always use the
                 // (leaseId, seqNum) present in the RecordHeader.
-                d_primaryLeaseId = lsp.header().primaryLeaseId();
-                d_sequenceNum    = lsp.header().sequenceNumber();
+                d_primaryLeaseId   = lsp.header().primaryLeaseId();
+                currentSeqNumRef() = lsp.header().sequenceNumber();
 
                 journalOffset = jit.lastSyncPointPosition() +
                                 FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
@@ -634,7 +633,7 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
                 needTruncation             = false;
                 const JournalOpRecord& lsp = jit.lastSyncPoint();
                 d_primaryLeaseId           = lsp.header().primaryLeaseId();
-                d_sequenceNum              = lsp.header().sequenceNumber();
+                currentSeqNumRef()         = lsp.header().sequenceNumber();
             }
 
             if (needTruncation) {
@@ -750,7 +749,6 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
                 BSLS_ASSERT_SAFE(0 == jit.lastRecordPosition());
                 BSLS_ASSERT_SAFE(0 == jit.lastSyncPointPosition());
 
-                d_sequenceNum    = 0;
                 d_primaryLeaseId = 0;
             }
             else if (jit.lastRecordPosition() == jit.lastSyncPointPosition()) {
@@ -759,7 +757,7 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
 
                 const JournalOpRecord& lsp = jit.lastSyncPoint();
                 d_primaryLeaseId           = lsp.header().primaryLeaseId();
-                d_sequenceNum              = lsp.header().sequenceNumber();
+                currentSeqNumRef()         = lsp.header().sequenceNumber();
             }
             else {
                 // Last record is not a sync point.  This is ok for a single
@@ -771,14 +769,14 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
                 appendSyncPoint               = true;
                 const RecordHeader& recHeader = jit.lastRecordHeader();
                 d_primaryLeaseId              = recHeader.primaryLeaseId();
-                d_sequenceNum                 = recHeader.sequenceNumber();
+                currentSeqNumRef()            = recHeader.sequenceNumber();
             }
         }
     }
 
     BALL_LOG_INFO << partitionDesc() << "Retrieved primaryLeaseId and sequence"
-                  << " number: (" << d_primaryLeaseId << ", " << d_sequenceNum
-                  << ").";
+                  << " number: (" << d_primaryLeaseId << ", "
+                  << sequenceNumber() << ").";
 
     // Create file set.
     FileSetSp fileSetSp;
@@ -876,9 +874,9 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
     if (1 < clusterSize() && 0 < d_primaryLeaseId) {
         // In a multi-node cluster, retrieved primaryLeaseId is valid.
 
-        if (0 == d_sequenceNum) {
+        if (0 == sequenceNumber()) {
             BALL_LOG_ERROR << partitionDesc() << "Invalid sequence number ["
-                           << d_sequenceNum << "] while primary leaseId is "
+                           << sequenceNumber() << "] while primary leaseId is "
                            << "valid [" << d_primaryLeaseId << "].";
             return rc_INVALID_SYNC_PT;  // RETURN
         }
@@ -888,7 +886,7 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
                 BALL_LOG_ERROR << partitionDesc()
                                << "Internal list of SyncPts is empty, while "
                                << "retrieved (leaseId, seqNum) are valid: ("
-                               << d_primaryLeaseId << ", " << d_sequenceNum
+                               << d_primaryLeaseId << ", " << sequenceNumber()
                                << ").";
                 return rc_INVALID_SYNC_PT;  // RETURN
             }
@@ -900,17 +898,17 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
                     << partitionDesc() << "Invalid leaseId in the last "
                     << "in-memory SyncPt: " << lastSp
                     << ". Retrieved (leaseId, seqNum): (" << d_primaryLeaseId
-                    << ", " << d_sequenceNum << ").";
+                    << ", " << sequenceNumber() << ").";
                 return rc_INVALID_SYNC_PT;  // RETURN
             }
 
             if (lastSp.primaryLeaseId() == d_primaryLeaseId &&
-                lastSp.sequenceNum() != d_sequenceNum) {
+                lastSp.sequenceNum() != sequenceNumber()) {
                 BALL_LOG_ERROR
                     << partitionDesc() << "Invalid seqNum in the last "
                     << "in-memory SyncPt: " << lastSp
                     << ". Retrieved (leaseId, seqNum): (" << d_primaryLeaseId
-                    << ", " << d_sequenceNum << ").";
+                    << ", " << sequenceNumber() << ").";
                 return rc_INVALID_SYNC_PT;  // RETURN
             }
         }
@@ -961,7 +959,12 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
     }
 
     // Close file set as it is in read mode.
-    close(*fileSetSp, false);  // flush
+    rc = close(*fileSetSp, false);  // flush
+    if (0 != rc) {
+        BALL_LOG_ERROR << partitionDesc() << "Failed to close file set in read"
+                       << " mode during recovery, rc: " << rc;
+        return rc * 100 + rc_CLOSE_FAILURE;  // RETURN
+    }
 
     // Re-open in write mode, grow & map (do not delete on failure).
     bmqu::MemOutStream errorDesc;
@@ -981,7 +984,8 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
 
     if (0 != rc) {
         BALL_LOG_ERROR << partitionDesc() << "Failed to open file set in write"
-                       << " mode during recovery. Reason: " << errorDesc.str();
+                       << " mode during recovery, rc: " << rc
+                       << ". Reason: " << errorDesc.str();
         return rc * 100 + rc_OPEN_FAILURE;  // RETURN
     }
 
@@ -1001,7 +1005,7 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
         BALL_LOG_INFO
             << partitionDesc() << "Appending a sync point with "
             << "(primaryLeaseId, sequenceNum): (" << d_primaryLeaseId << ", "
-            << (d_sequenceNum + 1)
+            << (sequenceNumber() + 1)
             << ") since journal does not end with a sync point for this "
             << "partition belonging to a 1-node cluster.";
 
@@ -1020,7 +1024,7 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
 
         bmqp_ctrlmsg::SyncPoint syncPoint;
         syncPoint.primaryLeaseId()       = d_primaryLeaseId;
-        syncPoint.sequenceNum()          = ++d_sequenceNum;
+        syncPoint.sequenceNum()          = ++currentSeqNumRef();
         syncPoint.dataFileOffsetDwords() = fileSetSp->d_dataFilePosition /
                                            bmqp::Protocol::k_DWORD_SIZE;
         syncPoint.qlistFileOffsetWords() =
@@ -1059,18 +1063,19 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
     if (d_isFSMWorkflow) {
         if (primaryLeaseIdCurr > d_primaryLeaseId ||
             (primaryLeaseIdCurr == d_primaryLeaseId &&
-             sequenceNumcurr > d_sequenceNum)) {
+             sequenceNumcurr > sequenceNumber())) {
             BALL_LOG_INFO << partitionDesc() << "Current partitionSeqeNum: ("
                           << primaryLeaseIdCurr << ", " << sequenceNumcurr
                           << ") is higher than storage-retrieved "
                           << "partitionSeqeNum: (" << d_primaryLeaseId << ", "
-                          << d_sequenceNum << ").  This is possible if self "
+                          << sequenceNumber()
+                          << ").  This is possible if self "
                           << "replica has received primary status advisory "
                           << "before opening FileStore.  Thus, we keep current"
                           << " partitionSeqeNum.";
 
-            d_primaryLeaseId = primaryLeaseIdCurr;
-            d_sequenceNum    = sequenceNumcurr;
+            d_primaryLeaseId   = primaryLeaseIdCurr;
+            currentSeqNumRef() = sequenceNumcurr;
         }
     }
 
@@ -1506,7 +1511,11 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
 
     // `+1` so that checks in first iteration in the second pass work
     // correctly.
-    bsls::Types::Uint64 sequenceNum = d_sequenceNum + 1;
+    bsls::Types::Uint64 sequenceNum = sequenceNumber() + 1;
+
+    if (primaryLeaseId > 0) {
+        d_highestSeqNums[primaryLeaseId] = sequenceNumber();
+    }
 
     // Second pass.
     while (1 == (rc = jit->nextRecord())) {
@@ -1565,6 +1574,16 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
 
                 return rc_INVALID_SEQ_NUMBER;  // RETURN
             }
+        }
+        else {
+            // Track highest sequence number per primary lease id.  Since we
+            // are iterating backward, the first record seen for a given lease
+            // id has the highest sequence number.
+            BSLS_ASSERT_SAFE(
+                d_highestSeqNums.find(recHeader.primaryLeaseId()) ==
+                d_highestSeqNums.end());
+            d_highestSeqNums[recHeader.primaryLeaseId()] =
+                recHeader.sequenceNumber();
         }
 
         primaryLeaseId = recHeader.primaryLeaseId();
@@ -2288,7 +2307,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 else {
                     BMQTSK_ALARMLOG_ALARM("RECOVERY")
                         << partitionDesc()
-                        << "Encountered a DELETION record for " << "queueKey ["
+                        << "Encountered a DELETION record for queueKey ["
                         << rec.queueKey()
                         << "], offset: " << jit->recordOffset()
                         << ", index: " << jit->recordIndex()
@@ -2651,6 +2670,21 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
     BALL_LOG_INFO << partitionDesc() << "Completed second pass over the "
                   << "journal with rc: " << rc;
 
+    BALL_LOG_INFO_BLOCK
+    {
+        BALL_LOG_OUTPUT_STREAM
+            << partitionDesc()
+            << "Initialized highest sequence numbers for primary lease "
+            << "ids: { ";
+        for (LeaseIdToSeqNumMapCIter cit = d_highestSeqNums.cbegin();
+             cit != d_highestSeqNums.cend();
+             ++cit) {
+            BALL_LOG_OUTPUT_STREAM << cit->first << ": " << cit->second
+                                   << ", ";
+        }
+        BALL_LOG_OUTPUT_STREAM << " }";
+    }
+
     return rc_SUCCESS;
 }
 
@@ -2807,8 +2841,8 @@ int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
     // first SyncPt will contain the *same* (leaseId, seqNum) as those
     // appearing in the RecordHeader of the last SyncPt in the old JOURNAL.
 
-    // Also note that we cannot use 'd_primaryLeaseId' and 'd_sequenceNum' to
-    // populate (leaseId, seqnum) fields of the RecordHeader of the first
+    // Also note that we cannot use 'd_primaryLeaseId' and 'sequenceNumber()'
+    // to populate (leaseId, seqnum) fields of the RecordHeader of the first
     // SyncPt in the new JOURNAL, because in case of replicas, those 2
     // variables are updated at the end of processing the storage event, but
     // this routine is invoked *while* processing the storage event.
@@ -3251,7 +3285,7 @@ int FileStore::rollover()
 
     bmqp_ctrlmsg::SyncPoint syncPt;
     syncPt.primaryLeaseId()       = d_primaryLeaseId;
-    syncPt.sequenceNum()          = ++d_sequenceNum;
+    syncPt.sequenceNum()          = ++currentSeqNumRef();
     syncPt.dataFileOffsetDwords() = activeFileSet->d_dataFilePosition /
                                     bmqp::Protocol::k_DWORD_SIZE;
     syncPt.qlistFileOffsetWords() = d_qListAware
@@ -3329,14 +3363,23 @@ void FileStore::truncate(FileSet* fileSet)
     }
 }
 
-void FileStore::close(FileSet& fileSetRef, bool flush)
+int FileStore::close(FileSet& fileSetRef, bool flush)
 {
+    enum RcEnum {
+        rc_SUCCESS                  = 0,
+        rc_FLUSH_FAILURE            = -1,
+        rc_CLOSE_FAILURE            = -2,
+        rc_FLUSH_AND_CLOSE_FAILURES = -3
+    };
+
     BALL_LOG_INFO_BLOCK
     {
         BALL_LOG_OUTPUT_STREAM << partitionDesc()
                                << "Closing file store with config: \n";
         d_config.print(BALL_LOG_OUTPUT_STREAM);
     }
+
+    int rcFinal = rc_SUCCESS;
 
     if (flush) {
         BALL_LOG_INFO << partitionDesc() << "Flushing partition to disk.";
@@ -3351,6 +3394,7 @@ void FileStore::close(FileSet& fileSetRef, bool flush)
                 << fileSetRef.d_dataFileName << "], error: " << errorDesc.str()
                 << BMQTSK_ALARMLOG_END;
             errorDesc.reset();
+            rcFinal = rc_FLUSH_FAILURE;
         }
 
         rc = FileSystemUtil::flush(fileSetRef.d_journalFile.mapping(),
@@ -3362,6 +3406,7 @@ void FileStore::close(FileSet& fileSetRef, bool flush)
                 << fileSetRef.d_journalFileName
                 << "], error: " << errorDesc.str() << BMQTSK_ALARMLOG_END;
             errorDesc.reset();
+            rcFinal = rc_FLUSH_FAILURE;
         }
 
         if (d_qListAware) {
@@ -3374,6 +3419,7 @@ void FileStore::close(FileSet& fileSetRef, bool flush)
                     << fileSetRef.d_qlistFileName
                     << "], error: " << errorDesc.str() << BMQTSK_ALARMLOG_END;
                 errorDesc.reset();
+                rcFinal = rc_FLUSH_FAILURE;
             }
         }
 
@@ -3386,6 +3432,8 @@ void FileStore::close(FileSet& fileSetRef, bool flush)
             << partitionDesc() << "Failed to close data file ["
             << fileSetRef.d_dataFileName << "], rc: " << rc
             << BMQTSK_ALARMLOG_END;
+        rcFinal = (rcFinal == rc_FLUSH_FAILURE) ? rc_FLUSH_AND_CLOSE_FAILURES
+                                                : rc_CLOSE_FAILURE;
     }
 
     rc = FileSystemUtil::close(&fileSetRef.d_journalFile);
@@ -3394,6 +3442,8 @@ void FileStore::close(FileSet& fileSetRef, bool flush)
             << partitionDesc() << "Failed to close journal file ["
             << fileSetRef.d_journalFileName << "], rc: " << rc
             << BMQTSK_ALARMLOG_END;
+        rcFinal = (rcFinal == rc_FLUSH_FAILURE) ? rc_FLUSH_AND_CLOSE_FAILURES
+                                                : rc_CLOSE_FAILURE;
     }
 
     if (d_qListAware) {
@@ -3403,12 +3453,21 @@ void FileStore::close(FileSet& fileSetRef, bool flush)
                 << partitionDesc() << "Failed to close qlist file ["
                 << fileSetRef.d_qlistFileName << "], rc: " << rc
                 << BMQTSK_ALARMLOG_END;
+            rcFinal = (rcFinal == rc_FLUSH_FAILURE)
+                          ? rc_FLUSH_AND_CLOSE_FAILURES
+                          : rc_CLOSE_FAILURE;
         }
     }
+
+    return rcFinal;
 }
 
-void FileStore::archive(FileSet* fileSet)
+int FileStore::archive(FileSet* fileSet)
 {
+    enum rcEnum { rc_SUCCESS = 0, rc_FILE_MOVE_FAILURE = -1 };
+
+    int rcFinal = rc_SUCCESS;
+
     int rc = FileSystemUtil::move(fileSet->d_dataFileName,
                                   d_config.archiveLocation());
     if (0 != rc) {
@@ -3417,6 +3476,7 @@ void FileStore::archive(FileSet* fileSet)
             << fileSet->d_dataFileName << "] " << "to location ["
             << d_config.archiveLocation() << "] rc: " << rc
             << BMQTSK_ALARMLOG_END;
+        rcFinal = rc_FILE_MOVE_FAILURE;
     }
     else {
         BALL_LOG_INFO << partitionDesc() << "Moved data file ["
@@ -3432,6 +3492,7 @@ void FileStore::archive(FileSet* fileSet)
             << fileSet->d_journalFileName << "] " << "to location ["
             << d_config.archiveLocation() << "] rc: " << rc
             << BMQTSK_ALARMLOG_END;
+        rcFinal = rc_FILE_MOVE_FAILURE;
     }
     else {
         BALL_LOG_INFO << partitionDesc() << "Moved journal file ["
@@ -3448,6 +3509,7 @@ void FileStore::archive(FileSet* fileSet)
                 << fileSet->d_qlistFileName << "] " << "to location ["
                 << d_config.archiveLocation() << "] rc: " << rc
                 << BMQTSK_ALARMLOG_END;
+            rcFinal = rc_FILE_MOVE_FAILURE;
         }
         else {
             BALL_LOG_INFO << partitionDesc() << "Moved qlist file ["
@@ -3455,6 +3517,8 @@ void FileStore::archive(FileSet* fileSet)
                           << d_config.archiveLocation() << "].";
         }
     }
+
+    return rcFinal;
 }
 
 void FileStore::gc(FileSet* fileSet)
@@ -3500,6 +3564,7 @@ void FileStore::gcDispatched(BSLA_MAYBE_UNUSED int partitionId,
             BALL_LOG_OUTPUT_STREAM << ".";
         }
 
+        // TBD Revisit: handle non-zero rc from close()
         close(*fileSet, d_flushWhenClosing);
         d_fileSets.erase(d_fileSets.begin());
 
@@ -3556,16 +3621,30 @@ void FileStore::gcWorkerDispatched(const bsl::shared_ptr<FileSet>& fileSet)
 
     bsls::Types::Int64 startTime = bmqsys::Time::highResolutionTimer();
 
-    close(*fileSet, false);
+    int                rc        = close(*fileSet, false);
     bsls::Types::Int64 closeTime = bmqsys::Time::highResolutionTimer();
-    BALL_LOG_INFO << partitionDesc() << "File set closed. Time taken: "
+    if (rc != 0) {
+        BALL_LOG_ERROR << partitionDesc()
+                       << "Failed to closed file set. Time taken: "
+                       << bmqu::PrintUtil::prettyTimeInterval(closeTime -
+                                                              startTime);
+        return;  // RETURN
+    }
+    BALL_LOG_INFO << partitionDesc() << "Closed file set. Time taken: "
                   << bmqu::PrintUtil::prettyTimeInterval(closeTime -
                                                          startTime);
 
     bsls::Types::Int64 archiveStartTime = bmqsys::Time::highResolutionTimer();
-    archive(fileSet.get());
-    bsls::Types::Int64 archiveEndTime = bmqsys::Time::highResolutionTimer();
-    BALL_LOG_INFO << partitionDesc() << "File set archived. Time taken: "
+    rc                                  = archive(fileSet.get());
+    bsls::Types::Int64 archiveEndTime   = bmqsys::Time::highResolutionTimer();
+    if (rc != 0) {
+        BALL_LOG_ERROR << partitionDesc()
+                       << "Failed to archive file set. Time taken: "
+                       << bmqu::PrintUtil::prettyTimeInterval(
+                              archiveEndTime - archiveStartTime);
+        return;  // RETURN
+    }
+    BALL_LOG_INFO << partitionDesc() << "Archived file set. Time taken: "
                   << bmqu::PrintUtil::prettyTimeInterval(archiveEndTime -
                                                          archiveStartTime);
 }
@@ -3636,7 +3715,7 @@ int FileStore::writeQueueOpRecord(DataStoreRecordHandle*  handle,
     new (qRec.get()) QueueOpRecord();
     qRec->header()
         .setPrimaryLeaseId(d_primaryLeaseId)
-        .setSequenceNumber(++d_sequenceNum)
+        .setSequenceNumber(++currentSeqNumRef())
         .setTimestamp(timestamp);
     qRec->setQueueKey(queueKey).setType(queueOpFlag);
     qRec->setStartSequenceNumber(startSequenceNum);
@@ -3973,22 +4052,22 @@ int FileStore::issueSyncPointInternal(SyncPointType::Enum type,
             const bmqp_ctrlmsg::SyncPoint& syncPt =
                 d_syncPoints.back().syncPoint();
             if (syncPt.primaryLeaseId() == d_primaryLeaseId) {
-                if (syncPt.sequenceNum() == d_sequenceNum) {
+                if (syncPt.sequenceNum() == sequenceNumber()) {
                     // No new message has been published.
                     return rc_SUCCESS;  // RETURN
                 }
 
-                BSLS_ASSERT_SAFE(syncPt.sequenceNum() < d_sequenceNum);
+                BSLS_ASSERT_SAFE(syncPt.sequenceNum() < sequenceNumber());
             }
             else {
                 BSLS_ASSERT_SAFE(syncPt.primaryLeaseId() < d_primaryLeaseId);
 
-                if (0 == d_sequenceNum) {
+                if (0 == sequenceNumber()) {
                     // New primary and no force issue requested.  Currently,
                     // this check is redundant because we always force issue a
                     // sync point when a primary is chosen (see
                     // 'setActivePrimary()'), which always bumps up
-                    // 'd_sequenceNum' to 1.
+                    // the sequence number to 1.
 
                     return rc_SUCCESS;  // RETURN
                 }
@@ -3996,7 +4075,7 @@ int FileStore::issueSyncPointInternal(SyncPointType::Enum type,
         }
 
         sp.primaryLeaseId()       = d_primaryLeaseId;
-        sp.sequenceNum()          = ++d_sequenceNum;
+        sp.sequenceNum()          = ++currentSeqNumRef();
         sp.dataFileOffsetDwords() = fs->d_dataFilePosition /
                                     bmqp::Protocol::k_DWORD_SIZE;
         if (d_qListAware) {
@@ -4054,7 +4133,7 @@ int FileStore::issueSyncPointInternal(SyncPointType::Enum type,
                                            fs->d_outstandingBytesJournal,
                                            fs->d_dataFilePosition,
                                            fs->d_journalFilePosition,
-                                           d_sequenceNum);
+                                           sequenceNumber());
 
     return rc_SUCCESS;
 }
@@ -4764,7 +4843,7 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
                        "shutting "
                     << "down. No further storage events will be processed by "
                     << "self. Current seqNum: (" << d_primaryLeaseId << ", "
-                    << d_sequenceNum << ").";
+                    << sequenceNumber() << ").";
             }
         }
     }
@@ -4899,7 +4978,7 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
             << ", of length " << FileStoreProtocol::k_JOURNAL_RECORD_SIZE
             << ", at JOURNAL offset: " << journalOffset << ", rc: " << buildRc
             << ". Sequence number was: (" << d_primaryLeaseId << ", "
-            << d_sequenceNum << "). Current storage "
+            << sequenceNumber() << "). Current storage "
             << "event builder size: " << d_storageEventBuilder.eventSize()
             << ", message count: " << d_storageEventBuilder.messageCount()
             << "." << BMQTSK_ALARMLOG_END;
@@ -5013,7 +5092,7 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
                    static_cast<bsls::Types::Int64>(d_primaryLeaseId))
             << ", "
             << bmqu::PrintUtil::prettyNumber(
-                   static_cast<bsls::Types::Int64>(d_sequenceNum))
+                   static_cast<bsls::Types::Int64>(sequenceNumber()))
             << "). Current storage event builder size: "
             << bmqu::PrintUtil::prettyNumber(d_storageEventBuilder.eventSize())
             << ", message count: "
@@ -5087,7 +5166,7 @@ void FileStore::replicateAndInsertDataStoreRecord(
     replicateRecord(messageType, recordOffset);
 
     // Insert (key, record)
-    DataStoreRecordKey key(d_sequenceNum, d_primaryLeaseId);
+    DataStoreRecordKey key(sequenceNumber(), d_primaryLeaseId);
     DataStoreRecord    record(recordType, recordOffset);
     insertDataStoreRecord(handle, key, record);
 
@@ -5199,7 +5278,6 @@ FileStore::FileStore(
 , d_isPrimary(false)
 , d_primaryNode_p(0)
 , d_primaryLeaseId(0)
-, d_sequenceNum(0)
 , d_syncPoints(allocator)
 , d_storages(allocator)
 , d_isFSMWorkflow(isFSMWorkflow)
@@ -5211,6 +5289,7 @@ FileStore::FileStore(
                         d_blobSpPool_p,
                         allocator)
 , d_firstSyncPointAfterRolloverSeqNum()
+, d_highestSeqNums(allocator)
 , d_messageTransmitter(blobSpPool, cluster, allocator)
 {
     // PRECONDITIONS
@@ -5303,7 +5382,7 @@ int FileStore::open(const QueueKeyInfoMap& queueKeyInfoMap)
                                            fs->d_outstandingBytesJournal,
                                            fs->d_dataFilePosition,
                                            fs->d_journalFilePosition,
-                                           d_sequenceNum);
+                                           sequenceNumber());
 
     return rc_SUCCESS;
 }
@@ -5350,6 +5429,7 @@ void FileStore::close(bool flush)
             BALL_LOG_OUTPUT_STREAM << ".";
         }
 
+        // TBD Revisit: handle non-zero rc from close()
         close(*activeFileSet, flush);
         d_fileSets.erase(d_fileSets.begin());
     }
@@ -5563,7 +5643,7 @@ int FileStore::writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
     new (msgRec.get()) MessageRecord();
     msgRec->header()
         .setPrimaryLeaseId(d_primaryLeaseId)
-        .setSequenceNumber(++d_sequenceNum)
+        .setSequenceNumber(++currentSeqNumRef())
         .setTimestamp(attributes->arrivalTimestamp());
     msgRec->setRefCount(attributes->refCount())
         .setQueueKey(queueKey)
@@ -5575,7 +5655,7 @@ int FileStore::writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
         .setMagic(RecordHeader::k_MAGIC);
     journalPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
 
-    DataStoreRecordKey key(d_sequenceNum, d_primaryLeaseId);
+    DataStoreRecordKey key(sequenceNumber(), d_primaryLeaseId);
     DataStoreRecord    record(RecordType::e_MESSAGE, journalOffset);
     record.d_messageOffset      = dataOffset;
     record.d_appDataUnpaddedLen = static_cast<unsigned int>(appData->length());
@@ -5845,7 +5925,7 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
     new (queueOpRec.get()) QueueOpRecord();
     queueOpRec->header()
         .setPrimaryLeaseId(d_primaryLeaseId)
-        .setSequenceNumber(++d_sequenceNum)
+        .setSequenceNumber(++currentSeqNumRef())
         .setTimestamp(timestamp);
     queueOpRec->setQueueKey(queueKey).setType(
         isNewQueue ? QueueOpType::e_CREATION : QueueOpType::e_ADDITION);
@@ -5866,7 +5946,7 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
                     qlistOffset,
                     qlistRecTotalLength);
 
-    DataStoreRecordKey key(d_sequenceNum, d_primaryLeaseId);
+    DataStoreRecordKey key(sequenceNumber(), d_primaryLeaseId);
     DataStoreRecord    record(RecordType::e_QUEUE_OP,
                            recordOffset,
                            qlistRecTotalLength);
@@ -5975,7 +6055,7 @@ int FileStore::writeConfirmRecord(DataStoreRecordHandle*   handle,
     new (confRec.get()) ConfirmRecord();
     confRec->header()
         .setPrimaryLeaseId(d_primaryLeaseId)
-        .setSequenceNumber(++d_sequenceNum)
+        .setSequenceNumber(++currentSeqNumRef())
         .setTimestamp(timestamp);
     confRec->setQueueKey(queueKey).setMessageGUID(guid);
 
@@ -6045,7 +6125,7 @@ int FileStore::writeDeletionRecord(const bmqt::MessageGUID& guid,
     new (delRec.get()) DeletionRecord();
     delRec->header()
         .setPrimaryLeaseId(d_primaryLeaseId)
-        .setSequenceNumber(++d_sequenceNum)
+        .setSequenceNumber(++currentSeqNumRef())
         .setTimestamp(timestamp);
     delRec->setDeletionRecordFlag(deletionFlag)
         .setQueueKey(queueKey)
@@ -6096,7 +6176,7 @@ int FileStore::writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint& syncPoint,
                         RecordHeader::k_MAGIC);
     journalOpRec->header()
         .setPrimaryLeaseId(d_primaryLeaseId)
-        .setSequenceNumber(d_sequenceNum)
+        .setSequenceNumber(sequenceNumber())
         .setTimestamp(
             bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()));
     journalPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
@@ -6209,7 +6289,7 @@ void FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
                 << recHeader->primaryLeaseId()
                 << ", self leaseId: " << d_primaryLeaseId
                 << ". SeqNum in RecordHeader: " << recHeader->sequenceNumber()
-                << ", self seqNum: " << d_sequenceNum
+                << ", self seqNum: " << sequenceNumber()
                 << " Record's journal offset (in words): "
                 << header.journalOffsetWords() << ". Ignoring entire event."
                 << BMQTSK_ALARMLOG_END;
@@ -6217,12 +6297,12 @@ void FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
         }
 
         if (d_primaryLeaseId == recHeader->primaryLeaseId()) {
-            if (recHeader->sequenceNumber() != (d_sequenceNum + 1)) {
+            if (recHeader->sequenceNumber() != (sequenceNumber() + 1)) {
                 BMQTSK_ALARMLOG_ALARM("REPLICATION")
                     << partitionDesc() << "Received storage msg "
                     << header.messageType()
                     << " with missing sequence num. Expected: "
-                    << (d_sequenceNum + 1)
+                    << (sequenceNumber() + 1)
                     << ", received: " << recHeader->sequenceNumber()
                     << ". PrimaryLeaseId: " << recHeader->primaryLeaseId()
                     << " Record's journal offset (in words): "
@@ -6265,7 +6345,8 @@ void FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
         // successfully, raise alarm otherwise.
 
         if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(0 == rc)) {
-            d_sequenceNum = recHeader->sequenceNumber();
+            d_highestSeqNums[recHeader->primaryLeaseId()] =
+                recHeader->sequenceNumber();
 
             if (isPartitionSyncEvent) {
                 // If we are processing a partition-sync event, we have to
@@ -6280,7 +6361,7 @@ void FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
                     << "Bumped up primaryLeaseId to: " << d_primaryLeaseId
                     << " while processing a "
                     << "partition-sync storage message. "
-                    << "SequenceNum: " << d_sequenceNum;
+                    << "SequenceNum: " << sequenceNumber();
             }
         }
         else {
@@ -6329,7 +6410,7 @@ int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
         // 'open()'.
 
         if (!d_isFSMWorkflow) {
-            BSLS_ASSERT_SAFE(0 < d_sequenceNum);
+            BSLS_ASSERT_SAFE(0 < sequenceNumber());
         }
         hasValidLeaseIdSeqNum = true;
     }
@@ -6377,7 +6458,7 @@ int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
         if (!hasValidLeaseIdSeqNum) {
             hasValidLeaseIdSeqNum = true;
             d_primaryLeaseId      = recHeader->primaryLeaseId();
-            d_sequenceNum         = recHeader->sequenceNumber();
+            currentSeqNumRef()    = recHeader->sequenceNumber();
         }
         else {
             // Validate leaseId, sequence number, etc.
@@ -6399,11 +6480,11 @@ int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
             else if (d_primaryLeaseId < recHeader->primaryLeaseId()) {
                 // LeaseId was bumped up.
 
-                d_primaryLeaseId = recHeader->primaryLeaseId();
-                d_sequenceNum    = recHeader->sequenceNumber();
+                d_primaryLeaseId   = recHeader->primaryLeaseId();
+                currentSeqNumRef() = recHeader->sequenceNumber();
             }
             else {
-                if (recHeader->sequenceNumber() <= d_sequenceNum) {
+                if (recHeader->sequenceNumber() <= sequenceNumber()) {
                     BALL_LOG_INFO
                         << partitionDesc()
                         << "Skipping a buffered storage message of type "
@@ -6411,15 +6492,17 @@ int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
                         << " as it has same or smaller sequence number. "
                         << "Sequence number in buffered message: "
                         << recHeader->sequenceNumber()
-                        << ", self sequence number: " << d_sequenceNum << ".";
+                        << ", self sequence number: " << sequenceNumber()
+                        << ".";
                     return rc_SUCCESS;  // RETURN
                 }
-                else if (recHeader->sequenceNumber() != (d_sequenceNum + 1)) {
+                else if (recHeader->sequenceNumber() !=
+                         (sequenceNumber() + 1)) {
                     BMQTSK_ALARMLOG_ALARM("REPLICATION")
                         << partitionDesc() << "Encountered buffered storage "
                         << "message " << header.messageType()
                         << " with missing sequence num. "
-                        << "Expected: " << (d_sequenceNum + 1)
+                        << "Expected: " << (sequenceNumber() + 1)
                         << ", received: " << recHeader->sequenceNumber()
                         << ". PrimaryLeaseId: " << recHeader->primaryLeaseId()
                         << ". Journal offset (words): "
@@ -6428,11 +6511,11 @@ int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
                     return rc_INVALID_SEQ_NUM;  // RETURN
                 }
 
-                ++d_sequenceNum;
+                ++currentSeqNumRef();
             }
         }
 
-        // 'd_sequenceNum' has been updated to appropriate value.
+        // The current sequence number has been updated to appropriate value.
 
         if (bmqp::StorageMessageType::e_DATA == header.messageType()) {
             rc = writeMessageRecord(header, *recHeader, blob, recordPosition);
@@ -6599,7 +6682,7 @@ int FileStore::issueSyncPoint()
 
     bmqp_ctrlmsg::SyncPoint syncPoint;
     syncPoint.primaryLeaseId()       = d_primaryLeaseId;
-    syncPoint.sequenceNum()          = ++d_sequenceNum;
+    syncPoint.sequenceNum()          = ++currentSeqNumRef();
     syncPoint.dataFileOffsetDwords() = fs->d_dataFilePosition /
                                        bmqp::Protocol::k_DWORD_SIZE;
     syncPoint.qlistFileOffsetWords() = d_qListAware
@@ -6643,15 +6726,12 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
         BALL_LOG_INFO << partitionDesc() << " already has primary as "
                       << primaryNode->nodeDescription()
                       << " with primaryLeaseId: " << d_primaryLeaseId
-                      << ", and sequence number: " << d_sequenceNum << ".";
+                      << ", and sequence number: " << sequenceNumber() << ".";
         return;  // RETURN
     }
 
     if (primaryLeaseId > d_primaryLeaseId) {
-        // Reset the sequence number only if primary leaseId has been bumped
-        // up.
-
-        d_sequenceNum = 0;
+        d_highestSeqNums[primaryLeaseId] = 0;
     }
     d_primaryLeaseId = primaryLeaseId;
     d_primaryNode_p  = primaryNode;
@@ -6659,7 +6739,7 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
     BALL_LOG_INFO << partitionDesc() << "Primary node is now "
                   << primaryNode->nodeDescription()
                   << " with primaryLeaseId: " << d_primaryLeaseId
-                  << ", and sequence number: " << d_sequenceNum << ".";
+                  << ", and sequence number: " << sequenceNumber() << ".";
 
     if (primaryNode->nodeId() != d_config.nodeId()) {
         d_isPrimary = false;
@@ -6671,7 +6751,7 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
             d_primaryLeaseId) {
             BALL_LOG_INFO << partitionDesc() << "Issuing Implicit Receipt ["
                           << "primaryLeaseId = " << d_primaryLeaseId
-                          << ", d_sequenceNum = " << d_sequenceNum << "].";
+                          << ", sequenceNum = " << sequenceNumber() << "].";
 
             FileStore::NodeContext* nodeContext = generateReceipt(
                 0,
@@ -6838,9 +6918,9 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
 
         // Explicitly update the sequence number, since we are passing the
         // SyncPt ourselves, and 'issueSyncPointInternal' won't increment
-        // 'd_sequenceNum' in that case.
+        // the sequence number in that case.
 
-        ++d_sequenceNum;
+        ++currentSeqNumRef();
 
         int rc = issueSyncPointInternal(SyncPointType::e_REGULAR,
                                         true,  // ImmediateFlush
@@ -6892,7 +6972,7 @@ void FileStore::clearPrimary()
     BALL_LOG_INFO << partitionDesc() << "Clearing current primary: "
                   << d_primaryNode_p->nodeDescription()
                   << ". Current (leaseId, seqnum): (" << d_primaryLeaseId
-                  << ", " << d_sequenceNum << ").";
+                  << ", " << sequenceNumber() << ").";
     d_primaryNode_p = 0;
 
     // If self has a valid leaseId and zero seqnum (ie, previous primary went
@@ -6904,7 +6984,7 @@ void FileStore::clearPrimary()
         return;  // RETURN
     }
 
-    if (0 != d_sequenceNum) {
+    if (0 != sequenceNumber()) {
         return;  // RETURN
     }
 
@@ -6926,13 +7006,13 @@ void FileStore::clearPrimary()
             fs->d_journalFilePosition -
                 FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
 
-        d_primaryLeaseId = recHeader->primaryLeaseId();
-        d_sequenceNum    = recHeader->sequenceNumber();
+        d_primaryLeaseId   = recHeader->primaryLeaseId();
+        currentSeqNumRef() = recHeader->sequenceNumber();
         BSLS_ASSERT_SAFE(0 != d_primaryLeaseId);
-        BSLS_ASSERT_SAFE(0 != d_sequenceNum);
+        BSLS_ASSERT_SAFE(0 != sequenceNumber());
 
         BALL_LOG_INFO << partitionDesc() << "Rolled back (leaseId, seqnum) to "
-                      << "(" << d_primaryLeaseId << ", " << d_sequenceNum
+                      << "(" << d_primaryLeaseId << ", " << sequenceNumber()
                       << ") upon processing 'clear-primary' event, as previous"
                       << " primary went away without issuing a SyncPt.";
     }
@@ -7079,17 +7159,48 @@ void FileStore::applyForEachQueue(const QueueFunctor& functor) const
     }
 }
 
-void FileStore::deprecateFileSet()
+int FileStore::deprecateFileSet()
 {
-    if (d_isOpen) {
-        BALL_LOG_ERROR << partitionDesc()
-                       << "Cannot deprecate the active file set as this "
-                       << "FileStore is still open.";
+    enum rcEnum {
+        rc_SUCCESS        = 0,
+        rc_CLOSE_FAILURE  = -1,
+        rc_ARHIVE_FAILURE = -2
+    };
 
-        return;  // RETURN
+    if (d_fileSets.empty()) {
+        BALL_LOG_ERROR << partitionDesc()
+                       << "No file sets available to deprecate.";
+        return rc_SUCCESS;  // RETURN
     }
 
-    archive(d_fileSets[0].get());
+    FileSetSp fileSetSp = d_fileSets[0];
+    FileSet*  fileSet   = fileSetSp.get();
+
+    if (d_isOpen) {
+        close(false);
+    }
+    // The file set might already have been closed and erased by close().
+    // If it's still in d_fileSets, close the physical files and erase it.
+    if (!d_fileSets.empty() && d_fileSets[0].get() == fileSet) {
+        const int rc = close(*fileSet, false);
+        if (rc != 0) {
+            BALL_LOG_ERROR << partitionDesc()
+                           << "Failed to close file set during deprecation, "
+                           << "rc: " << rc;
+            return rc * 10 + rc_CLOSE_FAILURE;  // RETURN
+        }
+        d_fileSets.erase(d_fileSets.begin());
+    }
+
+    const int rc = archive(fileSet);
+    if (rc != 0) {
+        BALL_LOG_ERROR << partitionDesc()
+                       << "Failed to archive file set during deprecation, "
+                       << "rc: " << rc;
+        return rc * 10 + rc_ARHIVE_FAILURE;  // RETURN
+    }
+
+    return rc_SUCCESS;
 }
 
 void FileStore::registerStorage(ReplicatedStorage* storage)
@@ -7319,7 +7430,7 @@ void FileStore::loadSummary(mqbcmd::FileStore* fileStore) const
     FileStorePrintUtil::loadSummary(&fileStore->summary(),
                                     d_primaryNode_p,
                                     d_primaryLeaseId,
-                                    d_sequenceNum,
+                                    sequenceNumber(),
                                     d_records.size(),
                                     d_unreceipted.size(),
                                     d_naglePacketCount,
