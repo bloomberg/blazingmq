@@ -1471,7 +1471,8 @@ void ClusterUtil::sendClusterState(
         if (trustCSL) {
             // We construct a "merged state" of current cluster state and
             // information from uncommitted CSL advisories, before sending over
-            // to follower(s).
+            // to follower(s).  Loading the CSL iterator gives us the merged
+            // state for free.
             //
             // NOTE: This code path is *only* reachable in non-FSM mode.
             ClusterState tempState(
@@ -1490,15 +1491,6 @@ void ClusterUtil::sendClusterState(
                     << "state as part of 'sendClusterState', rc: " << rc;
 
                 return;  // RETURN
-            }
-
-            ClusterStateLedger::ClusterMessageCRefList uncommittedAdvisories;
-            ledger->uncommittedAdvisories(&uncommittedAdvisories);
-            for (ClusterStateLedger::ClusterMessageCRefList::const_iterator
-                     cit = uncommittedAdvisories.begin();
-                 cit != uncommittedAdvisories.end();
-                 ++cit) {
-                apply(&tempState, *cit, *clusterData);
             }
 
             if (!newlyAssigned.empty()) {

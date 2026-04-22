@@ -400,13 +400,6 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     bslma::ManagedPtr<ClusterStateLedgerIterator>
     getIterator() const BSLS_KEYWORD_OVERRIDE;
 
-    /// Load into `out` the list of uncommitted advisories as const references.
-    ///
-    /// THREAD: This method can be invoked only in the associated cluster's
-    ///         dispatcher thread.
-    void uncommittedAdvisories(ClusterMessageCRefList* out) const
-        BSLS_KEYWORD_OVERRIDE;
-
     // ACCESSORS
 
     /// Return a brief description of the ClusterStateLedger for logging

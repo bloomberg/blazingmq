@@ -332,12 +332,6 @@ class ClusterStateLedger {
     ///         dispatcher thread.
     virtual bslma::ManagedPtr<ClusterStateLedgerIterator>
     getIterator() const = 0;
-
-    /// Load into `out` the list of uncommitted advisories as const references.
-    ///
-    /// THREAD: This method can be invoked only in the associated cluster's
-    ///         dispatcher thread.
-    virtual void uncommittedAdvisories(ClusterMessageCRefList* out) const = 0;
 };
 
 }  // close package namespace

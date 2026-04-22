@@ -122,13 +122,6 @@ struct ClusterStateLedgerTestImp
         markDone();
         return bslma::ManagedPtr<mqbc::ClusterStateLedgerIterator>();
     }
-
-    void uncommittedAdvisories(ClusterMessageCRefList* out) const
-        BSLS_KEYWORD_OVERRIDE
-    {
-        markDone();
-        return;
-    }
 };
 
 }  // close anonymous namespace
