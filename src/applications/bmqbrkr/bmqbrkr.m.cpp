@@ -348,8 +348,6 @@ struct MTrapHandler {
 
     void operator()(const bsl::string& prefix, bsl::istream& stream) const
     {
-        BSLS_ASSERT_SAFE(d_taskEnv_p);
-
         bsl::string cmd;
 
         bsl::getline(stream, cmd);
