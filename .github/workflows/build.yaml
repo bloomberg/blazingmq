@@ -225,7 +225,7 @@ jobs:
         # Typically the error found with fuzzer is related to the latest requests and broker state.
         # If this is not enough, consider running the test on your local machine and get full logs.
       - name: Print Fuzz Log tail
-        if: failure()
+        if: failure() || success()
         run: |
           tail -n 2000 src/python/${{ matrix.request }}_fuzz.log
 
@@ -239,7 +239,7 @@ jobs:
           --build-dir=${{ github.workspace }}/build/blazingmq
 
       - name: Upload fuzz-logs as artifacts
-        if: failure()
+        if: failure()|| success()
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.request }}_fuzz.log
