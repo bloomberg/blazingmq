@@ -19,6 +19,7 @@
 #include <bmqscm_version.h>
 
 #include <bmqio_resolveutil.h>
+#include <bmqt_messageguid.h>
 #include <bmqu_memoutstream.h>
 
 // BDE
@@ -31,15 +32,19 @@
 #include <bdls_processutil.h>
 #include <bsl_cstring.h>
 #include <bsl_iostream.h>
+#include <bsl_limits.h>
 #include <bsl_string.h>
 #include <bsls_assert.h>
+#include <bsls_keyword.h>
 #include <bsls_systemtime.h>
 #include <bsls_timeutil.h>
 
 // NTC
 #include <bsl_ios.h>
+#include <bsl_optional.h>
 #include <ntsa_error.h>
 #include <ntsa_ipaddress.h>
+#include <ntsa_ipv4address.h>
 
 namespace BloombergLP {
 namespace bmqp {
@@ -73,10 +78,9 @@ const int k_TIMERTICK_BYTES = 7;
 
 // CREATORS
 MessageGUIDGenerator::MessageGUIDGenerator(int sessionId, bool doIpResolving)
-: d_clientId()     // init array with zeros
-, d_clientIdHex()  // init array with zeros
-, d_counter(-1)    // Initialize 'd_counter' to -1, so that pre-incremented
-                   // value starts  from zero.
+: d_clientId()
+, d_clientIdHex()
+, d_counter(0)
 , d_nanoSecondsFromEpoch(
       bsls::SystemTime::nowRealtimeClock().totalNanoseconds())
 , d_timerBaseOffset(bsls::TimeUtil::getTimer())
@@ -114,21 +118,10 @@ MessageGUIDGenerator::MessageGUIDGenerator(int sessionId, bool doIpResolving)
         }
     }
 
-    // Get timestamp (seconds from epoch)
-    const bdlb::BigEndianInt64 secondsBE = bdlb::BigEndianInt64::make(
-        bsls::SystemTime::nowRealtimeClock().totalSeconds());
-
-    // Get PID
-    const bdlb::BigEndianInt32 pidBE = bdlb::BigEndianInt32::make(
-        bdls::ProcessUtil::getProcessId());
-
-    // Get sessionId
-    const bdlb::BigEndianInt32 sessionIdBE = bdlb::BigEndianInt32::make(
-        sessionId);
-
     // Calculate md5(HostId + timestamp + PID + sessionId)
-    bdlde::Md5            md5;
-    bdlde::Md5::Md5Digest md5Buffer;
+    bdlde::Md5 md5;
+
+    // Get IP or hostname
     if (useIP) {
         // 'ntsa::Ipv4Address::value()' returns an unsigned int
         // in network byte order
@@ -136,11 +129,32 @@ MessageGUIDGenerator::MessageGUIDGenerator(int sessionId, bool doIpResolving)
         md5.update(&ipAddressBE, sizeof(ipAddressBE));
     }
     else {
-        md5.update(hostname.c_str(), hostname.size());
+        // We have to do a kind of saturating cast or else there's the
+        // potential for a ridiculously (probably impossibly?) long hostname to
+        // overflow the size parameter, which is a int.
+        int size = static_cast<int>(
+            bsl::min(hostname.size(),
+                     static_cast<bsl::string::size_type>(
+                         bsl::numeric_limits<int>::max())));
+        md5.update(hostname.c_str(), size);
     }
+
+    // Get timestamp (seconds from epoch)
+    const bdlb::BigEndianInt64 secondsBE = bdlb::BigEndianInt64::make(
+        d_nanoSecondsFromEpoch);
     md5.update(&secondsBE, sizeof(secondsBE));
+
+    // Get PID
+    const bdlb::BigEndianInt32 pidBE = bdlb::BigEndianInt32::make(
+        bdls::ProcessUtil::getProcessId());
     md5.update(&pidBE, sizeof(pidBE));
+
+    // Get sessionId
+    const bdlb::BigEndianInt32 sessionIdBE = bdlb::BigEndianInt32::make(
+        sessionId);
     md5.update(&sessionIdBE, sizeof(sessionIdBE));
+
+    bdlde::Md5::Md5Digest md5Buffer;
     md5.loadDigest(&md5Buffer);
 
     // ClientId == first 'k_CLIENT_ID_LEN_BINARY' bytes of the md5 hash
@@ -173,7 +187,7 @@ void MessageGUIDGenerator::generateGUID(bmqt::MessageGUID* guid)
     // Get a snapshot of timer tick and counter values
     const bsls::Types::Int64 timerTickDiff = bsls::TimeUtil::getTimer() -
                                              d_timerBaseOffset;
-    const unsigned int counter = ++d_counter;
+    const unsigned int counter = d_counter++;
 
     // Below, we use our knowledge of internal memory layout of
     // bmqt::MessageGUID to populate its data member.  Alternatives are:
