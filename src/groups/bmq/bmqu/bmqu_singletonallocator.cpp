@@ -49,7 +49,7 @@ bslma::Allocator* SingletonAllocator::allocator()
 
         s_alloc_p = &adapter;
     }
-    return &adapter.object();
+    return s_alloc_p;
 }
 
 }  // close package namespace
