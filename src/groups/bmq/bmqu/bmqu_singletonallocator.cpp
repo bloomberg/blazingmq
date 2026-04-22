@@ -36,7 +36,7 @@ namespace bmqu {
 
 bslma::Allocator* SingletonAllocator::allocator()
 {
-    static bslma::Allocator *s_alloc_p = 0;
+    static bslma::Allocator* s_alloc_p = 0;
     BSLMT_ONCE_DO
     {
         static char                               buffer[4096];
@@ -45,7 +45,7 @@ bslma::Allocator* SingletonAllocator::allocator()
             buffer,
             sizeof(buffer),
             bslma::Default::globalAllocator());
-        static bdlma::ConcurrentAllocatorAdapter  adapter(&mutex, &seqAlloc);
+        static bdlma::ConcurrentAllocatorAdapter adapter(&mutex, &seqAlloc);
 
         s_alloc_p = &adapter;
     }
