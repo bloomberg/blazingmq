@@ -298,8 +298,6 @@ int main(int argc, char* argv[])
         mqbcfg::AppConfig brokerConfig(bmqtst::TestHelperUtil::allocator());
         mqbcfg::BrokerConfig::set(brokerConfig);
 
-        mqbu::MessageGUIDUtil::initialize();
-
         switch (_testCase) {
         case 0:
         case 1: test1_watermark(); break;

@@ -2508,8 +2508,6 @@ int main(int argc, char* argv[])
                 30,
                 bmqtst::TestHelperUtil::allocator());
 
-        mqbu::MessageGUIDUtil::initialize();
-
         switch (_testCase) {
         case 0:
         case 11: test11_initiateShutdown(); break;

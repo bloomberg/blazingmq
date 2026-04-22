@@ -949,7 +949,6 @@ int main(int argc, char* argv[])
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqsys::Time::initialize();
-    mqbu::MessageGUIDUtil::initialize();
 
     switch (_testCase) {
     case 0:

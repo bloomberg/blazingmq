@@ -2160,8 +2160,6 @@ int main(int argc, char* argv[])
 
     bmqsys::Time::initialize(bmqtst::TestHelperUtil::allocator());
 
-    mqbu::MessageGUIDUtil::initialize();
-
     {
         mqbcfg::AppConfig brokerConfig(bmqtst::TestHelperUtil::allocator());
         mqbcfg::BrokerConfig::set(brokerConfig);

@@ -116,9 +116,6 @@ void Application::oneTimeInit()
                                       0xFFFFFFFF);
 
         bsl::srand(seed);
-
-        // Make MessageGUID generation thread-safe by calling initialize
-        mqbu::MessageGUIDUtil::initialize();
     }
 }
 

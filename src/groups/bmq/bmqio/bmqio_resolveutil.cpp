@@ -18,12 +18,16 @@
 #include <bmqscm_version.h>
 // BDE
 #include <bdlma_localsequentialallocator.h>
+#include <bslma_allocator.h>
+#include <bslma_default.h>
 #include <bsls_assert.h>
 
 // NTC
 #include <bsl_memory.h>
+#include <bsls_keyword.h>
 #include <ntsa_error.h>
 #include <ntsa_ipaddress.h>
+#include <ntsa_ipaddressoptions.h>
 #include <ntsf_system.h>
 #include <ntsi_resolver.h>
 
@@ -50,7 +54,11 @@ ntsa::Error ResolveUtil::getHostname(bsl::string* result)
     // PRECONDITIONS
     BSLS_ASSERT(result);
 
-    bsl::shared_ptr<ntsi::Resolver> resolver = ntsf::System::createResolver();
+    const BSLS_KEYWORD_CONSTEXPR int                  k_ALLOC_ESTIMATE = 1024;
+    bdlma::LocalSequentialAllocator<k_ALLOC_ESTIMATE> alloc;
+
+    bsl::shared_ptr<ntsi::Resolver> resolver = ntsf::System::createResolver(
+        &alloc);
     return resolver->getHostname(result);
 }
 
@@ -60,18 +68,22 @@ ntsa::Error ResolveUtil::getIpAddress(ntsa::Ipv4Address*      result,
     // PRECONDITIONS
     BSLS_ASSERT(result);
 
-    ntsa::IpAddressOptions options;
+    // Avoid dynamic memory allocation
+    const BSLS_KEYWORD_CONSTEXPR int k_ALLOC_ESTIMATE =
+        sizeof(ntsa::IpAddressOptions) + sizeof(ntsa::IpAddress) + 1024;
+    bdlma::LocalSequentialAllocator<k_ALLOC_ESTIMATE> alloc;
+
+    ntsa::IpAddressOptions options(&alloc);
 
     // Limit addresses to V4 only
     options.setIpAddressType(ntsa::IpAddressType::e_V4);
     // Return first address
     options.setIpAddressSelector(0);
 
-    // Avoid dynamic memory allocation
-    bdlma::LocalSequentialAllocator<sizeof(ntsa::IpAddress)> lsa;
-    bsl::vector<ntsa::IpAddress>                             ipAddresses(&lsa);
+    bsl::vector<ntsa::IpAddress> ipAddresses(&alloc);
 
-    bsl::shared_ptr<ntsi::Resolver> resolver = ntsf::System::createResolver();
+    bsl::shared_ptr<ntsi::Resolver> resolver = ntsf::System::createResolver(
+        &alloc);
     ntsa::Error error = resolver->getIpAddress(&ipAddresses,
                                                domainName,
                                                options);
@@ -89,10 +101,14 @@ ntsa::Error ResolveUtil::getIpAddress(bsl::vector<ntsa::IpAddress>* result,
     // PRECONDITIONS
     BSLS_ASSERT(result);
 
-    bsl::shared_ptr<ntsi::Resolver> resolver = ntsf::System::createResolver();
-    ntsa::Error                     error    = resolver->getIpAddress(result,
+    const BSLS_KEYWORD_CONSTEXPR int k_ALLOC_ESTIMATE =
+        1024 + sizeof(ntsa::IpAddressOptions);
+    bdlma::LocalSequentialAllocator<k_ALLOC_ESTIMATE> alloc;
+    bsl::shared_ptr<ntsi::Resolver> resolver = ntsf::System::createResolver(
+        &alloc);
+    ntsa::Error error = resolver->getIpAddress(result,
                                                domainName,
-                                               ntsa::IpAddressOptions());
+                                               ntsa::IpAddressOptions(&alloc));
 
     return error;
 }

@@ -423,8 +423,6 @@ void QueueEngineTester::oneTimeInit()
     BSLMT_ONCE_DO
     {
         bmqsys::Time::initialize();
-        // Make MessageGUID generation thread-safe by calling initialize
-        mqbu::MessageGUIDUtil::initialize();
     }
 }
 

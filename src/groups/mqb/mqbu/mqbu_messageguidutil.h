@@ -16,19 +16,17 @@
 #ifndef INCLUDED_MQBU_MESSAGEGUIDUTIL
 #define INCLUDED_MQBU_MESSAGEGUIDUTIL
 
-//@PURPOSE: Provide a utility component for bmqt::MessageGUID.
-//
-//@CLASSES:
-//  mqbu::MessageGUIDUtil : Utility methods for bmqt::MessageGUID
-//
-//@SEE_ALSO:
-// bmqt::MessageGUID
-//
-//@DESCRIPTION: 'mqbu::MessageGUIDUtil' provide a method to generate
-// 'bmqt::MessageGUID'.
-//
-
-// MQB
+///@PURPOSE: Provide a utility component for bmqt::MessageGUID.
+///
+///@CLASSES:
+///  mqbu::MessageGUIDUtil : Utility methods for bmqt::MessageGUID
+///
+///@SEE_ALSO:
+/// bmqt::MessageGUID
+/// bmqp::MessageGUIDGenerator
+///
+///@DESCRIPTION: 'mqbu::MessageGUIDUtil' provide a method to generate
+/// 'bmqt::MessageGUID'.
 
 // BMQ
 #include <bmqt_messageguid.h>
@@ -54,23 +52,14 @@ class MessageGUIDUtil {
   public:
     // CLASS METHODS
 
-    /// Perform a one-time initialization before generating GUIDs.  It is
-    /// undefined behavior to call this method more than once during an
-    /// application's lifetime.  It is undefined behavior to call
-    /// `generateGUID()` unless this method has been called once before.
-    /// Note that this method is not thread-safe.
-    static void initialize();
-
     /// Generate a new MessageGUID. This method can be called simultaneously
-    /// from multiple threads.  Behavior is undefined unless `initialize`
-    /// has been called once before this method's invocation.  Behavior is
-    /// undefined unless specified `guid` is non-null.
+    /// from multiple threads.  Behavior is undefined unless specified `guid`
+    /// is non-null.
     static void generateGUID(bmqt::MessageGUID* guid);
 
     /// Return the hexadecimal representation of the unique id associated to
     /// this broker (refer to the `Implementation notes` section in the
-    /// associated .cpp file for details about how it is computed).  The
-    /// behavior is undefined unless `initialize()` has been called.
+    /// associated .cpp file for details about how it is computed).
     static const char* brokerIdHex();
 
     /// --------------------------
