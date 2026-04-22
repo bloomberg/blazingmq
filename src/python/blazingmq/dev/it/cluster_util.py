@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import difflib
 import glob
 import json
 import os
@@ -204,6 +203,7 @@ def stop_cluster_and_compare_journal_files(
     if cluster.last_known_leader:
         cluster.last_known_leader.stop()
         cluster.make_sure_node_stopped(cluster.last_known_leader)
+    cluster.stop_nodes()
 
     leader_journal_files = glob.glob(
         str(cluster.work_dir.joinpath(leader_name, "storage")) + "/*journal*"
