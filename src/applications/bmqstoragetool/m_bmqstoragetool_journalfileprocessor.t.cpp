@@ -14,11 +14,12 @@
 // limitations under the License.
 
 // bmqstoragetool
-#include "m_bmqstoragetool_compositesequencenumber.h"
-#include "m_bmqstoragetool_parameters.h"
-#include <m_bmqstoragetool_commandprocessorfactory.h>
-#include <m_bmqstoragetool_filemanagermock.h>
 #include <m_bmqstoragetool_journalfileprocessor.h>
+
+#include <m_bmqstoragetool_commandprocessorfactory.h>
+#include <m_bmqstoragetool_compositesequencenumber.h>
+#include <m_bmqstoragetool_filemanagermock.h>
+#include <m_bmqstoragetool_parameters.h>
 #include <m_bmqstoragetool_printermock.h>
 #include <m_bmqstoragetool_searchresultfactory.h>
 
@@ -36,6 +37,7 @@
 #include <bsl_list.h>
 #include <bsl_utility.h>
 #include <bslma_allocator.h>
+#include <bslma_default.h>
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
@@ -2655,5 +2657,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

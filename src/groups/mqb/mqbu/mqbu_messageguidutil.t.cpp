@@ -277,7 +277,7 @@ static void test3_print()
 
         // Print and compare
         const char k_EXPECTED[] = "[version: 1, counter: 5, timerTick: "
-                                  "297593876864458, brokerId: CE04742D2E]";
+                                  "1162476081501, brokerId: CACE04742D2E]";
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         mqbu::MessageGUIDUtil::print(out, guid);
         BMQTST_ASSERT_EQ(out.str(), k_EXPECTED);
@@ -291,11 +291,11 @@ static void test3_print()
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         mqbu::MessageGUIDUtil::print(out, guid);
 
-        // Extract the BrokerId from the printed string, that is the 10
-        // characters before the last one (an hexadecimal brokerId is 10
+        // Extract the BrokerId from the printed string, that is the 12
+        // characters before the last one (an hexadecimal brokerId is 12
         // characters, and we skip the closing ']').
         bslstl::StringRef printedBrokerId =
-            bslstl::StringRef(&out.str()[out.length() - 11], 10);
+            bslstl::StringRef(&out.str()[out.length() - 13], 12);
         BMQTST_ASSERT_EQ(printedBrokerId,
                          mqbu::MessageGUIDUtil::brokerIdHex());
     }
@@ -1217,7 +1217,6 @@ int main(int argc, char* argv[])
     // here before the TEST_PROLOG because 'MessageGUIDUtil::initialize' prints
     // a BALL_LOG_INFO which allocates using the default allocator.
     bsls::TimeUtil::initialize();
-    mqbu::MessageGUIDUtil::initialize();
 
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -1289,7 +1288,7 @@ int main(int argc, char* argv[])
     }
 #endif
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
 
 // ----------------------------------------------------------------------------

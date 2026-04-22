@@ -1424,8 +1424,6 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    mqbu::MessageGUIDUtil::initialize();
-
     switch (_testCase) {
     case 0:
     case 12: test12_backwardAdvance(); break;
