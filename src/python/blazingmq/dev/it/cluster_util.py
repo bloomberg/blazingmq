@@ -201,13 +201,9 @@ def stop_cluster_and_compare_journal_files(
     for node in cluster.nodes():
         if node.is_alive():
             node.set_quorum(5)
-
-    leader = cluster.last_known_leader
-    if leader:
-        leader.stop()
-        _wait_for_passive_advisories(leader, cluster)
-        cluster.make_sure_node_stopped(leader)
-    cluster.stop_nodes()
+    if cluster.last_known_leader:
+        cluster.last_known_leader.stop()
+        cluster.make_sure_node_stopped(cluster.last_known_leader)
 
     leader_journal_files = glob.glob(
         str(cluster.work_dir.joinpath(leader_name, "storage")) + "/*journal*"
@@ -238,22 +234,12 @@ def stop_cluster_and_compare_journal_files(
             f"Replica storage tool failed on {replica_file} with rc {replica_res.returncode}"
         )
 
-        leader_out = clean_storage_output(leader_res.stdout)
-        replica_out = clean_storage_output(replica_res.stdout)
-        if leader_out != replica_out:
-            diff = "\n".join(
-                difflib.unified_diff(
-                    leader_out.splitlines(),
-                    replica_out.splitlines(),
-                    fromfile=str(leader_file),
-                    tofile=str(replica_file),
-                    lineterm="",
-                )
-            )
-            assert False, (
-                f"Leader and replica journal file contents differ for "
-                f"{leader_file} and {replica_file}\n{diff}"
-            )
+        assert clean_storage_output(leader_res.stdout) == clean_storage_output(
+            replica_res.stdout
+        ), (
+            f"Leader and replica journal file contents differ for "
+            f"{leader_file} and {replica_file}"
+        )
 
         leader_res = run_storage_tool(leader_file, "summary")
         assert leader_res.returncode == 0, (
@@ -265,22 +251,12 @@ def stop_cluster_and_compare_journal_files(
             f"Replica storage tool (summary) failed on {replica_file} with rc {replica_res.returncode}"
         )
 
-        leader_out = clean_storage_output(leader_res.stdout)
-        replica_out = clean_storage_output(replica_res.stdout)
-        if leader_out != replica_out:
-            diff = "\n".join(
-                difflib.unified_diff(
-                    leader_out.splitlines(),
-                    replica_out.splitlines(),
-                    fromfile=str(leader_file),
-                    tofile=str(replica_file),
-                    lineterm="",
-                )
-            )
-            assert False, (
-                f"Leader and replica journal file summary differ for "
-                f"{leader_file} and {replica_file}\n{diff}"
-            )
+        assert clean_storage_output(leader_res.stdout) == clean_storage_output(
+            replica_res.stdout
+        ), (
+            f"Leader and replica journal file summary differ for "
+            f"{leader_file} and {replica_file}"
+        )
 
 
 def wipe_files(file_patterns: list, storage_dir: str) -> None:
