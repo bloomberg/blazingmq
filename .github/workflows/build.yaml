@@ -227,7 +227,7 @@ jobs:
       - name: Print Fuzz Log tail
         if: failure()
         run: |
-          cd src/python && tail -n 2000 ${{ matrix.request}}_fuzz.log
+          tail -n 2000 src/python/${{ matrix.request }}_fuzz.log
 
       - name: Print core information
         if: failure()
@@ -237,6 +237,14 @@ jobs:
           python3 ${{ github.workspace }}/.github/workflows/ext/print_cores.py \
           --cores-dir=/cores \
           --build-dir=${{ github.workspace }}/build/blazingmq
+
+      - name: Upload fuzz-logs as artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.request }}_fuzz.log
+          path: ${{ github.workspace }}/src/python/${{ matrix.request }}_fuzz.log
+          retention-days: 5
 
   sanitize_ubuntu:
     name: Sanitize
