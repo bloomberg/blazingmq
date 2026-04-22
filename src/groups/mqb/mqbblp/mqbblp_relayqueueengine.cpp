@@ -59,6 +59,7 @@
 #include <bsl_utility.h>
 #include <bsl_vector.h>
 #include <bsla_annotations.h>
+#include <bsla_unreachable.h>
 #include <bsls_assert.h>
 #include <bsls_performancehint.h>
 #include <bsls_timeinterval.h>
@@ -254,7 +255,12 @@ bool isConfigureErrorPermanent(
     case bmqp_ctrlmsg::StatusCategory::E_NOT_READY: {
         return false;
     }
+    default: {
+        BSLS_ASSERT_OPT_UNREACHABLE("Unknown error kind");
+        break;
     }
+    }
+    BSLA_UNREACHABLE;
 }
 
 }  // close unnamed namespace
@@ -1885,7 +1891,6 @@ bool RelayQueueEngine::subscriptionId2upstreamSubQueueId(
     }
     return true;
 }
-
 
 //              InOrder             OutOfOrder
 //
