@@ -36,22 +36,18 @@ namespace bmqu {
 
 bslma::Allocator* SingletonAllocator::allocator()
 {
-    typedef bdlma::BufferedSequentialAllocator SeqAllocType;
-    typedef bdlma::ConcurrentAllocatorAdapter  AdapterType;
-
-    static char                             buffer[4096];
-    static bsls::ObjectBuffer<bslmt::Mutex> mutex;
-    static bsls::ObjectBuffer<SeqAllocType> seqAlloc;
-    static bsls::ObjectBuffer<AdapterType>  adapter;
+    static bslma::Allocator *s_alloc_p = 0;
     BSLMT_ONCE_DO
     {
-        new (static_cast<void*>(mutex.buffer())) bslmt::Mutex();
-        new (static_cast<void*>(seqAlloc.buffer()))
-            SeqAllocType(buffer,
-                         sizeof(buffer),
-                         bslma::Default::globalAllocator());
-        new (static_cast<void*>(adapter.buffer()))
-            AdapterType(&mutex.object(), &seqAlloc.object());
+        static char                               buffer[4096];
+        static bslmt::Mutex                       mutex;
+        static bdlma::BufferedSequentialAllocator seqAlloc(
+            buffer,
+            sizeof(buffer),
+            bslma::Default::globalAllocator());
+        static bdlma::ConcurrentAllocatorAdapter  adapter(&mutex, &seqAlloc);
+
+        s_alloc_p = &adapter;
     }
     return &adapter.object();
 }
