@@ -65,9 +65,7 @@ def ensure_message_at_storage_layer(
         assert wait_until(
             check,
             timeout=3,
-        ), (
-            f"Node {node.name} does not have {expected_count} messages for queue {queue_uri} in partition {partition_id} at storage layer"
-        )
+        ), f"Node {node.name} does not have {expected_count} messages for queue {queue_uri} in partition {partition_id} at storage layer"
 
         # Above regex is to match line:
         # C1E2A44527    0      1      68  B      bmq://bmq.test.mmap.priority.~tst/qqq
@@ -95,9 +93,9 @@ def simulate_csl_rollover(du: tc.DomainUrls, leader: Broker, producer: Client):
             # do not wait for success, otherwise the following capture will fail
             leader.force_gc_queues(block=False)
 
-        assert i < 10000, (
-            "Failed to detect rollover after opening a reasonable number of queues"
-        )
+        assert (
+            i < 10000
+        ), "Failed to detect rollover after opening a reasonable number of queues"
     test_logger.info(f"Rollover detected after opening {i} queues")
 
     # Rollover and queueUnAssignmentAdvisory interleave
@@ -185,38 +183,6 @@ def clean_storage_output(output_str: str) -> str:
     return json.dumps(data, indent=2)
 
 
-def _wait_for_passive_advisories(leader: Broker, cluster: Cluster, timeout: int = 10):
-    """
-    Wait until every non-leader node has received a PASSIVE primary status
-    advisory from the leader for every partition.
-
-    During leader shutdown, each partition's queue dispatcher issues a forced
-    sync point and then broadcasts a PASSIVE advisory (flushing the sync point
-    first per PR #1202).  However, ``closeChannels()`` can tear down the TCP
-    connection before the channel thread drains all buffered data.  Waiting for
-    the PASSIVE advisory on each replica confirms that the preceding forced
-    sync point was also delivered (same TCP stream, guaranteed ordering).
-    """
-    num_partitions = cluster.config.definition.partition_config.num_partitions
-    patterns = [
-        (
-            f"received primary status advisory: "
-            f"\\[ partitionId = {pid} primaryLeaseId = \\d+ "
-            f"status = E_PASSIVE \\], from: \\[{re.escape(leader.name)}"
-        )
-        for pid in range(num_partitions)
-    ]
-    for node in cluster.nodes(exclude=leader):
-        if not node.is_alive():
-            continue
-        results = node.capture_n(patterns, timeout=timeout)
-        missing = [pid for pid, match in enumerate(results) if match is None]
-        assert not missing, (
-            f"Node {node.name} did not receive PASSIVE advisory from leader "
-            f"{leader.name} for partition(s) {missing} within {timeout}s"
-        )
-
-
 def stop_cluster_and_compare_journal_files(
     leader_name: str, replica_name: str, cluster: Cluster
 ) -> None:
@@ -249,26 +215,26 @@ def stop_cluster_and_compare_journal_files(
     )
 
     num_partitions = cluster.config.definition.partition_config.num_partitions
-    assert len(leader_journal_files) == num_partitions, (
-        f"Expected {num_partitions} leader journal files, got {len(leader_journal_files)}"
-    )
-    assert len(replica_journal_files) == num_partitions, (
-        f"Expected {num_partitions} replica journal files, got {len(replica_journal_files)}"
-    )
+    assert (
+        len(leader_journal_files) == num_partitions
+    ), f"Expected {num_partitions} leader journal files, got {len(leader_journal_files)}"
+    assert (
+        len(replica_journal_files) == num_partitions
+    ), f"Expected {num_partitions} replica journal files, got {len(replica_journal_files)}"
 
     for leader_file, replica_file in zip(
         sorted(leader_journal_files),
         sorted(replica_journal_files),
     ):
         leader_res = run_storage_tool(leader_file, "details")
-        assert leader_res.returncode == 0, (
-            f"Leader storage tool failed on {leader_file} with rc {leader_res.returncode}"
-        )
+        assert (
+            leader_res.returncode == 0
+        ), f"Leader storage tool failed on {leader_file} with rc {leader_res.returncode}"
 
         replica_res = run_storage_tool(replica_file, "details")
-        assert replica_res.returncode == 0, (
-            f"Replica storage tool failed on {replica_file} with rc {replica_res.returncode}"
-        )
+        assert (
+            replica_res.returncode == 0
+        ), f"Replica storage tool failed on {replica_file} with rc {replica_res.returncode}"
 
         leader_out = clean_storage_output(leader_res.stdout)
         replica_out = clean_storage_output(replica_res.stdout)
@@ -288,14 +254,14 @@ def stop_cluster_and_compare_journal_files(
             )
 
         leader_res = run_storage_tool(leader_file, "summary")
-        assert leader_res.returncode == 0, (
-            f"Leader storage tool (summary) failed on {leader_file} with rc {leader_res.returncode}"
-        )
+        assert (
+            leader_res.returncode == 0
+        ), f"Leader storage tool (summary) failed on {leader_file} with rc {leader_res.returncode}"
 
         replica_res = run_storage_tool(replica_file, "summary")
-        assert replica_res.returncode == 0, (
-            f"Replica storage tool (summary) failed on {replica_file} with rc {replica_res.returncode}"
-        )
+        assert (
+            replica_res.returncode == 0
+        ), f"Replica storage tool (summary) failed on {replica_file} with rc {replica_res.returncode}"
 
         leader_out = clean_storage_output(leader_res.stdout)
         replica_out = clean_storage_output(replica_res.stdout)
