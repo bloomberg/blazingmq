@@ -82,35 +82,6 @@ int StorageManager::updateQueuePrimary(
     return 0;
 }
 
-void StorageManager::registerQueueReplica(
-    BSLA_MAYBE_UNUSED int   partitionId,
-    BSLA_MAYBE_UNUSED const bmqt::Uri& uri,
-    BSLA_MAYBE_UNUSED const mqbu::StorageKey& queueKey,
-    BSLA_MAYBE_UNUSED const AppInfos&         appIdKeyPairs,
-    BSLA_MAYBE_UNUSED mqbi::Domain* domain)
-{
-    // NOTHING
-}
-
-void StorageManager::unregisterQueueReplica(
-    BSLA_MAYBE_UNUSED int   partitionId,
-    BSLA_MAYBE_UNUSED const bmqt::Uri& uri,
-    BSLA_MAYBE_UNUSED const mqbu::StorageKey& queueKey,
-    BSLA_MAYBE_UNUSED const mqbu::StorageKey& appKey)
-{
-    // NOTHING
-}
-
-void StorageManager::updateQueueReplica(
-    BSLA_MAYBE_UNUSED int   partitionId,
-    BSLA_MAYBE_UNUSED const bmqt::Uri& uri,
-    BSLA_MAYBE_UNUSED const mqbu::StorageKey& queueKey,
-    BSLA_MAYBE_UNUSED const AppInfos&         appIdKeyPairs,
-    BSLA_MAYBE_UNUSED mqbi::Domain* domain)
-{
-    // NOTHING
-}
-
 void StorageManager::resetQueue(
     BSLA_MAYBE_UNUSED const bmqt::Uri& uri,
     BSLA_MAYBE_UNUSED int              partitionId,

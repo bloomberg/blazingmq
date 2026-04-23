@@ -765,25 +765,8 @@ void ClusterQueueHelper::onQueueContextAssigned(
 
             haveActivePrimary = false;
         }
-
-        // Register queue storage on replicas regardless of primary status.
-        // The storage must exist in FileStore before the primary sends QLIST
-        // records; otherwise writeQueueCreationRecord fails with
-        // rc_QUEUE_CREATION_FAILURE.  Duplicate registration is a no-op.
-        if (!d_clusterState_p->isSelfPrimary(pid)) {
-            const mqbc::ClusterStateQueueInfo& info =
-                *queueContext->d_stateQInfo_sp;
-
-            mqbc::ClusterState::DomainState& domainState =
-                *d_clusterState_p->domainStates().at(
-                    info.uri().qualifiedDomain());
-
-            d_storageManager_p->registerQueueReplica(pid,
-                                                     info.uri(),
-                                                     info.key(),
-                                                     info.appInfos(),
-                                                     domainState.domain());
-        }
+        // Replicas create/update/delete storage upon Replication events
+        // (queueCreationCb/queueDeletionCb)
     }
 
     BALL_LOGTHROTTLE_INFO_BLOCK(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
@@ -4478,11 +4461,8 @@ void ClusterQueueHelper::onQueueUnassigned(
 
             removeQueueRaw(queueContextIt);
         }
-
-        d_storageManager_p->unregisterQueueReplica(info->partitionId(),
-                                                   info->uri(),
-                                                   info->key(),
-                                                   mqbu::StorageKey());
+        // Replicas create/update/delete storage upon Replication events
+        // (queueCreationCb/queueDeletionCb)
     }
 
     d_clusterState_p->queueKeys().erase(info->key());
@@ -4522,31 +4502,12 @@ void ClusterQueueHelper::onQueueUpdated(
     const int     partitionId  = queueContext.partitionId();
     BSLS_ASSERT_SAFE(partitionId != mqbi::Storage::k_INVALID_PARTITION_ID);
 
-    if (!d_clusterState_p->isSelfPrimary(partitionId) || queue == 0) {
-        d_storageManager_p->updateQueueReplica(partitionId,
-                                               uri,
-                                               queueContext.key(),
-                                               addedAppIds,
-                                               d_clusterState_p->domainStates()
-                                                   .at(uri.qualifiedDomain())
-                                                   ->domain());
-
-        for (AppInfos::const_iterator cit = removedAppIds.cbegin();
-             cit != removedAppIds.cend();
-             ++cit) {
-            d_storageManager_p->unregisterQueueReplica(partitionId,
-                                                       uri,
-                                                       queueContext.key(),
-                                                       cit->second);
-        }
-    }
-    // else, there is a queue AND this node is primary
-
     if (queue) {
         // This node is either replica or primary.
         // Currently, 'RelayQueueEngine' does not do anything in
-        // 'afterAppIdRegisteredDispatched' / 'afterAppIdRegisteredDispatched',
-        // the 'updateQueueReplica' above calls 'addVirtualStoragesInternal'.
+        // 'afterAppIdRegisteredDispatched' / 'afterAppIdRegisteredDispatched'.
+        // Replicas create/update/delete storage upon Replication events
+        // (queueCreationCb/queueDeletionCb).
         //
         // 'RootQueueEngine' calls 'storageManager()->updateQueuePrimary'
         // which calls 'fs->writeQueueCreationRecord' and

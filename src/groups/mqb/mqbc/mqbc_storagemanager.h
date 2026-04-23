@@ -145,7 +145,7 @@ class StorageManager BSLS_KEYWORD_FINAL
     typedef ClusterNodeVec::const_iterator    ClusterNodeVecCIter;
 
     typedef mqbs::DataStore::QueueKeyInfoMap QueueKeyInfoMap;
-    typedef bsl::vector<QueueKeyInfoMap>     QueueKeyInfoMapVec;
+    typedef bsl::vector<bsl::shared_ptr<QueueKeyInfoMap> > QueueKeyInfoMapVec;
 
     typedef ClusterState::DomainStatesCIter      DomainStatesCIter;
     typedef ClusterState::UriToQueueInfoMapCIter UriToQueueInfoMapCIter;
@@ -406,6 +406,19 @@ class StorageManager BSLS_KEYWORD_FINAL
     ///         specified `partitionId`.
     void shutdownCb(int partitionId, bslmt::Latch* latch);
 
+    /// Replicas create/update/delete storage upon Replication events
+    /// (queueCreationCb/queueDeletionCb).
+    void queueCreationCb(int                     partitionId,
+                         const bmqt::Uri&        uri,
+                         const mqbu::StorageKey& queueKey,
+                         const AppInfos&         appIdKeyPairs,
+                         bool                    isNewQueue);
+
+    void queueDeletionCb(int                     partitionId,
+                         const bmqt::Uri&        uri,
+                         const mqbu::StorageKey& queueKey,
+                         const mqbu::StorageKey& appKey);
+
     /// Callback executed when the partition having the specified
     /// `partitionId` has performed recovery and recovered file-backed
     /// queues and their virtual storages in the specified
@@ -413,7 +426,7 @@ class StorageManager BSLS_KEYWORD_FINAL
     ///
     /// THREAD: Executed by the dispatcher thread of the partition.
     void recoveredQueuesCb(int                    partitionId,
-                           const QueueKeyInfoMap& queueKeyInfoMap);
+                           const QueueKeyInfoMap* queueKeyInfoMap);
 
     /// Process the watchdog trigger event for the specified
     /// `partitionId` and watchdog `generation`, indicating unhealthiness in
@@ -812,24 +825,6 @@ class StorageManager BSLS_KEYWORD_FINAL
                            const AppInfos&  addedIdKeyPairs,
                            const AppInfos&  removedIdKeyPairs)
         BSLS_KEYWORD_OVERRIDE;
-
-    void registerQueueReplica(int                     partitionId,
-                              const bmqt::Uri&        uri,
-                              const mqbu::StorageKey& queueKey,
-                              const AppInfos&         appIdKeyPairs,
-                              mqbi::Domain* domain = 0) BSLS_KEYWORD_OVERRIDE;
-
-    void unregisterQueueReplica(int                     partitionId,
-                                const bmqt::Uri&        uri,
-                                const mqbu::StorageKey& queueKey,
-                                const mqbu::StorageKey& appKey)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void updateQueueReplica(int                     partitionId,
-                            const bmqt::Uri&        uri,
-                            const mqbu::StorageKey& queueKey,
-                            const AppInfos&         appIdKeyPairs,
-                            mqbi::Domain* domain = 0) BSLS_KEYWORD_OVERRIDE;
 
     /// Reset the queue instance associated with the file-backed storage for
     /// the specified `uri` mapped to the specified `partitionId` to the

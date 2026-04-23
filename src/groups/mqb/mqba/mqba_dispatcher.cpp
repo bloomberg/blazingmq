@@ -533,6 +533,8 @@ void Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
     case mqbi::DispatcherClientType::e_CLUSTER: {
         DispatcherContext* dispatcherContext = d_contexts[type].get();
 
+        BSLS_ASSERT_SAFE(dispatcherContext->d_processorPool_mp);
+
         bslmf::MovableRefUtil::access(event)->setEnqueueTime(
             bmqsys::Time::highResolutionTimer());
 
