@@ -182,33 +182,7 @@ void CountingAllocator::configureStatContextTableInfoProvider(
         .zeroString("");
 }
 
-void CountingAllocator::onAllocationChange(bsls::Types::Int64 deltaValue)
-{
-    const bsls::Types::Uint64 totalAllocated = d_allocated.addRelaxed(
-        deltaValue);
-
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(totalAllocated >
-                                              d_allocationLimit)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        const bsls::Types::Uint64 uint64Max =
-            bsl::numeric_limits<bsls::Types::Uint64>::max();
-        if (d_allocationLimit.swap(uint64Max) != uint64Max) {
-            // Use an atomic swap to only invoke the callback the first time
-            // limit is crossed.  Swap 'allocationLimit' with 'Uint64::max',
-            // which will disable all further maximum allocation checks.
-
-            BSLS_ASSERT_SAFE(d_allocationLimitCb);
-            // If d_allocationLimit was set, 'd_allocationLimitCb' must be
-            // a valid callback
-            d_allocationLimitCb();
-        }
-    }
-
-    // Propagate allocation change to parent, if any
-    if (d_parentCounting_p) {
-        d_parentCounting_p->onAllocationChange(deltaValue);
-    }
-}
+// CREATORS
 
 CountingAllocator::CountingAllocator(const bslstl::StringRef& name,
                                      bslma::Allocator*        allocator)
@@ -269,6 +243,34 @@ CountingAllocator::~CountingAllocator()
 }
 
 // MANIPULATORS
+
+void CountingAllocator::onAllocationChange(bsls::Types::Int64 deltaValue)
+{
+    const bsls::Types::Uint64 totalAllocated = d_allocated.addRelaxed(
+        deltaValue);
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(totalAllocated >
+                                              d_allocationLimit)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        const bsls::Types::Uint64 uint64Max =
+            bsl::numeric_limits<bsls::Types::Uint64>::max();
+        if (d_allocationLimit.swap(uint64Max) != uint64Max) {
+            // Use an atomic swap to only invoke the callback the first time
+            // limit is crossed.  Swap 'allocationLimit' with 'Uint64::max',
+            // which will disable all further maximum allocation checks.
+
+            BSLS_ASSERT_SAFE(d_allocationLimitCb);
+            // If d_allocationLimit was set, 'd_allocationLimitCb' must be
+            // a valid callback
+            d_allocationLimitCb();
+        }
+    }
+
+    // Propagate allocation change to parent, if any
+    if (d_parentCounting_p) {
+        d_parentCounting_p->onAllocationChange(deltaValue);
+    }
+}
 
 void CountingAllocator::setAllocationLimit(
     bsls::Types::Uint64            limit,

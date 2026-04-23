@@ -1,4 +1,5 @@
 bmqtst_blobtestutil
+bmqtst_loggingallocator
 bmqtst_scopedlogobserver
 bmqtst_table
 bmqtst_testhelper
