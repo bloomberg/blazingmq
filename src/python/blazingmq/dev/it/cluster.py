@@ -834,6 +834,14 @@ class Cluster(contextlib.AbstractContextManager):
 
         self.configurator.deploy_programs(broker, self.get_broker_local_site(broker))
 
+    def deploy_clusters(self):
+        """Deploy the cluster configuration for all brokers in the cluster."""
+
+        for broker in self.configurator.brokers.values():
+            self.configurator.deploy_clusters(
+                broker, self.get_broker_local_site(broker)
+            )
+
     def deploy_domains(self):
         """Deploy the domains for all brokers in the cluster."""
 
