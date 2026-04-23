@@ -259,6 +259,7 @@ class Configurator:
     def deploy(self, broker: Broker, site: Site) -> None:
         self.deploy_programs(broker, site)
         self.deploy_broker_config(broker, site)
+        self.deploy_clusters(broker, site)
         self.deploy_domains(broker, site)
 
     def deploy_programs(self, broker: Broker, site: Site) -> None:
@@ -318,12 +319,11 @@ class Configurator:
         if stats_dir != Path():
             site.mkdir(str(stats_dir))
 
-    def deploy_domains(self, broker: Broker, site: Site) -> None:
-        """Deploy the domains for the broker.
-        This will create the directories for the domains, and write the
-        domain definitions to JSON files in the `etc/domains` directory.
-        It will also create the clusters and proxy clusters JSON files in the
-        `etc/clusters` and `etc/proxyclusters` directories, respectively.
+    def deploy_clusters(self, broker: Broker, site: Site) -> None:
+        """Deploy the cluster configuration for the broker.
+        This will create the clusters and proxy clusters JSON files in the
+        ``etc/clusters`` and ``etc/proxyclusters`` directories, respectively,
+        and ensure that storage directories exist.
         """
 
         config_compat_mode = os.environ.get(
@@ -351,6 +351,12 @@ class Configurator:
             ):
                 if storage_dir != Path():
                     site.mkdir(str(storage_dir))
+
+    def deploy_domains(self, broker: Broker, site: Site) -> None:
+        """Deploy the domains for the broker.
+        This will write the domain definitions to JSON files in the
+        ``etc/domains`` directory.
+        """
 
         site.rmdir(str("etc/domains"))
 
