@@ -1123,7 +1123,7 @@ void ClusterUtil::registerQueueInfo(ClusterState*        clusterState,
             BSLS_ASSERT_SAFE(qs);
             BSLS_ASSERT_SAFE(qs->uri() == uri);
 
-            if ((qs->equal(advisory))) {
+            if (qs->equal(advisory)) {
                 // All good.. nothing to update.
                 return;  // RETURN
             }
@@ -1134,24 +1134,42 @@ void ClusterUtil::registerQueueInfo(ClusterState*        clusterState,
 
             // PartitionId and/or QueueKey and/or AppInfos mismatch.
             if (!forceUpdate) {
-                BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
-                    << cluster->description() << ": For queue [ " << uri
-                    << "], different partitionId/queueKey/appInfos in "
-                    << "cluster state and storage.  "
-                    << "PartitionId/QueueKey/AppInfos in cluster state ["
-                    << qs->partitionId() << "], [" << qs->key() << "], ["
-                    << stateAppInfos
-                    << "].  PartitionId/QueueKey/AppInfos in storage ["
-                    << partitionId << "], [" << queueKey << "], ["
-                    << storageAppInfos << "]." << BMQTSK_ALARMLOG_END;
+                // Check if it's a true double assignment (partitionId or
+                // queueKey differ) versus just an appInfos mismatch.
+                const bool partitionOrKeyMismatch = (qs->partitionId() !=
+                                                     partitionId) ||
+                                                    (qs->key() != queueKey);
 
-                if (!cluster->isFSMWorkflow()) {
-                    // TODO (FSM); remove this code after switching to FSM
+                if (partitionOrKeyMismatch) {
+                    BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
+                        << cluster->description() << ": For queue [ " << uri
+                        << "], different partitionId/queueKey in "
+                        << "cluster state and storage.  "
+                        << "PartitionId/QueueKey in cluster state ["
+                        << qs->partitionId() << "], [" << qs->key()
+                        << "].  PartitionId/QueueKey in storage ["
+                        << partitionId << "], [" << queueKey << "]."
+                        << BMQTSK_ALARMLOG_END;
 
-                    // Cache and wait for primary to unregister the queue from
-                    // 'partitionId'
-
-                    clusterState->cacheDoubleAssignment(uri, partitionId);
+                    if (!cluster->isFSMWorkflow()) {
+                        // TODO (FSM); remove this code after switching to FSM
+                        // Cache and wait for primary to unregister the
+                        // queue from 'partitionId'
+                        clusterState->cacheDoubleAssignment(uri, partitionId);
+                    }
+                }
+                else {
+                    // Only appInfos differ.  This is not a double
+                    // assignment; 'registerQueueAsPrimary' will reconcile
+                    // the appIds via 'updateQueuePrimaryDispatched'.
+                    BALL_LOG_INFO
+                        << cluster->description() << ": For queue [ " << uri
+                        << "], appInfos mismatch between cluster state "
+                        << "and storage (partitionId and queueKey match)."
+                        << "  AppInfos in cluster state [" << stateAppInfos
+                        << "].  AppInfos in storage [" << storageAppInfos
+                        << "]. Will be reconciled during queue "
+                        << "registration.";
                 }
 
                 return;  // RETURN
