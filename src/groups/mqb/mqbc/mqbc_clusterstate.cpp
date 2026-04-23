@@ -342,8 +342,8 @@ ClusterState& ClusterState::setPartitionPrimary(int          partitionId,
         }
     }
 
-    BALL_LOG_INFO << "Cluster [" << d_cluster_p->name()
-                  << "]: closing the gate " << partitionId;
+    BALL_LOG_INFO << "Cluster [" << name() << "]: closing the gate "
+                  << partitionId;
     d_gatePrimary[partitionId].close();
 
     pinfo.setPrimaryNodeSession(ns);
@@ -440,13 +440,13 @@ ClusterState& ClusterState::setPartitionPrimaryStatus(
     // May need to open the gate later/close earlier by a separate call.
 
     if (bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE == value) {
-        BALL_LOG_INFO << "Cluster [" << d_cluster_p->name()
-                      << "]: opening the gate " << partitionId;
+        BALL_LOG_INFO << "Cluster [" << name() << "]: opening the gate "
+                      << partitionId;
         d_gatePrimary[partitionId].open();
     }
     else {
-        BALL_LOG_INFO << "Cluster [" << d_cluster_p->name()
-                      << "]: closing the gate " << partitionId;
+        BALL_LOG_INFO << "Cluster [" << name() << "]: closing the gate "
+                      << partitionId;
         d_gatePrimary[partitionId].close();
     }
 

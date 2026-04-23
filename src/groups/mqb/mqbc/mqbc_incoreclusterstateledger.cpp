@@ -1557,22 +1557,5 @@ IncoreClusterStateLedger::getIterator() const
     return mp;
 }
 
-void IncoreClusterStateLedger::uncommittedAdvisories(
-    ClusterMessageCRefList* out) const
-{
-    // executed by the *CLUSTER DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
-    BSLS_ASSERT_SAFE(out);
-
-    for (AdvisoriesMapCIter iter = d_uncommittedAdvisories.begin();
-         iter != d_uncommittedAdvisories.end();
-         ++iter) {
-        const ClusterMessageInfo& info = iter->second;
-        out->push_back(bsl::cref(info.d_clusterMessage));
-    }
-}
-
 }  // close package namespace
 }  // close enterprise namespace

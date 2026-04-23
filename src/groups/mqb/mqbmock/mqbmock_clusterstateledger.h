@@ -225,8 +225,7 @@ class ClusterStateLedger : public mqbc::ClusterStateLedger {
     ///
     /// THREAD: This method can be invoked only in the associated cluster's
     ///         dispatcher thread.
-    virtual void uncommittedAdvisories(ClusterMessageCRefList* out) const
-        BSLS_KEYWORD_OVERRIDE;
+    void _uncommittedAdvisories(ClusterMessageCRefList* out) const;
 };
 
 // ============================================================================
@@ -279,7 +278,7 @@ inline bool ClusterStateLedger::isOpen() const
 }
 
 inline void
-ClusterStateLedger::uncommittedAdvisories(ClusterMessageCRefList* out) const
+ClusterStateLedger::_uncommittedAdvisories(ClusterMessageCRefList* out) const
 {
     // executed by the *CLUSTER DISPATCHER* thread
 

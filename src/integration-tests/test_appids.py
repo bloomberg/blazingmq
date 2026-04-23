@@ -619,6 +619,7 @@ def test_open_authorize_restart_from_non_FSM_to_FSM(
         if len(my_clusters) > 0:
             my_clusters[0].cluster_attributes.is_cslmode_enabled = True
             my_clusters[0].cluster_attributes.is_fsmworkflow = True
+    cluster.deploy_clusters()
     cluster.deploy_domains()
 
     cluster.start_nodes(wait_leader=True, wait_ready=True)

@@ -17,7 +17,6 @@
 This suite of test cases exercises connection losses.
 """
 
-import json
 import re
 from time import sleep
 from typing import Dict
@@ -125,37 +124,26 @@ def test_force_leader_primary_divergence(
      partitions is "east1". The node that loses leadership ("east1") terminates itself gracefully.
     """
 
-    # TODO (kaikulimu): temporarily disabled
-    return
-
     cluster = multi_node
     tproxies: Dict[str, Process] = {}
 
     # Modify cluster config for node "east1"
-    with open(
-        cluster.work_dir.joinpath(
-            cluster.config.nodes["east1"].config_dir, "clusters.json"
-        ),
-        "r+",
-        encoding="utf-8",
-    ) as f:
-        data = json.load(f)
-        data["myClusters"][0]["elector"]["quorum"] = 0
-        for node in data["myClusters"][0]["nodes"]:
-            if node["name"] != "east1":
-                # For all the nodes except "east1" start a tproxy connected to the
-                # node's endpoint. Change the endpoint in the config to the port of
-                # just started tproxy. So "east1" will connect to tproxies instead of
-                # the nodes.
-                broker_config = cluster.config.nodes[node["name"]]
-                tproxy_port, tproxy = cluster.start_tproxy(broker_config)
-                tproxies[tproxy.name] = tproxy
-                node["transport"]["tcp"]["endpoint"] = node["transport"]["tcp"][
-                    "endpoint"
-                ].replace(str(broker_config.port), tproxy_port)
-        f.seek(0)
-        json.dump(data, f, indent=4)
-        f.truncate()
+    broker = cluster.configurator.brokers["east1"]
+    cluster_def = broker.clusters.my_clusters[0]
+    cluster_def.elector.quorum = 0
+    for node in cluster_def.nodes:
+        if node.name != "east1":
+            # For all the nodes except "east1" start a tproxy connected to the
+            # node's endpoint. Change the endpoint in the config to the port of
+            # just started tproxy. So "east1" will connect to tproxies instead of
+            # the nodes.
+            broker_config = cluster.config.nodes[node.name]
+            tproxy_port, tproxy = cluster.start_tproxy(broker_config)
+            tproxies[tproxy.name] = tproxy
+            node.transport.tcp.endpoint = node.transport.tcp.endpoint.replace(
+                str(broker_config.port), tproxy_port
+            )
+    cluster.configurator.deploy_clusters(broker, cluster.get_broker_local_site(broker))
 
     # Start east1, west1, and west2
     cluster.start_node("east1")
@@ -168,7 +156,8 @@ def test_force_leader_primary_divergence(
     assert old_leader.name == "east1"
 
     # Start "east2" and kill two tproxies disconnecting "east2" and "west1" from "east1".
-    cluster.start_node("east2")
+    east2 = cluster.start_node("east2")
+    east2.wait_status(wait_leader=True, wait_ready=True)
     tproxies["tproxy_east2"].kill()
     tproxies["tproxy_west1"].kill()
 

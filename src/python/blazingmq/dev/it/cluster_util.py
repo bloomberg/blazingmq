@@ -31,6 +31,16 @@ from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.util import wait_until
 
 
+def set_config_quorum(cluster: Cluster, node: str, quorum: int):
+    """
+    For the given `node` in the `cluster`, update the cluster config file to
+    set the elector quorum to `quorum`.
+    """
+    broker = cluster.configurator.brokers[node]
+    broker.clusters.my_clusters[0].elector.quorum = quorum
+    cluster.configurator.deploy_clusters(broker, cluster.get_broker_local_site(broker))
+
+
 def ensure_message_at_storage_layer(
     cluster: Cluster,
     partition_id: int,

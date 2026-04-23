@@ -114,6 +114,7 @@ def configure_cluster(cluster: Cluster, is_fsm: bool):
             cluster_attr.is_cslmode_enabled = is_fsm
             cluster_attr.is_fsmworkflow = is_fsm
             cluster_attr.does_fsmwrite_qlist = True
+    cluster.deploy_clusters()
     cluster.deploy_domains()
 
 
