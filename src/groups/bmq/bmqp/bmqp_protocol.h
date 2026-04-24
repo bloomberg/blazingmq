@@ -155,7 +155,9 @@
 
 #include <bsl_limits.h>
 #include <bsl_string.h>  // for bslstl::StringRef
+#include <bsl_type_traits.h>
 #include <bsla_annotations.h>
+#include <bslmf_nestedtraitdeclaration.h>
 #include <bsls_assert.h>
 #include <bsls_types.h>
 
@@ -170,6 +172,9 @@ namespace bmqp {
 /// for unlimited retransmission and the second bit being a flag for a
 /// potentially poisonous message.
 struct RdaInfo {
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(RdaInfo, bsl::is_trivially_copyable)
+
     // FRIENDS
     friend bool operator==(const RdaInfo& lhs, const RdaInfo& rhs);
 
@@ -260,6 +265,9 @@ bool operator==(const RdaInfo& lhs, const RdaInfo& rhs);
 
 /// VST representing a sub-queue which will be receiving a message.
 struct SubQueueInfo {
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(SubQueueInfo, bsl::is_trivially_copyable)
+
     // FRIENDS
     friend bool operator==(const SubQueueInfo& lhs, const SubQueueInfo& rhs);
 
@@ -773,6 +781,9 @@ struct EventHeader {
     //       after the EventHeader).  For now, this is left up for future
     //       enhancement as there are no use-case for an event level option.
 
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(EventHeader, bsl::is_trivially_copyable)
+
   private:
     // PRIVATE CONSTANTS
     static const int k_FRAGMENT_NUM_BITS         = 1;
@@ -990,6 +1001,9 @@ struct OptionHeader {
     //   };
     //..
 
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(OptionHeader, bsl::is_trivially_copyable)
+
   private:
     // PRIVATE CONSTANTS
     static const int k_TYPE_NUM_BITS          = 6;
@@ -1153,6 +1167,10 @@ struct MessagePropertiesHeader {
     // field.  The payload following message properties area does not have any
     // alignment requirement though.
 
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(MessagePropertiesHeader,
+                                   bsl::is_trivially_copyable)
+
   private:
     // PRIVATE CONSTANTS
     static const int k_MSG_PROPS_AREA_WORDS_LOWER_NUM_BITS = 16;
@@ -1268,6 +1286,10 @@ struct MessagePropertyHeader {
     // This struct must be 2-byte aligned.  See comments in
     // 'MessagePropertiesHeader' for details.
 
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(MessagePropertyHeader,
+                                   bsl::is_trivially_copyable)
+
   private:
     // PRIVATE CONSTANTS
     static const int k_RESERVED1_NUM_BITS            = 1;
@@ -1327,6 +1349,9 @@ struct MessagePropertyHeader {
 };
 
 struct SchemaWireId {
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(SchemaWireId, bsl::is_trivially_copyable)
+
   public:
     static const unsigned k_MAX_VALUE = 0xffff;
 
@@ -1424,6 +1449,9 @@ struct PutHeader {
     //..
     //     ptr += 4 * (headerWords + optionsWords)
     //..
+
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(PutHeader, bsl::is_trivially_copyable)
 
   private:
     // FRIENDS
@@ -1761,6 +1789,9 @@ struct AckHeader {
     //  Reserved..............: For alignment and extension ~ must be 0
     //..
 
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(AckHeader, bsl::is_trivially_copyable)
+
   private:
     // PRIVATE CONSTANTS
     static const int k_HEADER_WORDS_NUM_BITS  = 4;
@@ -1892,6 +1923,9 @@ struct AckMessage {
     //  QueueId.......: Id of the queue (as advertised during open queue by the
     //                  producer of the Put event this Ack is a response of)
     //..
+
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(AckMessage, bsl::is_trivially_copyable)
 
   private:
     // PRIVATE CONSTANTS
@@ -2027,6 +2061,9 @@ struct PushHeader {
     //
     // The (optional) data payload then follows this header.  If present, data
     // must be padded.
+
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(PushHeader, bsl::is_trivially_copyable)
 
   private:
     // FRIENDS
@@ -2329,6 +2366,9 @@ struct ConfirmHeader {
     //  Reserved (R)..........: For alignment and extension ~ must be 0
     //..
 
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(ConfirmHeader, bsl::is_trivially_copyable)
+
   private:
     // PRIVATE CONSTANTS
     static const int k_HEADER_WORDS_NUM_BITS  = 4;
@@ -2429,6 +2469,9 @@ struct ConfirmMessage {
     //..
     //
 
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(ConfirmMessage, bsl::is_trivially_copyable)
+
   private:
     // DATA
     bdlb::BigEndianInt32 d_queueId;
@@ -2498,6 +2541,9 @@ struct RejectHeader {
     //                          the payload following this RejectHeader
     //  Reserved (R)..........: For alignment and extension ~ must be 0
     //..
+
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(RejectHeader, bsl::is_trivially_copyable)
 
   private:
     // PRIVATE CONSTANTS
@@ -2599,6 +2645,9 @@ struct RejectMessage {
     //..
     //
 
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(RejectMessage, bsl::is_trivially_copyable)
+
   private:
     // DATA
     bdlb::BigEndianInt32 d_queueId;
@@ -2648,6 +2697,10 @@ struct RejectMessage {
 
 /// This struct represents a Replication Receipt
 struct ReplicationReceipt {
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(ReplicationReceipt,
+                                   bsl::is_trivially_copyable)
+
     bdlb::BigEndianUint32 d_partitionId;
 
     bdlb::BigEndianUint32 d_seqNumUpperBits;
@@ -2797,6 +2850,9 @@ struct StorageHeader {
     // The data payload then follows this header.  Data must be padded.  Note
     // that data payload is optional.  There is no data payload for
     // 'mqbs::StorageMessageType::e_SYNCPOINT'.
+
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(StorageHeader, bsl::is_trivially_copyable)
 
   private:
     // FRIENDS
@@ -3182,6 +3238,9 @@ struct RecoveryHeader {
     //
     // The data payload then follows this header.  Data must be padded.
 
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(RecoveryHeader, bsl::is_trivially_copyable)
+
   public:
     // PUBLIC CLASS DATA
 
@@ -3353,6 +3412,10 @@ struct RecoveryHeader {
 ///        even > 0  |   new style, w/ schema            |   ASSERT_SAFE
 ///         odd > 1  |   new style, w/ schema, recycled  |   ASSERT_SAFE
 struct MessagePropertiesInfo {
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(MessagePropertiesInfo,
+                                   bsl::is_trivially_copyable)
+
   public:
     // PUBLIC TYPES
     typedef unsigned short SchemaIdType;
