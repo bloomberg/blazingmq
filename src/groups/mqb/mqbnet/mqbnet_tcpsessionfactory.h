@@ -94,7 +94,9 @@
 #include <bmqu_sharedresource.h>
 
 // BDE
+#include <bdlb_variant.h>
 #include <bdlbb_blob.h>
+#include <bdlcc_singleconsumerqueue.h>
 #include <bdlmt_eventscheduler.h>
 #include <bsl_cstddef.h>
 #include <bsl_functional.h>
@@ -213,6 +215,30 @@ class TCPSessionFactory {
                              int initialMissedHeartbeatCounter);
     };
 
+    typedef bsl::shared_ptr<ChannelInfo> ChannelInfoSp;
+
+    /// Type tag for a heartbeat enable update (carries the channel info).
+    typedef ChannelInfoSp EnableHeartbeat;
+
+    /// Type tag for a heartbeat disable update (carries the raw channel
+    /// pointer for lookup).
+    typedef const bmqio::Channel* DisableHeartbeat;
+
+    /// Represents a pending heartbeat enable or disable operation, enqueued
+    /// in FIFO order and drained by the scheduler thread.
+    struct HeartbeatUpdate {
+        bdlb::Variant2<EnableHeartbeat, DisableHeartbeat> d_value;
+
+        /// Create a default (unset) update.
+        HeartbeatUpdate();
+
+        /// Return an enable update for the specified `info`.
+        static HeartbeatUpdate enable(const ChannelInfoSp& info);
+
+        /// Return a disable update for the specified `channel`.
+        static HeartbeatUpdate disable(const bmqio::Channel* channel);
+    };
+
     /// This class provides mechanism to store a map of port stat contexts.
     class PortManager {
       public:
@@ -267,8 +293,6 @@ class TCPSessionFactory {
             d_owner_p->read(d_channelInfo_p, blob, offset, length);
         }
     };
-
-    typedef bsl::shared_ptr<ChannelInfo> ChannelInfoSp;
 
     /// Map associating a `Channel` to its corresponding `ChannelInfo` (as
     /// shared_ptr because of the atomicInt which has no copy constructor).
@@ -393,6 +417,11 @@ class TCPSessionFactory {
     /// the event scheduler thread.
     ChannelMap d_heartbeatChannels;
 
+    /// FIFO queue of pending heartbeat enable/disable updates.  Producers
+    /// are the authentication and IO threads; the single consumer is the
+    /// scheduler thread (drained in `onHeartbeatSchedulerEvent`).
+    bdlcc::SingleConsumerQueue<HeartbeatUpdate> d_heartbeatUpdates;
+
     /// Value for initializing `ChannelInfo.d_missedHeartbeatCounter`.  See
     /// comments in `calculateInitialMissedHbCounter`.
     const int d_initialMissedHeartbeatCounter;
@@ -507,13 +536,10 @@ class TCPSessionFactory {
     /// heartbeats have been missed.
     void onHeartbeatSchedulerEvent();
 
-    /// Enable heartbeat for the channel represented by the specified
-    /// `channelInfo`.
-    void enableHeartbeat(const bsl::shared_ptr<ChannelInfo>& channelInfo);
-
-    /// Disable heartbeat for the channel represented by the specified
-    /// `channel_p`.
-    void disableHeartbeat(const bmqio::Channel* channel_p);
+    /// Drain all pending heartbeat enable/disable updates from
+    /// `d_heartbeatUpdates` into `d_heartbeatChannels`, preserving FIFO
+    /// order.
+    void drainHeartbeatUpdates();
 
     /// Log open session time for the specified `sessionDescription` and
     /// `channel`, using the stored begin
