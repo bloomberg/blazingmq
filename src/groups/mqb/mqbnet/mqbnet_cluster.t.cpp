@@ -130,17 +130,17 @@ struct ClusterTestImp : bsls::ProtocolTestImp<mqbnet::Cluster> {
         return markDone();
     }
 
-    int writeAll(const bsl::shared_ptr<bdlbb::Blob>& blob,
-                 bmqp::EventType::Enum type = bmqp::EventType::e_CONTROL)
+    void writeAll(const bsl::shared_ptr<bdlbb::Blob>& blob,
+                  bmqp::EventType::Enum type = bmqp::EventType::e_CONTROL)
         BSLS_KEYWORD_OVERRIDE
     {
-        return markDone();
+        markDone();
     }
 
-    int
+    void
     broadcast(const bsl::shared_ptr<bdlbb::Blob>& blob) BSLS_KEYWORD_OVERRIDE
     {
-        return markDone();
+        markDone();
     }
 
     void closeChannels() BSLS_KEYWORD_OVERRIDE { markDone(); }
