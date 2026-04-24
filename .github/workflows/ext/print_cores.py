@@ -99,7 +99,12 @@ def main() -> None:
         print(f"#CORE: {core_path}", flush=True)
         print("#COMMAND: " + " ".join(cmd), flush=True)
 
-        subprocess.run(cmd, check=True)
+        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+        for line in result.stdout.splitlines():
+            if not line.rstrip().endswith("= <optimized out>"):
+                print(line)
+        if result.stderr:
+            print(result.stderr, end="")
 
         print("::endgroup::", flush=True)
 
