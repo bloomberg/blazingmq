@@ -80,8 +80,8 @@ void TransportManager::onClusterReleased(void* object, void* transportManager)
         }
     }  // mutex guard scope
 
-    // Close all cluster channels
-    cluster->closeChannels();
+    // Cluster had already stopped all channels in
+    // 'Cluster::continueShutdownDispatched'
 
     // And delete the cluster
     self->d_allocators.get(cluster->name())->deleteObject(cluster);

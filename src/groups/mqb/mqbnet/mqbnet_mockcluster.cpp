@@ -114,11 +114,6 @@ ClusterNode* MockClusterNode::resetChannel()
     return this;
 }
 
-void MockClusterNode::closeChannel()
-{
-    d_channel.closeChannel();
-}
-
 bmqt::GenericResult::Enum
 MockClusterNode::write(const bsl::shared_ptr<bdlbb::Blob>& blob,
                        bmqp::EventType::Enum               type)
@@ -228,7 +223,12 @@ void MockCluster::closeChannels()
     for (bsl::list<MockClusterNode>::iterator it = d_nodes.begin();
          it != d_nodes.end();
          ++it) {
-        it->closeChannel();
+        it->channel().requestToStop();
+    }
+    for (bsl::list<MockClusterNode>::iterator it = d_nodes.begin();
+         it != d_nodes.end();
+         ++it) {
+        it->channel().stop();
     }
 }
 

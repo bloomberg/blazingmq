@@ -393,7 +393,7 @@ class Channel {
 
     mutable bslmt::Mutex d_mutex;
 
-    bsls::AtomicBool d_doStop;
+    bsls::AtomicBool d_isStopped;
 
     bsls::AtomicInt d_state;
 
@@ -421,7 +421,7 @@ class Channel {
 
     /// Indicates graceful shutdown.  Drain the buffer if possible and then
     /// close the channel.
-    bsls::AtomicBool d_isClosing;
+    bsls::AtomicBool d_isStopping;
 
   private:
     // NOT IMPLEMENTED
@@ -521,8 +521,11 @@ class Channel {
     /// Reset the channel associated to this node.
     void resetChannel();
 
-    /// Close the channel associated to this node, if any.
-    void closeChannel();
+    /// Start draining the channel associated to this node, if any.
+    void requestToStop();
+
+    /// Stop the channel thread once all draining is done.
+    void stop();
 
     /// Write PUT message using the specified `ph`, `data`, and `state`.
     /// Return e_SUCCESS even if the channel is in HWM.
@@ -1086,7 +1089,7 @@ Channel::enqueue(bslma::ManagedPtr<Item>& item)
 // ACCESSORS
 inline bool Channel::isAvailable() const
 {
-    return d_state != e_RESET && d_state != e_CLOSE && !d_isClosing;
+    return d_state != e_RESET && d_state != e_CLOSE && !d_isStopping;
 }
 
 inline const bsl::shared_ptr<bmqio::Channel> Channel::channel() const

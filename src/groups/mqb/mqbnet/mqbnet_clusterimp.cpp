@@ -137,11 +137,6 @@ ClusterNode* ClusterNodeImp::resetChannel()
     return this;
 }
 
-void ClusterNodeImp::closeChannel()
-{
-    d_channel.closeChannel();
-}
-
 bmqt::GenericResult::Enum
 ClusterNodeImp::write(const bsl::shared_ptr<bdlbb::Blob>& blob,
                       bmqp::EventType::Enum               type)
@@ -286,10 +281,17 @@ int ClusterImp::broadcast(const bsl::shared_ptr<bdlbb::Blob>& blob)
 
 void ClusterImp::closeChannels()
 {
+    // first, start draining all channels
     for (bsl::list<ClusterNodeImp>::iterator it = d_nodes.begin();
          it != d_nodes.end();
          ++it) {
-        it->closeChannel();
+        it->channel().requestToStop();
+    }
+    // then, join all channels threads
+    for (bsl::list<ClusterNodeImp>::iterator it = d_nodes.begin();
+         it != d_nodes.end();
+         ++it) {
+        it->channel().stop();
     }
 }
 

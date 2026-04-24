@@ -139,9 +139,6 @@ class ClusterNode {
     /// Reset the channel associated to this node.
     virtual ClusterNode* resetChannel() = 0;
 
-    /// Close the channel associated to this node, if any.
-    virtual void closeChannel() = 0;
-
     /// Enqueue the specified message `blob` of the specified `type`to be
     /// written to the channel associated to this node.  Return 0 on
     /// success, and a non-zero value otherwise.  Note that success does not
