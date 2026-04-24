@@ -47,7 +47,7 @@ BMQTST_TEST(breathing)
 
     // Broker config should be available even when the original config goes
     // out of scope and destructed.
-    BMQTST_ASSERT_NE(&mqbcfg::BrokerConfig::get(), NULL);
+    BMQTST_ASSERT(&mqbcfg::BrokerConfig::get() != NULL);
 }
 
 // ============================================================================
