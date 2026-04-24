@@ -53,28 +53,38 @@ esac
 fetch_git() {
     local org=$1
     local repo=$2
+    local ref_type=$3
+    local ref=$4
+    local base_url
     mkdir -p srcs
 
     if [ -d "srcs/${repo}" ]; then
         return 0
     fi
 
-    if [ -z "${3:-}" ]; then
-        # Clone the latest 'main' branch if no specific release tag provided
-        local branch="main"
-        curl -SL "https://github.com/${org}/${repo}/archive/refs/heads/${branch}.tar.gz" | tar -xzC srcs/
-        mv "srcs/${repo}-${branch}" "srcs/${repo}"
-    else
-        local tag=$3
-        curl -SL "https://github.com/${org}/${repo}/archive/refs/tags/${tag}.tar.gz" | tar -xzC srcs/
-        mv "srcs/${repo}-${tag}" "srcs/${repo}"
-    fi
+    case $ref_type in
+    tag)
+        base_url="https://github.com/${org}/${repo}/archive/refs/tags/"
+        ;;
+    branch)
+        base_url="https://github.com/${org}/${repo}/archive/refs/heads/"
+        ;;
+    *)
+        echo "Invalid git reference type: $ref_type"
+        echo "Allowed git reference types: tag, branch"
+        exit 1
+        ;;
+    esac
+
+    mkdir -p "srcs/${repo}"
+    curl -SL "${base_url}${ref}.tar.gz" | tar -xzC "srcs/${repo}" --strip-components 1
 }
 
 fetch_deps() {
-    fetch_git bloomberg bde-tools 4.35.0.0
-    fetch_git bloomberg bde 4.35.0.0
-    fetch_git bloomberg ntf-core 2.6.11
+    fetch_git bloomberg bde-tools tag 4.35.0.0
+    fetch_git bloomberg bde tag 4.35.0.0
+    fetch_git bloomberg ntf-core tag 2.6.11
+    fetch_git google googletest branch v1.8.x
 }
 
 configure() {
@@ -115,7 +125,34 @@ build_ntf() {
     popd
 }
 
+build_google_test() {
+    local cmake_cxx_standard
+    case $CXX_STANDARD in
+    cpp03)
+        cmake_cxx_standard="98"
+        ;;
+    cpp11 | cpp14 | cpp17 | cpp20 | cpp23)
+        # Valid C++ standard version
+        cmake_cxx_standard="${CXX_STANDARD//cpp/}"
+        ;;
+    *)
+        echo "Error: Invalid C++ standard version '$CXX_STANDARD'"
+        echo "Supported standard versions: cpp03, cpp11, cpp14, cpp17, cpp20, cpp23"
+        exit 1
+        ;;
+    esac
+
+    pushd srcs/googletest
+    cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+        -DCMAKE_CXX_STANDARD="$cmake_cxx_standard" \
+        -S . -B build
+    cmake --build build -j4
+    cd build && sudo make install
+    popd
+}
+
 build() {
+    build_google_test
     build_bde
     build_ntf
 }

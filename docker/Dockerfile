@@ -14,9 +14,9 @@ RUN apt-get update && \
     bison \
     libfl-dev \
     libbenchmark-dev \
-    libgmock-dev \
     libz-dev \
     libssl-dev \
+    sudo \
     && apt clean \
     && rm -rf /var/lib/apt/lists/*
 

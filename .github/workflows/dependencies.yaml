@@ -54,7 +54,6 @@ jobs:
             bison \
             libfl-dev \
             libbenchmark-dev \
-            libgmock-dev \
             libz-dev
 
       - name: Fetch & build non packaged dependencies
