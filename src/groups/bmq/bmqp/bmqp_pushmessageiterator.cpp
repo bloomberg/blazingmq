@@ -37,6 +37,25 @@
 namespace BloombergLP {
 namespace bmqp {
 
+namespace {
+
+inline bool isValidWordPaddingByte(char value)
+{
+    switch (value) {
+    case 1: BSLA_FALLTHROUGH;
+    case 2: BSLA_FALLTHROUGH;
+    case 3: BSLA_FALLTHROUGH;
+    case 4: {
+        return true;  // RETURN
+    }
+    default: {
+        return false;  // RETURN
+    }
+    }
+}
+
+}  // close unnamed namespace
+
 // -------------------------
 // class PushMessageIterator
 // -------------------------
@@ -115,6 +134,13 @@ int PushMessageIterator::compressedApplicationDataSize() const
     char lastByte = d_blobIter.blob()
                         ->buffer(lastBytePos.buffer())
                         .data()[lastBytePos.byte()];
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+            !isValidWordPaddingByte(lastByte))) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        // If the 'lastByte' is not a padding byte then message is malformed
+        return -1;  // RETURN
+    }
 
     const int appDataLenPadded = (d_header.messageWords() -
                                   d_header.optionsWords() -
@@ -499,7 +525,8 @@ int PushMessageIterator::next()
         rc_INVALID_APPLICATION_DATA_OFFSET = -4,
         rc_PARSING_ERROR                   = -5,
         rc_INVALID_OPTIONS_OFFSET          = -6,
-        rc_INVALID_MESSAGE_SIZE            = -7
+        rc_INVALID_MESSAGE_SIZE            = -7,
+        rc_INVALID_APPLICATION_DATA_SIZE   = -8
     };
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!isValid())) {
@@ -614,7 +641,16 @@ int PushMessageIterator::next()
         d_header.flags(),
         PushHeaderFlags::e_MESSAGE_PROPERTIES);
     const bool haveNewMPs = MessagePropertiesInfo::hasSchema(d_header);
-    int        length     = compressedApplicationDataSize();
+    const int  length     = compressedApplicationDataSize();
+
+    // Validation: 'length' is an unpadded application data size, with
+    // substracted size of the padding bytes section.
+    //: o Negative 'length' is a sign that packet is malformed.
+    //: o Zero 'length' is not supported.
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(length <= 0)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return rc_INVALID_APPLICATION_DATA_SIZE;  // RETURN
+    }
 
     rc = ProtocolUtil::parse(0,  // do not separate MPs from data
                              &d_messagePropertiesSize,
