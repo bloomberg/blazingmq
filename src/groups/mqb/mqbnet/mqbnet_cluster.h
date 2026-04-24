@@ -217,7 +217,7 @@ class Cluster {
                           bmqp::EventType::Enum               type) = 0;
 
     /// Send the specified `blob` to all currently up nodes of this cluster
-    /// (exception of the current node).
+    /// (with the exception of the current node).
     virtual void broadcast(const bsl::shared_ptr<bdlbb::Blob>& blob) = 0;
 
     /// Close the channels associated to all nodes in this cluster.
