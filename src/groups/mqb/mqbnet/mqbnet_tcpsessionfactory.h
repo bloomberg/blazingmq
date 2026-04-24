@@ -85,6 +85,7 @@
 #include <bmqex_sequentialcontext.h>
 #include <bmqio_channel.h>
 #include <bmqio_channelfactory.h>
+#include <bmqio_channelfactorypipeline.h>
 #include <bmqio_reconnectingchannelfactory.h>
 #include <bmqio_resolvingchannelfactory.h>
 #include <bmqio_statchannelfactory.h>
@@ -112,6 +113,11 @@
 #include <bsls_atomic.h>
 
 namespace BloombergLP {
+
+namespace bmqio {
+class NtcChannelFactory;
+class NtcChannel;
+}
 
 namespace mqbnet {
 
@@ -275,9 +281,6 @@ class TCPSessionFactory {
     typedef bsl::unordered_map<const bmqio::Channel*, ChannelInfoSp>
         ChannelMap;
 
-    /// Shortcut for a managedPtr to the `bmqio::TCPChannelFactory`
-    typedef bslma::ManagedPtr<bmqio::ChannelFactory> TCPChannelFactoryMp;
-
     typedef bslma::ManagedPtr<bmqio::ResolvingChannelFactory>
         ResolvingChannelFactoryMp;
 
@@ -300,15 +303,15 @@ class TCPSessionFactory {
     typedef bsl::unordered_map<int, OpHandleSp> ListeningHandleMap;
 
   private:
-    // DATA
+    // PRIVATE DATA
 
-    /// Used to make sure no callback is invoked on a destroyed object.
+    // Used to make sure no callback is invoked on a destroyed object.
     bmqu::SharedResource<TCPSessionFactory> d_self;
 
-    /// Has this component been started?
+    // Has this component been started ?
     bool d_isStarted;
 
-    /// Config to use for setting up this SessionFactory
+    // Config to use for setting up this SessionFactory
     mqbcfg::TcpInterfaceConfig d_config;
 
     /// Event scheduler held not owned
@@ -331,13 +334,11 @@ class TCPSessionFactory {
     /// Channels' stat context (passed to TCPSessionFactory)
     mqbstat::StatController* d_statController_p;
 
-    /// ChannelFactory
-    TCPChannelFactoryMp d_tcpChannelFactory_mp;
-
     /// Executor context used for performing DNS resolution
     bmqex::SequentialContext d_resolutionContext;
 
-    ResolvingChannelFactoryMp d_resolvingChannelFactory_mp;
+    bslma::ManagedPtr<bmqio::ChannelFactoryPipeline>
+        d_channelFactoryPipeline_mp;
 
     ReconnectingChannelFactoryMp d_reconnectingChannelFactory_mp;
 

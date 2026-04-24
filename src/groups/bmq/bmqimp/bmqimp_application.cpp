@@ -22,8 +22,13 @@
 #include <bmqex_systemexecutor.h>
 #include <bmqimp_authenticatedchannelfactory.h>
 #include <bmqimp_negotiatedchannelfactory.h>
+#include <bmqio_channelfactorypipeline.h>
 #include <bmqio_channelutil.h>
 #include <bmqio_connectoptions.h>
+#include <bmqio_reconnectingchannelfactory.h>
+#include <bmqio_resolvingchannelfactory.h>
+#include <bmqio_statchannel.h>
+#include <bmqio_statchannelfactory.h>
 #include <bmqio_status.h>
 #include <bmqio_tcpendpoint.h>
 #include <bmqma_countingallocatorutil.h>
@@ -40,6 +45,7 @@
 #include <bmqu_printutil.h>
 
 // BDE
+#include <ball_log.h>
 #include <bdlb_scopeexit.h>
 #include <bdlf_bind.h>
 #include <bdlf_memfn.h>
@@ -138,6 +144,124 @@ ntcCreateInterfaceConfig(const bmqt::SessionOptions& sessionOptions,
 
     return config;
 }
+bmqio::ChannelFactoryPipeline makeChannelFactoryPipeline(
+    bslma::Allocator*                           allocator,
+    bdlbb::BlobBufferFactory*                   blobBufferFactory,
+    bdlmt::EventScheduler*                      scheduler,
+    NegotiatedChannelFactoryConfig::BlobSpPool* blobSpPool,
+    const bmqt::SessionOptions&                 sessionOptions,
+    const bmqio::StatChannelFactoryConfig::StatContextCreatorFn&
+                                            statContextCreator,
+    const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage)
+{
+    typedef bmqio::ChannelFactoryPipeline::ChannelFactorySP ChannelFactorySP;
+
+    struct Builders {
+        static ChannelFactorySP
+        resolvingChannelFactory(bslma::Allocator* allocator,
+                                ChannelFactorySP& prev)
+        {
+            return bsl::allocate_shared<bmqio::ResolvingChannelFactory>(
+                allocator,
+                bmqio::ResolvingChannelFactoryConfig(
+                    prev.get(),
+                    bmqex::ExecutionPolicyUtil::alwaysBlocking().useExecutor(
+                        bmqex::SystemExecutor())));
+        }
+
+        static ChannelFactorySP
+        reconnectingChannelFactory(bslma::Allocator*      allocator,
+                                   ChannelFactorySP&      prev,
+                                   bdlmt::EventScheduler* scheduler)
+        {
+            return bsl::allocate_shared<bmqio::ReconnectingChannelFactory>(
+                allocator,
+                bmqio::ReconnectingChannelFactoryConfig(prev.get(),
+                                                        scheduler));
+        }
+
+        static ChannelFactorySP statChannelFactory(
+            bslma::Allocator* allocator,
+            ChannelFactorySP& prev,
+            const bmqio::StatChannelFactoryConfig::StatContextCreatorFn&
+                statContextCreator)
+        {
+            return bsl::allocate_shared<bmqio::StatChannelFactory>(
+                allocator,
+                bmqio::StatChannelFactoryConfig(prev.get(),
+                                                statContextCreator));
+        }
+
+        static ChannelFactorySP authenticatedChannelFactory(
+            bslma::Allocator*                              allocator,
+            ChannelFactorySP&                              prev,
+            bdlmt::EventScheduler*                         scheduler,
+            const bmqt::SessionOptions::AuthnCredentialCb& credentialCb,
+            const bsls::TimeInterval&                      connectTimeout,
+            AuthenticatedChannelFactoryConfig::BlobSpPool* blobSpPool)
+        {
+            return bsl::allocate_shared<AuthenticatedChannelFactory>(
+                allocator,
+                AuthenticatedChannelFactoryConfig(prev.get(),
+                                                  scheduler,
+                                                  credentialCb,
+                                                  connectTimeout,
+                                                  blobSpPool));
+        }
+
+        static ChannelFactorySP negotiatedChannelFactory(
+            bslma::Allocator*                           allocator,
+            ChannelFactorySP&                           prev,
+            const bmqp_ctrlmsg::NegotiationMessage&     negotiationMessage,
+            const bsls::TimeInterval&                   negotiationTimeout,
+            NegotiatedChannelFactoryConfig::BlobSpPool* blobSpPool)
+        {
+            return bsl::allocate_shared<NegotiatedChannelFactory>(
+                allocator,
+                NegotiatedChannelFactoryConfig(prev.get(),
+                                               negotiationMessage,
+                                               negotiationTimeout,
+                                               blobSpPool));
+        }
+    };
+
+    bsl::shared_ptr<bmqio::NtcChannelFactory> channelFactory =
+        bsl::make_shared<bmqio::NtcChannelFactory>(
+            ntcCreateInterfaceConfig(sessionOptions, allocator),
+            blobBufferFactory,
+            allocator);
+
+    using bdlf::PlaceHolders::_1;
+    bmqio::ChannelFactoryPipeline::Builder builder(allocator);
+    return builder.add(channelFactory)
+        .addWith(bdlf::BindUtil::bind(Builders::resolvingChannelFactory,
+                                      allocator,
+                                      _1))
+        .addWith(bdlf::BindUtil::bind(Builders::reconnectingChannelFactory,
+                                      allocator,
+                                      _1,
+                                      scheduler))
+        .addWith(bdlf::BindUtil::bind(Builders::statChannelFactory,
+                                      allocator,
+                                      _1,
+                                      bsl::cref(statContextCreator)))
+        .addWith(
+            bdlf::BindUtil::bind(Builders::authenticatedChannelFactory,
+                                 allocator,
+                                 _1,
+                                 scheduler,
+                                 bsl::cref(sessionOptions.authnCredentialCb()),
+                                 bsl::cref(sessionOptions.connectTimeout()),
+                                 blobSpPool))
+        .addWith(
+            bdlf::BindUtil::bind(Builders::negotiatedChannelFactory,
+                                 allocator,
+                                 _1,
+                                 bsl::cref(negotiationMessage),
+                                 bsl::cref(sessionOptions.connectTimeout()),
+                                 blobSpPool))
+        .build();
+}
 
 }  // close unnamed namespace
 
@@ -225,7 +349,15 @@ void Application::readCb(
             // Application received a broker response to an re-authentication
             // request.  The callback function `channelStateCallback` should
             // only be called for failed cases.
-            d_authenticatedChannelFactory.processAuthenticationEvent(
+
+            // TODO(tfoxhall): This is a code smell to me, the factory should
+            // probably only be responsible for making channels. Handling
+            // request logic should probably be elsewhere.
+            AuthenticatedChannelFactory* authenticatedChannelFactory_p =
+                d_channelFactoryPipeline.get<AuthenticatedChannelFactory>();
+            BSLS_ASSERT(authenticatedChannelFactory_p);
+
+            authenticatedChannelFactory_p->processAuthenticationEvent(
                 event,
                 bdlf::BindUtil::bindS(&d_allocator,
                                       &Application::channelStateCallback,
@@ -344,7 +476,7 @@ void Application::brokerSessionStopped(
         // This code assumes that there is no need to stop both factories upon
         // e_START_FAILURE.
         // If we wanted that, we would need another event.
-        d_negotiatedChannelFactory.stop();
+        d_channelFactoryPipeline.stop();
     }
 
     d_scheduler.cancelAllEventsAndWait();
@@ -367,21 +499,7 @@ bmqt::GenericResult::Enum Application::startChannel()
     BSLS_ASSERT_SAFE(d_brokerSession.state() ==
                      bmqimp::BrokerSession::State::e_STARTING);
 
-    int rc = 0;
-
-    // Start the channel factories.
-    rc = d_negotiatedChannelFactory.start();
-    if (rc != 0) {
-        BALL_LOG_ERROR << id()
-                       << "Failed to start negotiatedChannelFactory [rc: "
-                       << rc << "]";
-        return bmqt::GenericResult::e_UNKNOWN;  // RETURN
-    }
-    bdlb::ScopeExitAny negotiatedScopeGuard(
-        bdlf::BindUtil::bind(&NegotiatedChannelFactory::stop,
-                             &d_negotiatedChannelFactory));
-
-    // Connect to the broker.
+    // 1. Prepare and validate connection parameters
     bmqio::TCPEndpoint endpoint(d_sessionOptions.brokerUri());
     if (!endpoint) {
         BALL_LOG_ERROR << id() << "Invalid brokerURI '"
@@ -396,14 +514,27 @@ bmqt::GenericResult::Enum Application::startChannel()
     bsls::TimeInterval attemptInterval;
     attemptInterval.setTotalMilliseconds(k_RECONNECT_INTERVAL_MS);
 
-    bmqio::Status         status(&d_allocator);
     bmqio::ConnectOptions options(&d_allocator);
     options.setEndpoint(out.str())
         .setNumAttempts(k_RECONNECT_COUNT)
         .setAttemptInterval(attemptInterval)
         .setAutoReconnect(true);
 
-    d_negotiatedChannelFactory.connect(
+    // 2. Start channelFactoryPipeline
+    const int rc = d_channelFactoryPipeline.start();
+    if (rc != 0) {
+        BALL_LOG_ERROR << "Failed to start channelFactoryPipeline [rc: " << rc
+                       << "]";
+        return bmqt::GenericResult::e_UNKNOWN;  // RETURN
+    }
+
+    bdlb::ScopeExitAny pipelineScopeGuard(
+        bdlf::BindUtil::bind(&bmqio::ChannelFactoryPipeline::stop,
+                             &d_channelFactoryPipeline));
+
+    // 3. Connect to the broker
+    bmqio::Status status(&d_allocator);
+    d_channelFactoryPipeline.connect(
         &status,
         &d_connectHandle_mp,
         options,
@@ -437,7 +568,7 @@ bmqt::GenericResult::Enum Application::startChannel()
             bdlf::MemFnUtil::memFn(&Application::snapshotStats, this));
     }
 
-    negotiatedScopeGuard.release();
+    pipelineScopeGuard.release();
 
     return bmqt::GenericResult::e_SUCCESS;
 }
@@ -592,45 +723,17 @@ Application::Application(
       bmqp::BlobPoolUtil::createBlobPool(&d_blobBufferFactory,
                                          d_allocators.get("BlobSpPool")))
 , d_scheduler(bsls::SystemClockType::e_MONOTONIC, &d_allocator)
-, d_channelFactory(ntcCreateInterfaceConfig(sessionOptions, &d_allocator),
-                   &d_blobBufferFactory,
-                   &d_allocator)
-, d_resolvingChannelFactory(
-      bmqio::ResolvingChannelFactoryConfig(
-          &d_channelFactory,
-          bmqex::ExecutionPolicyUtil::alwaysBlocking().useExecutor(
-              bmqex::SystemExecutor()),
-          allocator),
-      allocator)
-, d_reconnectingChannelFactory(
-      bmqio::ReconnectingChannelFactoryConfig(&d_resolvingChannelFactory,
-                                              &d_scheduler,
-                                              allocator),
-      allocator)
-, d_statChannelFactory(
-      bmqio::StatChannelFactoryConfig(
-          &d_reconnectingChannelFactory,
-          bdlf::BindUtil::bind(&Application::channelStatContextCreator,
-                               this,
-                               bdlf::PlaceHolders::_1,   // channel
-                               bdlf::PlaceHolders::_2),  // handle
-          allocator),
-      allocator)
-, d_authenticatedChannelFactory(
-      AuthenticatedChannelFactoryConfig(&d_statChannelFactory,
-                                        &d_scheduler,
-                                        sessionOptions.authnCredentialCb(),
-                                        sessionOptions.connectTimeout(),
-                                        d_blobSpPool_sp.get(),
-                                        allocator),
-      allocator)
-, d_negotiatedChannelFactory(
-      NegotiatedChannelFactoryConfig(&d_authenticatedChannelFactory,
-                                     negotiationMessage,
-                                     sessionOptions.connectTimeout(),
-                                     d_blobSpPool_sp.get(),
-                                     allocator),
-      allocator)
+, d_channelFactoryPipeline(makeChannelFactoryPipeline(
+      &d_allocator,
+      &d_blobBufferFactory,
+      &d_scheduler,
+      d_blobSpPool_sp.get(),
+      sessionOptions,
+      bdlf::BindUtil::bind(&Application::channelStatContextCreator,
+                           this,
+                           bdlf::PlaceHolders::_1,   // channel
+                           bdlf::PlaceHolders::_2),  // handle
+      negotiationMessage))
 , d_connectHandle_mp()
 , d_brokerSession(&d_scheduler,
                   &d_blobBufferFactory,
