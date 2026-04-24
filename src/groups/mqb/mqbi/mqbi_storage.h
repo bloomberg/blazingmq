@@ -54,9 +54,11 @@
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>
+#include <bsl_type_traits.h>
 #include <bsl_utility.h>
 #include <bsl_vector.h>
 #include <bslma_managedptr.h>
+#include <bslmf_nestedtraitdeclaration.h>
 #include <bsls_types.h>
 
 namespace BloombergLP {
@@ -273,6 +275,9 @@ bool operator!=(const StorageMessageAttributes& lhs,
 
 struct AppMessage {
     // VST to track the state associated with (GUID, App) pair.
+
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(AppMessage, bsl::is_trivially_copyable)
 
     // PULIC TYOES
     enum State { e_NONE = 0, e_PUT = 1, e_PUSH = 2, e_CONFIRM = 3 };
