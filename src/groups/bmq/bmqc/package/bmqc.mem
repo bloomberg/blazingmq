@@ -6,5 +6,4 @@ bmqc_monitoredqueue_bdlccsingleproducerqueue
 bmqc_multiqueuethreadpool
 bmqc_orderedhashmap
 bmqc_orderedhashmapwithhistory
-bmqc_orderedhashset
 bmqc_twokeyhashmap

@@ -58,8 +58,6 @@
 #include <bmqt_messageguid.h>
 #include <bmqt_resultcode.h>
 
-#include <bmqc_orderedhashset.h>
-
 // BDE
 #include <bdlbb_blob.h>
 #include <bsl_functional.h>
