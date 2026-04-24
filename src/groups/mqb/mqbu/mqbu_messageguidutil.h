@@ -17,19 +17,17 @@
 #ifndef INCLUDED_MQBU_MESSAGEGUIDUTIL
 #define INCLUDED_MQBU_MESSAGEGUIDUTIL
 
-//@PURPOSE: Provide a utility component for bmqt::MessageGUID.
-//
-//@CLASSES:
-//  mqbu::MessageGUIDUtil : Utility methods for bmqt::MessageGUID
-//
-//@SEE_ALSO:
-// bmqt::MessageGUID
-//
-//@DESCRIPTION: 'mqbu::MessageGUIDUtil' provide a method to generate
-// 'bmqt::MessageGUID'.
-//
-
-// MQB
+///@PURPOSE: Provide a utility component for bmqt::MessageGUID.
+///
+///@CLASSES:
+///  mqbu::MessageGUIDUtil : Utility methods for bmqt::MessageGUID
+///
+///@SEE_ALSO:
+/// bmqt::MessageGUID
+/// bmqp::MessageGUIDGenerator
+///
+///@DESCRIPTION: 'mqbu::MessageGUIDUtil' provide a method to generate
+/// 'bmqt::MessageGUID'.
 
 // BMQ
 #include <bmqt_messageguid.h>
