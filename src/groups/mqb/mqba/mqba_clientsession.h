@@ -440,9 +440,17 @@ class ClientSession : public mqbnet::Session,
         const bmqp_ctrlmsg::ControlMessage&             streamParamsCtrlMsg,
         const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger);
 
-    /// Initiate the shutdown of the session and invoke the specified
-    /// `callback` upon completion of (asynchronous) shutdown sequence.
-    void initiateShutdownDispatched(const ShutdownCb& callback);
+    /// Initiate the shutdown of the session.
+    void initiateShutdownDispatched();
+
+    /// Weak-ref wrapper for `initiateShutdownDispatched`.  If the specified
+    /// `self` can be locked, delegates to `initiateShutdownDispatched`;
+    /// otherwise invokes the specified `callback` directly.  The specified
+    /// `callback` is guaranteed to be invoked in either case.  Using a weak
+    /// ref avoids deadlock with `d_self.invalidate()` in `tearDownImpl`
+    /// when both events are queued on the same client dispatcher.
+    static void initiateShutdownSafe(bsl::weak_ptr<ClientSession> self,
+                                     const ShutdownCb&            callback);
 
     void invalidateDispatched();
 

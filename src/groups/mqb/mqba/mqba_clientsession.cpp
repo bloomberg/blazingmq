@@ -922,13 +922,12 @@ void ClientSession::onHandleConfiguredDispatched(
     sendPacketDispatched(d_state.d_schemaEventBuilder.blob(), true);
 }
 
-void ClientSession::initiateShutdownDispatched(const ShutdownCb& callback)
+void ClientSession::initiateShutdownDispatched()
 {
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
-    BSLS_ASSERT_SAFE(callback);
 
     bsl::shared_ptr<bmqsys::OperationLogger> opLogger =
         bsl::allocate_shared<bmqsys::OperationLogger>(d_state.d_allocator_p);
@@ -938,8 +937,6 @@ void ClientSession::initiateShutdownDispatched(const ShutdownCb& callback)
     // operation execution time.
 
     BALL_LOG_INFO << description() << ": initiateShutdownDispatched.";
-
-    bdlb::ScopeExitAny scopeExit(callback);
 
     if (d_operationState == e_DEAD) {
         // The client is disconnected.  No need to wait for tearDown.
@@ -2719,22 +2716,12 @@ void ClientSession::initiateShutdown(const ShutdownCb& callback)
 {
     // executed by the *ANY* thread
 
-    // The 'd_self.acquire()' return 'shared_ptr<ClientSession>' but that does
-    // not relate to the 'shared_ptr<mqbnet::Session>' acquired by
-    // 'mqbnet::TransportManagerIterator'.  The latter is bound to the
-    // 'initiateShutdown'.  The former can be null after 'd_self.invalidate()'
-    // call. ('invalidate()' waits for all _acquired_ 'shared_ptr' references
-    // to drop).
-    //
-    // We have a choice, either 1) bind the latter to 'initiateShutdown' to
-    // make sure 'd_self.acquire()' returns not null, or 2) invoke the
-    // 'callback' earlier if fail to 'acquire()' because of 'invalidate()', or
-    // 3) bind _acquired_ 'shared_ptr' to 'initiateShutdown'.
-    //
-    // Choosing 2), assuming that calling the (completion) callback from a
-    // thread other than the *CLIENT* dispatcher thread is ok.  The
-    // 'bmqu::OperationChainLink' expects the completion callback from multiple
-    // sessions anyway.
+    // If 'd_self' has been invalidated (by tearDownImpl), invoke the callback
+    // directly.  Otherwise, dispatch via 'initiateShutdownSafe' which uses a
+    // weak ref to avoid deadlock: if tearDownImpl's d_self.invalidate() and
+    // initiateShutdownDispatched end up queued on the same client dispatcher,
+    // a strong ref would cause invalidate() to block forever waiting for the
+    // queued event to release it.
 
     bsl::shared_ptr<ClientSession> ptr = d_self.acquire();
 
@@ -2742,18 +2729,34 @@ void ClientSession::initiateShutdown(const ShutdownCb& callback)
         callback();
     }
     else {
+        // Use a weak ref in the dispatched event to avoid deadlock with
+        // tearDownImpl's d_self.invalidate() when both events are queued
+        // on the same client dispatcher thread.
         dispatcher()->execute(
-            bdlf::BindUtil::bindS(
-                d_state.d_allocator_p,
-                bdlf::MemFnUtil::memFn(
-                    &ClientSession::initiateShutdownDispatched,
-                    d_self.acquire()),
-                callback),
+            bdlf::BindUtil::bindS(d_state.d_allocator_p,
+                                  &ClientSession::initiateShutdownSafe,
+                                  d_self.acquireWeak(),
+                                  callback),
             this,
             mqbi::DispatcherEventType::e_DISPATCHER);
         // Use 'mqbi::DispatcherEventType::e_DISPATCHER' to avoid (re)enabling
         // 'd_flushList'
     }
+}
+
+void ClientSession::initiateShutdownSafe(bsl::weak_ptr<ClientSession> self,
+                                         const ShutdownCb&            callback)
+{
+    // Thread: CLIENT dispatcher
+
+    {
+        bsl::shared_ptr<ClientSession> ptr = self.lock();
+        if (ptr) {
+            ptr->initiateShutdownDispatched();
+        }
+    }
+
+    callback();
 }
 
 void ClientSession::invalidate()
