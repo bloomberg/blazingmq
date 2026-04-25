@@ -155,19 +155,6 @@ class ClusterCatalog {
         int         d_myNodeId;
     };
 
-    /// Struct containing meta information associated to a created cluster.
-    /// TBD: should be private but AIX compiler bug,  see
-    /// {internal-ticket D39833134}
-    struct ClusterInfo {
-        // PUBLIC DATA
-
-        /// Cluster created, owned by this struct.
-        bsl::shared_ptr<mqbi::Cluster> d_cluster_sp;
-
-        /// Event processor associated to this cluster.
-        mqbnet::SessionEventProcessor* d_eventProcessor_p;
-    };
-
     typedef bmqp::RequestManager<bmqp_ctrlmsg::ControlMessage,
                                  bmqp_ctrlmsg::ControlMessage>
         RequestManagerType;
@@ -179,6 +166,17 @@ class ClusterCatalog {
 
   private:
     // PRIVATE TYPES
+
+    /// Struct containing meta information associated to a created cluster.
+    struct ClusterInfo {
+        // PUBLIC DATA
+
+        /// Cluster created, owned by this struct.
+        bsl::shared_ptr<mqbi::Cluster> d_cluster_sp;
+
+        /// Event processor associated to this cluster.
+        mqbnet::SessionEventProcessor* d_eventProcessor_p;
+    };
 
     /// Map of `Cluster name` to `ClusterInfo` object.
     typedef bsl::unordered_map<bsl::string, ClusterInfo> ClustersMap;
