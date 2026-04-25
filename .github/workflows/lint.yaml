@@ -8,6 +8,7 @@ on:
       - "synchronize"
       - "labeled"
       - "unlabeled"
+      - "edited"
 
 jobs:
   commits_check_job:
