@@ -29,12 +29,8 @@
 #include <bsls_timeutil.h>
 
 // TEST DRIVER
+#include <bmqtst_table.h>
 #include <bmqtst_testhelper.h>
-
-// BENCHMARKING LIBRARY
-#ifdef BMQTST_BENCHMARK_ENABLED
-#include <benchmark/benchmark.h>
-#endif
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -954,19 +950,23 @@ static void test15_eraseRange()
     BMQTST_ASSERT_EQ(true, map.empty());
 }
 
-BSLA_MAYBE_UNUSED static void testN1_insertPerformanceOrdered()
+static void testN1_insertPerformance()
 // ------------------------------------------------------------------------
 // INSERT PERFORMANCE
+//
+// Concerns:
+//   Performance comparison of insert() between OrderedHashMap and
+//   bsl::unordered_map.
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("INSERT PERFORMANCE");
 
-    // Performance comparison of insert() with bsl::unordered_map
-    const size_t       k_NUM_ELEMENTS = 5000000;
-    bsls::Types::Int64 ohmTime;
+    const size_t k_NUM_ELEMENTS = 5000000;
 
+    bmqtst::Table table(bmqtst::TestHelperUtil::allocator());
+
+    // OrderedHashMap
     {
-        // OrderedHashMap
         typedef bmqc::OrderedHashMap<size_t, size_t> MyMapType;
 
         MyMapType map(k_NUM_ELEMENTS, bmqtst::TestHelperUtil::allocator());
@@ -976,23 +976,19 @@ BSLA_MAYBE_UNUSED static void testN1_insertPerformanceOrdered()
             map.insert(bsl::make_pair(i, i));
         }
         bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
-        ohmTime                = end - begin;
-        cout << "Time diff (OrderedHashMap): " << ohmTime << endl;
+
+        table.column("Map").insertValue("bmqc::OrderedHashMap");
+        table.column("Elements")
+            .insertValue(static_cast<bsls::Types::Uint64>(k_NUM_ELEMENTS));
+        table.column("Time (ns)")
+            .insertValue(static_cast<bsls::Types::Uint64>(end - begin));
+        table.column("Per op (ns)")
+            .insertValue(static_cast<bsls::Types::Uint64>((end - begin) /
+                                                          k_NUM_ELEMENTS));
     }
-}
 
-BSLA_MAYBE_UNUSED static void testN1_insertPerformanceUnordered()
-// ------------------------------------------------------------------------
-// INSERT PERFORMANCE
-// ------------------------------------------------------------------------
-{
-    bmqtst::TestHelper::printTestName("INSERT PERFORMANCE");
-
-    // Performance comparison of insert() with bsl::unordered_map
-    const size_t       k_NUM_ELEMENTS = 5000000;
-    bsls::Types::Int64 umTime;
+    // bsl::unordered_map
     {
-        // bsl::unordered_map
         typedef bsl::unordered_map<size_t, size_t> MyMapType;
 
         MyMapType map(bmqtst::TestHelperUtil::allocator());
@@ -1003,223 +999,166 @@ BSLA_MAYBE_UNUSED static void testN1_insertPerformanceUnordered()
             map.insert(bsl::make_pair(i, i));
         }
         bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
-        umTime                 = end - begin;
-        cout << "Time diff (unordered_map) : " << umTime << endl;
+
+        table.column("Map").insertValue("bsl::unordered_map");
+        table.column("Elements")
+            .insertValue(static_cast<bsls::Types::Uint64>(k_NUM_ELEMENTS));
+        table.column("Time (ns)")
+            .insertValue(static_cast<bsls::Types::Uint64>(end - begin));
+        table.column("Per op (ns)")
+            .insertValue(static_cast<bsls::Types::Uint64>((end - begin) /
+                                                          k_NUM_ELEMENTS));
     }
+
+    table.print(bsl::cout);
 }
 
-BSLA_MAYBE_UNUSED static void testN2_erasePerformanceOrdered()
+static void testN2_erasePerformance()
 // ------------------------------------------------------------------------
 // ERASE PERFORMANCE
+//
+// Concerns:
+//   Performance comparison of erase() between OrderedHashMap and
+//   bsl::unordered_map.
 // ------------------------------------------------------------------------
 {
-    bmqtst::TestHelper::printTestName("ERASE");
+    bmqtst::TestHelper::printTestName("ERASE PERFORMANCE");
 
-    // Performance comparison of erase() with bsl::unordered_map
+    const size_t k_NUM_ELEMENTS = 5000000;
 
-    // Insert elements, iterate and erase while iterating
+    bmqtst::Table table(bmqtst::TestHelperUtil::allocator());
 
-    const size_t       k_NUM_ELEMENTS = 5000000;
-    bsls::Types::Int64 ohmTime;
+    // OrderedHashMap
     {
         typedef bmqc::OrderedHashMap<size_t, size_t> MyMapType;
         typedef MyMapType::iterator                  IterType;
         typedef bsl::pair<IterType, bool>            RcType;
 
         MyMapType map(bmqtst::TestHelperUtil::allocator());
-        // Insert 1M elements
         for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
             RcType rc = map.insert(bsl::make_pair(i, i));
             BMQTST_ASSERT_EQ_D(i, i, rc.first->first);
             BMQTST_ASSERT_EQ_D(i, i, rc.first->second);
         }
 
-        // Iterate and erase
         IterType           it    = map.begin();
         bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
         while (it != map.end()) {
             map.erase(it++);
         }
         bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
-        ohmTime                = end - begin;
-        cout << "Time diff (OrderedHashMap): " << ohmTime << endl;
+
+        table.column("Map").insertValue("bmqc::OrderedHashMap");
+        table.column("Elements")
+            .insertValue(static_cast<bsls::Types::Uint64>(k_NUM_ELEMENTS));
+        table.column("Time (ns)")
+            .insertValue(static_cast<bsls::Types::Uint64>(end - begin));
+        table.column("Per op (ns)")
+            .insertValue(static_cast<bsls::Types::Uint64>((end - begin) /
+                                                          k_NUM_ELEMENTS));
     }
-}
 
-BSLA_MAYBE_UNUSED static void testN2_erasePerformanceUnordered()
-// ------------------------------------------------------------------------
-// ERASE PERFORMANCE
-// ------------------------------------------------------------------------
-{
-    bmqtst::TestHelper::printTestName("ERASE");
-
-    // Performance comparison of erase() with bsl::unordered_map
-
-    // Insert elements, iterate and erase while iterating
-
-    const size_t       k_NUM_ELEMENTS = 5000000;
-    bsls::Types::Int64 umTime;
+    // bsl::unordered_map
     {
         typedef bsl::unordered_map<size_t, size_t> MyMapType;
         typedef MyMapType::iterator                IterType;
         typedef bsl::pair<IterType, bool>          RcType;
 
         MyMapType map(bmqtst::TestHelperUtil::allocator());
-        // Insert 1M elements
         for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
             RcType rc = map.insert(bsl::make_pair(i, i));
             BMQTST_ASSERT_EQ_D(i, i, rc.first->first);
             BMQTST_ASSERT_EQ_D(i, i, rc.first->second);
         }
 
-        // Iterate and erase
         IterType           it    = map.begin();
         bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
         while (it != map.end()) {
             map.erase(it++);
         }
         bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
-        umTime                 = end - begin;
-        cout << "Time diff (unordered_map) : " << umTime << endl;
+
+        table.column("Map").insertValue("bsl::unordered_map");
+        table.column("Elements")
+            .insertValue(static_cast<bsls::Types::Uint64>(k_NUM_ELEMENTS));
+        table.column("Time (ns)")
+            .insertValue(static_cast<bsls::Types::Uint64>(end - begin));
+        table.column("Per op (ns)")
+            .insertValue(static_cast<bsls::Types::Uint64>((end - begin) /
+                                                          k_NUM_ELEMENTS));
     }
+
+    table.print(bsl::cout);
 }
 
-BSLA_MAYBE_UNUSED static void testN3_profile()
+static void testN3_findPerformance()
 // ------------------------------------------------------------------------
-// PROFILE
+// FIND PERFORMANCE
+//
+// Concerns:
+//   Performance comparison of find() between OrderedHashMap and
+//   bsl::unordered_map.
 // ------------------------------------------------------------------------
 {
-    bmqtst::TestHelper::printTestName("PROFILE");
+    bmqtst::TestHelper::printTestName("FIND PERFORMANCE");
 
-    // A simple snippet which inserts elements in the ordered hash map.
-    // This case can be used to profile the component.
     const size_t k_NUM_ELEMENTS = 5000000;
 
-    typedef bmqc::OrderedHashMap<size_t, size_t> MyMapType;
-    MyMapType map(k_NUM_ELEMENTS, bmqtst::TestHelperUtil::allocator());
+    bmqtst::Table table(bmqtst::TestHelperUtil::allocator());
 
-    // Insert elements.
-    for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
-        map.insert(bsl::make_pair(i, i));
-    }
-}
-
-#ifdef BMQTST_BENCHMARK_ENABLED
-static void
-testN1_insertPerformanceUnordered_GoogleBenchmark(benchmark::State& state)
-{
-    bmqtst::TestHelper::printTestName("INSERT PERFORMANCE");
-
-    // Performance comparison of insert() with bsl::unordered_map
+    // bmqc::OrderedHashMap
     {
-        // UnorderedMap
-        typedef bsl::unordered_map<size_t, size_t> MyMapType;
-        MyMapType map(state.range(0), bmqtst::TestHelperUtil::allocator());
-        for (auto _ : state) {
-            for (size_t i = 0; i < static_cast<size_t>(state.range(0)); ++i) {
-                map.insert(bsl::make_pair(i, i));
-            }
-        }
-    }
-}
-
-static void
-testN1_insertPerformanceOrdered_GoogleBenchmark(benchmark::State& state)
-{
-    bmqtst::TestHelper::printTestName("INSERT PERFORMANCE");
-
-    // Performance comparison of insert() with bsl::unordered_map
-    {
-        // OrderedHashMap
         typedef bmqc::OrderedHashMap<size_t, size_t> MyMapType;
 
-        MyMapType map(static_cast<int>(state.range(0)),
-                      bmqtst::TestHelperUtil::allocator());
-        for (auto _ : state) {
-            for (size_t i = 0; i < static_cast<size_t>(state.range(0)); ++i) {
-                map.insert(bsl::make_pair(i, i));
-            }
-        }
-    }
-}
-
-static void
-testN2_erasePerformanceUnordered_GoogleBenchmark(benchmark::State& state)
-{
-    // Unordered Map Erase Performance Test
-    typedef bsl::unordered_map<size_t, size_t> MyMapType;
-    typedef MyMapType::iterator                IterType;
-    typedef bsl::pair<IterType, bool>          RcType;
-
-    MyMapType map(bmqtst::TestHelperUtil::allocator());
-    for (auto _ : state) {
-        state.PauseTiming();
-        for (size_t i = 0; i < static_cast<size_t>(state.range(0)); ++i) {
-            RcType rc = map.insert(bsl::make_pair(i, i));
-            BMQTST_ASSERT_EQ_D(i, i, rc.first->first);
-            BMQTST_ASSERT_EQ_D(i, i, rc.first->second);
-        }
-        // Iterate and erase
-        IterType it = map.begin();
-        state.ResumeTiming();
-        while (it != map.end()) {
-            map.erase(it++);
-        }
-    }
-}
-
-static void
-testN2_erasePerformanceOrdered_GoogleBenchmark(benchmark::State& state)
-{
-    bmqtst::TestHelper::printTestName("ERASE");
-
-    // Performance comparison of erase() with bsl::unordered_map
-
-    // Insert elements, iterate and erase while iterating
-    typedef bmqc::OrderedHashMap<size_t, size_t> MyMapType;
-    typedef MyMapType::iterator                  IterType;
-    typedef bsl::pair<IterType, bool>            RcType;
-
-    MyMapType map(bmqtst::TestHelperUtil::allocator());
-    // Insert 1M elements
-    for (auto _ : state) {
-        state.PauseTiming();
-        for (size_t i = 0; i < static_cast<size_t>(state.range(0)); ++i) {
-            RcType rc = map.insert(bsl::make_pair(i, i));
-            BMQTST_ASSERT_EQ_D(i, i, rc.first->first);
-            BMQTST_ASSERT_EQ_D(i, i, rc.first->second);
-        }
-        // Iterate and erase
-        IterType it = map.begin();
-        state.ResumeTiming();
-        while (it != map.end()) {
-            map.erase(it++);
-        }
-    }
-}
-
-static void testN3_profile_GoogleBenchmark(benchmark::State& state)
-// ------------------------------------------------------------------------
-// PROFILE
-// ------------------------------------------------------------------------
-{
-    bmqtst::TestHelper::printTestName("PROFILE");
-
-    // A simple snippet which inserts elements in the ordered hash map.
-    // This case can be used to profile the component.
-
-    typedef bmqc::OrderedHashMap<size_t, size_t> MyMapType;
-    MyMapType map(static_cast<int>(state.range(0)),
-                  bmqtst::TestHelperUtil::allocator());
-
-    // Insert elements.
-    for (auto _ : state) {
-        for (size_t i = 0; i < static_cast<size_t>(state.range(0)); ++i) {
+        MyMapType map(k_NUM_ELEMENTS, bmqtst::TestHelperUtil::allocator());
+        for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
             map.insert(bsl::make_pair(i, i));
         }
+
+        bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
+        for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
+            map.find(i);
+        }
+        bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
+
+        table.column("Map").insertValue("bmqc::OrderedHashMap");
+        table.column("Elements")
+            .insertValue(static_cast<bsls::Types::Uint64>(k_NUM_ELEMENTS));
+        table.column("Time (ns)")
+            .insertValue(static_cast<bsls::Types::Uint64>(end - begin));
+        table.column("Per op (ns)")
+            .insertValue(static_cast<bsls::Types::Uint64>((end - begin) /
+                                                          k_NUM_ELEMENTS));
     }
+
+    // bsl::unordered_map
+    {
+        typedef bsl::unordered_map<size_t, size_t> MyMapType;
+
+        MyMapType map(bmqtst::TestHelperUtil::allocator());
+        map.reserve(k_NUM_ELEMENTS);
+        for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
+            map.insert(bsl::make_pair(i, i));
+        }
+
+        bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
+        for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
+            map.find(i);
+        }
+        bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
+
+        table.column("Map").insertValue("bsl::unordered_map");
+        table.column("Elements")
+            .insertValue(static_cast<bsls::Types::Uint64>(k_NUM_ELEMENTS));
+        table.column("Time (ns)")
+            .insertValue(static_cast<bsls::Types::Uint64>(end - begin));
+        table.column("Per op (ns)")
+            .insertValue(static_cast<bsls::Types::Uint64>((end - begin) /
+                                                          k_NUM_ELEMENTS));
+    }
+
+    table.print(bsl::cout);
 }
-#endif  // BMQTST_BENCHMARK_ENABLED
 
 //=============================================================================
 //                              MAIN PROGRAM
@@ -1249,43 +1188,14 @@ int main(int argc, char* argv[])
     case 3: test3_insert(); break;
     case 2: test2_impDetails_nextPrime(); break;
     case 1: test1_breathingTest(); break;
-    case -1:
-        BMQTST_BENCHMARK_WITH_ARGS(testN1_insertPerformanceOrdered,
-                                   RangeMultiplier(10)
-                                       ->Range(10, 5000000)
-                                       ->Unit(benchmark::kMillisecond));
-        BMQTST_BENCHMARK_WITH_ARGS(testN1_insertPerformanceUnordered,
-                                   RangeMultiplier(10)
-                                       ->Range(10, 5000000)
-                                       ->Unit(benchmark::kMillisecond));
-        break;
-    case -2:
-        BMQTST_BENCHMARK_WITH_ARGS(testN2_erasePerformanceUnordered,
-                                   RangeMultiplier(10)
-                                       ->Range(100, 50000000)
-                                       ->Unit(benchmark::kMillisecond));
-        BMQTST_BENCHMARK_WITH_ARGS(testN2_erasePerformanceOrdered,
-                                   RangeMultiplier(10)
-                                       ->Range(100, 50000000)
-                                       ->Unit(benchmark::kMillisecond));
-        break;
-    case -3:
-        BMQTST_BENCHMARK_WITH_ARGS(testN3_profile,
-                                   RangeMultiplier(10)
-                                       ->Range(10, 5000000)
-                                       ->Unit(benchmark::kMillisecond));
-        break;
+    case -1: testN1_insertPerformance(); break;
+    case -2: testN2_erasePerformance(); break;
+    case -3: testN3_findPerformance(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
-#ifdef BMQTST_BENCHMARK_ENABLED
-    if (_testCase < 0) {
-        benchmark::Initialize(&argc, argv);
-        benchmark::RunSpecifiedBenchmarks();
-    }
-#endif
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
