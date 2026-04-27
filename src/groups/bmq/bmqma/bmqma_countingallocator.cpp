@@ -182,69 +182,60 @@ void CountingAllocator::configureStatContextTableInfoProvider(
         .zeroString("");
 }
 
-void CountingAllocator::onAllocationChange(bsls::Types::Int64 deltaValue)
-{
-    const bsls::Types::Uint64 totalAllocated = d_allocated.addRelaxed(
-        deltaValue);
-
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(totalAllocated >
-                                              d_allocationLimit)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        const bsls::Types::Uint64 uint64Max =
-            bsl::numeric_limits<bsls::Types::Uint64>::max();
-        if (d_allocationLimit.swap(uint64Max) != uint64Max) {
-            // Use an atomic swap to only invoke the callback the first time
-            // limit is crossed.  Swap 'allocationLimit' with 'Uint64::max',
-            // which will disable all further maximum allocation checks.
-
-            BSLS_ASSERT_SAFE(d_allocationLimitCb);
-            // If d_allocationLimit was set, 'd_allocationLimitCb' must be
-            // a valid callback
-            d_allocationLimitCb();
-        }
-    }
-
-    // Propagate allocation change to parent, if any
-    if (d_parentCounting_p) {
-        d_parentCounting_p->onAllocationChange(deltaValue);
-    }
-}
-
 CountingAllocator::CountingAllocator(const bslstl::StringRef& name,
                                      bslma::Allocator*        allocator)
-: d_statContext_mp()
-, d_allocator_p(bslma::Default::allocator(allocator))
-, d_parentCounting_p(0)
-, d_allocated(0)
-, d_allocationLimit(bsl::numeric_limits<bsls::Types::Uint64>::max())
-// Disable allocation limit by default
+: d_allocator_p(bslma::Default::allocator(allocator))
+, d_statContext_mp()
+, d_limitChecker_sp()
 {
-    CountingAllocator* ca = dynamic_cast<CountingAllocator*>(d_allocator_p);
-    if (ca) {
-        d_allocator_p = ca->d_allocator_p;
-        if (ca->d_statContext_mp) {
-            d_statContext_mp = ca->d_statContext_mp->addSubcontext(
+    CountingAllocator* parent = dynamic_cast<CountingAllocator*>(
+        d_allocator_p);
+
+    if (parent) {
+        // `d_allocator_p` should never be a CountingAllocator.
+        // We support this invariant up the allocators tree and refer to the
+        // parent's `d_allocator_p`.
+        d_allocator_p     = parent->d_allocator_p;
+        d_limitChecker_sp = parent->d_limitChecker_sp;
+
+        if (parent->d_statContext_mp) {
+            d_statContext_mp = parent->d_statContext_mp->addSubcontext(
                 bmqst::StatContextConfiguration(name, allocator));
-            d_parentCounting_p = ca;
         }
     }
+    else {
+        // This is a root CountingAllocator: construct the original limit
+        // checker. All nested allocators will keep a reference to it.
+        d_limitChecker_sp = bsl::allocate_shared<AllocationLimitChecker>(
+            d_allocator_p);
+    }
+
+    // POSTCONDITIONS
+    BSLS_ASSERT(d_limitChecker_sp);
 }
 
 CountingAllocator::CountingAllocator(const bslstl::StringRef& name,
                                      bmqst::StatContext* parentStatContext,
                                      bslma::Allocator*   allocator)
-: d_statContext_mp()
-, d_allocator_p(bslma::Default::allocator(allocator))
-, d_parentCounting_p(0)
-, d_allocated(0)
-, d_allocationLimit(bsl::numeric_limits<bsls::Types::Uint64>::max())
-// Disable allocation limit by default
+: d_allocator_p(bslma::Default::allocator(allocator))
+, d_statContext_mp()
+, d_limitChecker_sp()
 {
-    CountingAllocator* ca = dynamic_cast<CountingAllocator*>(d_allocator_p);
-    if (ca) {
-        // The 'allocator' is a 'CountingAllocator'
-        d_allocator_p      = ca->d_allocator_p;
-        d_parentCounting_p = ca;
+    CountingAllocator* parent = dynamic_cast<CountingAllocator*>(
+        d_allocator_p);
+
+    if (parent) {
+        // `d_allocator_p` should never be a CountingAllocator.
+        // We support this invariant up the allocators tree and refer to the
+        // parent's `d_allocator_p`.
+        d_allocator_p     = parent->d_allocator_p;
+        d_limitChecker_sp = parent->d_limitChecker_sp;
+    }
+    else {
+        // This is a root CountingAllocator: construct the original limit
+        // checker. All nested allocators will keep a reference to it.
+        d_limitChecker_sp = bsl::allocate_shared<AllocationLimitChecker>(
+            d_allocator_p);
     }
 
     if (parentStatContext) {
@@ -261,6 +252,9 @@ CountingAllocator::CountingAllocator(const bslstl::StringRef& name,
                     .value("Memory", 2));
         }
     }
+
+    // POSTCONDITIONS
+    BSLS_ASSERT(d_limitChecker_sp);
 }
 
 CountingAllocator::~CountingAllocator()
@@ -274,11 +268,7 @@ void CountingAllocator::setAllocationLimit(
     bsls::Types::Uint64            limit,
     const AllocationLimitCallback& callback)
 {
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(callback);
-
-    d_allocationLimitCb = callback;
-    d_allocationLimit   = limit;
+    d_limitChecker_sp->setLimit(limit, callback);
 }
 
 void* CountingAllocator::allocate(size_type size)
@@ -310,7 +300,7 @@ void* CountingAllocator::allocate(size_type size)
     header->d_data.d_numAllocatedBytes = totalSize;
     header->d_data.d_magic             = k_MAGIC;
 
-    onAllocationChange(totalSize);
+    d_limitChecker_sp->update(totalSize);
 
     return header + 1;
 }
@@ -360,7 +350,39 @@ void CountingAllocator::deallocate(void* address)
     d_allocator_p->deallocate(header);
 
     d_statContext_mp->adjustValue(0, -totalSize);
-    onAllocationChange(-totalSize);
+    d_limitChecker_sp->update(-totalSize);
+}
+
+void CountingAllocator::AllocationLimitChecker::update(
+    bsls::Types::Int64 deltaValue)
+{
+    const bsls::Types::Uint64 totalAllocated = d_allocated.addRelaxed(
+        deltaValue);
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+            d_allocationLimit < totalAllocated && !d_alarmTriggered)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        if (d_alarmTriggered.swap(true) != true) {
+            // Use an atomic swap to only invoke the callback the first time
+            // limit is crossed.
+
+            BSLS_ASSERT_SAFE(d_allocationLimitCb);
+            // If d_allocationLimit was set, 'd_allocationLimitCb' must be
+            // a valid callback
+            d_allocationLimitCb();
+        }
+    }
+}
+
+void CountingAllocator::AllocationLimitChecker::setLimit(
+    bsls::Types::Uint64            limit,
+    const AllocationLimitCallback& callback)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(callback);
+
+    d_allocationLimit   = limit;
+    d_allocationLimitCb = callback;
 }
 
 }  // close package namespace

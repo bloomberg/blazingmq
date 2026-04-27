@@ -47,22 +47,22 @@
 ///----------------
 // The 'CountingAllocator', when created with a StatContext, or as a child of a
 // 'CountingAllocator' initialized with a StatContext keeps track of the total
-// bytes currently allocated by it, and any of its derived allocators (aka
-// children).  This allows to set an 'allocationLimit', triggering a
-// user-provided callback the first time it is breached (useful to dump
-// allocations and eventually abort the process in order to protect the host).
+// bytes currently allocated across the entire allocator tree.  This allows to
+// set an 'allocationLimit', triggering a user-provided callback the first time
+// it is breached (useful to dump allocations and eventually abort the process
+// in order to protect the host).
+//
+// All 'CountingAllocator' instances in a tree share a single
+// 'AllocationLimitChecker' (owned by the root and referenced by children via
+// 'bsl::shared_ptr').  Each allocation or deallocation updates the shared
+// checker's atomic counter.
+//
 // Note that this allocation tracking has a few implications:
-//: o since now every allocation and deallocation has to notify its parenting
-//:   hierarchy, for proper allocation accounting, this will have a tiny
-//:   performance impact; which should be minimal as the depth of nested
-//:   CountingAllocator is usually expected to be very small (in the order of
-//:   just a couple levels); and also most memory usually is pooled.
 //: o this allocation book-keeping is akin to a duplicate of what the
 //:   associated StatContext already tracks, but is needed because StatContext
 //:   is not thread-safe when it comes to computing the value.
-//: o each CountingAllocator now has a slightly bigger memory footprint, which
-//:   should be fine as we usually only instantiate a small handful of such
-//:   objects
+//: o the allocation limit applies to the entire tree; it should be configured
+//:   on the root 'CountingAllocator' via 'setAllocationLimit'.
 
 #include <bmqst_statvalue.h>
 
@@ -70,6 +70,7 @@
 #include <ball_log.h>
 #include <bsl_functional.h>
 #include <bsl_map.h>
+#include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
@@ -121,41 +122,65 @@ class CountingAllocator BSLS_KEYWORD_FINAL : public bslma::Allocator {
     BALL_LOG_SET_CLASS_CATEGORY("BMQMA.COUNTINGALLOCATOR");
 
   private:
-    // DATA
-    bslma::ManagedPtr<bmqst::StatContext> d_statContext_mp;
+    // TYPES
 
+    /// @brief Tracks total bytes allocated and fires a one-shot callback
+    /// when a configured limit is breached.
+    class AllocationLimitChecker {
+      private:
+        // DATA
+
+        /// Total number of bytes currently allocated.
+        bsls::AtomicUint64 d_allocated;
+
+        /// Maximum allowed allocations, in bytes.  Defaulted to
+        /// `Uint64::max` (i.e. no limit).
+        bsls::Types::Uint64 d_allocationLimit;
+
+        /// Set to `true` the first time `d_allocationLimit` is breached,
+        /// ensuring the callback is invoked at most once.
+        bsls::AtomicBool d_alarmTriggered;
+
+        /// User-supplied callback to invoke once the total allocation has
+        /// crossed the `d_allocationLimit`.
+        AllocationLimitCallback d_allocationLimitCb;
+
+      public:
+        // CREATORS
+
+        /// Create an `AllocationLimitChecker` with zero bytes allocated,
+        /// no limit, and no callback.
+        AllocationLimitChecker()
+        : d_allocated(0)
+        , d_allocationLimit(bsl::numeric_limits<bsls::Types::Uint64>::max())
+        , d_alarmTriggered(false)
+        , d_allocationLimitCb()
+        {
+            // NOTHING
+        }
+
+        // MANIPULATORS
+
+        /// Register the specified `callback` to be invoked when the total
+        /// bytes allocated is beyond the specified `limit`.  Note that
+        /// this method is not thread-safe and should be called prior to
+        /// any allocations.
+        void setLimit(bsls::Types::Uint64            limit,
+                      const AllocationLimitCallback& callback);
+
+        /// Update the tracked allocation total by the specified
+        /// `deltaValue` (positive for allocation, negative for
+        /// deallocation) and fire the limit callback if the limit is
+        /// breached for the first time.
+        void update(bsls::Types::Int64 deltaValue);
+    };
+
+    // DATA
     bslma::Allocator* d_allocator_p;
 
-    CountingAllocator* d_parentCounting_p;
-    // The parent allocator this object
-    // is a child of, if it is of type
-    // 'CountingAllocator', or null
-    // otherwise.
+    bslma::ManagedPtr<bmqst::StatContext> d_statContext_mp;
 
-    bsls::AtomicUint64 d_allocated;
-    // Total number of bytes currently
-    // allocated via this allocator and
-    // any of its sub-child (only valid
-    // if this allocator has an
-    // associated 'statContext' since
-    // otherwise, deallocation won't
-    // be able to keep track of size).
-
-    bsls::AtomicUint64 d_allocationLimit;
-    // Maximum allowed allocations, in
-    // bytes.  Defaulted to uintMax
-    // (i.e. no limit).  Refer to
-    // 'allocate' implementation for
-    // why it's an atomic.
-
-    AllocationLimitCallback d_allocationLimitCb;
-    // The user-supplied callback to
-    // invoke once the total allocation
-    // has crossed the
-    // 'allocationLimit'.  Note that
-    // this callback will only ever be
-    // invoked at most once, the first
-    // time only the limit is breached.
+    bsl::shared_ptr<AllocationLimitChecker> d_limitChecker_sp;
 
   private:
     // NOT IMPLEMENTED
@@ -188,15 +213,6 @@ class CountingAllocator BSLS_KEYWORD_FINAL : public bslma::Allocator {
         const bmqst::StatValue::SnapshotLocation& startSnapshot,
         const bmqst::StatValue::SnapshotLocation& endSnapshot);
 
-  private:
-    // PRIVATE MANIPULATORS
-
-    /// Method invoked by any child of this object notifying it of a change
-    /// in bytes allocated, in the specified `deltaValue` (positive value
-    /// implying an allocation, while negative value represent a
-    /// deallocation).
-    void onAllocationChange(bsls::Types::Int64 deltaValue);
-
   public:
     // CREATORS
 
@@ -225,9 +241,9 @@ class CountingAllocator BSLS_KEYWORD_FINAL : public bslma::Allocator {
     // MANIPULATORS
 
     /// Register the specified `callback` to be invoked when the total bytes
-    /// allocated by this object and all of it's children combined is beyond
-    /// the specified `limit`.  Note that this method is not thread-safe and
-    /// should be called on the allocator prior to its usage.
+    /// allocated across the allocator hierarchy is beyond the specified
+    /// `limit`.  Note that this method is not thread-safe and should be
+    /// called on the root allocator prior to any allocations.
     void setAllocationLimit(bsls::Types::Uint64            limit,
                             const AllocationLimitCallback& callback);
 
