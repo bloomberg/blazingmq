@@ -3515,8 +3515,7 @@ void StorageManager::do_reapplyDetectSelfPrimary(const EventWithData& event)
 
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
-    BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->state() ==
-                     PartitionFSM::State::e_UNKNOWN);
+    BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfPrimary());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId << "]: "
@@ -3545,10 +3544,7 @@ void StorageManager::do_reapplyDetectSelfReplica(const EventWithData& event)
 
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
-    BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->state() ==
-                         PartitionFSM::State::e_UNKNOWN ||
-                     d_partitionFSMVec[partitionId]->state() ==
-                         PartitionFSM::State::e_REPLICA_HEALING);
+    BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfReplica());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId << "]: "
