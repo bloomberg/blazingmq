@@ -877,6 +877,23 @@ void MockSession::processIfPushEvent(const Event& event)
         d_unconfirmedGUIDs.insert(mIter.message().messageGUID());
     }
 }
+MessageEvent MockSession::createMessageEvent()
+{
+    MessageEvent result;
+
+    // MessageEvent::d_impl is private
+    bsl::shared_ptr<bmqimp::Event>& eventImplSpRef =
+        reinterpret_cast<bsl::shared_ptr<bmqimp::Event>&>(result);
+
+    eventImplSpRef.createInplace(d_allocator_p,
+                                 g_bufferFactory_p,
+                                 d_allocator_p);
+    eventImplSpRef->configureAsMessageEvent(d_blobSpPool_sp.get());
+    eventImplSpRef->setMessageCorrelationIdContainer(
+        d_corrIdContainer_sp.get());
+
+    return result;
+}
 
 void MockSession::assertWrongCall(const Method method) const
 {
@@ -1498,18 +1515,10 @@ void MockSession::loadMessageEventBuilder(MessageEventBuilder* builder)
 
     builderImplRef.d_guidGenerator_sp = g_guidGenerator_sp;
 
-    // Get bmqimp::Event sharedptr from MessageEventBuilderImpl
-    bsl::shared_ptr<bmqimp::Event>& eventImplSpRef =
-        reinterpret_cast<bsl::shared_ptr<bmqimp::Event>&>(
-            builderImplRef.d_msgEvent);
+    builderImplRef.d_messageEventFactory =
+        bdlf::BindUtil::bind(&MockSession::createMessageEvent, this);
 
-    eventImplSpRef.createInplace(d_allocator_p,
-                                 g_bufferFactory_p,
-                                 d_allocator_p);
-
-    eventImplSpRef->configureAsMessageEvent(d_blobSpPool_sp.get());
-    eventImplSpRef->setMessageCorrelationIdContainer(
-        d_corrIdContainer_sp.get());
+    builder->reset();
 }
 
 void MockSession::loadConfirmEventBuilder(ConfirmEventBuilder* builder)

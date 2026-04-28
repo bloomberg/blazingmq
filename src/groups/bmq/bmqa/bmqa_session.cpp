@@ -665,6 +665,21 @@ SessionImpl::SessionImpl(const bmqt::SessionOptions&            options,
     // NOTHING
 }
 
+MessageEvent SessionImpl::createMessageEvent()
+{
+    MessageEvent result;
+
+    // MessageEvent::d_impl is private
+    bsl::shared_ptr<bmqimp::Event>& eventImplSpRef =
+        reinterpret_cast<bsl::shared_ptr<bmqimp::Event>&>(result);
+
+    eventImplSpRef = d_application_mp->brokerSession().createEvent();
+
+    eventImplSpRef->configureAsMessageEvent(d_application_mp->blobSpPool());
+
+    return result;
+}
+
 // -------------
 // class Session
 // -------------
@@ -781,15 +796,16 @@ MessageEventBuilder Session::createMessageEventBuilder()
 
     builderRef.d_guidGenerator_sp = d_impl.d_guidGenerator_sp;
 
-    // Get bmqimp::Event sharedptr from MessageEventBuilderImpl
-    bsl::shared_ptr<bmqimp::Event>& eventImplSpRef =
-        reinterpret_cast<bsl::shared_ptr<bmqimp::Event>&>(
-            builderRef.d_msgEvent);
-
-    eventImplSpRef = d_impl.d_application_mp->brokerSession().createEvent();
-
-    eventImplSpRef->configureAsMessageEvent(
-        d_impl.d_application_mp->blobSpPool());
+    //    // Get bmqimp::Event sharedptr from MessageEventBuilderImpl
+    //    bsl::shared_ptr<bmqimp::Event>& eventImplSpRef =
+    //        reinterpret_cast<bsl::shared_ptr<bmqimp::Event>&>(
+    //            builderRef.d_msgEvent);
+    //
+    //    eventImplSpRef =
+    //    d_impl.d_application_mp->brokerSession().createEvent();
+    //
+    //    eventImplSpRef->configureAsMessageEvent(
+    //        d_impl.d_application_mp->blobSpPool());
 
     return builder;
 }
@@ -808,15 +824,10 @@ void Session::loadMessageEventBuilder(MessageEventBuilder* builder)
 
     builderImplRef.d_guidGenerator_sp = d_impl.d_guidGenerator_sp;
 
-    // Get bmqimp::Event sharedptr from MessageEventBuilderImpl
-    bsl::shared_ptr<bmqimp::Event>& eventImplSpRef =
-        reinterpret_cast<bsl::shared_ptr<bmqimp::Event>&>(
-            builderImplRef.d_msgEvent);
+    builderImplRef.d_messageEventFactory =
+        bdlf::BindUtil::bind(&SessionImpl::createMessageEvent, &d_impl);
 
-    eventImplSpRef = d_impl.d_application_mp->brokerSession().createEvent();
-
-    eventImplSpRef->configureAsMessageEvent(
-        d_impl.d_application_mp->blobSpPool());
+    builder->reset();
 }
 
 void Session::loadConfirmEventBuilder(ConfirmEventBuilder* builder)

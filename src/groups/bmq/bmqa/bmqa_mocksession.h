@@ -1124,6 +1124,8 @@ class MockSession : public AbstractSession {
     /// a push message event.
     void processIfPushEvent(const Event& event);
 
+    MessageEvent createMessageEvent();
+
     // PRIVATE ACCESSORS
 
     /// Invoke the failure callback because of a wrong call to the specified

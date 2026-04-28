@@ -319,27 +319,6 @@ Event& Event::downgradeMessageEventModeToRead()
     return *this;
 }
 
-Event& Event::upgradeMessageEventModeToWrite()
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(type() == EventType::e_MESSAGE);
-
-    if (MessageEventMode::e_WRITE == d_msgEventMode) {
-        return *this;  // RETURN
-    }
-
-    d_msgEventMode = MessageEventMode::e_WRITE;
-    BSLS_ASSERT_SAFE(d_isPutEventBuilderConstructed);
-    d_putEventBuilderBuffer.object().reset();
-    d_putMsgIter.clear();
-    d_rawEvent.clear();
-    d_queues.clear();
-    d_queuesBySubscriptionId.clear();
-    d_contexts.clear();
-    d_correlationId.makeUnset();
-    return *this;
-}
-
 Event& Event::insertQueue(const bsl::shared_ptr<Queue>& queue)
 {
     // PRECONDITIONS

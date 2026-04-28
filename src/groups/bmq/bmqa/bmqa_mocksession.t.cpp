@@ -1351,6 +1351,36 @@ static void test7_postAndAccess()
     bmqa::MessageEvent postedEvent2(builder.messageEvent());
     bmqa::MessageEvent postedEvent3(builder.messageEvent());
 
+    // Test that MessageEvent can survive builder reset
+    builder.reset();
+
+    bmqa::MessageIterator i = postedEvent2.messageIterator();
+    bdlbb::Blob payload(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+    int         rc = 0;
+    BMQTST_ASSERT(i.nextMessage());
+
+    rc = i.message().getData(&payload);
+    BMQTST_ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(0, bdlbb::BlobUtil::compare(payload, payload1));
+
+    BMQTST_ASSERT(i.nextMessage());
+    payload.setLength(0);
+    rc = i.message().getData(&payload);
+    BMQTST_ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(0, bdlbb::BlobUtil::compare(payload, payload2));
+
+    BMQTST_ASSERT(i.nextMessage());
+    payload.setLength(0);
+    rc = i.message().getData(&payload);
+    BMQTST_ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(0, bdlbb::BlobUtil::compare(payload, payload3));
+
+    BMQTST_ASSERT(i.nextMessage());
+    payload.setLength(0);
+    rc = i.message().getData(&payload);
+    BMQTST_ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(0, bdlbb::BlobUtil::compare(payload, payload4));
+
     BMQA_EXPECT_CALL(mockSession, post(postedEvent2)).returning(0);
     BMQTST_ASSERT_EQ(mockSession.post(postedEvent2), 0);
 

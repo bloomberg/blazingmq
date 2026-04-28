@@ -1547,13 +1547,6 @@ static void test12_upgradeDowngradeMessageEvent()
     //   3.  Downgrade to READ mode via 'downgradeMessageEventModeToRead'.
     //   4.  Check event 'MessageEventMode' is READ.
     //   5.  Call 'downgradeMessageEventModeToRead' again.
-    //   6.  Check MessageEventMode' is the same as after last call of
-    //       'upgradeMessageEventModeToWrite'.
-    //   7.  Upgrade to WRITE mode via 'upgradeMessageEventModeToWrite'.
-    //   8.  Check event 'MessageEventMode' is WRITE.
-    //   9.  Call 'upgradeMessageEventModeToWrite' again.
-    //   10. Check MessageEventMode' is the same as after last call of
-    //       'upgradeMessageEventModeToWrite'.
     //
     // Testing manipulators:
     //   - downgradeMessageEventModeToRead
@@ -1590,21 +1583,6 @@ static void test12_upgradeDowngradeMessageEvent()
     // 6. Check MessageEventMode' is the same as after last call of
     //    'upgradeMessageEventModeToWrite'.
     BMQTST_ASSERT_EQ(bmqimp::Event::MessageEventMode::e_READ,
-                     obj.messageEventMode());
-
-    // 7. Upgrade to WRITE mode via 'upgradeMessageEventModeToWrite'.
-    obj.upgradeMessageEventModeToWrite();
-
-    // 8. Check event 'MessageEventMode' is WRITE.
-    BMQTST_ASSERT_EQ(bmqimp::Event::MessageEventMode::e_WRITE,
-                     obj.messageEventMode());
-
-    // 9. Call 'upgradeMessageEventModeToWrite' again.
-    obj.upgradeMessageEventModeToWrite();
-
-    //   10. Check MessageEventMode' is the same as after last call of
-    //       'upgradeMessageEventModeToWrite'.
-    BMQTST_ASSERT_EQ(bmqimp::Event::MessageEventMode::e_WRITE,
                      obj.messageEventMode());
 }
 

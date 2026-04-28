@@ -363,14 +363,6 @@ class Event {
     /// write (builder) to read (iterator).
     Event& downgradeMessageEventModeToRead();
 
-    /// Change the message event mode with which this instance is currently
-    /// configured to MessageEventMode::WRITE, *and* reset the underlying
-    /// blob.  This method has no effect if the mode is already `WRITE`.
-    /// Behavior is undefined unless this instance's `type()` is
-    /// MESSAGEVENT.  Note that this method should logically be thought of
-    /// as resetting this instance as a message event in write mode.
-    Event& upgradeMessageEventModeToWrite();
-
     // ACCESSORS
 
     /// Get a pointer to the correlationId container.

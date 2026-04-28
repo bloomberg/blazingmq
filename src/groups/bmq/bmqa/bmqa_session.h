@@ -668,6 +668,8 @@ struct SessionImpl {
     SessionImpl(const bmqt::SessionOptions&            options,
                 bslma::ManagedPtr<SessionEventHandler> eventHandler,
                 bslma::Allocator*                      allocator = 0);
+
+    MessageEvent createMessageEvent();
 };
 
 // =============
