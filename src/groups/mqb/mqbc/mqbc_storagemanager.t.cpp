@@ -223,19 +223,6 @@ struct TestHelper {
         BSLS_ASSERT_OPT(rc == 0);
     }
 
-    void setPartitionPrimary(mqbc::StorageManager* storageManager,
-                             int                   partitionId,
-                             unsigned int          leaseId,
-                             mqbnet::ClusterNode*  node)
-    {
-        d_cluster_mp->_state()->setPartitionPrimary(
-            partitionId,
-            leaseId,
-            d_cluster_mp->_clusterData()->membership().getClusterNodeSession(
-                node));
-        storageManager->setPrimaryForPartition(partitionId, node, leaseId);
-    }
-
     void clearChannels()
     {
         for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
@@ -966,10 +953,12 @@ struct TestHelper {
         BSLS_ASSERT_OPT(rc == 0);
 
         for (size_t pid = 0; pid < numPartitions(); ++pid) {
-            setPartitionPrimary(storageManager,
-                                pid,
-                                1,  // primaryLeaseId
-                                primaryNode);
+            d_cluster_mp->_state()->setPartitionPrimary(
+                pid,
+                1,  // primaryLeaseId
+                d_cluster_mp->_clusterData()
+                    ->membership()
+                    .getClusterNodeSession(primaryNode));
         }
         storageManager->initializeQueueKeyInfoMap(*d_cluster_mp->_state());
         for (size_t pid = 0; pid < numPartitions(); ++pid) {
@@ -1964,10 +1953,12 @@ static void test10_replicaWaitingDetectSelfPrimary()
     BSLS_ASSERT_OPT(nodeToSeqNumCtxMap.size() == 1);
 
     // Apply Detect Self Primary event to Self Node.
-    helper.setPartitionPrimary(&storageManager,
-                               k_PARTITION_ID,
-                               2,  // primaryLeaseId
-                               selfNode);
+    helper.d_cluster_mp->_state()->setPartitionPrimary(
+        k_PARTITION_ID,
+        2,  // primaryLeaseId
+        helper.d_cluster_mp->_clusterData()
+            ->membership()
+            .getClusterNodeSession(selfNode));
     storageManager.detectSelfPrimaryInPFSM(k_PARTITION_ID,
                                            selfNode,
                                            2);  // primaryLeaseId
