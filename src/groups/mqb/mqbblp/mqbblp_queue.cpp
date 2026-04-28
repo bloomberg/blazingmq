@@ -79,14 +79,13 @@ void onHandleDeconfigured(
     const bmqp_ctrlmsg::StreamParameters& streamParameters,
     mqbi::Queue*                          queue,
     mqbi::QueueHandle*                    handle,
-
-    const bsl::shared_ptr<Counter>& counter)
+    const bsl::shared_ptr<Counter>&       counter)
 {
     BSLS_ASSERT_SAFE(queue);
     BSLS_ASSERT_SAFE(handle);
 
     // Re-read current counts from the handle because cookie rollback may have
-    // already decremented some counts between de-confgigure request and now.
+    // already decremented some counts between de-configure request and now.
     mqbi::QueueHandle::SubStreams::const_iterator cit =
         handle->subStreamInfos().find(streamParameters.appId());
 
@@ -101,8 +100,10 @@ void onHandleDeconfigured(
 
     BSLS_ASSERT_SAFE(appId != bmqp::ProtocolUtil::k_NULL_APP_ID);
 
-    if (info.d_counts.d_readCount == 0) {
+    if (info.d_counts.d_readCount == 0 && info.d_counts.d_writeCount == 0) {
         // Already fully released by cookie rollback — nothing to do.
+
+        return;  // RETURN
     }
 
     bmqp_ctrlmsg::SubQueueIdInfo subStreamInfo;
