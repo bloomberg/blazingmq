@@ -478,12 +478,6 @@ class StorageManager BSLS_KEYWORD_FINAL
 
     /// THREAD: This method is invoked in the associated Queue dispatcher
     ///         thread for the specified `partitionId`.
-    void setPrimaryForPartitionDispatched(int                  partitionId,
-                                          mqbnet::ClusterNode* primaryNode,
-                                          unsigned int         primaryLeaseId);
-
-    /// THREAD: This method is invoked in the associated Queue dispatcher
-    ///         thread for the specified `partitionId`.
     void clearPrimaryForPartitionDispatched(int                  partitionId,
                                             mqbnet::ClusterNode* primary);
 
