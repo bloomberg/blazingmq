@@ -125,6 +125,8 @@ const char* ClusterStateTableEvent::toAscii(ClusterStateTableEvent::Enum value)
     switch (value) {
         CASE(SLCT_LDR)
         CASE(SLCT_FOL)
+        CASE(REAPPLY_LDR)
+        CASE(REAPPLY_FOL)
         CASE(FOL_LSN_RQST)
         CASE(FOL_LSN_RSPN)
         CASE(FAIL_FOL_LSN_RSPN)
@@ -166,6 +168,8 @@ bool ClusterStateTableEvent::fromAscii(ClusterStateTableEvent::Enum* out,
 
     CHECKVALUE(SLCT_LDR)
     CHECKVALUE(SLCT_FOL)
+    CHECKVALUE(REAPPLY_LDR)
+    CHECKVALUE(REAPPLY_FOL)
     CHECKVALUE(FOL_LSN_RQST)
     CHECKVALUE(FOL_LSN_RSPN)
     CHECKVALUE(FAIL_FOL_LSN_RSPN)

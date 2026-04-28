@@ -1046,7 +1046,7 @@ void ClusterStateManager::do_reapplySelectLeader(
     InputMessages inputMessages(1, d_allocator_p);
     inputMessages.at(0).setSource(d_clusterData_p->membership().selfNode());
 
-    applyFSMEvent(ClusterFSM::Event::e_SLCT_LDR,
+    applyFSMEvent(ClusterFSM::Event::e_REAPPLY_LDR,
                   ClusterFSMEventMetadata(inputMessages));
 }
 
@@ -1066,7 +1066,7 @@ void ClusterStateManager::do_reapplySelectFollower(
     InputMessages inputMessages(1, d_allocator_p);
     inputMessages.at(0).setSource(d_clusterData_p->electorInfo().leaderNode());
 
-    applyFSMEvent(ClusterFSM::Event::e_SLCT_FOL,
+    applyFSMEvent(ClusterFSM::Event::e_REAPPLY_FOL,
                   ClusterFSMEventMetadata(inputMessages));
 }
 
@@ -1176,6 +1176,14 @@ void ClusterStateManager::applyFSMEvent(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+
+    if (event == ClusterFSM::Event::e_SLCT_LDR &&
+        d_clusterFSM.isSelfLeader()) {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << ": dropping redundant SLCT_LDR event,"
+                      << " already in leader state.";
+        return;
+    }
 
     d_clusterFSM.enqueueEvent(EventWithMetadata(event, metadata));
 }
