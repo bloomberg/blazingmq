@@ -100,7 +100,9 @@ void TestChannel::read(Status*                   status,
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
     d_readCalls.emplace_back(numBytes, readCallback, timeout);
-    *status = d_readStatus;
+    if (status) {
+        *status = d_readStatus;
+    }
 }
 
 void TestChannel::write(Status*            status,
@@ -110,7 +112,9 @@ void TestChannel::write(Status*            status,
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
     d_writeCalls.emplace_back(blob, watermark);
-    *status = d_writeStatus;
+    if (status) {
+        *status = d_writeStatus;
+    }
 
     d_condition.signal();
 }
