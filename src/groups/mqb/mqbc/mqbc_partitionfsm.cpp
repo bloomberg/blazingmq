@@ -157,15 +157,40 @@ void PartitionFSM::enqueueEvent(const EventWithData& event)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!event.second.empty());
 
-    d_eventsQueue.push(event);
-    if (d_eventsQueue.size() > 1) {
+    const bool isProcessing = !d_eventsQueue.empty();
+    d_eventsQueue.push_back(event);
+    if (isProcessing) {
         // There is already an ongoing processing, so just return.
         return;
     }
 
     while (!d_eventsQueue.empty()) {
-        processEvent(d_eventsQueue.front());
-        d_eventsQueue.pop();
+        // Copy and pop before processing so that actions can push to
+        // the front of the queue without displacing the current event.
+        EventWithData current = d_eventsQueue.front();
+        d_eventsQueue.pop_front();
+        processEvent(current);
+    }
+}
+
+void PartitionFSM::enqueueEventFront(const EventWithData& event)
+{
+    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!event.second.empty());
+
+    const bool isProcessing = !d_eventsQueue.empty();
+    d_eventsQueue.push_front(event);
+    if (isProcessing) {
+        // There is already an ongoing processing, so just return.
+        return;
+    }
+
+    while (!d_eventsQueue.empty()) {
+        EventWithData current = d_eventsQueue.front();
+        d_eventsQueue.pop_front();
+        processEvent(current);
     }
 }
 

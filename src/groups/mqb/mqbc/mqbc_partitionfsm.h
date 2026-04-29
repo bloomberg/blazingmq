@@ -40,9 +40,9 @@
 // BDE
 #include <ball_log.h>
 #include <bdlbb_blob.h>
+#include <bsl_deque.h>
 #include <bsl_memory.h>
 #include <bsl_optional.h>
-#include <bsl_queue.h>
 #include <bsl_unordered_set.h>
 #include <bsl_utility.h>
 #include <bsl_vector.h>
@@ -242,7 +242,7 @@ class PartitionFSM {
 
     /// Internal queue containing events which need to be applied to the
     /// current state of the FSM.
-    bsl::queue<EventWithData> d_eventsQueue;
+    bsl::deque<EventWithData> d_eventsQueue;
 
     /// Observers of this object.
     ObserversSet d_observers;
@@ -280,9 +280,15 @@ class PartitionFSM {
     /// object.
     PartitionFSM& unregisterObserver(PartitionFSMObserver* observer);
 
-    /// Enqueue the specified `event` to the internal events queue.  It will be
-    /// processed as an input to the FSM.
+    /// Enqueue the specified `event` to the back of the internal events
+    /// queue.  It will be processed as an input to the FSM.
     void enqueueEvent(const EventWithData& event);
+
+    /// Enqueue the specified `event` to the front of the internal events
+    /// queue, so that it is processed before any other pending events.  Use
+    /// this for continuation events that are part of the same logical
+    /// operation as the currently executing action (e.g., the REAPPLY chain).
+    void enqueueEventFront(const EventWithData& event);
 
     // ACCESSORS
 

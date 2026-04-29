@@ -336,7 +336,8 @@ void StorageManager::onPartitionRecovery(int partitionId)
 }
 
 void StorageManager::enqueuePartitionFSMEvent(PartitionFSM::Event::Enum event,
-                                              const EventData& eventDataVec)
+                                              const EventData& eventDataVec,
+                                              bool             immediate)
 {
     // executed by the cluster *DISPATCHER* or *QUEUE_DISPATCHER* thread
 
@@ -362,20 +363,22 @@ void StorageManager::enqueuePartitionFSMEvent(PartitionFSM::Event::Enum event,
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
     BSLS_ASSERT_SAFE(fs);
     if (fs->inDispatcherThread()) {
-        enqueuePartitionFSMEventDispatched(event, eventDataVec);
+        enqueuePartitionFSMEventDispatched(event, eventDataVec, immediate);
     }
     else {
         fs->execute(bdlf::BindUtil::bind(
             &StorageManager::enqueuePartitionFSMEventDispatched,
             this,
             event,
-            eventDataVec));
+            eventDataVec,
+            immediate));
     }
 }
 
 void StorageManager::enqueuePartitionFSMEventDispatched(
     PartitionFSM::Event::Enum event,
-    const EventData&          eventDataVec)
+    const EventData&          eventDataVec,
+    bool                      immediate)
 {
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
 
@@ -475,8 +478,13 @@ void StorageManager::enqueuePartitionFSMEventDispatched(
         }
     }
 
-    d_partitionFSMVec[partitionId]->enqueueEvent(
-        PartitionFSM::EventWithData(event, eventDataVec));
+    const PartitionFSM::EventWithData eventWithData(event, eventDataVec);
+    if (immediate) {
+        d_partitionFSMVec[partitionId]->enqueueEventFront(eventWithData);
+    }
+    else {
+        d_partitionFSMVec[partitionId]->enqueueEvent(eventWithData);
+    }
 }
 
 void StorageManager::setPrimaryStatusForPartitionDispatched(
@@ -3358,7 +3366,7 @@ void StorageManager::do_reapplyEvent(const EventWithData& event)
                   << "]: " << " Re-apply event: " << event.first
                   << " in the Partition FSM.";
 
-    enqueuePartitionFSMEvent(event.first, event.second);
+    enqueuePartitionFSMEvent(event.first, event.second, true);  // immediate
 }
 
 void StorageManager::do_checkQuorumSeq(const EventWithData& event)
@@ -3530,7 +3538,8 @@ void StorageManager::do_reapplyDetectSelfPrimary(const EventWithData& event)
         d_partitionInfoVec[partitionId].primary(),
         d_partitionInfoVec[partitionId].primaryLeaseId());
     enqueuePartitionFSMEvent(PartitionFSM::Event::e_REAPPLY_SELF_PRIMARY,
-                             eventDataVecOut);
+                             eventDataVecOut,
+                             true);  // immediate
 }
 
 void StorageManager::do_reapplyDetectSelfReplica(const EventWithData& event)
@@ -3559,7 +3568,8 @@ void StorageManager::do_reapplyDetectSelfReplica(const EventWithData& event)
         d_partitionInfoVec[partitionId].primary(),
         d_partitionInfoVec[partitionId].primaryLeaseId());
     enqueuePartitionFSMEvent(PartitionFSM::Event::e_REAPPLY_SELF_REPLICA,
-                             eventDataVecOut);
+                             eventDataVecOut,
+                             true);  // immediate
 }
 
 void StorageManager::do_unsupportedPrimaryDowngrade(const EventWithData& event)
