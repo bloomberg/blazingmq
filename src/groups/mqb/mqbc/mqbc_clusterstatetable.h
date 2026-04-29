@@ -486,6 +486,10 @@ class ClusterStateTable
                 stopWatchDog_cancelRequests_reapplyEvent,
                 UNKNOWN);
         CST_CFG(FOL_HEALING,
+                SLCT_FOL,
+                stopWatchDog_cancelRequests_reapplyEvent,
+                UNKNOWN);
+        CST_CFG(FOL_HEALING,
                 FOL_LSN_RQST,
                 sendFollowerLSNResponse,
                 FOL_HEALING);
@@ -661,6 +665,7 @@ class ClusterStateTable
                 stopPFSMs_stopWatchDog_cleanupLSNs_cancelRequests,
                 STOPPED);
         CST_CFG(FOL_HEALED, SLCT_LDR, reapplyEvent, UNKNOWN);
+        CST_CFG(FOL_HEALED, SLCT_FOL, reapplyEvent, UNKNOWN);
         CST_CFG(FOL_HEALED,
                 FOL_LSN_RQST,
                 sendFollowerLSNResponse_logErrorLeaderNotHealed,
