@@ -1038,7 +1038,7 @@ void ClusterStateManager::do_reapplySelectLeader(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader());
-    BSLS_ASSERT_SAFE(d_clusterFSM.state() == ClusterFSM::State::e_UNKNOWN);
+    BSLS_ASSERT_SAFE(d_clusterFSM.isSelfLeader());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << ": Re-apply transition to leader in the Cluster FSM.";
@@ -1058,7 +1058,7 @@ void ClusterStateManager::do_reapplySelectFollower(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
     BSLS_ASSERT_SAFE(!d_clusterData_p->electorInfo().isSelfLeader());
-    BSLS_ASSERT_SAFE(d_clusterFSM.state() == ClusterFSM::State::e_UNKNOWN);
+    BSLS_ASSERT_SAFE(d_clusterFSM.isSelfFollower());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << ": Re-apply transition to follower in the Cluster FSM.";
