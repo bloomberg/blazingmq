@@ -206,7 +206,7 @@ void StorageManager::onWatchdogDispatched(int partitionId, int generation)
     // Decrement retry counter
     const int retriesRemaining = ctx.d_retriesRemaining--;
 
-    // Mark that watchdog has fired so that `do_startWatchDog` will schedule
+    // Mark that watchdog has fired so that `do_startWatchdog` will schedule
     // a fresh timer on the next invocation.
     ctx.d_active = false;
 
@@ -227,7 +227,7 @@ void StorageManager::onWatchdogDispatched(int partitionId, int generation)
                                   1);
         eventDataVec.back().setWatchdogGeneration(generation);
 
-        enqueuePartitionFSMEvent(PartitionFSM::Event::e_WATCH_DOG,
+        enqueuePartitionFSMEvent(PartitionFSM::Event::e_WATCHDOG,
                                  eventDataVec);
     }
     else {
@@ -381,8 +381,8 @@ void StorageManager::enqueuePartitionFSMEventDispatched(
 
     const int partitionId = eventDataVec[0].partitionId();
 
-    // For WATCH_DOG events, check generation count to ignore stale events
-    if (event == PartitionFSM::Event::e_WATCH_DOG) {
+    // For WATCHDOG events, check generation count to ignore stale events
+    if (event == PartitionFSM::Event::e_WATCHDOG) {
         const bsl::optional<int> generation =
             eventDataVec[0].watchdogGeneration();
         if (generation.has_value() &&
@@ -390,7 +390,7 @@ void StorageManager::enqueuePartitionFSMEventDispatched(
                 d_watchdogContexts[partitionId].d_generation) {
             BALL_LOG_WARN << d_clusterData_p->identity().description()
                           << " Partition [" << partitionId
-                          << "]: Ignoring stale WATCH_DOG event with "
+                          << "]: Ignoring stale WATCHDOG event with "
                           << "generation " << generation.value()
                           << ", current generation is "
                           << d_watchdogContexts[partitionId].d_generation;
@@ -1216,7 +1216,7 @@ void StorageManager::forceFlushFileStores()
     StorageUtil::forceFlushFileStores(&d_fileStores);
 }
 
-void StorageManager::do_startWatchDog(const EventWithData& event)
+void StorageManager::do_startWatchdog(const EventWithData& event)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
@@ -1231,7 +1231,7 @@ void StorageManager::do_startWatchDog(const EventWithData& event)
     // prevents resetting the timer during error retries (e.g.,
     // ERROR_RECEIVING_DATA_CHUNKS transitions that enqueue
     // REAPPLY_SELF_PRIMARY without stopping the watchdog).  After a
-    // watchdog fires, `onWatchDogDispatched` sets `d_active` to false,
+    // watchdog fires, `onWatchdogDispatched` sets `d_active` to false,
     // so a subsequent call here will start a fresh timer for the retry.
     if (!ctx.d_active) {
         ctx.d_eventHandle.release();
@@ -1249,7 +1249,7 @@ void StorageManager::do_startWatchDog(const EventWithData& event)
     }
 }
 
-void StorageManager::do_stopWatchDog(const EventWithData& event)
+void StorageManager::do_stopWatchdog(const EventWithData& event)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
@@ -1271,7 +1271,7 @@ void StorageManager::do_stopWatchDog(const EventWithData& event)
     if (rc != 0) {
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
                        << " Partition [" << partitionId
-                       << "]: " << "Failed to cancel WatchDog, rc: " << rc;
+                       << "]: " << "Failed to cancel Watchdog, rc: " << rc;
     }
 }
 

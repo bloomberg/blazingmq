@@ -113,7 +113,7 @@ void ClusterStateManager::do_abort(const EventWithMetadata& event)
     mqbu::ExitUtil::terminate(mqbu::ExitCode::e_UNSUPPORTED_SCENARIO);  // EXIT
 }
 
-void ClusterStateManager::do_startWatchDog(
+void ClusterStateManager::do_startWatchdog(
     BSLA_MAYBE_UNUSED const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
@@ -138,7 +138,7 @@ void ClusterStateManager::do_startWatchDog(
     d_watchdogCtx.d_active = true;
 }
 
-void ClusterStateManager::do_stopWatchDog(
+void ClusterStateManager::do_stopWatchdog(
     BSLA_MAYBE_UNUSED const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
@@ -161,7 +161,7 @@ void ClusterStateManager::do_stopWatchDog(
     }
 }
 
-void ClusterStateManager::do_triggerWatchDog(
+void ClusterStateManager::do_triggerWatchdog(
     BSLA_MAYBE_UNUSED const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
@@ -1266,7 +1266,7 @@ void ClusterStateManager::onWatchdogDispatched(int generation)
     // Decrement retry counter
     const int retriesRemaining = d_watchdogCtx.d_retriesRemaining--;
 
-    // Mark that watchdog has fired so that `do_startWatchDog` will schedule
+    // Mark that watchdog has fired so that `do_startWatchdog` will schedule
     // a fresh timer on the next invocation.
     d_watchdogCtx.d_active = false;
 
@@ -1279,7 +1279,7 @@ void ClusterStateManager::onWatchdogDispatched(int generation)
         << d_watchdogNumRetries << BMQTSK_ALARMLOG_END;
 
     if (retriesRemaining > 0) {
-        applyFSMEvent(ClusterFSM::Event::e_WATCH_DOG,
+        applyFSMEvent(ClusterFSM::Event::e_WATCHDOG,
                       ClusterFSMEventMetadata());
     }
     else {

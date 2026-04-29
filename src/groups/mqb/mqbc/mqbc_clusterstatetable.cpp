@@ -146,7 +146,7 @@ const char* ClusterStateTableEvent::toAscii(ClusterStateTableEvent::Enum value)
         CASE(RST_PRIMARY)
         CASE(CSL_CMT_SUCCESS)
         CASE(CSL_CMT_FAIL)
-        CASE(WATCH_DOG)
+        CASE(WATCHDOG)
         CASE(NUM_EVENTS)
     default: return "(* UNKNOWN *)";
     }
@@ -189,7 +189,7 @@ bool ClusterStateTableEvent::fromAscii(ClusterStateTableEvent::Enum* out,
     CHECKVALUE(RST_PRIMARY)
     CHECKVALUE(CSL_CMT_SUCCESS)
     CHECKVALUE(CSL_CMT_FAIL)
-    CHECKVALUE(WATCH_DOG)
+    CHECKVALUE(WATCHDOG)
     CHECKVALUE(NUM_EVENTS)
 
     // Invalid string

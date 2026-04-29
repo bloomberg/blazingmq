@@ -133,7 +133,7 @@ PartitionStateTableEvent::toAscii(PartitionStateTableEvent::Enum value)
         CASE(QUORUM_REPLICA_SEQ)
         CASE(SELF_HIGHEST_SEQ)
         CASE(REPLICA_HIGHEST_SEQ)
-        CASE(WATCH_DOG)
+        CASE(WATCHDOG)
         CASE(STOP_NODE)
         CASE(NUM_EVENTS)
     default: return "(* UNKNOWN *)";

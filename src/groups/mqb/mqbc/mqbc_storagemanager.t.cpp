@@ -3089,14 +3089,14 @@ static void test20_watchdogStopResetsState()
 // WATCHDOG STOP RESETS STATE
 //
 // Concerns:
-//   do_stopWatchDog (via stopPFSMs / STOP_NODE) increments generation
+//   do_stopWatchdog (via stopPFSMs / STOP_NODE) increments generation
 //   and resets retries.
 //
 // Plan:
 //  1) Create a StorageManager with numRetries = 2
 //  2) Start as primary -> PRIMARY_HEALING_STG1
 //  3) Verify initial watchdog context
-//  4) Call stopPFSMs() -> triggers STOP_NODE -> calls do_stopWatchDog
+//  4) Call stopPFSMs() -> triggers STOP_NODE -> calls do_stopWatchdog
 //  5) Verify generation incremented, retries reset, active = false
 //
 // Testing:
@@ -3145,7 +3145,7 @@ static void test20_watchdogStopResetsState()
 
     helper.clearChannels();
 
-    // Stop PFSMs -> triggers STOP_NODE -> calls do_stopWatchDog
+    // Stop PFSMs -> triggers STOP_NODE -> calls do_stopWatchdog
     storageManager.stopPFSMs();
 
     // Verify watchdog state was reset

@@ -180,12 +180,12 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     void do_abort(const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
 
     void
-    do_startWatchDog(const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
+    do_startWatchdog(const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
 
-    void do_stopWatchDog(const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
+    void do_stopWatchdog(const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
 
     void
-    do_triggerWatchDog(const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
+    do_triggerWatchdog(const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
 
     void do_applyCSLSelf(const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
 

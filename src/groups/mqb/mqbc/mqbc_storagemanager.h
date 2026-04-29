@@ -558,9 +558,9 @@ class StorageManager BSLS_KEYWORD_FINAL
     void forceFlushFileStores();
 
     //   (virtual: mqbc::PartitionStateTableActions)
-    void do_startWatchDog(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+    void do_startWatchdog(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
-    void do_stopWatchDog(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+    void do_stopWatchdog(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
     void
     do_openRecoveryFileSet(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;

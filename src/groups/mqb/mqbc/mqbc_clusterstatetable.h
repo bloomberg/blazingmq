@@ -210,7 +210,7 @@ struct ClusterStateTableEvent {
         e_CSL_CMT_FAIL = 22,
 
         /// Watchdog triggered due to timeout.
-        e_WATCH_DOG = 23,
+        e_WATCHDOG = 23,
 
         /// **NOT A VALID STATE**.  This is an artificial enum value to
         /// represent the number of states.
@@ -281,11 +281,11 @@ class ClusterStateTableActions {
 
     virtual void do_abort(const ARGS& args) = 0;
 
-    virtual void do_startWatchDog(const ARGS& args) = 0;
+    virtual void do_startWatchdog(const ARGS& args) = 0;
 
-    virtual void do_stopWatchDog(const ARGS& args) = 0;
+    virtual void do_stopWatchdog(const ARGS& args) = 0;
 
-    virtual void do_triggerWatchDog(const ARGS& args) = 0;
+    virtual void do_triggerWatchdog(const ARGS& args) = 0;
 
     virtual void do_applyCSLSelf(const ARGS& args) = 0;
 
@@ -348,27 +348,27 @@ class ClusterStateTableActions {
 
     virtual void do_cancelRequests(const ARGS& args) = 0;
 
-    void do_startWatchDog_storeSelfLSN_sendFollowerLSNRequests_checkLSNQuorum(
+    void do_startWatchdog_storeSelfLSN_sendFollowerLSNRequests_checkLSNQuorum(
         const ARGS& args);
 
-    void do_startWatchDog_sendRegistrationRequest(const ARGS& args);
+    void do_startWatchdog_sendRegistrationRequest(const ARGS& args);
 
-    void do_stopWatchDog_cancelRequests(const ARGS& args);
+    void do_stopWatchdog_cancelRequests(const ARGS& args);
 
-    void do_stopWatchDog_cancelRequests_reapplyEvent(const ARGS& args);
+    void do_stopWatchdog_cancelRequests_reapplyEvent(const ARGS& args);
 
-    void do_stopPFSMs_stopWatchDog_cancelRequests(const ARGS& args);
+    void do_stopPFSMs_stopWatchdog_cancelRequests(const ARGS& args);
 
-    void do_stopWatchDog_initializeQueueKeyInfoMap_updatePrimaryInPFSMs(
+    void do_stopWatchdog_initializeQueueKeyInfoMap_updatePrimaryInPFSMs(
         const ARGS& args);
 
-    void do_stopWatchDog_cleanupLSNs_cancelRequests(const ARGS& args);
+    void do_stopWatchdog_cleanupLSNs_cancelRequests(const ARGS& args);
 
     void
-    do_stopWatchDog_cleanupLSNs_cancelRequests_reapplyEvent(const ARGS& args);
+    do_stopWatchdog_cleanupLSNs_cancelRequests_reapplyEvent(const ARGS& args);
 
     void
-    do_stopPFSMs_stopWatchDog_cleanupLSNs_cancelRequests(const ARGS& args);
+    do_stopPFSMs_stopWatchdog_cleanupLSNs_cancelRequests(const ARGS& args);
 
     void do_cleanupLSNs_reapplyEvent(const ARGS& args);
 
@@ -439,20 +439,20 @@ class ClusterStateTable
         CST_CFG(
             UNKNOWN,
             SLCT_LDR,
-            startWatchDog_storeSelfLSN_sendFollowerLSNRequests_checkLSNQuorum,
+            startWatchdog_storeSelfLSN_sendFollowerLSNRequests_checkLSNQuorum,
             LDR_HEALING_STG1);
         CST_CFG(
             UNKNOWN,
             REAPPLY_LDR,
-            startWatchDog_storeSelfLSN_sendFollowerLSNRequests_checkLSNQuorum,
+            startWatchdog_storeSelfLSN_sendFollowerLSNRequests_checkLSNQuorum,
             LDR_HEALING_STG1);
         CST_CFG(UNKNOWN,
                 SLCT_FOL,
-                startWatchDog_sendRegistrationRequest,
+                startWatchdog_sendRegistrationRequest,
                 FOL_HEALING);
         CST_CFG(UNKNOWN,
                 REAPPLY_FOL,
-                startWatchDog_sendRegistrationRequest,
+                startWatchdog_sendRegistrationRequest,
                 FOL_HEALING);
         CST_CFG(UNKNOWN,
                 FOL_LSN_RQST,
@@ -483,11 +483,11 @@ class ClusterStateTable
         CST_CFG(UNKNOWN, RST_PRIMARY, updatePrimaryInPFSMs, UNKNOWN);
         CST_CFG(FOL_HEALING,
                 SLCT_LDR,
-                stopWatchDog_cancelRequests_reapplyEvent,
+                stopWatchdog_cancelRequests_reapplyEvent,
                 UNKNOWN);
         CST_CFG(FOL_HEALING,
                 SLCT_FOL,
-                stopWatchDog_cancelRequests_reapplyEvent,
+                stopWatchdog_cancelRequests_reapplyEvent,
                 UNKNOWN);
         CST_CFG(FOL_HEALING,
                 REAPPLY_FOL,
@@ -515,22 +515,22 @@ class ClusterStateTable
                 FOL_HEALING);
         CST_CFG(FOL_HEALING,
                 CSL_CMT_SUCCESS,
-                stopWatchDog_initializeQueueKeyInfoMap_updatePrimaryInPFSMs,
+                stopWatchdog_initializeQueueKeyInfoMap_updatePrimaryInPFSMs,
                 FOL_HEALED);
-        CST_CFG(FOL_HEALING, CSL_CMT_FAIL, triggerWatchDog, FOL_HEALING);
+        CST_CFG(FOL_HEALING, CSL_CMT_FAIL, triggerWatchdog, FOL_HEALING);
         CST_CFG(FOL_HEALING,
                 RST_UNKNOWN,
-                stopWatchDog_cancelRequests,
+                stopWatchdog_cancelRequests,
                 UNKNOWN);
         CST_CFG(FOL_HEALING, RST_PRIMARY, updatePrimaryInPFSMs, FOL_HEALING);
-        CST_CFG(FOL_HEALING, WATCH_DOG, reapplySelectFollower, FOL_HEALING);
+        CST_CFG(FOL_HEALING, WATCHDOG, reapplySelectFollower, FOL_HEALING);
         CST_CFG(FOL_HEALING,
                 STOP_NODE,
-                stopPFSMs_stopWatchDog_cancelRequests,
+                stopPFSMs_stopWatchdog_cancelRequests,
                 STOPPED);
         CST_CFG(LDR_HEALING_STG1,
                 SLCT_FOL,
-                stopWatchDog_cleanupLSNs_cancelRequests_reapplyEvent,
+                stopWatchdog_cleanupLSNs_cancelRequests_reapplyEvent,
                 UNKNOWN);
         CST_CFG(LDR_HEALING_STG1,
                 FOL_LSN_RQST,
@@ -578,7 +578,7 @@ class ClusterStateTable
                 LDR_HEALING_STG1);
         CST_CFG(LDR_HEALING_STG1,
                 RST_UNKNOWN,
-                stopWatchDog_cleanupLSNs_cancelRequests,
+                stopWatchdog_cleanupLSNs_cancelRequests,
                 UNKNOWN);
         CST_CFG(LDR_HEALING_STG1,
                 RST_PRIMARY,
@@ -589,16 +589,16 @@ class ClusterStateTable
                 cleanupLSNs_cancelRequests_reapplyEvent,
                 UNKNOWN);
         CST_CFG(LDR_HEALING_STG1,
-                WATCH_DOG,
+                WATCHDOG,
                 reapplySelectLeader,
                 LDR_HEALING_STG1);
         CST_CFG(LDR_HEALING_STG1,
                 STOP_NODE,
-                stopPFSMs_stopWatchDog_cleanupLSNs_cancelRequests,
+                stopPFSMs_stopWatchdog_cleanupLSNs_cancelRequests,
                 STOPPED);
         CST_CFG(LDR_HEALING_STG2,
                 SLCT_FOL,
-                stopWatchDog_cleanupLSNs_cancelRequests_reapplyEvent,
+                stopWatchdog_cleanupLSNs_cancelRequests_reapplyEvent,
                 UNKNOWN);
         CST_CFG(LDR_HEALING_STG2,
                 FOL_LSN_RQST,
@@ -647,15 +647,15 @@ class ClusterStateTable
                 LDR_HEALING_STG2);
         CST_CFG(LDR_HEALING_STG2,
                 CSL_CMT_SUCCESS,
-                stopWatchDog_initializeQueueKeyInfoMap_updatePrimaryInPFSMs,
+                stopWatchdog_initializeQueueKeyInfoMap_updatePrimaryInPFSMs,
                 LDR_HEALED);
         CST_CFG(LDR_HEALING_STG2,
                 CSL_CMT_FAIL,
-                triggerWatchDog,
+                triggerWatchdog,
                 LDR_HEALING_STG2);
         CST_CFG(LDR_HEALING_STG2,
                 RST_UNKNOWN,
-                stopWatchDog_cleanupLSNs_cancelRequests,
+                stopWatchdog_cleanupLSNs_cancelRequests,
                 UNKNOWN);
         CST_CFG(LDR_HEALING_STG2,
                 RST_PRIMARY,
@@ -666,12 +666,12 @@ class ClusterStateTable
                 cleanupLSNs_cancelRequests_reapplyEvent,
                 UNKNOWN);
         CST_CFG(LDR_HEALING_STG2,
-                WATCH_DOG,
+                WATCHDOG,
                 reapplySelectLeader,
                 LDR_HEALING_STG2);
         CST_CFG(LDR_HEALING_STG2,
                 STOP_NODE,
-                stopPFSMs_stopWatchDog_cleanupLSNs_cancelRequests,
+                stopPFSMs_stopWatchdog_cleanupLSNs_cancelRequests,
                 STOPPED);
         CST_CFG(FOL_HEALED, SLCT_LDR, reapplyEvent, UNKNOWN);
         CST_CFG(FOL_HEALED, SLCT_FOL, reapplyEvent, UNKNOWN);
@@ -741,73 +741,73 @@ void ClusterStateTableActions<ARGS>::do_none(
 
 template <typename ARGS>
 void ClusterStateTableActions<ARGS>::
-    do_startWatchDog_storeSelfLSN_sendFollowerLSNRequests_checkLSNQuorum(
+    do_startWatchdog_storeSelfLSN_sendFollowerLSNRequests_checkLSNQuorum(
         const ARGS& args)
 {
-    do_startWatchDog(args);
+    do_startWatchdog(args);
     do_storeSelfLSN(args);
     do_sendFollowerLSNRequests(args);
     do_checkLSNQuorum(args);
 }
 
 template <typename ARGS>
-void ClusterStateTableActions<ARGS>::do_startWatchDog_sendRegistrationRequest(
+void ClusterStateTableActions<ARGS>::do_startWatchdog_sendRegistrationRequest(
     const ARGS& args)
 {
-    do_startWatchDog(args);
+    do_startWatchdog(args);
     do_sendRegistrationRequest(args);
 }
 
 template <typename ARGS>
-void ClusterStateTableActions<ARGS>::do_stopWatchDog_cancelRequests(
+void ClusterStateTableActions<ARGS>::do_stopWatchdog_cancelRequests(
     const ARGS& args)
 {
-    do_stopWatchDog(args);
+    do_stopWatchdog(args);
     do_cancelRequests(args);
 }
 
 template <typename ARGS>
 void ClusterStateTableActions<
-    ARGS>::do_stopWatchDog_cancelRequests_reapplyEvent(const ARGS& args)
+    ARGS>::do_stopWatchdog_cancelRequests_reapplyEvent(const ARGS& args)
 {
-    do_stopWatchDog(args);
+    do_stopWatchdog(args);
     do_cancelRequests(args);
     do_reapplyEvent(args);
 }
 
 template <typename ARGS>
-void ClusterStateTableActions<ARGS>::do_stopPFSMs_stopWatchDog_cancelRequests(
+void ClusterStateTableActions<ARGS>::do_stopPFSMs_stopWatchdog_cancelRequests(
     const ARGS& args)
 {
     do_stopPFSMs(args);
-    do_stopWatchDog(args);
+    do_stopWatchdog(args);
     do_cancelRequests(args);
 }
 
 template <typename ARGS>
 void ClusterStateTableActions<ARGS>::
-    do_stopWatchDog_initializeQueueKeyInfoMap_updatePrimaryInPFSMs(
+    do_stopWatchdog_initializeQueueKeyInfoMap_updatePrimaryInPFSMs(
         const ARGS& args)
 {
-    do_stopWatchDog(args);
+    do_stopWatchdog(args);
     do_initializeQueueKeyInfoMap(args);
     do_updatePrimaryInPFSMs(args);
 }
 
 template <typename ARGS>
 void ClusterStateTableActions<
-    ARGS>::do_stopWatchDog_cleanupLSNs_cancelRequests(const ARGS& args)
+    ARGS>::do_stopWatchdog_cleanupLSNs_cancelRequests(const ARGS& args)
 {
-    do_stopWatchDog(args);
+    do_stopWatchdog(args);
     do_cleanupLSNs(args);
     do_cancelRequests(args);
 }
 
 template <typename ARGS>
 void ClusterStateTableActions<ARGS>::
-    do_stopWatchDog_cleanupLSNs_cancelRequests_reapplyEvent(const ARGS& args)
+    do_stopWatchdog_cleanupLSNs_cancelRequests_reapplyEvent(const ARGS& args)
 {
-    do_stopWatchDog(args);
+    do_stopWatchdog(args);
     do_cleanupLSNs(args);
     do_cancelRequests(args);
     do_reapplyEvent(args);
@@ -815,10 +815,10 @@ void ClusterStateTableActions<ARGS>::
 
 template <typename ARGS>
 void ClusterStateTableActions<ARGS>::
-    do_stopPFSMs_stopWatchDog_cleanupLSNs_cancelRequests(const ARGS& args)
+    do_stopPFSMs_stopWatchdog_cleanupLSNs_cancelRequests(const ARGS& args)
 {
     do_stopPFSMs(args);
-    do_stopWatchDog(args);
+    do_stopWatchdog(args);
     do_cleanupLSNs(args);
     do_cancelRequests(args);
 }
