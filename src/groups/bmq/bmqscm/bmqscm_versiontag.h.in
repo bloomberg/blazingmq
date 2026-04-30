@@ -46,13 +46,13 @@
 //  #endif
 //..
 
-#define BMQ_VERSION_MAJOR 99
+#define BMQ_VERSION_MAJOR @PROJECT_VERSION_MAJOR@
 // BlazingMQ release major version
 
-#define BMQ_VERSION_MINOR 99
+#define BMQ_VERSION_MINOR @PROJECT_VERSION_MINOR@
 // BlazingMQ release minor version
 
-#define BMQ_VERSION_PATCH 99
+#define BMQ_VERSION_PATCH @PROJECT_VERSION_PATCH@
 // BlazingMQ patch level
 
 #define BMQ_MAKE_VERSION(major, minor) ((major) * 10000 + (minor) * 100)

@@ -1,6 +1,8 @@
 # bmq
 # ---
 
+project(bmq VERSION 99.99.99)
+
 if(NOT BMQ_TARGET_BMQ_NEEDED)
   return()
 endif()
@@ -8,6 +10,11 @@ endif()
 # Add the libbmq group library only installing the public headers
 add_library(bmq)
 set_property(TARGET bmq PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+# Configure version numbers from project before calling `target_bmq_style_uor`
+# so the generated header is installed.
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/bmqscm/bmqscm_versiontag.h.in"
+  "${CMAKE_CURRENT_SOURCE_DIR}/bmqscm/bmqscm_versiontag.h")
 
 if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|(Apple)?Clang")
   target_compile_options(bmq PRIVATE "-msse4.2")
