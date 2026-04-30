@@ -56,7 +56,7 @@ class AuthnCredential {
     /// Create an `AuthnCredential` object with the specified `mechanism`
     /// and `data`, using the specified `allocator` to supply memory.  If
     /// `allocator` is 0, the currently installed default allocator is used.
-    explicit AuthnCredential(const bsl::string&       mechanism,
+    explicit AuthnCredential(bsl::string_view         mechanism,
                              const bsl::vector<char>& data,
                              bslma::Allocator*        allocator = 0);
 

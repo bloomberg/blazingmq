@@ -39,7 +39,7 @@ AuthnCredential::AuthnCredential(bslma::Allocator* allocator)
     // NOTHING
 }
 
-AuthnCredential::AuthnCredential(const bsl::string&       mechanism,
+AuthnCredential::AuthnCredential(bsl::string_view         mechanism,
                                  const bsl::vector<char>& data,
                                  bslma::Allocator*        allocator)
 : d_mechanism(mechanism, allocator)
