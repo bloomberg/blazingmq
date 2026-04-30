@@ -224,12 +224,12 @@ class StorageManager BSLS_KEYWORD_FINAL
         // CREATORS
 
         /// Create a default `DataDestinations` object using `allocator`.
-        DataDestinations(bslma::Allocator* allocator);
+        DataDestinations(bslma::Allocator* allocator = 0);
 
         /// Create a `DataDestinations` object copying 'other' using
         /// `allocator`.
         DataDestinations(const DataDestinations& other,
-                         bslma::Allocator*       allocator);
+                         bslma::Allocator*       allocator = 0);
     };
 
   private:
@@ -369,15 +369,6 @@ class StorageManager BSLS_KEYWORD_FINAL
     ///         **must** be accessed in the associated Queue dispatcher thread
     ///         for the i-th partitionId.
     NodeToSeqNumCtxMapPartitionVec d_nodeToSeqNumCtxMapVec;
-
-    /// Vector indexed by partitionId, of temporary data push/drop destinations
-    /// for the immediate next sends, as per the logic of the Partition FSMs.
-    /// We need to recalculate the destinations before each send.
-    ///
-    /// THREAD: Except during the ctor, the i-th index of this data member
-    ///         **must** be accessed in the associated Queue dispatcher thread
-    ///         for the i-th partitionId.
-    bsl::vector<DataDestinations> d_tempDataDestinations;
 
     /// Vector of number of replica data responses received, indexed by
     /// partitionId.
@@ -522,6 +513,27 @@ class StorageManager BSLS_KEYWORD_FINAL
     void clearPrimaryForPartitionDispatched(int                  partitionId,
                                             mqbnet::ClusterNode* primary);
 
+    /// Determine which nodes to send ReplicaDataRequestPush/Drop based on the
+    /// `event`, and populate the specified `destinations`.
+    void determineDataDestinations(DataDestinations*    destinations,
+                                   const EventWithData& event);
+
+    /// For `partitionId`, send ReplicaDataRequestPush to the `destinations`
+    /// replicas`.
+    void sendReplicaDataRequestPush(const DataDestinations& destinations,
+                                    int                     partitionId);
+
+    /// For `partitionId`, send ReplicaDataRequestDrop to the `destinations`
+    /// replicas`.
+    void sendReplicaDataRequestDrop(const DataDestinations& destinations,
+                                    int                     partitionId);
+
+    /// For `partitionId`, send data chunks to the `destinations` replicas,
+    /// using `requestId` to track the corresponding ReplicaDataRequestPush.
+    void startSendDataChunksAsPrimary(const DataDestinations& destinations,
+                                      int                     partitionId,
+                                      int                     requestId);
+
     /// Process replica data request of type PULL received from the specified
     /// `source` with the specified `message`.
     void
@@ -648,16 +660,7 @@ class StorageManager BSLS_KEYWORD_FINAL
     void do_failurePrimaryStateResponse(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_determineDataDestinations(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_replicaDataRequestPush(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
-
     void do_replicaDataResponsePush(const EventWithData& event)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_replicaDataRequestDrop(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
 
     void do_replicaDataRequestPull(const EventWithData& event)
@@ -671,6 +674,12 @@ class StorageManager BSLS_KEYWORD_FINAL
 
     void do_failureReplicaDataResponsePush(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
+
+    void
+    do_sendDataToReplicas(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
+    void
+    do_sendDataToPrimary(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
     void do_bufferLiveData(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
@@ -688,9 +697,6 @@ class StorageManager BSLS_KEYWORD_FINAL
     void do_setPrimary(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
     void do_cleanupMetadata(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void
-    do_startSendDataChunks(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
     void do_setExpectedDataChunkRange(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
