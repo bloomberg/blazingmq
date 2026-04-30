@@ -502,13 +502,11 @@ int RecoveryManager::processSendDataChunks(
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS                  = 0,
-        rc_LOAD_FD_FAILURE          = -1,
-        rc_JOURNAL_ITERATOR_FAILURE = -2,
-        rc_INVALID_SEQUENCE_NUMBER  = -3,
-        rc_BUILDER_FAILURE          = -4,
-        rc_WRITE_FAILURE            = -5,
-        rc_INCOMPLETE_REPLAY        = -6
+        rc_SUCCESS                 = 0,
+        rc_INVALID_SEQUENCE_NUMBER = -1,
+        rc_BUILDER_FAILURE         = -2,
+        rc_WRITE_FAILURE           = -3,
+        rc_INCOMPLETE_REPLAY       = -4
     };
 
     if (beginSeqNum == endSeqNum) {
@@ -544,9 +542,9 @@ int RecoveryManager::processSendDataChunks(
                "rc: "
             << rc << BMQTSK_ALARMLOG_END;
 
+        // Failure to access our own storage files is non-transient, will
+        // terminate
         mqbu::ExitUtil::terminate(mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
-
-        return rc * 10 + rc_LOAD_FD_FAILURE;  // RETURN
     }
 
     bsl::shared_ptr<bsls::AtomicInt> journalChunkDeleterCounter =
@@ -583,9 +581,9 @@ int RecoveryManager::processSendDataChunks(
                "rc: "
             << rc << BMQTSK_ALARMLOG_END;
 
+        // Failure to access our own storage files is non-transient, will
+        // terminate
         mqbu::ExitUtil::terminate(mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
-
-        return rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
     }
 
     // Make initial 'journalIt.nextRecord()' call
@@ -598,9 +596,9 @@ int RecoveryManager::processSendDataChunks(
                "iterator,  rc : "
             << rc << BMQTSK_ALARMLOG_END;
 
+        // Failure to access our own storage files is non-transient, will
+        // terminate
         mqbu::ExitUtil::terminate(mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
-
-        return rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
     }
 
     bmqp_ctrlmsg::PartitionSequenceNumber currentSeqNum;
@@ -748,10 +746,11 @@ int RecoveryManager::processSendDataChunks(
                        "sequence number, rc: "
                     << rc << "." << BMQTSK_ALARMLOG_END;
 
+                // Failure to access our own storage files is non-transient,
+                // will terminate.  If we are able to find a valid sequence
+                // number in our journal, we must be able to call increment.
                 mqbu::ExitUtil::terminate(
                     mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
-
-                return rc * 10 + rc_INVALID_SEQUENCE_NUMBER;  // RETURN
             }
         }
     }

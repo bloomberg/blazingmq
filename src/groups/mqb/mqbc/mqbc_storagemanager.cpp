@@ -641,8 +641,19 @@ void StorageManager::processReplicaDataRequestPull(
     if (d_cluster_p->isStopping()) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
                       << " Partition [" << partitionId << "]: "
-                      << "Cluster is stopping; skipping processing of "
-                      << "ReplicaDataRequestPull.";
+                      << "Self node is stopping; sending a failure response "
+                      << "to ReplicaDataRequestPull.";
+
+        bmqp_ctrlmsg::ControlMessage controlMsg;
+        controlMsg.rId() = message.rId();
+
+        bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
+        status.category()            = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+        status.code()                = mqbi::ClusterErrorCode::e_STOPPING;
+        status.message()             = "Self node is stopping";
+
+        d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
+                                                              source);
         return;  // RETURN
     }
 
@@ -731,8 +742,19 @@ void StorageManager::processReplicaDataRequestPush(
     if (d_cluster_p->isStopping()) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
                       << " Partition [" << partitionId << "]: "
-                      << "Cluster is stopping; skipping processing of "
-                      << "ReplicaDataRequestPush.";
+                      << "Self node is stopping; sending a failure response "
+                      << "to ReplicaDataRequestPush.";
+
+        bmqp_ctrlmsg::ControlMessage controlMsg;
+        controlMsg.rId() = message.rId();
+
+        bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
+        status.category()            = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+        status.code()                = mqbi::ClusterErrorCode::e_STOPPING;
+        status.message()             = "Self node is stopping";
+
+        d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
+                                                              source);
         return;  // RETURN
     }
 
@@ -798,8 +820,19 @@ void StorageManager::processReplicaDataRequestDrop(
     if (d_cluster_p->isStopping()) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
                       << " Partition [" << partitionId << "]: "
-                      << "Cluster is stopping; skipping processing of "
-                      << "ReplicaDataRequestDrop.";
+                      << "Self node is stopping; sending a failure response "
+                      << "to ReplicaDataRequestDrop.";
+
+        bmqp_ctrlmsg::ControlMessage controlMsg;
+        controlMsg.rId() = message.rId();
+
+        bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
+        status.category()            = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+        status.code()                = mqbi::ClusterErrorCode::e_STOPPING;
+        status.message()             = "Self node is stopping";
+
+        d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
+                                                              source);
         return;  // RETURN
     }
 
@@ -2007,13 +2040,6 @@ void StorageManager::do_determineDataDestinations(const EventWithData& event)
     BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfPrimary());
 
     if (d_recoveryManager_mp->expectedDataChunks(partitionId)) {
-        BALL_LOG_INFO
-            << d_clusterData_p->identity().description() << " Partition ["
-            << partitionId
-            << "]: " << "Not determining data destinations yet because self "
-            << "primary is still expecting recovery data chunks from the "
-            << "up-to-date replica.";
-
         return;  // RETURN
     }
     // If self is not expecting data chunks, then self must be ready to serve
