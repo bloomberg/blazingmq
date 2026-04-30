@@ -1234,8 +1234,9 @@ void StorageManager::processReplicaDataResponseDispatched(
 
     switch (dataType) {
     case bmqp_ctrlmsg::ReplicaDataType::E_PULL: {
-        enqueuePartitionFSMEvent(PartitionFSM::Event::e_REPLICA_DATA_RSPN_PULL,
-                                 eventDataVec);
+        enqueuePartitionFSMEvent(
+            PartitionFSM::Event::e_REPLICA_DATA_RSPN_PULL,
+            eventDataVec);
     } break;
     case bmqp_ctrlmsg::ReplicaDataType::E_PUSH: {
         enqueuePartitionFSMEvent(PartitionFSM::Event::e_REPLICA_DATA_RSPN_PUSH,
@@ -1463,51 +1464,38 @@ void StorageManager::do_storeSelfSeq(const EventWithData& event)
     const EventData& eventDataVec = event.second;
     BSLS_ASSERT_SAFE(eventDataVec.size() >= 1);
 
-    const PartitionFSMEventData&    eventData   = eventDataVec[0];
-    const int                       partitionId = eventData.partitionId();
-    const PartitionSeqNumDataRange& dataRange =
-        eventData.partitionSeqNumDataRange();
+    const PartitionFSMEventData& eventData   = eventDataVec[0];
+    const int                    partitionId = eventData.partitionId();
 
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
-    BSLS_ASSERT_SAFE(dataRange.first <= dataRange.second);
 
     mqbnet::ClusterNode* selfNode = d_clusterData_p->membership().selfNode();
     NodeSeqNumContext&   nodeSeqNumCtx = d_nodeToSeqNumCtxMapVec.at(
         partitionId)[selfNode];
-    if (dataRange.second > bmqp_ctrlmsg::PartitionSequenceNumber()) {
-        // NOTE: `dataRange` is set *if and only if* the input event is
-        //       `e_REPLICA_DATA_RSPN_PULL`.  In that case, we need to update
-        //       self sequence number based on the received data range, which
-        //       is more up-to-date than what is persisted in storage or what
-        //       is reported by primary/replica state response.
-        BSLS_ASSERT_SAFE(event.first ==
-                         PartitionFSM::Event::e_REPLICA_DATA_RSPN_PULL);
-        nodeSeqNumCtx.d_seqNum = dataRange.second;
+
+    mqbs::FileStore* fs = d_fileStores[partitionId].get();
+    BSLS_ASSERT_SAFE(fs);
+    if (fs->isOpen()) {
+        nodeSeqNumCtx.d_seqNum.primaryLeaseId() = fs->primaryLeaseId();
+        nodeSeqNumCtx.d_seqNum.sequenceNumber() = fs->sequenceNumber();
     }
     else {
-        mqbs::FileStore* fs = d_fileStores[partitionId].get();
-        BSLS_ASSERT_SAFE(fs);
-        if (fs->isOpen()) {
-            nodeSeqNumCtx.d_seqNum.primaryLeaseId() = fs->primaryLeaseId();
-            nodeSeqNumCtx.d_seqNum.sequenceNumber() = fs->sequenceNumber();
-        }
-        else {
-            const int rc = d_recoveryManager_mp->recoverSeqNum(
-                &nodeSeqNumCtx.d_seqNum,
-                partitionId);
-            if (rc != 0) {
-                BMQTSK_ALARMLOG_ALARM("FILE_IO")
-                    << d_clusterData_p->identity().description()
-                    << " Partition [" << partitionId << "]: "
-                    << "Error while recovering sequence number, rc: " << rc
-                    << BMQTSK_ALARMLOG_END;
+        const int rc = d_recoveryManager_mp->recoverSeqNum(
+            &nodeSeqNumCtx.d_seqNum,
+            partitionId);
+        if (rc != 0) {
+            BMQTSK_ALARMLOG_ALARM("FILE_IO")
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId << "]: "
+                << "Error while recovering sequence number, rc: " << rc
+                << BMQTSK_ALARMLOG_END;
 
-                mqbu::ExitUtil::terminate(
-                    mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
-            }
+            mqbu::ExitUtil::terminate(
+                mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
         }
     }
+
     nodeSeqNumCtx.d_firstSyncPointAfterRolloverSeqNum =
         getSelfFirstSyncPointAfterRolloverSequenceNumber(partitionId);
 

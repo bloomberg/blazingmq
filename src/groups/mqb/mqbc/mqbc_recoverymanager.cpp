@@ -862,6 +862,7 @@ int RecoveryManager::processReceiveDataChunks(
         receiveDataCtx.d_currSeqNum.sequenceNumber() = fs->sequenceNumber();
 
         if (receiveDataCtx.d_currSeqNum == receiveDataCtx.d_endSeqNum) {
+            receiveDataCtx.d_expectChunks = false;
             return rc_LAST_DATA_CHUNK;  // RETURN
         }
         else if (receiveDataCtx.d_currSeqNum > receiveDataCtx.d_endSeqNum) {
@@ -1072,6 +1073,7 @@ int RecoveryManager::processReceiveDataChunks(
 
         receiveDataCtx.d_currSeqNum = recordSeqNum;
         if (receiveDataCtx.d_currSeqNum == receiveDataCtx.d_endSeqNum) {
+            receiveDataCtx.d_expectChunks = false;
             return rc_LAST_DATA_CHUNK;  // RETURN
         }
     }  // end: while loop
