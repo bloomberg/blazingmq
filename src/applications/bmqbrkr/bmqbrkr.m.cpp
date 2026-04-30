@@ -623,9 +623,9 @@ int main(int argc, const char* argv[])
              "Override port",
              balcl::TypeInfo(&port),
              balcl::OccurrenceInfo::e_OPTIONAL},
-            {"v|version",
+            {"version",
              "version",
-             "Show broker version number",
+             "show version number",
              balcl::TypeInfo(&version),
              balcl::OccurrenceInfo::e_OPTIONAL},
         };
