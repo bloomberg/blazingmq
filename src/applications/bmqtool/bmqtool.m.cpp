@@ -18,6 +18,9 @@
 #include <m_bmqtool_inpututil.h>
 #include <m_bmqtool_parameters.h>
 
+// MQB
+#include <mqbscm_version.h>
+
 // BMQ
 #include <bmqt_queueflags.h>
 #include <bmqt_sessionoptions.h>
@@ -163,8 +166,8 @@ static bool loadProfile(CommandLineParameters* params, const char* profilePath)
 enum ParseResult {
     /// Args parsed and validated, run the program.
     e_SUCCESS,
-    /// Handled informational flag (`--help`/`--dumpprofile`), caller should
-    /// exit 0.
+    /// Handled informational flag (`--help`/`--version`/`--dumpprofile`),
+    /// caller should exit 0.
     e_EXIT,
     /// Parse or validation failure.
     e_ERROR
@@ -199,6 +202,7 @@ parseArgs(Parameters* parameters, int argc, const char* argv[])
 
     bsl::string dummyProfile = "";
     bool        showHelp     = false;
+    bool        showVersion  = false;
     bool        dumpProfile  = false;
     bsl::string jsonMessageProperties;
     bsl::string jsonSubscriptions;
@@ -326,6 +330,11 @@ parseArgs(Parameters* parameters, int argc, const char* argv[])
          "show the help message",
          balcl::TypeInfo(&showHelp),
          balcl::OccurrenceInfo::e_OPTIONAL},
+        {"version",
+         "version",
+         "show version number",
+         balcl::TypeInfo(&showVersion),
+         balcl::OccurrenceInfo::e_OPTIONAL},
         {"dumpprofile",
          "dumpprofile",
          "Dump the JSON profile of the parameters and exit",
@@ -375,6 +384,12 @@ parseArgs(Parameters* parameters, int argc, const char* argv[])
 
     if (showHelp) {
         commandLine.printUsage();
+        return e_EXIT;  // RETURN
+    }
+
+    if (showVersion) {
+        bsl::cout << "bmqtool version: " << mqbscm::Version::s_versionDotString
+                  << "\n";
         return e_EXIT;  // RETURN
     }
 

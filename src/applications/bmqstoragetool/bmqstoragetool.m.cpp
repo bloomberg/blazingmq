@@ -22,6 +22,9 @@
 #include <m_bmqstoragetool_commandprocessorfactory.h>
 #include <m_bmqstoragetool_parameters.h>
 
+// MQB
+#include <mqbscm_version.h>
+
 // BDE
 #include <balcl_commandline.h>
 #include <bdls_filesystemutil.h>
@@ -36,7 +39,8 @@ using namespace m_bmqstoragetool;
 enum ParseResult {
     /// Args parsed and validated, run the program.
     e_SUCCESS,
-    /// Handled informational flag (`--help`), caller should exit 0.
+    /// Handled informational flag (`--help`/`--version`), caller should exit
+    /// 0.
     e_EXIT,
     /// Parse or validation failure.
     e_ERROR
@@ -47,7 +51,8 @@ static ParseResult parseArgs(CommandLineArguments& arguments,
                              const char*           argv[],
                              bslma::Allocator*     allocator)
 {
-    bool showHelp = false;
+    bool showHelp    = false;
+    bool showVersion = false;
 
     balcl::OptionInfo specTable[] = {
         {"r|record-type",
@@ -204,6 +209,11 @@ static ParseResult parseArgs(CommandLineArguments& arguments,
          "help",
          "print usage)",
          balcl::TypeInfo(&showHelp),
+         balcl::OccurrenceInfo::e_OPTIONAL},
+        {"version",
+         "version",
+         "show version number",
+         balcl::TypeInfo(&showVersion),
          balcl::OccurrenceInfo::e_OPTIONAL}};
     balcl::CommandLine commandLine(specTable);
     if (commandLine.parse(argc, argv) != 0) {
@@ -216,12 +226,17 @@ static ParseResult parseArgs(CommandLineArguments& arguments,
         return e_EXIT;  // RETURN
     }
 
+    if (showVersion) {
+        bsl::cout << "bmqstoragetool version: "
+                  << mqbscm::Version::s_versionDotString << "\n";
+        return e_EXIT;  // RETURN
+    }
+
     bsl::string error;
     if (!arguments.validate(&error, allocator)) {
         bsl::cerr << "Arguments validation failed:\n" << error;
         return e_ERROR;  // RETURN
     }
-
     return e_SUCCESS;
 }
 
