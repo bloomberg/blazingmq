@@ -66,10 +66,6 @@ class AuthnCredential {
     AuthnCredential& operator=(const AuthnCredential& rhs);
     AuthnCredential& operator=(bslmf::MovableRef<AuthnCredential> rhs);
 
-    // MANIPULATORS
-    AuthnCredential& setMechanism(const bsl::string& mechanism);
-    AuthnCredential& setData(const bsl::vector<char>& data);
-
     // ACCESSORS
     const bsl::string&       mechanism() const;
     const bsl::vector<char>& data() const;

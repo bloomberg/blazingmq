@@ -95,20 +95,6 @@ AuthnCredential::~AuthnCredential()
     // NOTHING
 }
 
-// MANIPULATORS
-
-AuthnCredential& AuthnCredential::setMechanism(const bsl::string& mechanism)
-{
-    d_mechanism = mechanism;
-    return *this;
-}
-
-AuthnCredential& AuthnCredential::setData(const bsl::vector<char>& data)
-{
-    d_data = data;
-    return *this;
-}
-
 // ACCESSORS
 
 const bsl::string& AuthnCredential::mechanism() const

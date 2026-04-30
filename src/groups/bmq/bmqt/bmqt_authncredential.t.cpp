@@ -72,19 +72,6 @@ static void test1_breathingTest()
         ASSERT(cred.data() == data);
     }
 
-    PV("Test setMechanism and setData");
-    {
-        bmqt::AuthnCredential cred;
-        bsl::string           mechanism("BMQ");
-        bsl::vector<char>     data(Local::makeAuthnData());
-
-        cred.setMechanism(mechanism);
-        cred.setData(data);
-
-        ASSERT(cred.mechanism() == mechanism);
-        ASSERT(cred.data() == data);
-    }
-
     PV("Test allocator usage");
     {
         bslma::Allocator*     allocator = bmqtst::TestHelperUtil::allocator();
