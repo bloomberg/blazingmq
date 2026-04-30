@@ -279,19 +279,18 @@ def test_sync_if_leader_missed_records(
 ) -> None:
     """
     Test leader journal file synchronization with cluster when it missed records.
-    - start cluster, leader is east1
+    - start cluster
     - put 2 messages
-    - kill replica east2, mark it as a `next_leader`
+    - kill a replica, mark it as the next leader
     - put 2 more messages
     - stop all running nodes
-    - start all nodes, force `next_leader` (east2) to be a leader
+    - start all nodes, force the next leader to become leader
     - check that leader (which is behind replicas) is synchronized with replicas (leader and replica journal files content is equal)
     """
 
     cluster = fsm_multi_cluster
     uri_priority = domain_urls.uri_priority
 
-    # Start cluster with leader `east1`
     leader = cluster.last_known_leader
 
     # Create producer and consumer
@@ -305,10 +304,10 @@ def test_sync_if_leader_missed_records(
     for i in range(1, 3):
         producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
 
-    # Mark `next_leader` node (east2)
+    # Select a replica to become the next leader
     next_leader = cluster.nodes(exclude=leader)[0]
 
-    # Kill `next_leader` node
+    # Kill the next leader node
     cluster.drain()
     next_leader.check_exit_code = False
     next_leader.kill()
@@ -358,21 +357,20 @@ def test_sync_if_leader_missed_rollover(
 ) -> None:
     """
     Test leader journal file synchronization with cluster when it missed rollover.
-    - start cluster, leader is east1
+    - start cluster
     - put 2 messages
-    - kill replica east2, mark it as a `next_leader`
+    - kill a replica, mark it as the next leader
     - put 2 more messages
     - initiate rollover via admin command
     - ensure that all nodes complete rollover
     - stop all running nodes
-    - start all nodes, force `next_leader` (east2) to be a leader
+    - start all nodes, force the next leader to become leader
     - check that leader (which is behind replicas) is synchronized with replicas (leader and replica journal files content is equal)
     """
 
     cluster = fsm_multi_cluster
     uri_priority = domain_urls.uri_priority
 
-    # Start cluster with leader `east1`
     leader = cluster.last_known_leader
 
     # Create producer and consumer
@@ -386,10 +384,10 @@ def test_sync_if_leader_missed_rollover(
     for i in range(1, 3):
         producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
 
-    # Mark `next_leader` node (east2)
+    # Select a replica to become the next leader
     next_leader = cluster.nodes(exclude=leader)[0]
 
-    # Kill `next_leader` node
+    # Kill the next leader node
     cluster.drain()
     next_leader.check_exit_code = False
     next_leader.kill()
