@@ -2054,19 +2054,16 @@ void StorageManager::do_determineDataDestinations(const EventWithData& event)
             nodeToSeqNumCtxMap.at(selfNode)
                 .d_firstSyncPointAfterRolloverSeqNum;
 
-    // Determine which nodes to check as potential data push/drop destinations
-    NodeToSeqNumCtxMapCIter nodesToCheckBegin;
-    NodeToSeqNumCtxMapCIter nodesToCheckEnd;
+    // Collect which nodes to check as potential data push/drop destinations
+    bsl::vector<NodeToSeqNumCtxMapCIter> nodesToCheck;
     if (eventType == PartitionFSM::Event::e_REPLICA_STATE_RSPN ||
         eventType == PartitionFSM::Event::e_PRIMARY_STATE_RQST) {
-        // Such events can contain a vector of responses
+        // Such events can contain a vector of responses.  Only check
+        // replicas that sent us a ReplicaStateResponse or
+        // PrimaryStateRequest.
         for (EventDataCIter eit = eventDataVec.cbegin();
              eit != eventDataVec.cend();
              eit++) {
-            // A replica must have triggered this event by sending us a
-            // `ReplicaStateResponse` or `PrimaryStateRequest`.  Hence,
-            // only check whether we need to send `ReplicaDataRequestPush` or
-            // `ReplicaDataRequestDrop` to that replica.
             mqbnet::ClusterNode* const source = eit->source();
             BSLS_ASSERT_SAFE(source);
             BSLS_ASSERT_SAFE(source->nodeId() != selfNode->nodeId());
@@ -2081,8 +2078,7 @@ void StorageManager::do_determineDataDestinations(const EventWithData& event)
                 continue;  // CONTINUE
             }
 
-            nodesToCheckBegin = cit;
-            nodesToCheckEnd   = ++cit;
+            nodesToCheck.push_back(cit);
         }
     }
     else {
@@ -2094,14 +2090,20 @@ void StorageManager::do_determineDataDestinations(const EventWithData& event)
             eventType == PartitionFSM::Event::e_SELF_HIGHEST_SEQ ||
             eventType == PartitionFSM::Event::e_REPLICA_DATA_RSPN_PULL);
 
-        nodesToCheckBegin = nodeToSeqNumCtxMap.cbegin();
-        nodesToCheckEnd   = nodeToSeqNumCtxMap.cend();
+        for (NodeToSeqNumCtxMapCIter cit = nodeToSeqNumCtxMap.cbegin();
+             cit != nodeToSeqNumCtxMap.cend();
+             cit++) {
+            nodesToCheck.push_back(cit);
+        }
     }
 
     // Determine data push/drop destinations
-    for (NodeToSeqNumCtxMapCIter cit = nodesToCheckBegin;
-         cit != nodesToCheckEnd;
-         cit++) {
+    typedef bsl::vector<NodeToSeqNumCtxMapCIter>::const_iterator
+        NodesToCheckCIter;
+    for (NodesToCheckCIter nit = nodesToCheck.cbegin();
+         nit != nodesToCheck.cend();
+         nit++) {
+        NodeToSeqNumCtxMapCIter cit = *nit;
         if (cit->first->nodeId() == selfNode->nodeId()) {
             continue;  // CONTINUE
         }
