@@ -36,7 +36,7 @@ def test_print_help(storagetool):
     """
 
     res = subprocess.run([storagetool, "-h"], capture_output=True, check=False)
-    assert res.returncode != EX_OK
+    assert res.returncode == EX_OK
     assert re.search(r"--help\s+print usage", res.stderr.decode()) is not None
 
 

@@ -159,7 +159,19 @@ static bool loadProfile(CommandLineParameters* params, const char* profilePath)
     return true;
 }
 
-static bool parseArgs(Parameters* parameters, int argc, const char* argv[])
+/// Enum for the result of command-line argument parsing.
+enum ParseResult {
+    /// Args parsed and validated, run the program.
+    e_SUCCESS,
+    /// Handled informational flag (`--help`/`--dumpprofile`), caller should
+    /// exit 0.
+    e_EXIT,
+    /// Parse or validation failure.
+    e_ERROR
+};
+
+static ParseResult
+parseArgs(Parameters* parameters, int argc, const char* argv[])
 {
     // Parameters is default initialized, get all default values ...
     CommandLineParameters params(bslma::Default::allocator());
@@ -181,7 +193,7 @@ static bool parseArgs(Parameters* parameters, int argc, const char* argv[])
     const char* profilePath = extractProfilePath(argc, argv);
     if (profilePath) {
         if (!loadProfile(&params, profilePath)) {
-            return false;  // RETURN
+            return e_ERROR;  // RETURN
         }
     }
 
@@ -356,57 +368,14 @@ static bool parseArgs(Parameters* parameters, int argc, const char* argv[])
          balcl::OccurrenceInfo(params.authnData())}};
 
     balcl::CommandLine commandLine(specTable);
-    if (commandLine.parse(argc, argv) != 0 || showHelp) {
+    if (commandLine.parse(argc, argv) != 0) {
         commandLine.printUsage();
-        return false;  // RETURN
+        return e_ERROR;  // RETURN
     }
 
-    bsl::string error;
-
-    if (jsonMessageProperties.length() > 0) {
-        if (!InputUtil::parseCommand(&params.messageProperties(),
-                                     &error,
-                                     jsonMessageProperties)) {
-            bsl::cerr << "Invalid message properties: "
-                      << jsonMessageProperties << "\n"
-                      << error << "\n";
-            return false;  // RETURN
-        }
-    }
-
-    if (jsonSubscriptions.length() > 0) {
-        if (!InputUtil::parseCommand(&params.subscriptions(),
-                                     &error,
-                                     jsonSubscriptions)) {
-            bsl::cerr << "Invalid subscriptions: " << jsonSubscriptions << "\n"
-                      << error << "\n";
-            return false;  // RETURN
-        }
-    }
-
-    if (!(parameters->from(bsl::cerr, params))) {
-        return false;  // RETURN
-    }
-
-    // Post parsing validation
-    if (!parameters->validate(&error)) {
-        bsl::cerr << "Invalid parameters:\n" << error << "\n";
-        return false;  // RETURN
-    }
-
-    if (commandLine.isSpecified("sequential message pattern")) {
-        if (commandLine.isSpecified("msgSize")) {
-            bsl::cerr << "'--msgsize' and '--messagepattern' are mutually "
-                         "exclusive parameters!"
-                      << bsl::endl;
-            return false;  // RETURN
-        }
-        if (commandLine.isSpecified("latency")) {
-            bsl::cerr << "'--latency' and '--messagepattern' are mutually "
-                         "exclusive parameters!"
-                      << bsl::endl;
-            return false;  // RETURN
-        }
+    if (showHelp) {
+        commandLine.printUsage();
+        return e_EXIT;  // RETURN
     }
 
     if (dumpProfile) {
@@ -425,10 +394,57 @@ static bool parseArgs(Parameters* parameters, int argc, const char* argv[])
         encoder.encode(os, params, options);
 
         bsl::cout << os.str() << "\n";
-        return false;  // RETURN
+        return e_EXIT;  // RETURN
     }
 
-    return true;
+    bsl::string error;
+
+    if (jsonMessageProperties.length() > 0) {
+        if (!InputUtil::parseCommand(&params.messageProperties(),
+                                     &error,
+                                     jsonMessageProperties)) {
+            bsl::cerr << "Invalid message properties: "
+                      << jsonMessageProperties << "\n"
+                      << error << "\n";
+            return e_ERROR;  // RETURN
+        }
+    }
+
+    if (jsonSubscriptions.length() > 0) {
+        if (!InputUtil::parseCommand(&params.subscriptions(),
+                                     &error,
+                                     jsonSubscriptions)) {
+            bsl::cerr << "Invalid subscriptions: " << jsonSubscriptions << "\n"
+                      << error << "\n";
+            return e_ERROR;  // RETURN
+        }
+    }
+
+    if (!(parameters->from(bsl::cerr, params))) {
+        return e_ERROR;  // RETURN
+    }
+
+    if (!parameters->validate(&error)) {
+        bsl::cerr << "Invalid parameters:\n" << error << "\n";
+        return e_ERROR;  // RETURN
+    }
+
+    if (commandLine.isSpecified("sequential message pattern")) {
+        if (commandLine.isSpecified("msgSize")) {
+            bsl::cerr << "'--msgsize' and '--messagepattern' are mutually "
+                         "exclusive parameters!"
+                      << bsl::endl;
+            return e_ERROR;  // RETURN
+        }
+        if (commandLine.isSpecified("latency")) {
+            bsl::cerr << "'--latency' and '--messagepattern' are mutually "
+                         "exclusive parameters!"
+                      << bsl::endl;
+            return e_ERROR;  // RETURN
+        }
+    }
+
+    return e_SUCCESS;
 }
 
 // ====
@@ -451,8 +467,11 @@ int main(int argc, const char* argv[])
 
     // Parameters parsing
     Parameters parameters(bslma::Default::allocator());
-    if (!parseArgs(&parameters, argc, argv)) {
-        return 1;  // RETURN
+    switch (parseArgs(&parameters, argc, argv)) {
+    case e_SUCCESS: break;
+    case e_EXIT: return 0;   // RETURN
+    case e_ERROR: return 1;  // RETURN
+    default: break;
     }
 
     if (parameters.mode() == ParametersMode::e_SYSCHK) {
