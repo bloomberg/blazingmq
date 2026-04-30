@@ -3587,7 +3587,6 @@ bool ClusterQueueHelper::subtractCounters(
     StreamsMap::iterator&                      itSubStream)
 {
     BSLS_ASSERT_SAFE(qinfo);
-    BSLS_ASSERT_SAFE(qinfo->d_queue_sp);
 
     SubQueueContext& subQueueContext = itSubStream.value();
 
