@@ -66,7 +66,6 @@
 #include <bmqp_event.h>
 #include <bmqp_protocol.h>
 #include <bmqp_schemaeventbuilder.h>
-#include <bmqscm_version.h>
 #include <bmqst_statcontext.h>
 #include <bmqsys_time.h>
 #include <bmqu_blob.h>
@@ -143,8 +142,11 @@ void loadBrokerIdentity(bmqp_ctrlmsg::ClientIdentity* identity,
         }
     }
 
+    // Hardcode broker SDK version to distinguish from versioned clients.
+    const int brokerSdkVersion = 999999;
+
     identity->protocolVersion() = bmqp::Protocol::k_VERSION;
-    identity->sdkVersion()      = bmqscm::Version::versionAsInt();
+    identity->sdkVersion()      = brokerSdkVersion;
     identity->clientType()      = bmqp_ctrlmsg::ClientType::E_TCPBROKER;
     identity->pid()             = bdls::ProcessUtil::getProcessId();
     identity->sessionId()       = ++s_sessionInstanceCount;
