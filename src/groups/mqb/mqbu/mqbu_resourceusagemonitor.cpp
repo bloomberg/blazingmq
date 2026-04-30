@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbu_resourceusagemonitor.cpp                                      -*-C++-*-
 #include <mqbu_resourceusagemonitor.h>
 
 #include <mqbscm_version.h>

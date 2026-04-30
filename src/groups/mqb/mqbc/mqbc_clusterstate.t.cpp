@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbc_clusterstate.t.cpp                                            -*-C++-*-
 #include <mqbc_clusterstate.h>
 
 // BDE

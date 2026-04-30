@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqvt_propertybag.cpp -*-C++-*-
 #include <bmqvt_propertybag.h>
 
 #include <bmqscm_version.h>

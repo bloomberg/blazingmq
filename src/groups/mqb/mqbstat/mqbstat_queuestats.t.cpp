@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbstat_queuestats.t.cpp                                           -*-C++-*-
 #include <mqbstat_queuestats.h>
 
 // MQB

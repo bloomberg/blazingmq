@@ -13,8 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqst_statcontext.t.cpp                                            -*-C++-*-
-
 // Component under test
 #include <bmqst_printutil.h>
 #include <bmqst_statcontext.h>

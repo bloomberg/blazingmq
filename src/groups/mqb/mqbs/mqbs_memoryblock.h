@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbs_memoryblock.h                                                 -*-C++-*-
 #ifndef INCLUDED_MQBS_MEMORYBLOCK
 #define INCLUDED_MQBS_MEMORYBLOCK
 

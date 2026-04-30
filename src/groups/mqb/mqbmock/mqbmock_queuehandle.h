@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbmock_queuehandle.h                                              -*-C++-*-
 #ifndef INCLUDED_MQBMOCK_QUEUEHANDLE
 #define INCLUDED_MQBMOCK_QUEUEHANDLE
 

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqtsk_alarmlog.cpp                                                -*-C++-*-
 #include <bmqtsk_alarmlog.h>
 
 #include <bmqscm_version.h>

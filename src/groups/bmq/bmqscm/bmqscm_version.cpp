@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqscm_version.cpp                                                 -*-C++-*-
 #include <bmqscm_version.h>
 
 #include <bmqscm_version.h>

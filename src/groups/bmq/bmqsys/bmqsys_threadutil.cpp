@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqsys_threadutil.cpp                                              -*-C++-*-
 #include <bmqsys_threadutil.h>
 
 #include <bmqscm_version.h>

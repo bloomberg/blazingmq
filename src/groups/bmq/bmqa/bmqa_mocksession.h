@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqa_mocksession.h                                                 -*-C++-*-
 #ifndef INCLUDED_BMQA_MOCKSESSION
 #define INCLUDED_BMQA_MOCKSESSION
 

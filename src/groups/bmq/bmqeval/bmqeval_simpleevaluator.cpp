@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqeval_simpleevaluator.cpp                                        -*-C++-*-
 #include <bmqeval_simpleevaluator.h>
 
 #include <bmqeval_simpleevaluatorparser.hpp>

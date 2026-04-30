@@ -13,8 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbblp_pushstream.cpp                                              -*-C++-*-
-
 #include <mqbblp_pushstream.h>
 
 #include <bsl_memory.h>

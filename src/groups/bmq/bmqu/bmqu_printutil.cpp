@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqu_printutil.cpp                                                 -*-C++-*-
 #include <bmqu_printutil.h>
 
 #include <bmqscm_version.h>

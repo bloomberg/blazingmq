@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbauthn_authenticationcontroller.h                          -*-C++-*-
 #ifndef INCLUDED_MQBAUTHN_AUTHENTICATIONCONTROLLER
 #define INCLUDED_MQBAUTHN_AUTHENTICATIONCONTROLLER
 

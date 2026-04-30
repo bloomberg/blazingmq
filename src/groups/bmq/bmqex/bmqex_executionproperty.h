@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqex_executionproperty.h                                          -*-C++-*-
 #ifndef INCLUDED_BMQEX_EXECUTIONPROPERTY
 #define INCLUDED_BMQEX_EXECUTIONPROPERTY
 

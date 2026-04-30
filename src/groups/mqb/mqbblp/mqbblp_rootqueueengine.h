@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbblp_rootqueueengine.h                                           -*-C++-*-
 #ifndef INCLUDED_MQBBLP_ROOTQUEUEENGINE
 #define INCLUDED_MQBBLP_ROOTQUEUEENGINE
 

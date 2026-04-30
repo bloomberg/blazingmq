@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqp_storagemessageiterator.h                                      -*-C++-*-
 #ifndef INCLUDED_BMQP_STORAGEMESSAGEITERATOR
 #define INCLUDED_BMQP_STORAGEMESSAGEITERATOR
 

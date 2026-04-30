@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbcmd_humanprinter.h                                              -*-C++-*-
 #ifndef INCLUDED_MQBCMD_HUMANPRINTER
 #define INCLUDED_MQBCMD_HUMANPRINTER
 

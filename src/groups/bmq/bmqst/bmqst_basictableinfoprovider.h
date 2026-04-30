@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqst_basictableinfoprovider.h -*-C++-*-
 #ifndef INCLUDED_BMQST_BASICTABLEINFOPROVIDER
 #define INCLUDED_BMQST_BASICTABLEINFOPROVIDER
 

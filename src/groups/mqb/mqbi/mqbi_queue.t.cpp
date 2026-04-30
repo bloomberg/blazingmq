@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbi_queue.t.cpp                                                   -*-C++-*-
 #include <mqbi_queue.h>
 
 // BMQ

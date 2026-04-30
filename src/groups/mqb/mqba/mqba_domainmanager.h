@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqba_domainmanager.h                                               -*-C++-*-
 #ifndef INCLUDED_MQBA_DOMAINMANAGER
 #define INCLUDED_MQBA_DOMAINMANAGER
 

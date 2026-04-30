@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqeval_simpleevaluator.t.cpp                                      -*-C++-*-
 #include <bsl_unordered_map.h>
 
 #include <bmqeval_simpleevaluator.h>

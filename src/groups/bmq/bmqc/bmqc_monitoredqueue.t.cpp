@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqc_monitoredqueue.t.cpp                                          -*-C++-*-
 #include <bmqc_monitoredqueue.h>
 
 #include <bmqu_memoutstream.h>

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbmock_domain.cpp                                                 -*-C++-*-
 #include <mqbmock_domain.h>
 
 #include <mqbscm_version.h>

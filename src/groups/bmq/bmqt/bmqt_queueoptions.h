@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqt_queueoptions.h                                                -*-C++-*-
 #ifndef INCLUDED_BMQT_QUEUEOPTIONS
 #define INCLUDED_BMQT_QUEUEOPTIONS
 

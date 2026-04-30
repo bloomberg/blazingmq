@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbc_clusterutil.h                                                 -*-C++-*-
 #ifndef INCLUDED_MQBC_CLUSTERUTIL
 #define INCLUDED_MQBC_CLUSTERUTIL
 

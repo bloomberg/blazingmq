@@ -13,8 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqu_objectplaceholder_cpp03.h                                     -*-C++-*-
-
 // Automatically generated file.  **DO NOT EDIT**
 
 #ifndef INCLUDED_BMQU_OBJECTPLACEHOLDER_CPP03

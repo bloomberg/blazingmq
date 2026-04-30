@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbsi_log.h                                                        -*-C++-*-
 #ifndef INCLUDED_MQBSI_LOG
 #define INCLUDED_MQBSI_LOG
 

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbs_filestoreutil.h                                               -*-C++-*-
 #ifndef INCLUDED_MQBS_FILESTOREUTIL
 #define INCLUDED_MQBS_FILESTOREUTIL
 

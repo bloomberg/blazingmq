@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqu_blobiterator.t.cpp -*-C++-*-
 #include <bmqu_blobiterator.h>
 
 #include <bmqtst_blobtestutil.h>

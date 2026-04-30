@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqt_hosthealthstate.h                                             -*-C++-*-
 #ifndef INCLUDED_BMQT_HOSTHEALTHSTATE
 #define INCLUDED_BMQT_HOSTHEALTHSTATE
 

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbmock_queueengine.cpp                                            -*-C++-*-
 #include <mqbmock_queueengine.h>
 
 #include <mqbscm_version.h>

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqimp_eventqueue.h                                                -*-C++-*-
 #ifndef INCLUDED_BMQIMP_EVENTQUEUE
 #define INCLUDED_BMQIMP_EVENTQUEUE
 

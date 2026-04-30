@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqst_statvalue.cpp                                                -*-C++-*-
 #include <bmqst_statvalue.h>
 
 #include <bdlb_bitutil.h>

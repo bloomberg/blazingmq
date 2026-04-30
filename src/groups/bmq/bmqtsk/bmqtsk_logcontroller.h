@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqtsk_logcontroller.h                                             -*-C++-*-
 #ifndef INCLUDED_BMQTSK_LOGCONTROLLER
 #define INCLUDED_BMQTSK_LOGCONTROLLER
 

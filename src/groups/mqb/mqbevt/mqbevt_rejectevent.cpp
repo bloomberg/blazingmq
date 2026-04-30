@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbevt_rejectevent.cpp                                             -*-C++-*-
 #include <mqbevt_rejectevent.h>
 
 #include <mqbscm_version.h>

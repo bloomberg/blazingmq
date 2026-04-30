@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqvt_valueorerror.h -*-C++-*-
 #ifndef INCLUDED_BMQT_VALUEORERROR
 #define INCLUDED_BMQT_VALUEORERROR
 

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbmock_clusterstateledgeriterator.h                               -*-C++-*-
 #ifndef INCLUDED_MQBMOCK_CLUSTERSTATELEDGERITERATOR
 #define INCLUDED_MQBMOCK_CLUSTERSTATELEDGERITERATOR
 

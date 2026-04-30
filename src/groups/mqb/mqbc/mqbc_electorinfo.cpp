@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbc_electorinfo.cpp                                               -*-C++-*-
 #include <mqbc_electorinfo.h>
 
 #include <mqbscm_version.h>

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbc_clusterstatemanager.cpp                                       -*-C++-*-
 #include <bsla_unused.h>
 #include <mqbc_clusterstatemanager.h>
 

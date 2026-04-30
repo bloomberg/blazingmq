@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqu_operationchain.t.cpp                                          -*-C++-*-
 #include <bmqu_operationchain.h>
 
 // TEST DRIVER

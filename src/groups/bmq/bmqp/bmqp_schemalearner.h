@@ -13,8 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqp_schemalearner.h                                               -*-C++-*-
-
 #ifndef INCLUDED_BMQP_SCHEMALEARNER
 #define INCLUDED_BMQP_SCHEMALEARNER
 

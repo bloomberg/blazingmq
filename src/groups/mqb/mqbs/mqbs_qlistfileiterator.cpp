@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbs_qlistfileiterator.cpp                                         -*-C++-*-
 #include <mqbs_qlistfileiterator.h>
 
 #include <mqbscm_version.h>

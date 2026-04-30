@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqio_tcpendpoint.h                                                -*-C++-*-
 #ifndef INCLUDED_BMQIO_TCPENDPOINT
 #define INCLUDED_BMQIO_TCPENDPOINT
 

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbmock_storagemanager.h                                           -*-C++-*-
 #ifndef INCLUDED_MQBMOCK_STORAGEMANAGER
 #define INCLUDED_MQBMOCK_STORAGEMANAGER
 

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqp_crc32c.cpp                                                    -*-C++-*-
 #include <bmqp_crc32c.h>
 
 #include <bmqscm_version.h>

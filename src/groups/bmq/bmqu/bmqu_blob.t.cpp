@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqu_blob.t.cpp                                                    -*-C++-*-
 #include <bmqtst_blobtestutil.h>
 #include <bmqu_blob.h>
 #include <bmqu_memoutstream.h>

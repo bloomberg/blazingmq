@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbsi_ledger.cpp                                                   -*-C++-*-
 #include <mqbsi_ledger.h>
 
 #include <mqbscm_version.h>

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbauthn_authenticationcontroller.cpp                          -*-C++-*-
 #include <mqbauthn_authenticationcontroller.h>
 
 #include <mqbscm_version.h>

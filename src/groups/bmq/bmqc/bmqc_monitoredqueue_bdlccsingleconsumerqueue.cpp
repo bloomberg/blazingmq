@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqc_monitoredqueue_bdlccsingleconsumerqueue.cpp                   -*-C++-*-
 #include <bmqc_monitoredqueue_bdlccsingleconsumerqueue.h>
 
 #include <bmqscm_version.h>

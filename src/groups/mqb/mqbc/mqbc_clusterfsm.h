@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbc_clusterfsm.h                                                  -*-C++-*-
 #ifndef INCLUDED_MQBC_CLUSTERFSM
 #define INCLUDED_MQBC_CLUSTERFSM
 

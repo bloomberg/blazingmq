@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqp_controlmessageutil.t.cpp                                      -*-C++-*-
 #include <bmqp_controlmessageutil.h>
 
 // BMQ

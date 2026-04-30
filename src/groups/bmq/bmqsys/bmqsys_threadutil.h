@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqsys_threadutil.h                                                -*-C++-*-
 #ifndef INCLUDED_BMQSYS_THREADUTIL
 #define INCLUDED_BMQSYS_THREADUTIL
 

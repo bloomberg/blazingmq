@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbstat_queuestats.h                                               -*-C++-*-
 #ifndef INCLUDED_MQBSTAT_QUEUESTATS
 #define INCLUDED_MQBSTAT_QUEUESTATS
 

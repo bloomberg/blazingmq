@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqt_messageeventtype.cpp                                          -*-C++-*-
 #include <bmqt_messageeventtype.h>
 
 #include <bmqscm_version.h>

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbplug_pluginmanager.h                                            -*-C++-*-
 #ifndef INCLUDED_MQBPLUG_PLUGINMANAGER
 #define INCLUDED_MQBPLUG_PLUGINMANAGER
 

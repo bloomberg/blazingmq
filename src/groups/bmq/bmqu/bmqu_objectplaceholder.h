@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqu_objectplaceholder.h                                           -*-C++-*-
 #ifndef INCLUDED_BMQU_OBJECTPLACEHOLDER
 #define INCLUDED_BMQU_OBJECTPLACEHOLDER
 

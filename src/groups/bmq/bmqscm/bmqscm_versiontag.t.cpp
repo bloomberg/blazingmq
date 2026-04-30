@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqscm_versiontag.t.cpp                                            -*-C++-*-
 #include <bmqscm_versiontag.h>
 
 // BDE

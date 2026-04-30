@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqa_sessionevent.h                                                -*-C++-*-
 #ifndef INCLUDED_BMQA_SESSIONEVENT
 #define INCLUDED_BMQA_SESSIONEVENT
 

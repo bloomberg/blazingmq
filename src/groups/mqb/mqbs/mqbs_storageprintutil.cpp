@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbs_storageprintutil.cpp                                          -*-C++-*-
 #include <mqbs_storageprintutil.h>
 
 #include <mqbscm_version.h>

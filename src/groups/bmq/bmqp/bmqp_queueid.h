@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqp_queueid.h                                                     -*-C++-*-
 #ifndef INCLUDED_BMQP_QUEUEID
 #define INCLUDED_BMQP_QUEUEID
 

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbi_domain.h                                                      -*-C++-*-
 #ifndef INCLUDED_MQBI_DOMAIN
 #define INCLUDED_MQBI_DOMAIN
 

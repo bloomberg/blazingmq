@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqu_weakmemfn.h                                                   -*-C++-*-
 #ifndef INCLUDED_BMQU_WEAKMEMFN
 #define INCLUDED_BMQU_WEAKMEMFN
 

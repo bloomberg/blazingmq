@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqst_printutil.h -*-C++-*-
 #ifndef INCLUDED_BMQST_PRINTUTIL
 #define INCLUDED_BMQST_PRINTUTIL
 

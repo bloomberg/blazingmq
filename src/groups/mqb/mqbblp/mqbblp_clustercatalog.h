@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbblp_clustercatalog.h                                            -*-C++-*-
 #ifndef INCLUDED_MQBBLP_CLUSTERCATALOG
 #define INCLUDED_MQBBLP_CLUSTERCATALOG
 

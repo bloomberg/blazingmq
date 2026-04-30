@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbi_queueengine.cpp                                               -*-C++-*-
 #include <mqbi_queueengine.h>
 
 #include <mqbscm_version.h>

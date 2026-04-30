@@ -13,5 +13,4 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbscm_versiontag.cpp                                              -*-C++-*-
 #include <mqbscm_versiontag.h>

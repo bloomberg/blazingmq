@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbauthn_anonpasspluginlibrary.h                             -*-C++-*-
 #ifndef INCLUDED_MQBAUTHN_ANONPASSPLUGINLIBRARY
 #define INCLUDED_MQBAUTHN_ANONPASSPLUGINLIBRARY
 

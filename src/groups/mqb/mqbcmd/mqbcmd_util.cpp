@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbcmd_util.cpp                                                    -*-C++-*-
 #include <mqbcmd_humanprinter.h>
 #include <mqbcmd_jsonprinter.h>
 #include <mqbcmd_util.h>

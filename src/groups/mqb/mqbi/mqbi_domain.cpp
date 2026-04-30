@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbi_domain.cpp                                                    -*-C++-*-
 #include <mqbi_domain.h>
 
 #include <mqbscm_version.h>

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqst_tableschema.cpp                                              -*-C++-*-
 #include <bmqst_tableschema.h>
 
 #include <bdlf_bind.h>

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbu_loadbalancer.h                                                -*-C++-*-
 #ifndef INCLUDED_MQBU_LOADBALANCER
 #define INCLUDED_MQBU_LOADBALANCER
 

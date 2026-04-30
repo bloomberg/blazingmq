@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// m_bmqtool_application.h                                            -*-C++-*-
 #ifndef INCLUDED_M_BMQTOOL_APPLICATION
 #define INCLUDED_M_BMQTOOL_APPLICATION
 

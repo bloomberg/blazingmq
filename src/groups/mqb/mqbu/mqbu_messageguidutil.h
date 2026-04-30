@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbu_messageguidutil.h                                             -*-C++-*-
 #ifndef INCLUDED_MQBU_MESSAGEGUIDUTIL
 #define INCLUDED_MQBU_MESSAGEGUIDUTIL
 

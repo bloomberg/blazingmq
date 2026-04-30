@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbcmd_humanprinter.cpp                                            -*-C++-*-
 #include <mqbcmd_humanprinter.h>
 
 #include <mqbscm_version.h>

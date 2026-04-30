@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbstat_domainstats.cpp                                            -*-C++-*-
 #include <mqbstat_domainstats.h>
 
 #include <mqbscm_version.h>

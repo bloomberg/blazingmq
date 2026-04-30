@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbs_filesystemutil.h                                              -*-C++-*-
 #ifndef INCLUDED_MQBS_FILESYSTEMUTIL
 #define INCLUDED_MQBS_FILESYSTEMUTIL
 

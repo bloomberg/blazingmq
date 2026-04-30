@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqma_countingallocator.t.cpp                                      -*-C++-*-
 #include <bmqma_countingallocator.h>
 
 #include <bmqst_basictableinfoprovider.h>

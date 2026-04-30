@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqu_jsonprinter.h                                                 -*-C++-*-
 #ifndef INCLUDED_BMQU_JSONPRINTER
 #define INCLUDED_BMQU_JSONPRINTER
 

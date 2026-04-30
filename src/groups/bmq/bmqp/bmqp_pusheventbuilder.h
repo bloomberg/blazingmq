@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqp_pusheventbuilder.h                                            -*-C++-*-
 #ifndef INCLUDED_BMQP_PUSHEVENTBUILDER
 #define INCLUDED_BMQP_PUSHEVENTBUILDER
 

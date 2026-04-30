@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqma_countingallocatorutil.h                                      -*-C++-*-
 #ifndef INCLUDED_BMQMA_COUNTINGALLOCATORUTIL
 #define INCLUDED_BMQMA_COUNTINGALLOCATORUTIL
 

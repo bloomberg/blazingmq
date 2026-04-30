@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqst_value.h -*-C++-*-
 #ifndef INCLUDED_BMQST_VALUE
 #define INCLUDED_BMQST_VALUE
 

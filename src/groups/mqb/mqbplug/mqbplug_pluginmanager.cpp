@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbplug_pluginmanager.cpp                                          -*-C++-*-
 #include <mqbplug_pluginmanager.h>
 
 #include <mqbscm_version.h>

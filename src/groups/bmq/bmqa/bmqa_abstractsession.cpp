@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqa_abstractsession.cpp                                           -*-C++-*-
 #include <bmqa_abstractsession.h>
 
 #include <bmqscm_version.h>

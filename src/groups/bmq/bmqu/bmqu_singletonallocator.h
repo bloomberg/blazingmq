@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqu_singletonallocator.h                                          -*-C++-*-
 #ifndef INCLUDED_BMQU_SINGLETONALLOCATOR
 #define INCLUDED_BMQU_SINGLETONALLOCATOR
 

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbblp_queuestate.cpp                                              -*-C++-*-
 #include <mqbblp_queuestate.h>
 
 #include <mqbscm_version.h>

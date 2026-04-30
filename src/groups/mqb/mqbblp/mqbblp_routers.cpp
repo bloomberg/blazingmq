@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbblp_routers.cpp                                                 -*-C++-*-
 #include <mqbblp_routers.h>
 
 #include <mqbscm_version.h>

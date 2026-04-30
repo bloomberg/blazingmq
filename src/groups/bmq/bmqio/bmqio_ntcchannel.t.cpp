@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqio_ntcchannel.t.cpp                                             -*-C++-*-
 #include <bmqio_ntcchannel.h>
 
 // BMQ

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbblp_remotequeue.h                                               -*-C++-*-
 #ifndef INCLUDED_MQBBLP_REMOTEQUEUE
 #define INCLUDED_MQBBLP_REMOTEQUEUE
 

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqu_singletonallocator.cpp                                        -*-C++-*-
 #include <bmqu_singletonallocator.h>
 
 #include <bmqscm_version.h>

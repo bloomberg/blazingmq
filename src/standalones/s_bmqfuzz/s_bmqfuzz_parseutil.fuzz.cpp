@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// s_bmqfuzz_parseutil.fuzz.cpp                                       -*-C++-*-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbnet_negotiationcontext.cpp                           -*-C++-*-
 #include <mqbnet_negotiationcontext.h>
 
 #include <mqbscm_version.h>

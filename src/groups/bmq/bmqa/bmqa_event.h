@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqa_event.h                                                       -*-C++-*-
 #ifndef INCLUDED_BMQA_EVENT
 #define INCLUDED_BMQA_EVENT
 

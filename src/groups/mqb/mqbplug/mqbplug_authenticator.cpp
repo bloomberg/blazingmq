@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbplug_authenticator.cpp                                          -*-C++-*-
 #include <mqbplug_authenticator.h>
 
 #include <mqbscm_version.h>

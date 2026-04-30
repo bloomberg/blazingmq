@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqsys_time.cpp                                                    -*-C++-*-
 #include <bmqsys_time.h>
 
 #include <bmqscm_version.h>

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqimp_authenticatedchannelfactory.t.cpp                          -*-C++-*-
 #include <bmqimp_authenticatedchannelfactory.h>
 
 // TEST DRIVER

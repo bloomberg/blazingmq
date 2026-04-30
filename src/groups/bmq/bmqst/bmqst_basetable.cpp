@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqst_basetable.cpp -*-C++-*-
 #include <bmqst_basetable.h>
 
 #include <bmqscm_version.h>

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbnet_authenticationcontext.h                                -*-C++-*-
 #ifndef INCLUDED_MQBNET_AUTHENTICATIONCONTEXT
 #define INCLUDED_MQBNET_AUTHENTICATIONCONTEXT
 

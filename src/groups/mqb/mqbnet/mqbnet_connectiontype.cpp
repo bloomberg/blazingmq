@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbnet_connectiontype.cpp                                    -*-C++-*-
 #include <mqbnet_connectiontype.h>
 
 #include <mqbscm_version.h>

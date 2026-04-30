@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbevt_recoveryevent.h                                             -*-C++-*-
 #ifndef INCLUDED_MQBEVT_RECOVERYEVENT
 #define INCLUDED_MQBEVT_RECOVERYEVENT
 

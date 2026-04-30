@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbblp_cluster.cpp                                                 -*-C++-*-
 #include <mqbblp_cluster.h>
 
 #include <mqbscm_version.h>

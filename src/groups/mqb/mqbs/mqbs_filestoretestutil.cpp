@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbs_filestoretestutil.cpp                                         -*-C++-*-
 #include <mqbs_filestoretestutil.h>
 
 #include <mqbscm_version.h>

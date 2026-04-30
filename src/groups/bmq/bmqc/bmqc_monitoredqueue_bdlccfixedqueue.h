@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqc_monitoredqueue_bdlccfixedqueue.h                              -*-C++-*-
 #ifndef INCLUDED_BMQC_MONITOREDQUEUE_BDLCCFIXEDQUEUE
 #define INCLUDED_BMQC_MONITOREDQUEUE_BDLCCFIXEDQUEUE
 

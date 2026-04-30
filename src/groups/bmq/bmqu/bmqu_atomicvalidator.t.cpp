@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqu_atomicvalidator.t.cpp                                         -*-C++-*-
 #include <bmqu_atomicvalidator.h>
 
 #include <bmqsys_threadutil.h>

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbi_cluster.h                                                     -*-C++-*-
 #ifndef INCLUDED_MQBI_CLUSTER
 #define INCLUDED_MQBI_CLUSTER
 

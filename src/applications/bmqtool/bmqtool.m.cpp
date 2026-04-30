@@ -13,8 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqtool.m.cpp                                                      -*-C++-*-
-
 // bmqtool
 #include <m_bmqtool_application.h>
 #include <m_bmqtool_inpututil.h>

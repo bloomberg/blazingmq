@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbevt_putevent.cpp                                                -*-C++-*-
 #include <mqbevt_putevent.h>
 
 #include <mqbscm_version.h>

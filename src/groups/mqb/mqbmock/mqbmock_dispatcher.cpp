@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbmock_dispatcher.cpp                                             -*-C++-*-
 #include <mqbmock_dispatcher.h>
 
 #include <mqbscm_version.h>

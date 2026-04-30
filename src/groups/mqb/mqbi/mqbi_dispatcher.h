@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbi_dispatcher.h                                                  -*-C++-*-
 #ifndef INCLUDED_MQBI_DISPATCHER
 #define INCLUDED_MQBI_DISPATCHER
 

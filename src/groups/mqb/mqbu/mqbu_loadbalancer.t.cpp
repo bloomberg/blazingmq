@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbu_loadbalancer.t.cpp                                            -*-C++-*-
 #include <mqbu_loadbalancer.h>
 
 #include <bsl_limits.h>

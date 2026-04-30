@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqsys_operationlogger.h                                           -*-C++-*-
 #ifndef INCLUDED_BMQSYS_OPERATIONLOGGER
 #define INCLUDED_BMQSYS_OPERATIONLOGGER
 

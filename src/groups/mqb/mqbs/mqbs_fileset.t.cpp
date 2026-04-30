@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbs_fileset.t.cpp                                                 -*-C++-*-
 #include <mqbs_fileset.h>
 
 // MQB

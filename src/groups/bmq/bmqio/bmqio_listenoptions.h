@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqio_listenoptions.h                                              -*-C++-*-
 #ifndef INCLUDED_BMQIO_LISTENOPTIONS
 #define INCLUDED_BMQIO_LISTENOPTIONS
 

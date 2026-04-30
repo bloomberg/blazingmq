@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbs_journalfileiterator.h                                         -*-C++-*-
 #ifndef INCLUDED_MQBS_JOURNALFILEITERATOR
 #define INCLUDED_MQBS_JOURNALFILEITERATOR
 

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqio_listenoptions.cpp                                            -*-C++-*-
 #include <bmqio_listenoptions.h>
 
 #include <bmqscm_version.h>

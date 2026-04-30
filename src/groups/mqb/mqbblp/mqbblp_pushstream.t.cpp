@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbblp_pushstream.t.cpp                                            -*-C++-*-
 #include <mqbblp_pushstream.h>
 
 // MQB

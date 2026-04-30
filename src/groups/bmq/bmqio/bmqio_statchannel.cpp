@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqio_statchannel.cpp                                              -*-C++-*-
 #include <bmqio_statchannel.h>
 
 #include <bmqscm_version.h>

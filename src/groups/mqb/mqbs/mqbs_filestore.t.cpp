@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbs_filestore.t.cpp                                               -*-C++-*-
 #include <mqbs_filestore.h>
 
 // MQB

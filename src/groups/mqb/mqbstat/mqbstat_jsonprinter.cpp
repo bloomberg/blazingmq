@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbstat_jsonprinter.cpp                                            -*-C++-*-
 #include <mqbstat_jsonprinter.h>
 
 #include <mqbscm_version.h>

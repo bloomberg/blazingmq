@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbevt_receiptevent.h                                              -*-C++-*-
 #ifndef INCLUDED_MQBEVT_RECEIPTEVENT
 #define INCLUDED_MQBEVT_RECEIPTEVENT
 

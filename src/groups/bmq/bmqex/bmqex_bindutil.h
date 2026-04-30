@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqex_bindutil.h                                                   -*-C++-*-
 #ifndef INCLUDED_BMQEX_BINDUTIL
 #define INCLUDED_BMQEX_BINDUTIL
 

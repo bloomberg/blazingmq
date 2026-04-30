@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqio_status.cpp                                                   -*-C++-*-
 #include <bmqio_status.h>
 
 #include <bmqscm_version.h>

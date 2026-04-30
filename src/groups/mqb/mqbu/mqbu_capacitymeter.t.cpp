@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbu_capacitymeter.t.cpp                                           -*-C++-*-
 #include <mqbu_capacitymeter.h>
 
 #include <bmqtst_scopedlogobserver.h>

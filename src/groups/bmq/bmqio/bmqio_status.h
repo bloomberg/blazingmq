@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqio_status.h                                                     -*-C++-*-
 #ifndef INCLUDED_BMQIO_STATUS
 #define INCLUDED_BMQIO_STATUS
 

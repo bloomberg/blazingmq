@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqba_dispatchereventsource.t.cpp                                   -*-C++-*-
 #include <mqba_dispatchereventsource.h>
 
 // BMQ

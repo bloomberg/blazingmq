@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqba_adminsession.cpp                                              -*-C++-*-
 #include <mqba_adminsession.h>
 
 #include <mqbscm_version.h>

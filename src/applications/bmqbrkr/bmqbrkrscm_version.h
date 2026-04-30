@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqbrkrscm_version.h                                               -*-C++-*-
 #ifndef INCLUDED_BMQBRKRSCM_VERSION
 #define INCLUDED_BMQBRKRSCM_VERSION
 

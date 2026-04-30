@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbstat_clusterstats.h                                             -*-C++-*-
 #ifndef INCLUDED_MQBSTAT_CLUSTERSTATS
 #define INCLUDED_MQBSTAT_CLUSTERSTATS
 

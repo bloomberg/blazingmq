@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqio_resolveutil.t.cpp                                            -*-C++-*-
 #include <bmqio_resolveutil.h>
 
 // TEST DRIVER

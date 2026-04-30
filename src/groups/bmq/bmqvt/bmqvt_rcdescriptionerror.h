@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqvt_rcdescriptionerror.h -*-C++-*-
 #ifndef INCLUDED_BMQT_RCDESCRIPTIONERROR
 #define INCLUDED_BMQT_RCDESCRIPTIONERROR
 

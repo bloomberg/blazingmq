@@ -13,8 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// producer.cpp                                                       -*-C++-*-
-
 // This file is part of the BlazingMQ tutorial "Hello World".
 //
 // The simplest use case involves a Publisher task, a Consumer task, and a

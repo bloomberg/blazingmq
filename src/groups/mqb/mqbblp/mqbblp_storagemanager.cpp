@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbblp_storagemanager.cpp                                          -*-C++-*-
 #include <ball_log.h>
 #include <mqbblp_storagemanager.h>
 

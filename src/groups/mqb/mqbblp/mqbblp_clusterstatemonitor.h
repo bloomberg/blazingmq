@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbblp_clusterstatemonitor.h                                       -*-C++-*-
 #ifndef INCLUDED_MQBBLP_CLUSTERSTATEMONITOR
 #define INCLUDED_MQBBLP_CLUSTERSTATEMONITOR
 

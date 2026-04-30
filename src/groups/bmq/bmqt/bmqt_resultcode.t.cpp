@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqt_resultcode.t.cpp                                              -*-C++-*-
 #include <bmqt_resultcode.h>
 
 #include <../bmqp/bmqp_ctrlmsg_messages.h>  // Violating dependency.. used to

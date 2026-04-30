@@ -13,8 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqbrkr.m.cpp                                                      -*-C++-*-
-
 // Application
 #include <bmqbrkrscm_version.h>
 #include <m_bmqbrkr_task.h>

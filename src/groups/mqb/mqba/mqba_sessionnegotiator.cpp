@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqba_sessionnegotiator.cpp                                         -*-C++-*-
 #include <mqba_sessionnegotiator.h>
 
 #include <mqbscm_version.h>

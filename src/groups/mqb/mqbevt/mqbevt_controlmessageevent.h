@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbevt_controlmessageevent.h                                       -*-C++-*-
 #ifndef INCLUDED_MQBEVT_CONTROLMESSAGEEVENT
 #define INCLUDED_MQBEVT_CONTROLMESSAGEEVENT
 

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqst_tableutil.h -*-C++-*-
 #ifndef INCLUDED_BMQST_TABLEUTIL
 #define INCLUDED_BMQST_TABLEUTIL
 

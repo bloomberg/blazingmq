@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqvt_valueorerror.t.cpp -*-C++-*-
 #include <bmqvt_valueorerror.h>
 
 // BMQ

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqimp_manualhosthealthmonitor.cpp                                 -*-C++-*-
 #include <bmqimp_manualhosthealthmonitor.h>
 
 #include <bmqscm_version.h>

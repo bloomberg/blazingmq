@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqex_strand.cpp                                                   -*-C++-*-
 #include <bmqex_strand.h>
 
 #include <bmqscm_version.h>

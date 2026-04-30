@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqc_orderedhashmap.h                                              -*-C++-*-
 #ifndef INCLUDED_BMQC_ORDEREDHASHMAP
 #define INCLUDED_BMQC_ORDEREDHASHMAP
 

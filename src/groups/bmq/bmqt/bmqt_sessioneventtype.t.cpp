@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqt_sessioneventtype.t.cpp                                        -*-C++-*-
 #include <bmqt_sessioneventtype.h>
 
 #include <bmqu_memoutstream.h>

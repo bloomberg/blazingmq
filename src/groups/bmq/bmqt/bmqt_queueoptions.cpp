@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqt_queueoptions.cpp                                              -*-C++-*-
 #include <bmqt_queueoptions.h>
 
 #include <bmqscm_version.h>

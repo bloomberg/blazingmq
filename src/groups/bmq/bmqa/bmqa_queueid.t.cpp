@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqa_queueid.t.cpp                                                 -*-C++-*-
 #include <bmqa_queueid.h>
 
 // BMQ

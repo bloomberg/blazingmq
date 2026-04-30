@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbblp_domain.cpp                                                  -*-C++-*-
 #include <bsls_nullptr.h>
 #include <mqbblp_domain.h>
 

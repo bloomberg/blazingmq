@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbstat_printer.cpp                                                -*-C++-*-
 #include <mqbstat_printer.h>
 
 #include <mqbscm_version.h>

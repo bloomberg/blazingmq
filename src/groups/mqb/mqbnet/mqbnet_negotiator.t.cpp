@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbnet_negotiator.t.cpp                                            -*-C++-*-
 #include <mqbnet_negotiator.h>
 
 // MQB

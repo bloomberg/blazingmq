@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqpi_dtspan.h                                                     -*-C++-*-
 #ifndef INCLUDED_BMQPI_DTSPAN
 #define INCLUDED_BMQPI_DTSPAN
 

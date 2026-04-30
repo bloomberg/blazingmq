@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqpi_hosthealthmonitor.t.cpp                                      -*-C++-*-
 #include <bmqpi_hosthealthmonitor.h>
 
 // BMQ

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqa_messageevent.t.cpp                                            -*-C++-*-
 #include <bmqa_messageevent.h>
 
 // BMQ

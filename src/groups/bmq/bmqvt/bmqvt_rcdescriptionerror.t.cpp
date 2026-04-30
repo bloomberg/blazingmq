@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqvt_rcdescriptionerror.t.cpp -*-C++-*-
 #include <bmqvt_rcdescriptionerror.h>
 
 #include <bmqu_memoutstream.h>

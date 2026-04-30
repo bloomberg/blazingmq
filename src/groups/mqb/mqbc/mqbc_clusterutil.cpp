@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbc_clusterutil.cpp                                               -*-C++-*-
 #include "mqbc_clusterstateledger.h"
 #include <ball_log.h>
 #include <mqbc_clusterutil.h>

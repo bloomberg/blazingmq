@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbs_filesystemutil.cpp                                            -*-C++-*-
 #include <mqbs_filesystemutil.h>
 
 #include <mqbscm_version.h>

@@ -13,8 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqp_schemalearner.cpp                                             -*-C++-*-
-
 // BMQ
 #include <bmqp_schemalearner.h>
 #include <bmqscm_version.h>

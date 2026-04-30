@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqu_temputil.cpp                                                  -*-C++-*-
 #include <bmqu_temputil.h>
 
 #include <bmqscm_version.h>

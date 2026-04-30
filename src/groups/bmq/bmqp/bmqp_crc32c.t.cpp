@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqp_crc32c.t.cpp                                                  -*-C++-*-
 #include <bmqp_crc32c.h>
 
 // TEST DRIVER

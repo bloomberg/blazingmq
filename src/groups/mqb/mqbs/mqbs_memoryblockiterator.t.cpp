@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbs_memoryblockiterator.t.cpp                                     -*-C++-*-
 #include <mqbs_memoryblockiterator.h>
 
 // MQB

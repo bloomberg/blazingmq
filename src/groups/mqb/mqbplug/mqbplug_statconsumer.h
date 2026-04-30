@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbplug_statconsumer.h                                             -*-C++-*-
 #ifndef INCLUDED_MQBPLUG_STATCONSUMER
 #define INCLUDED_MQBPLUG_STATCONSUMER
 

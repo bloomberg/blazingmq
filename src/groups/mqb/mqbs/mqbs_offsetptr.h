@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbs_offsetptr.h                                                   -*-C++-*-
 #ifndef INCLUDED_MQBS_OFFSETPTR
 #define INCLUDED_MQBS_OFFSETPTR
 

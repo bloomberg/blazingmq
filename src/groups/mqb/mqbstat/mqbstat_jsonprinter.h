@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbstat_jsonprinter.h                                              -*-C++-*-
 #ifndef INCLUDED_MQBSTAT_JSONPRINTER
 #define INCLUDED_MQBSTAT_JSONPRINTER
 

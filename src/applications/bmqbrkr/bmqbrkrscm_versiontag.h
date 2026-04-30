@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqbrkrscm_versiontag.h                                            -*-C++-*-
 #ifndef INCLUDED_BMQBRKRSCM_VERSIONTAG
 #define INCLUDED_BMQBRKRSCM_VERSIONTAG
 

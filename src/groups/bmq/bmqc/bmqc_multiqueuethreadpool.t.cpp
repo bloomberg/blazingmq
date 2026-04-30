@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqc_multiqueuethreadpool.t.cpp                                    -*-C++-*-
 #include <bmqc_multiqueuethreadpool.h>
 
 #include <bmqc_monitoredqueue_bdlccfixedqueue.h>

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqu_tempdirectory.cpp                                             -*-C++-*-
 #include <bmqu_tempdirectory.h>
 
 #include <bmqscm_version.h>

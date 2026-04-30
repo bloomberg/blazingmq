@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqimp_sessionid.h                                             -*-C++-*-
 #ifndef INCLUDED_BMQIMP_SESSIONID
 #define INCLUDED_BMQIMP_SESSIONID
 

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqa_openqueuestatus.cpp                                           -*-C++-*-
 #include <bmqa_openqueuestatus.h>
 
 #include <bmqscm_version.h>

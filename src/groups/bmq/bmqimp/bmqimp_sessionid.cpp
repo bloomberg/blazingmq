@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqimp_sessionid.cpp                                               -*-C++-*-
 #include <bmqimp_sessionid.h>
 
 #include <bmqscm_version.h>

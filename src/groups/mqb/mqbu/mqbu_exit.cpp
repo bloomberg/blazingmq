@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbu_exit.cpp                                                      -*-C++-*-
 #include <mqbu_exit.h>
 
 #include <mqbscm_version.h>

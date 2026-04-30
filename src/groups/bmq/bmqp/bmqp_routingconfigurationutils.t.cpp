@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqp_routingconfigurationutils.t.cpp                               -*-C++-*-
 #include <bmqp_routingconfigurationutils.h>
 
 // BMQ

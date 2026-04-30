@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqex_bindutil.t.cpp                                               -*-C++-*-
 #include <bmqex_bindutil.h>
 
 // TEST DRIVER

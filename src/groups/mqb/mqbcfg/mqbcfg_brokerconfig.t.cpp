@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbcfg_brokerconfig.t.cpp                                          -*-C++-*-
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
 

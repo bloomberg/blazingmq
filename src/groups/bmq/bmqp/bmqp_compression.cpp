@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqp_compression.cpp                                               -*-C++-*-
 #include <bmqp_compression.h>
 
 #include <bmqscm_version.h>

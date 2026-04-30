@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbcmd_parseutil.t.cpp                                             -*-C++-*-
 #include <mqbcmd_parseutil.h>
 
 // MQB

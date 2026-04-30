@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqp_recoveryeventbuilder.t.cpp                                    -*-C++-*-
 #include <bmqp_recoveryeventbuilder.h>
 
 // BMQ

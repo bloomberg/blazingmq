@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbcfg_clusterquorummanager.h -*-C++-*-
 #ifndef INCLUDED_MQBCFG_CLUSTERQUORUMMANAGER
 #define INCLUDED_MQBCFG_CLUSTERQUORUMMANAGER
 

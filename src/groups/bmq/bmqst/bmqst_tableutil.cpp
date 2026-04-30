@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqst_tableutil.cpp -*-C++-*-
 #include <bmqst_tableutil.h>
 
 #include <bmqscm_version.h>

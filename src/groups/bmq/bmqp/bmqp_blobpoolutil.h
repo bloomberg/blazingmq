@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqp_blobpoolutil.h                                                -*-C++-*-
 #ifndef INCLUDED_BMQP_BLOBPOOLUTIL
 #define INCLUDED_BMQP_BLOBPOOLUTIL
 

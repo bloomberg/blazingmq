@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbsl_readwriteondisklog.cpp                                       -*-C++-*-
 #include <mqbsl_readwriteondisklog.h>
 
 #include <mqbscm_version.h>

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqimp_messagecorrelationidcontainer.cpp                           -*-C++-*-
 #include <bmqimp_messagecorrelationidcontainer.h>
 
 #include <bmqscm_version.h>

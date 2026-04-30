@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbnet_clusteractivenodemanager.cpp                                -*-C++-*-
 #include <mqbnet_clusteractivenodemanager.h>
 
 #include <mqbscm_version.h>

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqex_executionproperty.cpp                                        -*-C++-*-
 #include <bmqex_executionproperty.h>
 
 #include <bmqscm_version.h>

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqc_array.cpp                                                     -*-C++-*-
 #include <bmqc_array.h>
 
 #include <bmqscm_version.h>

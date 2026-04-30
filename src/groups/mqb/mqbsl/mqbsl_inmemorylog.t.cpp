@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbsl_inmemorylog.t.cpp                                            -*-C++-*-
 #include <mqbsl_inmemorylog.h>
 
 // MQB

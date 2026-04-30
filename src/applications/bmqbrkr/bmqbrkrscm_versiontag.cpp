@@ -13,5 +13,4 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqbrkrscm_versiontag.cpp -*-C++-*-
 #include <bmqbrkrscm_versiontag.h>

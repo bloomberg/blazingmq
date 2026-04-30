@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqu_memoutstream.h                                                -*-C++-*-
 #ifndef INCLUDED_BMQU_MEMOUTSTREAM
 #define INCLUDED_BMQU_MEMOUTSTREAM
 

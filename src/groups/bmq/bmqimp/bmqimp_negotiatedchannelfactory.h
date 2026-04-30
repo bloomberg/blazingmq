@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqimp_negotiatedchannelfactory.h                                  -*-C++-*-
 #ifndef INCLUDED_BMQIMP_NEGOTIATEDCHANNELFACTORY
 #define INCLUDED_BMQIMP_NEGOTIATEDCHANNELFACTORY
 

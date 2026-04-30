@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqio_ntcchannelfactory.t.cpp                                      -*-C++-*-
 #include <bmqio_ntcchannelfactory.h>
 
 #include <bmqu_blob.h>

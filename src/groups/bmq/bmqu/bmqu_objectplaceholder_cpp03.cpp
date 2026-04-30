@@ -13,8 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqu_objectplaceholder_cpp03.cpp                                   -*-C++-*-
-
 // Automatically generated file.  **DO NOT EDIT**
 
 // Generated on Wed Jun 18 14:44:06 2025

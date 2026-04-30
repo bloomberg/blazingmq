@@ -13,8 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqc_monitoredqueue.cpp                                            -*-C++-*-
-
 // Include guards in cpp needed by Sun compiler.
 #include <bmqscm_version.h>
 // See {internal-ticket D19728733}

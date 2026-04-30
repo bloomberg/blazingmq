@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqu_atomicstate.t.cpp                                             -*-C++-*-
 #include <bmqu_atomicstate.h>
 
 // BDE

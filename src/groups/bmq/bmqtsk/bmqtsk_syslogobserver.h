@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqtsk_syslogobserver.h                                            -*-C++-*-
 #ifndef INCLUDED_BMQTSK_SYSLOGOBSERVER
 #define INCLUDED_BMQTSK_SYSLOGOBSERVER
 

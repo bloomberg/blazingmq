@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbi_dispatchereventsource.cpp                                     -*-C++-*-
 #include <mqbi_dispatchereventsource.h>
 
 #include <mqbscm_version.h>

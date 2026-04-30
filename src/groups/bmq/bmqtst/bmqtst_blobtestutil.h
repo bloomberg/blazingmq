@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqtst_blobtestutil.h                                              -*-C++-*-
 #ifndef INCLUDED_BMQTST_BLOBTESTUTIL
 #define INCLUDED_BMQTST_BLOBTESTUTIL
 

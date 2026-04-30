@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbstat_printer.h                                                  -*-C++-*-
 #ifndef INCLUDED_MQBSTAT_PRINTER
 #define INCLUDED_MQBSTAT_PRINTER
 

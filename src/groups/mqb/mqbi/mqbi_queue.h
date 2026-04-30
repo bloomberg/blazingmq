@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbi_queue.h                                                       -*-C++-*-
 #ifndef INCLUDED_MQBI_QUEUE
 #define INCLUDED_MQBI_QUEUE
 

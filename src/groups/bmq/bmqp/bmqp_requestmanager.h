@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqp_requestmanager.h                                              -*-C++-*-
 #ifndef INCLUDED_BMQP_REQUESTMANAGER
 #define INCLUDED_BMQP_REQUESTMANAGER
 

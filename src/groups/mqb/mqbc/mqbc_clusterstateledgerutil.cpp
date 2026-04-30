@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbc_clusterstateledgerutil.cpp                                    -*-C++-*-
 #include <mqbc_clusterstateledgerutil.h>
 
 #include <mqbscm_version.h>

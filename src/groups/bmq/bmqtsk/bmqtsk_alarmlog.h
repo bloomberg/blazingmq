@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqtsk_alarmlog.h                                                  -*-C++-*-
 #ifndef INCLUDED_BMQTSK_ALARMLOG
 #define INCLUDED_BMQTSK_ALARMLOG
 

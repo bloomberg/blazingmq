@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbsl_ledger.h                                                     -*-C++-*-
 #ifndef INCLUDED_MQBSL_LEDGER
 #define INCLUDED_MQBSL_LEDGER
 

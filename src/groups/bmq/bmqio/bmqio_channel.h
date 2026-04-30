@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqio_channel.h                                                    -*-C++-*-
 #ifndef INCLUDED_BMQIO_CHANNEL
 #define INCLUDED_BMQIO_CHANNEL
 

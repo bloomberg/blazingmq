@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqc_monitoredqueue_bdlccsingleproducerqueue.h                     -*-C++-*-
 #ifndef INCLUDED_BMQC_MONITOREDQUEUE_BDLCCSINGLEPRODUCERQUEUE
 #define INCLUDED_BMQC_MONITOREDQUEUE_BDLCCSINGLEPRODUCERQUEUE
 

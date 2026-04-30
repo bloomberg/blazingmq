@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqio_resolvingchannelfactory.cpp                                  -*-C++-*-
 #include <bmqio_resolvingchannelfactory.h>
 
 #include <bmqscm_version.h>

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbi_storage.cpp                                                   -*-C++-*-
 #include <mqbi_storage.h>
 
 #include <mqbscm_version.h>

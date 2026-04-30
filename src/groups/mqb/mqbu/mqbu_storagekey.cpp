@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbu_storagekey.cpp                                                -*-C++-*-
 #include <mqbu_storagekey.h>
 
 #include <mqbscm_version.h>

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbsl_ondisklog.h                                                  -*-C++-*-
 #ifndef INCLUDED_MQBSL_ONDISKLOG
 #define INCLUDED_MQBSL_ONDISKLOG
 

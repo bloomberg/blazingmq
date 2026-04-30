@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbblp_recoverymanager.cpp                                         -*-C++-*-
 #include <bsls_assert.h>
 #include <mqbblp_recoverymanager.h>
 

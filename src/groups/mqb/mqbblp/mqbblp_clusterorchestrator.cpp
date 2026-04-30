@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbblp_clusterorchestrator.cpp                                     -*-C++-*-
 #include <mqbblp_clusterorchestrator.h>
 
 #include <mqbscm_version.h>

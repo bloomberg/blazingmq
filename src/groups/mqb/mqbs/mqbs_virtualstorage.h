@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbs_virtualstorage.h                                              -*-C++-*-
 #ifndef INCLUDED_MQBS_VIRTUALSTORAGE
 #define INCLUDED_MQBS_VIRTUALSTORAGE
 

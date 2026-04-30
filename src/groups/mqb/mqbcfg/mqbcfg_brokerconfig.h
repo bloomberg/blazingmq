@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbcfg_brokerconfig.h                                              -*-C++-*-
 #ifndef INCLUDED_MQBCFG_BROKERCONFIG
 #define INCLUDED_MQBCFG_BROKERCONFIG
 

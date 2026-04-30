@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbevt_ackevent.h                                                  -*-C++-*-
 #ifndef INCLUDED_MQBEVT_ACKEVENT
 #define INCLUDED_MQBEVT_ACKEVENT
 

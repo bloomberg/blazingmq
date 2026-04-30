@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbnet_negotiator.h                                                -*-C++-*-
 #ifndef INCLUDED_MQBNET_NEGOTIATOR
 #define INCLUDED_MQBNET_NEGOTIATOR
 

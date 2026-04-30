@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbevt_callbackevent.cpp                                           -*-C++-*-
 #include <mqbevt_callbackevent.h>
 
 #include <mqbscm_version.h>

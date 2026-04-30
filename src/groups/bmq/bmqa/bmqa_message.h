@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqa_message.h                                                     -*-C++-*-
 #ifndef INCLUDED_BMQA_MESSAGE
 #define INCLUDED_BMQA_MESSAGE
 

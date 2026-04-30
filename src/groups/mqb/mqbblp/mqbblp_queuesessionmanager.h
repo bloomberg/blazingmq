@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbblp_queuesessionmanager.h                                       -*-C++-*-
 #ifndef INCLUDED_MQBBLP_QUEUESESSIONMANAGER
 #define INCLUDED_MQBBLP_QUEUESESSIONMANAGER
 

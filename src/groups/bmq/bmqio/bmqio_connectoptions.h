@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqio_connectoptions.h                                             -*-C++-*-
 #ifndef INCLUDED_BMQIO_CONNECTOPTIONS
 #define INCLUDED_BMQIO_CONNECTOPTIONS
 

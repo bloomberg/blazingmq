@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbc_clusternodesession.cpp                                        -*-C++-*-
 #include <mqbc_clusternodesession.h>
 
 #include <mqbscm_version.h>

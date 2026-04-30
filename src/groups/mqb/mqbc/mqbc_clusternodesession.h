@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbc_clusternodesession.h                                          -*-C++-*-
 #ifndef INCLUDED_MQBC_CLUSTERNODESESSION
 #define INCLUDED_MQBC_CLUSTERNODESESSION
 

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqa_abstractsession.h                                             -*-C++-*-
 #ifndef INCLUDED_BMQA_ABSTRACTSESSION
 #define INCLUDED_BMQA_ABSTRACTSESSION
 

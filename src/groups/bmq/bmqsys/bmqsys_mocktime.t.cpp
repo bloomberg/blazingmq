@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqsys_mocktime.t.cpp                                              -*-C++-*-
 #include <bmqsys_mocktime.h>
 
 // TEST DRIVER

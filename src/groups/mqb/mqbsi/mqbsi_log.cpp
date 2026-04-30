@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbsi_log.cpp                                                      -*-C++-*-
 #include <mqbsi_log.h>
 
 #include <mqbscm_version.h>
