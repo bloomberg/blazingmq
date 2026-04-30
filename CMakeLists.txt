@@ -1,6 +1,6 @@
 cmake_minimum_required( VERSION 3.23 )
 
-project(BMQ
+project(BlazingMQ
   VERSION 99.99.99
   DESCRIPTION "A modern high-performance open source message queuing system"
   HOMEPAGE_URL "https://bloomberg.github.io/blazingmq/"
