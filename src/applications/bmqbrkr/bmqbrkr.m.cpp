@@ -14,13 +14,13 @@
 // limitations under the License.
 
 // Application
-#include <bmqbrkrscm_version.h>
 #include <m_bmqbrkr_task.h>
 
 // MQB
 #include <mqba_application.h>
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
+#include <mqbscm_version.h>
 #include <mqbu_exit.h>
 #include <mqbu_messageguidutil.h>
 
@@ -291,7 +291,7 @@ static int getConfig(bsl::ostream&          errorDescription,
     }
 
     config->appConfig().etcDir()        = configDir;
-    config->appConfig().brokerVersion() = bmqbrkrscm::Version::versionAsInt();
+    config->appConfig().brokerVersion() = mqbscm::Version::versionAsInt();
 
     return rc_SUCCESS;
 }
@@ -641,7 +641,7 @@ int main(int argc, const char* argv[])
 
         if (version) {
             bsl::cout << "BlazingMQ broker version: "
-                      << bmqbrkrscm::Version::version() << "\n";
+                      << mqbscm::Version::s_versionDotString << "\n";
             return 0;
         }
 
