@@ -38,7 +38,6 @@
 #include <bmqu_blob.h>
 
 // BDE
-#include <bdlb_nullablevalue.h>
 #include <bdlb_random.h>
 #include <bdlbb_blob.h>
 #include <bsl_cstddef.h>
@@ -58,7 +57,6 @@ namespace bmqp {
 /// Struct representing attributes of a PutMessage
 struct PutTester {
     // Utilities for testing BlazingMQ 'PUT' events.
-    typedef bdlb::NullableValue<bmqp::Protocol::MsgGroupId> NullableMsgGroupId;
 
     struct Data {
         // DATA
@@ -67,8 +65,6 @@ struct PutTester {
         bdlbb::Blob d_properties;
 
         bdlbb::Blob d_appData;
-
-        NullableMsgGroupId d_msgGroupId;
 
         int d_queueId;
 

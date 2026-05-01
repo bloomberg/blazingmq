@@ -348,9 +348,6 @@ const char* EventBuilderResult::toAscii(EventBuilderResult::Enum value)
         BMQT_CASE(PAYLOAD_TOO_BIG)
         BMQT_CASE(PAYLOAD_EMPTY)
         BMQT_CASE(OPTION_TOO_BIG)
-#ifdef BMQ_ENABLE_MSG_GROUPID
-        BMQT_CASE(INVALID_MSG_GROUP_ID)
-#endif
         BMQT_CASE(QUEUE_SUSPENDED)
     default: return "(* UNKNOWN *)";
     }
@@ -378,9 +375,6 @@ bool EventBuilderResult::fromAscii(EventBuilderResult::Enum* out,
     BMQT_CHECKVALUE(PAYLOAD_TOO_BIG)
     BMQT_CHECKVALUE(PAYLOAD_EMPTY)
     BMQT_CHECKVALUE(OPTION_TOO_BIG)
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    BMQT_CHECKVALUE(INVALID_MSG_GROUP_ID)
-#endif
     BMQT_CHECKVALUE(QUEUE_SUSPENDED)
 
     // Invalid string

@@ -18,7 +18,6 @@
 // BMQ
 #include <bmqp_compression.h>
 #include <bmqp_messageproperties.h>
-#include <bmqp_optionutil.h>
 #include <bmqp_protocol.h>
 #include <bmqp_protocolutil.h>
 #include <bmqp_queueid.h>
@@ -31,8 +30,6 @@
 #include <bdlbb_blob.h>
 #include <bdlbb_blobutil.h>
 #include <bdlbb_pooledblobbufferfactory.h>
-#include <bdlt_currenttime.h>
-#include <bdlt_epochutil.h>
 #include <bsl_cstdlib.h>
 #include <bsl_ctime.h>
 #include <bsl_iostream.h>
@@ -44,7 +41,6 @@
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
 #include <bsl_cstring.h>
-#include <bsl_ios.h>
 #include <bsl_vector.h>
 
 // CONVENIENCE
@@ -113,8 +109,6 @@ Data::Data(const Data& other, bslma::Allocator* allocator)
     // NOTHING
 }
 
-typedef bdlb::NullableValue<bmqp::Protocol::MsgGroupId> NullableMsgGroupId;
-
 /// Struct representing attributes of a PushMessage.  This struct is
 /// allocator-aware and may be properly used in containers with an
 /// allocator.
@@ -127,8 +121,6 @@ struct Data1 {
     bsl::vector<bmqp::SubQueueInfo> d_subQueueInfos;
 
     bool d_useOldSubQueueIds;
-
-    NullableMsgGroupId d_msgGroupId;
 
     bdlbb::Blob d_payload;
 
@@ -148,7 +140,6 @@ Data1::Data1(bdlbb::BlobBufferFactory* bufferFactory,
              bslma::Allocator*         allocator)
 : d_subQueueInfos(allocator)
 , d_useOldSubQueueIds(false)
-, d_msgGroupId(allocator)
 , d_payload(bufferFactory, allocator)
 {
     // NOTHING
@@ -159,7 +150,6 @@ Data1::Data1(const Data1& other, bslma::Allocator* allocator)
 , d_qid(other.d_qid)
 , d_subQueueInfos(other.d_subQueueInfos, allocator)
 , d_useOldSubQueueIds(other.d_useOldSubQueueIds)
-, d_msgGroupId(other.d_msgGroupId, allocator)
 , d_payload(other.d_payload, allocator)
 , d_flags(other.d_flags)
 {
@@ -214,17 +204,6 @@ generateSubQueueInfos(bsl::vector<bmqp::SubQueueInfo>* subQueueInfos,
                     static_cast<unsigned int>(numSubQueueInfos));
 }
 
-/// Populate the specified `msgGroupId` with a random Group Id.
-static void generateMsgGroupId(bmqp::Protocol::MsgGroupId* msgGroupId)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_OPT(msgGroupId);
-
-    bmqu::MemOutStream oss(bmqtst::TestHelperUtil::allocator());
-    oss << "gid:" << generateRandomInteger(0, 200);
-    *msgGroupId = oss.str();
-}
-
 /// Append at least the specified `atLeastLen` bytes to the specified `blob`
 /// and populate the specified `payloadLen` with the number of bytes
 /// appended.
@@ -247,14 +226,12 @@ static void populateBlob(bdlbb::Blob* blob, int* payloadLen, int atLeastLen)
 /// Append to the specified `data` an entry having the specified `qid`,
 /// `useOldSubQueueIds` flag and `payloadLength` using the specified
 /// `bufferFactory` and `allocator`.  The specified `hasSubQueueInfo`
-/// indicates whether the entry contains any subQueue info.  The specified
-/// `hasMsgGroupId` indicates whether the entry contains any message group
-/// Id.  The behavior is undefined unless `payloadLength >= 0`.
+/// indicates whether the entry contains any subQueue info.
+/// The behavior is undefined unless `payloadLength >= 0`.
 static void appendDatum1(bsl::vector<Data1>*       data,
                          int                       qid,
                          bool                      hasSubQueueInfo,
                          bool                      useOldSubQueueIds,
-                         bool                      hasMsgGroupId,
                          int                       payloadLength,
                          bdlbb::BlobBufferFactory* bufferFactory,
                          bslma::Allocator*         allocator)
@@ -272,12 +249,6 @@ static void appendDatum1(bsl::vector<Data1>*       data,
         generateSubQueueInfos(&datum.d_subQueueInfos, 1);
     }
     datum.d_useOldSubQueueIds = useOldSubQueueIds;
-
-    // Generate Group Id
-    if (hasMsgGroupId) {
-        BSLS_ASSERT_OPT(datum.d_msgGroupId.isNull());
-        generateMsgGroupId(&datum.d_msgGroupId.makeValue());
-    }
 
     // Populate blob
     int numPopulated = 0;
@@ -335,21 +306,9 @@ static void appendMessages1(bmqp::EventHeader*        eh,
             }
         }
 
-        typedef bmqp::OptionUtil::OptionMeta OptionMeta;
-        const bool       hasMsgGroupId = !D.d_msgGroupId.isNull();
-        const OptionMeta msgGroupIdOption =
-            hasMsgGroupId ? OptionMeta::forOptionWithPadding(
-                                bmqp::OptionType::e_MSG_GROUP_ID,
-                                D.d_msgGroupId.value().length())
-                          : OptionMeta::forNullOption();
-        const int msgGroupIdWords = hasMsgGroupId
-                                        ? (msgGroupIdOption.size() /
-                                           bmqp::Protocol::k_WORD_SIZE)
-                                        : 0;
-
         // Push Header
         bmqp::PushHeader ph;
-        ph.setOptionsWords(subQueueWords + msgGroupIdWords);
+        ph.setOptionsWords(subQueueWords);
         ph.setHeaderWords(sizeof(bmqp::PushHeader) /
                           bmqp::Protocol::k_WORD_SIZE);
         ph.setQueueId(D.d_qid);
@@ -398,11 +357,6 @@ static void appendMessages1(bmqp::EventHeader*        eh,
                     reinterpret_cast<const char*>(D.d_subQueueInfos.data()),
                     subQueueWords * bmqp::Protocol::k_WORD_SIZE);
             }
-        }
-        if (hasMsgGroupId) {
-            // Option Header
-            bmqp::OptionUtil::OptionsBox options;
-            options.add(blob, D.d_msgGroupId.value().data(), msgGroupIdOption);
         }
 
         // Write message payload
@@ -1367,29 +1321,24 @@ static void test7_extractOptions()
 // Concerns:
 //   If we have a valid iterator associated with a flattened event
 //   (i.e. an event having messages with at most one subQueueId), then
-//   a) extracting the queue info returns a queueId having either the
+//   extracting the queue info returns a queueId having either the
 //   subQueueId of the message currently pointed to by the iterator or the
-//   default subQueueId, as well as the expected RDA counter, and b)
-//   extracting msgGroupId (if available) returns the expected Group Id.
+//   default subQueueId, as well as the expected RDA counter.
 //
 // Plan:
 //   1) Create an event composed of six messages.  Msg1 and Msg2 have
 //      the same id but a different subQueueId, Msg3 has no subQueueId,
-//      Msg4 has one subQueueId and one groupId, Msg 5 has no subQueueId but
-//      one GroupId, Msg 6 has one subQueueId encoded using old SubQueueId
-//      options.
+//      Msg4 has one subQueueId, Msg 5 has no subQueueId, Msg 6 has one
+//      subQueueId encoded using old SubQueueId options.
 //   2) Extract the queue infos for each message, and verify that the
 //      correct subQueueIds were extracted for Msg1, Msg2 Msg 4 & Msg 6,
 //      the default subQueueId was extracted for Msg3 & Msg 5.  Also verify
 //      the correct RDA counters were extracted for all messages.
-//  3)  Extract Group Ids for each message, and verify that the values are
-//      as expected.
 //
 // Testing:
-//   Extracting queueId, RDA counter and/or msgGroupId from the message of
-//   a flattened PUSH event.
+//   Extracting queueId and RDA counter from the message of a flattened PUSH
+//   event.
 //   - extractQueueInfo(...)
-//   - extractMsgGroupId(...)
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("EXTRACT OPTIONS");
@@ -1403,20 +1352,17 @@ static void test7_extractOptions()
     int                qid;
     bool               hasSubQueueInfo   = false;
     bool               useOldSubQueueIds = false;
-    bool               hasMsgGroupId     = false;
     int                payloadLength     = 0;
 
     // Msg1: One SubQueueId
     qid               = 1;
     hasSubQueueInfo   = true;
     useOldSubQueueIds = false;
-    hasMsgGroupId     = false;
     payloadLength     = generateRandomInteger(1, 120);
     appendDatum1(&data,
                  qid,
                  hasSubQueueInfo,
                  useOldSubQueueIds,
-                 hasMsgGroupId,
                  payloadLength,
                  &bufferFactory,
                  bmqtst::TestHelperUtil::allocator());
@@ -1425,58 +1371,50 @@ static void test7_extractOptions()
     qid               = 1;
     hasSubQueueInfo   = true;
     useOldSubQueueIds = false;
-    hasMsgGroupId     = false;
     payloadLength     = generateRandomInteger(1, 120);
     appendDatum1(&data,
                  qid,
                  hasSubQueueInfo,
                  useOldSubQueueIds,
-                 hasMsgGroupId,
                  payloadLength,
                  &bufferFactory,
                  bmqtst::TestHelperUtil::allocator());
 
-    // Msg3: No SubQueueId and no GroupId
+    // Msg3: No SubQueueId
     qid               = 1;
     hasSubQueueInfo   = false;
     useOldSubQueueIds = false;
-    hasMsgGroupId     = false;
     payloadLength     = generateRandomInteger(1, 120);
     appendDatum1(&data,
                  qid,
                  hasSubQueueInfo,
                  useOldSubQueueIds,
-                 hasMsgGroupId,
                  payloadLength,
                  &bufferFactory,
                  bmqtst::TestHelperUtil::allocator());
 
-    // Msg4: One SubQueueId and one GroupId
+    // Msg4: One SubQueueId
     qid               = 2;
     hasSubQueueInfo   = true;
     useOldSubQueueIds = false;
-    hasMsgGroupId     = true;
     payloadLength     = generateRandomInteger(1, 120);
     appendDatum1(&data,
                  qid,
                  hasSubQueueInfo,
                  useOldSubQueueIds,
-                 hasMsgGroupId,
                  payloadLength,
                  &bufferFactory,
                  bmqtst::TestHelperUtil::allocator());
 
-    // Msg5: No SubQueueId and one GroupId
+    // Msg5: No SubQueueId
     qid               = 1;
     hasSubQueueInfo   = false;
     useOldSubQueueIds = false;
-    hasMsgGroupId     = true;
     payloadLength     = generateRandomInteger(1, 120);
     appendDatum1(&data,
                  qid,
                  hasSubQueueInfo,
                  useOldSubQueueIds,
-                 hasMsgGroupId,
                  payloadLength,
                  &bufferFactory,
                  bmqtst::TestHelperUtil::allocator());
@@ -1485,13 +1423,11 @@ static void test7_extractOptions()
     qid               = 1;
     hasSubQueueInfo   = true;
     useOldSubQueueIds = true;
-    hasMsgGroupId     = false;
     payloadLength     = generateRandomInteger(1, 120);
     appendDatum1(&data,
                  qid,
                  hasSubQueueInfo,
                  useOldSubQueueIds,
-                 hasMsgGroupId,
                  payloadLength,
                  &bufferFactory,
                  bmqtst::TestHelperUtil::allocator());
@@ -1547,29 +1483,6 @@ static void test7_extractOptions()
             BMQTST_ASSERT_EQ_D(index,
                                rdaInfo.counter(),
                                D.d_subQueueInfos[0].rdaInfo().counter());
-        }
-
-        const bool expectedToHaveMsgGroupId = !D.d_msgGroupId.isNull();
-        const bool actualHavingMsgGroupId   = iter.hasMsgGroupId();
-
-        PV("Expected to have: " << bsl::boolalpha << expectedToHaveMsgGroupId
-                                << ", actually have: " << bsl::boolalpha
-                                << actualHavingMsgGroupId);
-        if (expectedToHaveMsgGroupId != actualHavingMsgGroupId) {
-            BMQTST_ASSERT_EQ_D(index,
-                               expectedToHaveMsgGroupId,
-                               actualHavingMsgGroupId);
-        }
-        else if (actualHavingMsgGroupId) {
-            bmqp::Protocol::MsgGroupId actual(
-                bmqtst::TestHelperUtil::allocator());
-            const bmqp::Protocol::MsgGroupId& expected =
-                D.d_msgGroupId.value();
-            iter.extractMsgGroupId(&actual);
-
-            PV("Expected: " << expected << ", Actual: " << queueId);
-
-            BMQTST_ASSERT_EQ_D(index, actual, expected);
         }
 
         ++index;

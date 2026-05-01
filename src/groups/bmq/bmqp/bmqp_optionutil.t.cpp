@@ -389,48 +389,6 @@ static void test3_checkOptionsBlobSegment()
     }
 }
 
-#ifdef BMQ_ENABLE_MSG_GROUPID
-static void test4_isValidMsgGroupId()
-// ------------------------------------------------------------------------
-//                        VALIDATE GROUPID LENGTH
-// ------------------------------------------------------------------------
-//
-// Concerns:
-//   Validate that 'isValidMsgGroupId()' returns success or error codes as
-//   expected for given 'length's.
-//
-// Testing:
-//   -static
-//    bmqt::EventBuilderResult::Enum OptionUtil::isValidMsgGroupId(
-//                                         const bslstl::StringRef& group);
-//
-// ------------------------------------------------------------------------
-{
-    bmqtst::TestHelper::printTestName("VALIDATE GROUPID LENGTH");
-
-    typedef bmqt::EventBuilderResult Result;
-
-    const bmqp::Protocol::MsgGroupId maxLength(
-        "1234567890123456789012345678901",
-        bmqtst::TestHelperUtil::allocator());
-    const bmqp::Protocol::MsgGroupId overMaxLength(
-        "12345678901234567890123456789012",
-        bmqtst::TestHelperUtil::allocator());
-
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    BMQTST_ASSERT_EQ(Result::e_INVALID_MSG_GROUP_ID,
-                     bmqp::OptionUtil::isValidMsgGroupId(""));
-    BMQTST_ASSERT_EQ(Result::e_INVALID_MSG_GROUP_ID,
-                     bmqp::OptionUtil::isValidMsgGroupId(overMaxLength));
-#endif
-
-    BMQTST_ASSERT_EQ(Result::e_SUCCESS,
-                     bmqp::OptionUtil::isValidMsgGroupId(" "));
-    BMQTST_ASSERT_EQ(Result::e_SUCCESS,
-                     bmqp::OptionUtil::isValidMsgGroupId(maxLength));
-}
-#endif
-
 // ============================================================================
 //                                MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -441,9 +399,6 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    case 4: test4_isValidMsgGroupId(); break;
-#endif
     case 3: test3_checkOptionsBlobSegment(); break;
     case 2: test2_basicOptionsBoxCanAdd(); break;
     case 1: test1_basicOptionMetaProperties(); break;

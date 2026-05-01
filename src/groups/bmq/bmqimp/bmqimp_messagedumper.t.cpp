@@ -219,19 +219,12 @@ struct Tester BSLS_CPP11_FINAL {
                           bmqt::AckResult::Enum    ackResult);
 
     /// Add to the PUT event being built a PUT message having the specified
-    /// `payload` and the optionally specified `msgGroupId` and associated
-    /// with the queue corresponding to the specified `uri`.  The behavior
-    /// is undefined unless a queue with the `uri` was created and inserted
-    /// using a call to `insertQueue`, or if packing the message is
-    /// unsuccessful.
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    void packPutMessage(const bslstl::StringRef& uri,
-                        const bslstl::StringRef& payload,
-                        const bslstl::StringRef& msgGroupId = "");
-#else
+    /// `payload` and associated with the queue corresponding to the specified
+    /// `uri`.  The behavior is undefined unless a queue with the `uri` was
+    /// created and inserted using a call to `insertQueue`, or if packing the
+    /// message is unsuccessful.
     void packPutMessage(const bslstl::StringRef& uri,
                         const bslstl::StringRef& payload);
-#endif
 
     /// Append to the CONFIRM event being built a CONFIRM message associated
     /// with the queue corresponding to the specified `uri`.  The behavior
@@ -458,14 +451,8 @@ void Tester::appendAckMessage(const bslstl::StringRef& uri,
     BSLS_ASSERT_OPT(rc == 0);
 }
 
-#ifdef BMQ_ENABLE_MSG_GROUPID
-void Tester::packPutMessage(const bslstl::StringRef& uri,
-                            const bslstl::StringRef& payload,
-                            const bslstl::StringRef& msgGroupId)
-#else
 void Tester::packPutMessage(const bslstl::StringRef& uri,
                             const bslstl::StringRef& payload)
-#endif
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(d_queueIdsByUri.find(uri) != d_queueIdsByUri.end() &&
@@ -484,12 +471,6 @@ void Tester::packPutMessage(const bslstl::StringRef& uri,
 
     d_putEventBuilder.startMessage();
     d_putEventBuilder.setMessageGUID(guid).setMessagePayload(&msgPayload);
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    if (!msgGroupId.empty()) {
-        bmqp::Protocol::MsgGroupId groupId(msgGroupId, d_allocator_p);
-        d_putEventBuilder.setMsgGroupId(msgGroupId);
-    }
-#endif
 
     int rc = d_putEventBuilder.packMessage(queueId.id());
     BSLS_ASSERT_OPT(rc == 0);
@@ -1624,13 +1605,8 @@ static void test8_dumpPutEvent()
     //    messages.
     tester.processDumpCommand("PUT ON");
 
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    tester.packPutMessage("bmq://bmq.test.mmap.fanout/q1", "abcd", "Group 1");
-    tester.packPutMessage("bmq://bmq.test.mmap.fanout/q1", "abcd", "Group 2");
-#else
     tester.packPutMessage("bmq://bmq.test.mmap.fanout/q1", "abcd");
     tester.packPutMessage("bmq://bmq.test.mmap.fanout/q1", "abcd");
-#endif
     tester.packPutMessage("bmq://bmq.test.mmap.priority/q1", "efgh");
     tester.packPutMessage("bmq://bmq.test.mmap.priority/q2", "ijkl");
 
@@ -1644,22 +1620,6 @@ static void test8_dumpPutEvent()
 
     PVV(L_ << ": PUT event dump: " << out.str());
 
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    BMQTST_ASSERT_EQ(regexMatch(out.str(),
-                                "PUT Message #1:.*"
-                                "queue: bmq://bmq.test.mmap.fanout/q1.*"
-                                "msgGroupId: \"Group 1\".*"
-                                "abcd.*",
-                                bmqtst::TestHelperUtil::allocator()),
-                     true);
-    BMQTST_ASSERT_EQ(regexMatch(out.str(),
-                                "PUT Message #2:.*"
-                                "queue: bmq://bmq.test.mmap.fanout/q1.*"
-                                "msgGroupId: \"Group 2\".*"
-                                "abcd.*",
-                                bmqtst::TestHelperUtil::allocator()),
-                     true);
-#else
     BMQTST_ASSERT_EQ(regexMatch(out.str(),
                                 "PUT Message #1:.*"
                                 "queue: bmq://bmq.test.mmap.fanout/q1.*"
@@ -1672,7 +1632,6 @@ static void test8_dumpPutEvent()
                                 "abcd.*",
                                 bmqtst::TestHelperUtil::allocator()),
                      true);
-#endif
     BMQTST_ASSERT_EQ(regexMatch(out.str(),
                                 "PUT Message #3:.*"
                                 "queue: bmq://bmq.test.mmap.priority/q1.*"

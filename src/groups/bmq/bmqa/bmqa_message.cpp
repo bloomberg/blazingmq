@@ -50,16 +50,6 @@ namespace bmqa {
 // class Message
 // -------------
 
-#ifdef BMQ_ENABLE_MSG_GROUPID
-namespace {
-// Compile-time assert to keep the hardcoded value of max group id size in sync
-// with its actual size.  We need to hard code the size in 'bmqa_message.h/cpp'
-// because none of the 'bmqp' headers can be included in 'bmqa' headers.
-BSLMF_ASSERT(Message::k_GROUP_ID_MAX_LENGTH ==
-             bmqp::Protocol::k_MSG_GROUP_ID_MAX_LENGTH);
-}  // close unnamed namespace
-#endif
-
 // CREATORS
 Message::Message()
 {
@@ -167,42 +157,6 @@ Message& Message::setCompressionAlgorithmType(
 
     return *this;
 }
-
-#ifdef BMQ_ENABLE_MSG_GROUPID
-Message& Message::setGroupId(const bsl::string& groupId)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(isInitialized() &&
-                     "message is invalid: use "
-                     "'MessageEventBuilder::startMessage' to get one");
-    BSLS_ASSERT_SAFE(d_impl.d_event_p->putEventBuilder() &&
-                     "message not editable");
-
-    bmqp::PutEventBuilder* builder = d_impl.d_event_p->putEventBuilder();
-    builder->setMsgGroupId(groupId);
-
-    d_impl.d_groupId = groupId;
-
-    return *this;
-}
-
-Message& Message::clearGroupId()
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(isInitialized() &&
-                     "message is invalid: use "
-                     "'MessageEventBuilder::startMessage' to get one");
-    BSLS_ASSERT_SAFE(d_impl.d_event_p->putEventBuilder() &&
-                     "message not editable");
-
-    bmqp::PutEventBuilder* builder = d_impl.d_event_p->putEventBuilder();
-    builder->clearMsgGroupId();
-
-    d_impl.d_groupId.clear();
-
-    return *this;
-}
-#endif
 
 // ACCESSORS
 Message Message::clone(bslma::Allocator* basicAllocator) const
@@ -338,41 +292,6 @@ const bmqt::MessageGUID& Message::messageGUID() const
     }
 }
 
-#ifdef BMQ_ENABLE_MSG_GROUPID
-const bsl::string& Message::groupId() const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(isInitialized());
-
-    if (!d_impl.d_groupId.empty()) {
-        return d_impl.d_groupId;  // RETURN
-    }
-
-    const bmqp::Event& rawEvent = d_impl.d_event_p->rawEvent();
-
-    if (rawEvent.isPushEvent()) {
-        const bmqp::PushMessageIterator* msgIterator =
-            d_impl.d_event_p->pushMessageIterator();
-        if (msgIterator->hasMsgGroupId()) {
-            msgIterator->extractMsgGroupId(&d_impl.d_groupId);
-        }
-        return d_impl.d_groupId;  // RETURN
-    }
-
-    if (rawEvent.isPutEvent()) {
-        const bmqp::PutMessageIterator* msgIterator =
-            d_impl.d_event_p->putMessageIterator();
-        if (msgIterator->hasMsgGroupId()) {
-            msgIterator->extractMsgGroupId(&d_impl.d_groupId);
-        }
-        return d_impl.d_groupId;  // RETURN
-    }
-
-    BSLS_ASSERT_OPT(false && "Invalid raw event type");
-    return d_impl.d_groupId;  // Compiler Happiness
-}
-#endif
-
 MessageConfirmationCookie bmqa::Message::confirmationCookie() const
 {
     // PRECONDITIONS
@@ -491,29 +410,6 @@ bool Message::hasProperties() const
     BSLS_ASSERT_OPT(false && "Invalid raw event type");
     return false;  // Compiler Happiness
 }
-
-#ifdef BMQ_ENABLE_MSG_GROUPID
-bool Message::hasGroupId() const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(isInitialized());
-
-    const bmqp::Event& rawEvent = d_impl.d_event_p->rawEvent();
-
-    if (rawEvent.isPushEvent()) {
-        return d_impl.d_event_p->pushMessageIterator()
-            ->hasMsgGroupId();  // RETURN
-    }
-
-    if (rawEvent.isPutEvent()) {
-        return d_impl.d_event_p->putMessageIterator()
-            ->hasMsgGroupId();  // RETURN
-    }
-
-    BSLS_ASSERT_OPT(false && "Invalid raw event type");
-    return false;  // Compiler Happiness
-}
-#endif
 
 int Message::loadProperties(MessageProperties* buffer) const
 {

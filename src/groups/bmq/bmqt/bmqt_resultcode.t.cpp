@@ -272,14 +272,9 @@ static void test3_printTest()
              bmqt::EventBuilderResult::e_PAYLOAD_TOO_BIG,
              "PAYLOAD_TOO_BIG"},
             {L_, bmqt::EventBuilderResult::e_PAYLOAD_EMPTY, "PAYLOAD_EMPTY"},
-            {L_, bmqt::EventBuilderResult::e_OPTION_TOO_BIG, "OPTION_TOO_BIG"}
-#ifdef BMQ_ENABLE_MSG_GROUPID
-            ,
             {L_,
-             bmqt::EventBuilderResult::e_INVALID_MSG_GROUP_ID,
-             "INVALID_MSG_GROUP_ID"}
-#endif
-        };
+             bmqt::EventBuilderResult::e_OPTION_TOO_BIG,
+             "OPTION_TOO_BIG"}};
 
         printEnumHelper<bmqt::EventBuilderResult>(k_DATA);
     }
@@ -393,9 +388,6 @@ static void test4_idempotence()
     TEST_IDEMPOTENCE(EventBuilderResult, PAYLOAD_TOO_BIG)
     TEST_IDEMPOTENCE(EventBuilderResult, PAYLOAD_EMPTY)
     TEST_IDEMPOTENCE(EventBuilderResult, OPTION_TOO_BIG)
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    TEST_IDEMPOTENCE(EventBuilderResult, INVALID_MSG_GROUP_ID)
-#endif
 
     // Test CloseQueueResult enum idempotence
     TEST_IDEMPOTENCE_GENERIC_STATES(CloseQueueResult)
