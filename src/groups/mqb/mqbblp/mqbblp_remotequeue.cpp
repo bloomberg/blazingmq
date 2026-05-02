@@ -202,7 +202,8 @@ int RemoteQueue::configureAsClusterMember(bsl::ostream& errorDescription,
 
     int                     rc        = 0;
     mqbi::Queue*            queue     = d_state_p->queue();
-    const mqbconfm::Domain& domainCfg = d_state_p->domain()->config();
+    bsl::shared_ptr<const mqbconfm::Domain> domainCfg =
+        d_state_p->domain()->config();
 
     if (!isReconfigure) {
         // Only create a storage if this is the initial configure; reconfigure
@@ -217,9 +218,9 @@ int RemoteQueue::configureAsClusterMember(bsl::ostream& errorDescription,
             d_state_p->uri(),
             d_state_p->key(),
             d_state_p->partitionId(),
-            domainCfg.messageTtl(),
-            domainCfg.maxDeliveryAttempts(),
-            domainCfg.storage());
+            domainCfg->messageTtl(),
+            domainCfg->maxDeliveryAttempts(),
+            domainCfg->storage());
         if (rc != 0) {
             // This most likely means that this queue's partition at this
             // replica is out of sync.
@@ -254,17 +255,17 @@ int RemoteQueue::configureAsClusterMember(bsl::ostream& errorDescription,
         // Create the queueEngine.
         d_queueEngine_mp.load(
             new (*d_allocator_p)
-                RelayQueueEngine(d_state_p, domainCfg, d_allocator_p),
+                RelayQueueEngine(d_state_p, *domainCfg, d_allocator_p),
             d_allocator_p);
     }
     else {
-        d_state_p->storage()->setConsistency(domainCfg.consistency());
+        d_state_p->storage()->setConsistency(domainCfg->consistency());
         rc = d_state_p->storage()->configure(
             errorDescription,
-            domainCfg.storage().config(),
-            domainCfg.storage().domainLimits(),
-            domainCfg.messageTtl(),
-            domainCfg.maxDeliveryAttempts());
+            domainCfg->storage().config(),
+            domainCfg->storage().domainLimits(),
+            domainCfg->messageTtl(),
+            domainCfg->maxDeliveryAttempts());
         if (rc) {
             return 10 * rc + rc_STORAGE_CONFIGURE_FAILURE;  // RETURN
         }
@@ -548,11 +549,12 @@ int RemoteQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
 
     // Update stats
     if (isReconfigure) {
-        const mqbconfm::Domain& domainCfg = d_state_p->domain()->config();
-        if (domainCfg.mode().isFanoutValue()) {
+        bsl::shared_ptr<const mqbconfm::Domain> domainCfg =
+            d_state_p->domain()->config();
+        if (domainCfg->mode().isFanoutValue()) {
             d_state_p->stats()->updateDomainAppIds(
-                domainCfg.mode().fanout().publishAppIdMetrics()
-                    ? domainCfg.mode().fanout().appIDs()
+                domainCfg->mode().fanout().publishAppIdMetrics()
+                    ? domainCfg->mode().fanout().appIDs()
                     : bsl::vector<bsl::string>(d_allocator_p));
         }
     }

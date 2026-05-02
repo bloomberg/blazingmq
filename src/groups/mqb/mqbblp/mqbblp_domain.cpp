@@ -101,10 +101,10 @@ bool validateSubscriptionExpression(bsl::ostream& errorDescription,
 
 /// Validates a domain configuration. If `previousDefn` is provided, also
 /// checks that the implied reconfiguration is also valid.
-int validateConfig(bsl::ostream& errorDescription,
-                   const bdlb::NullableValue<mqbconfm::Domain>& previousDefn,
-                   const mqbconfm::Domain&                      newConfig,
-                   bslma::Allocator*                            allocator)
+int validateConfig(bsl::ostream&           errorDescription,
+                   const mqbconfm::Domain* previousDefn,
+                   const mqbconfm::Domain& newConfig,
+                   bslma::Allocator*       allocator)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -164,13 +164,13 @@ int validateConfig(bsl::ostream& errorDescription,
 
     // 2. Check compatibility between old/new configurations,
     // if old configuration exists
-    if (previousDefn.isNull()) {
+    if (0 == previousDefn) {
         // First time configure, nothing more to validate
         return rc_SUCCESS;  // RETURN
     }
 
     // Validate properties of new configurations relative to old ones.
-    const mqbconfm::Domain& previousCfg = previousDefn.value();
+    const mqbconfm::Domain& previousCfg = *previousDefn;
 
     // Reconfiguring the routing mode is not allowed.
     if (previousCfg.mode().selectionId() != newConfig.mode().selectionId()) {
@@ -262,7 +262,8 @@ Domain::Domain(const bsl::string&                     name,
 : d_allocator_p(allocator)
 , d_state(e_STOPPED)
 , d_name(name, d_allocator_p)
-, d_config(d_allocator_p)
+, d_config_sp()
+, d_configLock()
 , d_cluster_sp(cluster)
 , d_dispatcher_p(dispatcher)
 , d_blobBufferFactory_p(blobBufferFactory)
@@ -294,7 +295,7 @@ Domain::~Domain()
 }
 
 int Domain::configure(bsl::ostream&           errorDescription,
-                      const mqbconfm::Domain& config)
+                      const mqbconfm::Domain& newConfig)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -306,11 +307,15 @@ int Domain::configure(bsl::ostream&           errorDescription,
     };
 
     // Store a copy of the old configuration.
-    bdlb::NullableValue<mqbconfm::Domain> oldConfig(d_config);
-    const bool                            isReconfigure(oldConfig.has_value());
+    bsl::shared_ptr<const mqbconfm::Domain> oldConfig;
+    {
+        bslmt::ReadLockGuard<bslmt::ReaderWriterMutex> guard(&d_configLock);
+        oldConfig = d_config_sp;
+    }
+    const bool isReconfigure(oldConfig.get() != 0);
 
     // Certain invalid values might need to be updated in the configuration.
-    mqbconfm::Domain finalConfig(config);
+    mqbconfm::Domain finalConfig(newConfig);
     {
         bmqu::MemOutStream err;
         if (normalizeConfig(&finalConfig, err, *this)) {
@@ -320,7 +325,7 @@ int Domain::configure(bsl::ostream&           errorDescription,
     }
 
     // Return early if there are no changes.
-    if (oldConfig && (finalConfig == oldConfig.value())) {
+    if (oldConfig && (finalConfig == *oldConfig)) {
         return rc_SUCCESS;  // RETURN
     }
 
@@ -332,17 +337,22 @@ int Domain::configure(bsl::ostream&           errorDescription,
 
     // Validate config. Return early if the configuration is not valid.
     if (const int rc = validateConfig(errorDescription,
-                                      d_config,
+                                      oldConfig.get(),
                                       finalConfig,
                                       d_allocator_p)) {
         return (rc * 10 + rc_VALIDATION_FAILED);  // RETURN
     }
 
     // Adopt the updated domain configuration.
-    d_config.makeValue(finalConfig);
+    {
+        bslmt::WriteLockGuard<bslmt::ReaderWriterMutex> guard(&d_configLock);
+        d_config_sp = bsl::allocate_shared<const mqbconfm::Domain>(
+            d_allocator_p,
+            finalConfig);
+    }
 
     // Configure domain limits.
-    const mqbconfm::Limits& limits = d_config.value().storage().domainLimits();
+    const mqbconfm::Limits& limits = finalConfig.storage().domainLimits();
     d_capacityMeter.setLimits(limits.messages(), limits.bytes())
         .setWatermarkThresholds(limits.messagesWatermarkRatio(),
                                 limits.bytesWatermarkRatio());
@@ -352,14 +362,11 @@ int Domain::configure(bsl::ostream&           errorDescription,
         limits.bytes());
 
     if (isReconfigure) {
-        BSLS_ASSERT_OPT(oldConfig.has_value());
-        BSLS_ASSERT_OPT(d_config.has_value());
+        BSLS_ASSERT_OPT(oldConfig);
 
         // Notify the 'cluster' of the updated configuration, so it can write
         // any needed update-advisories to the CSL.
-        d_cluster_sp->onDomainReconfigured(*this,
-                                           oldConfig.value(),
-                                           d_config.value());
+        d_cluster_sp->onDomainReconfigured(*this, *oldConfig, finalConfig);
 
         // Note: Queues must only be reconfigured AFTER ensuring that virtual
         // storage has been created for any new AppIds. This is done by the
@@ -374,9 +381,7 @@ int Domain::configure(bsl::ostream&           errorDescription,
         //  of 'Queue::configure' dispatches to the Queue dispatcher thread, it
         //  will also happen after completion of 'afterAppIdRegistered' above.
         BALL_LOG_INFO << "Reconfiguring " << d_queues.size()
-                      << " queues from "
-                         "domain "
-                      << d_name;
+                      << " queues from domain " << d_name;
 
         QueueMap::iterator it = d_queues.begin();
         for (; it != d_queues.end(); it++) {
@@ -663,7 +668,13 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
 
         domainInfo.name()        = d_name;
         domainInfo.clusterName() = d_cluster_sp->name();
-        if (!d_config.isNull()) {
+        bsl::shared_ptr<const mqbconfm::Domain> cfgSnapshot;
+        {
+            bslmt::ReadLockGuard<bslmt::ReaderWriterMutex> guard(
+                &d_configLock);
+            cfgSnapshot = d_config_sp;
+        }
+        if (cfgSnapshot) {
             baljsn::Encoder                       encoder;
             bdlma::LocalSequentialAllocator<1024> localAllocator(
                 d_allocator_p);
@@ -674,7 +685,7 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
             options.setSpacesPerLevel(2);
 
             BSLA_MAYBE_UNUSED const int rc = encoder.encode(out,
-                                                            d_config.value(),
+                                                            *cfgSnapshot,
                                                             options);
             BSLS_ASSERT_SAFE(rc == 0);
             domainInfo.configJson() = out.str();
@@ -860,14 +871,19 @@ void Domain::loadRoutingConfiguration(
 
     bmqp::RoutingConfigurationUtils::clear(config);
 
-    if (d_config.isNull()) {
+    bsl::shared_ptr<const mqbconfm::Domain> cfgSnapshot;
+    {
+        bslmt::ReadLockGuard<bslmt::ReaderWriterMutex> guard(&d_configLock);
+        cfgSnapshot = d_config_sp;
+    }
+    if (!cfgSnapshot) {
         BALL_LOG_ERROR << "#DOMAIN_INVALID_CONFIG "
                        << "Uninitialized config for domain '" << d_name
                        << "'.";
         return;  // RETURN
     }
 
-    switch (d_config.value().mode().selectionId()) {
+    switch (cfgSnapshot->mode().selectionId()) {
     case mqbconfm::QueueMode::SELECTION_ID_FANOUT: {
         RootQueueEngine::FanoutConfiguration::loadRoutingConfiguration(config);
     } break;
@@ -883,9 +899,8 @@ void Domain::loadRoutingConfiguration(
     default: {
         BSLS_ASSERT_SAFE(false && "Invalid domain routing mode");
         BALL_LOG_ERROR << "#DOMAIN_INVALID_CONFIG "
-                       << "Invalid or undefined mode '"
-                       << d_config.value().mode() << "' for domain '" << d_name
-                       << "'.";
+                       << "Invalid or undefined mode '" << cfgSnapshot->mode()
+                       << "' for domain '" << d_name << "'.";
     }
     }
 }

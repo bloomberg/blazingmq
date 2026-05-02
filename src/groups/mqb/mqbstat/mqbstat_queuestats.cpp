@@ -424,14 +424,19 @@ void QueueStatsDomain::initialize(const bmqt::Uri& uri, mqbi::Domain* domain)
 
     datum->adopt(builder.commit());
 
+    if (domain->cluster()->isRemote()) {
+        // Proxy doesn't have domain configuration, nothing else to do
+        return;  // RETURN
+    }
+
     // Create subcontexts for each AppId to store per-AppId metrics, such as
     // `e_CONFIRM_TIME_MAX` or `e_QUEUE_TIME_MAX`, so the metrics can be
     // inspected separately for each application.
-    if (!domain->cluster()->isRemote() &&
-        domain->config().mode().isFanoutValue() &&
-        domain->config().mode().fanout().publishAppIdMetrics()) {
+    bsl::shared_ptr<const mqbconfm::Domain> domainCfg = domain->config();
+    if (domainCfg->mode().isFanoutValue() &&
+        domainCfg->mode().fanout().publishAppIdMetrics()) {
         const bsl::vector<bsl::string>& appIDs =
-            domain->config().mode().fanout().appIDs();
+            domainCfg->mode().fanout().appIDs();
         for (bsl::vector<bsl::string>::const_iterator cit = appIDs.begin();
              cit != appIDs.end();
              ++cit) {

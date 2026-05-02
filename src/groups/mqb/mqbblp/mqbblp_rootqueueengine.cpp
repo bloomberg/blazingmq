@@ -390,13 +390,15 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription,
     // Populate map of appId to appKey for statically registered consumers
     size_t numApps = 0;
 
+    bsl::shared_ptr<const mqbconfm::Domain> domainCfg = config();
+
     const bsl::vector<mqbconfm::Subscription>& subscriptions =
-        config().subscriptions();
+        domainCfg->subscriptions();
     d_hasAppSubscriptions = !subscriptions.empty();
 
     if (d_isFanout) {
         const bsl::vector<bsl::string>& cfgAppIds =
-            config().mode().fanout().appIDs();
+            domainCfg->mode().fanout().appIDs();
         for (numApps = 0; numApps < cfgAppIds.size(); ++numApps) {
             if (initializeAppId(cfgAppIds[numApps],
                                 errorDescription,
@@ -480,7 +482,7 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription,
     }
 
     if (!QueueEngineUtil::isBroadcastMode(d_queueState_p->queue())) {
-        d_consumptionMonitor.setMaxIdleTime(config().maxIdleTime());
+        d_consumptionMonitor.setMaxIdleTime(domainCfg->maxIdleTime());
     }
 
     return rc_SUCCESS;
@@ -1654,7 +1656,7 @@ int RootQueueEngine::onRejectMessage(
         // replica/proxy will free the corresponding handles, and all message
         // iterators will be recreated with the correct 'rdaInfo' received from
         // primary, if a new consumer connects to the replica/proxy.
-        const int      maxDeliveryAttempts = config().maxDeliveryAttempts();
+        const int      maxDeliveryAttempts = config()->maxDeliveryAttempts();
         const bool     domainIsUnlimited   = (maxDeliveryAttempts == 0);
         bmqp::RdaInfo& rda = message->appMessageState(app.ordinal()).d_rdaInfo;
 
@@ -2022,7 +2024,7 @@ void RootQueueEngine::logAlarmCb(
     storage->capacityMeter()->printShortSummary(out);
     out << ", max idle time "
         << bmqu::PrintUtil::prettyTimeInterval(
-               config().maxIdleTime() *
+               config()->maxIdleTime() *
                bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND)
         << " appears to be stuck. It currently has " << numConsumers
         << " consumers." << ss.str() << '\n';
@@ -2324,8 +2326,9 @@ void RootQueueEngine::loadInternals(mqbcmd::QueueEngine* out) const
     mqbcmd::FanoutQueueEngine& fanoutQueueEngine = out->makeFanout();
     // TODO: Implement in a way that makes sense
 
-    fanoutQueueEngine.mode()         = config().mode().selectionName();
-    fanoutQueueEngine.maxConsumers() = config().maxConsumers();
+    bsl::shared_ptr<const mqbconfm::Domain> cfg = config();
+    fanoutQueueEngine.mode()                    = cfg->mode().selectionName();
+    fanoutQueueEngine.maxConsumers()            = cfg->maxConsumers();
     Apps& consumerStatesRef          = const_cast<Apps&>(d_apps);
 
     bsl::vector<mqbcmd::ConsumerState>& consumerStates =

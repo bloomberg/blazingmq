@@ -1389,7 +1389,7 @@ static void test9_priorityCreateAndConfigure()
             mqbblp::RootQueueEngine::create(
                 queueEngine,
                 d_queueState_mp.get(),
-                d_queueState_mp->domain()->config(),
+                *d_queueState_mp->domain()->config(),
                 allocator);
         }
 
@@ -2598,7 +2598,7 @@ static void test22_createAndConfigure()
             mqbblp::RootQueueEngine::create(
                 queueEngine,
                 d_queueState_mp.get(),
-                d_queueState_mp->domain()->config(),
+                *d_queueState_mp->domain()->config(),
                 allocator);
         }
 

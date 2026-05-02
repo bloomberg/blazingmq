@@ -200,8 +200,8 @@ class Domain {
     /// Return the name of this domain.
     virtual const bsl::string& name() const = 0;
 
-    /// Return the configuration of this domain.
-    virtual const mqbconfm::Domain& config() const = 0;
+    /// Return a thread-safe snapshot of the configuration of this domain.
+    virtual bsl::shared_ptr<const mqbconfm::Domain> config() const = 0;
 
     /// Return the `DomainStats` object associated to this Domain.
     virtual mqbstat::DomainStats* domainStats() = 0;

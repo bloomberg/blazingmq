@@ -179,24 +179,24 @@ bool QueueEngineUtil::consumerAndProducerLimitsAreValid(
     bool              isValid = true;
     mqbi::QueueCounts counts  = queueState->consumerAndProducerCounts(
         handleParameters);
-    const mqbconfm::Domain& domainConfig =
+    bsl::shared_ptr<const mqbconfm::Domain> domainConfig =
         queueState->queue()->domain()->config();
 
-    if (domainConfig.maxProducers() &&
+    if (domainConfig->maxProducers() &&
         ((handleParameters.writeCount() + counts.d_writeCount) >
-         domainConfig.maxProducers())) {
+         domainConfig->maxProducers())) {
         errorDescription << "Client would exceed the limit of "
-                         << domainConfig.maxProducers() << " producer(s)";
+                         << domainConfig->maxProducers() << " producer(s)";
 
         isValid = false;
     }
 
-    if (domainConfig.maxConsumers() &&
+    if (domainConfig->maxConsumers() &&
         ((handleParameters.readCount() + counts.d_readCount) >
-         domainConfig.maxConsumers())) {
+         domainConfig->maxConsumers())) {
         errorDescription << (isValid ? "Client would exceed the limit of "
                                      : " and the limit of ")
-                         << domainConfig.maxConsumers() << " consumer(s)";
+                         << domainConfig->maxConsumers() << " consumer(s)";
 
         isValid = false;
     }
@@ -327,7 +327,7 @@ void QueueEngineUtil::logRejectMessage(
     bdlbb::Blob payload(queueState->blobBufferFactory(), allocator);
     bmqp::MessageProperties properties(allocator);
     int                     attemptedDeliveries =
-        queueState->domain()->config().maxDeliveryAttempts();
+        queueState->domain()->config()->maxDeliveryAttempts();
     bdlbb::Blob msgProperties(queueState->blobBufferFactory(), allocator);
     int         messagePropertiesSize = 0;
     int         rc                    = bmqp::ProtocolUtil::parse(

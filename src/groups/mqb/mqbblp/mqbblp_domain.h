@@ -51,7 +51,10 @@
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bslmt_mutex.h>
+#include <bslmt_readerwritermutex.h>
+#include <bslmt_readlockguard.h>
 #include <bslmt_semaphore.h>
+#include <bslmt_writelockguard.h>
 #include <bsls_assert.h>
 #include <bsls_atomic.h>
 #include <bsls_keyword.h>
@@ -128,8 +131,12 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain {
     /// Name of this domain.
     bsl::string d_name;
 
-    /// Configuration for the domain.
-    bdlb::NullableValue<mqbconfm::Domain> d_config;
+    /// Configuration for the domain.  Protected by `d_configLock`.
+    bsl::shared_ptr<const mqbconfm::Domain> d_config_sp;
+
+    /// Read-write lock for `d_config_sp` to allow thread-safe concurrent reads
+    /// from dispatcher threads while the admin thread writes.
+    mutable bslmt::ReaderWriterMutex d_configLock;
 
     /// Cluster to use by this domain.
     bsl::shared_ptr<mqbi::Cluster> d_cluster_sp;
@@ -307,8 +314,9 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain {
     /// Return the name of this domain.
     const bsl::string& name() const BSLS_KEYWORD_OVERRIDE;
 
-    /// Return the configuration of this domain.
-    const mqbconfm::Domain& config() const BSLS_KEYWORD_OVERRIDE;
+    /// Return a thread-safe snapshot of the configuration of this domain.
+    bsl::shared_ptr<const mqbconfm::Domain>
+    config() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return the `DomainStats` object associated to this Domain.
     mqbstat::DomainStats* domainStats() BSLS_KEYWORD_OVERRIDE;
@@ -356,12 +364,14 @@ inline const bsl::string& Domain::name() const
     return d_name;
 }
 
-inline const mqbconfm::Domain& Domain::config() const
+inline bsl::shared_ptr<const mqbconfm::Domain> Domain::config() const
 {
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!d_config.isNull());
+    bslmt::ReadLockGuard<bslmt::ReaderWriterMutex> guard(&d_configLock);
 
-    return d_config.value();
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_config_sp);
+
+    return d_config_sp;
 }
 
 inline mqbstat::DomainStats* Domain::domainStats()

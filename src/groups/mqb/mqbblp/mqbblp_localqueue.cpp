@@ -110,7 +110,8 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
 
     int                     rc        = 0;
     mqbi::Queue*            queue     = d_state_p->queue();
-    const mqbconfm::Domain& domainCfg = d_state_p->domain()->config();
+    bsl::shared_ptr<const mqbconfm::Domain> domainCfg =
+        d_state_p->domain()->config();
 
     // Create the associated storage.
     if (!d_state_p->storage()) {
@@ -123,9 +124,9 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
             d_state_p->uri(),
             d_state_p->key(),
             d_state_p->partitionId(),
-            domainCfg.messageTtl(),
-            domainCfg.maxDeliveryAttempts(),
-            domainCfg.storage());
+            domainCfg->messageTtl(),
+            domainCfg->maxDeliveryAttempts(),
+            domainCfg->storage());
         if (rc != 0) {
             return 10 * rc + rc_STORAGE_CREATION_FAILURE;  // RETURN
         }
@@ -146,12 +147,13 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
         d_state_p->setStorage(storageSp);
     }
     else {
-        d_state_p->storage()->setConsistency(domainCfg.consistency());
-        rc = d_state_p->storage()->configure(errorDescription,
-                                             domainCfg.storage().config(),
-                                             domainCfg.storage().queueLimits(),
-                                             domainCfg.messageTtl(),
-                                             domainCfg.maxDeliveryAttempts());
+        d_state_p->storage()->setConsistency(domainCfg->consistency());
+        rc = d_state_p->storage()->configure(
+            errorDescription,
+            domainCfg->storage().config(),
+            domainCfg->storage().queueLimits(),
+            domainCfg->messageTtl(),
+            domainCfg->maxDeliveryAttempts());
         if (rc) {
             return 10 * rc + rc_STORAGE_CFG_FAILURE;  // RETURN
         }
@@ -164,7 +166,7 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
     if (!d_queueEngine_mp) {
         RootQueueEngine::create(&d_queueEngine_mp,
                                 d_state_p,
-                                domainCfg,
+                                *domainCfg,
                                 d_allocator_p);
     }
 
@@ -176,7 +178,7 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
         return 10 * rc + rc_QUEUE_ENGINE_CFG_FAILURE;  // RETURN
     }
 
-    d_haveStrongConsistency = domainCfg.consistency().isStrongValue();
+    d_haveStrongConsistency = domainCfg->consistency().isStrongValue();
 
     d_state_p->stats()
         ->onEvent<mqbstat::QueueStatsDomain::EventType::e_CHANGE_ROLE>(
@@ -184,17 +186,17 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
 
     d_state_p->stats()
         ->onEvent<mqbstat::QueueStatsDomain::EventType::e_CFG_MSGS>(
-            domainCfg.storage().queueLimits().messages());
+            domainCfg->storage().queueLimits().messages());
 
     d_state_p->stats()
         ->onEvent<mqbstat::QueueStatsDomain::EventType::e_CFG_BYTES>(
-            domainCfg.storage().queueLimits().bytes());
+            domainCfg->storage().queueLimits().bytes());
 
     if (isReconfigure) {
-        if (domainCfg.mode().isFanoutValue()) {
+        if (domainCfg->mode().isFanoutValue()) {
             d_state_p->stats()->updateDomainAppIds(
-                domainCfg.mode().fanout().publishAppIdMetrics()
-                    ? domainCfg.mode().fanout().appIDs()
+                domainCfg->mode().fanout().publishAppIdMetrics()
+                    ? domainCfg->mode().fanout().appIDs()
                     : bsl::vector<bsl::string>(d_allocator_p));
         }
     }

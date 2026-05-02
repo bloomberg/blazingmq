@@ -1809,10 +1809,10 @@ void StorageUtil::recoveredQueuesCb(
                       << "], queueKey [" << queueKey << "].";
 
         // Update 'storageMap'.
-        const mqbconfm::Domain&            domainCfg  = domain->config();
-        const mqbconfm::StorageDefinition& storageDef = domainCfg.storage();
+        bsl::shared_ptr<const mqbconfm::Domain> domainCfg = domain->config();
+        const mqbconfm::StorageDefinition& storageDef = domainCfg->storage();
 
-        if (domainCfg.mode().isUndefinedValue()) {
+        if (domainCfg->mode().isUndefinedValue()) {
             BMQTSK_ALARMLOG_ALARM("RECOVERY")
                 << clusterDescription << ": Partition [" << partitionId
                 << "]: Domain for queue [" << queueUri << "], queueKey ["
@@ -1835,7 +1835,7 @@ void StorageUtil::recoveredQueuesCb(
         if (domain->cluster()->isClusterMember() &&
             !domain->cluster()->isLocal() &&
             (storageDef.config().isInMemoryValue() !=
-             domainCfg.mode().isBroadcastValue())) {
+             domainCfg->mode().isBroadcastValue())) {
             // In-memory storage without broadcast mode, as well as broadcast
             // mode without in-memory storage are incompatible config in a
             // clustered setup.
@@ -1847,7 +1847,7 @@ void StorageUtil::recoveredQueuesCb(
                 << "config. In-memory storage: " << bsl::boolalpha
                 << storageDef.config().isInMemoryValue()
                 << ", broadcast mode: " << bsl::boolalpha
-                << domainCfg.mode().isBroadcastValue() << ". Aboring broker."
+                << domainCfg->mode().isBroadcastValue() << ". Aboring broker."
                 << BMQTSK_ALARMLOG_END;
             mqbu::ExitUtil::terminate(mqbu::ExitCode::e_RECOVERY_FAILURE);
             // EXIT
@@ -1865,7 +1865,7 @@ void StorageUtil::recoveredQueuesCb(
         // Create and add virtual storages, if any.
         bmqu::MemOutStream errorDesc;
         int                rc;
-        if (domain->config().mode().isFanoutValue()) {
+        if (domainCfg->mode().isFanoutValue()) {
             for (mqbs::DataStoreConfigQueueInfo::AppInfos::const_iterator ait =
                      appIdKeyPairs.cbegin();
                  ait != appIdKeyPairs.cend();
@@ -2429,8 +2429,9 @@ void StorageUtil::registerQueueAsPrimary(const mqbi::Cluster*    cluster,
     // If StorageMgr is not aware of the queue, then its a simpler process --
     // simply register it and its associated appIds, if any.
 
-    const mqbconfm::StorageDefinition& storageDef = domain->config().storage();
-    const mqbconfm::QueueMode&         queueMode  = domain->config().mode();
+    bsl::shared_ptr<const mqbconfm::Domain> domainCfg  = domain->config();
+    const mqbconfm::StorageDefinition&      storageDef = domainCfg->storage();
+    const mqbconfm::QueueMode&              queueMode  = domainCfg->mode();
 
     bmqu::Printer<AppInfos> printer1(&appIdKeyPairs);
 
@@ -2494,13 +2495,13 @@ void StorageUtil::registerQueueAsPrimary(const mqbi::Cluster*    cluster,
 
             bsl::shared_ptr<mqbevt::DispatcherEvent> event_sp =
                 cluster->getEvent<mqbevt::DispatcherEvent>();
-            (*event_sp).setCallback(
-                bdlf::BindUtil::bind(updateQueuePrimaryDispatched,
-                                     storageSp.get(),
-                                     storagesLock,
-                                     fs,
-                                     appIdKeyPairs,
-                                     domain->config().mode().isFanoutValue()));
+            (*event_sp).setCallback(bdlf::BindUtil::bind(
+                updateQueuePrimaryDispatched,
+                storageSp.get(),
+                storagesLock,
+                fs,
+                appIdKeyPairs,
+                domain->config()->mode().isFanoutValue()));
 
             dispatcher->dispatchEvent(bslmf::MovableRefUtil::move(event_sp),
                                       fs);
@@ -2564,8 +2565,9 @@ void StorageUtil::createQueueStorageAsPrimary(StorageSpMap*    storageMap,
     BSLS_ASSERT_SAFE(!appIdKeyPairs.empty());
     BSLS_ASSERT_SAFE(domain);
 
-    const mqbconfm::StorageDefinition& storageDef = domain->config().storage();
-    const mqbconfm::QueueMode&         queueMode  = domain->config().mode();
+    bsl::shared_ptr<const mqbconfm::Domain> domainCfg  = domain->config();
+    const mqbconfm::StorageDefinition&      storageDef = domainCfg->storage();
+    const mqbconfm::QueueMode&              queueMode  = domainCfg->mode();
 
     bmqu::Printer<AppInfos> printer(&appIdKeyPairs);
 
@@ -2858,8 +2860,9 @@ void StorageUtil::createQueueStorageAsReplica(
         }
     }
 
-    if (domain->config().storage().config().isInMemoryValue() !=
-        domain->config().mode().isBroadcastValue()) {
+    bsl::shared_ptr<const mqbconfm::Domain> domainCfg = domain->config();
+    if (domainCfg->storage().config().isInMemoryValue() !=
+        domainCfg->mode().isBroadcastValue()) {
         // In-memory storage without broadcast mode, as well as broadcast mode
         // without in-memory storage are incompatible config in a clustered
         // setup.
@@ -2910,11 +2913,11 @@ StorageUtil::createQueueStorageImpl(mqbs::FileStore*        fs,
     BSLS_ASSERT_SAFE(uri.isValid());
     BSLS_ASSERT_SAFE(!queueKey.isNull());
 
-    const mqbconfm::Domain&                  domainCfg  = domain->config();
-    const mqbconfm::StorageDefinition&       storageDef = domainCfg.storage();
+    bsl::shared_ptr<const mqbconfm::Domain>  domainCfg  = domain->config();
+    const mqbconfm::StorageDefinition&       storageDef = domainCfg->storage();
     bsl::shared_ptr<mqbs::ReplicatedStorage> rs_sp;
 
-    if (domainCfg.mode().isUndefinedValue()) {
+    if (domainCfg->mode().isUndefinedValue()) {
         BALL_LOG_ERROR << fs->description()
                        << ": undefined domain mode for the queue '" << uri
                        << "', queueKey: [" << queueKey << "].";
@@ -2933,11 +2936,10 @@ StorageUtil::createQueueStorageImpl(mqbs::FileStore*        fs,
     fs->createStorage(&rs_sp, uri, queueKey, domain);
     BSLS_ASSERT_SAFE(rs_sp);
 
-    if (0 !=
-        addVirtualStoragesInternal(rs_sp.get(),
-                                   appIdKeyPairs,
-                                   fs->description(),
-                                   domain->config().mode().isFanoutValue())) {
+    if (0 != addVirtualStoragesInternal(rs_sp.get(),
+                                        appIdKeyPairs,
+                                        fs->description(),
+                                        domainCfg->mode().isFanoutValue())) {
         // Discard
         rs_sp.reset();
     }
@@ -3099,7 +3101,7 @@ void StorageUtil::updateQueueStorageDispatched(
         storage,
         appIdKeyPairs,
         description,
-        domain->config().mode().isFanoutValue());
+        domain->config()->mode().isFanoutValue());
 
     bmqu::Printer<AppInfos> printer(&appIdKeyPairs);
 

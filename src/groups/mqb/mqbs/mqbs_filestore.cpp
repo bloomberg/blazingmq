@@ -5375,8 +5375,9 @@ void FileStore::createStorage(bsl::shared_ptr<ReplicatedStorage>* storageSp,
     BSLS_ASSERT_SAFE(storageSp);
     BSLS_ASSERT_SAFE(domain);
 
-    const mqbconfm::StorageDefinition& storageDef = domain->config().storage();
-    const mqbconfm::Storage&           storageCfg = storageDef.config();
+    bsl::shared_ptr<const mqbconfm::Domain> domainCfg  = domain->config();
+    const mqbconfm::StorageDefinition&      storageDef = domainCfg->storage();
+    const mqbconfm::Storage&                storageCfg = storageDef.config();
 
     BSLS_ASSERT_SAFE(!storageCfg.isUndefinedValue());
 
@@ -5388,7 +5389,7 @@ void FileStore::createStorage(bsl::shared_ptr<ReplicatedStorage>* storageSp,
                                              queueKey,
                                              domain,
                                              config().partitionId(),
-                                             domain->config(),
+                                             *domain->config(),
                                              domain->capacityMeter(),
                                              storageAlloc,
                                              &d_storageAllocatorStore),

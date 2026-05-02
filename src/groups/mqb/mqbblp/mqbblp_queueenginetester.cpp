@@ -725,8 +725,9 @@ QueueEngineTester::getHandle(const bsl::string& clientText)
     // Consistency
     // NOTE: appId can only be specified in fanout mode, and it must be
     //       associated with a readCount of 1
-    const mqbconfm::Domain& domainConfig = d_queueState_mp->domain()->config();
-    const bool              isFanout     = domainConfig.mode().isFanoutValue();
+    bsl::shared_ptr<const mqbconfm::Domain> domainConfig =
+        d_queueState_mp->domain()->config();
+    const bool   isFanout           = domainConfig->mode().isFanoutValue();
     unsigned int upstreamSubQueueId = bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID;
     // Populate SubQueueIdInfo (if any)
     if (isFanout) {
@@ -898,8 +899,9 @@ int QueueEngineTester::configureHandle(const bsl::string& clientText)
 
     // Consistency
     // NOTE: appId can only be specified in fanout mode
-    const mqbconfm::Domain& domainConfig = d_queueState_mp->domain()->config();
-    const bool              isFanout     = domainConfig.mode().isFanoutValue();
+    bsl::shared_ptr<const mqbconfm::Domain> domainConfig =
+        d_queueState_mp->domain()->config();
+    const bool isFanout = domainConfig->mode().isFanoutValue();
     BSLS_ASSERT_OPT((appId == bmqp::ProtocolUtil::k_DEFAULT_APP_ID) ||
                     isFanout);
 
@@ -1223,8 +1225,9 @@ void QueueEngineTester::purgeQueue(const bslstl::StringRef& appId)
     mqbu::StorageKey          appKey = mqbi::QueueEngine::k_DEFAULT_APP_KEY;
 
     bsl::string appIdInternal = bmqp::ProtocolUtil::k_DEFAULT_APP_ID;
-    const mqbconfm::Domain& domainConfig = d_queueState_mp->domain()->config();
-    const bool              isFanout     = domainConfig.mode().isFanoutValue();
+    bsl::shared_ptr<const mqbconfm::Domain> domainConfig =
+        d_queueState_mp->domain()->config();
+    const bool isFanout = domainConfig->mode().isFanoutValue();
     if (isFanout) {
         appIdInternal = appId;
         appKey        = mqbu::StorageKey::k_NULL_KEY;
@@ -1542,8 +1545,9 @@ bool QueueEngineTester::getUpstreamParameters(
     const bslstl::StringRef&        appId) const
 {
     unsigned int upstreamSubQueueId = bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID;
-    const mqbconfm::Domain& domainConfig = d_queueState_mp->domain()->config();
-    const bool              isFanout     = domainConfig.mode().isFanoutValue();
+    bsl::shared_ptr<const mqbconfm::Domain> domainConfig =
+        d_queueState_mp->domain()->config();
+    const bool isFanout = domainConfig->mode().isFanoutValue();
 
     if (isFanout) {
         SubIdsMap::const_iterator subIdCiter = d_subIds.find(appId);
