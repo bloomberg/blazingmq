@@ -1633,9 +1633,8 @@ void StorageManager::processReplicaDataResponseDispatched(
 
     switch (dataType) {
     case bmqp_ctrlmsg::ReplicaDataType::E_PULL: {
-        enqueuePartitionFSMEvent(
-            PartitionFSM::Event::e_REPLICA_DATA_RSPN_PULL,
-            eventDataVec);
+        enqueuePartitionFSMEvent(PartitionFSM::Event::e_REPLICA_DATA_RSPN_PULL,
+                                 eventDataVec);
     } break;
     case bmqp_ctrlmsg::ReplicaDataType::E_PUSH: {
         enqueuePartitionFSMEvent(PartitionFSM::Event::e_REPLICA_DATA_RSPN_PUSH,
