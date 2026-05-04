@@ -443,7 +443,6 @@ class Proto:
                 preallocate=False,
                 max_archived_file_sets=0,
                 prefault_pages=False,
-                flush_at_shutdown=True,
                 sync_config=mqbcfg.StorageSyncConfig(
                     startup_recovery_max_duration_ms=20000,
                     max_attempts_storage_sync=2,
@@ -472,7 +471,6 @@ class Proto:
                 preallocate=False,
                 max_archived_file_sets=0,
                 prefault_pages=False,
-                flush_at_shutdown=True,
                 sync_config=mqbcfg.StorageSyncConfig(
                     startup_recovery_max_duration_ms=0,
                     max_attempts_storage_sync=0,

@@ -4450,8 +4450,6 @@ const bool PartitionConfig::DEFAULT_INITIALIZER_PREALLOCATE = false;
 
 const bool PartitionConfig::DEFAULT_INITIALIZER_PREFAULT_PAGES = false;
 
-const bool PartitionConfig::DEFAULT_INITIALIZER_FLUSH_AT_SHUTDOWN = true;
-
 const bdlat_AttributeInfo PartitionConfig::ATTRIBUTE_INFO_ARRAY[] = {
     {ATTRIBUTE_ID_NUM_PARTITIONS,
      "numPartitions",
@@ -4503,11 +4501,6 @@ const bdlat_AttributeInfo PartitionConfig::ATTRIBUTE_INFO_ARRAY[] = {
      sizeof("prefaultPages") - 1,
      "",
      bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
-    {ATTRIBUTE_ID_FLUSH_AT_SHUTDOWN,
-     "flushAtShutdown",
-     sizeof("flushAtShutdown") - 1,
-     "",
-     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_SYNC_CONFIG,
      "syncConfig",
      sizeof("syncConfig") - 1,
@@ -4519,7 +4512,7 @@ const bdlat_AttributeInfo PartitionConfig::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo*
 PartitionConfig::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 12; ++i) {
+    for (int i = 0; i < 11; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             PartitionConfig::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -4555,8 +4548,6 @@ const bdlat_AttributeInfo* PartitionConfig::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_ARCHIVED_FILE_SETS];
     case ATTRIBUTE_ID_PREFAULT_PAGES:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PREFAULT_PAGES];
-    case ATTRIBUTE_ID_FLUSH_AT_SHUTDOWN:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FLUSH_AT_SHUTDOWN];
     case ATTRIBUTE_ID_SYNC_CONFIG:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SYNC_CONFIG];
     default: return 0;
@@ -4577,7 +4568,6 @@ PartitionConfig::PartitionConfig(bslma::Allocator* basicAllocator)
 , d_maxArchivedFileSets()
 , d_preallocate(DEFAULT_INITIALIZER_PREALLOCATE)
 , d_prefaultPages(DEFAULT_INITIALIZER_PREFAULT_PAGES)
-, d_flushAtShutdown(DEFAULT_INITIALIZER_FLUSH_AT_SHUTDOWN)
 {
 }
 
@@ -4594,7 +4584,6 @@ PartitionConfig::PartitionConfig(const PartitionConfig& original,
 , d_maxArchivedFileSets(original.d_maxArchivedFileSets)
 , d_preallocate(original.d_preallocate)
 , d_prefaultPages(original.d_prefaultPages)
-, d_flushAtShutdown(original.d_flushAtShutdown)
 {
 }
 
@@ -4611,8 +4600,7 @@ PartitionConfig::PartitionConfig(PartitionConfig&& original) noexcept
   d_numPartitions(bsl::move(original.d_numPartitions)),
   d_maxArchivedFileSets(bsl::move(original.d_maxArchivedFileSets)),
   d_preallocate(bsl::move(original.d_preallocate)),
-  d_prefaultPages(bsl::move(original.d_prefaultPages)),
-  d_flushAtShutdown(bsl::move(original.d_flushAtShutdown))
+  d_prefaultPages(bsl::move(original.d_prefaultPages))
 {
 }
 
@@ -4629,7 +4617,6 @@ PartitionConfig::PartitionConfig(PartitionConfig&& original,
 , d_maxArchivedFileSets(bsl::move(original.d_maxArchivedFileSets))
 , d_preallocate(bsl::move(original.d_preallocate))
 , d_prefaultPages(bsl::move(original.d_prefaultPages))
-, d_flushAtShutdown(bsl::move(original.d_flushAtShutdown))
 {
 }
 #endif
@@ -4653,7 +4640,6 @@ PartitionConfig& PartitionConfig::operator=(const PartitionConfig& rhs)
         d_preallocate         = rhs.d_preallocate;
         d_maxArchivedFileSets = rhs.d_maxArchivedFileSets;
         d_prefaultPages       = rhs.d_prefaultPages;
-        d_flushAtShutdown     = rhs.d_flushAtShutdown;
         d_syncConfig          = rhs.d_syncConfig;
     }
 
@@ -4675,7 +4661,6 @@ PartitionConfig& PartitionConfig::operator=(PartitionConfig&& rhs)
         d_preallocate         = bsl::move(rhs.d_preallocate);
         d_maxArchivedFileSets = bsl::move(rhs.d_maxArchivedFileSets);
         d_prefaultPages       = bsl::move(rhs.d_prefaultPages);
-        d_flushAtShutdown     = bsl::move(rhs.d_flushAtShutdown);
         d_syncConfig          = bsl::move(rhs.d_syncConfig);
     }
 
@@ -4694,8 +4679,7 @@ void PartitionConfig::reset()
     d_maxCSLFileSize = DEFAULT_INITIALIZER_MAX_C_S_L_FILE_SIZE;
     d_preallocate    = DEFAULT_INITIALIZER_PREALLOCATE;
     bdlat_ValueTypeFunctions::reset(&d_maxArchivedFileSets);
-    d_prefaultPages   = DEFAULT_INITIALIZER_PREFAULT_PAGES;
-    d_flushAtShutdown = DEFAULT_INITIALIZER_FLUSH_AT_SHUTDOWN;
+    d_prefaultPages = DEFAULT_INITIALIZER_PREFAULT_PAGES;
     bdlat_ValueTypeFunctions::reset(&d_syncConfig);
 }
 
@@ -4717,7 +4701,6 @@ bsl::ostream& PartitionConfig::print(bsl::ostream& stream,
     printer.printAttribute("preallocate", this->preallocate());
     printer.printAttribute("maxArchivedFileSets", this->maxArchivedFileSets());
     printer.printAttribute("prefaultPages", this->prefaultPages());
-    printer.printAttribute("flushAtShutdown", this->flushAtShutdown());
     printer.printAttribute("syncConfig", this->syncConfig());
     printer.end();
     return stream;
@@ -7956,6 +7939,6 @@ Configuration::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY BLP_BAS_CODEGEN_2026.05.07
+// GENERATED BY BLP_BAS_CODEGEN_2026.05.21
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd

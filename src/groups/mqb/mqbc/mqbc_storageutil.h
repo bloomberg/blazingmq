@@ -629,16 +629,15 @@ struct StorageUtil {
 
     /// Shutdown the underlying partition associated with the specified
     /// `partitionId` from the specified `fileStores` by using the specified
-    /// `latch`, and the specified `clusterConfig`. The cluster information
-    /// is printed using the specified `clusterDescription`.
+    /// `latch`. The cluster information is printed using the specified
+    /// `clusterDescription`.
     ///
     /// THREAD: Executed by *QUEUE_DISPATCHER* thread with the specified
     ///         `partitionId`.
-    static void shutdown(int                              partitionId,
-                         bslmt::Latch*                    latch,
-                         FileStores*                      fileStores,
-                         const bsl::string&               clusterDescription,
-                         const mqbcfg::ClusterDefinition& clusterConfig);
+    static void shutdown(int                partitionId,
+                         bslmt::Latch*      latch,
+                         FileStores*        fileStores,
+                         const bsl::string& clusterDescription);
 
     /// Lookup queue storage for the specified `uri` in the specified
     /// `storageMap` under specified `storagesLock`.  If the storage is
