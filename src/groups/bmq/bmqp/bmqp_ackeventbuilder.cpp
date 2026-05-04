@@ -30,13 +30,30 @@
 namespace BloombergLP {
 namespace bmqp {
 
+namespace {
+
+struct BlobSpCreatorF {
+    bmqp::BlobPoolUtil::BlobSpPool* d_blobSpPool_p;
+
+    explicit BlobSpCreatorF(bmqp::BlobPoolUtil::BlobSpPool* blobSpPool)
+    : d_blobSpPool_p(blobSpPool)
+    {
+    }
+    bsl::shared_ptr<bdlbb::Blob> operator()()
+    {
+        return d_blobSpPool_p->getObject();
+    }
+};
+
+}
+
 // ---------------------
 // class AckEventBuilder
 // ---------------------
 
 AckEventBuilder::AckEventBuilder(BlobSpPool*       blobSpPool_p,
                                  bslma::Allocator* allocator)
-: d_blobSpPool_p(blobSpPool_p)
+: d_blobSpCreator(BlobSpCreatorF(blobSpPool_p))
 , d_blob_sp(0, allocator)       // initialized in `reset()`
 , d_emptyBlob_sp(0, allocator)  // initialized later in constructor
 , d_msgCount(0)
@@ -44,7 +61,29 @@ AckEventBuilder::AckEventBuilder(BlobSpPool*       blobSpPool_p,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(blobSpPool_p);
 
-    d_emptyBlob_sp = blobSpPool_p->getObject();
+    d_emptyBlob_sp = d_blobSpCreator();
+
+    // Assume that items built with the given `blobSpPool_p` either all have or
+    // all don't have buffer factory, and check it once for `d_emptyBlob_sp`.
+    // We require this since we do `Blob::setLength`:
+    BSLS_ASSERT_SAFE(
+        NULL != d_emptyBlob_sp->factory() &&
+        "Passed BlobSpPool must build Blobs with set BlobBufferFactory");
+
+    reset();
+}
+
+AckEventBuilder::AckEventBuilder(const BlobSpCreator& blobSpCreator,
+                                 bslma::Allocator*    allocator)
+: d_blobSpCreator(blobSpCreator)
+, d_blob_sp(0, allocator)       // initialized in `reset()`
+, d_emptyBlob_sp(0, allocator)  // initialized later in constructor
+, d_msgCount(0)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(blobSpCreator);
+
+    d_emptyBlob_sp = d_blobSpCreator();
 
     // Assume that items built with the given `blobSpPool_p` either all have or
     // all don't have buffer factory, and check it once for `d_emptyBlob_sp`.
@@ -58,7 +97,7 @@ AckEventBuilder::AckEventBuilder(BlobSpPool*       blobSpPool_p,
 
 void AckEventBuilder::reset()
 {
-    d_blob_sp = d_blobSpPool_p->getObject();
+    d_blob_sp = d_blobSpCreator();
 
     d_msgCount = 0;
 

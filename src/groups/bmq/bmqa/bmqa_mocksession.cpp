@@ -128,6 +128,133 @@ UriCorrIdToQueueMap& uriCorrIdToQueues(B& buffer)
 {
     return reinterpret_cast<UriCorrIdToQueueMap&>(*(buffer.buffer()));
 }
+
+struct BlobSpCreatorF {
+    bdlbb::BlobBufferFactory* d_bufferFactory_p;
+    bslma::Allocator*         d_allocator_p;
+
+    explicit BlobSpCreatorF(bdlbb::BlobBufferFactory* bufferFactory,
+                            bslma::Allocator*         allocator)
+    : d_bufferFactory_p(bufferFactory)
+    , d_allocator_p(allocator)
+    {
+    }
+    bsl::shared_ptr<bdlbb::Blob> operator()()
+    {
+        return bsl::shared_ptr<bdlbb::Blob>(
+            new (*d_allocator_p) bdlbb::Blob(d_bufferFactory_p, d_allocator_p),
+            d_allocator_p);
+    }
+};
+
+Event createAckEventImpl(bmqp::AckEventBuilder& ackBuilder,
+                         const bsl::vector<MockSessionUtil::AckParams>& acks,
+                         bdlbb::BlobBufferFactory* bufferFactory,
+                         bslma::Allocator*         allocator)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!acks.empty());
+    BSLS_ASSERT_SAFE(bufferFactory);
+
+    /// Event impl shared pointer to access
+    /// the pimpl of `bmqa::Event`.
+    typedef bsl::shared_ptr<bmqimp::Event> EventImplSp;
+
+    /// Queue impl shared pointer to access
+    /// the pimpl of `bmqa::QueueId`.
+    typedef bsl::shared_ptr<bmqimp::Queue> QueueImplSp;
+
+    Event        event;
+    EventImplSp& implPtr = reinterpret_cast<EventImplSp&>(
+        static_cast<Event&>(event));
+    implPtr = EventImplSp(new (*allocator)
+                              bmqimp::Event(bufferFactory, allocator),
+                          allocator);
+
+    for (size_t i = 0; i != acks.size(); ++i) {
+        const MockSessionUtil::AckParams& params = acks[i];
+        const QueueImplSp& impQueue = reinterpret_cast<const QueueImplSp&>(
+            params.d_queueId);
+
+        ackBuilder.appendMessage(
+            bmqp::ProtocolUtil::ackResultToCode(params.d_status),
+            0,  // Don't care about corrId in raw event
+            params.d_guid,
+            impQueue->id());
+        implPtr->insertQueue(impQueue);
+    }
+
+    implPtr->configureAsMessageEvent(
+        bmqp::Event(ackBuilder.blob(), allocator));
+    for (size_t i = 0; i != acks.size(); ++i) {
+        implPtr->addContext(acks[i].d_correlationId);
+    }
+
+    return event;
+}
+
+Event createPushEventImpl(
+    bmqp::PushEventBuilder&                                pushBuilder,
+    const bsl::vector<MockSessionUtil::PushMessageParams>& pushEventParams,
+    bdlbb::BlobBufferFactory*                              bufferFactory,
+    bslma::Allocator*                                      allocator)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!pushEventParams.empty());
+    BSLS_ASSERT_SAFE(bufferFactory);
+
+    /// Event impl shared pointer to access
+    /// the pimpl of `bmqa::Event`.
+    typedef bsl::shared_ptr<bmqimp::Event> EventImplSp;
+
+    /// Queue impl shared pointer to access
+    /// the pimpl of `bmqa::QueueId`.
+    typedef bsl::shared_ptr<bmqimp::Queue> QueueImplSp;
+
+    Event        event;
+    EventImplSp& implPtr = reinterpret_cast<EventImplSp&>(event);
+    implPtr              = EventImplSp(new (*allocator)
+                              bmqimp::Event(bufferFactory, allocator),
+                          allocator);
+
+    for (size_t i = 0; i != pushEventParams.size(); ++i) {
+        const QueueImplSp& queueImplPtr = reinterpret_cast<const QueueImplSp&>(
+            static_cast<const QueueId&>(pushEventParams[i].d_queueId));
+
+        const MockSessionUtil::PushMessageParams& pushMessageParams =
+            pushEventParams[i];
+
+        // By default, no flags are set; i.e. 0.
+
+        bdlbb::Blob                 combinedBlob;
+        bmqp::MessagePropertiesInfo logic;
+
+        if (pushMessageParams.d_properties.numProperties() > 0) {
+            combinedBlob = pushMessageParams.d_properties.streamOut(
+                bufferFactory);
+            logic = bmqp::MessagePropertiesInfo::makeNoSchema();
+            // Use the same old style as the 'streamOut' above.
+        }
+
+        bdlbb::BlobUtil::append(&combinedBlob, pushMessageParams.d_payload);
+
+        pushBuilder.packMessage(combinedBlob,
+                                queueImplPtr->id(),
+                                pushMessageParams.d_guid,
+                                0,
+                                bmqt::CompressionAlgorithmType::e_NONE,
+                                logic);
+        implPtr->insertQueue(bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID,
+                             queueImplPtr);
+        implPtr->addContext(bmqt::CorrelationId());
+    }
+
+    bmqp::Event bmqpEvent(pushBuilder.blob(), allocator);
+    implPtr->configureAsMessageEvent(bmqpEvent);
+
+    return event;
+}
+
 }  // close unnamed namespace
 
 #define BMQA_CHECK_ARG(METHOD, ARGNAME, EXPECTED, ACTUAL, CALL)               \
@@ -274,98 +401,70 @@ Event MockSessionUtil::createQueueSessionEvent(
     return event;
 }
 
-Event MockSessionUtil::createAckEvent(
-    const bsl::vector<AckParams>&   acks,
-    bmqp::BlobPoolUtil::BlobSpPool* blobSpPool,
-    bslma::Allocator*               allocator)
+Event MockSessionUtil::createAckEvent(const bsl::vector<AckParams>& acks,
+                                      bdlbb::BlobBufferFactory* bufferFactory,
+                                      bslma::Allocator*         allocator)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!acks.empty());
-    BSLS_ASSERT_SAFE(blobSpPool);
+    BSLS_ASSERT_SAFE(bufferFactory);
 
     bslma::Allocator* alloc = bslma::Default::allocator(allocator);
+    bmqp::AckEventBuilder ackBuilder(BlobSpCreatorF(bufferFactory, alloc),
+                                     alloc);
 
-    Event        event;
-    EventImplSp& implPtr = reinterpret_cast<EventImplSp&>(
-        static_cast<Event&>(event));
-    implPtr = EventImplSp(new (*alloc) bmqimp::Event(g_bufferFactory_p, alloc),
-                          alloc);
+    return createAckEventImpl(ackBuilder, acks, bufferFactory, allocator);
+}
 
+Event MockSessionUtil::createAckEvent(const bsl::vector<AckParams>& acks,
+                                      BlobSpPool*                   blobSpPool,
+                                      bdlbb::BlobBufferFactory* bufferFactory,
+                                      bslma::Allocator*         allocator)
+{
+    bslma::Allocator*     alloc = bslma::Default::allocator(allocator);
     bmqp::AckEventBuilder ackBuilder(blobSpPool, alloc);
-    for (size_t i = 0; i != acks.size(); ++i) {
-        const AckParams&   params   = acks[i];
-        const QueueImplSp& impQueue = reinterpret_cast<const QueueImplSp&>(
-            params.d_queueId);
 
-        ackBuilder.appendMessage(
-            bmqp::ProtocolUtil::ackResultToCode(params.d_status),
-            0,  // Don't care about corrId in raw event
-            params.d_guid,
-            impQueue->id());
-        implPtr->insertQueue(impQueue);
-    }
-
-    implPtr->configureAsMessageEvent(bmqp::Event(ackBuilder.blob(), alloc));
-    for (size_t i = 0; i != acks.size(); ++i) {
-        implPtr->addContext(acks[i].d_correlationId);
-    }
-
-    return event;
+    return createAckEventImpl(ackBuilder, acks, bufferFactory, alloc);
 }
 
 Event MockSessionUtil::createPushEvent(
     const bsl::vector<PushMessageParams>& pushEventParams,
-    bmqp::BlobPoolUtil::BlobSpPool*       blobSpPool,
     bdlbb::BlobBufferFactory*             bufferFactory,
     bslma::Allocator*                     allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!pushEventParams.empty());
+    BSLS_ASSERT_SAFE(bufferFactory);
 
     bslma::Allocator* alloc = bslma::Default::allocator(allocator);
 
-    Event        event;
-    EventImplSp& implPtr = reinterpret_cast<EventImplSp&>(event);
-    implPtr = EventImplSp(new (*alloc) bmqimp::Event(g_bufferFactory_p, alloc),
-                          alloc);
+    bmqp::PushEventBuilder pushBuilder(BlobSpCreatorF(bufferFactory, alloc),
+                                       alloc);
+
+    return createPushEventImpl(pushBuilder,
+                               pushEventParams,
+                               bufferFactory,
+                               allocator);
+}
+
+Event MockSessionUtil::createPushEvent(
+    const bsl::vector<PushMessageParams>& pushEventParams,
+    BlobSpPool*                           blobSpPool,
+    bdlbb::BlobBufferFactory*             bufferFactory,
+    bslma::Allocator*                     allocator)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!pushEventParams.empty());
+    BSLS_ASSERT_SAFE(blobSpPool);
+    BSLS_ASSERT_SAFE(bufferFactory);
+
+    bslma::Allocator* alloc = bslma::Default::allocator(allocator);
 
     bmqp::PushEventBuilder pushBuilder(blobSpPool, alloc);
 
-    for (size_t i = 0; i != pushEventParams.size(); ++i) {
-        const QueueImplSp& queueImplPtr = reinterpret_cast<const QueueImplSp&>(
-            static_cast<const QueueId&>(pushEventParams[i].d_queueId));
-
-        const PushMessageParams& pushMessageParams = pushEventParams[i];
-
-        // By default, no flags are set; i.e. 0.
-
-        bdlbb::Blob                 combinedBlob;
-        bmqp::MessagePropertiesInfo logic;
-
-        if (pushMessageParams.d_properties.numProperties() > 0) {
-            combinedBlob = pushMessageParams.d_properties.streamOut(
-                bufferFactory);
-            logic = bmqp::MessagePropertiesInfo::makeNoSchema();
-            // Use the same old style as the 'streamOut' above.
-        }
-
-        bdlbb::BlobUtil::append(&combinedBlob, pushMessageParams.d_payload);
-
-        pushBuilder.packMessage(combinedBlob,
-                                queueImplPtr->id(),
-                                pushMessageParams.d_guid,
-                                0,
-                                bmqt::CompressionAlgorithmType::e_NONE,
-                                logic);
-        implPtr->insertQueue(bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID,
-                             queueImplPtr);
-        implPtr->addContext(bmqt::CorrelationId());
-    }
-
-    bmqp::Event bmqpEvent(pushBuilder.blob(), alloc);
-    implPtr->configureAsMessageEvent(bmqpEvent);
-
-    return event;
+    return createPushEventImpl(pushBuilder,
+                               pushEventParams,
+                               bufferFactory,
+                               alloc);
 }
 
 OpenQueueStatus
