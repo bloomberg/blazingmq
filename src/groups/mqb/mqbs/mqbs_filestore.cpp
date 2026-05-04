@@ -2603,26 +2603,23 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
             unsigned int appDataLen = totalLen - headerSize - optionsSize -
                                       lastByte;
 
-            if (!d_ignoreCrc32c) {
-                // Check CRC32C
-                unsigned int checksum = bmqp::Crc32c::calculate(
-                    dataFd->block().base() + appDataOffset,
-                    appDataLen);
+            // Check CRC32C
+            unsigned int checksum = bmqp::Crc32c::calculate(
+                dataFd->block().base() + appDataOffset,
+                appDataLen);
 
-                if (rec.crc32c() != checksum) {
-                    BMQTSK_ALARMLOG_ALARM("RECOVERY")
-                        << partitionDesc()
-                        << "Recovery: CRC mismatch for guid ["
-                        << rec.messageGUID() << "] for queueKey ["
-                        << rec.queueKey() << "] in journal file ["
-                        << activeFileSet->d_journalFileName
-                        << "], offset: " << jit->recordOffset()
-                        << ", index: " << jit->recordIndex()
-                        << ". CRC32-C in JOURNAL record: " << rec.crc32c()
-                        << ". CRC32-C of payload in DATA file: " << checksum
-                        << ". Payload offset in DATA file: " << appDataOffset
-                        << BMQTSK_ALARMLOG_END;
-                }
+            if (rec.crc32c() != checksum) {
+                BMQTSK_ALARMLOG_ALARM("RECOVERY")
+                    << partitionDesc() << "Recovery: CRC mismatch for guid ["
+                    << rec.messageGUID() << "] for queueKey ["
+                    << rec.queueKey() << "] in journal file ["
+                    << activeFileSet->d_journalFileName
+                    << "], offset: " << jit->recordOffset()
+                    << ", index: " << jit->recordIndex()
+                    << ". CRC32-C in JOURNAL record: " << rec.crc32c()
+                    << ". CRC32-C of payload in DATA file: " << checksum
+                    << ". Payload offset in DATA file: " << appDataOffset
+                    << BMQTSK_ALARMLOG_END;
             }
 
             DataStoreRecordKey key(sequenceNum, primaryLeaseId);
@@ -5208,7 +5205,6 @@ FileStore::FileStore(
 , d_storages(allocator)
 , d_isFSMWorkflow(isFSMWorkflow)
 , d_qListAware(!d_isFSMWorkflow || doesFSMwriteQLIST)
-, d_ignoreCrc32c(false)
 , d_storageEventBuilder(FileStoreProtocol::k_VERSION,
                         bmqp::EventType::e_STORAGE,
                         d_blobSpPool_p,

@@ -16,6 +16,7 @@
 #include <mqbc_storagemanager.h>
 
 // BMQ
+#include <bmqp_crc32c.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_event.h>
 #include <bmqp_storagemessageiterator.h>
@@ -53,7 +54,6 @@
 #include <bdlmt_fixedthreadpool.h>
 #include <bdlt_currenttime.h>
 #include <bdlt_epochutil.h>
-#include <bsl_limits.h>
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
 #include <bsl_utility.h>
@@ -832,13 +832,17 @@ struct TestHelper {
         const unsigned int appDataLen = static_cast<unsigned int>(
             rec.d_appData_sp->length());
 
+        const unsigned int crc32c = bmqp::Crc32c::calculate(*rec.d_appData_sp);
+
         rec.d_msgAttributes = mqbi::StorageMessageAttributes(
             bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()),
             recNum % mqbs::FileStoreProtocol::k_MAX_MSG_REF_COUNT_HARD,
             appDataLen,
             mpsInfo,
             bmqt::CompressionAlgorithmType::e_NONE,
-            bsl::numeric_limits<unsigned int>::max() / recNum);
+            true,  // hasReceipt
+            0,     // queueHandle
+            crc32c);
 
         const int rc = fs->writeMessageRecord(&rec.d_msgAttributes,
                                               &handle,
@@ -2478,7 +2482,6 @@ static void test15_replicaWaitingReceivesReplicaDataRqstPull()
     helper.startStorageManager(&storageManager, primaryNode);
 
     mqbs::FileStore& fs = storageManager.fileStore(k_PARTITION_ID);
-    fs.setIgnoreCrc32c(true);
 
     BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
                     mqbc::PartitionFSM::State::e_REPLICA_WAITING);
