@@ -669,7 +669,7 @@ struct SessionImpl {
                 bslma::ManagedPtr<SessionEventHandler> eventHandler,
                 bslma::Allocator*                      allocator = 0);
 
-    MessageEvent createMessageEvent();
+    void loadMessageEventBuilder(MessageEventBuilder* builder);
 };
 
 // =============
