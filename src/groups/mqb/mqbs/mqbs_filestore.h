@@ -390,11 +390,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     // Whether the broker still reads and writes to the to-be-deprecated Qlist
     // file.
 
-    bool d_ignoreCrc32c;
-    // Whether to ignore Crc32
-    // calculations.  We should only set
-    // this to true during testing.
-
     bmqp::StorageEventBuilder d_storageEventBuilder;
     // Storage event builder to use.
 
@@ -949,10 +944,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Set the replication factor for strong consistency to `factor`.
     void setReplicationFactor(int factor);
 
-    /// Set the ignore Crc32c flag to the specified `value`.  We should only
-    /// set this to true during testing.
-    void setIgnoreCrc32c(bool value);
-
     /// This will be used as Implicit Receipt
     void setLastStrongConsistency(unsigned int        primaryLeaseId,
                                   bsls::Types::Uint64 sequenceNum);
@@ -1245,11 +1236,6 @@ inline void FileStore::execute(const mqbi::Dispatcher::VoidFunction& functor)
 }
 
 // MANIPULATORS
-inline void FileStore::setIgnoreCrc32c(bool value)
-{
-    d_ignoreCrc32c = value;
-}
-
 inline void
 FileStore::setLastStrongConsistency(unsigned int        primaryLeaseId,
                                     bsls::Types::Uint64 sequenceNum)
