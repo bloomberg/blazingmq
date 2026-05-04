@@ -63,15 +63,14 @@ def ensure_message_at_storage_layer(
     nodes = cluster.nodes(alive=alive)
 
     for node in nodes:
-        node.command(f"CLUSTERS CLUSTER {node.cluster_name} STORAGE SUMMARY")
 
-    def check():
-        return node.outputs_regex(
-            r"\w{10}\s+%s\s+%s\s+\d+\s+B\s+" % (partition_id, expected_count)
-            + re.escape(queue_uri)
-        )
+        def check(node=node):
+            node.command(f"CLUSTERS CLUSTER {node.cluster_name} STORAGE SUMMARY")
+            return node.outputs_regex(
+                r"\w{10}\s+%s\s+%s\s+\d+\s+B\s+" % (partition_id, expected_count)
+                + re.escape(queue_uri)
+            )
 
-    for node in nodes:
         assert wait_until(
             check,
             timeout=3,
