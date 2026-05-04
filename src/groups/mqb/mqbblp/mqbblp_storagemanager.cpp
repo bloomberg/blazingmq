@@ -344,7 +344,7 @@ void StorageManager::onPartitionRecovery(
                         << "] failed to apply buffered storage event, rc: "
                         << rc << ". Closing the partition."
                         << BMQTSK_ALARMLOG_END;
-                    fs->close();
+                    fs->close(false);  // don't flush
                     break;  // BREAK
                 }
             }

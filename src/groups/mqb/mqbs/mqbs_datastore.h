@@ -593,11 +593,11 @@ class DataStore : public mqbi::DispatcherClient {
     /// Return zero on success, non-zero value otherwise.
     virtual int open(QueueKeyInfoMap* queueKeyInfoMap) = 0;
 
-    /// Close this instance.  If the optional `flush` flag is true, flush
+    /// Close this instance.  If the specified `flush` flag is true, flush
     /// the data store to the backup storage (e.g., disk) if applicable.
-    /// If the optional `archive` flag is true, archive the data store.  Return
-    /// zero on success, non-zero value otherwise.
-    virtual int close(bool flush = false, bool archive = false) = 0;
+    /// If the optional `archive` flag is true, archive the data store.
+    /// Return zero on success, non-zero value otherwise.
+    virtual int close(bool flush, bool archive = false) = 0;
 
     /// Create and load into the specified `storageSp` an instance of
     /// ReplicatedStorage for the queue having the specified `queueUri` and
