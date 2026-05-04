@@ -1780,7 +1780,7 @@ void StorageManager::do_openRecoveryFileSet(const EventWithData& event)
     if (fs->isOpen()) {
         BALL_LOG_INFO << d_clusterData_p->identity().description()
                       << " Partition [" << partitionId << "]: "
-                      << "Not opening recovery file set because FileStore is "
+                      << "Not opening recovery file set because file store is "
                       << "already open";
 
         return;  // RETURN
@@ -2646,9 +2646,16 @@ void StorageManager::do_sendDataToReplicas(const EventWithData& event)
 
         return;  // RETURN
     }
-    // If self is not expecting data chunks, then self must be ready to serve
-    // data, hence the file store must be open.
-    BSLS_ASSERT_SAFE(fileStore(partitionId).isOpen());
+    if (!fileStore(partitionId).isOpen()) {
+        BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId << "]: "
+                      << "Not sending data chunks to replicas yet because "
+                      << "file store is not open.  When self is ready and "
+                      << "opens the file store, it will trigger another "
+                      << "attempt to send data chunks to replicas.";
+
+        return;  // RETURN
+    }
 
     DataDestinations destinations;
     determineDataDestinations(&destinations, event);
@@ -2797,7 +2804,7 @@ void StorageManager::do_processBufferedLiveData(const EventWithData& event)
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
                        << " Partition [" << partitionId
                        << "]: " << "Cannot process buffered live data because "
-                       << "FileStore is not opened.";
+                       << "file store is not opened.";
 
         return;  // RETURN
     }
@@ -3385,7 +3392,7 @@ void StorageManager::do_incrementNumRplcaDataRspn(const EventWithData& event)
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
                        << " Partition [" << partitionId << "]: "
                        << "Not incrementing num ReplicaDataResponses because "
-                       << "FileStore is not opened.";
+                       << "file store is not opened.";
 
         return;  // RETURN
     }
