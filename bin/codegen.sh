@@ -3,7 +3,7 @@
 #
 # This script is not able to be run by non-Bloomberg developers as it relies on internal tooling.
 
-readonly COPYRIGHT="// Copyright 2025 Bloomberg Finance L.P.
+readonly COPYRIGHT="// Copyright 2026 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the \"License\");
