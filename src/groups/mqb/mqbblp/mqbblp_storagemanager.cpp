@@ -418,9 +418,6 @@ void StorageManager::queueDeletionCb(int                     partitionId,
 {
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
 
-    BALL_LOG_INFO << ": deleting App for queue [" << uri << "], queueKey ["
-                  << queueKey << "], appKey [" << appKey << "] as replica.";
-
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));

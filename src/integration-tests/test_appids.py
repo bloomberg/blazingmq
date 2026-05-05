@@ -1014,6 +1014,66 @@ def test_gc_old_data_new_app(cluster: Cluster, domain_urls: tc.DomainUrls):
     assert leader.outputs_substr("Printing 0 message(s)", 5)
 
 
+@tweak.cluster.queue_operations.shutdown_timeout_ms(1)
+def test_new_app_after_restart(cluster: Cluster, domain_urls: tc.DomainUrls):
+    """Open one app of a fanout queue, close the client, restart, add a new
+    app to the domain config, open the new app, post a message, confirm,
+    restart again and verify the confirm survives.
+    """
+    du = domain_urls
+    proxies = cluster.proxy_cycle()
+
+    # Open one app of the fanout queue
+    app_id = DEFAULT_APP_IDS[0]
+    consumer = next(proxies).create_client(app_id)
+    consumer.open(f"{du.uri_fanout}?id={app_id}", flags=["read"], succeed=True)
+
+    # Close the client
+    consumer.close(f"{du.uri_fanout}?id={app_id}", succeed=True)
+
+    # Restart
+    cluster.stop_nodes()
+    cluster.start_nodes(wait_leader=True, wait_ready=True)
+
+    # Add new app while qqq1 is not open (queue == 0 in onQueueUpdated)
+    new_app = "new_app"
+    cluster.set_app_ids(DEFAULT_APP_IDS + [new_app], du)
+
+    # Now open the new app and producer on qqq1
+    new_consumer = next(proxies).create_client(new_app)
+    new_consumer.open(f"{du.uri_fanout}?id={new_app}", flags=["read"], succeed=True)
+
+    producer = next(proxies).create_client("producer")
+    producer.open(du.uri_fanout, flags=["write,ack"], succeed=True)
+    producer.post(du.uri_fanout, ["msg1"], succeed=True, wait_ack=True)
+
+    # Verify the new app received the message
+    assert new_consumer.wait_push_event()
+    assert wait_until(
+        lambda: (
+            len(new_consumer.list(f"{du.uri_fanout}?id={new_app}", block=True)) == 1
+        ),
+        3,
+    )
+
+    # Confirm the message for new_app
+    new_consumer.confirm(f"{du.uri_fanout}?id={new_app}", "+1", succeed=True)
+
+    # Close clients before restart
+    new_consumer.close(f"{du.uri_fanout}?id={new_app}", succeed=True)
+    producer.close(du.uri_fanout, succeed=True)
+
+    # Restart again
+    cluster.stop_nodes()
+    cluster.start_nodes(wait_leader=True, wait_ready=True)
+
+    # The message was confirmed, so new_app should not receive it again
+    new_consumer = next(proxies).create_client(f"{new_app}_after")
+    new_consumer.open(f"{du.uri_fanout}?id={new_app}", flags=["read"], succeed=True)
+
+    assert not new_consumer.wait_push_event(timeout=5, quiet=True)
+
+
 def test_add_remove_add_app(cluster: Cluster, domain_urls: tc.DomainUrls):
     """Test adding, removing, and adding the same App."""
     du = domain_urls

@@ -581,8 +581,8 @@ class DataStore : public mqbi::DispatcherClient {
 
     // MANIPULATORS
 
-    /// Open this instance using the specified `queueKeyInfoMap`. Return
-    /// zero on success, non-zero value otherwise.
+    /// Open this instance using the optionally specified `queueKeyInfoMap`.
+    /// Return zero on success, non-zero value otherwise.
     virtual int open(QueueKeyInfoMap* queueKeyInfoMap) = 0;
 
     /// Close this instance.  If the optional `flush` flag is true, flush

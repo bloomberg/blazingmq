@@ -1083,11 +1083,11 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                                JournalFileIterator* jit,
                                QlistFileIterator*   qit,
                                DataFileIterator*    dit,
-                               bool                 asPrimary)
+                               bool                 withCSL)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(queueKeyInfoMap);
-    if (!asPrimary) {
+    if (!withCSL) {
         BSLS_ASSERT_SAFE(queueKeyInfoMap->empty());
     }
     BSLS_ASSERT_SAFE(journalOffset);
@@ -1221,7 +1221,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
         }
 
         if (QueueOpType::e_DELETION == queueOpType) {
-            if (asPrimary) {
+            if (withCSL) {
                 if (appKey.isNull() && queueKeyInfoMap->end() !=
                                            queueKeyInfoMap->find(queueKey)) {
                     BALL_LOG_ERROR
@@ -1358,7 +1358,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 continue;  // CONTINUE
             }
 
-            if (asPrimary) {
+            if (withCSL) {
                 if (queueKeyInfoMap->end() ==
                     queueKeyInfoMap->find(queueKey)) {
                     BALL_LOG_ERROR
@@ -1419,7 +1419,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 continue;  // CONTINUE
             }
 
-            if (asPrimary) {
+            if (withCSL) {
                 if (queueKeyInfoMap->end() ==
                     queueKeyInfoMap->find(queueKey)) {
                     BALL_LOG_ERROR
@@ -1794,7 +1794,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                     queueKey);
 
                 if (iter == queueKeyInfoMap->end()) {
-                    if (asPrimary) {
+                    if (withCSL) {
                         BALL_LOG_ERROR
                             << partitionDesc()
                             << "Encountered a QueueOp.PURGE record for "
@@ -2018,7 +2018,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 QueueKeyInfoMap::iterator iter = queueKeyInfoMap->find(
                     queueKey);
 
-                if (!asPrimary && QueueOpType::e_ADDITION == queueOpType &&
+                if (!withCSL && QueueOpType::e_ADDITION == queueOpType &&
                     iter == queueKeyInfoMap->end()) {
                     BMQTSK_ALARMLOG_ALARM("RECOVERY")
                         << partitionDesc()
@@ -2078,7 +2078,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                                           paddedUriLen -
                                               uriBegin[paddedUriLen - 1]);
 
-                    if (asPrimary) {
+                    if (withCSL) {
                         BSLS_ASSERT_SAFE(!qinfo.canonicalQueueUri().empty());
                         if (qinfo.canonicalQueueUri() != uri) {
                             BMQTSK_ALARMLOG_ALARM("RECOVERY")
@@ -2147,7 +2147,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                          cit != appIdKeyPairs.cend();
                          ++cit) {
                         if (0 == deletedAppKeysOffsets.count(cit->second)) {
-                            if (asPrimary) {
+                            if (withCSL) {
                                 DataStoreConfigQueueInfo::AppInfos::
                                     const_iterator qinfoAppCit =
                                         qinfo.appIdKeyPairs().find(
@@ -2274,7 +2274,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
             }
 
             if (0 == queueKeyInfoMap->count(rec.queueKey())) {
-                if (asPrimary) {
+                if (withCSL) {
                     BALL_LOG_ERROR
                         << partitionDesc()
                         << "Encountered a DELETION record for queueKey ["
@@ -2353,7 +2353,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
             }
 
             if (0 == queueKeyInfoMap->count(rec.queueKey())) {
-                if (asPrimary) {
+                if (withCSL) {
                     BALL_LOG_ERROR
                         << partitionDesc()
                         << "Encountered a CONFIRM record for queueKey ["
@@ -2574,7 +2574,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
             }
 
             if (0 == queueKeyInfoMap->count(rec.queueKey())) {
-                if (asPrimary) {
+                if (withCSL) {
                     BALL_LOG_ERROR
                         << partitionDesc()
                         << "Encountered a MESSAGE record for queueKey ["
