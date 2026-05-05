@@ -764,8 +764,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     int open(QueueKeyInfoMap* queueKeyInfoMap) BSLS_KEYWORD_OVERRIDE;
 
     /// Close this instance.  If the optional `flush` flag is true, flush
-    /// the data store to disk.
-    void close(bool flush = false) BSLS_KEYWORD_OVERRIDE;
+    /// the data store to disk.  If the optional `archive` flag is true,
+    /// archive the data store.
+    void close(bool flush = false, bool archive = false) BSLS_KEYWORD_OVERRIDE;
 
     /// Create and load into the specified `storageSp` an instance of
     /// ReplicatedStorage for the queue having the specified `queueUri` and
@@ -906,13 +907,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     void applyForEachQueue(const QueueFunctor& functor) const;
 
     /// mqbs::FileStore specific MANIPULATORS
-
-    /// Deprecate the active file set.  Behavior is undefined unless this
-    /// instance is closed.
-    ///
-    /// NOTE: This routine is dangerous and archives storage files. Must be
-    /// used with caution.
-    void deprecateFileSet();
 
     /// Perform complete rollover of this partition and issue necessary sync
     /// points.
