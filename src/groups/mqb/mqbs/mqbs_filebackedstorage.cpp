@@ -233,7 +233,7 @@ bool FileBackedStorage::hasReceipt(const bmqt::MessageGUID& msgGUID) const
 
 void FileBackedStorage::configure(const mqbconfm::Storage& config,
                                   const mqbconfm::Limits&  limits,
-                                  const bsls::Types::Int64 messageTtl,
+                                  bsls::Types::Int64       messageTtl,
                                   int                      maxDeliveryAttempts)
 {
     d_config = config;
