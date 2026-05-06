@@ -2497,13 +2497,13 @@ void StorageUtil::registerQueueAsPrimary(const mqbi::Cluster*    cluster,
 
             bsl::shared_ptr<mqbevt::DispatcherEvent> event_sp =
                 cluster->getEvent<mqbevt::DispatcherEvent>();
-            (*event_sp).setCallback(bdlf::BindUtil::bind(
-                updateQueuePrimaryDispatched,
-                storageSp.get(),
-                storagesLock,
-                fs,
-                appIdKeyPairs,
-                domain->config()->mode().isFanoutValue()));
+            (*event_sp).setCallback(
+                bdlf::BindUtil::bind(updateQueuePrimaryDispatched,
+                                     storageSp.get(),
+                                     storagesLock,
+                                     fs,
+                                     appIdKeyPairs,
+                                     true /* isFanout */));
 
             dispatcher->dispatchEvent(bslmf::MovableRefUtil::move(event_sp),
                                       fs);

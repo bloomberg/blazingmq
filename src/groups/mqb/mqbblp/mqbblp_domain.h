@@ -38,7 +38,6 @@
 #include <bmqt_uri.h>
 
 // BDE
-#include <bdlb_nullablevalue.h>
 #include <bdlbb_blob.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
@@ -365,12 +364,16 @@ inline const bsl::string& Domain::name() const
 
 inline bsl::shared_ptr<const mqbconfm::Domain> Domain::config() const
 {
-    bslmt::ReadLockGuard<bslmt::ReaderWriterMutex> guard(&d_configLock);
+    bsl::shared_ptr<const mqbconfm::Domain> copy;
 
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_config_sp);
+    {
+        bslmt::ReadLockGuard<bslmt::ReaderWriterMutex> guard(&d_configLock);
+        copy = d_config_sp;
+    }
 
-    return d_config_sp;
+    // POSTCONDITIONS
+    BSLS_ASSERT_SAFE(copy);
+    return copy;
 }
 
 inline mqbstat::DomainStats* Domain::domainStats()
