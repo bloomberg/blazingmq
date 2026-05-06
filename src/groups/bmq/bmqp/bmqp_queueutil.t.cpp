@@ -385,6 +385,80 @@ static void test5_isValidFanoutConsumerSubId()
     BMQTST_ASSERT(QueueUtil::isValidFanoutConsumerSubQueueId(987654321));
 }
 
+static void test6_isValid()
+// ------------------------------------------------------------------------
+//
+// Testing:
+//   isValid
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("isValid");
+
+    using namespace bmqp;
+
+    struct Test {
+        int                 d_line;
+        bool                d_expected;
+        bsls::Types::Uint64 d_flags;
+        int                 d_readCount;
+        int                 d_writeCount;
+        int                 d_adminCount;
+    } k_DATA[] = {
+        // Valid: READ flag with readCount > 0
+        {L_, true, bmqt::QueueFlags::e_READ, 1, 0, 0},
+        // Valid: WRITE flag with writeCount > 0
+        {L_, true, bmqt::QueueFlags::e_WRITE, 0, 1, 0},
+        // Valid: ADMIN flag with adminCount > 0
+        {L_, true, bmqt::QueueFlags::e_ADMIN, 0, 0, 1},
+        // Valid: all flags set
+        {L_,
+         true,
+         bmqt::QueueFlags::e_READ | bmqt::QueueFlags::e_WRITE |
+             bmqt::QueueFlags::e_ADMIN,
+         1,
+         1,
+         1},
+        // Invalid: READ flag but readCount = 0
+        {L_, false, bmqt::QueueFlags::e_READ, 0, 0, 0},
+        // Invalid: WRITE flag but writeCount = 0
+        {L_, false, bmqt::QueueFlags::e_WRITE, 0, 0, 0},
+        // Invalid: ADMIN flag but adminCount = 0
+        {L_, false, bmqt::QueueFlags::e_ADMIN, 0, 0, 0},
+        // Invalid: readCount > 0 but READ flag not set
+        {L_, false, bmqt::QueueFlags::e_WRITE, 1, 1, 0},
+        // Invalid: writeCount > 0 but WRITE flag not set
+        {L_, false, bmqt::QueueFlags::e_READ, 1, 1, 0},
+        // Invalid: adminCount > 0 but ADMIN flag not set (the fuzz bug)
+        {L_,
+         false,
+         bmqt::QueueFlags::e_READ | bmqt::QueueFlags::e_WRITE,
+         1,
+         1,
+         1073741818},
+    };
+
+    const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
+
+    for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        const Test& test = k_DATA[idx];
+
+        bmqp_ctrlmsg::QueueHandleParameters handleParams(
+            bmqtst::TestHelperUtil::allocator());
+        handleParams.flags()      = test.d_flags;
+        handleParams.readCount()  = test.d_readCount;
+        handleParams.writeCount() = test.d_writeCount;
+        handleParams.adminCount() = test.d_adminCount;
+
+        PVV(test.d_line << ": testing 'isValid(handleParameters) == "
+                        << bsl::boolalpha << test.d_expected << "',"
+                        << " handleParameters: " << handleParams);
+
+        BMQTST_ASSERT_EQ_D(test.d_line,
+                           bmqp::QueueUtil::isValid(handleParams),
+                           test.d_expected);
+    }
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -395,6 +469,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 6: test6_isValid(); break;
     case 5: test5_isValidFanoutConsumerSubId(); break;
     case 4: test4_isEmpty(); break;
     case 3: test3_extractCanonicalHandleParameters(); break;

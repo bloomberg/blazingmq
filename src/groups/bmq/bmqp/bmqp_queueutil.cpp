@@ -46,17 +46,26 @@ bool QueueUtil::isValid(const bmqp_ctrlmsg::QueueHandleParameters& parameters)
             return false;  // RETURN
         }
     }
+    else if (parameters.readCount() > 0) {
+        return false;  // RETURN
+    }
 
     if (bmqt::QueueFlagsUtil::isWriter(parameters.flags())) {
         if (parameters.writeCount() <= 0) {
             return false;  // RETURN
         }
     }
+    else if (parameters.writeCount() > 0) {
+        return false;  // RETURN
+    }
 
     if (bmqt::QueueFlagsUtil::isAdmin(parameters.flags())) {
         if (parameters.adminCount() <= 0) {
             return false;  // RETURN
         }
+    }
+    else if (parameters.adminCount() > 0) {
+        return false;  // RETURN
     }
 
     return true;
