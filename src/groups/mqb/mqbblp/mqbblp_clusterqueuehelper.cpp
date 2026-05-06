@@ -3313,8 +3313,7 @@ void ClusterQueueHelper::onQueueHandleCreatedDispatched(mqbi::Queue*     queue,
                          << "], queue ptr [" << queue << "]: "
                          << queueContextSp->d_liveQInfo.d_numQueueHandles;
 
-    if (0 == queueContextSp->d_liveQInfo.d_numHandleCreationsInProgress &&
-        0 == queueContextSp->d_liveQInfo.d_numQueueHandles) {
+    if (queueContextSp->d_liveQInfo.isIdle()) {
         // Both counters are zero.  This could occur if queue was created but
         // failed to create its first handle.
 
@@ -3380,12 +3379,14 @@ void ClusterQueueHelper::onQueueHandleDestroyedDispatched(mqbi::Queue* queue,
 
     BSLS_ASSERT_SAFE(0 == numHandles);
 
-    if (0 != queueContextSp->d_liveQInfo.d_numHandleCreationsInProgress) {
+    if (!queueContextSp->d_liveQInfo.isIdle()) {
         BMQ_LOGTHROTTLE_INFO
             << d_cluster_p->description() << ": num handle count for queue ["
             << uri << "] has gone to zero but there are ["
             << queueContextSp->d_liveQInfo.d_numHandleCreationsInProgress
-            << "] handle-creation events in progress.";
+            << "] handle-creation events in progress and/or ["
+            << queueContextSp->d_liveQInfo.d_inFlight
+            << "] in flight requests.";
         return;  // RETURN
     }
 
@@ -5304,7 +5305,7 @@ void ClusterQueueHelper::processShutdownEvent()
             continue;  // CONTINUE
         }
 
-        if (0 != qinfo.d_numQueueHandles) {
+        if (!qinfo.isIdle()) {
             // Queue has non-zero handles.  Since self is stopping, self will
             // receive/send close-queue requests for this queue, and eventually
             // num handles will go to zero, and queue will be removed.
@@ -5866,10 +5867,7 @@ int ClusterQueueHelper::gcExpiredQueues(bool               immediate,
         // Queue has no outstanding messages.
 
         bool nothingOutstanding =
-            queueContextSp->d_liveQInfo.d_pending.empty() &&
-            0 == queueContextSp->d_liveQInfo.d_inFlight &&
-            0 == qinfo.d_numHandleCreationsInProgress &&
-            0 == qinfo.d_numQueueHandles;
+            queueContextSp->d_liveQInfo.d_pending.empty() && qinfo.isIdle();
 
         if (!nothingOutstanding) {
             // Something is outstanding on the queue, can't mark it for gc.
@@ -6023,10 +6021,7 @@ bool ClusterQueueHelper::hasActiveQueue(const bsl::string& domainName)
             continue;
         }
 
-        if (queueContextCIt->second->d_liveQInfo.d_inFlight != 0 ||
-            queueContextCIt->second->d_liveQInfo
-                    .d_numHandleCreationsInProgress != 0 ||
-            queueContextCIt->second->d_liveQInfo.d_numQueueHandles != 0) {
+        if (!queueContextCIt->second->d_liveQInfo.isIdle()) {
             return true;  // RETURN
         }
     }
