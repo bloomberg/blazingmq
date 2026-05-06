@@ -92,18 +92,19 @@ class ClusterNode;
 
 namespace mqbc {
 
-namespace {
-/// Constant used to represent an invalid partition id.
-const unsigned int k_INVALID_PARTITION_ID =
-    bsl::numeric_limits<unsigned int>::max();
-}  // close unnamed namespace
-
 // ==================
 // struct StorageUtil
 // ==================
 
 /// Generic utilities for storage related operations.
 struct StorageUtil {
+  public:
+    // PUBLIC CONSTANTS
+
+    /// Constant used to represent an invalid partition id.
+    static const unsigned int k_INVALID_PARTITION_ID =
+        static_cast<unsigned int>(mqbi::Storage::k_INVALID_PARTITION_ID);
+
   private:
     // CLASS SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBC.STORAGEUTIL");

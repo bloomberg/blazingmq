@@ -422,6 +422,10 @@ class StorageIterator {
 class Storage {
   public:
     // PUBLIC CONSTANTS
+    /// Note that this has the same bit pattern as
+    /// `mqbc::StorageUtil::k_INVALID_PARTITION_ID` (`UINT_MAX`), which is
+    /// the unsigned counterpart used when working with wire-protocol
+    /// partition IDs.
     static const int k_INVALID_PARTITION_ID = -1;
 
     /// A constant representing any (but not invalid) partitionId.  This is
