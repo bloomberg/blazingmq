@@ -1309,6 +1309,10 @@ void TCPSessionFactory::stopListening()
     d_isListening = false;
 
     cancelListeners();
+
+    if (d_reconnectingChannelFactory_mp) {
+        d_reconnectingChannelFactory_mp->disableReconnect();
+    }
 }
 
 void TCPSessionFactory::closeClients()
