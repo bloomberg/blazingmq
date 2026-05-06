@@ -38,6 +38,7 @@ struct BlobSpCreatorF {
     explicit BlobSpCreatorF(bmqp::BlobPoolUtil::BlobSpPool* blobSpPool)
     : d_blobSpPool_p(blobSpPool)
     {
+        BSLS_ASSERT_SAFE(d_blobSpPool_p);
     }
     bsl::shared_ptr<bdlbb::Blob> operator()()
     {

@@ -138,12 +138,12 @@ struct BlobSpCreatorF {
     : d_bufferFactory_p(bufferFactory)
     , d_allocator_p(allocator)
     {
+        BSLS_ASSERT_SAFE(d_bufferFactory_p);
     }
     bsl::shared_ptr<bdlbb::Blob> operator()()
     {
-        return bsl::shared_ptr<bdlbb::Blob>(
-            new (*d_allocator_p) bdlbb::Blob(d_bufferFactory_p, d_allocator_p),
-            d_allocator_p);
+        return bsl::allocate_shared<bdlbb::Blob>(d_allocator_p,
+                                                 d_bufferFactory_p);
     }
 };
 
