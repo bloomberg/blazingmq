@@ -29,9 +29,10 @@ from blazingmq.schemas import broker
 
 
 class RawClient:
-    def __init__(self, socket_timeout: float = 10.0):
+    def __init__(self, *, verbose: bool = False, socket_timeout: float = 10.0):
         self._channel: Optional[socket.socket] = None
         self._socket_timeout = socket_timeout
+        self._verbose = verbose
 
     @staticmethod
     def _wrap_control_event(payload: Union[str, dict]) -> bytes:
@@ -155,10 +156,14 @@ class RawClient:
                     "expected one of the EventType values"
                 )
             if event_type == broker.EventType.HEARTBEAT_REQ:
-                print("Received heartbeat request.")
+                if self._verbose:
+                    print("Received heartbeat request.")
                 self._send_raw(self._wrap_heartbeat_res_event())
             else:
-                print("Received event with type: ", broker.EventType(event_type).name)
+                if self._verbose:
+                    print(
+                        "Received event with type: ", broker.EventType(event_type).name
+                    )
                 break
 
         # Process the event body
