@@ -3553,7 +3553,6 @@ void FileStore::gcWorkerDispatched(const bsl::shared_ptr<FileSet>& fileSet)
     }
 
     bsls::Types::Int64 startTime = bmqsys::Time::highResolutionTimer();
-
     close(*fileSet, false);
     bsls::Types::Int64 closeTime = bmqsys::Time::highResolutionTimer();
     BALL_LOG_INFO << partitionDesc() << "File set closed. Time taken: "
@@ -5312,7 +5311,7 @@ int FileStore::open(QueueKeyInfoMap* queueKeyInfoMap)
     return rc_SUCCESS;
 }
 
-void FileStore::close(bool flush)
+void FileStore::close(bool flush, bool archive)
 {
     // The FileStore might be not opened by the time we call `close()`
     cancelTimersAndWait();
@@ -5344,7 +5343,9 @@ void FileStore::close(bool flush)
     if (0 == --activeFileSet->d_aliasedBlobBufferCount) {
         BALL_LOG_INFO_BLOCK
         {
-            BALL_LOG_OUTPUT_STREAM << partitionDesc() << "Closing file set ["
+            BALL_LOG_OUTPUT_STREAM << partitionDesc() << "Closing "
+                                   << (archive ? "and archiving " : "")
+                                   << "file set ["
                                    << activeFileSet->d_dataFileName << "], ["
                                    << activeFileSet->d_journalFileName << "]";
             if (d_qListAware) {
@@ -5354,7 +5355,25 @@ void FileStore::close(bool flush)
             BALL_LOG_OUTPUT_STREAM << ".";
         }
 
+        bsls::Types::Int64 startTime = bmqsys::Time::highResolutionTimer();
         close(*activeFileSet, flush);
+        bsls::Types::Int64 closeTime = bmqsys::Time::highResolutionTimer();
+        BALL_LOG_INFO << partitionDesc() << "File set closed. Time taken: "
+                      << bmqu::PrintUtil::prettyTimeInterval(closeTime -
+                                                             startTime);
+
+        if (archive) {
+            bsls::Types::Int64 archiveStartTime =
+                bmqsys::Time::highResolutionTimer();
+            FileStore::archive(activeFileSet);
+            bsls::Types::Int64 archiveEndTime =
+                bmqsys::Time::highResolutionTimer();
+            BALL_LOG_INFO << partitionDesc()
+                          << "File set archived. Time taken: "
+                          << bmqu::PrintUtil::prettyTimeInterval(
+                                 archiveEndTime - archiveStartTime);
+        }
+
         d_fileSets.erase(d_fileSets.begin());
     }
     else {
@@ -5366,6 +5385,7 @@ void FileStore::close(bool flush)
         if (d_qListAware) {
             BSLS_ASSERT_SAFE(activeFileSet->d_qlistFile.isValid());
         }
+        BSLS_ASSERT_SAFE(!archive);
     }
 }
 
@@ -7090,19 +7110,6 @@ void FileStore::applyForEachQueue(const QueueFunctor& functor) const
             functor(it->second->queue());
         }
     }
-}
-
-void FileStore::deprecateFileSet()
-{
-    if (d_isOpen) {
-        BALL_LOG_ERROR << partitionDesc()
-                       << "Cannot deprecate the active file set as this "
-                       << "FileStore is still open.";
-
-        return;  // RETURN
-    }
-
-    archive(d_fileSets[0].get());
 }
 
 void FileStore::registerStorage(ReplicatedStorage* storage)

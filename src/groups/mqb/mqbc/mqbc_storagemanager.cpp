@@ -3340,8 +3340,7 @@ void StorageManager::do_replicaRemoveStorage(const EventWithData& event)
     BSLS_ASSERT_SAFE(fs);
 
     if (fs->isOpen()) {
-        fs->close(false);  // flush
-        fs->deprecateFileSet();
+        fs->close(false, true);  // flush, archive
     }
     else {
         d_recoveryManager_mp->deprecateFileSet(partitionId);
