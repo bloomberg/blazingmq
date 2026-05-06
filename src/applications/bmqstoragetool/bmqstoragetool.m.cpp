@@ -244,7 +244,8 @@ int main(int argc, const char* argv[])
                                              arguments.d_dataFile,
                                              arguments.d_cslFile,
                                              arguments.d_cslFromBegin,
-                                             allocator));
+                                             allocator),
+                         allocator);
         if (!arguments.d_cslFile.empty()) {
             fileManager->fillQueueMapFromCslFile(&parameters.d_queueMap);
             parameters.validateQueueNames();
