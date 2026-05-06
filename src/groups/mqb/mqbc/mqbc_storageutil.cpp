@@ -3151,9 +3151,8 @@ int StorageUtil::configureStorage(
 
     enum {
         // Value for the various RC error categories
-        rc_SUCCESS             = 0,
-        rc_STORAGE_CFG_FAILURE = -1,
-        rc_UNKNOWN_QUEUE       = -2
+        rc_SUCCESS       = 0,
+        rc_UNKNOWN_QUEUE = -1
     };
 
     bslmt::LockGuard<bslmt::Mutex> guard(storagesLock);  // LOCK
@@ -3183,16 +3182,10 @@ int StorageUtil::configureStorage(
 
     // Do not change consistency level of `storageSp`, use the one provided on
     // construction instead.
-    const int rc = storageSp->configure(errorDescription,
-                                        storageDef.config(),
-                                        storageDef.queueLimits(),
-                                        messageTtl,
-                                        maxDeliveryAttempts);
-
-    if (0 != rc) {
-        return 10 * rc + rc_STORAGE_CFG_FAILURE;  // RETURN
-    }
-
+    storageSp->configure(storageDef.config(),
+                         storageDef.queueLimits(),
+                         messageTtl,
+                         maxDeliveryAttempts);
     *out = storageSp;
 
     static_cast<void>(queueKey);

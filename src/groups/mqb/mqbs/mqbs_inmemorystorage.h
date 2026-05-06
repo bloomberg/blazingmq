@@ -267,15 +267,12 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     //   (virtual mqbi::Storage)
 
     /// Configure this storage using the specified `config` and `limits`.
-    /// Return 0 on success, or an non-zero return code and fill in a
-    /// description of the error in the specified `errorDescription`
-    /// otherwise.  Note that calling `configure` on an already configured
-    /// storage should fail and leave the storage untouched.
-    int configure(bsl::ostream&            errorDescription,
-                  const mqbconfm::Storage& config,
-                  const mqbconfm::Limits&  limits,
-                  const bsls::Types::Int64 messageTtl,
-                  const int maxDeliveryAttempts) BSLS_KEYWORD_OVERRIDE;
+    /// Note that calling `configure` on an already configured storage should
+    /// atomically reconfigure that storage with the new configuration.
+    void configure(const mqbconfm::Storage& config,
+                   const mqbconfm::Limits&  limits,
+                   bsls::Types::Int64       messageTtl,
+                   int maxDeliveryAttempts) BSLS_KEYWORD_OVERRIDE;
 
     /// Set the consistency level associated to this storage to the specified
     /// `value`.

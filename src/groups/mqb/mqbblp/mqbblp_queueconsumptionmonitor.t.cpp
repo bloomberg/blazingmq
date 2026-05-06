@@ -293,8 +293,6 @@ Test::Test()
     d_queue._setDispatcher(&d_dispatcher);
     d_queue.setThreadId(bslmt::ThreadUtil::selfId());
 
-    bmqu::MemOutStream errorDescription(d_allocator_p);
-
     bslma::ManagedPtr<mqbi::Queue> queueMp(&d_queue,
                                            0,
                                            bslma::ManagedPtrUtil::noOpDeleter);
@@ -308,8 +306,7 @@ Test::Test()
     limits.messages() = bsl::numeric_limits<bsls::Types::Int64>::max();
     limits.bytes()    = bsl::numeric_limits<bsls::Types::Int64>::max();
 
-    d_storage.configure(errorDescription,
-                        config,
+    d_storage.configure(config,
                         limits,
                         bsl::numeric_limits<bsls::Types::Int64>::max(),
                         0);

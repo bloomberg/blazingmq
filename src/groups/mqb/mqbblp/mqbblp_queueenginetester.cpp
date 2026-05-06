@@ -566,12 +566,10 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig,
     limits.bytes()    = bsl::numeric_limits<bsls::Types::Int64>::max();
 
     storage_p->setConsistency(domainConfig.consistency());
-    rc = storage_p->configure(errorDescription,
-                              config,
-                              limits,
-                              domainConfig.messageTtl(),
-                              domainConfig.maxDeliveryAttempts());
-    BSLS_ASSERT_OPT(rc == 0 && "storage configure fail");
+    storage_p->configure(config,
+                         limits,
+                         domainConfig.messageTtl(),
+                         domainConfig.maxDeliveryAttempts());
 
     // Add virtual storages
     const bool isFanoutMode = domainConfig.mode().isFanoutValue();
