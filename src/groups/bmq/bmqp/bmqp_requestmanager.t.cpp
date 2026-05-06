@@ -53,7 +53,7 @@ using namespace bsl;
 // - createRequestTest
 // - sendRequestTest
 // - processResponseTest
-// - cancelAllRequestsTest
+// - cancelAllRequestsTest (by groupId and by componentId)
 //-----------------------------------------------------------------------------
 // ============================================================================
 //                            TEST HELPERS UTILITY
@@ -928,6 +928,51 @@ static void test6_cancelAllRequestsTest()
             }
         }
     }
+
+    {
+        // Cancel by componentId: only requests tagged with the specified
+        // component should be cancelled; requests tagged with a different
+        // component or untagged (e_NO_COMPONENT_ID) must remain outstanding.
+        TestContext       context(false, bmqtst::TestHelperUtil::allocator());
+        const bsl::size_t numRequests = 6;
+        ReqVec            requests(bmqtst::TestHelperUtil::allocator());
+        requests.reserve(numRequests);
+        for (bsl::size_t i = 0; i < numRequests; ++i) {
+            ReqSp request = context.createRequest();
+            context.populateRequest(request);
+            if (i < 2) {
+                request->setComponentId(
+                    bmqp::RequestManagerComponentId::e_CLUSTER_FSM);
+            }
+            else if (i < 4) {
+                request->setComponentId(
+                    bmqp::RequestManagerComponentId::e_PARTITION_FSM);
+            }
+            // i >= 4: leave as e_NO_COMPONENT_ID (default)
+            context.sendChannelRequest(request);
+            requests.emplace_back(request);
+        }
+
+        Mes reason = context.createResponseCancel();
+        context.manager().cancelAllRequests(
+            reason,
+            bmqp::RequestManagerComponentId::e_CLUSTER_FSM);
+
+        for (bsl::size_t i = 0; i < numRequests; ++i) {
+            ReqSp request = requests[i];
+            if (request->componentId() ==
+                bmqp::RequestManagerComponentId::e_CLUSTER_FSM) {
+                BMQTST_ASSERT_EQ(request->result(),
+                                 bmqt::GenericResult::e_CANCELED);
+                BMQTST_ASSERT_EQ(request->response().choice().status(),
+                                 reason.choice().status());
+            }
+            else {
+                BMQTST_ASSERT_EQ(request->result(),
+                                 bmqt::GenericResult::e_SUCCESS);
+            }
+        }
+    }
 }
 
 static void test7_requestBreathingTest()
@@ -958,6 +1003,8 @@ static void test7_requestBreathingTest()
         BMQTST_ASSERT_EQ(request->result(), bmqt::GenericResult::e_SUCCESS);
         BMQTST_ASSERT(request->nodeDescription().empty());
         BMQTST_ASSERT_EQ(request->groupId(), -1);  // Req::k_NO_GROUP_ID
+        BMQTST_ASSERT_EQ(request->componentId(),
+                         bmqp::RequestManagerComponentId::e_NO_COMPONENT_ID);
         BMQTST_ASSERT(request->userData().isNull());
     }
 
@@ -1001,6 +1048,19 @@ static void test7_requestBreathingTest()
         int expected = 666;
         request->setGroupId(expected);
         BMQTST_ASSERT_EQ(request->groupId(), expected);
+    }
+
+    {
+        // set componentId and check it
+        ReqSp request;
+        request.createInplace(bmqtst::TestHelperUtil::allocator(),
+                              bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT_EQ(request->componentId(),
+                         bmqp::RequestManagerComponentId::e_NO_COMPONENT_ID);
+        request->setComponentId(
+            bmqp::RequestManagerComponentId::e_CLUSTER_FSM);
+        BMQTST_ASSERT_EQ(request->componentId(),
+                         bmqp::RequestManagerComponentId::e_CLUSTER_FSM);
     }
 
     {
