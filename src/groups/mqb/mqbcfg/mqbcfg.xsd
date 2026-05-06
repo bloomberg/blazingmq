@@ -333,6 +333,11 @@
             Minimum number of threads in the authentication thread pool.
         maxThreads..............:
             Maximum number of threads in the authentication thread pool.
+        credentialProvider...:
+            Optional credential provider. When specified, the broker uses credentials
+            provided by the credential provider to authenticate with other brokers.
+            If not specified, the broker will attempt to directly negotiate sessions
+            with other brokers without explicitly authenticating.
       </documentation>
     </annotation>
     <sequence>
@@ -340,6 +345,7 @@
       <element name='anonymousCredential' type='tns:AnonymousCredential' minOccurs='0'/>
       <element name='minThreads' type='int' default='1'/>
       <element name='maxThreads' type='int' default='8'/>
+      <element name='credentialProvider' type='tns:CredentialProviderConfig' minOccurs='0'/>
      </sequence>
   </complexType>
 
@@ -408,6 +414,23 @@
       <element name='settings' type='tns:PluginSettingKeyValue' minOccurs='0' maxOccurs='unbounded'/>
     </sequence>
   </complexType>
+
+  <complexType name='CredentialProviderConfig'>
+    <annotation>
+      <documentation>
+        The configuration for the broker's credential provider.
+
+        name.....:
+            The name of the credential provider.
+        settings.:
+            Plugin-specific settings.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='name'     type='string'/>
+      <element name='settings' type='tns:PluginSettingKeyValue' minOccurs='0' maxOccurs='unbounded'/>
+    </sequence>
+ </complexType>
 
   <complexType name="PluginSettingKeyValue">
     <annotation>
@@ -809,25 +832,25 @@
       <documentation>
         Type representing the attributes specific to a cluster.
 
-        isCSLModeEnabled...............: 
+        isCSLModeEnabled...............:
             indicates if CSL is enabled for this cluster
-        isFSMWorkflow..................: 
+        isFSMWorkflow..................:
             indicates if CSL FSM workflow is enabled for this cluster.  This
             flag *must* be false if 'isCSLModeEnabled' is false.
-        doesFSMwriteQLIST..............: 
+        doesFSMwriteQLIST..............:
             indicates whether the broker still writes to the to-be-deprecated
             QLIST file when FSM workflow is enabled.  If above 'isFSMWorkflow'
             flag is false, this flag is ignored.
-        clusterFsmWatchdogTimeoutSec...: 
+        clusterFsmWatchdogTimeoutSec...:
             timeout duration in seconds for Cluster FSM watchdog. Only applies
             when 'isFSMWorkflow' is true.
-        clusterFsmWatchdogNumRetries...: 
-            number of retries for Cluster FSM watchdog before we give up and 
+        clusterFsmWatchdogNumRetries...:
+            number of retries for Cluster FSM watchdog before we give up and
             terminate the broker.  Only applies when 'isFSMWorkflow' is true.
-        partitionFsmWatchdogTimeoutSec.: 
+        partitionFsmWatchdogTimeoutSec.:
             timeout duration in seconds for Partition FSM watchdog. Only
             applies when 'isFSMWorkflow' is true.
-        partitionFsmWatchdogNumRetries.: 
+        partitionFsmWatchdogNumRetries.:
             number of retries for Partition FSM watchdog before we give up and
             terminate the broker.  Only applies when 'isFSMWorkflow' is true.
       </documentation>
