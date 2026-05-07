@@ -393,7 +393,8 @@ static int initializeTask(bsl::ostream&    errorDescription,
     // Create the Task
     new (taskEnv->d_task.buffer())
         m_bmqbrkr::Task(taskEnv->d_bmqPrefix,
-                        taskEnv->d_config.taskConfig().allocatorType());
+                        taskEnv->d_config.taskConfig().allocatorType(),
+                        taskEnv->d_config.taskConfig().allocationLimit());
 
     bmqu::MemOutStream localError;
     const int          rc = taskEnv->d_task.object().initialize(

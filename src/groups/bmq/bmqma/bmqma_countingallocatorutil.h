@@ -32,8 +32,9 @@
 // in 'bmqma_countingallocatorstore'.
 
 // BDE
+#include <bsl_functional.h>
 #include <bsl_iosfwd.h>
-#include <bsl_string.h>
+#include <bsl_string_view.h>
 
 namespace BloombergLP {
 
@@ -59,21 +60,25 @@ class CountingAllocatorStore;
 struct CountingAllocatorUtil {
     // CLASS METHODS
 
-    /// Set the global and default allocators to counting allocators with
-    /// stats reported to a sub-context having the specified
-    /// `topAllocatorName` under a top-level stat context with the specified
-    /// `globalStatContextConfiguration` or with the specified
-    /// `globalStatContextName` and default configuration.  The default
-    /// allocator will have name "Default Allocator", and the global
-    /// allocator will have name "Global Allocator".  This function should
-    /// be called once in `main`.  The behavior is undefined if this
+    /// @brief Set the global and default allocators to counting allocators.
+    ///
+    /// @param globalStatContextName  Name for the top-level stat context.
+    /// @param topAllocatorName       Name for the top-level allocator
+    ///                               sub-context.
+    /// @param allocationLimit        Maximum bytes before the limit callback
+    ///                               fires (0 means no limit).
+    /// @param allocationLimitCb      Callback invoked when the allocation
+    ///                               limit is exceeded.
+    ///
+    /// The default allocator will have name "Default Allocator", and the
+    /// global allocator will have name "Global Allocator".  This function
+    /// should be called once in `main`.  The behavior is undefined if this
     /// function is called more than once.
-    static void initGlobalAllocators(
-        const bmqst::StatContextConfiguration& globalStatContextConfiguration,
-        const bslstl::StringRef&               topAllocatorName);
     static void
-    initGlobalAllocators(const bslstl::StringRef& globalStatContextName,
-                         const bslstl::StringRef& topAllocatorName);
+    initGlobalAllocators(bsl::string_view             globalStatContextName,
+                         bsl::string_view             topAllocatorName,
+                         bsls::Types::Uint64          allocationLimit,
+                         const bsl::function<void()>& allocationLimitCb);
 
     /// Return the stat context created by `initGlobalAllocators`.  The
     /// behavior is undefined unless `initGlobalAllocators` has been called.

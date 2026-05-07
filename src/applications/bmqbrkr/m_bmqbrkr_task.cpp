@@ -94,8 +94,11 @@ void onAllocationLimit(bsls::Types::Uint64 limit)
 // class Task_AllocatorManager
 // ---------------------------
 
-Task_AllocatorManager::Task_AllocatorManager(mqbcfg::AllocatorType::Value type)
+Task_AllocatorManager::Task_AllocatorManager(
+    mqbcfg::AllocatorType::Value type,
+    bsls::Types::Uint64          allocationLimit)
 : d_type(type)
+, d_allocationLimit(allocationLimit)
 , d_store()
 , d_stackTraceTestAllocator(bslma::Default::allocator(0))
 , d_store_p(0)
@@ -137,8 +140,10 @@ Task_AllocatorManager::Task_AllocatorManager(mqbcfg::AllocatorType::Value type)
     } break;
     case mqbcfg::AllocatorType::COUNTING: {
         bmqma::CountingAllocatorUtil::initGlobalAllocators(
-            bmqst::StatContextConfiguration("task"),
-            "allocators");
+            "task",
+            "allocators",
+            allocationLimit,
+            bdlf::BindUtil::bind(&onAllocationLimit, allocationLimit));
 
         d_statContext_p = bmqma::CountingAllocatorUtil::globalStatContext();
         d_store_p       = &bmqma::CountingAllocatorUtil::topAllocatorStore();
@@ -229,8 +234,9 @@ void Task::onLogCommand(const bsl::string& prefix, bsl::istream& input)
 }
 
 Task::Task(const bsl::string&           bmqPrefix,
-           mqbcfg::AllocatorType::Value allocatorType)
-: d_allocatorManager(allocatorType)
+           mqbcfg::AllocatorType::Value allocatorType,
+           bsls::Types::Uint64          allocationLimit)
+: d_allocatorManager(allocatorType, allocationLimit)
 , d_isInitialized(false)
 , d_bmqPrefix(bmqPrefix, d_allocatorManager.store().get("Task"))
 , d_scheduler(bsls::SystemClockType::e_MONOTONIC,
@@ -305,27 +311,15 @@ int Task::initialize(bsl::ostream&             errorDescription,
 
     // ----------------
     // Allocation limit
-    // Set allocation limit if enabled and using counting allocator
-    if (d_allocatorManager.type() == mqbcfg::AllocatorType::COUNTING) {
-        if (config.allocationLimit() == 0) {
-            BALL_LOG_INFO << "No memory allocation limit set!";
-        }
-        else {
-            BALL_LOG_INFO << "Memory allocation limit set to "
-                          << bmqu::PrintUtil::prettyBytes(
-                                 config.allocationLimit());
-
-            bmqma::CountingAllocator* topAllocator =
-                dynamic_cast<bmqma::CountingAllocator*>(
-                    bmqma::CountingAllocatorUtil::topAllocatorStore()
-                        .baseAllocator());
-
-            BSLS_ASSERT_OPT(topAllocator);
-            topAllocator->setAllocationLimit(
-                config.allocationLimit(),
-                bdlf::BindUtil::bind(&onAllocationLimit,
-                                     config.allocationLimit()));
-        }
+    // Just log the configured limit
+    const bsls::Types::Uint64 allocationLimit =
+        d_allocatorManager.allocationLimit();
+    if (allocationLimit == 0) {
+        BALL_LOG_INFO << "No memory allocation limit set!";
+    }
+    else {
+        BALL_LOG_INFO << "Memory allocation limit set to "
+                      << bmqu::PrintUtil::prettyBytes(allocationLimit);
     }
 
     // ---------------
