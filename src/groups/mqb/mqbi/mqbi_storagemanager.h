@@ -51,6 +51,7 @@
 #include <bsl_utility.h>
 #include <bsl_vector.h>
 #include <bslma_managedptr.h>
+#include <bsls_atomic.h>
 #include <bsls_cpp11.h>
 
 namespace BloombergLP {
@@ -96,18 +97,29 @@ class Queue;
 class StorageManager_PartitionInfo {
   private:
     // DATA
+
+    /// Node perceived as primary for this partition.
     mqbnet::ClusterNode* d_primary_p;
 
+    /// Lease ID of the current primary.
     unsigned int d_primaryLeaseId;
 
-    bmqp_ctrlmsg::PrimaryStatus::Value d_primaryStatus;
+    /// Primary status of this partition, stored as an int for atomic
+    /// access.  Holds a `bmqp_ctrlmsg::PrimaryStatus::Value`.
+    bsls::AtomicInt d_primaryStatus;
 
   public:
     // CREATORS
     StorageManager_PartitionInfo();
 
+    StorageManager_PartitionInfo(const StorageManager_PartitionInfo& other);
+
     ~StorageManager_PartitionInfo();
     // Destructor
+
+    // Copy assignment operator
+    StorageManager_PartitionInfo&
+    operator=(const StorageManager_PartitionInfo& rhs);
 
     // MANIPULATORS
     void setPrimary(mqbnet::ClusterNode* value);
@@ -121,6 +133,7 @@ class StorageManager_PartitionInfo {
 
     unsigned int primaryLeaseId() const;
 
+    /// Return the primary status of this partition.  Thread-safe.
     bmqp_ctrlmsg::PrimaryStatus::Value primaryStatus() const;
 };
 
@@ -442,12 +455,31 @@ class StorageManager {
 inline StorageManager_PartitionInfo::StorageManager_PartitionInfo()
 : d_primary_p(0)
 , d_primaryLeaseId(0)
-, d_primaryStatus(bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE)
+, d_primaryStatus(static_cast<int>(bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE))
+{
+}
+
+inline StorageManager_PartitionInfo::StorageManager_PartitionInfo(
+    const StorageManager_PartitionInfo& other)
+: d_primary_p(other.d_primary_p)
+, d_primaryLeaseId(other.d_primaryLeaseId)
+, d_primaryStatus(other.d_primaryStatus.load())
 {
 }
 
 inline StorageManager_PartitionInfo::~StorageManager_PartitionInfo()
 {
+}
+
+inline StorageManager_PartitionInfo& StorageManager_PartitionInfo::operator=(
+    const StorageManager_PartitionInfo& rhs)
+{
+    if (this != &rhs) {
+        d_primary_p      = rhs.d_primary_p;
+        d_primaryLeaseId = rhs.d_primaryLeaseId;
+        d_primaryStatus  = rhs.d_primaryStatus.load();
+    }
+    return *this;
 }
 
 // MANIPULATORS
@@ -465,7 +497,7 @@ inline void StorageManager_PartitionInfo::setPrimaryLeaseId(unsigned int value)
 inline void StorageManager_PartitionInfo::setPrimaryStatus(
     bmqp_ctrlmsg::PrimaryStatus::Value value)
 {
-    d_primaryStatus = value;
+    d_primaryStatus = static_cast<int>(value);
 }
 
 // ACCESSORS
@@ -482,7 +514,8 @@ inline unsigned int StorageManager_PartitionInfo::primaryLeaseId() const
 inline bmqp_ctrlmsg::PrimaryStatus::Value
 StorageManager_PartitionInfo::primaryStatus() const
 {
-    return d_primaryStatus;
+    return static_cast<bmqp_ctrlmsg::PrimaryStatus::Value>(
+        d_primaryStatus.load());
 }
 
 }  // close package namespace
