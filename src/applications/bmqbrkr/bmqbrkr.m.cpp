@@ -299,8 +299,6 @@ static int getConfig(bsl::ostream&      errorDescription,
     taskEnv->d_config.appConfig().etcDir() = configDir;
     taskEnv->d_config.appConfig().brokerVersion() =
         bmqbrkrscm::Version::versionAsInt();
-    mqbcfg::BrokerConfig::set(taskEnv->d_config.appConfig());
-
     return rc_SUCCESS;
 }
 
@@ -728,6 +726,8 @@ int main(int argc, const char* argv[])
             .value()
             .port() = port;
     }
+
+    mqbcfg::BrokerConfig::set(taskEnv->d_config.appConfig());
 
     // Create and initialize the task
     rc = initializeTask(errorDescription, &taskEnv);
