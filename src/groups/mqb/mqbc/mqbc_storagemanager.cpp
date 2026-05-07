@@ -69,7 +69,7 @@ const bsls::Types::Int64 k_NS_PER_MESSAGE =
 
 const int k_GC_MESSAGES_INTERVAL_SECONDS = 5;
 
-bool isPrimaryActive(const mqbi::StorageManager_PartitionInfo pinfo)
+bool isPrimaryActive(const mqbi::StorageManager_PartitionInfo& pinfo)
 {
     return pinfo.primaryStatus() == bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE;
 }
