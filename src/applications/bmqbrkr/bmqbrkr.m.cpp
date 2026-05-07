@@ -727,7 +727,7 @@ int main(int argc, const char* argv[])
             .port() = port;
     }
 
-    mqbcfg::BrokerConfig::set(taskEnv->d_config.appConfig());
+    mqbcfg::BrokerConfig::set(taskEnv.d_config.appConfig());
 
     // Create and initialize the task
     rc = initializeTask(errorDescription, &taskEnv);
