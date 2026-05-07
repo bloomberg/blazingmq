@@ -948,25 +948,29 @@ bool ClusterUtil::assignQueue(ClusterState*         clusterState,
     }
 
     struct local {
-        static void panic(mqbi::Domain* domain)
+        static void panic(bsl::string_view domainName, int maxQueues)
         {
             BMQTSK_ALARMLOG_PANIC("DOMAIN_QUEUE_LIMIT_FULL")
-                << "domain 'bmq://" << domain->name()
+                << "domain 'bmq://" << domainName
                 << "' has reached the maximum number of queues (limit: "
-                << domain->config()->maxQueues() << ")."
-                << BMQTSK_ALARMLOG_END;
+                << maxQueues << ")." << BMQTSK_ALARMLOG_END;
         }
 
-        static void alarm(mqbi::Domain* domain, int queues)
+        static void
+        alarm(bsl::string_view domainName, int maxQueues, int queues)
         {
             BMQTSK_ALARMLOG_ALARM("DOMAIN_QUEUE_LIMIT_HIGH_WATERMARK")
-                << "domain 'bmq://" << domain->name() << "' has reached the "
+                << "domain 'bmq://" << domainName << "' has reached the "
                 << (k_MAX_QUEUES_HIGH_WATERMARK * 100)
                 << "% watermark limit for the number of queues (current: "
-                << queues << ", limit: " << domain->config()->maxQueues()
-                << ")." << BMQTSK_ALARMLOG_END;
+                << queues << ", limit: " << maxQueues << ")."
+                << BMQTSK_ALARMLOG_END;
         }
     };
+
+    // It is not a proxy: guaranteed to have a domain configuration:
+    const bsl::shared_ptr<const mqbconfm::Domain> domainCfg =
+        domIt->second->domain()->config();
 
     if (queueIt == domIt->second->queuesInfo().end()) {
         BSLS_ASSERT_SAFE(previousState ==
@@ -977,18 +981,20 @@ bool ClusterUtil::assignQueue(ClusterState*         clusterState,
         // num(assigned) + num(assigning) + num(unassigning).
         const int registeredQueues = static_cast<int>(
             domIt->second->queuesInfo().size());
-        const int maxQueues = domIt->second->domain()->config()->maxQueues();
+        const int maxQueues = domainCfg->maxQueues();
         if (maxQueues != 0) {
             const int requestedQueues = registeredQueues + 1;
             if (requestedQueues > maxQueues) {
-                local::panic(domIt->second->domain());
+                local::panic(domIt->second->domain()->name(), maxQueues);
             }
             else {
                 const int watermark = static_cast<int>(
                     maxQueues * k_MAX_QUEUES_HIGH_WATERMARK);
                 if (registeredQueues < watermark &&
                     requestedQueues >= watermark) {
-                    local::alarm(domIt->second->domain(), requestedQueues);
+                    local::alarm(domIt->second->domain()->name(),
+                                 maxQueues,
+                                 requestedQueues);
                 }
             }
 
@@ -1041,7 +1047,7 @@ bool ClusterUtil::assignQueue(ClusterState*         clusterState,
                                     clusterState,
                                     clusterData,
                                     uri,
-                                    domIt->second->domain()->config()->mode());
+                                    domainCfg->mode());
 
     // 'ClusterQueueHelper::onQueueAssigned' (the 'onQueueAssigned' observer
     // callback) will insert the key to 'ClusterState::queueKeys'.

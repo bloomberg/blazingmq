@@ -582,6 +582,7 @@ struct Tester {
                                         bmqt::Uri(k_URI_STR, d_allocator_p),
                                         k_QUEUE_KEY,
                                         &d_mockDomain,
+                                        domainCfg,
                                         d_allocator_p),
             d_allocator_p);
 

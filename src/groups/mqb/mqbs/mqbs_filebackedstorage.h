@@ -275,6 +275,7 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
                       const bmqt::Uri&               queueUri,
                       const mqbu::StorageKey&        queueKey,
                       mqbi::Domain*                  domain,
+                      const mqbconfm::Domain&        config,
                       bslma::Allocator*              allocator,
                       bmqma::CountingAllocatorStore* allocatorStore = 0);
 
