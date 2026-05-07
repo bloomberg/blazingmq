@@ -39,6 +39,19 @@ using namespace bsl;
 //                            TEST HELPERS UTILITY
 // ----------------------------------------------------------------------------
 namespace {
+
+struct AllocationLimitCb {
+    int* d_triggered_p;
+
+    AllocationLimitCb(int* triggered)
+    : d_triggered_p(triggered)
+    {
+        BSLS_ASSERT_OPT(d_triggered_p);
+    }
+
+    void operator()() { ++(*d_triggered_p); }
+};
+
 }  // close unnamed namespace
 
 //=============================================================================
@@ -63,12 +76,17 @@ static void test1_breathingTest()
     BMQTST_ASSERT_SAFE_FAIL(bmqma::CountingAllocatorUtil::globalStatContext());
     BMQTST_ASSERT_SAFE_FAIL(bmqma::CountingAllocatorUtil::topAllocatorStore());
 
-    bmqma::CountingAllocatorUtil::initGlobalAllocators("testStatContext",
-                                                       "testAllocatorName");
+    bmqma::CountingAllocatorUtil::initGlobalAllocators(
+        "testStatContext",
+        "testAllocatorName",
+        0,
+        bsl::function<void()>());
 
     BMQTST_ASSERT_SAFE_FAIL(bmqma::CountingAllocatorUtil::initGlobalAllocators(
         "testStatContext",
-        "testAllocatorName"));
+        "testAllocatorName",
+        0,
+        bsl::function<void()>()));
     BMQTST_ASSERT(bmqma::CountingAllocatorUtil::globalStatContext() != 0);
     BMQTST_ASSERT_EQ(bmqma::CountingAllocatorUtil::globalStatContext()->name(),
                      "testStatContext");
@@ -97,8 +115,11 @@ static void test2_initGlobalAllocators()
 
     // 1. Ensure that 'initGlobalAllocators' creates a top-level allocator,
     //    top-level statContext, and top-level 'bmqma::CountingAllocatorStore'.
-    bmqma::CountingAllocatorUtil::initGlobalAllocators("testStatContext",
-                                                       "testAllocatorName");
+    bmqma::CountingAllocatorUtil::initGlobalAllocators(
+        "testStatContext",
+        "testAllocatorName",
+        0,
+        bsl::function<void()>());
 
     BMQTST_ASSERT(bmqma::CountingAllocatorUtil::globalStatContext() != 0);
     BMQTST_ASSERT_EQ(bmqma::CountingAllocatorUtil::globalStatContext()->name(),
@@ -140,6 +161,86 @@ static void test2_initGlobalAllocators()
         dynamic_cast<bmqma::CountingAllocator*>(globalAlloc)->context());
 }
 
+static void test3_allocationLimitCb()
+// ------------------------------------------------------------------------
+// ALLOCATION LIMIT CALLBACK
+//
+// Concerns:
+//   1. The allocation limit callback is not invoked when the total bytes
+//      allocated across all counting allocators in the hierarchy remains
+//      below the specified limit.
+//   2. The allocation limit callback is invoked exactly once when the
+//      total bytes allocated exceeds the specified limit.
+//   3. Deallocated memory does not count toward the limit.
+//   4. Allocations through any nested allocator (global, default, or
+//      custom) contribute to the shared limit.
+//
+// Note:
+//   The counting allocator tracks more bytes per allocation than the
+//   requested size (alignment rounding and a per-block header), and
+//   'initGlobalAllocators' itself performs internal allocations that
+//   count toward the limit.  This test uses a large limit and large
+//   allocation sizes so that this overhead is negligible.
+//
+// Testing:
+//   AllocationLimitChecker
+//   setAllocationLimit
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("ALLOCATION LIMIT CALLBACK");
+
+    int alarmTriggeredCount = 0;
+
+    bmqma::CountingAllocatorUtil::initGlobalAllocators(
+        "testStatContext",
+        "testAllocatorName",
+        4096,
+        AllocationLimitCb(&alarmTriggeredCount));
+
+    // Expect no alarm
+    //  [........] ~0/4096 bytes
+    BMQTST_ASSERT_EQ(alarmTriggeredCount, 0);
+
+    {
+        // Expect no alarm: allocated less than the limit
+        BSLA_MAYBE_UNUSED bsl::vector<char> globalVec(
+            2048,
+            bslma::Default::globalAllocator());
+        //  [====....] ~2048/4096 bytes
+        BMQTST_ASSERT_EQ(alarmTriggeredCount, 0);
+
+        // Free the memory and make sure it doesn't contribute in triggering
+        // the alarm early.
+    }
+    //  [........] ~0/4096 bytes
+
+    // Expect no alarm: allocated less than the limit
+    BSLA_MAYBE_UNUSED bsl::vector<char> globalVec(
+        2048,
+        bslma::Default::globalAllocator());
+    //  [====....] ~2048/4096 bytes
+    BMQTST_ASSERT_EQ(alarmTriggeredCount, 0);
+
+    // Expect no alarm: allocated less than the limit
+    BSLA_MAYBE_UNUSED bsl::vector<char> defaultVec(
+        1024,
+        bslma::Default::defaultAllocator());
+    //  [======..] ~3072/4096 bytes
+    BMQTST_ASSERT_EQ(alarmTriggeredCount, 0);
+
+    // Expect 1 alarm: allocated more than the limit
+    bslma::Allocator* customAllocator =
+        bmqma::CountingAllocatorUtil::topAllocatorStore().get("custom");
+    BSLA_MAYBE_UNUSED bsl::vector<char> customVec(2048, customAllocator);
+    //  [========]== ~5120/4096 bytes ALARM
+    BMQTST_ASSERT_EQ(alarmTriggeredCount, 1);
+
+    // Expect 1 alarm: alarm was already triggered once, no more alarms
+    BSLA_MAYBE_UNUSED bsl::vector<char> customVec2(2048, customAllocator);
+    //  [========]======= ~7168/4096 bytes
+    BMQTST_ASSERT_EQ(alarmTriggeredCount, 1);
+}
+
 //=============================================================================
 //                              MAIN PROGRAM
 //-----------------------------------------------------------------------------
@@ -150,6 +251,7 @@ int main(int argc, char** argv)
 
     switch (_testCase) {
     case 0:
+    case 3: test3_allocationLimitCb(); break;
     case 2: test2_initGlobalAllocators(); break;
     case 1: test1_breathingTest(); break;
     default: {

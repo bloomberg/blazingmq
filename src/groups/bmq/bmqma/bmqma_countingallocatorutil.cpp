@@ -64,8 +64,10 @@ bsls::AtomicBool g_initialized(false);
 
 // CLASS METHODS
 void CountingAllocatorUtil::initGlobalAllocators(
-    const bmqst::StatContextConfiguration& globalStatContextConfiguration,
-    const bslstl::StringRef&               topAllocatorName)
+    bsl::string_view             globalStatContextName,
+    bsl::string_view             topAllocatorName,
+    bsls::Types::Uint64          allocationLimit,
+    const bsl::function<void()>& allocationLimitCb)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(g_initialized.testAndSwap(false, true) != true);
@@ -75,8 +77,9 @@ void CountingAllocatorUtil::initGlobalAllocators(
     bslma::Allocator* alloc = &bslma::NewDeleteAllocator::singleton();
 
     // Here we create the main CountingAllocator and its StatContext.
-    new (g_statContext.buffer())
-        bmqst::StatContext(globalStatContextConfiguration, alloc);
+    new (g_statContext.buffer()) bmqst::StatContext(
+        bmqst::StatContextConfiguration(globalStatContextName),
+        alloc);
     bmqst::StatContext& stats = g_statContext.object();
 
     new (g_topAllocator.buffer())
@@ -84,21 +87,16 @@ void CountingAllocatorUtil::initGlobalAllocators(
 
     // Create the topAllocatorStore and the default and global allocators
     bmqma::CountingAllocator& topAllocator = g_topAllocator.object();
+    if (allocationLimit > 0) {
+        topAllocator.setAllocationLimit(allocationLimit, allocationLimitCb);
+    }
+
     new (g_topAllocatorStore.buffer())
         bmqma::CountingAllocatorStore(&topAllocator);
 
     bmqma::CountingAllocatorStore& topStore = g_topAllocatorStore.object();
     bslma::Default::setGlobalAllocator(topStore.get("Global Allocator"));
     bslma::Default::setDefaultAllocatorRaw(topStore.get("Default Allocator"));
-}
-
-void CountingAllocatorUtil::initGlobalAllocators(
-    const bslstl::StringRef& globalStatContextName,
-    const bslstl::StringRef& topAllocatorName)
-{
-    initGlobalAllocators(
-        bmqst::StatContextConfiguration(globalStatContextName),
-        topAllocatorName);
 }
 
 bmqst::StatContext* CountingAllocatorUtil::globalStatContext()

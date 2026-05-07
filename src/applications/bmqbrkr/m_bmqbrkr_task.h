@@ -105,6 +105,10 @@ class Task_AllocatorManager {
     mqbcfg::AllocatorType::Value d_type;
     // Type of allocator in use.
 
+    bsls::Types::Uint64 d_allocationLimit;
+    // Allocation limit in bytes, or 0 if
+    // no limit is set.
+
     bsls::ObjectBuffer<bmqma::CountingAllocatorStore> d_store;
     // Allocator store, to dispence allocators
     // based on the configured type; used if
@@ -135,11 +139,17 @@ class Task_AllocatorManager {
   public:
     // CREATORS
 
-    /// Create a new object, configured to use the specified `type`
-    /// allocator'.  Note that when using the `COUNTING` allocator, the
-    /// `default` and `global` allocators are changed to be counting
-    /// allocators too.
-    explicit Task_AllocatorManager(mqbcfg::AllocatorType::Value type);
+    /// @brief Create a new object managing process-wide allocators.
+    ///
+    /// @param type           Allocator type to use.
+    /// @param allocationLimit  Maximum bytes before the limit callback fires
+    ///                         (0 means no limit).
+    ///
+    /// Note that when using the `COUNTING` allocator, the `default` and
+    /// `global` allocators are changed to be counting allocators too, and
+    /// the allocation limit is set during initialization.
+    explicit Task_AllocatorManager(mqbcfg::AllocatorType::Value type,
+                                   bsls::Types::Uint64 allocationLimit);
 
     /// Destroy this object.  If the allocator is of type `STACKTRACETEST`,
     /// any detected memory leak will be reported to stdout.
@@ -158,8 +168,9 @@ class Task_AllocatorManager {
 
     // ACCESSORS
 
-    /// Return the type of allocator used.
-    mqbcfg::AllocatorType::Value type() const;
+    /// Return the allocation limit if set and counting allocator is used.
+    /// Return 0 otherwise.
+    bsls::Types::Uint64 allocationLimit() const;
 };
 
 //===========
@@ -233,11 +244,15 @@ class Task {
   public:
     // CREATORS
 
-    /// Create a new task, creating the pipe control channel in the
-    /// specified `bmqPrefix` directory.  Use the specified `allocatorType`
-    /// for memory allocations.
-    Task(const bsl::string&           bmqPrefix,
-         mqbcfg::AllocatorType::Value allocatorType);
+    /// @brief Create a new task.
+    ///
+    /// @param bmqPrefix        Directory for the pipe control channel.
+    /// @param allocatorType    Allocator type for memory allocations.
+    /// @param allocationLimit  Maximum bytes before the limit callback fires
+    ///                         (0 means no limit).
+    explicit Task(const bsl::string&           bmqPrefix,
+                  mqbcfg::AllocatorType::Value allocatorType,
+                  bsls::Types::Uint64          allocationLimit);
 
     /// Destroy this object.  If the task was successfully initialized,
     /// `shutdown()` must be called prior to destruction of this object.
@@ -319,9 +334,9 @@ inline bmqma::CountingAllocatorStore& Task_AllocatorManager::store()
     return *d_store_p;
 }
 
-inline mqbcfg::AllocatorType::Value Task_AllocatorManager::type() const
+inline bsls::Types::Uint64 Task_AllocatorManager::allocationLimit() const
 {
-    return d_type;
+    return (d_type == mqbcfg::AllocatorType::COUNTING) ? d_allocationLimit : 0;
 }
 
 // ----------
