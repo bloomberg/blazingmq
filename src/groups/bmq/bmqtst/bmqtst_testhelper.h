@@ -393,7 +393,7 @@
         bsl::ostream           _os(&_buf);                                    \
         _os << D << '\0';                                                     \
         bslstl::StringRef _osStr(_buf.data(), _buf.length());                 \
-        if (!X) {                                                             \
+        if (!(X)) {                                                           \
             BloombergLP::_assert(false, _osStr.data(), __FILE__, __LINE__);   \
         }                                                                     \
     }
