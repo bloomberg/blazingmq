@@ -167,6 +167,9 @@ class TestContext {
     /// Return shared pointer to the RequestManager object
     ReqManagerTypeSp manager();
 
+    /// Return shared pointer to the MultiRequestManager object
+    MultiReqManagerTypeSp multiManager();
+
     /// Return cluster nodes.
     Nodes& nodes();
 
@@ -293,6 +296,11 @@ ReqContextSp& TestContext::context()
 ReqManagerTypeSp TestContext::manager()
 {
     return d_requestManager;
+}
+
+MultiReqManagerTypeSp TestContext::multiManager()
+{
+    return d_multiRequestManager;
 }
 
 Nodes& TestContext::nodes()
@@ -441,6 +449,14 @@ static void test1_contextTest()
         BMQTST_ASSERT_PASS(reqContext = bsl::make_shared<ReqContextType>(
                                bmqtst::TestHelperUtil::allocator()));
 
+        BMQTST_ASSERT_EQ(reqContext->componentId(),
+                         bmqp::RequestManagerComponentId::e_NO_COMPONENT_ID);
+
+        reqContext->setComponentId(
+            bmqp::RequestManagerComponentId::e_CLUSTER_FSM);
+        BMQTST_ASSERT_EQ(reqContext->componentId(),
+                         bmqp::RequestManagerComponentId::e_CLUSTER_FSM);
+
         ReqSp request = bsl::make_shared<Req>(
             bmqtst::TestHelperUtil::allocator());
         TestContext::populateRequest(request);
@@ -477,6 +493,8 @@ static void test1_contextTest()
         BMQTST_ASSERT_EQ(reqContext->request(),
                          Mes(bmqtst::TestHelperUtil::allocator()));
         BMQTST_ASSERT(reqContext->response().empty());
+        BMQTST_ASSERT_EQ(reqContext->componentId(),
+                         bmqp::RequestManagerComponentId::e_NO_COMPONENT_ID);
     }
 }
 
@@ -676,6 +694,94 @@ static void test4_handleResponseTest()
     }
 }
 
+static void test5_cancelByComponentIdTest()
+// ------------------------------------------------------------------------
+// Testing:
+//    cancelAllRequests with componentId only cancels matching sub-requests
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("CANCEL BY COMPONENT ID TEST");
+
+    {
+        // Declare booleans before TestContext so they outlive it (the
+        // destructor cancels remaining requests, invoking callbacks).
+        bool clusterCalled   = false;
+        bool partitionCalled = false;
+        bool untaggedCalled  = false;
+
+        TestContext context(2, bmqtst::TestHelperUtil::allocator());
+
+        // Create 3 multi-request contexts with different componentIds
+        ReqContextSp clusterCtx =
+            context.multiManager()->createRequestContext();
+        ReqContextSp partitionCtx =
+            context.multiManager()->createRequestContext();
+        ReqContextSp untaggedCtx =
+            context.multiManager()->createRequestContext();
+
+        clusterCtx->setDestinationNodes(context.nodes());
+        partitionCtx->setDestinationNodes(context.nodes());
+        untaggedCtx->setDestinationNodes(context.nodes());
+
+        clusterCtx->setComponentId(
+            bmqp::RequestManagerComponentId::e_CLUSTER_FSM);
+        partitionCtx->setComponentId(
+            bmqp::RequestManagerComponentId::e_PARTITION_FSM);
+        // untaggedCtx: default e_NO_COMPONENT_ID
+
+        clusterCtx->setResponseCb(
+            bdlf::BindUtil::bind(&Caller::callback,
+                                 &clusterCalled,
+                                 bdlf::PlaceHolders::_1));
+        partitionCtx->setResponseCb(
+            bdlf::BindUtil::bind(&Caller::callback,
+                                 &partitionCalled,
+                                 bdlf::PlaceHolders::_1));
+        untaggedCtx->setResponseCb(
+            bdlf::BindUtil::bind(&Caller::callback,
+                                 &untaggedCalled,
+                                 bdlf::PlaceHolders::_1));
+
+        // Populate and send all 3 multi-requests
+        ReqSp req = context.createRequest();
+        context.populateRequest(req);
+
+        clusterCtx->request()   = req->request();
+        partitionCtx->request() = req->request();
+        untaggedCtx->request()  = req->request();
+
+        context.multiManager()->sendRequest(clusterCtx, SEND_REQUEST_TIMEOUT);
+        context.multiManager()->sendRequest(partitionCtx,
+                                            SEND_REQUEST_TIMEOUT);
+        context.multiManager()->sendRequest(untaggedCtx, SEND_REQUEST_TIMEOUT);
+
+        // All 3 multi-requests are outstanding, no callbacks yet
+        BMQTST_ASSERT(!clusterCalled);
+        BMQTST_ASSERT(!partitionCalled);
+        BMQTST_ASSERT(!untaggedCalled);
+
+        // Cancel only CLUSTER_FSM requests
+        Mes reason = context.createResponseCancel();
+        context.manager()->cancelComponentRequests(
+            reason,
+            bmqp::RequestManagerComponentId::e_CLUSTER_FSM);
+
+        // Only the CLUSTER_FSM multi-request callback should have fired
+        BMQTST_ASSERT(clusterCalled);
+        BMQTST_ASSERT(!partitionCalled);
+        BMQTST_ASSERT(!untaggedCalled);
+
+        // Verify the CLUSTER_FSM responses have cancel status
+        const NodeResponses& clusterResponses = clusterCtx->response();
+        for (NodeResponsesIt rIt = clusterResponses.begin();
+             rIt != clusterResponses.end();
+             ++rIt) {
+            BMQTST_ASSERT_EQ(rIt->second.choice().status().category(),
+                             bmqp_ctrlmsg::StatusCategory::E_CANCELED);
+        }
+    }
+}
+
 // ============================================================================
 //                                MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -688,6 +794,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 5: test5_cancelByComponentIdTest(); break;
     case 4: test4_handleResponseTest(); break;
     case 3: test3_sendRequestTest(); break;
     case 2: test2_creatorsTest(); break;

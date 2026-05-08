@@ -388,6 +388,7 @@ void ClusterStateManager::do_sendFollowerLSNRequests(
         .makeFollowerLSNRequest();
 
     contextSp->setDestinationNodes(followers);
+    contextSp->setComponentId(bmqp::RequestManagerComponentId::e_CLUSTER_FSM);
     contextSp->setResponseCb(
         bdlf::BindUtil::bind(&ClusterStateManager::onFollowerLSNResponse,
                              this,
@@ -513,6 +514,7 @@ void ClusterStateManager::do_sendFollowerClusterStateRequest(
 
     RequestContextSp request =
         d_clusterData_p->requestManager().createRequest();
+    request->setComponentId(bmqp::RequestManagerComponentId::e_CLUSTER_FSM);
     request->request()
         .choice()
         .makeClusterMessage()
@@ -740,6 +742,7 @@ void ClusterStateManager::do_sendRegistrationRequest(
 
     RequestContextSp request =
         d_clusterData_p->requestManager().createRequest();
+    request->setComponentId(bmqp::RequestManagerComponentId::e_CLUSTER_FSM);
 
     bmqp_ctrlmsg::RegistrationRequest& registrationRequest =
         request->request()
@@ -1097,7 +1100,9 @@ void ClusterStateManager::do_cancelRequests(
     failure.code()     = mqbi::ClusterErrorCode::e_UNKNOWN;
     failure.message()  = "Cancellation by Cluster FSM";
 
-    d_clusterData_p->requestManager().cancelAllRequests(response);
+    d_clusterData_p->requestManager().cancelComponentRequests(
+        response,
+        bmqp::RequestManagerComponentId::e_CLUSTER_FSM);
 }
 
 // PRIVATE MANIPULATORS
