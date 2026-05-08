@@ -173,8 +173,7 @@ struct Tester {
         limits.bytes()                  = k_INT64_MAX;
         limits.bytesWatermarkRatio()    = 0.8;
 
-        d_storage_mp->configure(errorDescription,
-                                config,
+        d_storage_mp->configure(config,
                                 limits,
                                 domainCfg.messageTtl(),
                                 domainCfg.maxDeliveryAttempts());

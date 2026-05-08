@@ -103,8 +103,7 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
         rc_STORAGE_CREATION_FAILURE = -1,
         rc_INCOMPATIBLE_STORAGE     = -2,
         rc_UNKNOWN_DOMAIN_CONFIG    = -3,
-        rc_QUEUE_ENGINE_CFG_FAILURE = -4,
-        rc_STORAGE_CFG_FAILURE      = -5
+        rc_QUEUE_ENGINE_CFG_FAILURE = -4
     };
 
     int                     rc        = 0;
@@ -147,15 +146,10 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
     }
     else {
         d_state_p->storage()->setConsistency(domainCfg->consistency());
-        rc = d_state_p->storage()->configure(
-            errorDescription,
-            domainCfg->storage().config(),
-            domainCfg->storage().queueLimits(),
-            domainCfg->messageTtl(),
-            domainCfg->maxDeliveryAttempts());
-        if (rc) {
-            return 10 * rc + rc_STORAGE_CFG_FAILURE;  // RETURN
-        }
+        d_state_p->storage()->configure(domainCfg->storage().config(),
+                                        domainCfg->storage().queueLimits(),
+                                        domainCfg->messageTtl(),
+                                        domainCfg->maxDeliveryAttempts());
     }
 
     // Create the associated queue-engine. This can either be on first

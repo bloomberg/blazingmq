@@ -231,12 +231,10 @@ bool FileBackedStorage::hasReceipt(const bmqt::MessageGUID& msgGUID) const
     return d_store_p->hasReceipt(handles[0]);
 }
 
-int FileBackedStorage::configure(
-    BSLA_MAYBE_UNUSED bsl::ostream& errorDescription,
-    const mqbconfm::Storage&        config,
-    const mqbconfm::Limits&         limits,
-    const bsls::Types::Int64        messageTtl,
-    int                             maxDeliveryAttempts)
+void FileBackedStorage::configure(const mqbconfm::Storage& config,
+                                  const mqbconfm::Limits&  limits,
+                                  bsls::Types::Int64       messageTtl,
+                                  int                      maxDeliveryAttempts)
 {
     d_config = config;
     d_capacityMeter.setLimits(limits.messages(), limits.bytes())
@@ -245,8 +243,6 @@ int FileBackedStorage::configure(
     d_ttlSeconds = messageTtl;
 
     d_virtualStorageCatalog.setDefaultRda(maxDeliveryAttempts);
-
-    return 0;
 }
 
 void FileBackedStorage::setConsistency(const mqbconfm::Consistency& value)

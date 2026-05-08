@@ -250,8 +250,7 @@ class RemoteQueue {
     // PRIVATE MANIPULATORS
     int configureAsProxy(bsl::ostream& errorDescription, bool isReconfigure);
 
-    int configureAsClusterMember(bsl::ostream& errorDescription,
-                                 bool          isReconfigure);
+    int configureAsClusterMember(bool isReconfigure);
 
     /// Load into the specified `subQueueInfos` all subQueueIds which are
     /// present in the `SubQueueIdsOption` of the specified `options` of the

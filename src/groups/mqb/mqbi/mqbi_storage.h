@@ -451,16 +451,12 @@ class Storage {
     // MANIPULATORS
 
     /// Configure this storage using the specified `config` and `limits`.
-    /// Return 0 on success, or a non-zero return code and fill in a
-    /// description of the error in the specified `errorDescription`
-    /// otherwise.  Note that calling `configure` on an already configured
-    /// storage should atomically reconfigure that storage with the new
-    /// configuration (or fail and leave the storage untouched).
-    virtual int configure(bsl::ostream&            errorDescription,
-                          const mqbconfm::Storage& config,
-                          const mqbconfm::Limits&  limits,
-                          const bsls::Types::Int64 messageTtl,
-                          const int                maxDeliveryAttempts) = 0;
+    /// Note that calling `configure` on an already configured storage should
+    /// atomically reconfigure that storage with the new configuration.
+    virtual void configure(const mqbconfm::Storage& config,
+                           const mqbconfm::Limits&  limits,
+                           bsls::Types::Int64       messageTtl,
+                           int                      maxDeliveryAttempts) = 0;
 
     /// Set the consistency level associated to this storage to the specified
     /// `value`.

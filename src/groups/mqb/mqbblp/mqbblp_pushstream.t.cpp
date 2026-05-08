@@ -16,16 +16,13 @@
 #include <mqbblp_pushstream.h>
 
 // MQB
+#include <mqbcfg_messages.h>
 #include <mqbmock_cluster.h>
 #include <mqbmock_domain.h>
+#include <mqbs_inmemorystorage.h>
 
 // BMQ
 #include <bmqp_messageguidgenerator.h>
-
-#include <mqbcfg_messages.h>
-#include <mqbs_inmemorystorage.h>
-
-#include <bmqu_memoutstream.h>
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
@@ -142,9 +139,7 @@ static void test2_iterations()
     limits.messages() = bsl::numeric_limits<bsls::Types::Int64>::max();
     limits.bytes()    = bsl::numeric_limits<bsls::Types::Int64>::max();
 
-    bmqu::MemOutStream errorDescription(bmqtst::TestHelperUtil::allocator());
-    dummyStorage.configure(errorDescription,
-                           config,
+    dummyStorage.configure(config,
                            limits,
                            bsl::numeric_limits<bsls::Types::Int64>::max(),
                            0);
