@@ -1,5 +1,3 @@
-mqbsl_inmemorylog
 mqbsl_ledger
 mqbsl_memorymappedondisklog
 mqbsl_ondisklog
-mqbsl_readwriteondisklog
