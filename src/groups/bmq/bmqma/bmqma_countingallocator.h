@@ -145,15 +145,20 @@ class CountingAllocator BSLS_KEYWORD_FINAL : public bslma::Allocator {
         AllocationLimitCallback d_allocationLimitCb;
 
       public:
+        // TRAITS
+        BSLMF_NESTED_TRAIT_DECLARATION(AllocationLimitChecker,
+                                       bslma::UsesBslmaAllocator)
+
         // CREATORS
 
         /// Create an `AllocationLimitChecker` with zero bytes allocated,
-        /// no limit, and no callback.
-        AllocationLimitChecker()
+        /// no limit, and no callback.  Use the specified `allocator` for
+        /// any memory allocation (e.g., for the stored callback).
+        explicit AllocationLimitChecker(bslma::Allocator* allocator = 0)
         : d_allocated(0)
         , d_allocationLimit(bsl::numeric_limits<bsls::Types::Uint64>::max())
         , d_alarmTriggered(false)
-        , d_allocationLimitCb()
+        , d_allocationLimitCb(bsl::allocator_arg, allocator)
         {
             // NOTHING
         }
