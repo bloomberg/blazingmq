@@ -912,7 +912,7 @@ static void test6_cancelAllRequestsTest()
         }
 
         Mes reason = context.createResponseCancel();
-        context.manager().cancelAllRequests(reason, 1);
+        context.manager().cancelGroupRequests(reason, 1);
 
         for (bsl::size_t i = 0; i < numRequests; ++i) {
             ReqSp request = requests[i];
@@ -954,7 +954,7 @@ static void test6_cancelAllRequestsTest()
         }
 
         Mes reason = context.createResponseCancel();
-        context.manager().cancelAllRequests(
+        context.manager().cancelComponentRequests(
             reason,
             bmqp::RequestManagerComponentId::e_CLUSTER_FSM);
 

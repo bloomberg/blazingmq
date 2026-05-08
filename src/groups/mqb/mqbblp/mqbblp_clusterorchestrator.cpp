@@ -1012,7 +1012,7 @@ void ClusterOrchestrator::processNodeStoppingNotification(
     failure.code()     = mqbi::ClusterErrorCode::e_STOPPING;
     failure.message()  = "Peer node is stopping";
 
-    d_clusterData_p->requestManager().cancelAllRequests(
+    d_clusterData_p->requestManager().cancelGroupRequests(
         response,
         ns->clusterNode()->nodeId());
 
@@ -1273,8 +1273,8 @@ void ClusterOrchestrator::processNodeStateChangeEvent(
     failure.code()     = mqbi::ClusterErrorCode::e_NODE_DOWN;
     failure.message()  = "Lost connection with peer node";
 
-    d_clusterData_p->requestManager().cancelAllRequests(response,
-                                                        node->nodeId());
+    d_clusterData_p->requestManager().cancelGroupRequests(response,
+                                                          node->nodeId());
 
     // Note that if the 'node' went down gracefully, 'onNodeUnavailable' would
     // have also been called in

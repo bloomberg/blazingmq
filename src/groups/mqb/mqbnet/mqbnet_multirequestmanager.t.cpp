@@ -762,7 +762,7 @@ static void test5_cancelByComponentIdTest()
 
         // Cancel only CLUSTER_FSM requests
         Mes reason = context.createResponseCancel();
-        context.manager()->cancelAllRequests(
+        context.manager()->cancelComponentRequests(
             reason,
             bmqp::RequestManagerComponentId::e_CLUSTER_FSM);
 

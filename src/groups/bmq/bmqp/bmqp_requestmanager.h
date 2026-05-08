@@ -861,15 +861,15 @@ class RequestManager {
     /// behavior is undefined if `groupId` is `NO_GROUP_ID`.  The
     /// corresponding response callbacks will be invoked in the order in
     /// which requests were sent.
-    void cancelAllRequests(const RESPONSE& reason, int groupId);
+    void cancelGroupRequests(const RESPONSE& reason, int groupId);
 
     /// Cancel all outstanding requests tagged with the specified
     /// `componentId`, with the specified `reason` response description.
     /// The behavior is undefined if `componentId` is `e_NO_COMPONENT_ID`.
     /// The corresponding response callbacks will be invoked in the order
     /// in which requests were sent.
-    void cancelAllRequests(const RESPONSE&                 reason,
-                           RequestManagerComponentId::Enum componentId);
+    void cancelComponentRequests(const RESPONSE&                 reason,
+                                 RequestManagerComponentId::Enum componentId);
 };
 
 // ============================================================================
@@ -1525,7 +1525,7 @@ void RequestManager<REQUEST, RESPONSE>::cancelAllRequests(
 }
 
 template <class REQUEST, class RESPONSE>
-void RequestManager<REQUEST, RESPONSE>::cancelAllRequests(
+void RequestManager<REQUEST, RESPONSE>::cancelGroupRequests(
     const RESPONSE& reason,
     int             groupId)
 {
@@ -1538,7 +1538,7 @@ void RequestManager<REQUEST, RESPONSE>::cancelAllRequests(
 }
 
 template <class REQUEST, class RESPONSE>
-void RequestManager<REQUEST, RESPONSE>::cancelAllRequests(
+void RequestManager<REQUEST, RESPONSE>::cancelComponentRequests(
     const RESPONSE&                 reason,
     RequestManagerComponentId::Enum componentId)
 {
@@ -1608,10 +1608,10 @@ void RequestManager<REQUEST, RESPONSE>::cancelAllRequestsImpl(
                       << " items) with " << reason << ".";
     }
     else {
-        BALL_LOG_INFO << "Canceling requests belonging to group '" << groupId
-                      << "' and component '" << componentId << "' ("
-                      << requestsCopy.size() << " items) with " << reason
-                      << ".";
+        BALL_LOG_INFO
+            << "Canceling requests simultaneously belonging to group '"
+            << groupId << "' and component '" << componentId << "' ("
+            << requestsCopy.size() << " items) with " << reason << ".";
     }
 
     if (requestsCopy.empty()) {

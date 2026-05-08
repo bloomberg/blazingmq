@@ -1100,7 +1100,7 @@ void ClusterStateManager::do_cancelRequests(
     failure.code()     = mqbi::ClusterErrorCode::e_UNKNOWN;
     failure.message()  = "Cancellation by Cluster FSM";
 
-    d_clusterData_p->requestManager().cancelAllRequests(
+    d_clusterData_p->requestManager().cancelComponentRequests(
         response,
         bmqp::RequestManagerComponentId::e_CLUSTER_FSM);
 }

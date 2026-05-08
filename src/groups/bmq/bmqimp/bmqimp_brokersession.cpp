@@ -4597,7 +4597,7 @@ void BrokerSession::cancel(int                                 groupId,
     bmqp_ctrlmsg::ControlMessage controlMessage(d_allocator_p);
     bmqp::ControlMessageUtil::makeStatus(&controlMessage, status, -1, reason);
     if (groupId >= 0) {
-        d_requestManager.cancelAllRequests(controlMessage, groupId);
+        d_requestManager.cancelGroupRequests(controlMessage, groupId);
     }
     else {
         d_requestManager.cancelAllRequests(controlMessage);
