@@ -387,20 +387,35 @@ class RequestManager;
 // struct RequestManagerComponentId
 // ================================
 
-/// Enumeration of component identifiers used to tag requests sent via a
-/// `RequestManager` for the purpose of component-scoped cancellation.
+/// Integer constants used to tag requests sent via a `RequestManager` for the
+/// purpose of component-scoped cancellation.
 struct RequestManagerComponentId {
-    // TYPES
-    enum Enum {
+    // CONSTANTS
+    enum {
         /// Default; no component association.
-        e_NO_COMPONENT_ID = 0,
+        k_NO_COMPONENT_ID = 0,
 
-        /// Cluster State Manager FSM.
-        e_CLUSTER_FSM = 1,
+        /// Cluster FSM component id.
+        k_CLUSTER_FSM = 1,
 
-        /// Storage Manager Partition FSM.
-        e_PARTITION_FSM = 2
+        /// Base value for Partition FSM component ids.  Each partition
+        /// gets a unique componentId computed as
+        /// `k_PARTITION_FSM_PREFIX + partitionId`.  Use the
+        /// `partitionFSM()` class method to obtain the componentId for a
+        /// given partition.
+        k_PARTITION_FSM_PREFIX = 900
     };
+
+    // CLASS METHODS
+
+    /// Return the componentId for the partition with the specified
+    /// `partitionId`.  The behavior is undefined unless
+    /// `0 <= partitionId < 100`.
+    static int partitionFSM(int partitionId);
+
+    /// Return true if the specified `componentId` is valid, including
+    /// `k_NO_COMPONENT_ID`.
+    static bool isValid(int componentId);
 };
 
 // ===========================
@@ -484,7 +499,7 @@ class RequestManagerRequest {
     // requests, allowing to cancel all
     // requests sharing the same group.
 
-    RequestManagerComponentId::Enum d_componentId;
+    int d_componentId;
     // The 'componentId' associated with this
     // request.  Used to cancel all requests
     // belonging to a specific component.
@@ -574,10 +589,10 @@ class RequestManagerRequest {
 
     /// Set component identifier to the specified `value` to assist canceling
     /// requests belonging to one component only.  By default, the identifier
-    /// is `RequestManagerComponentId::e_NO_COMPONENT_ID`.  Return a
-    /// reference offering modifiable access to this object.
-    RequestManagerRequest&
-    setComponentId(RequestManagerComponentId::Enum value);
+    /// is `RequestManagerComponentId::k_NO_COMPONENT_ID`.  Return a
+    /// reference offering modifiable access to this object.  The behavior is
+    /// undefined unless `value` is valid and is not `k_NO_COMPONENT_ID`.
+    RequestManagerRequest& setComponentId(int value);
 
     /// Take shared ownership of the specified `span` and ensure that it
     /// lives at least as long as this object. The `span` is intended to
@@ -621,9 +636,8 @@ class RequestManagerRequest {
     /// Return the associated group id (`NO_GROUP_ID` by default).
     int groupId() const;
 
-    /// Return the associated component identifier
-    /// (`e_NO_COMPONENT_ID` by default).
-    RequestManagerComponentId::Enum componentId() const;
+    /// Return the associated component id (`k_NO_COMPONENT_ID` by default).
+    int componentId() const;
 
     /// Return the associated user data.
     const bdld::Datum& userData() const;
@@ -758,13 +772,13 @@ class RequestManager {
     /// Cancel all outstanding requests matching the specified `groupId` and
     /// `componentId` filters, with the specified `reason` response
     /// description.  A value of `NO_GROUP_ID` for `groupId` disables
-    /// group filtering; a value of `e_NO_COMPONENT_ID` for `componentId`
+    /// group filtering; a value of `k_NO_COMPONENT_ID` for `componentId`
     /// disables component filtering.  Both filters are applied with AND
     /// semantics.  The corresponding response callbacks will be invoked in
     /// the order in which requests were sent.
-    void cancelAllRequestsImpl(const RESPONSE&                 reason,
-                               int                             groupId,
-                               RequestManagerComponentId::Enum componentId);
+    void cancelAllRequestsImpl(const RESPONSE& reason,
+                               int             groupId,
+                               int             componentId);
 
   private:
     // NOT IMPLEMENTED
@@ -865,16 +879,35 @@ class RequestManager {
 
     /// Cancel all outstanding requests tagged with the specified
     /// `componentId`, with the specified `reason` response description.
-    /// The behavior is undefined if `componentId` is `e_NO_COMPONENT_ID`.
-    /// The corresponding response callbacks will be invoked in the order
-    /// in which requests were sent.
-    void cancelComponentRequests(const RESPONSE&                 reason,
-                                 RequestManagerComponentId::Enum componentId);
+    /// The behavior is undefined if `componentId` is
+    /// `k_NO_COMPONENT_ID`.  The corresponding response callbacks will be
+    /// invoked in the order in which requests were sent.
+    void cancelComponentRequests(const RESPONSE& reason, int componentId);
 };
 
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
+
+// --------------------------------
+// struct RequestManagerComponentId
+// --------------------------------
+
+inline int RequestManagerComponentId::partitionFSM(int partitionId)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(partitionId >= 0);
+    BSLS_ASSERT_SAFE(partitionId < 100);
+
+    return k_PARTITION_FSM_PREFIX + partitionId;
+}
+
+inline bool RequestManagerComponentId::isValid(int componentId)
+{
+    return componentId == k_NO_COMPONENT_ID || componentId == k_CLUSTER_FSM ||
+           (componentId >= k_PARTITION_FSM_PREFIX &&
+            componentId < k_PARTITION_FSM_PREFIX + 100);
+}
 
 // ---------------------------
 // class RequestManagerRequest
@@ -894,7 +927,7 @@ RequestManagerRequest<REQUEST, RESPONSE>::RequestManagerRequest(
 , d_haveTimeout(false)
 , d_haveResponse(false)
 , d_groupId(k_NO_GROUP_ID)
-, d_componentId(RequestManagerComponentId::e_NO_COMPONENT_ID)
+, d_componentId(RequestManagerComponentId::k_NO_COMPONENT_ID)
 , d_dtSpan_sp(NULL)
 , d_dtContext_p(NULL)
 , d_userData(allocator)
@@ -927,7 +960,7 @@ void RequestManagerRequest<REQUEST, RESPONSE>::clear()
     d_sendTime        = 0;
     d_nodeDescription.clear();
     d_groupId     = k_NO_GROUP_ID;
-    d_componentId = RequestManagerComponentId::e_NO_COMPONENT_ID;
+    d_componentId = RequestManagerComponentId::k_NO_COMPONENT_ID;
     d_dtSpan_sp.reset();
     d_dtContext_p = NULL;
 }
@@ -994,9 +1027,12 @@ RequestManagerRequest<REQUEST, RESPONSE>::setGroupId(int value)
 
 template <class REQUEST, class RESPONSE>
 RequestManagerRequest<REQUEST, RESPONSE>&
-RequestManagerRequest<REQUEST, RESPONSE>::setComponentId(
-    RequestManagerComponentId::Enum value)
+RequestManagerRequest<REQUEST, RESPONSE>::setComponentId(int value)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(RequestManagerComponentId::isValid(value));
+    BSLS_ASSERT_SAFE(value != RequestManagerComponentId::k_NO_COMPONENT_ID);
+
     d_componentId = value;
     return *this;
 }
@@ -1101,8 +1137,7 @@ int RequestManagerRequest<REQUEST, RESPONSE>::groupId() const
 }
 
 template <class REQUEST, class RESPONSE>
-RequestManagerComponentId::Enum
-RequestManagerRequest<REQUEST, RESPONSE>::componentId() const
+int RequestManagerRequest<REQUEST, RESPONSE>::componentId() const
 {
     return d_componentId;
 }
@@ -1521,7 +1556,7 @@ void RequestManager<REQUEST, RESPONSE>::cancelAllRequests(
 {
     cancelAllRequestsImpl(reason,
                           RequestType::k_NO_GROUP_ID,
-                          RequestManagerComponentId::e_NO_COMPONENT_ID);
+                          RequestManagerComponentId::k_NO_COMPONENT_ID);
 }
 
 template <class REQUEST, class RESPONSE>
@@ -1534,26 +1569,26 @@ void RequestManager<REQUEST, RESPONSE>::cancelGroupRequests(
 
     cancelAllRequestsImpl(reason,
                           groupId,
-                          RequestManagerComponentId::e_NO_COMPONENT_ID);
+                          RequestManagerComponentId::k_NO_COMPONENT_ID);
 }
 
 template <class REQUEST, class RESPONSE>
 void RequestManager<REQUEST, RESPONSE>::cancelComponentRequests(
-    const RESPONSE&                 reason,
-    RequestManagerComponentId::Enum componentId)
+    const RESPONSE& reason,
+    int             componentId)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(componentId !=
-                     RequestManagerComponentId::e_NO_COMPONENT_ID);
+                     RequestManagerComponentId::k_NO_COMPONENT_ID);
 
     cancelAllRequestsImpl(reason, RequestType::k_NO_GROUP_ID, componentId);
 }
 
 template <class REQUEST, class RESPONSE>
 void RequestManager<REQUEST, RESPONSE>::cancelAllRequestsImpl(
-    const RESPONSE&                 reason,
-    int                             groupId,
-    RequestManagerComponentId::Enum componentId)
+    const RESPONSE& reason,
+    int             groupId,
+    int             componentId)
 {
     // Note that requests must be cancelled in the same order in which they
     // were sent.
@@ -1571,7 +1606,7 @@ void RequestManager<REQUEST, RESPONSE>::cancelAllRequestsImpl(
                                     (groupId == it->second->groupId());
             const bool matchComponent =
                 (componentId ==
-                 RequestManagerComponentId::e_NO_COMPONENT_ID) ||
+                 RequestManagerComponentId::k_NO_COMPONENT_ID) ||
                 (componentId == it->second->componentId());
 
             if (matchGroup && matchComponent) {
@@ -1592,7 +1627,7 @@ void RequestManager<REQUEST, RESPONSE>::cancelAllRequestsImpl(
 
     const bool hasGroup     = (groupId != RequestType::k_NO_GROUP_ID);
     const bool hasComponent = (componentId !=
-                               RequestManagerComponentId::e_NO_COMPONENT_ID);
+                               RequestManagerComponentId::k_NO_COMPONENT_ID);
     if (!hasGroup && !hasComponent) {
         BALL_LOG_INFO << "Canceling all requests (" << requestsCopy.size()
                       << " items) with " << reason << ".";

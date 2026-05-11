@@ -113,7 +113,7 @@ class MultiRequestManagerRequestContext {
 
     ResponseCb d_responseCb;
 
-    bmqp::RequestManagerComponentId::Enum d_componentId;
+    int d_componentId;
 
   private:
     // NOT IMPLEMENTED
@@ -150,14 +150,15 @@ class MultiRequestManagerRequestContext {
 
     /// Set the component id to the specified `value`.  This value is
     /// propagated to each sub-request created by the `MultiRequestManager`
-    /// when sending.
-    void setComponentId(bmqp::RequestManagerComponentId::Enum value);
+    /// when sending.  The behavior is undefined unless `value` is valid
+    /// and is not `k_NO_COMPONENT_ID`.
+    void setComponentId(int value);
 
     // ACCESSORS
     const REQUEST& request() const;
 
     /// Return the component id.
-    bmqp::RequestManagerComponentId::Enum componentId() const;
+    int componentId() const;
 
     /// Return a reference offering non-modifiable access to the
     /// corresponding member of this object.
@@ -284,7 +285,7 @@ MultiRequestManagerRequestContext<REQUEST, RESPONSE, TARGET>::
 , d_nodeResponsePairs(allocator)
 , d_numOutstandingRequests(0)
 , d_responseCb(bsl::allocator_arg, allocator)
-, d_componentId(bmqp::RequestManagerComponentId::e_NO_COMPONENT_ID)
+, d_componentId(bmqp::RequestManagerComponentId::k_NO_COMPONENT_ID)
 {
     // NOTHING
 }
@@ -297,7 +298,7 @@ void MultiRequestManagerRequestContext<REQUEST, RESPONSE, TARGET>::clear()
     d_nodeResponsePairs.clear();
     d_numOutstandingRequests = 0;
     d_responseCb             = bsl::nullptr_t();
-    d_componentId = bmqp::RequestManagerComponentId::e_NO_COMPONENT_ID;
+    d_componentId = bmqp::RequestManagerComponentId::k_NO_COMPONENT_ID;
 }
 
 template <class REQUEST, class RESPONSE, class TARGET>
@@ -328,8 +329,13 @@ void MultiRequestManagerRequestContext<REQUEST, RESPONSE, TARGET>::
 
 template <class REQUEST, class RESPONSE, class TARGET>
 void MultiRequestManagerRequestContext<REQUEST, RESPONSE, TARGET>::
-    setComponentId(bmqp::RequestManagerComponentId::Enum value)
+    setComponentId(int value)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(bmqp::RequestManagerComponentId::isValid(value));
+    BSLS_ASSERT_SAFE(value !=
+                     bmqp::RequestManagerComponentId::k_NO_COMPONENT_ID);
+
     d_componentId = value;
 }
 
@@ -342,8 +348,7 @@ MultiRequestManagerRequestContext<REQUEST, RESPONSE, TARGET>::request() const
 }
 
 template <class REQUEST, class RESPONSE, class TARGET>
-bmqp::RequestManagerComponentId::Enum
-MultiRequestManagerRequestContext<REQUEST, RESPONSE, TARGET>::componentId()
+int MultiRequestManagerRequestContext<REQUEST, RESPONSE, TARGET>::componentId()
     const
 {
     return d_componentId;
@@ -482,7 +487,10 @@ void MultiRequestManager<REQUEST, RESPONSE, TARGET>::sendRequest(
                                  context,
                                  it->first));
         setGroupId(singleRequestCtx, it->first);
-        singleRequestCtx->setComponentId(context->componentId());
+        if (context->componentId() !=
+            bmqp::RequestManagerComponentId::k_NO_COMPONENT_ID) {
+            singleRequestCtx->setComponentId(context->componentId());
+        }
 
         bsl::string               errorDescription;
         bmqt::GenericResult::Enum sendRc = d_requestManager_p->sendRequest(
