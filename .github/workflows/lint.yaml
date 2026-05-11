@@ -95,9 +95,25 @@ jobs:
         with:
           fetch-depth: 0
       - name: clang-format style check
+        id: format-check
         run: |
-          git clang-format-18 --diff -q origin/main | tee format_diff.txt
-          if [ -s format_diff.txt ]; then exit 1; fi
+          git clang-format-18 --diff -q origin/main | tee clang_format.patch
+          if [ -s clang_format.patch ]; then
+            echo ""
+            echo "clang-format check failed.  A patch file with the required"
+            echo "formatting fixes has been uploaded as a build artifact."
+            echo "Download 'clang-format-patch' from this workflow run and apply it with:"
+            echo ""
+            echo "  git apply clang_format.patch"
+            echo ""
+            exit 1
+          fi
+      - name: Upload formatting patch
+        if: failure() && steps.format-check.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: clang-format-patch
+          path: clang_format.patch
 
   python_formatting_check:
     # There might be differences how the formatter refactors the code locally
