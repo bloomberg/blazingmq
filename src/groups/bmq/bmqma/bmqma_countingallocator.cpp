@@ -380,11 +380,8 @@ void CountingAllocator::AllocationLimitChecker::setLimit(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(callback);
 
-    d_allocationLimit = limit;
-    AllocationLimitCallback cb(bsl::allocator_arg,
-                               d_allocationLimitCb.get_allocator(),
-                               callback);
-    d_allocationLimitCb.swap(cb);
+    d_allocationLimit   = limit;
+    d_allocationLimitCb = callback;
 }
 
 }  // close package namespace
