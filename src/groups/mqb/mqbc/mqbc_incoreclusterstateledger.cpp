@@ -277,7 +277,7 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
     // the new log file upon rollover completion.
     bmqp_ctrlmsg::LeaderAdvisory leaderAdvisory;
 
-    // The snapshot will have the same sequence number as the record which
+    // The snapshot will have the same LSN as the record which
     // caused rollover.  We do not want to bump up LSN
     // because the snapshot will not be broadcasted,  Note that since we write
     // the snapshot before the uncommitted records, the records won't be in
@@ -375,7 +375,7 @@ void IncoreClusterStateLedger::onQuorumChangeCb(unsigned int ackQuorum)
 
 int IncoreClusterStateLedger::applyAdvisoryInternal(
     const bmqp_ctrlmsg::ClusterMessage&        clusterMessage,
-    const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
+    const bmqp_ctrlmsg::LeaderMessageSequence& lsn,
     ClusterStateRecordType::Enum               recordType)
 {
     // TBD: What if leader is not active?
@@ -404,19 +404,17 @@ int IncoreClusterStateLedger::applyAdvisoryInternal(
         rc_APPLY_RECORD_FAILURE = -4
     };
 
-    if (sequenceNumber <
-        d_clusterData_p->electorInfo().leaderMessageSequence()) {
+    if (lsn < d_clusterData_p->electorInfo().leaderMessageSequence()) {
         BALL_LOG_WARN << description()
                       << ": Failed to apply advisory: " << clusterMessage
-                      << ". Reason: advisory is stale (LSN: " << sequenceNumber
+                      << ". Reason: advisory is stale (LSN: " << lsn
                       << ", self LSN: "
                       << d_clusterData_p->electorInfo().leaderMessageSequence()
                       << ").";
         return rc_ADVISORY_STALE;  // RETURN
     }
 
-    if (d_uncommittedAdvisories.find(sequenceNumber) !=
-        d_uncommittedAdvisories.end()) {
+    if (d_uncommittedAdvisories.find(lsn) != d_uncommittedAdvisories.end()) {
         BALL_LOG_WARN << description()
                       << ": Failed to apply advisory: " << clusterMessage
                       << ". Reason: advisory was already applied. ";
@@ -427,7 +425,7 @@ int IncoreClusterStateLedger::applyAdvisoryInternal(
     bsl::shared_ptr<bdlbb::Blob> advisoryRecord = d_blobSpPool_p->getObject();
     int rc = ClusterStateLedgerUtil::appendRecord(advisoryRecord.get(),
                                                   clusterMessage,
-                                                  sequenceNumber,
+                                                  lsn,
                                                   currentTime(),
                                                   recordType);
     if (rc != 0) {
@@ -437,7 +435,7 @@ int IncoreClusterStateLedger::applyAdvisoryInternal(
     rc = applyRecordInternal(*advisoryRecord,
                              0,
                              clusterMessage,
-                             sequenceNumber,
+                             lsn,
                              recordType);
     if (rc != 0) {
         return 10 * rc + rc_APPLY_RECORD_FAILURE;  // RETURN
@@ -451,7 +449,7 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
     int                                        recordOffset,
     const bmqu::BlobPosition&                  recordPosition,
     const bmqp_ctrlmsg::ClusterMessage&        clusterMessage,
-    const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
+    const bmqp_ctrlmsg::LeaderMessageSequence& lsn,
     ClusterStateRecordType::Enum               recordType)
 {
     enum RcEnum {
@@ -480,23 +478,21 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
     case (ClusterStateRecordType::e_UPDATE): {
         if (isSelfLeader()) {
             BSLS_ASSERT_SAFE(
-                sequenceNumber ==
-                d_clusterData_p->electorInfo().leaderMessageSequence());
+                lsn == d_clusterData_p->electorInfo().leaderMessageSequence());
         }
-        else if (sequenceNumber <
+        else if (lsn <
                  d_clusterData_p->electorInfo().leaderMessageSequence()) {
             BALL_LOG_ERROR
                 << description()
-                << ": Failed to apply record. [reason: record LSN ("
-                << sequenceNumber << ") is less than self LSN ("
+                << ": Failed to apply record. [reason: record LSN (" << lsn
+                << ") is less than self LSN ("
                 << d_clusterData_p->electorInfo().leaderMessageSequence()
                 << ")]";
             return rc * 10 + rc_WRITE_FAILURE;  // RETURN
         }
 
         if (!isSelfLeader()) {
-            d_clusterData_p->electorInfo().setLeaderMessageSequence(
-                sequenceNumber);
+            d_clusterData_p->electorInfo().setLeaderMessageSequence(lsn);
         }
 
         mqbsi::LedgerRecordId recordId;
@@ -518,9 +514,7 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
         info.d_clusterMessage = clusterMessage;
         info.d_ackCount       = 0;
         const AdvisoriesMap::iterator advIt =
-            d_uncommittedAdvisories
-                .insert(bsl::make_pair(sequenceNumber, info))
-                .first;
+            d_uncommittedAdvisories.insert(bsl::make_pair(lsn, info)).first;
 
         if (isSelfLeader()) {
             // TBD: How/if to handle timeout for this message?
@@ -556,13 +550,13 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
 
         bmqp_ctrlmsg::ClusterMessage ackMessage;
         ackMessage.choice().makeLeaderAdvisoryAck().sequenceNumberAcked() =
-            sequenceNumber;
+            lsn;
 
         bsl::shared_ptr<bdlbb::Blob> ackRecord = d_blobSpPool_p->getObject();
         rc = ClusterStateLedgerUtil::appendRecord(
             ackRecord.get(),
             ackMessage,
-            sequenceNumber,
+            lsn,
             currentTime(),
             ClusterStateRecordType::e_ACK);
         if (rc != 0) {
@@ -574,7 +568,7 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
             rc = applyRecordInternal(*ackRecord,
                                      0,
                                      ackMessage,
-                                     sequenceNumber,
+                                     lsn,
                                      ClusterStateRecordType::e_ACK);
             if (rc != 0) {
                 return 10 * rc + rc_APPLY_ACK_FAILURE;  // RETURN
@@ -614,12 +608,10 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
             clusterMessage.choice().isLeaderAdvisoryCommitValue());
         if (isSelfLeader()) {
             BSLS_ASSERT_SAFE(
-                sequenceNumber ==
-                d_clusterData_p->electorInfo().leaderMessageSequence());
+                lsn == d_clusterData_p->electorInfo().leaderMessageSequence());
         }
         else {
-            d_clusterData_p->electorInfo().setLeaderMessageSequence(
-                sequenceNumber);
+            d_clusterData_p->electorInfo().setLeaderMessageSequence(lsn);
         }
 
         const bmqp_ctrlmsg::LeaderAdvisoryCommit& commit =
@@ -731,7 +723,7 @@ int IncoreClusterStateLedger::applyRecordInternal(
     const bdlbb::Blob&                         record,
     int                                        recordOffset,
     const bmqp_ctrlmsg::ClusterMessage&        clusterMessage,
-    const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
+    const bmqp_ctrlmsg::LeaderMessageSequence& lsn,
     ClusterStateRecordType::Enum               recordType)
 {
     bmqu::BlobPosition          recordPosition;
@@ -743,7 +735,7 @@ int IncoreClusterStateLedger::applyRecordInternal(
                                    recordOffset,
                                    recordPosition,
                                    clusterMessage,
-                                   sequenceNumber,
+                                   lsn,
                                    recordType);
 }
 
@@ -751,7 +743,7 @@ int IncoreClusterStateLedger::applyRecordInternal(
     const bdlbb::Blob&                         record,
     const bmqu::BlobPosition&                  recordPosition,
     const bmqp_ctrlmsg::ClusterMessage&        clusterMessage,
-    const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
+    const bmqp_ctrlmsg::LeaderMessageSequence& lsn,
     ClusterStateRecordType::Enum               recordType)
 {
     int                         recordOffset = 0;
@@ -765,12 +757,12 @@ int IncoreClusterStateLedger::applyRecordInternal(
                                    recordOffset,
                                    recordPosition,
                                    clusterMessage,
-                                   sequenceNumber,
+                                   lsn,
                                    recordType);
 }
 
 int IncoreClusterStateLedger::applyCommit(
-    const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
+    const bmqp_ctrlmsg::LeaderMessageSequence& lsn,
     unsigned int                               ackQuorum)
 {
     enum RcEnum {
@@ -791,12 +783,12 @@ int IncoreClusterStateLedger::applyCommit(
         commitMessage.choice().makeLeaderAdvisoryCommit();
     d_clusterData_p->electorInfo().nextLeaderMessageSequence(
         &commitAdvisory.sequenceNumber());
-    commitAdvisory.sequenceNumberCommitted() = sequenceNumber;
+    commitAdvisory.sequenceNumberCommitted() = lsn;
     BSLS_ASSERT_SAFE(commitAdvisory.sequenceNumber() >
                      commitAdvisory.sequenceNumberCommitted());
 
     BALL_LOG_INFO << description() << " Quorum of " << ackQuorum
-                  << " acks is achieved for advisory of LSN " << sequenceNumber
+                  << " acks is achieved for advisory of LSN " << lsn
                   << ", creating and applying commit advisory: "
                   << commitMessage << ".";
 
@@ -832,12 +824,12 @@ void IncoreClusterStateLedger::cancelUncommittedAdvisories()
 
     AdvisoriesMapIter iter = d_uncommittedAdvisories.begin();
     if (iter != d_uncommittedAdvisories.end()) {
-        const bmqp_ctrlmsg::LeaderMessageSequence& seqNum = iter->first;
+        const bmqp_ctrlmsg::LeaderMessageSequence& lsn = iter->first;
         BALL_LOG_INFO << description() << "Canceling "
                       << d_uncommittedAdvisories.size()
                       << " uncommitted advisories in the incore CSL starting "
                          "at LSN = "
-                      << seqNum;
+                      << lsn;
     }
 
     if (isSelfLeader()) {
@@ -874,8 +866,8 @@ void IncoreClusterStateLedger::reviewUncommittedAdvisories(
                 // can't call `applyCommit()` from this for-loop, as inside
                 // this method the element of `d_uncommittedAdvisories` pointed
                 // by `iter` will be erased from the container, hence the
-                // iterator will be invalidated. So we just store the sequence
-                // numbers in the vector and run over it again.
+                // iterator will be invalidated. So we just store the LSNs
+                // in the vector and run over it again.
                 advisoriesToCommit.push_back(iter->first);
             }
         }
@@ -1002,18 +994,18 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
     BSLS_ASSERT_SAFE(ClusterStateLedgerUtil::recordSize(*recordHeader) ==
                      (event.length() - eventHeaderSize));
 
-    // Validate sequence number and record type
-    bmqp_ctrlmsg::LeaderMessageSequence seqNum;
-    seqNum.electorTerm()    = recordHeader->electorTerm();
-    seqNum.sequenceNumber() = recordHeader->sequenceNumber();
+    // Validate LSN and record type
+    bmqp_ctrlmsg::LeaderMessageSequence lsn;
+    lsn.electorTerm()    = recordHeader->electorTerm();
+    lsn.sequenceNumber() = recordHeader->sequenceNumber();
 
     if (isSelfLeader()) {
         // Leader should only receive Acks.
         if (recordHeader->recordType() != ClusterStateRecordType::e_ACK) {
             BALL_LOG_ERROR
                 << description()
-                << ": Ignoring cluster state record event with LSN = "
-                << seqNum << " from '" << source->nodeDescription()
+                << ": Ignoring cluster state record event with LSN = " << lsn
+                << " from '" << source->nodeDescription()
                 << "'. Reason: Leader should only receive Acks, "
                    "but we received record of type: "
                 << recordHeader->recordType();
@@ -1021,13 +1013,13 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
         }
 
         BSLS_ASSERT_SAFE(
-            seqNum <= d_clusterData_p->electorInfo().leaderMessageSequence());
+            lsn <= d_clusterData_p->electorInfo().leaderMessageSequence());
 
-        if (d_uncommittedAdvisories.find(seqNum) ==
+        if (d_uncommittedAdvisories.find(lsn) ==
             d_uncommittedAdvisories.end()) {
             BALL_LOG_INFO << description()
                           << ": Ignoring cluster state record ack with LSN = "
-                          << seqNum << " from '" << source->nodeDescription()
+                          << lsn << " from '" << source->nodeDescription()
                           << "', as quorum of acks has already been reached.";
             return rc_SUCCESS;  // RETURN
         }
@@ -1039,28 +1031,28 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
             recordHeader->recordType() != ClusterStateRecordType::e_COMMIT) {
             BALL_LOG_ERROR
                 << description()
-                << ": Ignoring cluster state record event with LSN = "
-                << seqNum << " from '" << source->nodeDescription()
+                << ": Ignoring cluster state record event with LSN = " << lsn
+                << " from '" << source->nodeDescription()
                 << "'. Reason: Follower should only receive advisories and "
                    "commits, but we received record of type: "
                 << recordHeader->recordType();
             return rc_UNEXPECTED_RECORD_TYPE;  // RETURN
         }
 
-        if (d_uncommittedAdvisories.find(seqNum) !=
+        if (d_uncommittedAdvisories.find(lsn) !=
             d_uncommittedAdvisories.end()) {
             BALL_LOG_ERROR << description()
-                           << ": Failed to apply record with LSN = " << seqNum
+                           << ": Failed to apply record with LSN = " << lsn
                            << " from '" << source->nodeDescription()
                            << "'. Reason: record was already applied. ";
             return rc_RECORD_ALREADY_APPLIED;  // RETURN
         }
 
-        if (seqNum < d_clusterData_p->electorInfo().leaderMessageSequence()) {
+        if (lsn < d_clusterData_p->electorInfo().leaderMessageSequence()) {
             BALL_LOG_ERROR
                 << description()
-                << ": Failed to apply record with LSN = " << seqNum
-                << " from '" << source->nodeDescription()
+                << ": Failed to apply record with LSN = " << lsn << " from '"
+                << source->nodeDescription()
                 << "'. Reason: record is stale; self LSN = "
                 << d_clusterData_p->electorInfo().leaderMessageSequence()
                 << "].";
@@ -1087,7 +1079,7 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
                      message.choice().isLeaderAdvisoryCommitValue());
 
     BALL_LOG_INFO << description() << ": Applying cluster message with type = "
-                  << recordHeader->recordType() << " and LSN = " << seqNum
+                  << recordHeader->recordType() << " and LSN = " << lsn
                   << " from '" << source->nodeDescription()
                   << "': " << message;
 
@@ -1218,11 +1210,11 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
                                  eventHeaderSize,
                                  recordHeaderPosition,
                                  message,
-                                 seqNum,
+                                 lsn,
                                  recordHeader->recordType());
     if (rc != 0) {
         BALL_LOG_WARN << description() << ": Failed to apply record from '"
-                      << source->nodeDescription() << "' [LSN: " << seqNum
+                      << source->nodeDescription() << "' [LSN: " << lsn
                       << ", self LSN: "
                       << d_clusterData_p->electorInfo().leaderMessageSequence()
                       << "]. rc: " << rc;
