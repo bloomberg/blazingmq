@@ -852,7 +852,7 @@ void ClusterStateManager::do_logUnexpectedCSLCommit(
     BALL_LOG_ERROR << d_clusterData_p->identity().description()
                    << ": Cluster FSM is in " << d_clusterFSM.state()
                    << " state while receiving unexpected CSL commit. Current "
-                      "leader sequence number is "
+                      "LSN is "
                    << d_clusterData_p->electorInfo().leaderMessageSequence()
                    << ".";
 }

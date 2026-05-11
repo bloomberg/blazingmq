@@ -193,7 +193,7 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     bslma::ManagedPtr<mqbsi::Ledger> d_ledger_mp;
 
     /// Map of uncommitted (but not canceled) advisories and associated record
-    /// id from leader message sequence number.
+    /// id from LSN.
     AdvisoriesMap d_uncommittedAdvisories;
 
   private:
