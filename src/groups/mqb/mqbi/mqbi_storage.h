@@ -215,8 +215,8 @@ class StorageMessageAttributes {
 
     StorageMessageAttributes(
         bsls::Types::Uint64                  arrivalTimestamp,
-        unsigned int                         appDataLen,
         unsigned int                         refCount,
+        unsigned int                         appDataLen,
         const bmqp::MessagePropertiesInfo&   messagePropertiesInfo,
         bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
         bool                                 hasReceipt       = true,

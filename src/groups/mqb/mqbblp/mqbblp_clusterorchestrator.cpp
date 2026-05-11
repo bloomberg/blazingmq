@@ -671,19 +671,18 @@ int ClusterOrchestrator::start(bsl::ostream& errorDescription)
         return rc * 10 + rc_CLUSTER_STATE_MANAGER_FAILURE;  // RETURN
     }
 
-    // Fetch latest leader sequence number from the ledger and supply it to the
-    // elector.
+    // Fetch latest LSN from the ledger and supply it to the elector.
     bmqp_ctrlmsg::LeaderMessageSequence ledgerLSN;
     rc = d_stateManager_mp->latestLedgerLSN(&ledgerLSN);
     if (rc == 0) {
         BALL_LOG_INFO << d_clusterData_p->identity().description()
-                      << ": Latest leader sequence number fetched from the "
-                      << "cluster state ledger: " << ledgerLSN;
+                      << ": Latest LSN fetched from the cluster state ledger: "
+                      << ledgerLSN;
     }
     else {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << ": Failed to fetch latest leader sequence number from"
-                      << " the cluster state ledger, rc: " << rc
+                      << ": Failed to fetch latest LSN from the cluster state"
+                      << " ledger, rc: " << rc
                       << ". Using default value: " << ledgerLSN;
     }
 

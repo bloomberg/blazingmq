@@ -450,12 +450,12 @@ static void test1_contextTest()
                                bmqtst::TestHelperUtil::allocator()));
 
         BMQTST_ASSERT_EQ(reqContext->componentId(),
-                         bmqp::RequestManagerComponentId::e_NO_COMPONENT_ID);
+                         bmqp::RequestManagerComponentId::k_NO_COMPONENT_ID);
 
         reqContext->setComponentId(
-            bmqp::RequestManagerComponentId::e_CLUSTER_FSM);
+            bmqp::RequestManagerComponentId::k_CLUSTER_FSM);
         BMQTST_ASSERT_EQ(reqContext->componentId(),
-                         bmqp::RequestManagerComponentId::e_CLUSTER_FSM);
+                         bmqp::RequestManagerComponentId::k_CLUSTER_FSM);
 
         ReqSp request = bsl::make_shared<Req>(
             bmqtst::TestHelperUtil::allocator());
@@ -494,7 +494,7 @@ static void test1_contextTest()
                          Mes(bmqtst::TestHelperUtil::allocator()));
         BMQTST_ASSERT(reqContext->response().empty());
         BMQTST_ASSERT_EQ(reqContext->componentId(),
-                         bmqp::RequestManagerComponentId::e_NO_COMPONENT_ID);
+                         bmqp::RequestManagerComponentId::k_NO_COMPONENT_ID);
     }
 }
 
@@ -724,10 +724,10 @@ static void test5_cancelByComponentIdTest()
         untaggedCtx->setDestinationNodes(context.nodes());
 
         clusterCtx->setComponentId(
-            bmqp::RequestManagerComponentId::e_CLUSTER_FSM);
+            bmqp::RequestManagerComponentId::k_CLUSTER_FSM);
         partitionCtx->setComponentId(
-            bmqp::RequestManagerComponentId::e_PARTITION_FSM);
-        // untaggedCtx: default e_NO_COMPONENT_ID
+            bmqp::RequestManagerComponentId::partitionFSM(0));
+        // untaggedCtx: default k_NO_COMPONENT_ID
 
         clusterCtx->setResponseCb(
             bdlf::BindUtil::bind(&Caller::callback,
@@ -764,7 +764,7 @@ static void test5_cancelByComponentIdTest()
         Mes reason = context.createResponseCancel();
         context.manager()->cancelComponentRequests(
             reason,
-            bmqp::RequestManagerComponentId::e_CLUSTER_FSM);
+            bmqp::RequestManagerComponentId::k_CLUSTER_FSM);
 
         // Only the CLUSTER_FSM multi-request callback should have fired
         BMQTST_ASSERT(clusterCalled);

@@ -55,8 +55,8 @@ struct ClusterStateTableState {
         /// Self is follower, healing its CSL.
         e_FOL_HEALING = 1,
 
-        /// Self is leader, exchanging leader sequence numbers (LSNs) with
-        /// followers to determine who has the most up-to-date CSL.
+        /// Self is leader, exchanging LSNs with followers to determine who
+        /// has the most up-to-date CSL.
         e_LDR_HEALING_STG1 = 2,
 
         /// Self is leader, healing its CSL and the followers' CSLs.  It will

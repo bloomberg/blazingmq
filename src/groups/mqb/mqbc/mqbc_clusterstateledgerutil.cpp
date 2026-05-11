@@ -301,8 +301,8 @@ int ClusterStateLedgerUtil::validateLog(mqbsi::Log::Offset* offset,
         crc32cComputed = bmqp::Crc32c::calculate(blob);
         if (crc32cComputed != crc32cExpected) {
             BMQTSK_ALARMLOG_ALARM("CLUSTER")
-                << "CSL Recovery: CRC mismatch for record with sequenceNumber "
-                << "[" << recHeader->sequenceNumber() << "] in file '"
+                << "CSL Recovery: CRC mismatch for record with LSN " << "["
+                << recHeader->sequenceNumber() << "] in file '"
                 << log->logConfig().location() << "' with fileKey ["
                 << fileHeader->fileKey() << "] at offset " << currOffset << "."
                 << " CRC32-C Expected: " << crc32cExpected << "."
@@ -313,7 +313,7 @@ int ClusterStateLedgerUtil::validateLog(mqbsi::Log::Offset* offset,
                 << ", leaderAdvisoryWords: "
                 << recHeader->leaderAdvisoryWords()
                 << ", electorTerm: " << recHeader->electorTerm()
-                << ", sequenceNumber: " << recHeader->sequenceNumber()
+                << ", LSN: " << recHeader->sequenceNumber()
                 << ", timestamp: " << recHeader->timestamp() << "]"
                 << BMQTSK_ALARMLOG_END;
             return ClusterStateLedgerUtilRc::e_INVALID_CHECKSUM;  // RETURN
