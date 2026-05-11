@@ -25,6 +25,7 @@
 
 // BDE
 #include <bslma_default.h>
+#include <bslmf_isbitwisemoveable.h>
 #include <bsls_timeutil.h>
 #include <bsls_types.h>
 
@@ -41,14 +42,20 @@ using namespace bsl;
 namespace {
 
 struct AllocationLimitCb {
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(AllocationLimitCb, bslmf::IsBitwiseMoveable)
+
+    // DATA
     int* d_triggered_p;
 
+    // CREATORS
     AllocationLimitCb(int* triggered)
     : d_triggered_p(triggered)
     {
         BSLS_ASSERT_OPT(d_triggered_p);
     }
 
+    // MANIPULATORS
     void operator()() { ++(*d_triggered_p); }
 };
 
@@ -195,7 +202,9 @@ static void test3_allocationLimitCb()
         "testStatContext",
         "testAllocatorName",
         4096,
-        AllocationLimitCb(&alarmTriggeredCount));
+        bsl::function<void()>(bsl::allocator_arg,
+                              bmqtst::TestHelperUtil::allocator(),
+                              AllocationLimitCb(&alarmTriggeredCount)));
 
     // Expect no alarm
     //  [........] ~0/4096 bytes
