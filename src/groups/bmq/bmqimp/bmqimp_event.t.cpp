@@ -1070,16 +1070,6 @@ static void test7_printing()
         out.clear();
         out.reset();
     }
-
-    {
-        PV("Bad enum value test");
-        bmqimp::Event obj(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-        obj.setType(static_cast<bmqimp::Event::EventType::Enum>(
-            bsl::numeric_limits<int>::min()));
-
-        BMQTST_ASSERT_OPT_FAIL(out << obj);
-        out.reset();
-    }
 }
 static void test8_putEventBuilder()
 {

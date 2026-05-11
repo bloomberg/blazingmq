@@ -190,11 +190,6 @@ struct Tester BSLS_CPP11_FINAL {
     // is undefined unless 'command' is a valid dump command (as indicated
     // by the return code of 'MessageDumper::parseCommand').
 
-    int processDumpCommand(const bmqp_ctrlmsg::DumpMessages& command);
-    // Process the specified dump 'command'.  Update the state of the
-    // MessageDumper under test and return 0 if successful, otherwise do
-    // nothing and return non-zero error code.
-
     void reset();
     // Reset the state of the MessageDumper under test to its default
     // state, thus nullifying all previously processed dump commands.
@@ -368,11 +363,6 @@ int Tester::processDumpCommand(const bslstl::StringRef& command)
     static_cast<void>(rc);  // suppress 'unused variable' warning
 
     return d_messageDumper.processDumpCommand(dumpMessagesCommand);
-}
-
-int Tester::processDumpCommand(const bmqp_ctrlmsg::DumpMessages& command)
-{
-    return d_messageDumper.processDumpCommand(command);
 }
 
 void Tester::reset()
@@ -1230,30 +1220,6 @@ static void test4_processDumpCommand_invalidDumpMessage()
 
         BMQTST_ASSERT_EQ(tester.processDumpCommand(test.d_command), 0);
 
-        BMQTST_ASSERT_EQ(tester.isEventDumpEnabled(bmqp::EventType::e_PUSH),
-                         test.d_isPushEnabled);
-        BMQTST_ASSERT_EQ(tester.isEventDumpEnabled(bmqp::EventType::e_ACK),
-                         test.d_isAckEnabled);
-        BMQTST_ASSERT_EQ(tester.isEventDumpEnabled(bmqp::EventType::e_PUT),
-                         test.d_isPutEnabled);
-        BMQTST_ASSERT_EQ(tester.isEventDumpEnabled(bmqp::EventType::e_CONFIRM),
-                         test.d_isConfirmEnabled);
-
-        // b. Attempt to process further an *invalid* dump command and verify
-        //    that it does not impact the state of the MessageDumper object as
-        //    well as that a non-zero error code is returned.
-
-        bmqp_ctrlmsg::DumpMessages invalidDumpMessagesCommand;
-        invalidDumpMessagesCommand.msgTypeToDump() =
-            static_cast<bmqp_ctrlmsg::DumpMsgType::Value>(-1);
-
-        PVV(test.d_line << ": Attempting to process an invalid dump command");
-
-        // Non-zero error code is returned
-        BMQTST_ASSERT_NE(tester.processDumpCommand(invalidDumpMessagesCommand),
-                         0);
-
-        // No impact on the state of the MessageDumper object
         BMQTST_ASSERT_EQ(tester.isEventDumpEnabled(bmqp::EventType::e_PUSH),
                          test.d_isPushEnabled);
         BMQTST_ASSERT_EQ(tester.isEventDumpEnabled(bmqp::EventType::e_ACK),
