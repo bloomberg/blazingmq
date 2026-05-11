@@ -24,6 +24,7 @@
 #include <bmqt_correlationid.h>
 #include <bmqt_messageeventtype.h>
 #include <bmqt_messageguid.h>
+#include <bmqt_resultcode.h>
 
 #include <bmqu_blob.h>
 #include <bmqu_memoutstream.h>
@@ -250,12 +251,14 @@ static void test1_breathingTest()
     PV("Configure as SessionEvent");
     obj.configureAsSessionEvent(bmqt::SessionEventType::e_TIMEOUT,
                                 -3,
+                                bmqt::GenericResult::e_UNKNOWN,
                                 bmqt::CorrelationId(11),
                                 "testing");
     BMQTST_ASSERT_EQ(obj.type(), bmqimp::Event::EventType::e_SESSION);
     BMQTST_ASSERT_EQ(obj.sessionEventType(),
                      bmqt::SessionEventType::e_TIMEOUT);
     BMQTST_ASSERT_EQ(obj.statusCode(), -3);
+    BMQTST_ASSERT_EQ(obj.result(), bmqt::GenericResult::e_UNKNOWN);
     BMQTST_ASSERT_EQ(obj.correlationId(), bmqt::CorrelationId(11));
     BMQTST_ASSERT_EQ(obj.errorDescription(), "testing");
 
@@ -329,6 +332,7 @@ static void test2_setterGetterTest()
     PV("Configure as SessionEvent");
     obj.configureAsSessionEvent(bmqt::SessionEventType::e_TIMEOUT,
                                 -3,
+                                bmqt::GenericResult::e_UNKNOWN,
                                 bmqt::CorrelationId(11),
                                 "testing");
 
@@ -336,6 +340,7 @@ static void test2_setterGetterTest()
     BMQTST_ASSERT_EQ(obj.sessionEventType(),
                      bmqt::SessionEventType::e_TIMEOUT);
     BMQTST_ASSERT_EQ(obj.statusCode(), -3);
+    BMQTST_ASSERT_EQ(obj.result(), bmqt::GenericResult::e_UNKNOWN);
     BMQTST_ASSERT_EQ(obj.correlationId(), bmqt::CorrelationId(11));
     BMQTST_ASSERT_EQ(obj.errorDescription(), "testing");
 
@@ -417,6 +422,7 @@ static void test3_sessionEvent_setterGetterTest()
     //
     // Testing accessors:
     //   - statusCode
+    //   - result
     //   - sessionEventType
     //   - errorDescription
     //   - correlationId
@@ -441,21 +447,23 @@ static void test3_sessionEvent_setterGetterTest()
         bmqt::SessionEventType::e_TIMEOUT;
     bmqimp::Event::EventType::Enum eventType =
         bmqimp::Event::EventType::e_SESSION;
-    int                 statusCode = -4;
-    bmqt::CorrelationId correlationId(123);
-    bsl::string         errorDescription("Error");
+    int                       statusCode = -4;
+    bmqt::GenericResult::Enum result     = bmqt::GenericResult::e_UNKNOWN;
+    bmqt::CorrelationId       correlationId(123);
+    bsl::string               errorDescription("Error");
 
     obj.setType(eventType)
         .setSessionEventType(sessionType)
         .setCorrelationId(correlationId)
         .setErrorDescription(errorDescription)
-        .setStatusCode(statusCode);
+        .setStatusCode(statusCode, result);
 
     BMQTST_ASSERT_EQ(eventType, obj.type());
     BMQTST_ASSERT_EQ(sessionType, obj.sessionEventType());
     BMQTST_ASSERT_EQ(correlationId, obj.correlationId());
     BMQTST_ASSERT_EQ(errorDescription, obj.errorDescription());
     BMQTST_ASSERT_EQ(statusCode, obj.statusCode());
+    BMQTST_ASSERT_EQ(result, obj.result());
 }
 
 static void test4_messageEvent_setterGetterTest()
@@ -782,9 +790,10 @@ static void test6_comparisonOperatorTest()
         bmqt::SessionEventType::e_TIMEOUT;
     bmqimp::Event::EventType::Enum eventType =
         bmqimp::Event::EventType::e_SESSION;
-    int                 statusCode = -3;
-    bmqt::CorrelationId correlationId(123);
-    bsl::string         errorDescription("testing");
+    int                       statusCode = -3;
+    bmqt::GenericResult::Enum result     = bmqt::GenericResult::e_UNKNOWN;
+    bmqt::CorrelationId       correlationId(123);
+    bsl::string               errorDescription("testing");
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader eventHeader;
     bmqt::MessageGUID guid;
@@ -793,6 +802,7 @@ static void test6_comparisonOperatorTest()
     PV("Configure as SessionEvent");
     obj1.configureAsSessionEvent(sessionType,
                                  statusCode,
+                                 result,
                                  correlationId,
                                  errorDescription);
 
@@ -800,7 +810,7 @@ static void test6_comparisonOperatorTest()
         .setSessionEventType(sessionType)
         .setCorrelationId(correlationId)
         .setErrorDescription(errorDescription)
-        .setStatusCode(statusCode);
+        .setStatusCode(statusCode, result);
 
     BMQTST_ASSERT(obj1 == obj2);
 
@@ -882,6 +892,7 @@ static void test7_printing()
         bsl::string                           d_age;
         bmqt::SessionEventType::Enum          d_sessionEventType;
         int                                   d_statusCode;
+        bmqt::GenericResult::Enum             d_result;
         bmqt::CorrelationId                   d_correlationId;
         bsl::string                           d_errorDescription;
         bmqimp::Event::MessageEventMode::Enum d_messageEventMode;
@@ -891,6 +902,7 @@ static void test7_printing()
                    "NULL",
                    bmqt::SessionEventType::e_TIMEOUT,
                    -3,
+                   bmqt::GenericResult::e_UNKNOWN,
                    bmqt::CorrelationId(11),
                    "testing",
                    bmqimp::Event::MessageEventMode::e_UNINITIALIZED,
@@ -900,6 +912,7 @@ static void test7_printing()
                    "NULL",
                    bmqt::SessionEventType::e_UNDEFINED,
                    -3,
+                   bmqt::GenericResult::e_UNKNOWN,
                    bmqt::CorrelationId(11),
                    "testing",
                    bmqimp::Event::MessageEventMode::e_READ,
@@ -909,6 +922,7 @@ static void test7_printing()
                    "NULL",
                    bmqt::SessionEventType::e_UNDEFINED,
                    -3,
+                   bmqt::GenericResult::e_UNKNOWN,
                    bmqt::CorrelationId(11),
                    "testing",
                    bmqimp::Event::MessageEventMode::e_UNINITIALIZED,
@@ -918,6 +932,7 @@ static void test7_printing()
                    "NULL",
                    bmqt::SessionEventType::e_UNDEFINED,
                    -3,
+                   bmqt::GenericResult::e_UNKNOWN,
                    bmqt::CorrelationId(11),
                    "testing",
                    bmqimp::Event::MessageEventMode::e_UNINITIALIZED,
@@ -928,6 +943,7 @@ static void test7_printing()
                       "NULL",
                       bmqt::SessionEventType::e_UNDEFINED,
                       -1,
+                      bmqt::GenericResult::e_UNKNOWN,
                       bmqt::CorrelationId(11),
                       "testing",
                       bmqimp::Event::MessageEventMode::e_READ,
@@ -947,7 +963,7 @@ static void test7_printing()
         case bmqimp::Event::EventType::e_SESSION: {
             obj.setType(data.d_eventType)
                 .setSessionEventType(data.d_sessionEventType)
-                .setStatusCode(data.d_statusCode)
+                .setStatusCode(data.d_statusCode, data.d_result)
                 .setCorrelationId(data.d_correlationId)
                 .setErrorDescription(data.d_errorDescription);
 
@@ -1012,6 +1028,7 @@ static void test7_printing()
             expected << " type = \"SESSION\""
                      << " sessionEventType = " << data.d_sessionEventType
                      << " statusCode = " << data.d_statusCode
+                     << " result = " << data.d_result
                      << " correlationId = " << data.d_correlationId;
             if (!data.d_errorDescription.empty()) {
                 expected << " errorDescription = \"" << data.d_errorDescription
@@ -1333,6 +1350,7 @@ static void test9_copyTest()
     obj.reset();
     obj.configureAsSessionEvent(bmqt::SessionEventType::e_TIMEOUT,
                                 -3,
+                                bmqt::GenericResult::e_UNKNOWN,
                                 bmqt::CorrelationId(2),
                                 "testing");
 
@@ -1429,6 +1447,7 @@ static void test10_assignmentTest()
     obj.reset();
     obj.configureAsSessionEvent(bmqt::SessionEventType::e_TIMEOUT,
                                 -3,
+                                bmqt::GenericResult::e_UNKNOWN,
                                 bmqt::CorrelationId(5),
                                 "testingAssignment");
 
@@ -1484,6 +1503,7 @@ static void test11_doneCallbackTest()
     PV("Configure as SessionEvent");
     obj.configureAsSessionEvent(bmqt::SessionEventType::e_TIMEOUT,
                                 -3,
+                                bmqt::GenericResult::e_UNKNOWN,
                                 bmqt::CorrelationId(11),
                                 "testing");
 

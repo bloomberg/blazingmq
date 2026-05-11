@@ -1398,8 +1398,7 @@ static void test4_enumPrint()
             {L_,
              bmqp::EventType::e_REPLICATION_RECEIPT,
              "REPLICATION_RECEIPT"},
-            {L_, bmqp::EventType::e_AUTHENTICATION, "AUTHENTICATION"},
-            {L_, -1, "(* UNKNOWN *)"}};
+            {L_, bmqp::EventType::e_AUTHENTICATION, "AUTHENTICATION"}};
 
         printEnumHelper<bmqp::EventType>(k_DATA);
     }
@@ -1415,8 +1414,7 @@ static void test4_enumPrint()
         PrintTestData k_DATA[] = {
             {L_, bmqp::EncodingType::e_UNKNOWN, "UNKNOWN"},
             {L_, bmqp::EncodingType::e_BER, "BER"},
-            {L_, bmqp::EncodingType::e_JSON, "JSON"},
-            {L_, -2, "(* UNKNOWN *)"}};
+            {L_, bmqp::EncodingType::e_JSON, "JSON"}};
 
         printEnumHelper<bmqp::EncodingType>(k_DATA);
     }
@@ -1433,8 +1431,7 @@ static void test4_enumPrint()
             {L_, bmqp::OptionType::e_UNDEFINED, "UNDEFINED"},
             {L_, bmqp::OptionType::e_SUB_QUEUE_IDS_OLD, "SUB_QUEUE_IDS_OLD"},
             {L_, bmqp::OptionType::e_MSG_GROUP_ID, "MSG_GROUP_ID"},
-            {L_, bmqp::OptionType::e_SUB_QUEUE_INFOS, "SUB_QUEUE_INFOS"},
-            {L_, -1, "(* UNKNOWN *)"}};
+            {L_, bmqp::OptionType::e_SUB_QUEUE_INFOS, "SUB_QUEUE_INFOS"}};
 
         printEnumHelper<bmqp::OptionType>(k_DATA);
     }
@@ -1456,8 +1453,7 @@ static void test4_enumPrint()
              bmqp::PutHeaderFlags::e_MESSAGE_PROPERTIES,
              "MESSAGE_PROPERTIES"},
             {L_, bmqp::PutHeaderFlags::e_UNUSED3, "UNUSED3"},
-            {L_, bmqp::PutHeaderFlags::e_UNUSED4, "UNUSED4"},
-            {L_, -1, "(* UNKNOWN *)"}};
+            {L_, bmqp::PutHeaderFlags::e_UNUSED4, "UNUSED4"}};
 
         printEnumHelper<bmqp::PutHeaderFlags>(k_DATA);
     }
@@ -1481,8 +1477,7 @@ static void test4_enumPrint()
              bmqp::PushHeaderFlags::e_MESSAGE_PROPERTIES,
              "MESSAGE_PROPERTIES"},
             {L_, bmqp::PushHeaderFlags::e_OUT_OF_ORDER, "OUT_OF_ORDER"},
-            {L_, bmqp::PushHeaderFlags::e_UNUSED4, "UNUSED4"},
-            {L_, -1, "(* UNKNOWN *)"}};
+            {L_, bmqp::PushHeaderFlags::e_UNUSED4, "UNUSED4"}};
 
         printEnumHelper<bmqp::PushHeaderFlags>(k_DATA);
     }
@@ -1504,8 +1499,7 @@ static void test4_enumPrint()
             {L_, bmqp::StorageMessageType::e_CONFIRM, "CONFIRM"},
             {L_, bmqp::StorageMessageType::e_DELETION, "DELETION"},
             {L_, bmqp::StorageMessageType::e_JOURNAL_OP, "JOURNAL_OP"},
-            {L_, bmqp::StorageMessageType::e_QUEUE_OP, "QUEUE_OP"},
-            {L_, -1, "(* UNKNOWN *)"}};
+            {L_, bmqp::StorageMessageType::e_QUEUE_OP, "QUEUE_OP"}};
 
         printEnumHelper<bmqp::StorageMessageType>(k_DATA);
     }
@@ -1549,8 +1543,7 @@ static void test4_enumPrint()
             {L_, bmqp::RecoveryFileChunkType::e_UNDEFINED, "UNDEFINED"},
             {L_, bmqp::RecoveryFileChunkType::e_DATA, "DATA"},
             {L_, bmqp::RecoveryFileChunkType::e_JOURNAL, "JOURNAL"},
-            {L_, bmqp::RecoveryFileChunkType::e_QLIST, "QLIST"},
-            {L_, -1, "(* UNKNOWN *)"}};
+            {L_, bmqp::RecoveryFileChunkType::e_QLIST, "QLIST"}};
 
         printEnumHelper<bmqp::RecoveryFileChunkType>(k_DATA);
     }

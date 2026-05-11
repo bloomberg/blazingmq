@@ -655,20 +655,20 @@ class BrokerSession BSLS_CPP11_FINAL {
         /// or `handleRequestBad` for non-transport errors.
         void handleRequestNotSent(const bsl::shared_ptr<Queue>&        queue,
                                   const RequestManagerType::RequestSp& context,
-                                  bmqp_ctrlmsg::StatusCategory::Value  status);
+                                  int                                  status);
 
         /// Handle a transport/write error when sending a request.  The
         /// queue stays in its current state, waiting for CHANNEL_DOWN.
         void
         handleRequestWriteError(const bsl::shared_ptr<Queue>&        queue,
                                 const RequestManagerType::RequestSp& context,
-                                bmqp_ctrlmsg::StatusCategory::Value  status);
+                                int                                  status);
 
         /// Handle a non-transport error when sending a request (e.g.,
         /// session stopped, invalid state).
         void handleRequestBad(const bsl::shared_ptr<Queue>&        queue,
                               const RequestManagerType::RequestSp& context,
-                              bmqp_ctrlmsg::StatusCategory::Value  status);
+                              int                                  status);
 
         /// Handle response error.
         void handleResponseError(const bsl::shared_ptr<Queue>&        queue,
@@ -715,7 +715,7 @@ class BrokerSession BSLS_CPP11_FINAL {
         /// Create a status response for the specified `context` using the
         /// specified `status` code and error `reason` description.
         void injectErrorResponse(const RequestManagerType::RequestSp& context,
-                                 bmqp_ctrlmsg::StatusCategory::Value  status,
+                                 int                                  status,
                                  const bslstl::StringRef& reason = "");
     };
 
@@ -1632,7 +1632,8 @@ class BrokerSession BSLS_CPP11_FINAL {
 
     void enqueueSessionEvent(
         bmqt::SessionEventType::Enum  type,
-        int                           statusCode       = 0,
+        int                           statusCode = 0,
+        bmqt::GenericResult::Enum     result = bmqt::GenericResult::e_SUCCESS,
         const bslstl::StringRef&      errorDescription = "",
         const bmqt::CorrelationId&    correlationId    = bmqt::CorrelationId(),
         const bsl::shared_ptr<Queue>& queue         = bsl::shared_ptr<Queue>(),

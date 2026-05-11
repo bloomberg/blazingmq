@@ -16,6 +16,7 @@
 #include <bmqa_session.h>
 
 #include <bmqscm_version.h>
+
 // BMQ
 #include <bmqa_event.h>
 #include <bmqa_message.h>
@@ -34,6 +35,7 @@
 #include <bmqp_protocol.h>
 #include <bmqt_correlationid.h>
 #include <bmqt_queueflags.h>
+#include <bmqt_resultcode.h>
 #include <bmqu_memoutstream.h>
 
 // BDE
@@ -120,6 +122,139 @@ int validateQueueOptions(bsl::ostream& out, const bmqt::QueueOptions& options)
     }
 
     return 0;
+}
+
+template <typename T>
+T fromStatusCode(int statusCode);
+
+/// Convert a status code into a generic result. If `code` does not match one
+/// of the `GenericResult::Enum` variants, return
+/// `bmqt::GenericResult::e_UNKNOWN`. Otherwise, return the value of `code`
+/// casted as a `GenericResult::Enum`.
+template <>
+bmqt::GenericResult::Enum
+fromStatusCode<bmqt::GenericResult::Enum>(int statusCode)
+{
+    switch (statusCode) {
+    case bmqt::GenericResult::e_SUCCESS:
+    case bmqt::GenericResult::e_UNKNOWN:
+    case bmqt::GenericResult::e_TIMEOUT:
+    case bmqt::GenericResult::e_NOT_CONNECTED:
+    case bmqt::GenericResult::e_CANCELED:
+    case bmqt::GenericResult::e_NOT_SUPPORTED:
+    case bmqt::GenericResult::e_REFUSED:
+    case bmqt::GenericResult::e_INVALID_ARGUMENT:
+    case bmqt::GenericResult::e_NOT_READY: {
+        return static_cast<bmqt::GenericResult::Enum>(statusCode);
+    }
+    default: {
+        return bmqt::GenericResult::e_UNKNOWN;
+    }
+    }
+}
+
+/// Convert a status code into an open queue result. If `code` does not match
+/// one of the `OpenQueueResult::Enum` variants, return
+/// `bmqt::OpenQueueResult::e_UNKNOWN`. Otherwise, return the value of `code`
+/// casted as a `bmqt::OpenQueueResult::Enum`.
+template <>
+bmqt::OpenQueueResult::Enum
+fromStatusCode<bmqt::OpenQueueResult::Enum>(int code)
+{
+#define BMQA_CASE(X) case bmqt::OpenQueueResult::e_##X:
+
+    switch (code) {
+        BMQA_CASE(SUCCESS)
+        BMQA_CASE(UNKNOWN)
+        BMQA_CASE(TIMEOUT)
+        BMQA_CASE(NOT_CONNECTED)
+        BMQA_CASE(CANCELED)
+        BMQA_CASE(NOT_SUPPORTED)
+        BMQA_CASE(REFUSED)
+        BMQA_CASE(INVALID_ARGUMENT)
+        BMQA_CASE(NOT_READY)
+        BMQA_CASE(ALREADY_OPENED)
+        BMQA_CASE(ALREADY_IN_PROGRESS)
+        BMQA_CASE(INVALID_URI)
+        BMQA_CASE(INVALID_FLAGS)
+        BMQA_CASE(CORRELATIONID_NOT_UNIQUE)
+        {
+            return static_cast<bmqt::OpenQueueResult::Enum>(code);
+        }
+    default: {
+        return bmqt::OpenQueueResult::e_UNKNOWN;
+    }
+    }
+
+#undef BMQA_CASE
+}
+
+/// Convert a status code into a close queue result. If `code` does not match
+/// one of the `CloseQueueResult::Enum` variants, return
+/// `bmqt::CloseQueueResult::e_UNKNOWN`. Otherwise, return the value of `code`
+/// casted as a `bmqt::CloseQueueResult::Enum`.
+template <>
+bmqt::CloseQueueResult::Enum
+fromStatusCode<bmqt::CloseQueueResult::Enum>(int code)
+{
+#define BMQA_CASE(X) case bmqt::CloseQueueResult::e_##X:
+
+    switch (code) {
+        BMQA_CASE(SUCCESS)
+        BMQA_CASE(UNKNOWN)
+        BMQA_CASE(TIMEOUT)
+        BMQA_CASE(NOT_CONNECTED)
+        BMQA_CASE(CANCELED)
+        BMQA_CASE(NOT_SUPPORTED)
+        BMQA_CASE(REFUSED)
+        BMQA_CASE(INVALID_ARGUMENT)
+        BMQA_CASE(NOT_READY)
+        BMQA_CASE(ALREADY_CLOSED)
+        BMQA_CASE(ALREADY_IN_PROGRESS)
+        BMQA_CASE(UNKNOWN_QUEUE)
+        BMQA_CASE(INVALID_QUEUE)
+        {
+            return static_cast<bmqt::CloseQueueResult::Enum>(code);
+        }
+    default: {
+        return bmqt::CloseQueueResult::e_UNKNOWN;
+    }
+    }
+
+#undef BMQA_CASE
+}
+
+/// Convert a status code into an open queue result. If `code` does not match
+/// one of the `ConfigureQueueResult::Enum` variants, return
+/// `bmqt::ConfigureQueueResult::e_UNKNOWN`. Otherwise, return the value of
+/// `code` casted as a `bmqt::ConfigureQueueResult::Enum`.
+template <>
+bmqt::ConfigureQueueResult::Enum
+fromStatusCode<bmqt::ConfigureQueueResult::Enum>(int code)
+{
+#define BMQA_CASE(X) case bmqt::ConfigureQueueResult::e_##X:
+
+    switch (code) {
+        BMQA_CASE(SUCCESS)
+        BMQA_CASE(UNKNOWN)
+        BMQA_CASE(TIMEOUT)
+        BMQA_CASE(NOT_CONNECTED)
+        BMQA_CASE(CANCELED)
+        BMQA_CASE(NOT_SUPPORTED)
+        BMQA_CASE(REFUSED)
+        BMQA_CASE(INVALID_ARGUMENT)
+        BMQA_CASE(NOT_READY)
+        BMQA_CASE(ALREADY_IN_PROGRESS)
+        BMQA_CASE(INVALID_QUEUE)
+        {
+            return static_cast<bmqt::ConfigureQueueResult::Enum>(code);
+        }
+    default: {
+        return bmqt::ConfigureQueueResult::e_UNKNOWN;
+    }
+    }
+
+#undef BMQA_CASE
 }
 
 // CLASSES
@@ -406,10 +541,17 @@ void SessionUtil::createOperationResult(OPERATION_RESULT_TYPE* status,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(status);
 
-    *status = OPERATION_RESULT_TYPE(
-        event.queueId(),
-        static_cast<OPERATION_RESULT_ENUM>(event.statusCode()),
-        event.errorDescription());
+    OPERATION_RESULT_ENUM statusCode = fromStatusCode<OPERATION_RESULT_ENUM>(
+        event.statusCode());
+
+    if (static_cast<int>(statusCode) == bmqt::GenericResult::e_UNKNOWN) {
+        // Fallback to the generic result code
+        statusCode = static_cast<OPERATION_RESULT_ENUM>(event.result());
+    }
+
+    *status = OPERATION_RESULT_TYPE(event.queueId(),
+                                    statusCode,
+                                    event.errorDescription());
 }
 
 // Queue management helpers
@@ -1096,9 +1238,11 @@ void Session::openQueueAsync(bmqa::QueueId*            queueId,
     if (validationRc != bmqt::OpenQueueResult::e_SUCCESS) {
         // Validation failed - enqueue callback invocation with error result
         BALL_LOG_ERROR << error.str();
+        int rc = static_cast<int>(validationRc);
         d_impl.d_application_mp->brokerSession().enqueueSessionEvent(
             bmqt::SessionEventType::e_QUEUE_OPEN_RESULT,
-            static_cast<int>(validationRc),
+            rc,
+            fromStatusCode<bmqt::GenericResult::Enum>(rc),
             error.str(),
             queue->correlationId(),
             queue,
@@ -1284,9 +1428,11 @@ void Session::configureQueueAsync(QueueId*                      queueId,
         // Validation failed - abort operation and invoke the callback with
         // error result
         BALL_LOG_ERROR << error.str();
+        int rc = static_cast<int>(validationRc);
         d_impl.d_application_mp->brokerSession().enqueueSessionEvent(
             bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT,
-            static_cast<int>(validationRc),
+            rc,
+            fromStatusCode<bmqt::GenericResult::Enum>(rc),
             error.str(),
             queue->correlationId(),
             queue,
@@ -1457,9 +1603,11 @@ void Session::closeQueueAsync(QueueId*                  queueId,
         // Validation failed - abort operation and invoke the callback with
         // error result
         BALL_LOG_ERROR << error.str();
+        int rc = static_cast<int>(validationRc);
         d_impl.d_application_mp->brokerSession().enqueueSessionEvent(
             bmqt::SessionEventType::e_QUEUE_CLOSE_RESULT,
-            static_cast<int>(validationRc),
+            rc,
+            fromStatusCode<bmqt::GenericResult::Enum>(rc),
             error.str(),
             queue->correlationId(),
             queue,

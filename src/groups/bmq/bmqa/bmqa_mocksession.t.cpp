@@ -24,6 +24,7 @@
 #include <bmqimp_queue.h>
 #include <bmqp_blobpoolutil.h>
 #include <bmqt_queueoptions.h>
+#include <bmqt_resultcode.h>
 
 #include <bmqu_memoutstream.h>
 
@@ -123,6 +124,7 @@ struct EventHandler : public bmqa::SessionEventHandler {
                 queueId,
                 queueId->correlationId(),
                 0,
+                bmqt::GenericResult::e_SUCCESS,
                 "",
                 bmqtst::TestHelperUtil::allocator()));
 
@@ -276,6 +278,7 @@ static void test1_staticMethods()
             bmqt::SessionEventType::e_CONNECTED,
             bmqt::CorrelationId(1),
             0,
+            bmqt::GenericResult::e_SUCCESS,
             errorDescription,
             bmqtst::TestHelperUtil::allocator());
         bmqa::SessionEvent sessionEvent = event.sessionEvent();
@@ -294,6 +297,7 @@ static void test1_staticMethods()
             bmqt::SessionEventType::e_QUEUE_OPEN_RESULT,
             bmqt::CorrelationId(1),
             0,
+            bmqt::GenericResult::e_SUCCESS,
             "",
             bmqtst::TestHelperUtil::allocator()));
     }
@@ -341,6 +345,7 @@ static void test1_staticMethods()
             &queueId,
             corrId,
             0,
+            bmqt::GenericResult::e_SUCCESS,
             "",
             bmqtst::TestHelperUtil::allocator());
 
@@ -746,6 +751,7 @@ static void test4_queueManagementSync()
                 &queueId1,
                 queueId1.correlationId(),
                 1,
+                bmqt::GenericResult::e_UNKNOWN,
                 "",
                 bmqtst::TestHelperUtil::allocator()));
 
@@ -779,6 +785,7 @@ static void test4_queueManagementSync()
                 &queueId1,
                 queueId1.correlationId(),
                 0,
+                bmqt::GenericResult::e_SUCCESS,
                 "",
                 bmqtst::TestHelperUtil::allocator()));
 
@@ -1006,6 +1013,7 @@ static void test6_runThrough()
         bmqt::SessionEventType::e_CONNECTED,
         bmqt::CorrelationId(1),
         0,
+        bmqt::GenericResult::e_SUCCESS,
         "",
         bmqtst::TestHelperUtil::allocator()));
 

@@ -51,6 +51,7 @@
 
 #include <bmqa_queueid.h>
 #include <bmqt_correlationid.h>
+#include <bmqt_resultcode.h>
 #include <bmqt_sessioneventtype.h>
 
 // BDE
@@ -114,6 +115,10 @@ class SessionEvent {
     /// Return the status code that indicates success or the cause of a
     /// failure.
     int statusCode() const;
+
+    /// Return the generic result code that indicates success or the cause of a
+    /// failure.
+    bmqt::GenericResult::Enum result() const;
 
     /// Return a printable description of the error, if `statusCode` returns
     /// non-zero.  Return an empty string otherwise.

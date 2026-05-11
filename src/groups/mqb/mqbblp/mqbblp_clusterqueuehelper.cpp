@@ -1484,7 +1484,7 @@ void ClusterQueueHelper::onOpenQueueResponse(
 
     bool                 retry     = false;  // retry immediately
     mqbnet::ClusterNode* otherThan = 0;      // retry if the upstream is new
-    const int subCode = requestContext->response().choice().status().code();
+    const int            subCode   = requestContext->statusCode();
 
     if (mainCode == bmqt::GenericResult::e_CANCELED) {
         if (subCode == mqbi::ClusterErrorCode::e_ACTIVE_LOST ||

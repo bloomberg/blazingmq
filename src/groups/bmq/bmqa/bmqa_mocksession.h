@@ -556,6 +556,7 @@
 #include <bmqa_queueid.h>
 #include <bmqa_session.h>  // for 'bmqa::SessionEventHandler'
 #include <bmqt_queueoptions.h>
+#include <bmqt_resultcode.h>
 #include <bmqt_sessionoptions.h>
 
 // BDE
@@ -734,6 +735,7 @@ struct MockSessionUtil {
                             QueueId*                     queueId,
                             const bmqt::CorrelationId&   correlationId,
                             int                          errorCode,
+                            bmqt::GenericResult::Enum    result,
                             const bslstl::StringRef&     errorDescription,
                             bslma::Allocator*            allocator);
 
@@ -745,6 +747,7 @@ struct MockSessionUtil {
     createSessionEvent(bmqt::SessionEventType::Enum sessionEventType,
                        const bmqt::CorrelationId&   correlationId,
                        const int                    errorCode,
+                       bmqt::GenericResult::Enum    result,
                        const bslstl::StringRef&     errorDescription,
                        bslma::Allocator*            allocator);
 

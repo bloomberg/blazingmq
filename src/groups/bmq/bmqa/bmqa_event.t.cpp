@@ -17,6 +17,7 @@
 
 // BMQ
 #include <bmqimp_event.h>
+#include <bmqt_resultcode.h>
 
 // BDE
 #include <bdlbb_pooledblobbufferfactory.h>
@@ -85,6 +86,7 @@ static void test1_breathingTest()
             bmqtst::TestHelperUtil::allocator());
         eventImpl->configureAsSessionEvent(bmqt::SessionEventType::e_TIMEOUT,
                                            -3,
+                                           bmqt::GenericResult::e_TIMEOUT,
                                            bmqt::CorrelationId(13),
                                            "test");
         bmqa::Event event = convertEvent(eventImpl);
