@@ -450,12 +450,6 @@ void InitialConnectionContext::setAuthenticationContext(
     d_authenticationCtxSp = value;
 }
 
-void InitialConnectionContext::setNegotiationContext(
-    const bsl::shared_ptr<NegotiationContext>& value)
-{
-    d_negotiationCtxSp = value;
-}
-
 void InitialConnectionContext::onClose()
 {
     d_isClosed = true;
