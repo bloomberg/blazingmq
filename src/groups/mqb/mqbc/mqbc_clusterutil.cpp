@@ -2160,8 +2160,8 @@ int ClusterUtil::latestLedgerLSN(bmqp_ctrlmsg::LeaderMessageSequence* out,
 
     if (!ledger.isOpen()) {
         BALL_LOG_ERROR << clusterData.identity().description()
-                       << ": Leader sequence number cannot be found using "
-                       << "ledger at this time as it is not yet opened.";
+                       << ": LSN cannot be found using ledger at this time as"
+                       << " it is not yet opened.";
 
         return rc_LEDGER_NOT_OPENED;  // RETURN
     }
@@ -2187,8 +2187,7 @@ int ClusterUtil::latestLedgerLSN(bmqp_ctrlmsg::LeaderMessageSequence* out,
     out->sequenceNumber() = header->sequenceNumber();
 
     BALL_LOG_INFO << clusterData.identity().description()
-                  << ": Retrieved latest leader sequence number from ledger to"
-                  << " be " << *out;
+                  << ": Retrieved latest LSN from ledger to be " << *out;
 
     return rc_SUCCESS;
 }

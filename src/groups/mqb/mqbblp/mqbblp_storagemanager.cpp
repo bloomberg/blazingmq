@@ -95,12 +95,11 @@ bsl::ostream& printRecoveryBanner(bsl::ostream&      out,
     return out;
 }
 
-/// Return true if the leader message sequence number in the specified `lms`
-/// is zero, false otherwise.
-bool isZero(const bmqp_ctrlmsg::LeaderMessageSequence& lms)
+/// Return true if the LSN in the specified `lsn` is zero, false otherwise.
+bool isZero(const bmqp_ctrlmsg::LeaderMessageSequence& lsn)
 {
-    return lms.electorTerm() == mqbnet::Elector::k_INVALID_TERM &&
-           lms.sequenceNumber() == 0;
+    return lsn.electorTerm() == mqbnet::Elector::k_INVALID_TERM &&
+           lsn.sequenceNumber() == 0;
 }
 
 }  // close unnamed namespace

@@ -1163,7 +1163,7 @@ void printElectorInfo(bsl::ostream&      os,
        << bmqu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
        << "Leader Node           : " << electorInfo.leaderNode()
        << bmqu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
-       << "Leader Sequence Number: [ electorTerm = "
+       << "LSN: [ electorTerm = "
        << electorInfo.leaderMessageSequence().electorTerm()
        << " sequenceNumber = "
        << electorInfo.leaderMessageSequence().sequenceNumber() << " ]"

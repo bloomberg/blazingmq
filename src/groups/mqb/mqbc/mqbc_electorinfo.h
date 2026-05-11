@@ -255,8 +255,7 @@ class ElectorInfo : public ClusterFSMObserver {
                                 mqbnet::ClusterNode*          node,
                                 ElectorInfoLeaderStatus::Enum status);
 
-    /// Bump up the leader sequence number and populate to the optionally
-    /// specified `sequence`.
+    /// Bump up the LSN and populate to the optionally specified `sequence`.
     void nextLeaderMessageSequence(
         bmqp_ctrlmsg::LeaderMessageSequence* sequence = 0);
 
@@ -316,8 +315,7 @@ inline ElectorInfo::ElectorInfo(mqbi::Cluster* cluster)
     d_leaderMessageSequence.electorTerm()    = mqbnet::Elector::k_INVALID_TERM;
     d_leaderMessageSequence.sequenceNumber() = 0;
 
-    BALL_LOG_INFO << "Setting elector's leader sequence number to "
-                  << d_leaderMessageSequence;
+    BALL_LOG_INFO << "Setting elector's LSN to " << d_leaderMessageSequence;
 }
 
 // MANIPULATORS
@@ -326,8 +324,7 @@ inline ElectorInfo& ElectorInfo::setElectorTerm(bsls::Types::Uint64 value)
     d_leaderMessageSequence.electorTerm()    = value;
     d_leaderMessageSequence.sequenceNumber() = 0;
 
-    BALL_LOG_INFO << "Setting elector's leader sequence number to "
-                  << d_leaderMessageSequence;
+    BALL_LOG_INFO << "Setting elector's LSN to " << d_leaderMessageSequence;
     return *this;
 }
 
@@ -344,8 +341,7 @@ inline ElectorInfo& ElectorInfo::setLeaderMessageSequence(
 {
     d_leaderMessageSequence = value;
 
-    BALL_LOG_INFO << "Setting elector's leader sequence number to "
-                  << d_leaderMessageSequence;
+    BALL_LOG_INFO << "Setting elector's LSN to " << d_leaderMessageSequence;
     return *this;
 }
 
@@ -357,8 +353,7 @@ inline void ElectorInfo::nextLeaderMessageSequence(
         *sequence = d_leaderMessageSequence;
     }
 
-    BALL_LOG_INFO << "Bumping up elector's leader sequence number to "
-                  << d_leaderMessageSequence;
+    BALL_LOG_INFO << "Bumping up elector's LSN to " << d_leaderMessageSequence;
 }
 
 inline ElectorInfo::SchedulerEventHandle* ElectorInfo::leaderSyncEventHandle()
