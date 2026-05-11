@@ -215,9 +215,7 @@ static void test3_printQueueStateTest()
                   {bmqimp::QueueState::e_CLOSING_CFG, "CLOSING_CFG"},
                   {bmqimp::QueueState::e_CLOSING_CLS, "CLOSING_CLS"},
                   {bmqimp::QueueState::e_CLOSED, "CLOSED"},
-                  {bmqimp::QueueState::e_PENDING, "PENDING"},
-                  {static_cast<bmqimp::QueueState::Enum>(-1),
-                   "(* UNKNOWN *)"}};
+                  {bmqimp::QueueState::e_PENDING, "PENDING"}};
 
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 

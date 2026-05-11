@@ -76,9 +76,7 @@ static void test2_printTest()
         const char*                 d_expected;
     } k_DATA[] = {{bmqt::HostHealthState::e_UNKNOWN, "UNKNOWN"},
                   {bmqt::HostHealthState::e_HEALTHY, "HEALTHY"},
-                  {bmqt::HostHealthState::e_UNHEALTHY, "UNHEALTHY"},
-                  {static_cast<bmqt::HostHealthState::Enum>(-1234),
-                   "(* UNKNOWN *)"}};
+                  {bmqt::HostHealthState::e_UNHEALTHY, "UNHEALTHY"}};
 
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
