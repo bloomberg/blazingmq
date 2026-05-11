@@ -15,12 +15,13 @@
 
 #include <bmqimp_eventqueue.h>
 
+// BMQ
+#include <bmqst_statcontext.h>
+#include <bmqst_statvalue.h>
+#include <bmqt_resultcode.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
 #include <bmqu_time.h>
-
-#include <bmqst_statcontext.h>
-#include <bmqst_statvalue.h>
 
 // BDE
 #include <bdlbb_pooledblobbufferfactory.h>
@@ -99,6 +100,7 @@ void performanceTestQueuePusher(bmqimp::EventQueue* queue, int numIter)
         bsl::shared_ptr<bmqimp::Event> event = queue->eventPool()->getObject();
         event->configureAsSessionEvent(bmqt::SessionEventType::e_UNDEFINED,
                                        1,
+                                       bmqt::GenericResult::e_UNKNOWN,
                                        bmqt::CorrelationId(),
                                        "");
         queue->pushBack(event);
@@ -225,6 +227,7 @@ static void test1_breathingTest()
     bsl::shared_ptr<bmqimp::Event> event = eventPool.getObject();
     event->configureAsSessionEvent(bmqt::SessionEventType::e_UNDEFINED,
                                    1,
+                                   bmqt::GenericResult::e_UNKNOWN,
                                    bmqt::CorrelationId(),
                                    "");
     PV("Enqueuing: " << (*event));
@@ -360,6 +363,7 @@ static void test3_watermark()
         event = eventPool.getObject();
         event->configureAsSessionEvent(bmqt::SessionEventType::e_UNDEFINED,
                                        i,
+                                       bmqt::GenericResult::e_UNKNOWN,
                                        bmqt::CorrelationId(),
                                        "");
         PVV("Enqueuing: " << (*event));

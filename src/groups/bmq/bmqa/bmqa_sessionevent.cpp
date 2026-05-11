@@ -16,9 +16,11 @@
 #include <bmqa_sessionevent.h>
 
 #include <bmqscm_version.h>
+
 // BMQ
 #include <bmqimp_brokersession.h>
 #include <bmqimp_event.h>
+#include <bmqt_resultcode.h>
 #include <bmqt_sessioneventtype.h>
 
 // BDE
@@ -117,6 +119,15 @@ int SessionEvent::statusCode() const
     BSLS_ASSERT_SAFE(d_impl_sp->type() == bmqimp::Event::EventType::e_SESSION);
 
     return d_impl_sp->statusCode();
+}
+
+bmqt::GenericResult::Enum SessionEvent::result() const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_impl_sp);
+    BSLS_ASSERT_SAFE(d_impl_sp->type() == bmqimp::Event::EventType::e_SESSION);
+
+    return d_impl_sp->result();
 }
 
 const bsl::string& SessionEvent::errorDescription() const

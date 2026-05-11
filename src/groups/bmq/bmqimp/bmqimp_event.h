@@ -83,6 +83,7 @@
 #include <bmqp_queueid.h>
 #include <bmqt_correlationid.h>
 #include <bmqt_messageguid.h>
+#include <bmqt_resultcode.h>
 #include <bmqt_sessioneventtype.h>
 
 // BDE
@@ -226,8 +227,11 @@ class Event {
     bmqt::SessionEventType::Enum d_sessionEventType;
     // Type of the session event
 
-    int d_statusCode;
     // Status code of the session event
+    int d_statusCode;
+
+    // Result code of the session event
+    bmqt::GenericResult::Enum d_result;
 
     bmqt::CorrelationId d_correlationId;
     // CorrelationId (if any) associated to this
@@ -331,7 +335,8 @@ class Event {
     /// this Event to be `SESSIONEVENT`.
     Event& configureAsSessionEvent(
         bmqt::SessionEventType::Enum sessionEventType,
-        int                          statusCode       = 0,
+        int                          statusCode = 0,
+        bmqt::GenericResult::Enum    result = bmqt::GenericResult::e_SUCCESS,
         const bmqt::CorrelationId&   correlationId    = bmqt::CorrelationId(),
         const bslstl::StringRef&     errorDescription = "");
 
@@ -426,6 +431,11 @@ class Event {
     /// `SessionEvent`.
     int statusCode() const;
 
+    /// Return the result code that indicates success or the cause of a
+    /// failure.  The behavior is undefined if the event is not of type
+    /// `SessionEvent`.
+    bmqt::GenericResult::Enum result() const;
+
     /// Return a printable description of the error, if `statusCode` returns
     /// non-zero.  Return an empty string otherwise.  The behavior is
     /// undefined if the event is not of type `SessionEvent`.
@@ -443,7 +453,7 @@ class Event {
 
     /// Set the statusCode of the event to the specified `value`.  The
     /// behavior is undefined if the event is not of type `SessionEvent`.
-    Event& setStatusCode(int value);
+    Event& setStatusCode(int value, bmqt::GenericResult::Enum result);
 
     /// Set the errorDescription of the event to the specified `value`.  The
     /// behavior is undefined if the event is not of type `SessionEvent`.
@@ -683,6 +693,14 @@ inline int Event::statusCode() const
     return d_statusCode;
 }
 
+inline bmqt::GenericResult::Enum Event::result() const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(type() == EventType::e_SESSION);
+
+    return d_result;
+}
+
 inline const bsl::string& Event::errorDescription() const
 {
     // PRECONDITIONS
@@ -709,12 +727,13 @@ inline Event& Event::setCorrelationId(const bmqt::CorrelationId& value)
     return *this;
 }
 
-inline Event& Event::setStatusCode(int value)
+inline Event& Event::setStatusCode(int value, bmqt::GenericResult::Enum result)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(type() == EventType::e_SESSION);
 
     d_statusCode = value;
+    d_result     = result;
     return *this;
 }
 
@@ -844,6 +863,7 @@ inline bool bmqimp::operator==(const bmqimp::Event& lhs,
     if (lhs.type() == Event::EventType::e_SESSION) {
         return lhs.sessionEventType() == rhs.sessionEventType() &&
                lhs.statusCode() == rhs.statusCode() &&
+               lhs.result() == rhs.result() &&
                lhs.correlationId() == rhs.correlationId() &&
                lhs.queues() == rhs.queues() &&
                lhs.errorDescription() == rhs.errorDescription();  // RETURN

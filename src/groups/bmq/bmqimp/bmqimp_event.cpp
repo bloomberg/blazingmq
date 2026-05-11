@@ -16,9 +16,11 @@
 #include <bmqimp_event.h>
 
 #include <bmqscm_version.h>
+
 // BMQ
 #include <bmqimp_messagecorrelationidcontainer.h>
 #include <bmqimp_queue.h>
+#include <bmqt_resultcode.h>
 
 // BDE
 #include <bsl_cstddef.h>
@@ -49,6 +51,7 @@ Event::Event(bdlbb::BlobBufferFactory* blobBufferFactory,
 , d_bufferFactory_p(blobBufferFactory)
 , d_sessionEventType(bmqt::SessionEventType::e_UNDEFINED)
 , d_statusCode(0)
+, d_result(bmqt::GenericResult::e_SUCCESS)
 , d_correlationId()
 , d_errorDescription(allocator)
 , d_msgEventMode(MessageEventMode::e_UNINITIALIZED)
@@ -75,6 +78,7 @@ Event::Event(const Event& other, bslma::Allocator* allocator)
 , d_bufferFactory_p(other.d_bufferFactory_p)
 , d_sessionEventType(other.d_sessionEventType)
 , d_statusCode(other.d_statusCode)
+, d_result(other.d_result)
 , d_correlationId(other.d_correlationId)
 , d_errorDescription(other.d_errorDescription, allocator)
 , d_msgEventMode(other.d_msgEventMode)
@@ -143,6 +147,7 @@ Event& Event::operator=(const Event& rhs)
     d_queuesBySubscriptionId          = rhs.d_queuesBySubscriptionId;
     d_sessionEventType                = rhs.d_sessionEventType;
     d_statusCode                      = rhs.d_statusCode;
+    d_result                          = rhs.d_result;
     d_correlationId                   = rhs.d_correlationId;
     d_errorDescription                = rhs.d_errorDescription;
     d_msgEventMode                    = rhs.d_msgEventMode;
@@ -186,6 +191,7 @@ void Event::reset()
     d_type                            = EventType::e_UNINITIALIZED;
     d_sessionEventType                = bmqt::SessionEventType::e_UNDEFINED;
     d_statusCode                      = 0;
+    d_result                          = bmqt::GenericResult::e_SUCCESS;
     d_correlationId                   = bmqt::CorrelationId();
     d_queues.clear();
     d_queuesBySubscriptionId.clear();
@@ -240,6 +246,7 @@ Event& Event::configureAsRequestEvent(const EventCallback& value)
 Event&
 Event::configureAsSessionEvent(bmqt::SessionEventType::Enum sessionEventType,
                                int                          statusCode,
+                               bmqt::GenericResult::Enum    result,
                                const bmqt::CorrelationId&   correlationId,
                                const bslstl::StringRef&     errorDescription)
 {
@@ -249,6 +256,7 @@ Event::configureAsSessionEvent(bmqt::SessionEventType::Enum sessionEventType,
     d_type             = EventType::e_SESSION;
     d_sessionEventType = sessionEventType;
     d_statusCode       = statusCode;
+    d_result           = result;
     d_correlationId    = correlationId;
     d_errorDescription = errorDescription;
 
@@ -382,6 +390,7 @@ Event::print(bsl::ostream& stream, int level, int spacesPerLevel) const
         printer.printAttribute("type", "SESSION");
         printer.printAttribute("sessionEventType", d_sessionEventType);
         printer.printAttribute("statusCode", d_statusCode);
+        printer.printAttribute("result", d_result);
         printer.printAttribute("correlationId", d_correlationId);
         if (!d_errorDescription.empty()) {
             printer.printAttribute("errorDescription", d_errorDescription);

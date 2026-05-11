@@ -16,8 +16,10 @@
 #include <bmqimp_eventqueue.h>
 
 #include <bmqscm_version.h>
+
 // BMQ
 #include <bmqt_correlationid.h>
+#include <bmqt_resultcode.h>
 
 #include <bmqst_statcontext.h>
 #include <bmqst_statutil.h>
@@ -593,6 +595,7 @@ EventQueue::timedPopFront(const bsls::TimeInterval& timeout,
         event = getEvent();
         event->configureAsSessionEvent(type,
                                        rc,
+                                       bmqt::GenericResult::e_UNKNOWN,
                                        bmqt::CorrelationId(),
                                        errorDescription);
         item.d_enqueueTime = bmqu::Time::highResolutionTimer();
