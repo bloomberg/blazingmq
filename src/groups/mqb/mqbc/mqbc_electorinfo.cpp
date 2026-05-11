@@ -95,8 +95,10 @@ void ElectorInfo::onHealedLeader()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_electorState == mqbnet::ElectorState::e_LEADER);
 
-    BALL_LOG_INFO << "#ELECTOR_INFO: onHealedLeader()"
-                  << ", LSN = " << d_leaderMessageSequence << ".";
+    BALL_LOG_INFO << "#ELECTOR_INFO: onHealedLeader()" << ", LSN = "
+                  << printLSN(d_leaderMessageSequence.electorTerm(),
+                              d_leaderMessageSequence.sequenceNumber())
+                  << ".";
 
     onSelfActiveLeader();
 }
@@ -108,7 +110,10 @@ void ElectorInfo::onHealedFollower()
 
     BALL_LOG_INFO << "#ELECTOR_INFO: onHealedFollower()"
                   << ", leader = " << d_leaderNode_p->nodeDescription()
-                  << ", LSN = " << d_leaderMessageSequence << ".";
+                  << ", LSN = "
+                  << printLSN(d_leaderMessageSequence.electorTerm(),
+                              d_leaderMessageSequence.sequenceNumber())
+                  << ".";
 
     setLeaderStatus(mqbc::ElectorInfoLeaderStatus::e_ACTIVE);
 }
@@ -153,7 +158,9 @@ ElectorInfo& ElectorInfo::setLeaderStatus(ElectorInfoLeaderStatus::Enum value)
     BALL_LOG_INFO << "#ELECTOR_INFO: leader: "
                   << (d_leaderNode_p ? d_leaderNode_p->nodeDescription()
                                      : "** NULL **")
-                  << ", LSN: " << d_leaderMessageSequence
+                  << ", LSN: "
+                  << printLSN(d_leaderMessageSequence.electorTerm(),
+                              d_leaderMessageSequence.sequenceNumber())
                   << ", transitioning status from " << d_leaderStatus << " to "
                   << value;
 
@@ -196,8 +203,10 @@ ElectorInfo& ElectorInfo::setElectorInfo(mqbnet::ElectorState::Enum    state,
 
     BALL_LOG_INFO << "#ELECTOR_INFO: transition old leader: "
                   << (oldLeader ? oldLeader->nodeDescription() : "** NULL **")
-                  << ", status: " << d_leaderStatus
-                  << ", LSN: " << d_leaderMessageSequence << " to new leader: "
+                  << ", status: " << d_leaderStatus << ", LSN: "
+                  << printLSN(d_leaderMessageSequence.electorTerm(),
+                              d_leaderMessageSequence.sequenceNumber())
+                  << " to new leader: "
                   << (node ? node->nodeDescription() : "** NULL **")
                   << ", status: " << status << ", electorTerm: " << term
                   << ". Transition elector state from " << d_electorState
@@ -234,9 +243,11 @@ void ElectorInfo::onSelfActiveLeader()
         return;  // RETURN
     }
 
-    BALL_LOG_INFO << "#ELECTOR_INFO: onSelfActiveLeader(): "
-                  << "leader = " << d_leaderNode_p->nodeDescription()
-                  << ", LSN = " << d_leaderMessageSequence << ".";
+    BALL_LOG_INFO << "#ELECTOR_INFO: onSelfActiveLeader(): " << "leader = "
+                  << d_leaderNode_p->nodeDescription() << ", LSN = "
+                  << printLSN(d_leaderMessageSequence.electorTerm(),
+                              d_leaderMessageSequence.sequenceNumber())
+                  << ".";
 
     setLeaderStatus(mqbc::ElectorInfoLeaderStatus::e_ACTIVE);
 }

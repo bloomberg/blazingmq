@@ -26,6 +26,7 @@
 // MQB
 #include <mqbc_clusterstateledgerutil.h>
 #include <mqbc_clusterutil.h>
+#include <mqbc_electorinfo.h>
 #include <mqbc_incoreclusterstateledgeriterator.h>
 #include <mqbnet_cluster.h>
 #include <mqbs_filestoreprotocol.h>
@@ -405,12 +406,13 @@ int IncoreClusterStateLedger::applyAdvisoryInternal(
     };
 
     if (lsn < d_clusterData_p->electorInfo().leaderMessageSequence()) {
-        BALL_LOG_WARN << description()
-                      << ": Failed to apply advisory: " << clusterMessage
-                      << ". Reason: advisory is stale (LSN: " << lsn
-                      << ", self LSN: "
-                      << d_clusterData_p->electorInfo().leaderMessageSequence()
-                      << ").";
+        BALL_LOG_WARN
+            << description()
+            << ": Failed to apply advisory: " << clusterMessage
+            << ". Reason: advisory is stale (LSN: " << printLSN(lsn)
+            << ", self LSN: "
+            << printLSN(d_clusterData_p->electorInfo().leaderMessageSequence())
+            << ").";
         return rc_ADVISORY_STALE;  // RETURN
     }
 
@@ -482,12 +484,12 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
         }
         else if (lsn <
                  d_clusterData_p->electorInfo().leaderMessageSequence()) {
-            BALL_LOG_ERROR
-                << description()
-                << ": Failed to apply record. [reason: record LSN (" << lsn
-                << ") is less than self LSN ("
-                << d_clusterData_p->electorInfo().leaderMessageSequence()
-                << ")]";
+            BALL_LOG_ERROR << description()
+                           << ": Failed to apply record. [reason: record LSN ("
+                           << printLSN(lsn) << ") is less than self LSN ("
+                           << printLSN(d_clusterData_p->electorInfo()
+                                           .leaderMessageSequence())
+                           << ")]";
             return rc * 10 + rc_WRITE_FAILURE;  // RETURN
         }
 
@@ -788,7 +790,7 @@ int IncoreClusterStateLedger::applyCommit(
                      commitAdvisory.sequenceNumberCommitted());
 
     BALL_LOG_INFO << description() << " Quorum of " << ackQuorum
-                  << " acks is achieved for advisory of LSN " << lsn
+                  << " acks is achieved for advisory of LSN " << printLSN(lsn)
                   << ", creating and applying commit advisory: "
                   << commitMessage << ".";
 
@@ -829,7 +831,7 @@ void IncoreClusterStateLedger::cancelUncommittedAdvisories()
                       << d_uncommittedAdvisories.size()
                       << " uncommitted advisories in the incore CSL starting "
                          "at LSN = "
-                      << lsn;
+                      << printLSN(lsn);
     }
 
     if (isSelfLeader()) {
@@ -1004,8 +1006,8 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
         if (recordHeader->recordType() != ClusterStateRecordType::e_ACK) {
             BALL_LOG_ERROR
                 << description()
-                << ": Ignoring cluster state record event with LSN = " << lsn
-                << " from '" << source->nodeDescription()
+                << ": Ignoring cluster state record event with LSN = "
+                << printLSN(lsn) << " from '" << source->nodeDescription()
                 << "'. Reason: Leader should only receive Acks, "
                    "but we received record of type: "
                 << recordHeader->recordType();
@@ -1019,7 +1021,8 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
             d_uncommittedAdvisories.end()) {
             BALL_LOG_INFO << description()
                           << ": Ignoring cluster state record ack with LSN = "
-                          << lsn << " from '" << source->nodeDescription()
+                          << printLSN(lsn) << " from '"
+                          << source->nodeDescription()
                           << "', as quorum of acks has already been reached.";
             return rc_SUCCESS;  // RETURN
         }
@@ -1031,8 +1034,8 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
             recordHeader->recordType() != ClusterStateRecordType::e_COMMIT) {
             BALL_LOG_ERROR
                 << description()
-                << ": Ignoring cluster state record event with LSN = " << lsn
-                << " from '" << source->nodeDescription()
+                << ": Ignoring cluster state record event with LSN = "
+                << printLSN(lsn) << " from '" << source->nodeDescription()
                 << "'. Reason: Follower should only receive advisories and "
                    "commits, but we received record of type: "
                 << recordHeader->recordType();
@@ -1042,8 +1045,9 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
         if (d_uncommittedAdvisories.find(lsn) !=
             d_uncommittedAdvisories.end()) {
             BALL_LOG_ERROR << description()
-                           << ": Failed to apply record with LSN = " << lsn
-                           << " from '" << source->nodeDescription()
+                           << ": Failed to apply record with LSN = "
+                           << printLSN(lsn) << " from '"
+                           << source->nodeDescription()
                            << "'. Reason: record was already applied. ";
             return rc_RECORD_ALREADY_APPLIED;  // RETURN
         }
@@ -1051,10 +1055,11 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
         if (lsn < d_clusterData_p->electorInfo().leaderMessageSequence()) {
             BALL_LOG_ERROR
                 << description()
-                << ": Failed to apply record with LSN = " << lsn << " from '"
-                << source->nodeDescription()
+                << ": Failed to apply record with LSN = " << printLSN(lsn)
+                << " from '" << source->nodeDescription()
                 << "'. Reason: record is stale; self LSN = "
-                << d_clusterData_p->electorInfo().leaderMessageSequence()
+                << printLSN(
+                       d_clusterData_p->electorInfo().leaderMessageSequence())
                 << "].";
             return rc_RECORD_STALE;  // RETURN
         }
@@ -1079,9 +1084,9 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
                      message.choice().isLeaderAdvisoryCommitValue());
 
     BALL_LOG_INFO << description() << ": Applying cluster message with type = "
-                  << recordHeader->recordType() << " and LSN = " << lsn
-                  << " from '" << source->nodeDescription()
-                  << "': " << message;
+                  << recordHeader->recordType()
+                  << " and LSN = " << printLSN(lsn) << " from '"
+                  << source->nodeDescription() << "': " << message;
 
     // Validate partition-primary mappings, if any
     if (message.choice().isPartitionPrimaryAdvisoryValue() ||
@@ -1213,11 +1218,12 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
                                  lsn,
                                  recordHeader->recordType());
     if (rc != 0) {
-        BALL_LOG_WARN << description() << ": Failed to apply record from '"
-                      << source->nodeDescription() << "' [LSN: " << lsn
-                      << ", self LSN: "
-                      << d_clusterData_p->electorInfo().leaderMessageSequence()
-                      << "]. rc: " << rc;
+        BALL_LOG_WARN
+            << description() << ": Failed to apply record from '"
+            << source->nodeDescription() << "' [LSN: " << printLSN(lsn)
+            << ", self LSN: "
+            << printLSN(d_clusterData_p->electorInfo().leaderMessageSequence())
+            << "]. rc: " << rc;
         return rc * 10 + rc_APPLY_RECORD_FAILURE;  // RETURN
     }
 

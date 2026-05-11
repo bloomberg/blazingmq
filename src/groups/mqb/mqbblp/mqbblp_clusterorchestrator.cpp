@@ -22,6 +22,7 @@
 #include <mqbc_clusterstateledger.h>
 #include <mqbc_clusterstatemanager.h>
 #include <mqbc_clusterutil.h>
+#include <mqbc_electorinfo.h>
 #include <mqbc_incoreclusterstateledger.h>
 #include <mqbcmd_messages.h>
 #include <mqbevt_callbackevent.h>
@@ -677,13 +678,13 @@ int ClusterOrchestrator::start(bsl::ostream& errorDescription)
     if (rc == 0) {
         BALL_LOG_INFO << d_clusterData_p->identity().description()
                       << ": Latest LSN fetched from the cluster state ledger: "
-                      << ledgerLSN;
+                      << mqbc::printLSN(ledgerLSN);
     }
     else {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
                       << ": Failed to fetch latest LSN from the cluster state"
-                      << " ledger, rc: " << rc
-                      << ". Using default value: " << ledgerLSN;
+                      << " ledger, rc: " << rc << ". Using default value: "
+                      << mqbc::printLSN(ledgerLSN);
     }
 
     d_clusterData_p->electorInfo().setLeaderMessageSequence(ledgerLSN);

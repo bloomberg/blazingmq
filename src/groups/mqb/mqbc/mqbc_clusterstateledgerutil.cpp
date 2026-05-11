@@ -16,6 +16,9 @@
 #include <mqbc_clusterstateledgerutil.h>
 
 #include <mqbscm_version.h>
+// MQB
+#include <mqbc_electorinfo.h>
+
 // BMQ
 #include <bmqp_crc32c.h>
 #include <bmqp_protocol.h>
@@ -300,12 +303,10 @@ int ClusterStateLedgerUtil::validateLog(mqbsi::Log::Offset* offset,
         bdlb::BigEndianUint32 crc32cComputed;
         crc32cComputed = bmqp::Crc32c::calculate(blob);
         if (crc32cComputed != crc32cExpected) {
-            bmqp_ctrlmsg::LeaderMessageSequence lsn;
-            lsn.electorTerm()    = recHeader->electorTerm();
-            lsn.sequenceNumber() = recHeader->sequenceNumber();
-
             BMQTSK_ALARMLOG_ALARM("CLUSTER")
-                << "CSL Recovery: CRC mismatch for record with LSN " << lsn
+                << "CSL Recovery: CRC mismatch for record with LSN "
+                << printLSN(recHeader->electorTerm(),
+                            recHeader->sequenceNumber())
                 << " in file '" << log->logConfig().location()
                 << "' with fileKey [" << fileHeader->fileKey()
                 << "] at offset " << currOffset << "."
