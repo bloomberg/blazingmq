@@ -130,6 +130,9 @@ UriCorrIdToQueueMap& uriCorrIdToQueues(B& buffer)
 }
 
 struct BlobSpCreatorF {
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(BlobSpCreatorF, bslmf::IsBitwiseMoveable)
+
     bdlbb::BlobBufferFactory* d_bufferFactory_p;
     bslma::Allocator*         d_allocator_p;
 

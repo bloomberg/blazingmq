@@ -54,7 +54,7 @@ struct BlobSpCreatorF {
 
 AckEventBuilder::AckEventBuilder(BlobSpPool*       blobSpPool_p,
                                  bslma::Allocator* allocator)
-: d_blobSpCreator(BlobSpCreatorF(blobSpPool_p))
+: d_blobSpCreator(bsl::allocator_arg, allocator, BlobSpCreatorF(blobSpPool_p))
 , d_blob_sp(0, allocator)       // initialized in `reset()`
 , d_emptyBlob_sp(0, allocator)  // initialized later in constructor
 , d_msgCount(0)
@@ -76,7 +76,7 @@ AckEventBuilder::AckEventBuilder(BlobSpPool*       blobSpPool_p,
 
 AckEventBuilder::AckEventBuilder(const BlobSpCreator& blobSpCreator,
                                  bslma::Allocator*    allocator)
-: d_blobSpCreator(blobSpCreator)
+: d_blobSpCreator(bsl::allocator_arg, allocator, blobSpCreator)
 , d_blob_sp(0, allocator)       // initialized in `reset()`
 , d_emptyBlob_sp(0, allocator)  // initialized later in constructor
 , d_msgCount(0)
