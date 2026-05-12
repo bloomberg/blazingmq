@@ -297,6 +297,40 @@ class ElectorInfo : public ClusterFSMObserver {
 //                             INLINE DEFINITIONS
 // ============================================================================
 
+// ===============
+// struct PrintLSN
+// ===============
+
+/// Streamable value type for printing an LSN as
+/// `[ electorTerm = X sequenceNumber = Y ]`.
+struct PrintLSN {
+    bsls::Types::Uint64 d_electorTerm;
+    bsls::Types::Uint64 d_sequenceNumber;
+};
+
+/// Return a `PrintLSN` constructed from the specified `electorTerm` and
+/// `sequenceNumber`, suitable for streaming to an `bsl::ostream`.
+inline PrintLSN printLSN(bsls::Types::Uint64 electorTerm,
+                         bsls::Types::Uint64 sequenceNumber)
+{
+    PrintLSN result = {electorTerm, sequenceNumber};
+    return result;
+}
+
+/// Return a `PrintLSN` constructed from the specified `lms`.
+inline PrintLSN printLSN(const bmqp_ctrlmsg::LeaderMessageSequence& lms)
+{
+    PrintLSN result = {lms.electorTerm(), lms.sequenceNumber()};
+    return result;
+}
+
+// FREE OPERATORS
+inline bsl::ostream& operator<<(bsl::ostream& stream, const PrintLSN& value)
+{
+    return stream << "[ electorTerm = " << value.d_electorTerm
+                  << " sequenceNumber = " << value.d_sequenceNumber << " ]";
+}
+
 // -----------------
 // class ElectorInfo
 // -----------------
@@ -315,7 +349,9 @@ inline ElectorInfo::ElectorInfo(mqbi::Cluster* cluster)
     d_leaderMessageSequence.electorTerm()    = mqbnet::Elector::k_INVALID_TERM;
     d_leaderMessageSequence.sequenceNumber() = 0;
 
-    BALL_LOG_INFO << "Setting elector's LSN to " << d_leaderMessageSequence;
+    BALL_LOG_INFO << "Setting elector's LSN to "
+                  << printLSN(d_leaderMessageSequence.electorTerm(),
+                              d_leaderMessageSequence.sequenceNumber());
 }
 
 // MANIPULATORS
@@ -324,7 +360,9 @@ inline ElectorInfo& ElectorInfo::setElectorTerm(bsls::Types::Uint64 value)
     d_leaderMessageSequence.electorTerm()    = value;
     d_leaderMessageSequence.sequenceNumber() = 0;
 
-    BALL_LOG_INFO << "Setting elector's LSN to " << d_leaderMessageSequence;
+    BALL_LOG_INFO << "Setting elector's LSN to "
+                  << printLSN(d_leaderMessageSequence.electorTerm(),
+                              d_leaderMessageSequence.sequenceNumber());
     return *this;
 }
 
@@ -341,7 +379,9 @@ inline ElectorInfo& ElectorInfo::setLeaderMessageSequence(
 {
     d_leaderMessageSequence = value;
 
-    BALL_LOG_INFO << "Setting elector's LSN to " << d_leaderMessageSequence;
+    BALL_LOG_INFO << "Setting elector's LSN to "
+                  << printLSN(d_leaderMessageSequence.electorTerm(),
+                              d_leaderMessageSequence.sequenceNumber());
     return *this;
 }
 
@@ -353,7 +393,9 @@ inline void ElectorInfo::nextLeaderMessageSequence(
         *sequence = d_leaderMessageSequence;
     }
 
-    BALL_LOG_INFO << "Bumping up elector's LSN to " << d_leaderMessageSequence;
+    BALL_LOG_INFO << "Bumping up elector's LSN to "
+                  << printLSN(d_leaderMessageSequence.electorTerm(),
+                              d_leaderMessageSequence.sequenceNumber());
 }
 
 inline ElectorInfo::SchedulerEventHandle* ElectorInfo::leaderSyncEventHandle()

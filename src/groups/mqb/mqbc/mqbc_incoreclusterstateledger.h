@@ -144,10 +144,9 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
 
     typedef IncoreClusterStateLedger_ClusterMessageInfo ClusterMessageInfo;
 
-    /// Map from a `LeaderMessageSequence` to cluster message and its
-    /// associated information.
+    /// Map from LSN to cluster message and its associated information.
     ///
-    /// `sequenceNumber -> {clusterMessage, replicationTimestamp, ackCount}`
+    /// LSN -> {clusterMessage, replicationTimestamp, ackCount}
     typedef bmqc::OrderedHashMap<bmqp_ctrlmsg::LeaderMessageSequence,
                                  ClusterMessageInfo>
                                           AdvisoriesMap;
@@ -225,44 +224,42 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
 
     /// Internal helper method to apply the advisory in the specified
     /// `clusterMessage`, of the specified `recordType` and identified by
-    /// the specified `sequenceNumber`.  Notify via `commitCb` when consistency
+    /// the specified `lsn`.  Notify via `commitCb` when consistency
     /// level has been achieved.  The behavior is undefined unless the
     /// `clusterMessage` is instantiated with the appropriate advisory.  Note
     /// that *only* a leader node may invoke this routine.
-    int applyAdvisoryInternal(
-        const bmqp_ctrlmsg::ClusterMessage&        clusterMessage,
-        const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
-        ClusterStateRecordType::Enum               recordType);
+    int
+    applyAdvisoryInternal(const bmqp_ctrlmsg::ClusterMessage& clusterMessage,
+                          const bmqp_ctrlmsg::LeaderMessageSequence& lsn,
+                          ClusterStateRecordType::Enum recordType);
 
     /// Internal helper method to apply the specified raw `record` at the
     /// specified `recordOffset` and/or `recordPosition`, containing the
-    /// specified `clusterMessage` and having the specified `sequenceNumber`
+    /// specified `clusterMessage` and having the specified `lsn`
     /// and `recordType`.  Notify via `commitCb` when consistency level has
     /// been achieved.  Note that the `record` can either be generated at self
     /// node or received from a peer node.
-    int applyRecordInternalImpl(
-        const bdlbb::Blob&                         record,
-        int                                        recordOffset,
-        const bmqu::BlobPosition&                  recordPosition,
-        const bmqp_ctrlmsg::ClusterMessage&        clusterMessage,
-        const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
-        ClusterStateRecordType::Enum               recordType);
-    int applyRecordInternal(
-        const bdlbb::Blob&                         record,
-        int                                        recordOffset,
-        const bmqp_ctrlmsg::ClusterMessage&        clusterMessage,
-        const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
-        ClusterStateRecordType::Enum               recordType);
-    int applyRecordInternal(
-        const bdlbb::Blob&                         record,
-        const bmqu::BlobPosition&                  recordPosition,
-        const bmqp_ctrlmsg::ClusterMessage&        clusterMessage,
-        const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
-        ClusterStateRecordType::Enum               recordType);
+    int
+        applyRecordInternalImpl(const bdlbb::Blob&                  record,
+                                int                                 recordOffset,
+                                const bmqu::BlobPosition&           recordPosition,
+                                const bmqp_ctrlmsg::ClusterMessage& clusterMessage,
+                                const bmqp_ctrlmsg::LeaderMessageSequence& lsn,
+                                ClusterStateRecordType::Enum recordType);
+    int applyRecordInternal(const bdlbb::Blob&                  record,
+                            int                                 recordOffset,
+                            const bmqp_ctrlmsg::ClusterMessage& clusterMessage,
+                            const bmqp_ctrlmsg::LeaderMessageSequence& lsn,
+                            ClusterStateRecordType::Enum recordType);
+    int applyRecordInternal(const bdlbb::Blob&                  record,
+                            const bmqu::BlobPosition&           recordPosition,
+                            const bmqp_ctrlmsg::ClusterMessage& clusterMessage,
+                            const bmqp_ctrlmsg::LeaderMessageSequence& lsn,
+                            ClusterStateRecordType::Enum recordType);
 
     /// Internal helper method to apply commit for the advisory with the
-    /// specified `sequenceNumber` as the specified `ackQuorum` is reached.
-    int applyCommit(const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
+    /// specified `lsn` as the specified `ackQuorum` is reached.
+    int applyCommit(const bmqp_ctrlmsg::LeaderMessageSequence& lsn,
                     unsigned int                               ackQuorum);
 
     /// Cancel all uncommitted advisories.  Called upon new leader or term,

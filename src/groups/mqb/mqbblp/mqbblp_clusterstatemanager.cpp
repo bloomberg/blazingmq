@@ -20,6 +20,7 @@
 #include <mqbblp_storagemanager.h>
 #include <mqbc_clusternodesession.h>
 #include <mqbc_clusterstateledgeriterator.h>
+#include <mqbc_electorinfo.h>
 #include <mqbevt_clusterstateevent.h>
 #include <mqbi_cluster.h>
 #include <mqbi_domain.h>
@@ -208,7 +209,8 @@ void ClusterStateManager::onLeaderSyncStateQueryResponse(
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << ": processing leader sync query response. Self's LSN: "
-                  << d_clusterData_p->electorInfo().leaderMessageSequence();
+                  << mqbc::printLSN(d_clusterData_p->electorInfo()
+                                        .leaderMessageSequence());
 
     mqbnet::ClusterNode* maxSeqNode = d_clusterData_p->membership().selfNode();
     bmqp_ctrlmsg::LeaderMessageSequence maxSeq =
@@ -268,7 +270,7 @@ void ClusterStateManager::onLeaderSyncStateQueryResponse(
     if (maxSeqNode == d_clusterData_p->membership().selfNode()) {
         BALL_LOG_INFO << d_clusterData_p->identity().description()
                       << ": leader has latest view during leader sync step. "
-                      << "LSN: " << maxSeq;
+                      << "LSN: " << mqbc::printLSN(maxSeq);
 
         onSelfActiveLeader();
 
@@ -281,8 +283,9 @@ void ClusterStateManager::onLeaderSyncStateQueryResponse(
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << ": follower node " << maxSeqNode->nodeDescription()
                   << " has latest view during leader sync step.  LSN of that"
-                  << " node: " << maxSeq << ". Self's LSN: "
-                  << d_clusterData_p->electorInfo().leaderMessageSequence()
+                  << " node: " << mqbc::printLSN(maxSeq) << ". Self's LSN: "
+                  << mqbc::printLSN(d_clusterData_p->electorInfo()
+                                        .leaderMessageSequence())
                   << ".";
 
     RequestManagerType::RequestSp request =
@@ -413,10 +416,11 @@ void ClusterStateManager::onLeaderSyncDataQueryResponse(
             << d_clusterData_p->identity().description()
             << ": Received a smaller or equal LSN in "
             << "leader-sync data query response from follower node "
-            << responder->nodeDescription()
-            << ". Received LSN: " << leaderSyncData.sequenceNumber()
+            << responder->nodeDescription() << ". Received LSN: "
+            << mqbc::printLSN(leaderSyncData.sequenceNumber())
             << ", self LSN: "
-            << d_clusterData_p->electorInfo().leaderMessageSequence()
+            << mqbc::printLSN(
+                   d_clusterData_p->electorInfo().leaderMessageSequence())
             << ". Attempting to send leader-sync state query to AVAILABLE "
             << "followers again." << BMQTSK_ALARMLOG_END;
 
@@ -427,8 +431,10 @@ void ClusterStateManager::onLeaderSyncDataQueryResponse(
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << ": processing leader-sync data response from "
                   << responder->nodeDescription() << ". Self's LSN: "
-                  << d_clusterData_p->electorInfo().leaderMessageSequence()
-                  << ", received LSN: " << leaderSyncData.sequenceNumber()
+                  << mqbc::printLSN(d_clusterData_p->electorInfo()
+                                        .leaderMessageSequence())
+                  << ", received LSN: "
+                  << mqbc::printLSN(leaderSyncData.sequenceNumber())
                   << ". Leader sync data: " << leaderSyncData << ".";
 
     // Converge the partitions.  First step is to update self's partition info
