@@ -694,12 +694,29 @@ struct MockSessionUtil {
     /// `e_ACK` with the specified `acks` params using the specified
     /// `bufferFactory` and the specified `allocator` to supply memory.
     static Event createAckEvent(const bsl::vector<AckParams>& acks,
+                                bdlbb::BlobBufferFactory*     bufferFactory,
+                                bslma::Allocator*             allocator);
+
+    /// Create and return an `Event` configured as a message event of type
+    /// `e_ACK` with the specified `acks` params using the specified
+    /// `blobSpPool`, `bufferFactory`, and `allocator` to supply memory.
+    static Event createAckEvent(const bsl::vector<AckParams>& acks,
                                 BlobSpPool*                   blobSpPool,
+                                bdlbb::BlobBufferFactory*     bufferFactory,
                                 bslma::Allocator*             allocator);
 
     /// Create and return an `Event` configured as a message event of type
     /// `e_PUSH` and with the specified `pushEventParams`, using the
     /// specified `bufferFactory` and the specified `allocator` to supply
+    /// memory.
+    static Event
+    createPushEvent(const bsl::vector<PushMessageParams>& pushEventParams,
+                    bdlbb::BlobBufferFactory*             bufferFactory,
+                    bslma::Allocator*                     allocator);
+
+    /// Create and return an `Event` configured as a message event of type
+    /// `e_PUSH` and with the specified `pushEventParams`, using the
+    /// specified `blobSpPool`, `bufferFactory`, and `allocator` to supply
     /// memory.
     static Event
     createPushEvent(const bsl::vector<PushMessageParams>& pushEventParams,

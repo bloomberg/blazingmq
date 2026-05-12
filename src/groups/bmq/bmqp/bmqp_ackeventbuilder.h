@@ -87,11 +87,11 @@ class AckEventBuilder BSLS_CPP11_FINAL {
   public:
     // TYPES
     typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
+    typedef bsl::function<bsl::shared_ptr<bdlbb::Blob>(void)> BlobSpCreator;
 
   private:
     // DATA
-    /// Blob pool to use.  Held, not owned.
-    BlobSpPool* d_blobSpPool_p;
+    BlobSpCreator d_blobSpCreator;
 
     /// Blob being built by this object.
     /// `mutable` to skip writing the length until the blob is retrieved.
@@ -122,6 +122,8 @@ class AckEventBuilder BSLS_CPP11_FINAL {
     /// set BlobBufferFactory since we might want to expand the built Blob
     /// dynamically.
     AckEventBuilder(BlobSpPool* blobSpPool_p, bslma::Allocator* allocator);
+    AckEventBuilder(const BlobSpCreator& blobSpCreator,
+                    bslma::Allocator*    allocator);
 
     // MANIPULATORS
 
