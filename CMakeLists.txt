@@ -44,6 +44,9 @@ if( "${CMAKE_CXX_COMPILER_ID}" MATCHES "(Apple)?Clang" )
           "-Wno-float-equal"            # operator== in generated classes
           "-Wno-documentation-unknown-command"
                                         # Don't warn about @bbref{}
+          "-Wno-unneeded-member-function"
+                                        # BSLMF_NESTED_TRAIT_DECLARATION in
+                                        # anonymous namespaces
   )
 
 
