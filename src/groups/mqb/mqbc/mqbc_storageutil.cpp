@@ -23,6 +23,7 @@
 #include <mqbi_queueengine.h>
 #include <mqbnet_cluster.h>
 #include <mqbs_datastore.h>
+#include <mqbs_filestoreprintutil.h>
 #include <mqbs_filestoreprotocol.h>
 #include <mqbs_filestoreutil.h>
 #include <mqbs_filesystemutil.h>
@@ -3839,21 +3840,22 @@ void StorageUtil::forceIssueAdvisoryAndSyncPt(mqbc::ClusterData*   clusterData,
     else {
         fs->broadcastMessage(controlMsg);
     }
-    const int                             rc = fs->issueSyncPoint();
-    bmqp_ctrlmsg::PartitionSequenceNumber psn;
-    psn.primaryLeaseId() = fs->primaryLeaseId();
-    psn.sequenceNumber() = fs->sequenceNumber();
+    const int rc = fs->issueSyncPoint();
     if (0 == rc) {
         BALL_LOG_INFO << clusterData->identity().description() << "Partition ["
                       << fs->config().partitionId()
-                      << "]: successfully issued a forced SyncPt: " << psn
+                      << "]: successfully issued a forced SyncPt: "
+                      << mqbs::printPSN(fs->primaryLeaseId(),
+                                        fs->sequenceNumber())
                       << ".";
     }
     else {
         BALL_LOG_ERROR << clusterData->identity().description()
                        << "Partition [" << fs->config().partitionId()
                        << "]: failed to force-issue SyncPt, rc: " << rc
-                       << ", current partition sequence number: " << psn;
+                       << ", current PSN: "
+                       << mqbs::printPSN(fs->primaryLeaseId(),
+                                         fs->sequenceNumber());
     }
 }
 

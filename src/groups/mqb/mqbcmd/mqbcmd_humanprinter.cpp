@@ -392,8 +392,8 @@ void printFileStoreSummary(bsl::ostream&           os,
        << "]:" << newlineAndIndent(level, spacesPerLevel) << "----------------"
        << newlineAndIndent(level + 1, spacesPerLevel)
        << "Primary Node: " << summary.primaryNodeDescription()
-       << ", Sequence Number: (" << summary.primaryLeaseId() << ", "
-       << summary.sequenceNum() << ")"
+       << ", PSN: [ primaryLeaseId = " << summary.primaryLeaseId()
+       << " sequenceNumber = " << summary.sequenceNum() << "]"
        << newlineAndIndent(level + 1, spacesPerLevel)
        << "IsAvailable: " << bsl::boolalpha << summary.isAvailable()
        << newlineAndIndent(level + 1, spacesPerLevel)

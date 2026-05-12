@@ -32,8 +32,12 @@
 #include <mqbs_replicatedstorage.h>
 #include <mqbs_storagecollectionutil.h>
 
+// BMQ
+#include <bmqp_ctrlmsg_messages.h>
+
 // BDE
 #include <bsl_memory.h>
+#include <bsl_ostream.h>
 #include <bsl_vector.h>
 #include <bsls_types.h>
 
@@ -98,6 +102,40 @@ struct FileStorePrintUtil {
                                  mqbcmd::StorageContent* storageContent,
                                  unsigned int maxNumQueues = INT_MAX);
 };
+
+// ===============
+// struct PrintPSN
+// ===============
+
+/// Streamable value type for printing a PSN as
+/// `[ primaryLeaseId = X sequenceNumber = Y ]`.
+struct PrintPSN {
+    unsigned int        d_primaryLeaseId;
+    bsls::Types::Uint64 d_sequenceNumber;
+};
+
+/// Return a `PrintPSN` constructed from the specified `primaryLeaseId` and
+/// `sequenceNumber`, suitable for streaming to an `bsl::ostream`.
+inline PrintPSN printPSN(unsigned int        primaryLeaseId,
+                         bsls::Types::Uint64 sequenceNumber)
+{
+    PrintPSN result = {primaryLeaseId, sequenceNumber};
+    return result;
+}
+
+/// Return a `PrintPSN` constructed from the specified `psn`.
+inline PrintPSN printPSN(const bmqp_ctrlmsg::PartitionSequenceNumber& psn)
+{
+    PrintPSN result = {psn.primaryLeaseId(), psn.sequenceNumber()};
+    return result;
+}
+
+// FREE OPERATORS
+inline bsl::ostream& operator<<(bsl::ostream& stream, const PrintPSN& value)
+{
+    return stream << "[ primaryLeaseId = " << value.d_primaryLeaseId
+                  << " sequenceNumber = " << value.d_sequenceNumber << " ]";
+}
 
 }  // close package namespace
 }  // close enterprise namespace

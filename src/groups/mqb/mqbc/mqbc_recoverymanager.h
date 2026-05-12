@@ -126,17 +126,17 @@ class RecoveryManager {
         /// replica receiving data from the primary.
         int d_recoveryRequestId;
 
-        /// Beginning sequence number of recovery data chunks.  Note that self
-        /// already contains message with this sequence number.  The first
-        /// recovery data chunk is expected to have sequence number
-        /// `d_beginSeqNum + 1`.
-        bmqp_ctrlmsg::PartitionSequenceNumber d_beginSeqNum;
+        /// Beginning PSN of recovery data chunks.  Note that self
+        /// already contains message with this PSN.  The first
+        /// recovery data chunk is expected to have PSN of
+        /// `d_beginPSN + 1`.
+        bmqp_ctrlmsg::PartitionSequenceNumber d_beginPSN;
 
-        /// Expected ending sequence number of recovery data chunks.
-        bmqp_ctrlmsg::PartitionSequenceNumber d_endSeqNum;
+        /// Expected ending PSN of recovery data chunks.
+        bmqp_ctrlmsg::PartitionSequenceNumber d_endPSN;
 
-        /// Self's current sequence number.
-        bmqp_ctrlmsg::PartitionSequenceNumber d_currSeqNum;
+        /// Self's current PSN.
+        bmqp_ctrlmsg::PartitionSequenceNumber d_currPSN;
 
       public:
         // CREATORS
@@ -381,17 +381,17 @@ class RecoveryManager {
     /// specified `partitionId`.
     int closeRecoveryFileSet(int partitionId);
 
-    /// Recover latest sequence number from storage for the specified
-    /// `partitionId` and populate the output in the specified `seqNum`.
+    /// Recover latest PSN from storage for the specified
+    /// `partitionId` and populate the output in the specified `psn`.
     /// If `firstSyncPointAfterRolllover` is true, recover the first sync point
-    /// after rollover sequence number instead of the latest sequence number.
+    /// after rollover PSN instead of the latest PSN.
     /// Return 0 on success and non-zero otherwise.
     ///
     /// THREAD: Executed in the dispatcher thread associated with the
     /// specified `partitionId`.
-    int recoverSeqNum(bmqp_ctrlmsg::PartitionSequenceNumber* seqNum,
-                      int                                    partitionId,
-                      bool firstSyncPointAfterRolllover = false);
+    int recoverPSN(bmqp_ctrlmsg::PartitionSequenceNumber* psn,
+                   int                                    partitionId,
+                   bool firstSyncPointAfterRolllover = false);
 
     /// Set the live data source of the specified 'partitionId' to the
     /// specified 'source', and clear any existing buffered storage events.
@@ -480,9 +480,9 @@ inline RecoveryManager::ReceiveDataContext::ReceiveDataContext()
 : d_recoveryDataSource_p(0)
 , d_expectChunks(false)
 , d_recoveryRequestId(-1)
-, d_beginSeqNum()
-, d_endSeqNum()
-, d_currSeqNum()
+, d_beginPSN()
+, d_endPSN()
+, d_currPSN()
 {
     // NOTHING
 }
@@ -492,9 +492,9 @@ inline RecoveryManager::ReceiveDataContext::ReceiveDataContext(
 : d_recoveryDataSource_p(other.d_recoveryDataSource_p)
 , d_expectChunks(other.d_expectChunks)
 , d_recoveryRequestId(other.d_recoveryRequestId)
-, d_beginSeqNum(other.d_beginSeqNum)
-, d_endSeqNum(other.d_endSeqNum)
-, d_currSeqNum(other.d_currSeqNum)
+, d_beginPSN(other.d_beginPSN)
+, d_endPSN(other.d_endPSN)
+, d_currPSN(other.d_currPSN)
 {
     // NOTHING
 }

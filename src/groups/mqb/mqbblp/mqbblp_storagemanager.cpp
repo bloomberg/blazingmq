@@ -266,7 +266,7 @@ void StorageManager::onPartitionRecovery(
                 }
             }
 
-            // Get the latest leaseId and sequence number for this partition.
+            // Get the latest PSN for this partition.
             if (fs->isOpen()) {
                 d_recoveredPrimaryLeaseIds[partitionId] = fs->primaryLeaseId();
 
@@ -274,12 +274,13 @@ void StorageManager::onPartitionRecovery(
                     << d_clusterData_p->identity().description()
                     << ": Partition [" << partitionId
                     << "] after applying buffered storage events, "
-                    << "(recoveryPeerNode, primaryLeaseId, "
-                    << "sequenceNumber): ("
+                    << "(recoveryPeerNode, PSN): ("
                     << (recoveryPeer ? recoveryPeer->nodeDescription()
                                      : "**none**")
-                    << ", " << fs->primaryLeaseId() << ", "
-                    << fs->sequenceNumber() << ")";
+                    << ", "
+                    << mqbs::printPSN(fs->primaryLeaseId(),
+                                      fs->sequenceNumber())
+                    << ")";
             }
         }
     }
