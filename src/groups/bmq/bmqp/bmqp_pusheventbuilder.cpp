@@ -163,7 +163,9 @@ void PushEventBuilder::ensurePushHeader()
 PushEventBuilder::PushEventBuilder(BlobSpPool*       blobSpPool_p,
                                    bslma::Allocator* allocator)
 : d_allocator_p(bslma::Default::allocator(allocator))
-, d_blobSpCreator(BlobSpCreatorF(blobSpPool_p))
+, d_blobSpCreator(bsl::allocator_arg,
+                  d_allocator_p,
+                  BlobSpCreatorF(blobSpPool_p))
 , d_blob_sp(0, allocator)  // initialized in `reset()`
 , d_msgCount(0)
 , d_options()
@@ -185,7 +187,7 @@ PushEventBuilder::PushEventBuilder(BlobSpPool*       blobSpPool_p,
 PushEventBuilder::PushEventBuilder(const BlobSpCreator& blobSpCreator,
                                    bslma::Allocator*    allocator)
 : d_allocator_p(bslma::Default::allocator(allocator))
-, d_blobSpCreator(blobSpCreator)
+, d_blobSpCreator(bsl::allocator_arg, d_allocator_p, blobSpCreator)
 , d_blob_sp(0, allocator)  // initialized in `reset()`
 , d_msgCount(0)
 , d_options()
