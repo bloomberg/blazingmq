@@ -1671,8 +1671,10 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                     << partitionDesc()
                     << "Encountered a sync point during backward journal "
                        "iteration"
-                    << " with zero primaryLeaseId, current primaryLeaseId: "
-                    << primaryLeaseId
+                    << " with zero primaryLeaseId, record's PSN: "
+                    << mqbs::printPSN(rec.primaryLeaseId(), rec.sequenceNum())
+                    << ", current PSN: "
+                    << mqbs::printPSN(primaryLeaseId, sequenceNum)
                     << ". Record offset: " << jit->recordOffset()
                     << ", record index: " << jit->recordIndex();
 
@@ -1684,8 +1686,10 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                     << partitionDesc()
                     << "Encountered a sync point during backward journal "
                        "iteration"
-                    << " with zero sequence number, current sequence number: "
-                    << sequenceNum
+                    << " with zero sequence number, record's PSN: "
+                    << mqbs::printPSN(rec.primaryLeaseId(), rec.sequenceNum())
+                    << ", current PSN: "
+                    << mqbs::printPSN(primaryLeaseId, sequenceNum)
                     << ". Record offset: " << jit->recordOffset()
                     << ", record index: " << jit->recordIndex();
 
@@ -1702,9 +1706,10 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 BMQTSK_ALARMLOG_ALARM("RECOVERY")
                     << partitionDesc()
                     << "Encountered a sync point during backward journal "
-                    << "iteration with higher primaryLeaseId: "
-                    << rec.primaryLeaseId()
-                    << ", current primaryLeaseId: " << primaryLeaseId
+                    << "iteration with higher primaryLeaseId, record's PSN: "
+                    << mqbs::printPSN(rec.primaryLeaseId(), rec.sequenceNum())
+                    << ", current PSN: "
+                    << mqbs::printPSN(primaryLeaseId, sequenceNum)
                     << ". Record offset: " << jit->recordOffset()
                     << ", record index: " << jit->recordIndex()
                     << BMQTSK_ALARMLOG_END;
@@ -1717,9 +1722,12 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                     BMQTSK_ALARMLOG_ALARM("RECOVERY")
                         << partitionDesc()
                         << "Encountered a sync point during backward journal "
-                        << "iteration with incorrect sequence number: "
-                        << rec.sequenceNum()
-                        << ", expected sequence number: " << sequenceNum
+                        << "iteration with incorrect sequence number, "
+                           "record's PSN: "
+                        << mqbs::printPSN(rec.primaryLeaseId(),
+                                          rec.sequenceNum())
+                        << ", expected PSN: "
+                        << mqbs::printPSN(primaryLeaseId, sequenceNum)
                         << ". Record offset: " << jit->recordOffset()
                         << ", record index: " << jit->recordIndex()
                         << BMQTSK_ALARMLOG_END;
