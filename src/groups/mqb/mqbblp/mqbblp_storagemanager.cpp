@@ -1960,8 +1960,8 @@ void StorageManager::processShutdownEvent()
     }
 }
 
-int StorageManager::processCommand(mqbcmd::StorageResult*        result,
-                                   const mqbcmd::StorageCommand& command)
+void StorageManager::processCommand(mqbcmd::StorageResult*        result,
+                                    const mqbcmd::StorageCommand& command)
 {
     // executed by cluster *DISPATCHER* thread
 
@@ -1972,10 +1972,10 @@ int StorageManager::processCommand(mqbcmd::StorageResult*        result,
         result->makeError();
         result->error().message() = "StorageManager not yet started or is "
                                     "stopping.\n\n";
-        return -1;  // RETURN
+        return;  // RETURN
     }
 
-    return mqbc::StorageUtil::processCommand(
+    mqbc::StorageUtil::processCommand(
         result,
         &d_fileStores,
         &d_storages,

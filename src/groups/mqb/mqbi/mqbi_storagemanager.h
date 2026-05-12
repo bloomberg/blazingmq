@@ -392,12 +392,11 @@ class StorageManager {
                                    const QueueFunctor& functor) const = 0;
 
     /// Process the specified `command`, and load the result to the
-    /// specified `result`.  Return 0 if the command was successfully
-    /// processed, or a non-zero value otherwise.  This function can be
-    /// invoked from any thread, and will block until the potentially
-    /// asynchronous operation is complete.
-    virtual int processCommand(mqbcmd::StorageResult*        result,
-                               const mqbcmd::StorageCommand& command) = 0;
+    /// Process the specified storage `command`, and load the outcome in the
+    /// specified `result`.  This function can be invoked from any thread, and
+    /// will block until the potentially asynchronous operation is complete.
+    virtual void processCommand(mqbcmd::StorageResult*        result,
+                                const mqbcmd::StorageCommand& command) = 0;
 
     /// GC the queues from unrecognized domains, if any.
     virtual void gcUnrecognizedDomainQueues() = 0;

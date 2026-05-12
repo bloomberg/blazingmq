@@ -4738,8 +4738,8 @@ void StorageManager::applyForEachQueue(int                 partitionId,
     fs.applyForEachQueue(functor);
 }
 
-int StorageManager::processCommand(mqbcmd::StorageResult*        result,
-                                   const mqbcmd::StorageCommand& command)
+void StorageManager::processCommand(mqbcmd::StorageResult*        result,
+                                    const mqbcmd::StorageCommand& command)
 {
     // executed by cluster *DISPATCHER* thread
 
@@ -4750,19 +4750,18 @@ int StorageManager::processCommand(mqbcmd::StorageResult*        result,
         result->makeError();
         result->error().message() = "StorageManager not yet started or is "
                                     "stopping.\n\n";
-        return -1;  // RETURN
+        return;  // RETURN
     }
 
-    return StorageUtil::processCommand(
-        result,
-        &d_fileStores,
-        &d_storages,
-        &d_storageLockVec,
-        d_domainFactory_p,
-        &d_replicationFactor,
-        command,
-        d_clusterConfig.partitionConfig().location(),
-        d_allocator_p);
+    StorageUtil::processCommand(result,
+                                &d_fileStores,
+                                &d_storages,
+                                &d_storageLockVec,
+                                d_domainFactory_p,
+                                &d_replicationFactor,
+                                command,
+                                d_clusterConfig.partitionConfig().location(),
+                                d_allocator_p);
 }
 
 void StorageManager::gcUnrecognizedDomainQueues()

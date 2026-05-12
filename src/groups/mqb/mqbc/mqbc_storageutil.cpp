@@ -582,9 +582,7 @@ void StorageUtil::loadStorages(bsl::vector<mqbcmd::StorageQueueInfo>* storages,
 void StorageUtil::doRollover(mqbcmd::StorageResult* result,
                              FileStores*            fileStores,
                              int                    partitionId,
-                             bslma::Allocator*      allocator
-
-)
+                             bslma::Allocator*      allocator)
 {
     // executed by cluster *DISPATCHER* thread
 
@@ -3577,7 +3575,7 @@ void StorageUtil::purgeQueueDispatched(
     queueDetails.numBytesPurged()    = numBytes;
 }
 
-int StorageUtil::processCommand(
+void StorageUtil::processCommand(
     mqbcmd::StorageResult*                       result,
     FileStores*                                  fileStores,
     StorageSpMapVec*                             storageMapVec,
@@ -3600,7 +3598,7 @@ int StorageUtil::processCommand(
 
     if (command.isSummaryValue()) {
         loadStorageSummary(result, *fileStores, partitionLocation);
-        return 0;  // RETURN
+        return;  // RETURN
     }
     else if (command.isPartitionValue()) {
         const int partitionId = command.partition().partitionId();
@@ -3610,7 +3608,7 @@ int StorageUtil::processCommand(
             bmqu::MemOutStream                   os(&localAllocator);
             os << "Too high partitionId value: '" << partitionId << "'";
             result->makeError().message() = os.str();
-            return -1;  // RETURN
+            return;  // RETURN
         }
 
         if (partitionId < -1) {
@@ -3618,14 +3616,14 @@ int StorageUtil::processCommand(
             bmqu::MemOutStream                   os(&localAllocator);
             os << "Too low partitionId value: '" << partitionId << "'";
             result->makeError().message() = os.str();
-            return -1;  // RETURN
+            return;  // RETURN
         }
 
         // PartitionId = -1 is only allowed for rollover command.
         // In this case rollover is performed on all partitions.
         if (command.partition().command().isRolloverValue()) {
             doRollover(result, fileStores, partitionId, allocator);
-            return 0;  // RETURN
+            return;  // RETURN
         }
 
         if (partitionId < 0) {
@@ -3633,7 +3631,7 @@ int StorageUtil::processCommand(
             bmqu::MemOutStream                   os(&localAllocator);
             os << "Too low partitionId value: '" << partitionId << "'";
             result->makeError().message() = os.str();
-            return -1;  // RETURN
+            return;  // RETURN
         }
 
         if (command.partition().command().isSummaryValue()) {
@@ -3641,7 +3639,7 @@ int StorageUtil::processCommand(
                                         fileStores,
                                         partitionId,
                                         partitionLocation);
-            return 0;  // RETURN
+            return;  // RETURN
         }
 
         const bool isAvailable = command.partition().command().isEnableValue();
@@ -3655,7 +3653,7 @@ int StorageUtil::processCommand(
                                  isAvailable));
         // We don't need to wait for the completion of above command.
         result->makeSuccess();
-        return 0;  // RETURN
+        return;  // RETURN
     }
     else if (command.isDomainValue()) {
         if (!domainFactory->getDomain(command.domain().name())) {
@@ -3663,7 +3661,7 @@ int StorageUtil::processCommand(
             bmqu::MemOutStream                   os(&localAllocator);
             os << "Unknown domain '" << command.domain().name() << "'";
             result->makeError().message() = os.str();
-            return -1;  // RETURN
+            return;  // RETURN
         }
         if (command.domain().command().isQueueStatusValue()) {
             mqbcmd::StorageContent& storageContent =
@@ -3671,7 +3669,7 @@ int StorageUtil::processCommand(
             loadStorages(&storageContent.storages(),
                          command.domain().name(),
                          *fileStores);
-            return 0;  // RETURN
+            return;  // RETURN
         }
         else if (command.domain().command().isPurgeValue()) {
             bsl::vector<bsl::vector<mqbcmd::PurgeQueueResult> >
@@ -3704,7 +3702,7 @@ int StorageUtil::processCommand(
                                              purgedQs.end());
             }
 
-            return 0;  // RETURN
+            return;  // RETURN
         }
     }
     else if (command.isQueueValue()) {
@@ -3730,7 +3728,7 @@ int StorageUtil::processCommand(
             bmqu::MemOutStream                   os(&localAllocator);
             os << "Queue was not found in a storage '" << uri << "'";
             result->makeError().message() = os.str();
-            return -1;  // RETURN
+            return;  // RETURN
         }
 
         // Empty string means all appIds, however, for the command, we require
@@ -3756,28 +3754,27 @@ int StorageUtil::processCommand(
         result->makePurgedQueues();
         result->purgedQueues().queues().push_back(purgedQueueResult);
 
-        return 0;  // RETURN
+        return;  // RETURN
     }
     else if (command.isReplicationValue()) {
         mqbcmd::ReplicationResult replicationResult;
-        const int rc = processReplicationCommand(&replicationResult,
-                                                 replicationFactor,
-                                                 fileStores,
-                                                 command.replication());
+        processReplicationCommand(&replicationResult,
+                                  replicationFactor,
+                                  fileStores,
+                                  command.replication());
         if (replicationResult.isErrorValue()) {
             result->makeError(replicationResult.error());
         }
         else {
             result->makeReplicationResult(replicationResult);
         }
-        return rc;  // RETURN
+        return;  // RETURN
     }
 
     bdlma::LocalSequentialAllocator<256> localAllocator(allocator);
     bmqu::MemOutStream                   os(&localAllocator);
     os << "Unknown command '" << command << "'";
     result->makeError().message() = os.str();
-    return -1;
 }
 
 void StorageUtil::onDomain(const bmqp_ctrlmsg::Status& status,
