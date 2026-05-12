@@ -298,15 +298,15 @@ bsls::Types::Uint64 recordOffset(const RECORD_TYPE& record)
                                mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
 }
 
-/// Helper matcher to check the offset of the record. Return 'true' if the
-/// specified 'expectedOffset' is equal to the offset of the RecordDetails
+/// Helper matcher to check the PSN of the record. Return 'true' if the
+/// specified 'expectedPSN' is equal to the PSN of the RecordDetails
 /// 'arg'.
-MATCHER_P(SequenceNumberMatcher, expectedSequenceNumber, "")
+MATCHER_P(SequenceNumberMatcher, expectedPSN, "")
 {
-    CompositeSequenceNumber seq(arg.d_record.header().primaryLeaseId(),
+    CompositeSequenceNumber psn(arg.d_record.header().primaryLeaseId(),
                                 arg.d_record.header().sequenceNumber());
-    *result_listener << "SequenceNumber : " << seq;
-    return seq == expectedSequenceNumber;
+    *result_listener << "PSN : " << psn;
+    return psn == expectedPSN;
 }
 
 }  // close unnamed namespace

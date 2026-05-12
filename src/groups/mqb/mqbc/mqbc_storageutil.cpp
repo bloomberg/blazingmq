@@ -3853,7 +3853,7 @@ void StorageUtil::forceIssueAdvisoryAndSyncPt(mqbc::ClusterData*   clusterData,
         BALL_LOG_ERROR << clusterData->identity().description()
                        << "Partition [" << fs->config().partitionId()
                        << "]: failed to force-issue SyncPt, rc: " << rc
-                       << ", current partition sequence number: " << psn;
+                       << ", current PSN: " << psn;
     }
 }
 

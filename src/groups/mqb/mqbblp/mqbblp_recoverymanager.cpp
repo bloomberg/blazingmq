@@ -15,6 +15,7 @@
 
 #include <bsls_assert.h>
 #include <mqbblp_recoverymanager.h>
+#include <mqbs_filestoreprintutil.h>
 
 #include <mqbscm_version.h>
 // MQB
@@ -1731,7 +1732,8 @@ int RecoveryManager::replayPartition(
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << pid << "]: " << "replaying from "
-                  << fromSequenceNum << " to " << toSequenceNum
+                  << mqbs::printPSN(fromSequenceNum) << " to "
+                  << mqbs::printPSN(toSequenceNum)
                   << " to node: " << destination->nodeDescription() << ".";
 
     mqbs::JournalFileIterator journalIt;
@@ -1769,7 +1771,7 @@ int RecoveryManager::replayPartition(
         return rc_INVALID_JOURNALOP_RECORD;  // RETURN
     }
 
-    // Retrieve sequence number from the RecordHeader in the SyncPt, not from
+    // Retrieve PSN from the RecordHeader in the SyncPt, not from
     // the SyncPt itself.
 
     bmqp_ctrlmsg::PartitionSequenceNumber currentSeqNum;
@@ -1787,7 +1789,7 @@ int RecoveryManager::replayPartition(
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << pid << "]: " << "replay starts from "
-                  << currentSeqNum << ".";
+                  << mqbs::printPSN(currentSeqNum) << ".";
 
     // 'bootstrapCurrentSeqNum' has positioned 'currentSeqNum' and 'journalIt'
     // precisely to the record after 'fromSequenceNum'.
@@ -1896,9 +1898,11 @@ int RecoveryManager::replayPartition(
     if (!isDone) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
                       << " Partition [" << pid
-                      << "]: incomplete replay of partition. Sequence number "
-                      << "of last record sent: " << currentSeqNum
-                      << ", was supposed to send up to: " << toSequenceNum
+                      << "]: incomplete replay of partition. PSN "
+                      << "of last record sent: "
+                      << mqbs::printPSN(currentSeqNum)
+                      << ", was supposed to send up to: "
+                      << mqbs::printPSN(toSequenceNum)
                       << ". Peer: " << destination->nodeDescription() << ".";
         return rc_INCOMPLETE_REPLAY;  // RETURN
     }
@@ -1969,9 +1973,8 @@ void RecoveryManager::syncPeerPartitions(PrimarySyncContext* primarySyncCtx)
             BALL_LOG_INFO << d_clusterData_p->identity().description()
                           << " Partition [" << pid
                           << "]: skipping partition-sync with peer: "
-                          << pps.peer()->nodeDescription()
-                          << ". Peer's partition sequence num: "
-                          << pps.partitionSequenceNum();
+                          << pps.peer()->nodeDescription() << ". Peer's PSN: "
+                          << mqbs::printPSN(pps.partitionSequenceNum());
             continue;  // CONTINUE
         }
 
@@ -2030,9 +2033,9 @@ int RecoveryManager::syncPeerPartition(PrimarySyncContext* primarySyncCtx,
         // TBD: assert?
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
                        << " Partition [" << pid
-                       << "]: new primary (self) has smaller sequence number: "
-                       << selfSequenceNum << ", than "
-                       << ppState.partitionSequenceNum()
+                       << "]: new primary (self) has smaller PSN: "
+                       << mqbs::printPSN(selfSequenceNum) << ", than "
+                       << mqbs::printPSN(ppState.partitionSequenceNum())
                        << ", of peer: " << ppState.peer()->nodeDescription();
         return rc_NEW_PRIMARY_BEHIND;  // RETURN
     }
@@ -2040,13 +2043,13 @@ int RecoveryManager::syncPeerPartition(PrimarySyncContext* primarySyncCtx,
     if (primarySyncCtx->syncPeer() == ppState.peer()) {
         if (selfSequenceNum != ppState.partitionSequenceNum()) {
             // New primary (self) synced the partition with this peer, so their
-            // sequence numbers *must* match.  TBD: assert?
+            // PSNs *must* match.  TBD: assert?
 
             BALL_LOG_ERROR << d_clusterData_p->identity().description()
                            << " Partition [" << pid
-                           << "]: new primary (self) has different sequence "
-                           << "number: " << selfSequenceNum << ", than "
-                           << ppState.partitionSequenceNum()
+                           << "]: new primary (self) has different PSN" << ": "
+                           << mqbs::printPSN(selfSequenceNum) << ", than "
+                           << mqbs::printPSN(ppState.partitionSequenceNum())
                            << ", of syncing peer: "
                            << ppState.peer()->nodeDescription();
             return rc_SEQ_NUM_MISMATCH_WITH_SYNC_PEER;  // RETURN
@@ -2058,9 +2061,9 @@ int RecoveryManager::syncPeerPartition(PrimarySyncContext* primarySyncCtx,
     if (selfSequenceNum == ppState.partitionSequenceNum()) {
         BALL_LOG_INFO << d_clusterData_p->identity().description()
                       << " Partition [" << pid
-                      << "]: new primary (self) has same sequence "
-                      << "number: " << selfSequenceNum
-                      << ", as: " << ppState.partitionSequenceNum()
+                      << "]: new primary (self) has same PSN" << ": "
+                      << mqbs::printPSN(selfSequenceNum) << ", as: "
+                      << mqbs::printPSN(ppState.partitionSequenceNum())
                       << ", of peer: " << ppState.peer()->nodeDescription()
                       << ". No sync is needed.";
         return rc_SUCCESS;  // RETURN
@@ -2284,16 +2287,17 @@ bool RecoveryManager::hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
 
         if (0 == syncPointRecHeader->primaryLeaseId() ||
             0 == syncPointRecHeader->sequenceNumber()) {
-            // Peer sent a SyncPt containing invalid seqnum.
+            // Peer sent a SyncPt containing invalid PSN.
 
             BALL_LOG_ERROR << d_clusterData_p->identity().description()
                            << ": For Partition [" << partitionId << "]"
-                           << ", received a sync point with invalid sequence "
-                              "number in the "
-                           << "RecordHeader: ("
-                           << syncPointRecHeader->primaryLeaseId() << ", "
-                           << syncPointRecHeader->sequenceNumber()
-                           << "), from " << source->nodeDescription()
+                           << ", received a sync point with invalid PSN"
+                              " in the "
+                           << "RecordHeader: "
+                           << mqbs::printPSN(
+                                  syncPointRecHeader->primaryLeaseId(),
+                                  syncPointRecHeader->sequenceNumber())
+                           << ", from " << source->nodeDescription()
                            << ". Ignoring this message.";
             continue;  // CONTINUE
         }
@@ -2308,10 +2312,11 @@ bool RecoveryManager::hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
                 << ", received a JOURNAL_OP record of type "
                 << journalOpRec->type()
                 << " (expected type SYNCPOINT) in storage message with "
-                << "sequence number (" << syncPointRecHeader->primaryLeaseId()
-                << ", " << syncPointRecHeader->sequenceNumber() << "), from "
-                << source->nodeDescription() << ". Ignoring this message."
-                << BMQTSK_ALARMLOG_END;
+                << "PSN: "
+                << mqbs::printPSN(syncPointRecHeader->primaryLeaseId(),
+                                  syncPointRecHeader->sequenceNumber())
+                << ", from " << source->nodeDescription()
+                << ". Ignoring this message." << BMQTSK_ALARMLOG_END;
             continue;  // CONTINUE
         }
 
@@ -2321,22 +2326,22 @@ bool RecoveryManager::hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
                 << d_clusterData_p->identity().description()
                 << ": For Partition [" << partitionId << "]"
                 << ", received a syncPoint record of UNDEFINED type (expected "
-                << "type REGULAR/ROLLOVER), in storage message with sequence "
-                << "number (" << syncPointRecHeader->primaryLeaseId() << ", "
-                << syncPointRecHeader->sequenceNumber() << "), from "
-                << source->nodeDescription() << ". Ignoring this message."
-                << BMQTSK_ALARMLOG_END;
+                << "type REGULAR/ROLLOVER), in storage message with PSN: "
+                << mqbs::printPSN(syncPointRecHeader->primaryLeaseId(),
+                                  syncPointRecHeader->sequenceNumber())
+                << ", from " << source->nodeDescription()
+                << ". Ignoring this message." << BMQTSK_ALARMLOG_END;
             continue;  // CONTINUE
         }
 
         // Note that 'journalOpRec.primaryLeaseId()' may be smaller than what
         // appears in its RecordHeader if a new primary was chosen for this
         // partition *while* self node was waiting for a sync point, *and* as
-        // its first job, the new primary issues a sync point with old leaseId
-        // & sequenceNum.  Also note that in this case, sequence number in the
-        // RecordHeader will be different from 'journalOpRec->sequenceNumber()'
-        // (see 'FileStore::writeJournalRecord' for same comment -- for the
-        // same reason).
+        // its first job, the new primary issues a sync point with old PSN.
+        // Also note that in this case, PSN in the RecordHeader will be
+        // different from 'journalOpRec->sequenceNumber()' (see
+        // 'FileStore::writeJournalRecord' for same comment -- for the same
+        // reason).
 
         if (syncPointRecHeader->primaryLeaseId() <
             journalOpRec->primaryLeaseId()) {
@@ -2346,13 +2351,14 @@ bool RecoveryManager::hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
                            << ": For Partition [" << partitionId << "]"
                            << ", received a sync point JOURNAL_OP record "
                            << "with invalid primaryLeaseId in RecordHeader."
-                           << " Sequence number in RecordHeader ("
-                           << syncPointRecHeader->primaryLeaseId() << ", "
-                           << syncPointRecHeader->sequenceNumber()
-                           << "). Sequence number in sync point("
-                           << journalOpRec->primaryLeaseId() << ", "
-                           << journalOpRec->sequenceNum()
-                           << "). Source: " << source->nodeDescription()
+                           << " PSN in RecordHeader: "
+                           << mqbs::printPSN(
+                                  syncPointRecHeader->primaryLeaseId(),
+                                  syncPointRecHeader->sequenceNumber())
+                           << ". PSN in sync point: "
+                           << mqbs::printPSN(journalOpRec->primaryLeaseId(),
+                                             journalOpRec->sequenceNum())
+                           << ". Source: " << source->nodeDescription()
                            << ". Ignoring this message.";
             continue;  // CONTINUE
         }
@@ -2369,13 +2375,13 @@ bool RecoveryManager::hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
                     << d_clusterData_p->identity().description()
                     << " Partition [" << partitionId
                     << "]: " << "received a sync point record with mismatched "
-                    << "sequence numbers. Sequence number in RecordHeader ("
-                    << syncPointRecHeader->primaryLeaseId() << ", "
-                    << syncPointRecHeader->sequenceNumber()
-                    << "). Sequence number in sync point ("
-                    << journalOpRec->primaryLeaseId() << ", "
-                    << journalOpRec->sequenceNum()
-                    << "). Source: " << source->nodeDescription()
+                    << "PSNs. PSN in RecordHeader: "
+                    << mqbs::printPSN(syncPointRecHeader->primaryLeaseId(),
+                                      syncPointRecHeader->sequenceNumber())
+                    << ". PSN in sync point: "
+                    << mqbs::printPSN(journalOpRec->primaryLeaseId(),
+                                      journalOpRec->sequenceNum())
+                    << ". Source: " << source->nodeDescription()
                     << ". Ignoring this message." << BMQTSK_ALARMLOG_END;
                 continue;  // CONTINUE
             }
@@ -2399,13 +2405,13 @@ bool RecoveryManager::hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
                 << d_clusterData_p->identity().description() << " Partition ["
                 << partitionId << "] :"
                 << "received a rolled-over sync point, but skipping it. "
-                << "Sequence number in RecordHeader ("
-                << syncPointRecHeader->primaryLeaseId() << ", "
-                << syncPointRecHeader->sequenceNumber()
-                << "). Sequence number in sync point ("
-                << journalOpRec->primaryLeaseId() << ", "
-                << journalOpRec->sequenceNum()
-                << "). Source: " << source->nodeDescription();
+                << "PSN in RecordHeader: "
+                << mqbs::printPSN(syncPointRecHeader->primaryLeaseId(),
+                                  syncPointRecHeader->sequenceNumber())
+                << ". PSN in sync point: "
+                << mqbs::printPSN(journalOpRec->primaryLeaseId(),
+                                  journalOpRec->sequenceNum())
+                << ". Source: " << source->nodeDescription();
 
             bmqp_ctrlmsg::SyncPoint dummySyncPt;
             RecoveryContext& recoveryCtx = d_recoveryContexts[partitionId];
@@ -2602,7 +2608,7 @@ void RecoveryManager::onPartitionSyncStateQueryResponseDispatched(
         BALL_LOG_INFO << d_clusterData_p->identity().description()
                       << " Partition [" << partitionId
                       << "]: Self node has latest view of partition during "
-                      << "primary sync, with sequence number " << maxSeq
+                      << "primary sync, with PSN " << mqbs::printPSN(maxSeq)
                       << ". Self node will now attempt to sync replica peers.";
 
         syncPeerPartitions(&primarySyncCtx);
@@ -2649,7 +2655,7 @@ void RecoveryManager::onPartitionSyncStateQueryResponseDispatched(
                   << " Partition [" << partitionId << "]: Peer "
                   << maxSeqNode->nodeDescription()
                   << " has most advanced view of the partition during primary "
-                  << "sync " << maxSeq
+                  << "sync " << mqbs::printPSN(maxSeq)
                   << ", last sync-point: " << maxSeqNodeSyncPt
                   << ".  Will send primary sync data query to it.";
 
@@ -2860,11 +2866,10 @@ void RecoveryManager::onPartitionSyncDataQueryResponseDispatched(
         BMQTSK_ALARMLOG_ALARM("RECOVERY")
             << d_clusterData_p->identity().description() << " Partition ["
             << partitionId
-            << "]: " << "invalid partition sequenceNum specified in response: "
-            << response << " from node: " << responder->nodeDescription()
-            << " for partition sync data request: " << req
-            << ". Self partition seqNum: "
-            << primarySyncCtx.selfPartitionSequenceNum()
+            << "]: " << "invalid PSN specified in response: " << response
+            << " from node: " << responder->nodeDescription()
+            << " for partition sync data request: " << req << ". Self PSN: "
+            << mqbs::printPSN(primarySyncCtx.selfPartitionSequenceNum())
             << "No retry attempt will be made." << BMQTSK_ALARMLOG_END;
         onPartitionPrimarySyncStatus(partitionId, -1 /* status */);
 
@@ -3261,9 +3266,10 @@ void RecoveryManager::startRecovery(
                   << bmqu::PrintUtil::prettyNumber(
                          static_cast<bsls::Types::Int64>(lastSyncPointOffset))
                   << ". sync point details: " << syncPoint
-                  << ". Sequence number is sync point's RecordHeader ("
-                  << journalOpRec.header().primaryLeaseId() << ", "
-                  << journalOpRec.header().sequenceNumber() << ").";
+                  << ". PSN in sync point's RecordHeader: "
+                  << mqbs::printPSN(journalOpRec.header().primaryLeaseId(),
+                                    journalOpRec.header().sequenceNumber())
+                  << ".";
 }
 
 void RecoveryManager::processStorageEvent(
@@ -3344,9 +3350,10 @@ void RecoveryManager::processStorageEvent(
                   << "], received sync point " << syncPoint << " from node "
                   << source->nodeDescription()
                   << ". Primary's journal offset: " << primaryJournalOffset
-                  << ". Sequence number in sync point's RecordHeader: ("
-                  << syncPointRecHeader.primaryLeaseId() << ", "
-                  << syncPointRecHeader.sequenceNumber() << ").";
+                  << ". PSN in sync point's RecordHeader: "
+                  << mqbs::printPSN(syncPointRecHeader.primaryLeaseId(),
+                                    syncPointRecHeader.sequenceNumber())
+                  << ".";
 
     bmqp::Event                  event(blob.get(), d_allocator_p);
     bmqp::StorageMessageIterator iter;
@@ -4573,45 +4580,45 @@ void RecoveryManager::processPartitionSyncDataRequest(
         ChunkDeleter(&requestCtx));
     fti.incrementAliasedChunksCount();
 
-    bmqp_ctrlmsg::PartitionSequenceNumber requesterLastSeqNum;
-    requesterLastSeqNum.primaryLeaseId() = req.lastPrimaryLeaseId();
-    requesterLastSeqNum.sequenceNumber() = req.lastSequenceNum();
+    bmqp_ctrlmsg::PartitionSequenceNumber requesterPSN;
+    requesterPSN.primaryLeaseId() = req.lastPrimaryLeaseId();
+    requesterPSN.sequenceNumber() = req.lastSequenceNum();
 
-    bmqp_ctrlmsg::PartitionSequenceNumber requesterUptoSeqNum;
-    requesterUptoSeqNum.primaryLeaseId() = req.uptoPrimaryLeaseId();
-    requesterUptoSeqNum.sequenceNumber() = req.uptoSequenceNum();
+    bmqp_ctrlmsg::PartitionSequenceNumber requesterUptoPSN;
+    requesterUptoPSN.primaryLeaseId() = req.uptoPrimaryLeaseId();
+    requesterUptoPSN.sequenceNumber() = req.uptoSequenceNum();
 
-    bmqp_ctrlmsg::PartitionSequenceNumber selfSeqNum;
-    selfSeqNum.primaryLeaseId() = fs->primaryLeaseId();
-    selfSeqNum.sequenceNumber() = fs->sequenceNumber();
+    bmqp_ctrlmsg::PartitionSequenceNumber selfPSN;
+    selfPSN.primaryLeaseId() = fs->primaryLeaseId();
+    selfPSN.sequenceNumber() = fs->sequenceNumber();
 
-    if (requesterUptoSeqNum <= requesterLastSeqNum) {
+    if (requesterUptoPSN <= requesterPSN) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
                       << ": For Partition [" << req.partitionId()
                       << "], received partition sync data request from "
                       << source->nodeDescription() << ", with invalid "
-                      << " 'last/upto' sequence numbers: "
-                      << requesterLastSeqNum << ", " << requesterUptoSeqNum;
+                      << " 'last/upto' PSNs: " << mqbs::printPSN(requesterPSN)
+                      << ", " << mqbs::printPSN(requesterUptoPSN);
 
         bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
         status.category() = bmqp_ctrlmsg::StatusCategory::E_INVALID_ARGUMENT;
         status.code()     = -1;
-        status.message()  = "Invalid sequence number range..";
+        status.message()  = "Invalid PSN range.";
 
         d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
                                                               source);
         return;  // RETURN
     }
 
-    if (selfSeqNum <= requesterLastSeqNum) {
+    if (selfPSN <= requesterPSN) {
         // Request should not have been sent to this node.
 
         BALL_LOG_WARN << d_clusterData_p->identity().description()
                       << ": For Partition [" << req.partitionId()
                       << "], received partition sync data request from "
                       << source->nodeDescription() << ", with equal or greater"
-                      << " last sequence number " << requesterLastSeqNum
-                      << ", self sequence number " << selfSeqNum;
+                      << " last PSN " << mqbs::printPSN(requesterPSN)
+                      << ", self PSN " << mqbs::printPSN(selfPSN);
 
         bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
         status.category() = bmqp_ctrlmsg::StatusCategory::E_INVALID_ARGUMENT;
@@ -4623,15 +4630,15 @@ void RecoveryManager::processPartitionSyncDataRequest(
         return;  // RETURN
     }
 
-    if (selfSeqNum < requesterUptoSeqNum) {
+    if (selfPSN < requesterUptoPSN) {
         // Request should not have been sent to this node.
 
         BALL_LOG_WARN << d_clusterData_p->identity().description()
                       << ": For Partition [" << req.partitionId()
                       << "], received partition sync data request from "
                       << source->nodeDescription() << ", with greater 'upto' "
-                      << "sequence number " << requesterUptoSeqNum
-                      << ", self sequence number " << selfSeqNum;
+                      << "PSN " << mqbs::printPSN(requesterUptoPSN)
+                      << ", self PSN " << mqbs::printPSN(selfPSN);
 
         bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
         status.category() = bmqp_ctrlmsg::StatusCategory::E_INVALID_ARGUMENT;
@@ -4643,13 +4650,13 @@ void RecoveryManager::processPartitionSyncDataRequest(
         return;  // RETURN
     }
 
-    // If self's partitionSequenceNumber is greater than 'requesterLastSeqNum',
+    // If self's PSN is greater than 'requesterPSN',
     // it means self's leaseId must be greater than zero, because zero is the
     // smallest possible value for leaseId.  This also implies that self's
     // partition must have at least one sync point which captures that non-zero
     // leaseId value.
 
-    BSLS_ASSERT_SAFE(0 != selfSeqNum.primaryLeaseId());
+    BSLS_ASSERT_SAFE(0 != selfPSN.primaryLeaseId());
     BSLS_ASSERT_SAFE(!fs->syncPoints().empty());
 
     const bmqp_ctrlmsg::SyncPointOffsetPair& lastSpoPair =
@@ -4862,8 +4869,8 @@ void RecoveryManager::processPartitionSyncDataRequest(
         clusterMsg.choice().makePartitionSyncDataQueryResponse();
 
     response.partitionId()       = req.partitionId();
-    response.endPrimaryLeaseId() = selfSeqNum.primaryLeaseId();
-    response.endSequenceNum()    = selfSeqNum.sequenceNumber();
+    response.endPrimaryLeaseId() = selfPSN.primaryLeaseId();
+    response.endSequenceNum()    = selfPSN.sequenceNumber();
 
     d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg, source);
 
@@ -4873,8 +4880,9 @@ void RecoveryManager::processPartitionSyncDataRequest(
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << req.partitionId()
-                  << "]: replaying partition from: " << requesterLastSeqNum
-                  << " (exclusive) to: " << requesterUptoSeqNum
+                  << "]: replaying partition from: "
+                  << mqbs::printPSN(requesterPSN)
+                  << " (exclusive) to: " << mqbs::printPSN(requesterUptoPSN)
                   << " (inclusive) with preceding sync-point JOURNAL offset "
                   << "of " << journalSpOffset << ", while serving "
                   << "partition-sync data request: " << req
@@ -4883,8 +4891,8 @@ void RecoveryManager::processPartitionSyncDataRequest(
     rc = replayPartition(&requestCtx,
                          0,  // PrimarySyncContext
                          requestCtx.requesterNode(),
-                         requesterLastSeqNum,
-                         requesterUptoSeqNum,
+                         requesterPSN,
+                         requesterUptoPSN,
                          journalSpOffset);
     if (0 != rc) {
         BMQTSK_ALARMLOG_ALARM("CLUSTER")

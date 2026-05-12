@@ -26,6 +26,7 @@
 #include <mqbevt_storageevent.h>
 #include <mqbi_storage.h>
 #include <mqbnet_cluster.h>
+#include <mqbs_filestoreprintutil.h>
 #include <mqbs_storageprintutil.h>
 #include <mqbu_exit.h>
 
@@ -719,10 +720,10 @@ void StorageManager::determineDataDestinations(DataDestinations* destinations,
             BALL_LOG_WARN
                 << d_clusterData_p->identity().description() << " Partition ["
                 << partitionId << "]: " << "Replica "
-                << cit->first->nodeDescription()
-                << " has partition sequence number " << nodeSeqNum
-                << ", while the highest sequence number for the same primary "
-                << "lease ID is " << highestSeqNum
+                << cit->first->nodeDescription() << " has PSN "
+                << mqbs::printPSN(nodeSeqNum)
+                << ", while the highest PSN for the same primary "
+                << "lease ID is " << mqbs::printPSN(highestSeqNum)
                 << ", implying that it has extra irreconcilable records.  We "
                 << "need to send ReplicaDataRequestDrop to this replica.";
 
@@ -735,12 +736,11 @@ void StorageManager::determineDataDestinations(DataDestinations* destinations,
             BALL_LOG_WARN
                 << d_clusterData_p->identity().description() << " Partition ["
                 << partitionId << "]: " << "Replica "
-                << cit->first->nodeDescription()
-                << " has partition sequence number " << nodeSeqNum
-                << ", whose primary lease id is lower than self's partition "
-                   "sequence number "
-                << selfSeqNum
-                << ", and there is no known highest sequence number for the "
+                << cit->first->nodeDescription() << " has PSN "
+                << mqbs::printPSN(nodeSeqNum)
+                << ", whose primary lease id is lower than self's PSN "
+                << mqbs::printPSN(selfSeqNum)
+                << ", and there is no known highest PSN for the "
                 << "same primary lease id.  This implies that this replica "
                    "has "
                 << "extra irreconcilable records, and we need to send "
@@ -758,10 +758,10 @@ void StorageManager::determineDataDestinations(DataDestinations* destinations,
             BALL_LOG_INFO
                 << d_clusterData_p->identity().description() << " Partition ["
                 << partitionId << "]: " << "Replica "
-                << cit->first->nodeDescription()
-                << " has partition sequence number " << nodeSeqNum
-                << ", which is lower than or equal to self's partition "
-                << "sequence number " << selfSeqNum
+                << cit->first->nodeDescription() << " has PSN "
+                << mqbs::printPSN(nodeSeqNum)
+                << ", which is lower than or equal to self's PSN "
+                << mqbs::printPSN(selfSeqNum)
                 << ".  We need to send ReplicaDataRequestPush to this "
                 << "replica.";
 
@@ -771,10 +771,10 @@ void StorageManager::determineDataDestinations(DataDestinations* destinations,
             BALL_LOG_WARN
                 << d_clusterData_p->identity().description() << " Partition ["
                 << partitionId << "]: " << "Replica "
-                << cit->first->nodeDescription()
-                << " has partition sequence number " << nodeSeqNum
-                << ", which is higher than self's partition sequence number "
-                << selfSeqNum
+                << cit->first->nodeDescription() << " has PSN "
+                << mqbs::printPSN(nodeSeqNum)
+                << ", which is higher than self's PSN "
+                << mqbs::printPSN(selfSeqNum)
                 << ".  We need to send ReplicaDataRequestDrop to this "
                 << "replica.";
 
@@ -934,8 +934,8 @@ void StorageManager::startSendDataChunksAsPrimary(
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    // End Sequence number is primary's latest sequence number.
-    const bmqp_ctrlmsg::PartitionSequenceNumber& endSeqNum =
+    // End PSN is primary's latest PSN.
+    const bmqp_ctrlmsg::PartitionSequenceNumber& endPSN =
         d_nodeToSeqNumCtxMapVec.at(partitionId)
             .at(d_clusterData_p->membership().selfNode())
             .d_seqNum;
@@ -948,20 +948,20 @@ void StorageManager::startSendDataChunksAsPrimary(
          cit != destinationReplicas.end();
          ++cit) {
         mqbnet::ClusterNode*                         destNode = (*cit)->first;
-        const bmqp_ctrlmsg::PartitionSequenceNumber& beginSeqNum =
+        const bmqp_ctrlmsg::PartitionSequenceNumber& beginPSN =
             (*cit)->second.d_seqNum;
-        if (beginSeqNum == endSeqNum) {
+        if (beginPSN == endPSN) {
             // Replica in-sync with primary: no need to send data chunks
             continue;  // CONTINUE
         }
-        BSLS_ASSERT_SAFE(beginSeqNum < endSeqNum);
+        BSLS_ASSERT_SAFE(beginPSN < endPSN);
 
-        PartitionSeqNumDataRange dataRange(beginSeqNum, endSeqNum);
+        PartitionSeqNumDataRange dataRange(beginPSN, endPSN);
         int status = d_recoveryManager_mp->processSendDataChunks(
             partitionId,
             destNode,
-            beginSeqNum,
-            endSeqNum,
+            beginPSN,
+            endPSN,
             fileStore(partitionId));
 
         EventData sendEventDataVec;
@@ -975,8 +975,8 @@ void StorageManager::startSendDataChunksAsPrimary(
             BALL_LOG_ERROR << d_clusterData_p->identity().description()
                            << " Partition [" << partitionId
                            << "]: " << "Failure while sending data chunks "
-                           << ", beginSeqNum = " << beginSeqNum
-                           << ", endSeqNum = " << endSeqNum
+                           << ", beginPSN = " << mqbs::printPSN(beginPSN)
+                           << ", endPSN = " << mqbs::printPSN(endPSN)
                            << ", rc = " << status;
 
             enqueuePartitionFSMEvent(
@@ -987,8 +987,8 @@ void StorageManager::startSendDataChunksAsPrimary(
             BALL_LOG_INFO << d_clusterData_p->identity().description()
                           << " Partition [" << partitionId
                           << "]: " << "Finished sending data chunks "
-                          << ", beginSeqNum = " << beginSeqNum
-                          << ", endSeqNum = " << endSeqNum
+                          << ", beginPSN = " << mqbs::printPSN(beginPSN)
+                          << ", endPSN = " << mqbs::printPSN(endPSN)
                           << ", rc = " << status;
 
             enqueuePartitionFSMEvent(
@@ -1058,28 +1058,29 @@ void StorageManager::processReplicaDataRequestPull(
 
     mqbnet::ClusterNode* const selfNode =
         d_clusterData_p->membership().selfNode();
-    const bmqp_ctrlmsg::PartitionSequenceNumber selfSeqNum =
+    const bmqp_ctrlmsg::PartitionSequenceNumber selfPSN =
         d_nodeToSeqNumCtxMapVec.at(partitionId).at(selfNode).d_seqNum;
-    if (replicaDataRequest.endSequenceNumber() != selfSeqNum) {
+    if (replicaDataRequest.endSequenceNumber() != selfPSN) {
         bmqp_ctrlmsg::ControlMessage controlMsg;
         controlMsg.rId() = message.rId();
 
         bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
         status.category() = bmqp_ctrlmsg::StatusCategory::E_INVALID_ARGUMENT;
         status.code()     = mqbi::ClusterErrorCode::e_STORAGE_FAILURE;
-        status.message()  = "End sequence number mismatch";
+        status.message()  = "End PSN mismatch";
 
         d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
                                                               source);
 
-        BALL_LOG_ERROR
-            << d_clusterData_p->identity().description() << " Partition ["
-            << partitionId << "]: " << "Received ReplicaDataRequestPull from "
-            << source->nodeDescription() << " with endSequenceNumber: "
-            << replicaDataRequest.endSequenceNumber()
-            << " that does not match self's current sequence number: "
-            << selfSeqNum << ".  Sent a failure response " << controlMsg
-            << ".";
+        BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                       << " Partition [" << partitionId
+                       << "]: " << "Received ReplicaDataRequestPull from "
+                       << source->nodeDescription() << " with end PSN: "
+                       << mqbs::printPSN(
+                              replicaDataRequest.endSequenceNumber())
+                       << " that does not match self's current PSN: "
+                       << mqbs::printPSN(selfPSN)
+                       << ".  Sent a failure response " << controlMsg << ".";
 
         return;  // RETURN
     }
@@ -1879,14 +1880,14 @@ void StorageManager::do_storeSelfSeq(const EventWithData& event)
         nodeSeqNumCtx.d_seqNum.sequenceNumber() = fs->sequenceNumber();
     }
     else {
-        const int rc = d_recoveryManager_mp->recoverSeqNum(
+        const int rc = d_recoveryManager_mp->recoverPSN(
             &nodeSeqNumCtx.d_seqNum,
             partitionId);
         if (rc != 0) {
             BMQTSK_ALARMLOG_ALARM("FILE_IO")
                 << d_clusterData_p->identity().description() << " Partition ["
-                << partitionId << "]: "
-                << "Error while recovering sequence number, rc: " << rc
+                << partitionId
+                << "]: " << "Error while recovering PSN, rc: " << rc
                 << BMQTSK_ALARMLOG_END;
 
             mqbu::ExitUtil::terminate(
@@ -1899,10 +1900,11 @@ void StorageManager::do_storeSelfSeq(const EventWithData& event)
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << ": In Partition [" << partitionId << "]'s FSM, "
-                  << "storing self sequence number as "
-                  << nodeSeqNumCtx.d_seqNum
+                  << "storing self PSN as "
+                  << mqbs::printPSN(nodeSeqNumCtx.d_seqNum)
                   << ", first sync point after rollover as "
-                  << nodeSeqNumCtx.d_firstSyncPointAfterRolloverSeqNum;
+                  << mqbs::printPSN(
+                         nodeSeqNumCtx.d_firstSyncPointAfterRolloverSeqNum);
 }
 
 void StorageManager::do_storePrimarySeq(const EventWithData& event)
@@ -1947,13 +1949,14 @@ void StorageManager::do_storePrimarySeq(const EventWithData& event)
     }
 
     if (hasNew) {
-        BALL_LOG_INFO << d_clusterData_p->identity().description()
-                      << ": In Partition [" << partitionId << "]'s FSM, "
-                      << "storing the sequence number of "
-                      << eventData.source()->nodeDescription() << " as "
-                      << seqNum
-                      << ", first sync point after rollover sequence number: "
-                      << eventData.firstSyncPointAfterRolloverSequenceNumber();
+        BALL_LOG_INFO
+            << d_clusterData_p->identity().description() << ": In Partition ["
+            << partitionId << "]'s FSM, " << "storing the PSN of "
+            << eventData.source()->nodeDescription() << " as "
+            << mqbs::printPSN(seqNum)
+            << ", first sync point after rollover PSN: "
+            << mqbs::printPSN(
+                   eventData.firstSyncPointAfterRolloverSequenceNumber());
     }
 }
 
@@ -2003,10 +2006,11 @@ void StorageManager::do_storeReplicaSeq(const EventWithData& event)
             BALL_LOG_INFO
                 << d_clusterData_p->identity().description()
                 << ": In Partition [" << partitionId << "]'s FSM, "
-                << "storing the sequence number of "
-                << cit->source()->nodeDescription() << " as " << seqNum
-                << ", first sync point after rollover sequence number: "
-                << cit->firstSyncPointAfterRolloverSequenceNumber();
+                << "storing the PSN of " << cit->source()->nodeDescription()
+                << " as " << mqbs::printPSN(seqNum)
+                << ", first sync point after rollover PSN: "
+                << mqbs::printPSN(
+                       cit->firstSyncPointAfterRolloverSequenceNumber());
         }
     }
 }
@@ -2049,7 +2053,7 @@ void StorageManager::do_replicaStateRequest(const EventWithData& event)
     replicaStateRequest.latestSequenceNumber() =
         d_nodeToSeqNumCtxMapVec[partitionId][selfNode].d_seqNum;
 
-    // Get own first sync point after rollover sequence number
+    // Get own first sync point after rollover PSN
     replicaStateRequest.firstSyncPointAfterRolloverSequenceNumber() =
         getSelfFirstSyncPointAfterRolloverSequenceNumber(partitionId);
 
@@ -2096,7 +2100,7 @@ void StorageManager::do_replicaStateResponse(const EventWithData& event)
                                [d_clusterData_p->membership().selfNode()]
                                    .d_seqNum;
 
-    // Get own first sync point after rollover sequence number
+    // Get own first sync point after rollover PSN
     response.firstSyncPointAfterRolloverSequenceNumber() =
         getSelfFirstSyncPointAfterRolloverSequenceNumber(partitionId);
 
@@ -2303,7 +2307,7 @@ void StorageManager::do_primaryStateRequest(const EventWithData& event)
                                [d_clusterData_p->membership().selfNode()]
                                    .d_seqNum;
 
-    // Get own first sync point after rollover sequence number
+    // Get own first sync point after rollover PSN
     primaryStateRequest.firstSyncPointAfterRolloverSequenceNumber() =
         getSelfFirstSyncPointAfterRolloverSequenceNumber(partitionId);
 
@@ -2361,7 +2365,7 @@ void StorageManager::do_primaryStateResponse(const EventWithData& event)
                                [d_clusterData_p->membership().selfNode()]
                                    .d_seqNum;
 
-    // Get own first sync point after rollover sequence number
+    // Get own first sync point after rollover PSN
     response.firstSyncPointAfterRolloverSequenceNumber() =
         getSelfFirstSyncPointAfterRolloverSequenceNumber(partitionId);
 
@@ -2721,8 +2725,9 @@ void StorageManager::do_sendDataToPrimary(const EventWithData& event)
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
                        << " Partition [" << partitionId
                        << "]: " << "Failure while sending data chunks "
-                       << ", beginSeqNum = " << beginSeqNum
-                       << ", endSeqNum = " << endSeqNum << ", rc = " << status;
+                       << ", beginPSN = " << mqbs::printPSN(beginSeqNum)
+                       << ", endPSN = " << mqbs::printPSN(endSeqNum)
+                       << ", rc = " << status;
 
         enqueuePartitionFSMEvent(
             PartitionFSM::Event::e_ERROR_SENDING_DATA_CHUNKS,
@@ -2732,8 +2737,9 @@ void StorageManager::do_sendDataToPrimary(const EventWithData& event)
         BALL_LOG_INFO << d_clusterData_p->identity().description()
                       << " Partition [" << partitionId
                       << "]: " << "Finished sending data chunks "
-                      << ", beginSeqNum = " << beginSeqNum
-                      << ", endSeqNum = " << endSeqNum << ", rc = " << status;
+                      << ", beginPSN = " << mqbs::printPSN(beginSeqNum)
+                      << ", endPSN = " << mqbs::printPSN(endSeqNum)
+                      << ", rc = " << status;
 
         enqueuePartitionFSMEvent(
             PartitionFSM::Event::e_DONE_SENDING_DATA_CHUNKS,
@@ -3181,7 +3187,7 @@ void StorageManager::do_updateStorage(const EventWithData& event)
     BSLS_ASSERT_SAFE(d_fileStores.size() >
                      static_cast<unsigned int>(partitionId));
 
-    // Get first sync point after rollover sequence number from source node.
+    // Get first sync point after rollover PSN from source node.
     NodeToSeqNumCtxMapIter it = d_nodeToSeqNumCtxMapVec[partitionId].find(
         source);
     BSLS_ASSERT_SAFE(it != d_nodeToSeqNumCtxMapVec[partitionId].end());
@@ -3257,7 +3263,7 @@ void StorageManager::do_primaryRemoveStorageIfNeeded(
         BALL_LOG_WARN
             << d_clusterData_p->identity().description() << " Partition ["
             << partitionId << "]: "
-            << "self's primary is out of sync with highest seqNum replica"
+            << "self's primary is out of sync with highest PSN replica"
             << highestSeqNumNode->nodeDescription() << " and cannot be "
             << "healed trivially. Removing entire storage and requesting it "
                "from "
@@ -3287,7 +3293,7 @@ void StorageManager::do_primaryRemoveStorageIfNeeded(
             mqbu::ExitUtil::terminate(
                 mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
         }
-        // Reset self seqNum to request whole storage data from
+        // Reset self PSN to request whole storage data from
         // the recovery peer.
         selfNodeContext.d_seqNum = bmqp_ctrlmsg::PartitionSequenceNumber();
     }
@@ -3465,12 +3471,11 @@ void StorageManager::do_checkQuorumSeq(const EventWithData& event)
     BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfPrimary());
 
     if (d_nodeToSeqNumCtxMapVec[partitionId].size() >= getSeqNumQuorum()) {
-        // If we have a quorum of Replica Sequence numbers (including self
-        // Seq)
+        // If we have a quorum of Replica PSNs (including self PSN)
 
         BALL_LOG_INFO << d_clusterData_p->identity().description()
-                      << " Partition [" << partitionId << "]: "
-                      << "Achieved a quorum of SeqNums with a count of "
+                      << " Partition [" << partitionId
+                      << "]: " << "Achieved a quorum of PSNs with a count of "
                       << d_nodeToSeqNumCtxMapVec[partitionId].size();
 
         enqueuePartitionFSMEvent(PartitionFSM::Event::e_QUORUM_REPLICA_SEQ,
@@ -3498,24 +3503,23 @@ void StorageManager::do_findHighestSeq(const EventWithData& event)
     const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap = d_nodeToSeqNumCtxMapVec.at(
         partitionId);
 
-    // Initialize highest sequence number with self/primary sequence
-    // number.
-    mqbnet::ClusterNode* highestSeqNumNode =
+    // Initialize highest PSN with self/primary PSN.
+    mqbnet::ClusterNode* highestPSNNode =
         d_clusterData_p->membership().selfNode();
-    bmqp_ctrlmsg::PartitionSequenceNumber highestPartitionSeqNum(
-        nodeToSeqNumCtxMap.at(highestSeqNumNode).d_seqNum);
+    bmqp_ctrlmsg::PartitionSequenceNumber highestPSN(
+        nodeToSeqNumCtxMap.at(highestPSNNode).d_seqNum);
     bmqp_ctrlmsg::PartitionSequenceNumber
         highestPartitionFirstSyncPointAfterRolloverSeqNum(
-            nodeToSeqNumCtxMap.at(highestSeqNumNode)
+            nodeToSeqNumCtxMap.at(highestPSNNode)
                 .d_firstSyncPointAfterRolloverSeqNum);
 
-    // Find out highest sequence number and number of up-to-date nodes.
+    // Find out highest PSN and number of up-to-date nodes.
     for (NodeToSeqNumCtxMapCIter cit = nodeToSeqNumCtxMap.cbegin();
          cit != nodeToSeqNumCtxMap.cend();
          cit++) {
-        if (cit->second.d_seqNum > highestPartitionSeqNum) {
-            highestSeqNumNode      = cit->first;
-            highestPartitionSeqNum = cit->second.d_seqNum;
+        if (cit->second.d_seqNum > highestPSN) {
+            highestPSNNode = cit->first;
+            highestPSN     = cit->second.d_seqNum;
             highestPartitionFirstSyncPointAfterRolloverSeqNum =
                 cit->second.d_firstSyncPointAfterRolloverSeqNum;
         }
@@ -3523,7 +3527,7 @@ void StorageManager::do_findHighestSeq(const EventWithData& event)
 
     const unsigned int primaryLeaseId =
         d_partitionInfoVec[partitionId].primaryLeaseId();
-    const bool selfHighestSeq = highestSeqNumNode ==
+    const bool selfHighestPSN = highestPSNNode ==
                                 d_clusterData_p->membership().selfNode();
 
     EventData newEventDataVec;
@@ -3534,11 +3538,11 @@ void StorageManager::do_findHighestSeq(const EventWithData& event)
         1,  // incrementCount
         d_clusterData_p->membership().selfNode(),
         primaryLeaseId,
-        highestPartitionSeqNum,
+        highestPSN,
         highestPartitionFirstSyncPointAfterRolloverSeqNum,
-        highestSeqNumNode);
+        highestPSNNode);
 
-    if (selfHighestSeq) {
+    if (selfHighestPSN) {
         enqueuePartitionFSMEvent(PartitionFSM::Event::e_SELF_HIGHEST_SEQ,
                                  newEventDataVec);
     }
@@ -4840,7 +4844,7 @@ StorageManager::getSelfFirstSyncPointAfterRolloverSequenceNumber(
     mqbs::FileStore* fs = d_fileStores[static_cast<size_t>(partitionId)].get();
     BSLS_ASSERT_SAFE(fs);
 
-    // Get own first sync point after rolllover sequence number
+    // Get own first sync point after rollover PSN
     bmqp_ctrlmsg::PartitionSequenceNumber
         selfFirstSyncPointAfterRollloverSeqNum;
     if (fs->isOpen()) {
@@ -4848,7 +4852,7 @@ StorageManager::getSelfFirstSyncPointAfterRolloverSequenceNumber(
             fs->firstSyncPointAfterRolloverSeqNum();
     }
     else {
-        const int rc = d_recoveryManager_mp->recoverSeqNum(
+        const int rc = d_recoveryManager_mp->recoverPSN(
             &selfFirstSyncPointAfterRollloverSeqNum,
             partitionId,
             true);
@@ -4856,8 +4860,7 @@ StorageManager::getSelfFirstSyncPointAfterRolloverSequenceNumber(
             BALL_LOG_WARN << d_clusterData_p->identity().description()
                           << " Partition [" << partitionId << "]: "
                           << "Failed to recover first sync point after "
-                             "rolllover sequence "
-                             "number for partition "
+                             "rollover PSN for partition "
                           << partitionId << ". rc=" << rc;
             selfFirstSyncPointAfterRollloverSeqNum.reset();
         }
