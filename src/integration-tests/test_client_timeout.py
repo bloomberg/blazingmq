@@ -123,13 +123,15 @@ def test_client_timeout_reopen(multi_node: Cluster, domain_urls: tc.DomainUrls):
             broker.resume()
     producer_broker.wait_healthy()
 
-    # Post after short timeout should result in successful Ack
+    # Post after short timeout should result in successful Ack.
+    # Use a longer timeout to allow the producer's reconnection backoff
+    # (which grows exponentially during the suspended period) to expire.
     assert (
-        producer.post(uri_priority, ["1"], wait_ack=True, succeed=True)
+        producer.post(uri_priority, ["1"], wait_ack=True, succeed=True, timeout=30)
         == Client.e_SUCCESS
     )
     assert (
-        producer.post(uri_priority2, ["2"], wait_ack=True, succeed=True)
+        producer.post(uri_priority2, ["2"], wait_ack=True, succeed=True, timeout=30)
         == Client.e_SUCCESS
     )
 
