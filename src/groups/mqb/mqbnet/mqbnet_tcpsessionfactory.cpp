@@ -536,8 +536,11 @@ void TCPSessionFactory::initialConnectionComplete(
         // Failed to negotiate
         BALL_LOG_WARN << "#INITIAL_CONNECTION TCPSessionFactory '"
                       << d_config.name() << "' "
-                      << "failed to authenticate/negotiate a session "
-                      << "[channel: '" << channel.get()
+                      << "failed to authenticate/negotiate an "
+                      << (initialConnectionContext_sp->isIncoming()
+                              ? "incoming"
+                              : "outbound")
+                      << " session " << "[channel: '" << channel.get()
                       << "', status: " << statusCode << ", error: '"
                       << errorDescription << "']";
 
@@ -557,14 +560,16 @@ void TCPSessionFactory::initialConnectionComplete(
     // Successful negotiation
     BSLS_ASSERT_SAFE(initialConnectionContext_sp->negotiationContext());
 
-    BALL_LOG_INFO
-        << "TCPSessionFactory '" << d_config.name()
-        << "' successfully authenticated and negotiated a session [session: '"
-        << session->description() << "', channel: '" << channel.get()
-        << "', maxMissedHeartbeat: "
-        << initialConnectionContext_sp->negotiationContext()
-               ->maxMissedHeartbeats()
-        << "]";
+    BALL_LOG_INFO << "TCPSessionFactory '" << d_config.name()
+                  << "' successfully authenticated and negotiated an "
+                  << (initialConnectionContext_sp->isIncoming() ? "incoming"
+                                                                : "outbound")
+                  << " session [session: '" << session->description()
+                  << "', channel: '" << channel.get()
+                  << "', maxMissedHeartbeat: "
+                  << initialConnectionContext_sp->negotiationContext()
+                         ->maxMissedHeartbeats()
+                  << "]";
 
     // Session is established; keep a hold to it.
 
