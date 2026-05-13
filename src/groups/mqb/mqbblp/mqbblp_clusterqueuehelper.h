@@ -194,6 +194,8 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         /// state (restoreStateHelper) flaps.
         bsls::Types::Uint64 d_generationCount;
 
+        bdlmt::EventScheduler::EventHandle d_reopenRetryHandle;
+
         SubQueueContext(
             const bmqt::Uri&                                         uri,
             const bdlb::NullableValue<bmqp_ctrlmsg::SubQueueIdInfo>& info,
@@ -904,6 +906,8 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         const mqbi::OpenQueueConfirmationCookieSp& confirmationCookie);
 
     void setAsClosed(const QueueContextSp& queueContextSp);
+
+    void setAsClosed(SubQueueContext* subQueueContext);
 
     // PRIVATE MANIPULATORS
     //   (virtual: mqbc::ClusterMembershipObserver)
