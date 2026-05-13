@@ -3140,13 +3140,14 @@ void StorageManager::do_updateStorage(const EventWithData& event)
     const PartitionFSMEventData& eventData   = eventDataVec[0];
     const int                    partitionId = eventData.partitionId();
     mqbnet::ClusterNode*         source      = eventData.source();
+    BSLS_ASSERT_SAFE(source);
 
     bmqp::Event rawEvent(eventData.storageEvent(), d_allocator_p);
     BSLS_ASSERT_SAFE(rawEvent.isPartitionSyncEvent());
 
     // A partition-sync event is received in one of the following
-    // scenarios: 1) The chosen syncing peer ('source') sends missing
-    // storage events to
+    // scenarios:
+    // 1) The chosen syncing peer ('source') sends missing storage events to
     //    the newly chosen primary (self).
     // 2) A newly chosen primary ('source') sends missing storage events to
     //    replica (self).
