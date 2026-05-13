@@ -979,8 +979,7 @@ void RelayQueueEngine::applyConfiguration(App_State&        app,
     Routers::Consumers& consumers = app.routing()->d_consumers;
 
     for (Routers::Consumers::const_iterator itConsumer = consumers.begin();
-         itConsumer != consumers.end();
-         ++itConsumer) {
+         itConsumer != consumers.end();) {
         Routers::Consumer& consumer = consumers.value(itConsumer);
         mqbi::QueueHandle* handle   = itConsumer->first;
 
@@ -988,8 +987,8 @@ void RelayQueueEngine::applyConfiguration(App_State&        app,
             // This can happen with out-of-order Configure responses as in the
             // case when network disconnects with two concurrent requests and
             // the second gets (error) response before the first one gets
-            // cancelled.
-            itConsumer->second.lock()->invalidate();
+            // cancelled.  Advance before invalidate() erases the element.
+            (itConsumer++)->second.lock()->invalidate();
 
             app.routing()->finalize();
 
@@ -997,6 +996,7 @@ void RelayQueueEngine::applyConfiguration(App_State&        app,
         }
 
         consumer.registerSubscriptions(handle);
+        ++itConsumer;
     }
 
     BMQ_LOGTHROTTLE_INFO << "For queue '" << d_queueState_p->uri() << "', "
