@@ -3272,8 +3272,8 @@ void StorageManager::do_primaryRemoveStorageIfNeeded(
         if (rc != 0) {
             BMQTSK_ALARMLOG_ALARM("FILE_IO")
                 << d_clusterData_p->identity().description() << " Partition ["
-                << partitionId << "]: "
-                << "Error while deprecating file set, rc: " << rc
+                << partitionId
+                << "]: " << "Error while deprecating file set, rc: " << rc
                 << BMQTSK_ALARMLOG_END;
 
             mqbu::ExitUtil::terminate(

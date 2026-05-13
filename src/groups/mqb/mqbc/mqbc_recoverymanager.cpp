@@ -1428,8 +1428,8 @@ int RecoveryManager::closeRecoveryFileSet(int partitionId)
         }
 
         BALL_LOG_INFO << d_clusterData.identity().description()
-                      << " Partition [" << partitionId << "]: "
-                      << "Closed journal file in recovery file set; "
+                      << " Partition [" << partitionId
+                      << "]: " << "Closed journal file in recovery file set; "
                       << "journal file position was "
                       << recoveryCtx.d_journalFilePosition;
     }
