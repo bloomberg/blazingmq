@@ -90,13 +90,6 @@ struct TaskEnvironment {
     bsl::string d_bmqPrefix;
     // BMQ_PREFIX directory path
 
-    bsl::string d_configJson;
-    // JSON content ouput of the generated
-    // config
-
-    mqbcfg::Configuration d_config;
-    // De-serialized config
-
     bsls::ObjectBuffer<m_bmqbrkr::Task> d_task;
     // The Task
 
@@ -233,13 +226,14 @@ static void printStartStopTrace(const bslstl::StringRef& action,
 /// Retrieve the config from the `bmqbrkrcfg.json` file in the specified
 /// `configDir` file.
 ///
-/// Return 0 on success and store the JSON content, at well as its
-/// associated de-serialized object part in the corresponding field of the
-/// specified `taskEnv`, or return a non-zero error code and populate the
-/// specified `errorDescription` with a description of the error.
-static int getConfig(bsl::ostream&      errorDescription,
-                     TaskEnvironment*   taskEnv,
-                     const bsl::string& configDir)
+/// Return 0 on success and store the JSON content in the specified
+/// `configJson` and the de-serialized object in the specified `config`,
+/// or return a non-zero error code and populate the specified
+/// `errorDescription` with a description of the error.
+static int getConfig(bsl::ostream&          errorDescription,
+                     bsl::string*           configJson,
+                     mqbcfg::Configuration* config,
+                     const bsl::string&     configDir)
 {
     enum RcEnum {
         // Enum for the various RC error categories
@@ -265,7 +259,7 @@ static int getConfig(bsl::ostream&      errorDescription,
     bsl::ifstream      configStream(configFilename.c_str());
     bmqu::MemOutStream configParameters;
     configParameters << configStream.rdbuf();
-    taskEnv->d_configJson = configParameters.str();
+    *configJson = configParameters.str();
 
     if (!configStream || !configParameters) {
         errorDescription << "Failed to read the config "
@@ -280,25 +274,25 @@ static int getConfig(bsl::ostream&      errorDescription,
     baljsn::DecoderOptions options;
     options.setSkipUnknownElements(true);
 
-    bdlsb::FixedMemInStreamBuf jsonStreamBuf(taskEnv->d_configJson.data(),
-                                             taskEnv->d_configJson.length());
+    bdlsb::FixedMemInStreamBuf jsonStreamBuf(configJson->data(),
+                                             configJson->length());
 
-    rc = decoder.decode(&jsonStreamBuf, &taskEnv->d_config, options);
+    rc = decoder.decode(&jsonStreamBuf, config, options);
     if (rc != 0) {
         errorDescription << "Error decoding appConfig (JSON->Object) "
                          << "[rc: " << rc
                          << ", error: " << decoder.loggedMessages() << "], "
                          << "generated config file (first 1024 characters):\n"
-                         << taskEnv->d_configJson.substr(
+                         << configJson->substr(
                                 0,
                                 bsl::min(bsl::string::size_type(1024),
-                                         taskEnv->d_configJson.length()));
+                                         configJson->length()));
         return rc_DECODE_FAILED;  // RETURN
     }
 
-    taskEnv->d_config.appConfig().etcDir() = configDir;
-    taskEnv->d_config.appConfig().brokerVersion() =
-        bmqbrkrscm::Version::versionAsInt();
+    config->appConfig().etcDir()        = configDir;
+    config->appConfig().brokerVersion() = bmqbrkrscm::Version::versionAsInt();
+
     return rc_SUCCESS;
 }
 
@@ -376,11 +370,13 @@ struct MTrapHandler {
     }
 };
 
-/// Create and initialize the Task object from the specified `taskEnv`.
-/// Return 0 on success, or a non-zero error code and populate the specified
-/// `errorDescription` with a description of the error otherwise.
-static int initializeTask(bsl::ostream&    errorDescription,
-                          TaskEnvironment* taskEnv)
+/// Create and initialize the Task object in the specified `taskEnv` using
+/// the specified `taskConfig`.  Return 0 on success, or a non-zero error
+/// code and populate the specified `errorDescription` with a description
+/// of the error otherwise.
+static int initializeTask(bsl::ostream&             errorDescription,
+                          TaskEnvironment*          taskEnv,
+                          const mqbcfg::TaskConfig& taskConfig)
 {
     enum RcEnum {
         // Enum for the various RC error categories
@@ -391,13 +387,11 @@ static int initializeTask(bsl::ostream&    errorDescription,
     // Create the Task
     new (taskEnv->d_task.buffer())
         m_bmqbrkr::Task(taskEnv->d_bmqPrefix,
-                        taskEnv->d_config.taskConfig().allocatorType(),
-                        taskEnv->d_config.taskConfig().allocationLimit());
+                        taskConfig.allocatorType(),
+                        taskConfig.allocationLimit());
 
     bmqu::MemOutStream localError;
-    const int          rc = taskEnv->d_task.object().initialize(
-        localError,
-        taskEnv->d_config.taskConfig());
+    const int rc = taskEnv->d_task.object().initialize(localError, taskConfig);
     if (rc != 0) {
         errorDescription << "Failed to initialize task " << "[rc: " << rc
                          << ", reason: '" << localError.str() << "']";
@@ -460,9 +454,6 @@ static int
 initializeApplication(BSLA_MAYBE_UNUSED bsl::ostream& errorDescription,
                       TaskEnvironment*                taskEnv)
 {
-    // Dump the generated config file
-    BALL_LOG_INFO << "Configuration: " << '\n' << taskEnv->d_configJson;
-
     m_bmqbrkr::Task& task = taskEnv->d_task.object();
 
     // Create the Application
@@ -535,9 +526,9 @@ static void updateHistFile(const TaskEnvironment* taskEnv)
 
     // Generate the new entry
     bmqu::MemOutStream os;
-    os << bdlt::CurrentTime::utc() << "|"
-       << taskEnv->d_config.appConfig().brokerVersion() << "|"
-       << taskEnv->d_config.appConfig().configVersion() << "|"
+    const mqbcfg::AppConfig& appConfig = mqbcfg::BrokerConfig::get();
+    os << bdlt::CurrentTime::utc() << "|" << appConfig.brokerVersion() << "|"
+       << appConfig.configVersion() << "|"
        << mqbu::MessageGUIDUtil::brokerIdHex();
 
     entries.push_front(bsl::string(os.str().data(), os.str().length()));
@@ -697,57 +688,63 @@ int main(int argc, const char* argv[])
 
     bmqu::MemOutStream errorDescription;
 
-    rc = getConfig(errorDescription, &taskEnv, configDir);
-    if (rc != 0) {
-        bsl::cerr << "PANIC [STARTUP] (" << rc
-                  << "): " << errorDescription.str() << "\n"
-                  << bsl::flush;
-        return mqbu::ExitCode::e_CONFIG_GENERATION;  // RETURN
-    }
+    {
+        bsl::string           configJson;
+        mqbcfg::Configuration config;
 
-    if (!hostName.empty()) {
-        taskEnv.d_config.appConfig().hostName() = hostName;
-    }
+        rc = getConfig(errorDescription, &configJson, &config, configDir);
+        if (rc != 0) {
+            bsl::cerr << "PANIC [STARTUP] (" << rc
+                      << "): " << errorDescription.str() << "\n"
+                      << bsl::flush;
+            return mqbu::ExitCode::e_CONFIG_GENERATION;  // RETURN
+        }
 
-    if (!hostTags.empty()) {
-        taskEnv.d_config.appConfig().hostTags() = hostTags;
-    }
+        if (!hostName.empty()) {
+            config.appConfig().hostName() = hostName;
+        }
 
-    if (!hostDataCenter.empty()) {
-        taskEnv.d_config.appConfig().hostDataCenter() = hostDataCenter;
-    }
+        if (!hostTags.empty()) {
+            config.appConfig().hostTags() = hostTags;
+        }
 
-    if (port != 0 && !taskEnv.d_config.appConfig()
-                          .networkInterfaces()
-                          .tcpInterface()
-                          .isNull()) {
-        taskEnv.d_config.appConfig()
-            .networkInterfaces()
-            .tcpInterface()
-            .value()
-            .port() = port;
-    }
+        if (!hostDataCenter.empty()) {
+            config.appConfig().hostDataCenter() = hostDataCenter;
+        }
 
-    mqbcfg::BrokerConfig::set(taskEnv.d_config.appConfig());
+        if (port != 0 &&
+            !config.appConfig().networkInterfaces().tcpInterface().isNull()) {
+            config.appConfig()
+                .networkInterfaces()
+                .tcpInterface()
+                .value()
+                .port() = port;
+        }
 
-    // Create and initialize the task
-    rc = initializeTask(errorDescription, &taskEnv);
-    if (rc != 0) {
-        bsl::cerr << "PANIC [STARTUP] (" << rc
-                  << "): " << errorDescription.str() << "\n"
-                  << bsl::flush;
-        return mqbu::ExitCode::e_TASK_INITIALIZE;  // RETURN
-    }
+        mqbcfg::BrokerConfig::set(config.appConfig());
 
-    // Initialize the Application
-    rc = initializeApplication(errorDescription, &taskEnv);
-    if (rc != 0) {
-        bsl::cerr << "PANIC [STARTUP] (" << rc
-                  << "): " << errorDescription.str() << "\n"
-                  << bsl::flush;
-        shutdownTask(&taskEnv);
-        return mqbu::ExitCode::e_APP_INITIALIZE;  // RETURN
-    }
+        // Create and initialize the task
+        rc = initializeTask(errorDescription, &taskEnv, config.taskConfig());
+        if (rc != 0) {
+            bsl::cerr << "PANIC [STARTUP] (" << rc
+                      << "): " << errorDescription.str() << "\n"
+                      << bsl::flush;
+            return mqbu::ExitCode::e_TASK_INITIALIZE;  // RETURN
+        }
+
+        // Dump the generated config file
+        BALL_LOG_INFO << "Configuration: " << '\n' << configJson;
+
+        // Initialize the Application
+        rc = initializeApplication(errorDescription, &taskEnv);
+        if (rc != 0) {
+            bsl::cerr << "PANIC [STARTUP] (" << rc
+                      << "): " << errorDescription.str() << "\n"
+                      << bsl::flush;
+            shutdownTask(&taskEnv);
+            return mqbu::ExitCode::e_APP_INITIALIZE;  // RETURN
+        }
+    }  // configJson and config are destroyed here
 
     // Run
     rc = run(errorDescription, &taskEnv);
