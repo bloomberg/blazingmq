@@ -3268,14 +3268,24 @@ void StorageManager::do_primaryRemoveStorageIfNeeded(
         BSLS_ASSERT_SAFE(!fs->isOpen());
 
         // Remove file set.
-        d_recoveryManager_mp->deprecateFileSet(partitionId);
+        int rc = d_recoveryManager_mp->deprecateFileSet(partitionId);
+        if (rc != 0) {
+            BMQTSK_ALARMLOG_ALARM("FILE_IO")
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId << "]: "
+                << "Error while deprecating file set, rc: " << rc
+                << BMQTSK_ALARMLOG_END;
+
+            mqbu::ExitUtil::terminate(
+                mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
+        }
 
         // Creating new file set will populate the file headers.  We need to do
         // this before receiving data chunks from the recovery peer.
         bmqu::MemOutStream errorDesc;
-        int rc = d_recoveryManager_mp->createRecoveryFileSet(errorDesc,
-                                                             fs,
-                                                             partitionId);
+        rc = d_recoveryManager_mp->createRecoveryFileSet(errorDesc,
+                                                         fs,
+                                                         partitionId);
         if (rc != 0) {
             BMQTSK_ALARMLOG_ALARM("FILE_IO")
                 << d_clusterData_p->identity().description() << " Partition ["
