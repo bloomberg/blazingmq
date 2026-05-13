@@ -143,7 +143,7 @@ class StorageManager BSLS_KEYWORD_FINAL
     typedef bsl::vector<mqbnet::ClusterNode*> ClusterNodeVec;
     typedef ClusterNodeVec::const_iterator    ClusterNodeVecCIter;
 
-    typedef mqbs::DataStore::QueueKeyInfoMap QueueKeyInfoMap;
+    typedef mqbs::DataStore::QueueKeyInfoMap               QueueKeyInfoMap;
     typedef bsl::vector<bsl::shared_ptr<QueueKeyInfoMap> > QueueKeyInfoMapVec;
 
     typedef ClusterState::DomainStatesCIter      DomainStatesCIter;
@@ -164,26 +164,24 @@ class StorageManager BSLS_KEYWORD_FINAL
     typedef bsl::vector<PrimaryStatusAdvisoryInfos>
         PrimaryStatusAdvisoryInfosVec;
 
-    /// VST representing node's sequence number, first sync point after
-    /// rollover sequence number.
-    class NodeSeqNumContext {
+    /// VST representing node's PSN, first sync point after rollover PSN.
+    class NodePSNContext {
       public:
         // DATA
 
-        /// Node's latest sequence number.
-        bmqp_ctrlmsg::PartitionSequenceNumber d_seqNum;
+        /// Node's latest PSN.
+        bmqp_ctrlmsg::PartitionSequenceNumber d_PSN;
 
-        /// Sequence number of node's first sync point after rollover.
-        bmqp_ctrlmsg::PartitionSequenceNumber
-            d_firstSyncPointAfterRolloverSeqNum;
+        /// PSN of node's first sync point after rollover.
+        bmqp_ctrlmsg::PartitionSequenceNumber d_firstSyncPointAfterRolloverPSN;
 
         // CREATORS
-        NodeSeqNumContext();
+        NodePSNContext();
 
-        explicit NodeSeqNumContext(
-            const bmqp_ctrlmsg::PartitionSequenceNumber d_seqNum,
+        explicit NodePSNContext(
+            const bmqp_ctrlmsg::PartitionSequenceNumber PSN,
             const bmqp_ctrlmsg::PartitionSequenceNumber
-                d_firstSyncPointAfterRolloverSeqNum);
+                firstSyncPointAfterRolloverPSN);
     };
 
   public:
@@ -193,11 +191,11 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// Pool of shared pointers to Blobs
     typedef StorageUtil::BlobSpPool BlobSpPool;
 
-    typedef bsl::unordered_map<mqbnet::ClusterNode*, NodeSeqNumContext>
-                                               NodeToSeqNumCtxMap;
-    typedef NodeToSeqNumCtxMap::iterator       NodeToSeqNumCtxMapIter;
-    typedef NodeToSeqNumCtxMap::const_iterator NodeToSeqNumCtxMapCIter;
-    typedef bsl::vector<NodeToSeqNumCtxMap>    NodeToSeqNumCtxMapPartitionVec;
+    typedef bsl::unordered_map<mqbnet::ClusterNode*, NodePSNContext>
+                                            NodeToPSNCtxMap;
+    typedef NodeToPSNCtxMap::iterator       NodeToPSNCtxMapIter;
+    typedef NodeToPSNCtxMap::const_iterator NodeToPSNCtxMapCIter;
+    typedef bsl::vector<NodeToPSNCtxMap>    NodeToPSNCtxMapPartitionVec;
 
     typedef StorageUtil::DomainQueueMessagesCountMaps
         DomainQueueMessagesCountMaps;
@@ -211,10 +209,10 @@ class StorageManager BSLS_KEYWORD_FINAL
         // DATA
 
         /// Data push destinations
-        bsl::vector<NodeToSeqNumCtxMapCIter> d_dataPushDestinations;
+        bsl::vector<NodeToPSNCtxMapCIter> d_dataPushDestinations;
 
         /// Data drop destinations
-        bsl::vector<NodeToSeqNumCtxMapCIter> d_dataDropDestinations;
+        bsl::vector<NodeToPSNCtxMapCIter> d_dataDropDestinations;
 
       public:
         // TRAITS
@@ -363,12 +361,12 @@ class StorageManager BSLS_KEYWORD_FINAL
     ///         for the i-th partitionId.
     bsl::vector<bsls::Types::Int64> d_recoveryStartTimes;
 
-    /// Vector of `NodeToSeqNumCtxMap` indexed by partitionId.
+    /// Vector of `NodeToPSNtxMap` indexed by partitionId.
     ///
     /// THREAD: Except during the ctor, the i-th index of this data member
     ///         **must** be accessed in the associated Queue dispatcher thread
     ///         for the i-th partitionId.
-    NodeToSeqNumCtxMapPartitionVec d_nodeToSeqNumCtxMapVec;
+    NodeToPSNCtxMapPartitionVec d_nodeToPSNCtxMapVec;
 
     /// Vector of number of replica data responses received, indexed by
     /// partitionId.
@@ -750,9 +748,9 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// Return the sequence number quorum to be used for this cluster.
     unsigned int getSeqNumQuorum() const;
 
-    /// Return own the first sync point after rollover sequence number.
+    /// Return own the first sync point after rollover PSN.
     const bmqp_ctrlmsg::PartitionSequenceNumber
-    getSelfFirstSyncPointAfterRolloverSequenceNumber(int partitionId) const;
+    getSelfFirstSyncPointAfterRolloverPSN(int partitionId) const;
 
   public:
     // TRAITS
@@ -1053,9 +1051,9 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// Return the health state of the specified `partitionId`.
     PartitionFSM::State::Enum partitionHealthState(int partitionId) const;
 
-    /// Return the mapping from node in the cluster to their sequence number
-    /// context for the specified 'partitionId'.
-    const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap(int partitionId) const;
+    /// Return the mapping from node in the cluster to their PSN context for
+    /// the specified 'partitionId'.
+    const NodeToPSNCtxMap& nodeToPSNCtxMap(int partitionId) const;
 
     /// Return the number of watchdog retries remaining for the specified
     /// `partitionId`.  This accessor is meant to be used for unit testing
@@ -1274,10 +1272,10 @@ StorageManager::partitionHealthState(int partitionId) const
     return d_partitionFSMVec[partitionId]->state();
 }
 
-inline const StorageManager::NodeToSeqNumCtxMap&
-StorageManager::nodeToSeqNumCtxMap(int partitionId) const
+inline const StorageManager::NodeToPSNCtxMap&
+StorageManager::nodeToPSNCtxMap(int partitionId) const
 {
-    return d_nodeToSeqNumCtxMapVec[partitionId];
+    return d_nodeToPSNCtxMapVec[partitionId];
 }
 
 inline int StorageManager::watchdogRetriesRemaining(int partitionId) const
@@ -1323,19 +1321,18 @@ inline unsigned int StorageManager::getSeqNumQuorum() const
 // =======================================
 
 // CREATORS
-inline StorageManager::NodeSeqNumContext::NodeSeqNumContext()
-: d_seqNum()
-, d_firstSyncPointAfterRolloverSeqNum()
+inline StorageManager::NodePSNContext::NodePSNContext()
+: d_PSN()
+, d_firstSyncPointAfterRolloverPSN()
 {
     // NOTHING
 }
 
-inline StorageManager::NodeSeqNumContext::NodeSeqNumContext(
-    const bmqp_ctrlmsg::PartitionSequenceNumber seqNum,
-    const bmqp_ctrlmsg::PartitionSequenceNumber
-        firstSyncPointAfterRolloverSeqNum)
-: d_seqNum(seqNum)
-, d_firstSyncPointAfterRolloverSeqNum(firstSyncPointAfterRolloverSeqNum)
+inline StorageManager::NodePSNContext::NodePSNContext(
+    const bmqp_ctrlmsg::PartitionSequenceNumber PSN,
+    const bmqp_ctrlmsg::PartitionSequenceNumber firstSyncPointAfterRolloverPSN)
+: d_PSN(PSN)
+, d_firstSyncPointAfterRolloverPSN(firstSyncPointAfterRolloverPSN)
 {
     // NOTHING
 }

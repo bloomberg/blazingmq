@@ -103,8 +103,7 @@ class PartitionFSMEventData {
 
     /// Sequence number of the first sync point after rollover as sent by
     /// the `d_source_p` node for the associated partitionId.
-    bmqp_ctrlmsg::PartitionSequenceNumber
-        d_firstSyncPointAfterRolloverSequenceNumber;
+    bmqp_ctrlmsg::PartitionSequenceNumber d_firstSyncPointAfterRolloverPSN;
 
     /// The node which has the highest sequence number for the associated
     /// partitionId.
@@ -194,8 +193,8 @@ class PartitionFSMEventData {
     const bmqp_ctrlmsg::PartitionSequenceNumber&
     partitionSequenceNumber() const;
     const bmqp_ctrlmsg::PartitionSequenceNumber&
-                         firstSyncPointAfterRolloverSequenceNumber() const;
-    mqbnet::ClusterNode* highestSeqNumNode() const;
+                                    firstSyncPointAfterRolloverPSN() const;
+    mqbnet::ClusterNode*            highestSeqNumNode() const;
     const PartitionSeqNumDataRange& partitionSeqNumDataRange() const;
 
     /// Return the value of the corresponding member of this object
@@ -323,7 +322,7 @@ inline PartitionFSMEventData::PartitionFSMEventData()
 , d_primary_p(0)
 , d_primaryLeaseId(k_INVALID_LEASE_ID)
 , d_partitionSequenceNumber()
-, d_firstSyncPointAfterRolloverSequenceNumber()
+, d_firstSyncPointAfterRolloverPSN()
 , d_highestSeqNumNode(0)
 , d_partitionSeqNumDataRange()
 , d_storageEvent()
@@ -351,8 +350,7 @@ inline PartitionFSMEventData::PartitionFSMEventData(
 , d_primary_p(primary)
 , d_primaryLeaseId(primaryLeaseId)
 , d_partitionSequenceNumber(seqNum)
-, d_firstSyncPointAfterRolloverSequenceNumber(
-      firstSyncPointAfterRollloverSeqNum)
+, d_firstSyncPointAfterRolloverPSN(firstSyncPointAfterRollloverSeqNum)
 , d_highestSeqNumNode(highestSeqNumNode)
 , d_partitionSeqNumDataRange(seqNumDataRange)
 , d_storageEvent()
@@ -376,8 +374,7 @@ inline PartitionFSMEventData::PartitionFSMEventData(
 , d_primary_p(0)
 , d_primaryLeaseId(k_INVALID_LEASE_ID)
 , d_partitionSequenceNumber(seqNum)
-, d_firstSyncPointAfterRolloverSequenceNumber(
-      firstSyncPointAfterRollloverSeqNum)
+, d_firstSyncPointAfterRolloverPSN(firstSyncPointAfterRollloverSeqNum)
 , d_highestSeqNumNode(0)
 , d_partitionSeqNumDataRange()
 , d_storageEvent()
@@ -399,7 +396,7 @@ inline PartitionFSMEventData::PartitionFSMEventData(
 , d_primary_p(0)
 , d_primaryLeaseId(k_INVALID_LEASE_ID)
 , d_partitionSequenceNumber()
-, d_firstSyncPointAfterRolloverSequenceNumber()
+, d_firstSyncPointAfterRolloverPSN()
 , d_highestSeqNumNode(0)
 , d_partitionSeqNumDataRange(seqNumDataRange)
 , d_storageEvent()
@@ -420,7 +417,7 @@ inline PartitionFSMEventData::PartitionFSMEventData(
 , d_primary_p(0)
 , d_primaryLeaseId(k_INVALID_LEASE_ID)
 , d_partitionSequenceNumber()
-, d_firstSyncPointAfterRolloverSequenceNumber()
+, d_firstSyncPointAfterRolloverPSN()
 , d_highestSeqNumNode(0)
 , d_partitionSeqNumDataRange()
 , d_storageEvent(storageEvent)
@@ -477,9 +474,9 @@ PartitionFSMEventData::partitionSequenceNumber() const
 }
 
 inline const bmqp_ctrlmsg::PartitionSequenceNumber&
-PartitionFSMEventData::firstSyncPointAfterRolloverSequenceNumber() const
+PartitionFSMEventData::firstSyncPointAfterRolloverPSN() const
 {
-    return d_firstSyncPointAfterRolloverSequenceNumber;
+    return d_firstSyncPointAfterRolloverPSN;
 }
 
 inline mqbnet::ClusterNode* PartitionFSMEventData::highestSeqNumNode() const
