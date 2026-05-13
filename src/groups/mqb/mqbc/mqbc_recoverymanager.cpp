@@ -406,7 +406,7 @@ int RecoveryManager::deprecateFileSet(int partitionId)
     }
     recoveryCtx.d_qlistFilePosition = 0;
 
-    recoveryCtx.d_firstSyncPointAfterRolloverSeqNum.reset();
+    recoveryCtx.d_firstSyncPointAfterRolloverPSN.reset();
 
     return rcFinal;
 }
@@ -1268,7 +1268,7 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
                       << " from journal file ["
                       << recoveryCtx.d_recoveryFileSet.journalFile() << "].";
 
-        recoveryCtx.d_firstSyncPointAfterRolloverSeqNum =
+        recoveryCtx.d_firstSyncPointAfterRolloverPSN =
             recHeader.partitionSequenceNumber();
     }
 
@@ -1684,7 +1684,7 @@ int RecoveryManager::closeRecoveryFileSet(int partitionId)
     }
     recoveryCtx.d_qlistFilePosition = 0;
 
-    recoveryCtx.d_firstSyncPointAfterRolloverSeqNum.reset();
+    recoveryCtx.d_firstSyncPointAfterRolloverPSN.reset();
 
     return rc_SUCCESS;
 }
@@ -1712,7 +1712,7 @@ int RecoveryManager::recoverPSN(bmqp_ctrlmsg::PartitionSequenceNumber* psn,
 
     // Retrieve first sync point after rolllover PSN.
     if (firstSyncPointAfterRolllover) {
-        *psn = recoveryCtx.d_firstSyncPointAfterRolloverSeqNum;
+        *psn = recoveryCtx.d_firstSyncPointAfterRolloverPSN;
         return rc_SUCCESS;  // RETURN
     }
 
