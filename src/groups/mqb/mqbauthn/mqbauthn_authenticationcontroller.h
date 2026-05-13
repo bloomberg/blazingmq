@@ -30,6 +30,7 @@
 // MQB
 #include <mqbcfg_messages.h>
 #include <mqbplug_authenticator.h>
+#include <mqbplug_credentialprovider.h>
 #include <mqbplug_pluginmanager.h>
 
 // BDE
@@ -84,6 +85,14 @@ class AuthenticationController {
     /// Held, not owned.
     mqbplug::PluginManager* d_pluginManager_p;
 
+    /// Credential provider for outbound authentication.  Null if not
+    /// configured.
+    bslma::ManagedPtr<mqbplug::CredentialProvider> d_credentialProvider_mp;
+
+    /// Credential function loaded from the provider.  Empty if no provider
+    /// is configured.
+    mqbplug::CredentialProvider::CredentialFunc d_credentialFunc;
+
     /// True if this component is started.
     bool d_isStarted;
 
@@ -105,11 +114,16 @@ class AuthenticationController {
     /// Initialize authenticators from configuration.
     int initializeAuthenticators(bsl::ostream& errorDescription);
 
-    /// Collect all available plugin factories (built-in and external).
-    /// Load them into the specified `pluginFactories` collection.
-    /// Return 0 on success, non-zero on error.
+    /// Collect all available plugin factories of the specified `type`
+    /// (built-in and external).  Load them into the specified
+    /// `pluginFactories` collection.  Return 0 on success, non-zero on
+    /// error.
     int collectAvailablePluginFactories(
+        mqbplug::PluginType::Enum                    type,
         bsl::unordered_set<mqbplug::PluginFactory*>* pluginFactories);
+
+    /// Initialize the credential provider from configuration.
+    int initializeCredentialProvider(bsl::ostream& errorDescription);
 
     /// Create authenticators based on configuration from the specified
     /// `authenticatorConfig` using the specified `pluginFactories`.
@@ -171,6 +185,16 @@ class AuthenticationController {
     /// Return the anonymous credential used for authentication.
     /// If no anonymous credential is set, return an empty optional.
     const bsl::optional<mqbcfg::Credential>& anonymousCredential();
+
+    // ACCESSORS
+
+    /// Return true if a credential provider is configured and started.
+    bool hasCredentialProvider() const;
+
+    /// Return a reference to the credential function loaded from the
+    /// configured provider.  The behavior is undefined unless
+    /// `hasCredentialProvider()` returns true.
+    const mqbplug::CredentialProvider::CredentialFunc& credentialFunc() const;
 };
 
 }  // close package namespace

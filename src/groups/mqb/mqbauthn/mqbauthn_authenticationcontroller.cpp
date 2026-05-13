@@ -26,10 +26,13 @@
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
 #include <mqbplug_authenticator.h>
+#include <mqbplug_credentialprovider.h>
 #include <mqbplug_pluginfactory.h>
+#include <mqbplug_plugintype.h>
 
 // BDE
 #include <ball_log.h>
+#include <bdlb_nullablevalue.h>
 #include <bdlb_string.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>
@@ -37,6 +40,7 @@
 #include <bsl_unordered_map.h>
 #include <bsl_unordered_set.h>
 #include <bsl_vector.h>
+#include <bslmf_movableref.h>
 
 namespace BloombergLP {
 namespace mqbauthn {
@@ -123,7 +127,9 @@ int AuthenticationController::initializeAuthenticators(
 
     // Step 1: Collect all available plugin factories (built-in + external)
     PluginFactories pluginFactories(d_allocator_p);
-    if (int rc = collectAvailablePluginFactories(&pluginFactories)) {
+    if (int rc = collectAvailablePluginFactories(
+            mqbplug::PluginType::e_AUTHENTICATOR,
+            &pluginFactories)) {
         return rc * 10 + rc_COLLECT_FACTORIES_FAILED;  // RETURN
     }
 
@@ -164,17 +170,17 @@ int AuthenticationController::initializeAuthenticators(
 }
 
 int AuthenticationController::collectAvailablePluginFactories(
-    PluginFactories* pluginFactories)
+    mqbplug::PluginType::Enum type,
+    PluginFactories*          pluginFactories)
 {
     // Collect external plugin factories loaded by PluginManager
-    d_pluginManager_p->get(mqbplug::PluginType::e_AUTHENTICATOR,
-                           pluginFactories);
+    d_pluginManager_p->get(type, pluginFactories);
 
     // Add built-in plugin factories
     bsl::vector<mqbplug::PluginInfo>::const_iterator it =
         d_builtInPluginLibrary->plugins().cbegin();
     for (; it != d_builtInPluginLibrary->plugins().cend(); ++it) {
-        if (it->type() == mqbplug::PluginType::e_AUTHENTICATOR) {
+        if (it->type() == type) {
             pluginFactories->insert(it->factory().get());
         }
     }
@@ -381,6 +387,70 @@ int AuthenticationController::ensureDefaultAuthenticator(
     return 0;
 }
 
+int AuthenticationController::initializeCredentialProvider(
+    bsl::ostream& errorDescription)
+{
+    enum RcEnum {
+        rc_SUCCESS          = 0,
+        rc_COLLECT_FAILED   = -1,
+        rc_PLUGIN_NOT_FOUND = -2,
+        rc_START_FAILED     = -3
+    };
+
+    const bdlb::NullableValue<mqbcfg::CredentialProviderConfig>& credProvCfg =
+        mqbcfg::BrokerConfig::get().authentication().credentialProvider();
+
+    if (credProvCfg.isNull()) {
+        return rc_SUCCESS;  // RETURN
+    }
+
+    const bsl::string& providerName = credProvCfg.value().name();
+
+    BALL_LOG_INFO << "Configuring credential provider '" << providerName
+                  << "'";
+
+    PluginFactories factories(d_allocator_p);
+    if (int rc = collectAvailablePluginFactories(
+            mqbplug::PluginType::e_CREDENTIAL_PROVIDER,
+            &factories)) {
+        return rc * 10 + rc_COLLECT_FAILED;  // RETURN
+    }
+
+    for (PluginFactories::const_iterator it = factories.cbegin();
+         it != factories.cend();
+         ++it) {
+        mqbplug::CredentialProviderPluginFactory* candidate =
+            dynamic_cast<mqbplug::CredentialProviderPluginFactory*>(*it);
+        if (!candidate) {
+            continue;
+        }
+        bslma::ManagedPtr<mqbplug::CredentialProvider> provider =
+            candidate->create(d_allocator_p);
+        if (provider) {
+            d_credentialProvider_mp = bslmf::MovableRefUtil::move(provider);
+            break;
+        }
+    }
+
+    if (!d_credentialProvider_mp) {
+        errorDescription << "CredentialProvider plugin '" << providerName
+                         << "' not found";
+        return rc_PLUGIN_NOT_FOUND;  // RETURN
+    }
+
+    int rc = d_credentialProvider_mp->start(errorDescription);
+    if (rc != 0) {
+        return rc * 10 + rc_START_FAILED;  // RETURN
+    }
+
+    d_credentialFunc = d_credentialProvider_mp->load();
+
+    BALL_LOG_INFO << "Credential provider '" << providerName << "' started";
+
+    return rc_SUCCESS;
+}
+
+// CREATORS
 AuthenticationController::AuthenticationController(
     mqbplug::PluginManager* pluginManager,
     bslma::Allocator*       allocator)
@@ -388,6 +458,8 @@ AuthenticationController::AuthenticationController(
       bslma::ManagedPtrUtil::allocateManaged<mqbauthn::PluginLibrary>(
           allocator))
 , d_pluginManager_p(pluginManager)
+, d_credentialProvider_mp()
+, d_credentialFunc()
 , d_isStarted(false)
 , d_allocator_p(allocator)
 {
@@ -397,10 +469,11 @@ int AuthenticationController::start(bsl::ostream& errorDescription)
 {
     enum RcEnum {
         // Enum for the various RC error categories
-        rc_SUCCESS             = 0,
-        rc_ALREADY_STARTED     = -1,
-        rc_INVALID_CONFIG      = -2,
-        rc_INIT_AUTHENTICATORS = -3
+        rc_SUCCESS                  = 0,
+        rc_ALREADY_STARTED          = -1,
+        rc_INVALID_CONFIG           = -2,
+        rc_INIT_AUTHENTICATORS      = -3,
+        rc_INIT_CREDENTIAL_PROVIDER = -4
     };
 
     if (d_isStarted) {
@@ -420,7 +493,10 @@ int AuthenticationController::start(bsl::ostream& errorDescription)
         return rc * 10 + rc_INIT_AUTHENTICATORS;
     }
 
-    // Initialize Authenticators from plugins
+    rc = initializeCredentialProvider(errorDescription);
+    if (rc != 0) {
+        return rc * 10 + rc_INIT_CREDENTIAL_PROVIDER;
+    }
 
     d_isStarted = true;
     return rc_SUCCESS;
@@ -435,6 +511,13 @@ void AuthenticationController::stop()
     BALL_LOG_INFO << "Stopping AuthenticationController";
 
     d_isStarted = false;
+
+    // Stop credential provider
+    if (d_credentialProvider_mp) {
+        d_credentialProvider_mp->stop();
+        d_credentialProvider_mp.reset();
+        d_credentialFunc = mqbplug::CredentialProvider::CredentialFunc();
+    }
 
     // Stop all authenticators
     for (AuthenticatorMap::iterator it = d_authenticators.begin();
@@ -497,6 +580,19 @@ const bsl::optional<mqbcfg::Credential>&
 AuthenticationController::anonymousCredential()
 {
     return d_anonymousCredential;
+}
+
+// ACCESSORS
+bool AuthenticationController::hasCredentialProvider() const
+{
+    return d_credentialProvider_mp.get() != 0;
+}
+
+const mqbplug::CredentialProvider::CredentialFunc&
+AuthenticationController::credentialFunc() const
+{
+    BSLS_ASSERT_SAFE(hasCredentialProvider());
+    return d_credentialFunc;
 }
 
 }  // close package namespace

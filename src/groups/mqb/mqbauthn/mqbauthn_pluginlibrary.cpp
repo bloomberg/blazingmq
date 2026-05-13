@@ -18,6 +18,7 @@
 // MQB
 #include <mqbauthn_anonauthenticator.h>
 #include <mqbauthn_basicauthenticator.h>
+#include <mqbauthn_basiccredentialprovider.h>
 #include <mqbauthn_testauthenticator.h>
 
 namespace BloombergLP {
@@ -54,6 +55,15 @@ PluginLibrary::PluginLibrary(bslma::Allocator* allocator)
     testPluginInfo.setFactory(
         bsl::allocate_shared<TestAuthenticatorPluginFactory>(allocator));
     testPluginInfo.setDescription("Test Authenticator");
+
+    // BasicCredentialProvider
+    mqbplug::PluginInfo& credProviderInfo = d_plugins.emplace_back(
+        mqbplug::PluginType::e_CREDENTIAL_PROVIDER,
+        mqbauthn::BasicCredentialProvider::k_NAME);
+    credProviderInfo.setFactory(
+        bsl::allocate_shared<BasicCredentialProviderPluginFactory>(allocator));
+    credProviderInfo.setDescription(
+        "Built-in Basic Username/Password Credential Provider");
 }
 
 PluginLibrary::~PluginLibrary()
