@@ -179,6 +179,9 @@ void LogCleaner::stop()
         return;  // RETURN
     }
 
+    // no future work
+    d_logsCleaningContext.stop();
+
     // cancel the logs cleaning recurring event and synchronize with the
     // callback
     d_scheduler_p->cancelEventAndWait(&d_logsCleaningEvent);
