@@ -140,6 +140,84 @@ def check_if_queue_has_n_messages(consumer: Client, queue: str, expected_count: 
     return msgs
 
 
+def rollover_queues_and_apps_test(cluster: Cluster, domain_urls, trigger_rollover_fn):
+    """
+    Test that queue and appId information are preserved across rollover, even
+    after cluster restart.
+
+    The caller supplies `trigger_rollover_fn(leader, producer)` which
+    performs the actual rollover (e.g. admin command or CSL simulation).
+
+    1. PROLOGUE:
+        - both priority and fanout queues
+        - post two messages
+        - confirm one on priority and "foo"
+        - add "quux" to the fanout
+        - post to fanout
+        - remove "bar"
+    2. SWITCH:
+        Trigger rollover via `trigger_rollover_fn`.  Then, restart the cluster.
+    3. EPILOGUE:
+        - priority consumer gets the second message
+        - "foo" gets 2 messages
+        - "bar" gets 0 messages
+        - "baz" gets 3 messages
+        - "quux" gets the third message
+    """
+
+    du = domain_urls
+    leader = cluster.last_known_leader
+    leader.drain()
+    proxy = next(cluster.proxy_cycle())
+    producer = proxy.create_client("producer")
+
+    # PROLOGUE
+    priority_queue = f"bmq://{du.domain_priority}/q_in_use"
+    fanout_queue = f"bmq://{du.domain_fanout}/q_in_use"
+    for queue in [priority_queue, fanout_queue]:
+        producer.open(queue, flags=["write,ack"], succeed=True)
+        producer.post(
+            queue,
+            ["msg1", "msg2"],
+            succeed=True,
+            wait_ack=True,
+        )
+
+    consumer = proxy.create_client("consumer")
+    consumer.open(priority_queue, flags=["read"], succeed=True)
+    consumer.open(fanout_queue + "?id=foo", flags=["read"], succeed=True)
+    consumer.confirm(priority_queue, "+1", succeed=True)
+    consumer.confirm(fanout_queue + "?id=foo", "+1", succeed=True)
+    consumer.close(priority_queue, succeed=True)
+    consumer.close(fanout_queue + "?id=foo", succeed=True)
+
+    current_app_ids = tc.TEST_APPIDS[:] + ["quux"]
+    cluster.set_app_ids(current_app_ids, du)
+    producer.post(
+        fanout_queue,
+        ["msg3"],
+        succeed=True,
+        wait_ack=True,
+    )
+
+    current_app_ids.remove("bar")
+    cluster.set_app_ids(current_app_ids, du)
+
+    # SWITCH
+    trigger_rollover_fn(leader, producer)
+
+    cluster.restart_nodes()
+    if cluster.is_single_node:
+        producer.wait_state_restored()
+
+    # EPILOGUE
+    check_if_queue_has_n_messages(consumer, priority_queue, 1)
+    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=foo", 2)
+    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=bar", 0)
+    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=baz", 3)
+    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=quux", 1)
+
+
 def run_storage_tool(journal_file: Path, mode: str) -> subprocess.CompletedProcess:
     """Run storage tool on `journal_file` in the specified `mode`."""
 

@@ -17,6 +17,9 @@
 Testing rollover of CSL file.
 """
 
+import glob
+from functools import partial
+
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (
     Cluster,
@@ -24,14 +27,11 @@ from blazingmq.dev.it.fixtures import (
     tweak,
 )
 from blazingmq.dev.it.cluster_util import (
+    rollover_queues_and_apps_test,
     simulate_csl_rollover,
-    check_if_queue_has_n_messages,
 )
-import glob
 
 pytestmark = order(4)
-
-DEFAULT_APP_IDS = tc.TEST_APPIDS[:]
 
 
 class TestRolloverCSL:
@@ -44,7 +44,6 @@ class TestRolloverCSL:
         leader.drain()
 
         proxy = next(cluster.proxy_cycle())
-        domain_priority = domain_urls.domain_priority
 
         producer = proxy.create_client("producer")
 
@@ -69,82 +68,8 @@ class TestRolloverCSL:
         """
         Test that queue and appId information are preserved across rollover of
         CSL file, even after cluster restart.
-
-        1. PROLOGUE:
-            - both priority and fanout queues
-            - post two messages
-            - confirm one on priority and "foo"
-            - add "quux" to the fanout
-            - post to fanout
-            - remove "bar"
-        2. SWITCH:
-            By opening and GC'ing queues, cause the CSL file to rollover.
-            Then, restart the cluster.
-        3. EPILOGUE:
-            - priority consumer gets the second message
-            - "foo" gets 2 messages
-            - "bar" gets 0 messages
-            - "baz" gets 3 messages
-            - "quux" gets the third message
         """
-        du = domain_urls
-        leader = cluster.last_known_leader
-        leader.drain()
-        proxy = next(cluster.proxy_cycle())
-        producer = proxy.create_client("producer")
 
-        # PROLOGUE
-        priority_queue = f"bmq://{du.domain_priority}/q_in_use"
-        fanout_queue = f"bmq://{du.domain_fanout}/q_in_use"
-        for queue in [priority_queue, fanout_queue]:
-            producer.open(queue, flags=["write,ack"], succeed=True)
-            producer.post(
-                queue,
-                ["msg1", "msg2"],
-                succeed=True,
-                wait_ack=True,
-            )
-
-        consumer = proxy.create_client("consumer")
-        consumer.open(
-            priority_queue,
-            flags=["read"],
-            succeed=True,
+        rollover_queues_and_apps_test(
+            cluster, domain_urls, partial(simulate_csl_rollover, domain_urls)
         )
-        consumer.open(
-            fanout_queue + "?id=foo",
-            flags=["read"],
-            succeed=True,
-        )
-        consumer.confirm(priority_queue, "+1", succeed=True)
-        consumer.confirm(fanout_queue + "?id=foo", "+1", succeed=True)
-        consumer.close(priority_queue, succeed=True)
-        consumer.close(fanout_queue + "?id=foo", succeed=True)
-
-        current_app_ids = DEFAULT_APP_IDS + ["quux"]
-        cluster.set_app_ids(current_app_ids, du)
-        producer.post(
-            fanout_queue,
-            ["msg3"],
-            succeed=True,
-            wait_ack=True,
-        )
-
-        current_app_ids.remove("bar")
-        cluster.set_app_ids(current_app_ids, du)
-
-        # SWITCH
-        simulate_csl_rollover(du, leader, producer)
-
-        cluster.restart_nodes()
-        # For a standard cluster, states have already been restored as part of
-        # leader re-election.
-        if cluster.is_single_node:
-            producer.wait_state_restored()
-
-        # EPILOGUE
-        check_if_queue_has_n_messages(consumer, priority_queue, 1)
-        check_if_queue_has_n_messages(consumer, fanout_queue + "?id=foo", 2)
-        check_if_queue_has_n_messages(consumer, fanout_queue + "?id=bar", 0)
-        check_if_queue_has_n_messages(consumer, fanout_queue + "?id=baz", 3)
-        check_if_queue_has_n_messages(consumer, fanout_queue + "?id=quux", 1)
