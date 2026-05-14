@@ -706,17 +706,13 @@ void StorageManager::determineDataDestinations(DataDestinations* destinations,
             nodePSN.primaryLeaseId());
         if (PSNCit != highestPSNs.end() &&
             nodePSN.sequenceNumber() > PSNCit->second) {
-            bmqp_ctrlmsg::PartitionSequenceNumber highestPSN;
-            highestPSN.primaryLeaseId() = PSNCit->first;
-            highestPSN.sequenceNumber() = PSNCit->second;
-
             BALL_LOG_WARN
                 << d_clusterData_p->identity().description() << " Partition ["
                 << partitionId << "]: " << "Replica "
                 << cit->first->nodeDescription() << " has PSN "
                 << mqbs::printPSN(nodePSN)
-                << ", while the highest PSN for the same primary "
-                << "lease ID is " << mqbs::printPSN(highestPSN)
+                << ", while the highest PSN for the same lease ID is "
+                << mqbs::printPSN(PSNCit->first, PSNCit->second)
                 << ", implying that it has extra irreconcilable records.  We "
                 << "need to send ReplicaDataRequestDrop to this replica.";
 
@@ -730,11 +726,10 @@ void StorageManager::determineDataDestinations(DataDestinations* destinations,
                 << partitionId << "]: " << "Replica "
                 << cit->first->nodeDescription() << " has PSN "
                 << mqbs::printPSN(nodePSN)
-                << ", whose primary lease id is lower than self's PSN "
+                << ", whose lease id is lower than self's PSN "
                 << mqbs::printPSN(selfPSN)
                 << ", and there is no known highest PSN for the "
-                << "same primary lease id.  This implies that this replica "
-                   "has "
+                << "same lease id.  This implies that this replica has "
                 << "extra irreconcilable records, and we need to send "
                 << "ReplicaDataRequestDrop to this replica.";
 
@@ -2670,31 +2665,34 @@ void StorageManager::do_failureReplicaDataResponsePull(
 
     const PartitionFSMEventData& eventData   = eventDataVec[0];
     const int                    partitionId = eventData.partitionId();
-
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
 
     mqbnet::ClusterNode* destNode = eventData.source();
-
     BSLS_ASSERT_SAFE(destNode);
     BSLS_ASSERT_SAFE(d_partitionInfoVec[partitionId].primary());
     BSLS_ASSERT_SAFE(destNode->nodeId() ==
                      d_partitionInfoVec[partitionId].primary()->nodeId());
-    // TODO Continue verifying here
 
     bmqp_ctrlmsg::ControlMessage controlMsg;
     controlMsg.rId() = eventData.requestId();
 
     bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
     status.category()            = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
-    status.code()                = mqbi::ClusterErrorCode::e_STORAGE_FAILURE;
-    status.message()             = "Failed to send data chunks";
+    if (event.first == PartitionFSM::Event::e_IRRECONCILABLE_DATA) {
+        status.code()    = mqbi::ClusterErrorCode::e_IRRECONCILABLE_DATA;
+        status.message() = "Primary has irreconcilable data";
+    }
+    else {
+        status.code()    = mqbi::ClusterErrorCode::e_STORAGE_FAILURE;
+        status.message() = "Failed to send data chunks";
+    }
 
     fileStore(partitionId).sendMessage(controlMsg, destNode);
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId
-                  << "]: " << ": Sent failure response " << controlMsg
+                  << "]: " << "Sent failure response " << controlMsg
                   << " to ReplicaDataRequestPull from primary node "
                   << destNode->nodeDescription() << ".";
 }
@@ -2784,14 +2782,9 @@ void StorageManager::do_sendDataToPrimary(const EventWithData& event)
         eventData.partitionSeqNumDataRange().first;
     const bmqp_ctrlmsg::PartitionSequenceNumber endSeqNum =
         eventData.partitionSeqNumDataRange().second;
+    BSLS_ASSERT_SAFE(beginSeqNum < endSeqNum);
     BSLS_ASSERT_SAFE(endSeqNum ==
                      d_nodeToPSNCtxMapVec[partitionId][selfNode].d_PSN);
-
-    const int status = d_recoveryManager_mp->processSendDataChunks(partitionId,
-                                                                   destNode,
-                                                                   beginSeqNum,
-                                                                   endSeqNum,
-                                                                   fs);
 
     EventData sendEventDataVec;
     sendEventDataVec.emplace_back(destNode,
@@ -2799,6 +2792,56 @@ void StorageManager::do_sendDataToPrimary(const EventWithData& event)
                                   partitionId,
                                   1,
                                   eventData.partitionSeqNumDataRange());
+
+    // NOTE: In case the primary has missed rollover, it has already checked
+    // during `do_primaryRemoveStorageIfNeeded` and has removed its own
+    // storage, so we don't worry about that case.
+
+    // Check if the primary's PSN (beginSeqNum) is irreconcilable with
+    // replica's known highest PSNs.
+    const mqbs::FileStore::LeaseIdToSeqNumMap& highestPSNs =
+        fs.highestSeqNums();
+    mqbs::FileStore::LeaseIdToSeqNumMapCIter PSNCit = highestPSNs.find(
+        beginSeqNum.primaryLeaseId());
+    if (PSNCit != highestPSNs.end() &&
+        beginSeqNum.sequenceNumber() > PSNCit->second) {
+        BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId << "]: "
+                      << "Primary " << destNode->nodeDescription()
+                      << " has PSN " << mqbs::printPSN(beginSeqNum)
+                      << ", while the highest PSN for the same lease ID is "
+                      << mqbs::printPSN(PSNCit->first, PSNCit->second)
+                      << ", implying that primary has irreconcilable "
+                      << "records.  We will reply with a failure "
+                      << "ReplicaDataResponsePull.";
+
+        enqueuePartitionFSMEvent(PartitionFSM::Event::e_IRRECONCILABLE_DATA,
+                                 sendEventDataVec);
+        return;  // RETURN
+    }
+
+    if (PSNCit == highestPSNs.end() && beginSeqNum.primaryLeaseId() > 0) {
+        BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId << "]: " << "Primary "
+                      << destNode->nodeDescription() << " has PSN "
+                      << mqbs::printPSN(beginSeqNum)
+                      << ", whose lease id is lower than self's PSN "
+                      << mqbs::printPSN(endSeqNum)
+                      << ", and there is no known highest PSN for the "
+                      << "same lease id.  This implies that this primary has "
+                      << "extra irreconcilable records.  We will reply with a "
+                      << "failure ReplicaDataResponsePull.";
+
+        enqueuePartitionFSMEvent(PartitionFSM::Event::e_IRRECONCILABLE_DATA,
+                                 sendEventDataVec);
+        return;  // RETURN
+    }
+
+    const int status = d_recoveryManager_mp->processSendDataChunks(partitionId,
+                                                                   destNode,
+                                                                   beginSeqNum,
+                                                                   endSeqNum,
+                                                                   fs);
 
     if (status != 0) {
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
