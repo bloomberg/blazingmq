@@ -54,6 +54,7 @@
 #include <bsl_ostream.h>
 #include <bsl_vector.h>
 #include <bsla_annotations.h>
+#include <bslmt_threadattributes.h>
 #include <bslmt_threadutil.h>
 #include <bsls_timeinterval.h>
 
@@ -401,7 +402,7 @@ Authenticator::Authenticator(
     bslma::Allocator*                   allocator)
 : d_allocator_p(allocator)
 , d_authnController_p(authnController)
-, d_threadPool(bmqsys::ThreadUtil::defaultAttributes(),
+, d_threadPool(bslmt::ThreadAttributes(),
                mqbcfg::BrokerConfig::get().authentication().minThreads(),
                mqbcfg::BrokerConfig::get().authentication().maxThreads(),
                bsls::TimeInterval(120).totalMilliseconds(),  // idle time

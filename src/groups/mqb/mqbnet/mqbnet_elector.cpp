@@ -22,7 +22,6 @@
 #include <bmqp_schemaeventbuilder.h>
 
 #include <bmqio_status.h>
-#include <bmqsys_threadutil.h>
 #include <bmqsys_time.h>
 
 // MQB
@@ -45,6 +44,7 @@
 #include <bsla_annotations.h>
 #include <bslim_printer.h>
 #include <bslmt_mutexassert.h>
+#include <bslmt_threadutil.h>
 #include <bsls_systemclocktype.h>
 #include <bsls_timeinterval.h>
 
@@ -2259,7 +2259,7 @@ Elector::Elector(mqbcfg::ElectorConfig&        config,
 
     d_scheduler.scheduleEvent(
         bsls::TimeInterval(0, 0),  // now
-        bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
+        bdlf::BindUtil::bind(&bslmt::ThreadUtil::setThreadName,
                              "bmqSchedElec"));
 }
 

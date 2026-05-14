@@ -18,8 +18,6 @@
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
 
-#include <bmqsys_threadutil.h>
-
 // BDE
 #include <bdlf_bind.h>
 #include <bsl_functional.h>  // bsl::cref
@@ -154,7 +152,7 @@ static void test2_context_creators()
             bdlf::BindUtil::bind(bslmt::ThreadUtil::setSpecific,
                                  bsl::cref(tlsKey),
                                  &threadsCompleted),
-            bmqsys::ThreadUtil::defaultAttributes());
+            bslmt::ThreadAttributes());
     }
 
     // destroy context singleton object

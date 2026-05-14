@@ -28,7 +28,6 @@
 // BMQ
 #include <bmqio_statchannelfactory.h>
 #include <bmqsys_statmonitor.h>
-#include <bmqsys_threadutil.h>
 #include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
 
@@ -48,6 +47,7 @@
 #include <bsla_annotations.h>
 #include <bslmt_condition.h>
 #include <bslmt_mutex.h>
+#include <bslmt_threadattributes.h>
 #include <bslmt_threadutil.h>
 #include <bsls_performancehint.h>
 
@@ -1139,7 +1139,7 @@ class PrometheusPushStatExporter : public PrometheusStatExporter {
     void prometheusPushThread()
     {
         // executed by the dedicated prometheus push thread
-        bmqsys::ThreadUtil::setCurrentThreadName(k_THREADNAME);
+        bslmt::ThreadUtil::setThreadName(k_THREADNAME);
 
         BALL_LOG_INFO << "Prometheus Push thread has started [id: "
                       << bslmt::ThreadUtil::selfIdAsUint64() << "]";
@@ -1197,7 +1197,7 @@ class PrometheusPushStatExporter : public PrometheusStatExporter {
         // create push thread
         int rc = bslmt::ThreadUtil::create(
             &d_prometheusPushThreadHandle,
-            bmqsys::ThreadUtil::defaultAttributes(),
+            bslmt::ThreadAttributes(),
             bdlf::BindUtil::bind(
                 &PrometheusPushStatExporter::prometheusPushThread,
                 this));

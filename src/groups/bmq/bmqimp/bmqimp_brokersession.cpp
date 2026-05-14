@@ -37,7 +37,6 @@
 #include <bmqio_channel.h>
 #include <bmqio_status.h>
 #include <bmqst_statcontext.h>
-#include <bmqsys_threadutil.h>
 #include <bmqsys_time.h>
 #include <bmqu_blob.h>
 #include <bmqu_memoutstream.h>
@@ -63,7 +62,10 @@
 #include <bslmt_mutexassert.h>
 #include <bslmt_readlockguard.h>
 #include <bslmt_semaphore.h>
+#include <bslmt_threadattributes.h>
+#include <bslmt_threadutil.h>
 #include <bsls_assert.h>
+#include <bsls_keyword.h>
 #include <bsls_performancehint.h>
 #include <bsls_systemclocktype.h>
 #include <bsls_timeinterval.h>
@@ -72,6 +74,20 @@ namespace BloombergLP {
 namespace bmqimp {
 
 namespace {
+
+// UTILITY FUNCTIONS
+
+void setCurrentThreadNameOnce(const bsl::string& value)
+{
+    static BSLS_KEYWORD_THREAD_LOCAL bool s_named = false;
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!s_named)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        bslmt::ThreadUtil::setThreadName(value);
+        s_named = true;
+    }
+}
+
 // CONSTANTS
 
 /// To make sure control messages will go through, we give them a higher
@@ -5792,8 +5808,7 @@ BrokerSession::BrokerSession(
     resetState();
 
     // Spawn the FSM thread
-    bslmt::ThreadAttributes threadAttributes =
-        bmqsys::ThreadUtil::defaultAttributes();
+    bslmt::ThreadAttributes threadAttributes;
     threadAttributes.setThreadName("bmqFSMEvtQ");
     if (bslmt::ThreadUtil::createWithAllocator(
             &d_fsmThread,
@@ -5882,7 +5897,7 @@ void BrokerSession::setChannel(const bsl::shared_ptr<bmqio::Channel>& channel)
 {
     // executed by the *IO* thread
 
-    bmqsys::ThreadUtil::setCurrentThreadNameOnce("bmqTCPIO");
+    setCurrentThreadNameOnce("bmqTCPIO");
 
     if (channel) {  // We are now connected to bmqbrkr
         BALL_LOG_INFO << id()

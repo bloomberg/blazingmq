@@ -18,14 +18,14 @@
 #include <mqbscm_version.h>
 // BDE
 #include <bdlf_bind.h>
+#include <bsl_memory.h>
 #include <bslmt_lockguard.h>
+#include <bslmt_threadattributes.h>
 #include <bsls_assert.h>
 #include <bsls_performancehint.h>
 #include <bsls_systemtime.h>
 
-#include <bmqsys_threadutil.h>
 #include <bmqu_printutil.h>
-#include <bsl_memory.h>
 
 namespace BloombergLP {
 namespace mqbnet {
@@ -86,7 +86,7 @@ Channel::Channel(bdlbb::BlobBufferFactory* blobBufferFactory,
 , d_stats()
 , d_isStopping(false)
 {
-    bslmt::ThreadAttributes attr = bmqsys::ThreadUtil::defaultAttributes();
+    bslmt::ThreadAttributes attr;
     bsl::string             threadName("bmqNet-");
     attr.setThreadName(threadName + d_name);
     d_buffer.setWatermarks(50000, 100000, 500000);

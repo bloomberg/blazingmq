@@ -22,7 +22,6 @@
 #include <bmqma_countingallocator.h>
 #include <bmqma_countingallocatorutil.h>
 #include <bmqst_statcontext.h>
-#include <bmqsys_threadutil.h>
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
@@ -39,6 +38,7 @@
 #include <bsl_memory.h>
 #include <bslma_default.h>
 #include <bslma_newdeleteallocator.h>
+#include <bslmt_threadutil.h>
 #include <bsls_types.h>
 
 namespace BloombergLP {
@@ -197,7 +197,7 @@ int Task::onControlMessage(const bsl::string& message)
 
     // Intercept the M-Trap to set the name of this PIPE CONTROL CHANNEL thread
     if (bdlb::String::areEqualCaseless(message, k_MTRAP_SET_THREADNAME)) {
-        bmqsys::ThreadUtil::setCurrentThreadName("bmqPipeCtrl");
+        bslmt::ThreadUtil::setThreadName("bmqPipeCtrl");
         return 0;  // RETURN
     }
 
@@ -287,7 +287,7 @@ int Task::initialize(bsl::ostream&             errorDescription,
 
     d_scheduler.scheduleEvent(
         bsls::TimeInterval(0, 0),  // now
-        bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
+        bdlf::BindUtil::bind(&bslmt::ThreadUtil::setThreadName,
                              "bmqSchedTask"));
 
     // -------------

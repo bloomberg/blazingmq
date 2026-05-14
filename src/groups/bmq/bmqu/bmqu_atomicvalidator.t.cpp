@@ -15,11 +15,10 @@
 
 #include <bmqu_atomicvalidator.h>
 
-#include <bmqsys_threadutil.h>
-
 // BDE
 #include <bdlf_bind.h>
 #include <bsl_iostream.h>
+#include <bslmt_threadattributes.h>
 #include <bslmt_threadutil.h>
 
 // TEST DRIVER
@@ -214,7 +213,7 @@ static void test2_atomicValidatorMultiThreaded()
     for (int i = 0; i < k_NUM_THREADS; ++i) {
         int ret = bslmt::ThreadUtil::createWithAllocator(
             &handles[i],
-            bmqsys::ThreadUtil::defaultAttributes(),
+            bslmt::ThreadAttributes(),
             bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
                                   &acquireReleaseThread,
                                   &validator,
