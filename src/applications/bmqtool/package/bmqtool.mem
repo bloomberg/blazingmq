@@ -2,6 +2,7 @@ m_bmqtool_application
 m_bmqtool_filelogger
 m_bmqtool_inpututil
 m_bmqtool_interactive
+m_bmqtool_latencystorage
 m_bmqtool_messages
 m_bmqtool_parameters
 m_bmqtool_poster

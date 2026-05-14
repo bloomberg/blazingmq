@@ -27,6 +27,7 @@
 // BMQTOOL
 #include <m_bmqtool_filelogger.h>
 #include <m_bmqtool_interactive.h>
+#include <m_bmqtool_latencystorage.h>
 #include <m_bmqtool_messages.h>
 #include <m_bmqtool_poster.h>
 #include <m_bmqtool_storageinspector.h>
@@ -43,10 +44,7 @@
 // BDE
 #include <ball_multiplexobserver.h>
 #include <bdlbb_blob.h>
-#include <bdlbb_pooledblobbufferfactory.h>
 #include <bdlmt_eventscheduler.h>
-#include <bdlmt_throttle.h>
-#include <bsl_list.h>
 #include <bsl_memory.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
@@ -131,26 +129,16 @@ class Application : public bmqa::SessionEventHandler {
     Interactive d_interactive;
     // CLI handler.
 
-    /// A throttle object used to control confirm latency logging on a consumer
-    bdlmt::Throttle d_confirmLatencyThrottle;
-
-    /// List of all confirm message latencies (in ns).
+    /// Storage for confirm message latencies (rounded and bucketed).
     /// Confirm message latency is the end-to-end time to deliver a message,
     /// starting from producer post and ending on a consumer.
-    /// Only populated when requested to generate a latency report (with
-    /// --latency-report).
-    bsl::list<bsls::Types::Int64> d_confirmLatencies;
+    LatencyStorage d_confirmLatencyStorage;
 
-    /// A throttle object used to control ack latency logging on a consumer
-    bdlmt::Throttle d_ackLatencyThrottle;
-
-    /// List of all ack message latencies (in ns).
+    /// Storage for ack message latencies (rounded and bucketed).
     /// Ack message latency is the time between posting a message and getting
     /// an ACK for it, meaning that the message was at least replicated with
     /// a needed quorum (delivery might not have happened yet).
-    /// Only populated when requested to generate a latency report (with
-    /// --latency-report).
-    bsl::list<bsls::Types::Int64> d_ackLatencies;
+    LatencyStorage d_ackLatencyStorage;
 
     bsls::AtomicBool d_autoReadInProgress;
     // Auto-consume mode only.  True if a
@@ -212,12 +200,8 @@ class Application : public bmqa::SessionEventHandler {
     /// Print the final stats to the standard output, at exit time.
     void printFinalStats();
 
-    /// Generate the latency report from the specified `latencies`.
-    /// The specified `name` represents the origin of the latencies, it is
-    /// either end-to-end latency (producer->consumer) or ack latency
-    /// (producer->cluster->producer-ack).
-    void generateLatencyReport(const bsl::list<bsls::Types::Int64>& latencies,
-                               const bslstl::StringRef&             name);
+    /// Generate the latency report from the specified `latencyStorage`.
+    void generateLatencyReport(const LatencyStorage& latencyStorage);
 
     /// Do any `pre` run initialization, such as connecting to bmqbrkr,
     /// opening a queue, preparing the blob to publish, ...  Return 0 on

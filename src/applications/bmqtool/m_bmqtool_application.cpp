@@ -53,13 +53,10 @@
 #include <bdlf_bind.h>
 #include <bdlf_memfn.h>
 #include <bdlf_placeholder.h>
-#include <bdlt_timeunitratio.h>
-#include <bsl_algorithm.h>
 #include <bsl_fstream.h>
 #include <bsl_iomanip.h>
 #include <bsl_iostream.h>
 #include <bsl_memory.h>
-#include <bsl_numeric.h>
 #include <bsl_ostream.h>
 #include <bsl_vector.h>
 #include <bsla_annotations.h>
@@ -77,13 +74,6 @@ namespace m_bmqtool {
 namespace {
 
 BALL_LOG_SET_NAMESPACE_CATEGORY("BMQTOOL.APPLICATION");
-
-/// The maximum latencies logged per second
-const int k_MAX_LATENCIES_PER_SECOND = 1000;
-
-/// The average expected time between logged latencies
-const bsls::Types::Int64 k_NS_PER_LATENCY = bdlt::TimeUnitRatio::k_NS_PER_S /
-                                            k_MAX_LATENCIES_PER_SECOND;
 
 /// Stack-built functor to pass to `bmqp::ProtocolUtil::buildEvent`
 struct BuildConfirmFunctor {
@@ -439,124 +429,26 @@ void Application::printFinalStats()
               << "Final stats: " << ss.str() << bsl::endl;
 }
 
-void Application::generateLatencyReport(
-    const bsl::list<bsls::Types::Int64>& latencies,
-    const bslstl::StringRef&             name)
+void Application::generateLatencyReport(const LatencyStorage& latencyStorage)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!latencies.empty());
+    BSLS_ASSERT_SAFE(latencyStorage.totalCount() > 0);
     BSLS_ASSERT_SAFE(!d_parameters.latencyReportPath().empty());
 
     bsl::cout << "====================\n"
-              << "Latency Report (" << name
-              << "): " << d_parameters.latencyReportPath() << "\n"
+              << "Latency Report: " << d_parameters.latencyReportPath() << "\n"
               << "====================\n";
 
-    // 1. Skip the first 30s worth of data, to avoid initial warmup to
-    //    interfere and skew the results.  We estimate this by using throttle
-    //    parameters.
-    const unsigned int k_TO_REMOVE_COUNT = k_MAX_LATENCIES_PER_SECOND * 30;
+    latencyStorage.printSummary(bsl::cout);
+    bsl::cout << bsl::endl;
 
-    bsl::list<bsls::Types::Int64>::const_iterator itStart = latencies.cbegin();
-    if (latencies.size() >= k_TO_REMOVE_COUNT * 2) {
-        bsl::advance(itStart, k_TO_REMOVE_COUNT);
-    }
-    else {
-        bsl::cout << " **/!\\: Too few data points (" << latencies.size()
-                  << "), the resulting statistics may not be representative."
-                  << bsl::endl;
-    }
-
-    // 2. Convert the list to a sorted vector: we use a list while collecting
-    //    data to avoid overhead of resizing the vector; but now convert to a
-    //    sorted vector to make it easier to compute some statistic metrics.
-    bsl::vector<bsls::Types::Int64> dataSet(itStart, latencies.cend());
-    bsl::sort(dataSet.begin(), dataSet.end());
-
-    // 3. Compute some interesting metrics
-    const bsls::Types::Int64 min = *bsl::min_element(dataSet.begin(),
-                                                     dataSet.end());
-    const bsls::Types::Int64 max = *bsl::max_element(dataSet.begin(),
-                                                     dataSet.end());
-
-    const bsls::Types::Int64 sum = bsl::accumulate(dataSet.begin(),
-                                                   dataSet.end(),
-                                                   0LL);
-    const double             avg = static_cast<double>(sum) / dataSet.size();
-
-    const bsls::Types::Int64 median = StatUtil::computePercentile(dataSet,
-                                                                  50.0);
-
-    const bsls::Types::Int64 p99 = StatUtil::computePercentile(dataSet, 99.0);
-    const bsls::Types::Int64 p98 = StatUtil::computePercentile(dataSet, 98.0);
-    const bsls::Types::Int64 p97 = StatUtil::computePercentile(dataSet, 97.0);
-    const bsls::Types::Int64 p96 = StatUtil::computePercentile(dataSet, 96.0);
-    const bsls::Types::Int64 p95 = StatUtil::computePercentile(dataSet, 95.0);
-
-    // 4. Print summary stats to stdout
-    bsl::cout
-        << "  Population size.: " << dataSet.size() << "\n"
-        << "  min.............: " << bmqu::PrintUtil::prettyTimeInterval(min)
-        << "\n"
-        << "  avg.............: " << bmqu::PrintUtil::prettyTimeInterval(avg)
-        << "\n"
-        << "  max.............: " << bmqu::PrintUtil::prettyTimeInterval(max)
-        << "\n"
-        << "  median..........: "
-        << bmqu::PrintUtil::prettyTimeInterval(median) << "\n"
-        << "  95Percentile....: " << bmqu::PrintUtil::prettyTimeInterval(p95)
-        << "\n"
-        << "  96Percentile....: " << bmqu::PrintUtil::prettyTimeInterval(p96)
-        << "\n"
-        << "  97Percentile....: " << bmqu::PrintUtil::prettyTimeInterval(p97)
-        << "\n"
-        << "  98Percentile....: " << bmqu::PrintUtil::prettyTimeInterval(p98)
-        << "\n"
-        << "  99Percentile....: " << bmqu::PrintUtil::prettyTimeInterval(p99)
-        << "\n"
-        << bsl::endl;
-
-    // 5. Generate the JSON report
-    bsl::ofstream output(d_parameters.latencyReportPath().c_str());
-    if (!output) {
-        bsl::cout << "Unable to generate latency report, failed to open '"
-                  << d_parameters.latencyReportPath().c_str() << "'"
+    int rc = latencyStorage.save(d_parameters.latencyReportPath());
+    if (rc != 0) {
+        bsl::cout << "Unable to generate latency report, failed to save '"
+                  << d_parameters.latencyReportPath() << "' (rc: " << rc << ")"
                   << bsl::endl;
         return;  // RETURN
     }
-    output << "{\n"
-           << "  \"origin\": \"" << name << "\",\n"
-           << "  \"min\": " << min << ",\n"
-           << "  \"avg\": " << avg << ",\n"
-           << "  \"max\": " << max << ",\n"
-           << "  \"median\": " << median << ",\n"
-           << "  \"99percentile\": " << p99 << ",\n"
-           << "  \"98percentile\": " << p98 << ",\n"
-           << "  \"97percentile\": " << p97 << ",\n"
-           << "  \"96percentile\": " << p96 << ",\n"
-           << "  \"95percentile\": " << p95 << ",\n"
-           << "  \"dataPoints\": [";
-    // Print the unsorted (i.e. in reporting order) data, so that if needed, we
-    // could see the evolution over time and maybe some pattern (for example
-    // initial latency being higher due to cache warmup, ...).
-    int                                           idx = 0;
-    bsl::list<bsls::Types::Int64>::const_iterator it  = itStart;
-    while (it != latencies.cend()) {
-        if (idx++ > 0) {
-            if (idx % 10 == 0) {
-                output << ",\n    ";
-            }
-            else {
-                output << ", ";
-            }
-        }
-        output << *it;
-        ++it;
-    }
-    output << "\n  ]\n"
-           << "}\n";
-
-    output.close();
 }
 
 int Application::initialize()
@@ -781,9 +673,7 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
                     break;  // BREAK
                 }
 
-                if (d_ackLatencyThrottle.requestPermission()) {
-                    d_ackLatencies.push_back(delta);
-                }
+                d_ackLatencyStorage.insert(delta);
 
             } while (false);
 
@@ -858,9 +748,7 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
                     break;  // BREAK
                 }
 
-                if (d_confirmLatencyThrottle.requestPermission()) {
-                    d_confirmLatencies.push_back(delta);
-                }
+                d_confirmLatencyStorage.insert(delta);
 
             } while (false);
 
@@ -1008,19 +896,13 @@ Application::Application(const Parameters& parameters,
 , d_fileLogger(d_parameters.logFilePath(), d_allocator_p)
 , d_poster(&d_fileLogger, d_statContext_sp.get(), d_allocator_p)
 , d_interactive(parameters, &d_poster, d_allocator_p)
-, d_confirmLatencyThrottle()
-, d_confirmLatencies(allocator)
-, d_ackLatencyThrottle()
-, d_ackLatencies(allocator)
+, d_confirmLatencyStorage("end2end", 3, d_allocator_p)
+, d_ackLatencyStorage("ack", 3, d_allocator_p)
 , d_autoReadInProgress(false)
 , d_autoReadActivity(false)
 , d_numExpectedAcks(0)
 , d_numAcknowledged(0)
 {
-    d_confirmLatencyThrottle.initialize(k_MAX_LATENCIES_PER_SECOND,
-                                        k_NS_PER_LATENCY);
-    d_ackLatencyThrottle.initialize(k_MAX_LATENCIES_PER_SECOND,
-                                    k_NS_PER_LATENCY);
 }
 
 Application::~Application()
@@ -1135,11 +1017,11 @@ void Application::stop()
     /// So we don't try to generate two report files or merge these 2 latency
     /// types in one file.  Instead, we prioritize end-to-end latency over ack
     /// latency.
-    if (!d_confirmLatencies.empty()) {
-        generateLatencyReport(d_confirmLatencies, "end2end");
+    if (d_confirmLatencyStorage.totalCount() > 0) {
+        generateLatencyReport(d_confirmLatencyStorage);
     }
-    else if (!d_ackLatencies.empty()) {
-        generateLatencyReport(d_ackLatencies, "ack");
+    else if (d_ackLatencyStorage.totalCount() > 0) {
+        generateLatencyReport(d_ackLatencyStorage);
     }
 
     BALL_LOG_INFO << "Goodbye.";

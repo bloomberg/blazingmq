@@ -28,8 +28,7 @@
 // BMQTOOL
 #include <m_bmqtool_parameters.h>
 
-// BDe
-#include <bsl_vector.h>
+// BDE
 #include <bsls_types.h>
 
 namespace BloombergLP {
@@ -55,16 +54,6 @@ struct StatUtil {
     /// 'resolutionTimer'
     static bsls::Types::Int64
     getNowAsNs(ParametersLatency::Value resolutionTimer);
-
-    /// Compute the `k`th percentile value of the specified `data` (data must
-    /// be sorted). Formula:
-    ///  - compute the index (k percent * data size)
-    ///  - if index is not a whole number, round up to nearest whole number and
-    ///    return value at that index
-    ///  - if index it not a whole number, compute the average of the data at
-    ///    index and index + 1
-    static bsls::Types::Int64
-    computePercentile(const bsl::vector<bsls::Types::Int64>& data, double k);
 };
 
 }  // close package namespace

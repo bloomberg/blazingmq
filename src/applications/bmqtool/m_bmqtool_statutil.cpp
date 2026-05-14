@@ -19,10 +19,6 @@
 
 // BDE
 #include <bdlt_currenttime.h>
-#include <bsl_cmath.h>
-#include <bsl_cstdlib.h>
-#include <bsl_limits.h>
-#include <bsl_vector.h>
 #include <bsls_timeutil.h>
 #include <bsls_types.h>
 
@@ -44,29 +40,6 @@ StatUtil::getNowAsNs(ParametersLatency::Value resolutionTimer)
     }
 
     return 0;
-}
-
-bsls::Types::Int64
-StatUtil::computePercentile(const bsl::vector<bsls::Types::Int64>& data,
-                            double                                 k)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!data.empty());
-
-    // Special case (useless, but just to be complete)
-    if (bsl::abs(k) < bsl::numeric_limits<double>::epsilon()) {
-        return data[0];  // RETURN
-    }
-
-    const int    index     = bsl::floor(k * data.size() / 100.0);
-    const double remainder = bsl::fmod(k * data.size(), 100.0);
-
-    if (bsl::abs(remainder) < bsl::numeric_limits<double>::epsilon()) {
-        return data[index - 1];  // RETURN
-    }
-    else {
-        return (data[index - 1] + data[index]) / 2;  // RETURN
-    }
 }
 
 }  // close package namespace
