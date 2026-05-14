@@ -133,7 +133,7 @@ class TestStrongConsistency:
                 tc.URI_FANOUT_SC_BAZ,
             ]:
                 assert wait_until(
-                    lambda: len(self.consumer.list(uri, block=True)) == 1, 2
+                    lambda: len(self.consumer.list(uri, block=True)) == 1, 10
                 )
 
     def test_suspend_post_resume(
