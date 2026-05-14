@@ -257,19 +257,6 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
             self._logger.error(error)
             raise RuntimeError(error)
 
-    def wait_rollover_complete(self):
-        """
-        Wait until rollover is complete on this broker.
-        """
-
-        self._logger.info(f"Waiting for rollover to complete on broker {self.name}...")
-
-        with internal_use(self):
-            if not self.outputs_substr("ROLLOVER COMPLETE", timeout=BLOCK_TIMEOUT):
-                raise RuntimeError(
-                    f"Rollover did not complete on broker {self.name} within {BLOCK_TIMEOUT}s"
-                )
-
     def dump_queue_internals(self, domain, queue):
         """
         Dump state of the specified 'queue' in the specified 'domain'.
@@ -299,16 +286,29 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
             succeed=succeed,
         )
 
-    def trigger_rollover(self, partitionId: int, succeed=None, timeout=None):
+    def trigger_rollover(self, partitionId: int):
         """
-        Rollover the partition on a cluster specified by 'partitionId'.
+        Rollover the partition on a cluster specified by 'partitionId'.  Call
+        `wait_rollover_complete` to wait until rollover is complete.
         """
 
         return self.command(
-            f"CLUSTERS CLUSTER {self.cluster_name} STORAGE PARTITION {partitionId} ROLLOVER",
-            succeed,
-            timeout=timeout,
+            f"CLUSTERS CLUSTER {self.cluster_name} STORAGE PARTITION {partitionId} ROLLOVER"
         )
+
+    def wait_rollover_complete(self):
+        """
+        Wait until rollover is complete on this broker.  Should be called after
+        `trigger_rollover`.
+        """
+
+        self._logger.info(f"Waiting for rollover to complete on broker {self.name}...")
+
+        with internal_use(self):
+            if not self.outputs_substr("ROLLOVER COMPLETE", timeout=BLOCK_TIMEOUT):
+                raise RuntimeError(
+                    f"Rollover did not complete on broker {self.name} within {BLOCK_TIMEOUT}s"
+                )
 
     def get_storage_partition_summary(
         self, partitionId: int, succeed=None, timeout=None

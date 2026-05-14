@@ -459,7 +459,7 @@ class TestAppSubscriptions:
                 node.capture(r"Received QueueOpRecord of type DELETION")
 
         all_partition_id = -1  # use -1 to rollover all partitions
-        self.leader.trigger_rollover(all_partition_id, succeed=None)
+        self.leader.trigger_rollover(all_partition_id)
 
         for node in cluster.nodes():
             node.wait_rollover_complete()

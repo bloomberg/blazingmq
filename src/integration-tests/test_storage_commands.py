@@ -37,21 +37,21 @@ def test_command_rollover_partitionid(
 
     leader = cluster.last_known_leader
 
-    invalid_partition_id = -2
-    res = leader.trigger_rollover(invalid_partition_id, succeed=False)
-    assert res != 0, (
-        f"Rollover for invalid partition {invalid_partition_id} should fail"
+    rollover_cmd = (
+        f"CLUSTERS CLUSTER {leader.cluster_name} STORAGE PARTITION {{}} ROLLOVER"
     )
 
-    all_partition_id = -1
-    res = leader.trigger_rollover(all_partition_id, succeed=True)
-    assert res == 0, "Rollover for all partitions should succeed"
+    res = leader.command(rollover_cmd.format(-2), succeed=False)
+    assert res != 0, "Rollover for invalid partition -2 should fail"
+
+    leader.trigger_rollover(-1)
+    leader.wait_rollover_complete()
 
     for partition_id in range(num_partitions):
-        res = leader.trigger_rollover(partition_id, succeed=True)
-        assert res == 0, f"Rollover for partition {partition_id} should succeed"
+        leader.trigger_rollover(partition_id)
+        leader.wait_rollover_complete()
 
-    res = leader.trigger_rollover(num_partitions, succeed=False)
+    res = leader.command(rollover_cmd.format(num_partitions), succeed=False)
     assert res != 0, f"Rollover for invalid partition {num_partitions} should fail"
 
 

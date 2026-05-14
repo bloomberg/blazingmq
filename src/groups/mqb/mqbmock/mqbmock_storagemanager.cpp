@@ -245,11 +245,11 @@ void StorageManager::applyForEachQueue(
     // NOTHING
 }
 
-int StorageManager::processCommand(
+void StorageManager::processCommand(
     BSLA_MAYBE_UNUSED mqbcmd::StorageResult* result,
     BSLA_MAYBE_UNUSED const mqbcmd::StorageCommand& command)
 {
-    return 0;
+    return;
 }
 
 void StorageManager::gcUnrecognizedDomainQueues()

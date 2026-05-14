@@ -775,13 +775,11 @@ struct StorageUtil {
     /// used to find a storage for a specific queue, the specified
     /// `storageLockVec` (per-partition mutexes) are used to access this
     /// container safely.  Use the specified `allocator` for memory
-    /// allocations.  Return 0 if the command was successfully processed, or
-    /// a non-zero value otherwise.  This function can be invoked from any
-    /// thread, and will block until the potentially asynchronous operation is
-    /// complete.
+    /// allocations.  This function can be invoked from any thread, and will
+    /// block until the potentially asynchronous operation is complete.
     //
     /// THREAD: Executed by the cluster-dispatcher thread.
-    static int
+    static void
     processCommand(mqbcmd::StorageResult*                       result,
                    FileStores*                                  fileStores,
                    StorageSpMapVec*                             storageMapVec,

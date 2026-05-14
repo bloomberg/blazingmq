@@ -747,9 +747,7 @@ def with_rollover_admin_cmd(
     leader = cluster.last_known_leader
 
     all_partition_id = -1  # use -1 to rollover all partitions
-    # Do not wait for admin command result because "ROLLOVER COMPLETE" log record appears *before* admin command
-    # result record, and it breaks the regex search. Instead, check for ROLLOVER COMPLETE *after*
-    leader.trigger_rollover(all_partition_id, succeed=None)
+    leader.trigger_rollover(all_partition_id)
 
     for node in cluster.nodes():
         node.wait_rollover_complete()

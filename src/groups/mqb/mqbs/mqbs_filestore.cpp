@@ -3266,8 +3266,16 @@ int FileStore::rollover()
         rc_SUCCESS                        = 0,
         rc_SYNC_POINT_FAILURE             = -1,
         rc_ROLLOVER_FAILURE               = -2,
-        rc_SYNC_POINT_FORCE_ISSUE_FAILURE = -3
+        rc_SYNC_POINT_FORCE_ISSUE_FAILURE = -3,
+        rc_NOT_PRIMARY                    = -4
     };
+
+    if (!d_isPrimary) {
+        BALL_LOG_ERROR << partitionDesc()
+                       << "Rollover rejected: node is not primary for this "
+                       << "partition.";
+        return rc_NOT_PRIMARY;  // RETURN
+    }
 
     int rc = rc_SUCCESS;
 

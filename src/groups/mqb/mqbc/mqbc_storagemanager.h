@@ -999,12 +999,11 @@ class StorageManager BSLS_KEYWORD_FINAL
                       const QueueFunctor& functor) const BSLS_KEYWORD_OVERRIDE;
 
     /// Process the specified `command`, and load the result to the
-    /// specified `result`.  Return 0 if the command was successfully
-    /// processed, or a non-zero value otherwise.  This function can be
-    /// invoked from any thread, and will block until the potentially
-    /// asynchronous operation is complete.
-    int processCommand(mqbcmd::StorageResult*        result,
-                       const mqbcmd::StorageCommand& command)
+    /// specified `result`.  This function can be invoked from any thread,
+    /// and will block until the potentially asynchronous operation is
+    /// complete.
+    void processCommand(mqbcmd::StorageResult*        result,
+                        const mqbcmd::StorageCommand& command)
         BSLS_KEYWORD_OVERRIDE;
 
     /// GC the queues from unrecognized domains, if any.
