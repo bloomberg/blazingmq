@@ -449,6 +449,11 @@ class MockDataStore : public mqbs::DataStore {
         }
     }
 
+    void onPurgeComplete() BSLS_KEYWORD_OVERRIDE
+    {
+        // NOTHING
+    }
+
     void processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>&,
                              bool,
                              mqbnet::ClusterNode*) BSLS_KEYWORD_OVERRIDE

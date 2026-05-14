@@ -19,7 +19,10 @@
 #include <mqbcfg_messages.h>
 #include <mqbi_dispatcher.h>
 #include <mqbi_storage.h>
+#include <mqbmock_cluster.h>
 #include <mqbmock_dispatcher.h>
+#include <mqbmock_domain.h>
+#include <mqbmock_queue.h>
 #include <mqbnet_mockcluster.h>
 #include <mqbs_datastore.h>
 #include <mqbs_filestoreprotocol.h>
@@ -31,6 +34,7 @@
 
 // BMQ
 #include <bmqp_blobpoolutil.h>
+#include <bmqp_crc32c.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqt_messageguid.h>
 #include <bmqt_uri.h>
@@ -90,6 +94,61 @@ typedef mqbs::DataStore::AppInfos                      AppInfos;
 typedef mqbs::FileStore::SyncPointOffsetPairs          SyncPointOffsetPairs;
 typedef bsl::pair<mqbs::DataStoreRecordHandle, Record> HandleRecordPair;
 
+// CLASSES
+
+/// Helper to post dummy messages to a `ReplicatedStorage` for testing.
+class StoragePoster {
+    /// Target storage to post messages to.
+    bsl::shared_ptr<mqbs::ReplicatedStorage> d_storage_sp;
+
+    /// Factory for allocating blob buffers for message payloads.
+    bdlbb::PooledBlobBufferFactory d_bufferFactory;
+
+  public:
+    /// Create a `StoragePoster` that posts to the specified `storage`,
+    /// using the specified `allocator` for memory allocation.
+    StoragePoster(const bsl::shared_ptr<mqbs::ReplicatedStorage>& storage,
+                  bslma::Allocator*                               allocator)
+    : d_storage_sp(storage)
+    , d_bufferFactory(1024, allocator)
+    {
+    }
+
+    /// Post a dummy message to the underlying storage. Return the result
+    /// of the put operation.
+    mqbi::StorageResult::Enum postMessage()
+    {
+        bmqt::MessageGUID guid;
+        mqbu::MessageGUIDUtil::generateGUID(&guid);
+
+        bsl::shared_ptr<bdlbb::Blob> appData_sp;
+        appData_sp.createInplace(bmqtst::TestHelperUtil::allocator(),
+                                 &d_bufferFactory,
+                                 bmqtst::TestHelperUtil::allocator());
+        bsl::string payload(10, 'x', bmqtst::TestHelperUtil::allocator());
+        bdlbb::BlobUtil::append(appData_sp.get(),
+                                payload.c_str(),
+                                payload.length());
+
+        bsls::Types::Uint64 timestamp = bdlt::EpochUtil::convertToTimeT64(
+            bdlt::CurrentTime::utc());
+
+        mqbi::StorageMessageAttributes attributes(
+            timestamp,
+            1,  // refCount
+            static_cast<unsigned int>(appData_sp->length()),
+            bmqp::MessagePropertiesInfo(),
+            bmqt::CompressionAlgorithmType::e_NONE,
+            true,  // hasReceipt
+            0,     // queueHandle
+            bmqp::Crc32c::calculate(*appData_sp));
+
+        bsl::shared_ptr<bdlbb::Blob> options_sp;
+
+        return d_storage_sp->put(&attributes, guid, appData_sp, options_sp);
+    }
+};
+
 // FUNCTIONS
 
 void recoveredQueuesCb(
@@ -129,12 +188,13 @@ struct Tester {
 
   public:
     // CREATORS
-    Tester(const char* location)
+    Tester(const char* location, const char* archiveLocation = 0)
     : d_scheduler(bsls::SystemClockType::e_MONOTONIC,
                   bmqtst::TestHelperUtil::allocator())
     , d_bufferFactory(1024, bmqtst::TestHelperUtil::allocator())
     , d_clusterLocation(location, bmqtst::TestHelperUtil::allocator())
-    , d_clusterArchiveLocation(location, bmqtst::TestHelperUtil::allocator())
+    , d_clusterArchiveLocation(archiveLocation ? archiveLocation : location,
+                               bmqtst::TestHelperUtil::allocator())
     , d_blobSpPool_sp(bmqp::BlobPoolUtil::createBlobPool(
           &d_bufferFactory,
           bmqtst::TestHelperUtil::allocator()))
@@ -157,6 +217,15 @@ struct Tester {
         bdls::FilesystemUtil::createDirectories(d_clusterLocation, true);
         bdls::FilesystemUtil::createDirectories(d_clusterArchiveLocation,
                                                 true);
+        {
+            BSLA_MAYBE_UNUSED const int rc = d_scheduler.start();
+            BMQTST_ASSERT_EQ(rc, 0);
+        }
+
+        {
+            BSLA_MAYBE_UNUSED const int rc = d_miscWorkThreadPool.start();
+            BMQTST_ASSERT_EQ(rc, 0);
+        }
 
         d_partitionCfg.maxDataFileSize()     = 100 * 1024 * 1024;
         d_partitionCfg.maxQlistFileSize()    = 1 * 1024 * 1024;
@@ -233,6 +302,9 @@ struct Tester {
 
     ~Tester()
     {
+        d_scheduler.stop();
+        d_miscWorkThreadPool.stop();
+
         bdls::FilesystemUtil::remove(d_clusterLocation, true);
         bdls::FilesystemUtil::remove(d_clusterArchiveLocation, true);
     }
@@ -706,6 +778,15 @@ struct Tester {
     mqbs::FileStore& fileStore() const { return *(d_fs_mp); }
 
     mqbnet::ClusterNode* node() const { return d_node_p; }
+
+    bdlmt::FixedThreadPool& miscWorkThreadPool()
+    {
+        return d_miscWorkThreadPool;
+    }
+
+    mqbmock::Dispatcher& dispatcher() { return d_dispatcher; }
+
+    bdlmt::EventScheduler& scheduler() { return d_scheduler; }
 };
 
 // ============================================================================
@@ -938,6 +1019,152 @@ static void test2_printTest()
     fs.close();
 }
 
+static void test3_partitionFullAlarm()
+// ------------------------------------------------------------------------
+// PARTITION FULL ALARM
+//
+// Concerns:
+//   Verify that writing records to the journal until it is full triggers
+//   a partition-full alarm (rollover failure), and that purging records
+//   afterwards decreases the outstanding byte count.
+//
+// Testing:
+//   writeQueueCreationRecord, writeMessageRecord, removeRecordRaw
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
+
+    const char k_FILE_STORE_LOCATION[] = "./test-cluster123-3";
+
+    Tester           tester(k_FILE_STORE_LOCATION);
+    mqbs::FileStore& fs = tester.fileStore();
+
+    // Disable in-place callback execution in mock dispatcher to prevent
+    // thread races between the main thread (that modifies FileStore) and
+    // scheduler thread (that performs gc on FileStore).
+    tester.dispatcher().setEnqueueOnly(true);
+
+    int rc = fs.open(0);
+    BMQTST_ASSERT_EQ(0, rc);
+    if (rc) {
+        cout << "Failed to open partition, rc: " << rc << endl;
+        return;  // RETURN
+    }
+
+    // Set primary.
+    unsigned int primaryLeaseId = 1;
+    fs.setActivePrimary(tester.node(), primaryLeaseId);
+
+    // Create a storage and register it with the FileStore.
+    bmqt::Uri        queueUri("bmq://si.amw.bmq.stats/testQueue",
+                       bmqtst::TestHelperUtil::allocator());
+    mqbu::StorageKey queueKey(mqbu::StorageKey::BinaryRepresentation(),
+                              "ABCDE");
+
+    mqbmock::Cluster mockCluster(bmqtst::TestHelperUtil::allocator());
+    mqbmock::Domain  mockDomain(&mockCluster,
+                               bmqtst::TestHelperUtil::allocator());
+    mqbconfm::Domain domainCfg(bmqtst::TestHelperUtil::allocator());
+    domainCfg.messageTtl() = bsl::numeric_limits<bsls::Types::Int64>::max();
+    domainCfg.storage().config().makeFileBacked();
+    bmqu::MemOutStream errDesc(bmqtst::TestHelperUtil::allocator());
+    mockDomain.configure(errDesc, domainCfg);
+
+    bsl::shared_ptr<mqbs::ReplicatedStorage> storage_sp;
+    fs.createStorage(&storage_sp, queueUri, queueKey, &mockDomain);
+
+    mqbconfm::Limits limits;
+    limits.messages() = bsl::numeric_limits<bsls::Types::Int64>::max();
+    limits.bytes()    = bsl::numeric_limits<bsls::Types::Int64>::max();
+    limits.messagesWatermarkRatio() = 0.8;
+    limits.bytesWatermarkRatio()    = 0.8;
+    storage_sp->configure(domainCfg.storage().config(),
+                          limits,
+                          domainCfg.messageTtl(),
+                          0);  // maxDeliveryAttempts
+
+    fs.registerStorage(storage_sp.get());
+
+    mqbmock::Queue mockQueue(&mockDomain, bmqtst::TestHelperUtil::allocator());
+    storage_sp->setQueue(&mockQueue);
+
+    // 1. Create a queue.
+    mqbs::DataStoreRecordHandle queueHandle;
+    bsls::Types::Uint64         timestamp = bdlt::EpochUtil::convertToTimeT64(
+        bdlt::CurrentTime::utc());
+
+    rc = fs.writeQueueCreationRecord(&queueHandle,
+                                     queueUri,
+                                     queueKey,
+                                     AppInfos(),
+                                     timestamp,
+                                     true);  // isNewQueue
+    BMQTST_ASSERT_EQ(0, rc);
+
+    // 2. Write message records until the journal is full.
+    StoragePoster poster(storage_sp, bmqtst::TestHelperUtil::allocator());
+
+    const size_t k_MAX_ITERATIONS = 20000;
+    size_t       numWritten       = 0;
+    int          failedRc         = 0;
+
+    for (size_t i = 0; i < k_MAX_ITERATIONS; ++i) {
+        mqbi::StorageResult::Enum putRc = poster.postMessage();
+        if (putRc != mqbi::StorageResult::e_SUCCESS) {
+            failedRc = static_cast<int>(putRc);
+            break;
+        }
+
+        ++numWritten;
+    }
+
+    BMQTST_ASSERT_D("journal should have filled up", failedRc != 0);
+    BMQTST_ASSERT_D("should have written some records before failure",
+                    numWritten > 0);
+
+    const bsls::Types::Uint64 numRecordsBeforePurge = fs.numRecords();
+    BMQTST_ASSERT_D("records should exist before purge",
+                    numRecordsBeforePurge > 0);
+
+    // 3. Verify subsequent writes also fail (journal unavailable).
+    BMQTST_ASSERT_D("write after full should fail",
+                    poster.postMessage() != mqbi::StorageResult::e_SUCCESS);
+
+    // 4. Purge the queue via storage.
+    storage_sp->removeAll(mqbu::StorageKey());
+    tester.dispatcher().processQueue();
+
+    // 5. Verify the number of records is small after purge + rollover.
+    BMQTST_ASSERT_D("records after purge should be < 1% of pre-purge",
+                    fs.numRecords() < numRecordsBeforePurge / 100);
+
+    // 6. Verify writes succeed after purge.
+    BMQTST_ASSERT_D("write after purge should succeed",
+                    poster.postMessage() == mqbi::StorageResult::e_SUCCESS);
+
+    // 7. Close and reopen the partition.  Wait for background work from
+    //    the rollover (gcWorkerDispatched, deleteArchiveFilesCb) to finish.
+    tester.miscWorkThreadPool().drain();
+    tester.scheduler().cancelAllEventsAndWait();
+    tester.dispatcher().processQueue();
+    fs.unregisterStorage(storage_sp.get());
+    fs.close();
+    BMQTST_ASSERT_EQ(false, fs.isOpen());
+
+    rc = fs.open(0);
+    BMQTST_ASSERT_EQ(0, rc);
+    BMQTST_ASSERT_EQ(true, fs.isOpen());
+
+    // 8. Verify writes succeed after reopen.
+    fs.registerStorage(storage_sp.get());
+    fs.setActivePrimary(tester.node(), ++primaryLeaseId);
+    BMQTST_ASSERT_D("write after reopen should succeed",
+                    poster.postMessage() == mqbi::StorageResult::e_SUCCESS);
+
+    fs.unregisterStorage(storage_sp.get());
+    fs.close();
+}
+
 }  // close unnamed namespace
 
 // ============================================================================
@@ -952,6 +1179,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 3: test3_partitionFullAlarm(); break;
     case 2: test2_printTest(); break;
     case 1: test1_breathingTest(); break;
     default: {

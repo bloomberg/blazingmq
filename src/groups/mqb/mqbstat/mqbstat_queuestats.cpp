@@ -389,6 +389,8 @@ QueueStatsDomain::QueueStatsDomain(bslma::Allocator* allocator)
 void QueueStatsDomain::initialize(const bmqt::Uri& uri, mqbi::Domain* domain)
 {
     BSLS_ASSERT_SAFE(!d_statContext_mp && "initialize was already called");
+    BSLS_ASSERT_SAFE(domain);
+    BSLS_ASSERT_SAFE(domain->cluster());
 
     // Create subContext
     bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);

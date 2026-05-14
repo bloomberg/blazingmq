@@ -44,6 +44,7 @@ Dispatcher::Dispatcher(bslma::Allocator* allocator)
 , d_eventsForClients(allocator)
 , d_mutex()
 , d_queue(allocator)
+, d_enqueueOnly(false)
 , d_customEventSources(allocator)
 , d_customEventSources_mtx()
 {
@@ -120,32 +121,35 @@ void Dispatcher::executeOnAllQueues(
 
 void Dispatcher::_execute(const mqbi::Dispatcher::VoidFunction& functor)
 {
-    bool run = false;
+    bool firstToEnqueue = false;
 
     {
-        bslmt::LockGuard<bslmt::Mutex> lock(&mutex());
-
-        if (d_queue.empty()) {
-            // The thread that pushes the first functor to the queue
-            // will try to process this queue.
-            run = true;
-        }
+        bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
+        firstToEnqueue = d_queue.empty();
         d_queue.push(functor);
     }
 
-    while (run) {
+    if (!d_enqueueOnly && firstToEnqueue) {
+        processQueue();
+    }
+}
+
+void Dispatcher::setEnqueueOnly(bool value)
+{
+    d_enqueueOnly = value;
+}
+
+void Dispatcher::processQueue()
+{
+    while (true) {
         mqbi::Dispatcher::VoidFunction next;
         {
-            bslmt::LockGuard<bslmt::Mutex> lock(&mutex());
-
-            next = d_queue.front();
-
-            d_queue.pop();
+            bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
             if (d_queue.empty()) {
-                // There is nothing more to process, this thread can stop
-                // after calling the last functor.
-                run = false;
+                return;  // RETURN
             }
+            next = d_queue.front();
+            d_queue.pop();
         }
         next();
     }
