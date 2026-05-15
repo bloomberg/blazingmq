@@ -85,10 +85,10 @@ script with the CODEGEN enviornment variable set to the internal codegen tool." 
       codegen ./src/groups/mqb/mqbcfg mqbcfg.xsd mqbcfg messages
       ;;
     mqbcmd)
-      codegen ./src/groups/mqb/mqbcmd mqbcmd.xsd messages
+      codegen ./src/groups/mqb/mqbcmd mqbcmd.xsd mqbcmd messages
       ;;
     mqbconf)
-      codegen ./src/groups/mqb/mqbconfm mqbconf.xsd messages
+      codegen ./src/groups/mqb/mqbconfm mqbconf.xsd mqbconfm messages
       ;;
     *)
       usage
