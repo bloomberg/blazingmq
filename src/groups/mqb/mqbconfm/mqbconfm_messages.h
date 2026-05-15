@@ -1,4 +1,4 @@
-// Copyright 2014-2025 Bloomberg Finance L.P.
+// Copyright 2026 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -46,6 +46,7 @@
 
 #include <bsl_iosfwd.h>
 #include <bsl_limits.h>
+#include <bsl_type_traits.h>
 
 #include <bsl_ostream.h>
 #include <bsl_string.h>
@@ -121,9 +122,15 @@ struct ExpressionVersion {
 
   public:
     // TYPES
-    enum Value { E_UNDEFINED = 0, E_VERSION_1 = 1 };
+    enum Value {
+        e_E_UNDEFINED = 0,
+        e_E_VERSION_1 = 1,
 
-    enum { NUM_ENUMERATORS = 2 };
+        E_UNDEFINED = e_E_UNDEFINED,
+        E_VERSION_1 = e_E_VERSION_1
+    };
+
+    enum { k_NUM_ENUMERATORS = 2, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -171,7 +178,7 @@ struct ExpressionVersion {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(mqbconfm::ExpressionVersion)
+BDLAT_DECL_ENUMERATION_TRAITS(mqbconfm::ExpressionVersion);
 
 namespace mqbconfm {
 
@@ -319,7 +326,7 @@ class FileBackedStorage {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::FileBackedStorage)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::FileBackedStorage);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbconfm::FileBackedStorage>
 : bsl::true_type {};
@@ -470,7 +477,7 @@ class InMemoryStorage {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::InMemoryStorage)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::InMemoryStorage);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbconfm::InMemoryStorage> : bsl::true_type {
 };
@@ -689,7 +696,7 @@ class Limits {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::Limits)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::Limits);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbconfm::Limits> : bsl::true_type {};
 
@@ -909,7 +916,7 @@ class MsgGroupIdConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::MsgGroupIdConfig)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::MsgGroupIdConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbconfm::MsgGroupIdConfig>
 : bsl::true_type {};
@@ -1062,7 +1069,7 @@ class QueueConsistencyEventual {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    mqbconfm::QueueConsistencyEventual)
+    mqbconfm::QueueConsistencyEventual);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbconfm::QueueConsistencyEventual>
 : bsl::true_type {};
@@ -1215,7 +1222,7 @@ class QueueConsistencyStrong {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    mqbconfm::QueueConsistencyStrong)
+    mqbconfm::QueueConsistencyStrong);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbconfm::QueueConsistencyStrong>
 : bsl::true_type {};
@@ -1367,7 +1374,7 @@ class QueueModeBroadcast {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::QueueModeBroadcast)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::QueueModeBroadcast);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbconfm::QueueModeBroadcast>
 : bsl::true_type {};
@@ -1603,7 +1610,7 @@ class QueueModeFanout {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbconfm::QueueModeFanout)
+    mqbconfm::QueueModeFanout);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbconfm::QueueModeFanout> : bsl::true_type {
 };
@@ -1754,7 +1761,7 @@ class QueueModePriority {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::QueueModePriority)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::QueueModePriority);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbconfm::QueueModePriority>
 : bsl::true_type {};
@@ -1990,7 +1997,7 @@ class Consistency {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::Consistency)
+BDLAT_DECL_CHOICE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::Consistency);
 
 namespace mqbconfm {
 
@@ -2210,7 +2217,8 @@ class Expression {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbconfm::Expression)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    mqbconfm::Expression);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbconfm::Expression> : bsl::true_type {};
 
@@ -2488,7 +2496,7 @@ class QueueMode {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbconfm::QueueMode)
+BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbconfm::QueueMode);
 
 namespace mqbconfm {
 
@@ -2718,7 +2726,7 @@ class Storage {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::Storage)
+BDLAT_DECL_CHOICE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::Storage);
 
 namespace mqbconfm {
 
@@ -2924,7 +2932,7 @@ class StorageDefinition {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::StorageDefinition)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::StorageDefinition);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbconfm::StorageDefinition>
 : bsl::true_type {};
@@ -3150,7 +3158,7 @@ class Subscription {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbconfm::Subscription)
+    mqbconfm::Subscription);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbconfm::Subscription> : bsl::true_type {};
 
@@ -3524,7 +3532,7 @@ class Domain {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbconfm::Domain)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbconfm::Domain);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbconfm::Domain> : bsl::true_type {};
 
@@ -3753,7 +3761,7 @@ class DomainDefinition {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbconfm::DomainDefinition)
+    mqbconfm::DomainDefinition);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbconfm::DomainDefinition>
 : bsl::true_type {};
@@ -4005,7 +4013,7 @@ class DomainVariant {
 // TRAITS
 
 BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbconfm::DomainVariant)
+    mqbconfm::DomainVariant);
 
 // ============================================================================
 //                          INLINE DEFINITIONS
@@ -6647,6 +6655,6 @@ inline bool DomainVariant::isUndefinedValue() const
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY BLP_BAS_CODEGEN_2025.11.06
+// GENERATED BY BLP_BAS_CODEGEN_2026.05.07
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
-// --noIdent --package mqbconfm --msgComponent messages mqbconf.xsd SERVICE
+// --noIdent --package mqbconfm --msgComponent messages mqbconf.xsd
