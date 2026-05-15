@@ -295,6 +295,11 @@ class PartitionStateTableActions {
     /// if needed (e.g primary missed rollover).
     virtual void do_primaryRemoveStorageIfNeeded(const ARGS& args) = 0;
 
+    /// This method is called by primary to unconditionally drop partition
+    /// storage (e.g. upon receiving irreconcilable data response from
+    /// replica).
+    virtual void do_primaryRemoveStorage(const ARGS& args) = 0;
+
     virtual void do_failurePrimaryStateResponse(const ARGS& args) = 0;
 
     virtual void do_replicaDataResponsePush(const ARGS& args) = 0;
@@ -418,6 +423,10 @@ class PartitionStateTableActions {
 
     void
     do_primaryRemoveStorageIfNeeded_setExpectedDataChunkRange_replicaDataRequestPull(
+        const ARGS& args);
+
+    void
+    do_resetReceiveDataCtx_primaryRemoveStorage_setExpectedDataChunkRange_replicaDataRequestPull(
         const ARGS& args);
 
     void do_setExpectedDataChunkRange_clearBufferedLiveData(const ARGS& args);
@@ -583,6 +592,11 @@ class PartitionStateTable
                 CRASH_REPLICA_DATA_RSPN_PULL,
                 resetReceiveDataCtx_flagFailedReplicaSeq_checkQuorumSeq,
                 PRIMARY_HEALING_STG1);
+        PST_CFG(
+            PRIMARY_HEALING_STG2,
+            IRRECONCILABLE_REPLICA_DATA_RSPN_PULL,
+            resetReceiveDataCtx_primaryRemoveStorage_setExpectedDataChunkRange_replicaDataRequestPull,
+            PRIMARY_HEALING_STG2);
         PST_CFG(PRIMARY_HEALING_STG2,
                 REPLICA_STATE_RSPN,
                 storeReplicaSeq_sendDataToReplicas,
@@ -1072,6 +1086,17 @@ void PartitionStateTableActions<ARGS>::
         const ARGS& args)
 {
     do_primaryRemoveStorageIfNeeded(args);
+    do_setExpectedDataChunkRange(args);
+    do_replicaDataRequestPull(args);
+}
+
+template <typename ARGS>
+void PartitionStateTableActions<ARGS>::
+    do_resetReceiveDataCtx_primaryRemoveStorage_setExpectedDataChunkRange_replicaDataRequestPull(
+        const ARGS& args)
+{
+    do_resetReceiveDataCtx(args);
+    do_primaryRemoveStorage(args);
     do_setExpectedDataChunkRange(args);
     do_replicaDataRequestPull(args);
 }

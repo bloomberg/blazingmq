@@ -532,6 +532,13 @@ class StorageManager BSLS_KEYWORD_FINAL
                                       int                     partitionId,
                                       int                     requestId);
 
+    /// Deprecate the existing file set for `partitionId`, create a new
+    /// recovery file set, and reset self PSN.  Terminate on failure.
+    ///
+    /// THREAD: This method is invoked in the associated Queue dispatcher
+    ///         thread for the specified `partitionId`.
+    void primaryRemoveStorageImpl(int partitionId);
+
     /// Process replica data request of type PULL received from the specified
     /// `source` with the specified `message`.
     void
@@ -654,6 +661,9 @@ class StorageManager BSLS_KEYWORD_FINAL
 
     void do_primaryRemoveStorageIfNeeded(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
+
+    void
+    do_primaryRemoveStorage(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
     void do_failurePrimaryStateResponse(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
