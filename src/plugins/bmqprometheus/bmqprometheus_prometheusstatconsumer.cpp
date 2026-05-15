@@ -24,10 +24,10 @@
 #include <mqbstat_dispatcherstats.h>
 #include <mqbstat_domainstats.h>
 #include <mqbstat_queuestats.h>
+#include <mqbstat_statmonitor.h>
 
 // BMQ
 #include <bmqio_statchannelfactory.h>
-#include <bmqsys_statmonitor.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_time.h>
 
@@ -481,8 +481,8 @@ void PrometheusStatConsumer::captureSystemStats()
 #define COPY_METRIC(TAIL, ACCESSOR)                                           \
     datapoints.emplace_back(                                                  \
         "brkr_system_" TAIL,                                                  \
-        bmqsys::StatMonitorUtil::ACCESSOR(*d_systemStatContext_p,             \
-                                          d_snapshotId));
+        mqbstat::StatMonitorUtil::ACCESSOR(*d_systemStatContext_p,            \
+                                           d_snapshotId));
 
     COPY_METRIC("cpu_sys", cpuSystem);
     COPY_METRIC("cpu_usr", cpuUser);

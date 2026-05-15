@@ -55,7 +55,6 @@ set(BMQ_PRIVATE_PACKAGES
   bmqma
   bmqst
   bmqstm
-  bmqsys
   bmqtsk
   bmqtst
   bmqu

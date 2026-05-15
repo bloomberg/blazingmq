@@ -752,7 +752,7 @@ int StatController::start(bsl::ostream& errorDescription)
         maxInterval = bsl::max(maxInterval, consumerIt->publishInterval());
     }
     d_systemStatMonitor_mp.load(
-        new (*d_allocator_p) bmqsys::StatMonitor(maxInterval, d_allocator_p),
+        new (*d_allocator_p) mqbstat::StatMonitor(maxInterval, d_allocator_p),
         d_allocator_p);
 
     // Failing to start some subsystems of StatController should not result in

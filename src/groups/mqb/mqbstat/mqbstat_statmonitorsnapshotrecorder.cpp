@@ -17,10 +17,10 @@
 
 #include <mqbscm_version.h>
 
-#include <bmqsys_statmonitor.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
 #include <bmqu_time.h>
+#include <mqbstat_statmonitor.h>
 
 // BDE
 #include <bdlma_localsequentialallocator.h>
@@ -33,7 +33,7 @@ namespace mqbstat {
 namespace {
 
 /// Constant for the number of snapshots holding historical values in
-/// `bmqsys::StatMonitor`.  Only need to keep one snapshot back.
+/// `mqbstat::StatMonitor`.  Only need to keep one snapshot back.
 const bsls::Types::Int64 k_HISTORY_SIZE = 1;
 
 }  // close anonymous namespace
@@ -59,8 +59,8 @@ struct StatMonitorSnapshotRecorder::Impl {
     bsl::string d_header;  // Top-level header when printing
                            // statistics
 
-    bmqsys::StatMonitor d_statMonitor;  // Statistics monitor (for CPU,
-                                        // voluntary context switches)
+    mqbstat::StatMonitor d_statMonitor;  // Statistics monitor (for CPU,
+                                         // voluntary context switches)
 
     bslma::Allocator* d_allocator_p;  // Allocator used to supply memory
 

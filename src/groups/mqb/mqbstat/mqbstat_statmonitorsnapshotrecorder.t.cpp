@@ -278,7 +278,7 @@ int main(int argc, char* argv[])
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
-    // 'snapshot' in 'bmqsys::StatMonitor' passes a string using default
+    // 'snapshot' in 'mqbstat::StatMonitor' passes a string using default
     // alloc.
 
     switch (_testCase) {

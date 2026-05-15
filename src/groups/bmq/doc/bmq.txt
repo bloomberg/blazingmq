@@ -15,7 +15,7 @@
 
 /Hierarchical Synopsis
 /---------------------
-The 'bmq' group library currently has 17 packages forming 8 levels of physical
+The 'bmq' group library currently has 16 packages forming 8 levels of physical
 dependency.
 ..
   8. bmqa
@@ -33,7 +33,6 @@ dependency.
 
   3. bmqeval
      bmqc
-     bmqsys
      bmqst
      bmqtst
 
@@ -70,9 +69,6 @@ dependency.
 :
 : 'bmqscm':
 :      [INTERNAL] Provide versioning information for library components in 'bmq'.
-:
-: 'bmqsys':
-:      [INTERNAL] Provide systems utilities and mechanisms.
 :
 : 'bmqt':
 :      Provide value-semantic vocabulary types.
