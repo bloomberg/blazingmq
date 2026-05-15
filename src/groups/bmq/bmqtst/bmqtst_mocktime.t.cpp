@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <bmqsys_mocktime.h>
+#include <bmqtst_mocktime.h>
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
@@ -30,7 +30,7 @@ static void test1_basicFunctionality()
 {
     bmqtst::TestHelper::printTestName("BASIC FUNCTIONALITY");
 
-    bmqsys::MockTime obj;
+    bmqtst::MockTime obj;
 
     PV("Default constructed state");
     BMQTST_ASSERT_EQ(obj.realtimeClock(), bsls::TimeInterval(0));

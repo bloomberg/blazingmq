@@ -25,8 +25,8 @@
 #include <bmqp_event.h>
 #include <bmqp_protocol.h>
 #include <bmqp_schemaeventbuilder.h>
-#include <bmqsys_mocktime.h>
 #include <bmqt_authncredential.h>
+#include <bmqtst_mocktime.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -102,7 +102,7 @@ class TestContext {
     // DATA
     bdlbb::PooledBlobBufferFactory                  d_bufferFactory;
     bmqp::BlobPoolUtil::BlobSpPoolSp                d_blobSpPool;
-    bmqsys::MockTime                                d_mockTime;
+    bmqtst::MockTime                                d_mockTime;
     bdlmt::EventScheduler                           d_scheduler;
     bdlmt::EventSchedulerTestTimeSource             d_timeSource;
     TestChannelFactory                              d_baseFactory;

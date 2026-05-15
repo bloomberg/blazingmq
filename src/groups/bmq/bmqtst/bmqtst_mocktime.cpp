@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <bmqsys_mocktime.h>
+#include <bmqtst_mocktime.h>
 
 #include <bmqscm_version.h>
 
@@ -23,7 +23,7 @@
 #include <bdlf_memfn.h>
 
 namespace BloombergLP {
-namespace bmqsys {
+namespace bmqtst {
 
 // --------------
 // class MockTime

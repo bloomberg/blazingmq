@@ -20,7 +20,7 @@
 
 #include <bmqio_testchannel.h>
 #include <bmqio_testchannelfactory.h>
-#include <bmqsys_mocktime.h>
+#include <bmqtst_mocktime.h>
 #include <bmqu_printutil.h>
 
 // BDE
@@ -77,7 +77,7 @@ class Tester : public bmqtst::Test {
     };
 
     // DATA
-    bmqsys::MockTime                               d_mockTime;
+    bmqtst::MockTime                               d_mockTime;
     bdlmt::EventScheduler                          d_scheduler;
     bdlmt::EventSchedulerTestTimeSource            d_timeSource;
     TestChannelFactory                             d_baseFactory;

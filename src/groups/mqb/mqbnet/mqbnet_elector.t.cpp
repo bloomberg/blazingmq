@@ -19,7 +19,7 @@
 #include <mqbcfg_clusterquorummanager.h>
 #include <mqbnet_cluster.h>
 
-#include <bmqsys_mocktime.h>
+#include <bmqtst_mocktime.h>
 #include <bmqu_time.h>
 
 // BDE
@@ -47,7 +47,7 @@ using namespace BloombergLP::mqbnet;
 namespace {
 
 /// Elector clock with static storage used in various test cases
-static bmqsys::MockTime* s_electorClock;
+static bmqtst::MockTime* s_electorClock;
 
 // ====================
 // struct ExpectedState
@@ -2791,7 +2791,7 @@ int main(int argc, char* argv[])
 
     // Setup the test clock (once per task)
     s_electorClock = new (*bmqtst::TestHelperUtil::allocator())
-        bmqsys::MockTime;
+        bmqtst::MockTime;
 
     switch (_testCase) {
     case 0:
