@@ -31,11 +31,11 @@
 #include <bmqp_ctrlmsg_messages.h>
 
 #include <bmqst_statcontext.h>
-#include <bmqsys_time.h>
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_sharedresource.h>
 #include <bmqu_stringutil.h>
+#include <bmqu_time.h>
 #include <bmqu_weakmemfn.h>
 
 // BDE
@@ -557,7 +557,7 @@ void DomainManager::stop()
             &latch));
     }
 
-    bsls::TimeInterval timeout = bmqsys::Time::nowMonotonicClock().addSeconds(
+    bsls::TimeInterval timeout = bmqu::Time::nowMonotonicClock().addSeconds(
         k_MAX_WAIT_SECONDS_AT_SHUTDOWN);
     int rc = latch.timedWait(timeout);
     if (0 != rc) {
@@ -769,7 +769,7 @@ int DomainManager::processCommand(mqbcmd::DomainsResult*        result,
                 &latch));
 
             bsls::TimeInterval timeout =
-                bmqsys::Time::nowMonotonicClock().addSeconds(
+                bmqu::Time::nowMonotonicClock().addSeconds(
                     k_MAX_WAIT_SECONDS_AT_DOMAIN_REMOVE);
 
             int rc = latch.timedWait(timeout);

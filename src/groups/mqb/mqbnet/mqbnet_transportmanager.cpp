@@ -28,9 +28,9 @@
 #include <mqbnet_tcpsessionfactory.h>
 
 #include <bmqio_status.h>
-#include <bmqsys_time.h>
 #include <bmqu_printutil.h>
 #include <bmqu_stringutil.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlf_bind.h>

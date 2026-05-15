@@ -340,9 +340,9 @@
 #include <bmqex_systemexecutor.h>
 #include <bmqio_channel.h>
 #include <bmqio_status.h>
-#include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <ball_log.h>
@@ -1219,7 +1219,7 @@ void RequestManager<REQUEST, RESPONSE>::onRequestTimeout(int requestId)
     bmqu::MemOutStream os;
     os << "The request timedout after "
        << bmqu::PrintUtil::prettyTimeInterval(
-              bmqsys::Time::highResolutionTimer() - request->d_sendTime);
+              bmqu::Time::highResolutionTimer() - request->d_sendTime);
 
     response.choice().makeStatus();
     response.choice().status().code() = k_CODE_TIMEOUT_LOCAL;
@@ -1472,7 +1472,7 @@ bmqt::GenericResult::Enum RequestManager<REQUEST, RESPONSE>::sendRequest(
     // the map.
 
     // Send the request
-    request->d_sendTime              = bmqsys::Time::highResolutionTimer();
+    request->d_sendTime              = bmqu::Time::highResolutionTimer();
     bmqt::GenericResult::Enum sendRc = sendFn(d_schemaEventBuilder.blob());
     if (sendRc != bmqt::GenericResult::e_SUCCESS) {
         bmqu::MemOutStream errorDesc;
@@ -1491,7 +1491,7 @@ bmqt::GenericResult::Enum RequestManager<REQUEST, RESPONSE>::sendRequest(
     // Schedule a timeout
     d_scheduler_p->scheduleEvent(
         &(request->d_timeoutSchedulerHandle),
-        bmqsys::Time::nowMonotonicClock() + timeout,
+        bmqu::Time::nowMonotonicClock() + timeout,
         bmqex::BindUtil::bindExecute(
             bmqex::ExecutionPolicyUtil::possiblyBlocking()
                 .useExecutor(d_executor)

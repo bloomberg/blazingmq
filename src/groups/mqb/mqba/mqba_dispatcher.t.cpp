@@ -25,7 +25,7 @@
 #include <bmqex_executionpolicy.h>
 #include <bmqex_executionutil.h>
 #include <bmqex_executor.h>
-#include <bmqsys_time.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlf_bind.h>
@@ -774,7 +774,7 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqsys::Time::initialize();
+    bmqu::Time::initialize();
 
     switch (_testCase) {
     case 0:
@@ -790,7 +790,7 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    bmqsys::Time::shutdown();
+    bmqu::Time::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

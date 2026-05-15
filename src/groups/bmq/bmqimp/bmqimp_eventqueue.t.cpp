@@ -15,9 +15,9 @@
 
 #include <bmqimp_eventqueue.h>
 
-#include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
+#include <bmqu_time.h>
 
 #include <bmqst_statcontext.h>
 #include <bmqst_statvalue.h>
@@ -608,8 +608,8 @@ static void test6_workingStatsTest()
     start.setLevel(0).setIndex(0);
     end.setLevel(0).setIndex(1);
 
-    bmqsys::Time::shutdown();
-    bmqsys::Time::initialize(
+    bmqu::Time::shutdown();
+    bmqu::Time::initialize(
         bdlf::BindUtil::bind(&TestClock::realtimeClock, &testClock),
         bdlf::BindUtil::bind(&TestClock::monotonicClock, &testClock),
         bdlf::BindUtil::bind(&TestClock::highResTimer, &testClock),
@@ -753,7 +753,7 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqsys::Time::initialize();
+    bmqu::Time::initialize();
 
     switch (_testCase) {
     case 0:
@@ -770,7 +770,7 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    bmqsys::Time::shutdown();
+    bmqu::Time::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
     // Default: EventQueue uses bmqc::MonitoredFixedQueue, which uses

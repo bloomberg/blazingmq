@@ -22,9 +22,9 @@
 #include <bmqst_statcontext.h>
 #include <bmqst_statutil.h>
 #include <bmqst_tableutil.h>
-#include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <ball_log.h>
@@ -188,7 +188,7 @@ bool EventQueue::hasPriorityEvents(bsl::shared_ptr<Event>* event)
 
 void EventQueue::afterEventPopped(const QueueItem& item)
 {
-    const bsls::Types::Int64 popOutTime = bmqsys::Time::highResolutionTimer();
+    const bsls::Types::Int64 popOutTime = bmqu::Time::highResolutionTimer();
     const bsls::Types::Int64 queuedTime = popOutTime - item.d_enqueueTime;
 
     {  // d_lasPoppedOutSpinLock   LOCKED
@@ -235,7 +235,7 @@ void EventQueue::printLastEventTime(bsl::ostream& stream)
     else {
         stream << "last item was popped out "
                << bmqu::PrintUtil::prettyTimeInterval(
-                      bmqsys::Time::highResolutionTimer() - poppedOutTime)
+                      bmqu::Time::highResolutionTimer() - poppedOutTime)
                << " ago after spending "
                << bmqu::PrintUtil::prettyTimeInterval(queuedTime)
                << " in the queue.";
@@ -511,7 +511,7 @@ int EventQueue::pushBack(bsl::shared_ptr<Event>& event)
 
     BALL_LOG_TRACE << "Enqueuing " << *event;
 
-    QueueItem item(event, bmqsys::Time::highResolutionTimer());
+    QueueItem item(event, bmqu::Time::highResolutionTimer());
     int       rc = 0;
 
     {  // d_pushBackSpinlock   LOCKED
@@ -541,8 +541,7 @@ bsl::shared_ptr<Event> EventQueue::popFront()
     // Check for priority events first
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(hasPriorityEvents(&event))) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        afterEventPopped(
-            QueueItem(event, bmqsys::Time::highResolutionTimer()));
+        afterEventPopped(QueueItem(event, bmqu::Time::highResolutionTimer()));
         return event;  // RETURN
     }
 
@@ -564,8 +563,7 @@ EventQueue::timedPopFront(const bsls::TimeInterval& timeout,
     // Check for priority events first
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(hasPriorityEvents(&event))) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        afterEventPopped(
-            QueueItem(event, bmqsys::Time::highResolutionTimer()));
+        afterEventPopped(QueueItem(event, bmqu::Time::highResolutionTimer()));
         return event;  // RETURN
     }
 
@@ -597,7 +595,7 @@ EventQueue::timedPopFront(const bsls::TimeInterval& timeout,
                                        rc,
                                        bmqt::CorrelationId(),
                                        errorDescription);
-        item.d_enqueueTime = bmqsys::Time::highResolutionTimer();
+        item.d_enqueueTime = bmqu::Time::highResolutionTimer();
         item.d_event_sp    = event;
         // Update stats ('afterEventPopped()' will decrement the counter, so we
         // need to manually increment it here since we artificially created an
@@ -617,7 +615,7 @@ EventQueue::timedPopFront(const bsls::TimeInterval& timeout,
 void EventQueue::enqueuePoisonPill()
 {
     // PoisonPill has a null event
-    QueueItem item(0, bmqsys::Time::highResolutionTimer());
+    QueueItem item(0, bmqu::Time::highResolutionTimer());
 
     {  // d_pushBackSpinlock   LOCKED
         bsls::SpinLockGuard guard(&d_pushBackSpinlock);

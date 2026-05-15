@@ -34,9 +34,9 @@
 #include <bmqp_protocolutil.h>
 
 #include <bmqma_countingallocatorstore.h>
-#include <bmqsys_time.h>
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_printutil.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlt_currenttime.h>
@@ -782,7 +782,7 @@ int FileBackedStorage::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc,
 
     int                numMsgsDeleted     = 0;
     int                numMsgsUnreceipted = 0;
-    bsls::Types::Int64 now = bmqsys::Time::highResolutionTimer();
+    bsls::Types::Int64 now                 = bmqu::Time::highResolutionTimer();
     bsls::Types::Int64 deduplicationTimeNs = 0;
     if (queue() && queue()->domain()) {
         deduplicationTimeNs =
@@ -934,7 +934,7 @@ void FileBackedStorage::processMessageRecord(
         bsl::shared_ptr<Item> item(bsl::allocate_shared<Item>(d_allocator_p));
 
         InsertRc irc = d_handles.insert(bsl::make_pair(guid, item),
-                                        bmqsys::Time::highResolutionTimer());
+                                        bmqu::Time::highResolutionTimer());
         irc.first->second->d_array.push_back(handle);
         irc.first->second->d_refCount = refCount;
 

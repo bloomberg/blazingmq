@@ -41,11 +41,11 @@
 #include <bmqt_resultcode.h>
 
 #include <bmqio_status.h>
-#include <bmqsys_time.h>
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_blobobjectproxy.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlb_nullablevalue.h>
@@ -496,7 +496,7 @@ void RecoveryManager::recoveryStartupWaitPartitionDispatched(
                       << ": Partition [" << partitionId
                       << "], extending the wait for sync points.";
 
-        bsls::TimeInterval after(bmqsys::Time::nowMonotonicClock());
+        bsls::TimeInterval after(bmqu::Time::nowMonotonicClock());
         after.addMilliseconds(k_STARTUP_WAIT_RETRY_MS);
         d_clusterData_p->scheduler().scheduleEvent(
             &recoveryCtx.recoveryStartupWaitHandle(),
@@ -841,7 +841,7 @@ void RecoveryManager::sendStorageSyncRequesterHelper(RecoveryContext* context,
     // an event to check recovery status.
 
     if (1 == context->numAttempts()) {
-        bsls::TimeInterval after(bmqsys::Time::nowMonotonicClock());
+        bsls::TimeInterval after(bmqu::Time::nowMonotonicClock());
         after.addMilliseconds(d_clusterConfig.partitionConfig()
                                   .syncConfig()
                                   .startupRecoveryMaxDurationMs());
@@ -3049,7 +3049,7 @@ void RecoveryManager::startRecovery(
                   << "], will check after " << startupWaitMs << " millisec "
                   << "if any sync point has been received by then.";
 
-    bsls::TimeInterval after(bmqsys::Time::nowMonotonicClock());
+    bsls::TimeInterval after(bmqu::Time::nowMonotonicClock());
     after.addMilliseconds(startupWaitMs);
     d_clusterData_p->scheduler().scheduleEvent(
         &recoveryCtx.recoveryStartupWaitHandle(),
@@ -4412,7 +4412,7 @@ void RecoveryManager::startPartitionPrimarySync(
     // Currently, this routine doesn't return error, so we schedule an event
     // right away to fire 2 minute from now to check recovery status.
 
-    bsls::TimeInterval after(bmqsys::Time::nowMonotonicClock());
+    bsls::TimeInterval after(bmqu::Time::nowMonotonicClock());
     after.addMilliseconds(d_clusterConfig.partitionConfig()
                               .syncConfig()
                               .masterSyncMaxDurationMs());

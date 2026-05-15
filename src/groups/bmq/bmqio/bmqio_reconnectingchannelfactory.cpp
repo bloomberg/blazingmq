@@ -18,9 +18,9 @@
 #include <bmqscm_version.h>
 
 #include <bmqio_resolveutil.h>
-#include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <ball_log.h>
@@ -223,7 +223,7 @@ void ReconnectingChannelFactory::scheduleConnect(
     }
     else {
         timeSinceLastConnect.setTotalNanoseconds(
-            bmqsys::Time::highResolutionTimer() -
+            bmqu::Time::highResolutionTimer() -
             handle->d_lastConnectAttemptTime);
     }
 
@@ -247,7 +247,7 @@ void ReconnectingChannelFactory::scheduleConnect(
 void ReconnectingChannelFactory::doConnect(Status*                 status,
                                            const ConnectHandlePtr& handle)
 {
-    handle->d_lastConnectAttemptTime = bmqsys::Time::highResolutionTimer();
+    handle->d_lastConnectAttemptTime = bmqu::Time::highResolutionTimer();
 
     if (handle->d_endpoints.empty()) {
         // We haven't yet resolved endpoints, or we tried them all already.

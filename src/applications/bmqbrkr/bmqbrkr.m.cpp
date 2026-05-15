@@ -25,10 +25,10 @@
 #include <mqbu_messageguidutil.h>
 
 // BMQ
-#include <bmqsys_time.h>
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <balcl_commandline.h>
@@ -307,7 +307,7 @@ static void onProcessedAdminCommand(const bsl::string&       prefix,
                                     int                      rc,
                                     const bsl::string&       results)
 {
-    const bsls::Types::Int64 end = bmqsys::Time::highResolutionTimer();
+    const bsls::Types::Int64 end = bmqu::Time::highResolutionTimer();
 
     if (rc != 0) {
         BALL_LOG_ERROR << "Error processing command [rc: " << rc << "] "
@@ -349,8 +349,7 @@ struct MTrapHandler {
             return;  // RETURN
         }
         else if (bdlb::String::areEqualCaseless(prefix, "CMD")) {
-            const bsls::Types::Int64 start =
-                bmqsys::Time::highResolutionTimer();
+            const bsls::Types::Int64 start = bmqu::Time::highResolutionTimer();
             d_taskEnv_p->d_app.object().enqueueCommand(
                 "MTRAP",
                 cmd,

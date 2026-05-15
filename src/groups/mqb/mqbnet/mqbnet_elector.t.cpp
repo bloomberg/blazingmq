@@ -20,7 +20,7 @@
 #include <mqbnet_cluster.h>
 
 #include <bmqsys_mocktime.h>
-#include <bmqsys_time.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlb_nullablevalue.h>

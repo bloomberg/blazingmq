@@ -32,8 +32,8 @@
 #include <bmqp_routingconfigurationutils.h>
 #include <bmqt_queueflags.h>
 
-#include <bmqsys_time.h>
 #include <bmqu_atomicstate.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlmt_eventscheduler.h>
@@ -186,7 +186,7 @@ TestBench::TestBench(bslma::Allocator* allocator_p)
                                                   bdlf::PlaceHolders::_5,
                                                   bdlf::PlaceHolders::_6));
 
-    bmqsys::Time::initialize(
+    bmqu::Time::initialize(
         bdlf::BindUtil::bind(&TestClock::realtimeClock, &d_testClock),
         bdlf::BindUtil::bind(&TestClock::monotonicClock, &d_testClock),
         bdlf::BindUtil::bind(&TestClock::highResTimer, &d_testClock));
@@ -200,7 +200,7 @@ TestBench::~TestBench()
 {
     d_cluster.stop();
 
-    bmqsys::Time::shutdown();
+    bmqu::Time::shutdown();
 }
 
 bsl::shared_ptr<mqbmock::Queue> TestBench::getQueue()

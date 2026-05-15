@@ -35,9 +35,9 @@
 #include <mqbs_storageutil.h>
 #include <mqbstat_queuestats.h>
 
-#include <bmqsys_time.h>
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_temputil.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <ball_log.h>
@@ -1002,7 +1002,7 @@ Routers::Result QueueEngineUtil_AppState::tryDeliverOneMessage(
     //         'delay' and return false.
 
     bsls::TimeInterval messageDelay;
-    bsls::TimeInterval now = bmqsys::Time::nowMonotonicClock();
+    bsls::TimeInterval now = bmqu::Time::nowMonotonicClock();
     Visitor            visitor;
 
     Routers::Result result = Routers::e_SUCCESS;

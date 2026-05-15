@@ -36,10 +36,10 @@
 #include <bmqp_protocolutil.h>
 #include <bmqp_pusheventbuilder.h>
 #include <bmqst_statcontext.h>
-#include <bmqsys_time.h>
 #include <bmqt_messageguid.h>
 #include <bmqt_uri.h>
 #include <bmqu_memoutstream.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlbb_blobutil.h>
@@ -725,7 +725,7 @@ void MockSession::initialize(bslma::Allocator* allocator)
 
     g_alloc_p = bslma::Default::globalAllocator(allocator);
 
-    bmqsys::Time::initialize(g_alloc_p);
+    bmqu::Time::initialize(g_alloc_p);
     g_bufferFactory_p = new (*g_alloc_p)
         bdlbb::PooledBlobBufferFactory(1024, g_alloc_p);
     g_guidGenerator_sp.createInplace(g_alloc_p, 0);
@@ -742,7 +742,7 @@ void MockSession::shutdown()
         return;  // RETURN
     }
 
-    bmqsys::Time::shutdown();
+    bmqu::Time::shutdown();
     g_alloc_p->deleteObject(g_bufferFactory_p);
     g_guidGenerator_sp.reset();
 }

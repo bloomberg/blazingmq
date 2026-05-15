@@ -20,9 +20,9 @@
 #include <mqbsi_ledger.h>
 
 // BMQ
-#include <bmqsys_time.h>
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_printutil.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <ball_log.h>
@@ -293,7 +293,7 @@ int Ledger::rollOver()
     // to be executed right away to close and cleanup the log file.
     if (!d_config.keepOldLogs()) {
         d_config.scheduler()->scheduleEvent(
-            bmqsys::Time::nowMonotonicClock(),
+            bmqu::Time::nowMonotonicClock(),
             bdlf::BindUtil::bind(&Ledger::closeAndCleanup,
                                  this,
                                  lastLog,
@@ -360,7 +360,7 @@ int Ledger::closeAndCleanup(const LogSp& log, const size_t logIndex)
         return LedgerOpResult::e_LOG_CLEANUP_FAILURE;  // RETURN
     }
 
-    const bsls::Types::Int64 start   = bmqsys::Time::highResolutionTimer();
+    const bsls::Types::Int64 start   = bmqu::Time::highResolutionTimer();
     const bsl::string&       logPath = log->logConfig().location();
 
     LogsMapCIt cit = d_logs.find(log->logConfig().logId());
@@ -383,7 +383,7 @@ int Ledger::closeAndCleanup(const LogSp& log, const size_t logIndex)
         return rc * 100 + LedgerOpResult::e_LOG_CLEANUP_FAILURE;  // RETURN
     }
 
-    const bsls::Types::Int64 end = bmqsys::Time::highResolutionTimer();
+    const bsls::Types::Int64 end = bmqu::Time::highResolutionTimer();
 
     BALL_LOG_INFO << "Log '" << log->logConfig().logId()
                   << "' closed and cleaned up. Time taken: "

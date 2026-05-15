@@ -86,9 +86,9 @@
 #include <bslmf_nestedtraitdeclaration.h>
 
 // BMQ
-#include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
+#include <bmqu_time.h>
 
 namespace BloombergLP {
 namespace bmqsys {
@@ -169,7 +169,7 @@ inline bsl::ostream& OperationLogger::start()
         d_currentOpDescription.reset();
     }
 
-    d_beginTimestamp = bmqsys::Time::highResolutionTimer();
+    d_beginTimestamp = bmqu::Time::highResolutionTimer();
     return d_currentOpDescription;
 }
 
@@ -200,8 +200,8 @@ inline void OperationLogger::stop()
 
     BALL_LOG_INFO_BLOCK
     {
-        const bsls::Types::Int64 elapsed =
-            bmqsys::Time::highResolutionTimer() - d_beginTimestamp;
+        const bsls::Types::Int64 elapsed = bmqu::Time::highResolutionTimer() -
+                                           d_beginTimestamp;
         BALL_LOG_OUTPUT_STREAM
             << d_currentOpDescription.str()
             << " took: " << bmqu::PrintUtil::prettyTimeInterval(elapsed)

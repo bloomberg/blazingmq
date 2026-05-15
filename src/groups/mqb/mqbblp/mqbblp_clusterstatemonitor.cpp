@@ -21,9 +21,9 @@
 #include <mqbcmd_humanprinter.h>
 #include <mqbcmd_messages.h>
 
-#include <bmqsys_time.h>
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_memoutstream.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlf_bind.h>
@@ -118,7 +118,7 @@ void ClusterStateMonitor::notifyObserversIfNeeded()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcherClient()->inDispatcherThread());
 
-    const bsls::TimeInterval now = bmqsys::Time::nowMonotonicClock();
+    const bsls::TimeInterval now = bmqu::Time::nowMonotonicClock();
 
     // We do 2 things here:
     //   1. Periodically invoke threshold callbacks (onLeaderPassiveThreshold,
@@ -295,7 +295,7 @@ void ClusterStateMonitor::verifyAllStatesDispatched()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcherClient()->inDispatcherThread());
 
-    const bsls::TimeInterval now = bmqsys::Time::nowMonotonicClock();
+    const bsls::TimeInterval now = bmqu::Time::nowMonotonicClock();
 
     bool isCurrentlyHealthy = true;
     bool reachedThreshold   = false;
@@ -486,7 +486,7 @@ void ClusterStateMonitor::start()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!d_isStarted && "Already started");
 
-    const bsls::TimeInterval now = bmqsys::Time::nowMonotonicClock();
+    const bsls::TimeInterval now = bmqu::Time::nowMonotonicClock();
 
     const mqbc::ClusterState::PartitionsInfo& partitions =
         d_clusterState_p->partitions();

@@ -34,12 +34,12 @@
 #include <bmqp_protocol.h>
 #include <bmqp_storagemessageiterator.h>
 
-#include <bmqsys_time.h>
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_blob.h>
 #include <bmqu_blobobjectproxy.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -114,7 +114,7 @@ void StorageManager::startRecoveryCb(int partitionId)
         return;  // RETURN
     }
 
-    d_recoveryStartTimes[partitionId] = bmqsys::Time::highResolutionTimer();
+    d_recoveryStartTimes[partitionId] = bmqu::Time::highResolutionTimer();
 }
 
 void StorageManager::shutdownCb(int partitionId, bslmt::Latch* latch)

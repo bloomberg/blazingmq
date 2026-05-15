@@ -41,8 +41,8 @@
 
 #include <bmqio_status.h>
 #include <bmqio_testchannel.h>
-#include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlbb_pooledblobbufferfactory.h>
@@ -880,8 +880,8 @@ TestSession::TestSession(const bmqt::SessionOptions& sessionOptions,
     // Set peer uri for the sake of better logging
     d_testChannel.setPeerUri("tcp://testHost:1234");
 
-    bmqsys::Time::shutdown();
-    bmqsys::Time::initialize(
+    bmqu::Time::shutdown();
+    bmqu::Time::initialize(
         bdlf::BindUtil::bind(&TestClock::realtimeClock, d_testClock_p),
         bdlf::BindUtil::bind(&TestClock::monotonicClock, d_testClock_p),
         bdlf::BindUtil::bind(&TestClock::highResTimer, d_testClock_p),
@@ -2549,7 +2549,7 @@ static void test3_nullChannelTest()
     // Expect one stop callback due to STARTING->STOPPED transition resulting
     // in stopCounter == 2 which we will check at the end.
 
-    rc = eventSemaphore.timedWait(bmqsys::Time::nowRealtimeClock() +
+    rc = eventSemaphore.timedWait(bmqu::Time::nowRealtimeClock() +
                                   bsls::TimeInterval(0.1));
 
     // Timeout since there are no events
@@ -3595,7 +3595,7 @@ static void test11_disconnect()
         PVV_SAFE("Waiting CONNECTED event...");
         bsl::shared_ptr<bmqimp::Event> event;
         rc = eventQueue.timedPopFront(&event,
-                                      bmqsys::Time::nowMonotonicClock() +
+                                      bmqu::Time::nowMonotonicClock() +
                                           bsls::TimeInterval(5));
         BMQTST_ASSERT_EQ(rc, 0);
         BMQTST_ASSERT_EQ(event->statusCode(), 0);
@@ -3610,7 +3610,7 @@ static void test11_disconnect()
         // Ensure no event is yet emitted to the user
         event.reset();
         eventQueue.timedPopFront(&event,
-                                 bmqsys::Time::nowMonotonicClock() +
+                                 bmqu::Time::nowMonotonicClock() +
                                      bsls::TimeInterval(0.1));
         BMQTST_ASSERT(!event);
 
@@ -3647,7 +3647,7 @@ static void test11_disconnect()
 
         PVV_SAFE("Verify the user receives the DISCONNECTED event");
         rc = eventQueue.timedPopFront(&event,
-                                      bmqsys::Time::nowMonotonicClock() +
+                                      bmqu::Time::nowMonotonicClock() +
                                           bsls::TimeInterval(5));
         BMQTST_ASSERT_EQ(rc, 0);
         BMQTST_ASSERT_EQ(event->statusCode(), 0);
@@ -3657,7 +3657,7 @@ static void test11_disconnect()
         // Ensure no more  events are delivered to the user
         event.reset();
         eventQueue.timedPopFront(&event,
-                                 bmqsys::Time::nowMonotonicClock() +
+                                 bmqu::Time::nowMonotonicClock() +
                                      bsls::TimeInterval(0.1));
         BMQTST_ASSERT(!event);
 
@@ -4313,7 +4313,7 @@ static void test21_post_Limit()
 
     PVV_SAFE("Step 7. Schedule LWM and post PUT again");
     scheduler.scheduleEvent(
-        bmqsys::Time::nowMonotonicClock() + lwmTimeout,
+        bmqu::Time::nowMonotonicClock() + lwmTimeout,
         bdlf::BindUtil::bind(&TestSession::setChannelLowWaterMark,
                              &obj,
                              bmqio::StatusCategory::e_SUCCESS));
@@ -4447,7 +4447,7 @@ static void test22_confirm_Limit()
     // LWM handler will set write status to e_SUCCESS
     // LWM event arrives before channelWriteTimeoutMs.
     scheduler.scheduleEvent(
-        bmqsys::Time::nowMonotonicClock() + lwmTimeout,
+        bmqu::Time::nowMonotonicClock() + lwmTimeout,
         bdlf::BindUtil::bind(&TestSession::setChannelLowWaterMark,
                              &obj,
                              bmqio::StatusCategory::e_SUCCESS));
@@ -8359,7 +8359,7 @@ static void test49_controlsBuffering()
 
     // LWM arrives but the channel still returns e_LIMIT
     scheduler.scheduleEvent(
-        bmqsys::Time::nowMonotonicClock(),
+        bmqu::Time::nowMonotonicClock(),
         bdlf::BindUtil::bind(&TestSession::setChannelLowWaterMark,
                              &obj,
                              bmqio::StatusCategory::e_LIMIT));
@@ -8372,7 +8372,7 @@ static void test49_controlsBuffering()
 
     // Set write status to e_SUCCESS
     scheduler.scheduleEvent(
-        bmqsys::Time::nowMonotonicClock(),
+        bmqu::Time::nowMonotonicClock(),
         bdlf::BindUtil::bind(&TestSession::setChannelLowWaterMark,
                              &obj,
                              bmqio::StatusCategory::e_SUCCESS));
@@ -9694,7 +9694,7 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqsys::Time::initialize();
+    bmqu::Time::initialize();
 
     switch (_testCase) {
     case 0:
@@ -9774,7 +9774,7 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    bmqsys::Time::shutdown();
+    bmqu::Time::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
     // Default: EventQueue uses bmqc::MonitoredFixedQueue, which uses

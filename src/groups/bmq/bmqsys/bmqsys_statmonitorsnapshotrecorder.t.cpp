@@ -16,8 +16,8 @@
 #include <bmqsys_statmonitorsnapshotrecorder.h>
 
 #include <bmqsys_mocktime.h>
-#include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlpcre_regex.h>
@@ -128,7 +128,7 @@ static void test1_usageExample()
 {
     bmqtst::TestHelper::printTestName("USAGE EXAMPLE");
 
-    bmqsys::Time::initialize(bmqtst::TestHelperUtil::allocator());
+    bmqu::Time::initialize(bmqtst::TestHelperUtil::allocator());
 
     const bsl::string k_HEADER("Cluster (testCluster): ",
                                bmqtst::TestHelperUtil::allocator());
@@ -238,7 +238,7 @@ static void test1_usageExample()
         BMQTST_ASSERT_NE(os1.str(), os2.str());
     }
 
-    bmqsys::Time::shutdown();
+    bmqu::Time::shutdown();
 }
 
 static void test2_totalElapsed()

@@ -50,10 +50,10 @@
 #include <bmqp_event.h>
 #include <bmqp_protocol.h>
 #include <bmqp_protocolutil.h>
-#include <bmqsys_time.h>
 #include <bmqu_blob.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
+#include <bmqu_time.h>
 #include <bmqu_weakmemfn.h>
 
 // BDE
@@ -220,7 +220,7 @@ ntcCreateInterfaceConfig(const mqbcfg::TcpInterfaceConfig& tcpConfig)
 void monitoredDNSResolution(bsl::string*          resolvedUri,
                             const bmqio::Channel& baseChannel)
 {
-    const bsls::Types::Int64 start = bmqsys::Time::highResolutionTimer();
+    const bsls::Types::Int64 start = bmqu::Time::highResolutionTimer();
 
     bmqio::ResolvingChannelFactoryUtil::defaultResolutionFn(
         resolvedUri,
@@ -228,7 +228,7 @@ void monitoredDNSResolution(bsl::string*          resolvedUri,
         &bmqio::ResolveUtil::getDomainName,
         true);
 
-    const bsls::Types::Int64 end = bmqsys::Time::highResolutionTimer();
+    const bsls::Types::Int64 end = bmqu::Time::highResolutionTimer();
 
     BALL_LOG_INFO << "Channel " << static_cast<const void*>(&baseChannel)
                   << " with remote peer " << baseChannel.peerUri()
@@ -756,7 +756,7 @@ void TCPSessionFactory::channelStateCallback(
                // mutex synchronization for them at all.
                 bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
                 d_timestampMap[channel.get()] =
-                    bmqsys::Time::highResolutionTimer();
+                    bmqu::Time::highResolutionTimer();
             }  // close mutex lock guard // UNLOCK
 
             // Keep track of active channels, for logging purposes
@@ -969,7 +969,7 @@ void TCPSessionFactory::logOpenSessionTime(
         BALL_LOG_INFO_BLOCK
         {
             const bsls::Types::Int64 elapsed =
-                bmqsys::Time::highResolutionTimer() - begin;
+                bmqu::Time::highResolutionTimer() - begin;
             BALL_LOG_OUTPUT_STREAM
                 << "Open session '" << sessionDescription << "' for channel '"
                 << channel.get()

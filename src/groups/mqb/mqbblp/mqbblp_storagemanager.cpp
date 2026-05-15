@@ -42,11 +42,11 @@
 #include <bmqp_storagemessageiterator.h>
 #include <bmqu_memoutstream.h>
 
-#include <bmqsys_time.h>
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_blob.h>
 #include <bmqu_blobobjectproxy.h>
 #include <bmqu_printutil.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlf_bind.h>
@@ -162,7 +162,7 @@ void StorageManager::startRecoveryCb(int partitionId)
                              bdlf::PlaceHolders::_2,  // status
                              bdlf::PlaceHolders::_3,  // events
                              bdlf::PlaceHolders::_4,  // peer
-                             bmqsys::Time::highResolutionTimer()));
+                             bmqu::Time::highResolutionTimer()));
 }
 
 void StorageManager::onPartitionRecovery(

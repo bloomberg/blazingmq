@@ -24,9 +24,9 @@
 #include <mqbs_storageutil.h>
 #include <mqbu_storagekey.h>
 
-#include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
+#include <bmqu_time.h>
 
 // BMQ
 #include <bmqp_protocolutil.h>
@@ -157,7 +157,7 @@ void StoragePrintUtil::printRecoveredStorages(
         << "]: Number of recovered storages: " << storageMap.size()
         << ". Time taken for recovery: "
         << bmqu::PrintUtil::prettyTimeInterval(
-               (bmqsys::Time::highResolutionTimer() - recoveryStartTime))
+               (bmqu::Time::highResolutionTimer() - recoveryStartTime))
         << ". Summary: \n(format: [QueueUri] [QueueKey] "
         << "[Num Msgs] [Num Virtual Storages] "
         << "[Virtual Storages Details])";

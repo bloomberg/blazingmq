@@ -1465,7 +1465,7 @@ int main(int argc, char* argv[])
 
     TEST_PROLOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 
-    bmqsys::Time::initialize(bmqtst::TestHelperUtil::allocator());
+    bmqu::Time::initialize(bmqtst::TestHelperUtil::allocator());
 
     {
         mqbcfg::AppConfig brokerConfig(bmqtst::TestHelperUtil::allocator());
@@ -1479,7 +1479,7 @@ int main(int argc, char* argv[])
         bmqtst::runTest(_testCase);
     }
 
-    bmqsys::Time::shutdown();
+    bmqu::Time::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

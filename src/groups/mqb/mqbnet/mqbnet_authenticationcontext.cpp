@@ -22,8 +22,8 @@
 // BMQ
 #include <bmqio_channel.h>
 #include <bmqio_status.h>
-#include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
+#include <bmqu_time.h>
 #include <bmqu_weakmemfn.h>
 
 // BDE
@@ -201,7 +201,7 @@ int AuthenticationContext::setAuthenticatedAndScheduleReauthn(
 
         scheduler_p->scheduleEvent(
             &d_timeoutHandle,
-            bsls::TimeInterval(bmqsys::Time::nowMonotonicClock())
+            bsls::TimeInterval(bmqu::Time::nowMonotonicClock())
                 .addMilliseconds(lifetime),
             bdlf::BindUtil::bind(
                 bmqu::WeakMemFnUtil::weakMemFn(

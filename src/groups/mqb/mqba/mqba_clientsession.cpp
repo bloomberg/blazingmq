@@ -1433,7 +1433,7 @@ void ClientSession::onAckEvent(const mqbevt::AckEvent& event)
         if (cit != d_state.d_unackedMessageInfos.end()) {
             // Calculate time delta between PUT and ACK
             const bsls::Types::Int64 timeDelta =
-                bmqsys::Time::highResolutionTimer() - cit->second.d_timeStamp;
+                bmqu::Time::highResolutionTimer() - cit->second.d_timeStamp;
             queue_p->stats()
                 ->onEvent<mqbstat::QueueStatsDomain::EventType::e_ACK_TIME>(
                     timeDelta);
@@ -2136,7 +2136,7 @@ void ClientSession::onPutEvent(const mqbevt::PutEvent& event)
                     bsl::make_pair(putHeader.messageGUID(),
                                    ClientSessionState::UnackedMessageInfo(
                                        correlationId,
-                                       bmqsys::Time::highResolutionTimer())));
+                                       bmqu::Time::highResolutionTimer())));
             if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(insertRc.second ==
                                                       false)) {
                 BSLS_PERFORMANCEHINT_UNLIKELY_HINT;

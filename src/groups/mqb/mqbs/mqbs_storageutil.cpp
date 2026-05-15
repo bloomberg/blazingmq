@@ -19,8 +19,8 @@
 // BMQ
 #include <bmqp_protocol.h>
 
-#include <bmqsys_time.h>
 #include <bmqtsk_alarmlog.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlde_md5.h>
@@ -55,7 +55,7 @@ void StorageUtil::generateStorageKey(
     bdlde::Md5::Md5Digest digest;
     bdlde::Md5            md5(value.data(), value.length());
 
-    bsls::Types::Int64 time = bmqsys::Time::highResolutionTimer();
+    bsls::Types::Int64 time = bmqu::Time::highResolutionTimer();
     md5.update(&time, sizeof(time));
 
     md5.loadDigestAndReset(&digest);
@@ -68,7 +68,7 @@ void StorageUtil::generateStorageKey(
         // has a deterministic value).
 
         md5.update(digest.buffer(), mqbs::FileStoreProtocol::k_HASH_LENGTH);
-        time = bmqsys::Time::highResolutionTimer();
+        time = bmqu::Time::highResolutionTimer();
         md5.update(&time, sizeof(time));
         md5.loadDigestAndReset(&digest);
         key->fromBinary(digest.buffer());
@@ -143,8 +143,7 @@ void StorageUtil::loadArrivalTime(
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(0 !=
                                             attributes.arrivalTimepoint())) {
         const bsls::Types::Int64 timeDeltaNs =
-            bmqsys::Time::highResolutionTimer() -
-            attributes.arrivalTimepoint();
+            bmqu::Time::highResolutionTimer() - attributes.arrivalTimepoint();
 
         const bsls::Types::Int64 currentTimeNs =
             bdlt::EpochUtil::convertToTimeInterval(bdlt::CurrentTime::utc())
@@ -189,7 +188,7 @@ void StorageUtil::loadArrivalTimeDelta(
 
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(0 !=
                                             attributes.arrivalTimepoint())) {
-        *out = bmqsys::Time::highResolutionTimer() -
+        *out = bmqu::Time::highResolutionTimer() -
                attributes.arrivalTimepoint();
     }
     else {

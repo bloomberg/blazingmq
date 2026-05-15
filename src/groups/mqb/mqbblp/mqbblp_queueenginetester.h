@@ -596,8 +596,8 @@ class TimeControlledQueueEngineTester : public mqbblp::QueueEngineTester {
     : mqbblp::QueueEngineTester(domainConfig, true, allocator)
     , d_testClock(d_mockCluster_mp->_timeSource())
     {
-        bmqsys::Time::shutdown();
-        bmqsys::Time::initialize(
+        bmqu::Time::shutdown();
+        bmqu::Time::initialize(
             bdlf::BindUtil::bind(&TestClock::realtimeClock, &d_testClock),
             bdlf::BindUtil::bind(&TestClock::monotonicClock, &d_testClock),
             bdlf::BindUtil::bind(&TestClock::highResTimer, &d_testClock));

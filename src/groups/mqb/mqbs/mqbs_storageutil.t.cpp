@@ -18,7 +18,7 @@
 // MQB
 #include <mqbi_storage.h>
 
-#include <bmqsys_time.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlt_currenttime.h>
@@ -240,7 +240,7 @@ static void test4_loadArrivalTime()
     // Use timepoint if set
     {
         const bsls::Types::Int64 arrivalTimepointNs =
-            bmqsys::Time::highResolutionTimer();
+            bmqu::Time::highResolutionTimer();
 
         mqbi::StorageMessageAttributes attributes;
         attributes
@@ -256,7 +256,7 @@ static void test4_loadArrivalTime()
         const bsls::Types::Int64 expectedArrivalTimeNs =
             bdlt::EpochUtil::convertToTimeInterval(bdlt::CurrentTime::utc())
                 .totalNanoseconds() -
-            (bmqsys::Time::highResolutionTimer() - arrivalTimepointNs);
+            (bmqu::Time::highResolutionTimer() - arrivalTimepointNs);
         BMQTST_ASSERT_LE(
             expectedArrivalTimeNs - arrivalTimeNs,
             1 * bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
@@ -322,7 +322,7 @@ static void test5_loadArrivalTimeDelta()
     // Use timepoint if set
     {
         const bsls::Types::Int64 arrivalTimepointNs =
-            bmqsys::Time::highResolutionTimer();
+            bmqu::Time::highResolutionTimer();
 
         mqbi::StorageMessageAttributes attributes;
         attributes
@@ -337,7 +337,7 @@ static void test5_loadArrivalTimeDelta()
         // calculation of 'arrivalTimeDeltaNs' and
         // 'expectedArrivalTimeDeltaNs'.
         const bsls::Types::Int64 expectedArrivalTimeDeltaNs =
-            bmqsys::Time::highResolutionTimer() - arrivalTimepointNs;
+            bmqu::Time::highResolutionTimer() - arrivalTimepointNs;
         BMQTST_ASSERT_LE(
             expectedArrivalTimeDeltaNs - arrivalTimeDeltaNs,
             1 * bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
@@ -376,7 +376,7 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqsys::Time::initialize();
+    bmqu::Time::initialize();
 
     switch (_testCase) {
     case 0:
@@ -391,7 +391,7 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    bmqsys::Time::shutdown();
+    bmqu::Time::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

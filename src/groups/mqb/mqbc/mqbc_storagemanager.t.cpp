@@ -41,10 +41,10 @@
 #include <mqbu_messageguidutil.h>
 #include <mqbu_storagekey.h>
 
-#include <bmqsys_time.h>
 #include <bmqu_blob.h>
 #include <bmqu_blobobjectproxy.h>
 #include <bmqu_memoutstream.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -210,7 +210,7 @@ struct TestHelper {
         // To pass `inDispatcherThread` checks (allow ANY thread):
         d_cluster_mp->setThreadId(mqbi::DispatcherClient::k_ANY_THREAD_ID);
 
-        bmqsys::Time::initialize(
+        bmqu::Time::initialize(
             &bsls::SystemTime::nowRealtimeClock,
             bdlf::BindUtil::bind(&TestHelper::nowMonotonicClock, this),
             bdlf::BindUtil::bind(&TestHelper::highResolutionTimer, this),
@@ -986,7 +986,7 @@ struct TestHelper {
         }
     }
 
-    ~TestHelper() { bmqsys::Time::shutdown(); }
+    ~TestHelper() { bmqu::Time::shutdown(); }
 
     size_t numPartitions() const
     {

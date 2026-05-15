@@ -30,9 +30,9 @@
 
 #include <bmqio_testchannel.h>
 #include <bmqst_statcontext.h>
-#include <bmqsys_time.h>
 #include <bmqtst_scopedlogobserver.h>
 #include <bmqu_memoutstream.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <ball_log.h>
@@ -190,7 +190,7 @@ struct TestHelper {
         // To pass `inDispatcherThread` checks (allow ANY thread):
         d_cluster_mp->setThreadId(mqbi::DispatcherClient::k_ANY_THREAD_ID);
 
-        bmqsys::Time::initialize(
+        bmqu::Time::initialize(
             bdlf::BindUtil::bind(&mqbmock::Cluster::getTime,
                                  d_cluster_mp.get()),
             bdlf::BindUtil::bind(&mqbmock::Cluster::getTime,
@@ -206,7 +206,7 @@ struct TestHelper {
         }
     }
 
-    ~TestHelper() { bmqsys::Time::shutdown(); }
+    ~TestHelper() { bmqu::Time::shutdown(); }
 
     // MANIPULATORS
 

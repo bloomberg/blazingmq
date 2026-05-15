@@ -2313,7 +2313,7 @@ void StorageUtil::stop(FileStores*        fileStores,
                   << ": Enqueuing event to close FileStores.";
 
     bslmt::Latch       latch(fileStores->size());
-    bsls::Types::Int64 shutdownStartTime = bmqsys::Time::highResolutionTimer();
+    bsls::Types::Int64 shutdownStartTime = bmqu::Time::highResolutionTimer();
     for (unsigned int i = 0; i < fileStores->size(); ++i) {
         const bsl::shared_ptr<mqbs::FileStore>& fs = (*fileStores)[i];
         // 'fs' could be null because partition might not have been created at
@@ -2332,7 +2332,7 @@ void StorageUtil::stop(FileStores*        fileStores,
     BALL_LOG_INFO << clusterDescription
                   << ": About to wait for partition shutdown to complete.";
     latch.wait();
-    bsls::Types::Int64 shutdownEndTime = bmqsys::Time::highResolutionTimer();
+    bsls::Types::Int64 shutdownEndTime = bmqu::Time::highResolutionTimer();
 
     BALL_LOG_INFO
         << clusterDescription

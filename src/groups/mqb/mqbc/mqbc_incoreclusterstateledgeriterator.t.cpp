@@ -47,9 +47,9 @@
 #include <bsls_types.h>
 
 // TEST DRIVER
-#include <bmqsys_time.h>
 #include <bmqtst_testhelper.h>
 #include <bmqu_tempdirectory.h>
+#include <bmqu_time.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -453,7 +453,7 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqsys::Time::initialize(bmqtst::TestHelperUtil::allocator());
+    bmqu::Time::initialize(bmqtst::TestHelperUtil::allocator());
 
     switch (_testCase) {
     case 0:
@@ -464,7 +464,7 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    bmqsys::Time::shutdown();
+    bmqu::Time::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

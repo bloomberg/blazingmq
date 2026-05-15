@@ -36,8 +36,8 @@
 #include <bmqt_resultcode.h>
 #include <bmqt_uri.h>
 
-#include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlb_nullablevalue.h>
@@ -373,7 +373,7 @@ void LocalQueue::flush()
     // may have no storage.
     if (d_state_p->storage()) {
         if (!d_state_p->isStopping()) {
-            const bsls::Types::Int64 now = bmqsys::Time::highResolutionTimer();
+            const bsls::Types::Int64 now = bmqu::Time::highResolutionTimer();
             d_state_p->storage()->gcHistory(now);
 
             const bdlt::Datetime currentTimeUtc = bdlt::CurrentTime::utc();
@@ -445,7 +445,7 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
         return;  // RETURN
     }
 
-    const bsls::Types::Int64 timePoint = bmqsys::Time::highResolutionTimer();
+    const bsls::Types::Int64 timePoint = bmqu::Time::highResolutionTimer();
     const bool               doAck     = bmqp::PutHeaderFlagUtil::isSet(
         putHeader.flags(),
         bmqp::PutHeaderFlags::e_ACK_REQUESTED);

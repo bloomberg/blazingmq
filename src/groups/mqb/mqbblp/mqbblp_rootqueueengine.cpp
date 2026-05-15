@@ -40,10 +40,10 @@
 #include <bmqt_queueflags.h>
 #include <bmqt_uri.h>
 
-#include <bmqsys_time.h>
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_outstreamformatsaver.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <ball_logthrottle.h>
@@ -201,7 +201,7 @@ void RootQueueEngine::deliverMessages(AppState* app)
 
     if (delay != bsls::TimeInterval()) {
         app->scheduleThrottle(
-            bmqsys::Time::nowMonotonicClock() + delay,
+            bmqu::Time::nowMonotonicClock() + delay,
             bdlf::BindUtil::bind(&RootQueueEngine::deliverMessages,
                                  this,
                                  app));

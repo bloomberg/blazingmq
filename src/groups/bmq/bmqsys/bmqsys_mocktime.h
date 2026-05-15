@@ -33,7 +33,7 @@
 //
 //  mockTime.advanceHighResTimer(10);
 //
-//  bmqsys::Time::shutdown();
+//  bmqu::Time::shutdown();
 //..
 
 // BDE

@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <bmqsys_time.h>
+#include <bmqu_time.h>
 
 #include <bmqscm_version.h>
 // BDE
@@ -28,7 +28,7 @@
 #include <bsls_timeutil.h>
 
 namespace BloombergLP {
-namespace bmqsys {
+namespace bmqu {
 
 namespace {
 bsls::ObjectBuffer<Time::SystemTimeCb> g_realTimeClock;

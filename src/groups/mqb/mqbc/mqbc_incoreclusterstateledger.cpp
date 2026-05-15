@@ -41,10 +41,10 @@
 #include <bmqp_protocol.h>
 
 #include <bmqio_status.h>
-#include <bmqsys_time.h>
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_blobobjectproxy.h>
 #include <bmqu_memoutstream.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlbb_blob.h>
