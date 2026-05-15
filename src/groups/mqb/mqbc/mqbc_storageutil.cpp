@@ -1854,6 +1854,16 @@ void StorageUtil::recoveredQueuesCb(
             // EXIT
         }
 
+        if (!qit->second.isRecorded()) {
+            BALL_LOG_INFO << clusterDescription << " Partition ["
+                          << partitionId
+                          << "]: did not recover QueueCreationRecord and "
+                             "skips creating storage(s) for queueUri ["
+                          << queueUri << "], queueKey [" << queueKey << "].";
+
+            continue;  // CONTINUE
+        }
+
         StorageSp rs_sp;
         fs->createStorage(&rs_sp, queueUri, queueKey, domain);
         BSLS_ASSERT_SAFE(rs_sp);

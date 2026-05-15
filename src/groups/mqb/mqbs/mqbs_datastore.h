@@ -290,8 +290,6 @@ class DataStoreConfigQueueInfo {
 
   private:
     // DATA
-    bool d_isFSM;
-
     bsl::string d_canonicalUri;
 
     int d_partitionId;
@@ -305,14 +303,17 @@ class DataStoreConfigQueueInfo {
     /// for ghost Apps.
     mutable PurgeOps d_purgeOps;
 
+    /// This queue has QueueCreationRecord in in the journal.
+    /// As opposed to the case when the queue is in the CSL only.
+    bool d_isRecorded;
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(DataStoreConfigQueueInfo,
                                    bslma::UsesBslmaAllocator)
 
     // CREATORS
-    explicit DataStoreConfigQueueInfo(bool              isFSM,
-                                      bslma::Allocator* basicAllocator = 0);
+    explicit DataStoreConfigQueueInfo(bslma::Allocator* basicAllocator = 0);
 
     DataStoreConfigQueueInfo(const DataStoreConfigQueueInfo& other,
                              bslma::Allocator* basicAllocator = 0);
@@ -322,11 +323,15 @@ class DataStoreConfigQueueInfo {
 
     void setPartitionId(int value);
 
+    void setAsRecorded();
+
     /// Save the specified `appId` and the specified `appKey` as a valid App
     /// for which a Storage will be created.  If the same key was specified in
     /// a previous `addPurgeOp` call, remove the App from the cache of Ghost
     /// Apps.
-    void addAppInfo(const bsl::string& appId, const mqbu::StorageKey& appKey);
+    void addAppInfo(const bsl::string&      appId,
+                    const mqbu::StorageKey& appKey,
+                    bool                    withCSL);
 
     /// Cache the Purge interval from the specified `start` to the specified
     /// `end` for the specified `key` unless the `key` was specified in a
@@ -346,6 +351,8 @@ class DataStoreConfigQueueInfo {
     int partitionId() const;
 
     const AppInfos& appIdKeyPairs() const;
+
+    bool isRecorded() const;
 };
 
 // =====================
@@ -882,26 +889,25 @@ DataStoreRecordKeyLess::operator()(const DataStoreRecordKey& lhs,
 
 // CREATORS
 inline DataStoreConfigQueueInfo::DataStoreConfigQueueInfo(
-    bool              isFSM,
     bslma::Allocator* basicAllocator)
-: d_isFSM(isFSM)
-, d_canonicalUri(basicAllocator)
+: d_canonicalUri(basicAllocator)
 , d_partitionId(mqbi::Storage::k_INVALID_PARTITION_ID)
 , d_appIdKeyPairs(basicAllocator)
 , d_ghosts(basicAllocator)
 , d_purgeOps(basicAllocator)
+, d_isRecorded(false)
 {
 }
 
 inline DataStoreConfigQueueInfo::DataStoreConfigQueueInfo(
     const DataStoreConfigQueueInfo& other,
     bslma::Allocator*               basicAllocator)
-: d_isFSM(other.d_isFSM)
-, d_canonicalUri(other.d_canonicalUri, basicAllocator)
+: d_canonicalUri(other.d_canonicalUri, basicAllocator)
 , d_partitionId(other.d_partitionId)
 , d_appIdKeyPairs(other.d_appIdKeyPairs, basicAllocator)
 , d_ghosts(other.d_ghosts, basicAllocator)
 , d_purgeOps(other.d_purgeOps, basicAllocator)
+, d_isRecorded(other.d_isRecorded)
 {
 }
 
@@ -915,6 +921,11 @@ DataStoreConfigQueueInfo::setCanonicalQueueUri(const bsl::string& value)
 inline void DataStoreConfigQueueInfo::setPartitionId(int value)
 {
     d_partitionId = value;
+}
+
+inline void DataStoreConfigQueueInfo::setAsRecorded()
+{
+    d_isRecorded = true;
 }
 
 // ACCESSORS
@@ -932,6 +943,11 @@ inline const DataStoreConfigQueueInfo::AppInfos&
 DataStoreConfigQueueInfo::appIdKeyPairs() const
 {
     return d_appIdKeyPairs;
+}
+
+inline bool DataStoreConfigQueueInfo::isRecorded() const
+{
+    return d_isRecorded;
 }
 
 // ---------------------

@@ -4066,13 +4066,13 @@ void StorageManager::initializeQueueKeyInfoMap(
             BSLS_ASSERT_SAFE(cit->second);
             const ClusterStateQueueInfo& csQinfo = *(cit->second);
 
-            mqbs::DataStoreConfigQueueInfo qinfo(true);
+            mqbs::DataStoreConfigQueueInfo qinfo;
             qinfo.setCanonicalQueueUri(csQinfo.uri().asString());
             qinfo.setPartitionId(csQinfo.partitionId());
             for (AppInfosCIter appIdCit = csQinfo.appInfos().cbegin();
                  appIdCit != csQinfo.appInfos().cend();
                  ++appIdCit) {
-                qinfo.addAppInfo(appIdCit->first, appIdCit->second);
+                qinfo.addAppInfo(appIdCit->first, appIdCit->second, true);
             }
 
             d_queueKeyInfoMapVec.at(csQinfo.partitionId())
