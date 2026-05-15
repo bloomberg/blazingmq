@@ -13,9 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <bmqsys_statmonitorsnapshotrecorder.h>
+#include <mqbstat_statmonitorsnapshotrecorder.h>
 
-#include <bmqscm_version.h>
+#include <mqbscm_version.h>
 
 #include <bmqsys_statmonitor.h>
 #include <bmqu_memoutstream.h>
@@ -28,7 +28,7 @@
 #include <bslma_default.h>
 
 namespace BloombergLP {
-namespace bmqsys {
+namespace mqbstat {
 
 namespace {
 
@@ -117,7 +117,7 @@ StatMonitorSnapshotRecorder::StatMonitorSnapshotRecorder(
 }
 
 StatMonitorSnapshotRecorder::StatMonitorSnapshotRecorder(
-    const bmqsys::StatMonitorSnapshotRecorder& other,
+    const mqbstat::StatMonitorSnapshotRecorder& other,
     BSLA_MAYBE_UNUSED bslma::Allocator* allocator)
 : d_impl_sp(other.d_impl_sp)
 {
