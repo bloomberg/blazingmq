@@ -2756,7 +2756,6 @@ void StorageManager::do_bufferLiveData(const EventWithData& event)
     BSLS_ASSERT_SAFE(rawEvent.isStorageEvent());
 
     const PartitionInfo& pinfo = d_partitionInfoVec[partitionId];
-    BSLS_ASSERT_SAFE(pinfo.primary() == source);
 
     bool skipAlarm = partitionHealthState(partitionId) ==
                      PartitionFSM::State::e_UNKNOWN;
