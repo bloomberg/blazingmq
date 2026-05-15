@@ -70,6 +70,7 @@
 #include <bslmt_latch.h>
 #include <bslmt_lockguard.h>
 #include <bslmt_once.h>
+#include <bslmt_threadattributes.h>
 #include <bsls_assert.h>
 #include <bsls_systemclocktype.h>
 #include <bsls_timeinterval.h>
@@ -133,12 +134,12 @@ Application::Application(bdlmt::EventScheduler* scheduler,
                          bslma::Allocator*      allocator)
 : d_allocators(allocator)
 , d_scheduler_p(scheduler)
-, d_adminExecutionPool(bmqsys::ThreadUtil::defaultAttributes(),
+, d_adminExecutionPool(bslmt::ThreadAttributes(),
                        0,
                        1,
                        bsls::TimeInterval(120).totalMilliseconds(),
                        allocator)
-, d_adminRerouteExecutionPool(bmqsys::ThreadUtil::defaultAttributes(),
+, d_adminRerouteExecutionPool(bslmt::ThreadAttributes(),
                               0,
                               1,
                               bsls::TimeInterval(120).totalMilliseconds(),

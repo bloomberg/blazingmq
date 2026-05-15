@@ -23,7 +23,6 @@
 #include <mqbevt_dispatcherevent.h>
 
 // BMQ
-#include <bmqsys_threadutil.h>
 #include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
 
@@ -42,6 +41,8 @@
 #include <bsla_annotations.h>
 #include <bslma_managedptr.h>
 #include <bslmt_semaphore.h>
+#include <bslmt_threadattributes.h>
+#include <bslmt_threadutil.h>
 #include <bsls_systemclocktype.h>
 #include <bsls_timeinterval.h>
 
@@ -194,7 +195,7 @@ int Dispatcher::startContext(bsl::ostream&                    errorDescription,
     // Create and start the threadPool
     context->d_threadPool_mp.load(
         new (*d_allocator_p)
-            bdlmt::ThreadPool(bmqsys::ThreadUtil::defaultAttributes(),
+            bdlmt::ThreadPool(bslmt::ThreadAttributes(),
                               config.numProcessors(),           // min threads
                               config.numProcessors(),           // max threads
                               bsl::numeric_limits<int>::max(),  // idle time
@@ -358,18 +359,15 @@ int Dispatcher::start(bsl::ostream& errorDescription)
         return rc;  // RETURN
     }
 
-    executeOnAllQueues(
-        bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
-                             "bmqDispSession"),
-        mqbi::DispatcherClientType::e_SESSION);
-    executeOnAllQueues(
-        bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
-                             "bmqDispQueue"),
-        mqbi::DispatcherClientType::e_QUEUE);
-    executeOnAllQueues(
-        bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
-                             "bmqDispCluster"),
-        mqbi::DispatcherClientType::e_CLUSTER);
+    executeOnAllQueues(bdlf::BindUtil::bind(&bslmt::ThreadUtil::setThreadName,
+                                            "bmqDispSession"),
+                       mqbi::DispatcherClientType::e_SESSION);
+    executeOnAllQueues(bdlf::BindUtil::bind(&bslmt::ThreadUtil::setThreadName,
+                                            "bmqDispQueue"),
+                       mqbi::DispatcherClientType::e_QUEUE);
+    executeOnAllQueues(bdlf::BindUtil::bind(&bslmt::ThreadUtil::setThreadName,
+                                            "bmqDispCluster"),
+                       mqbi::DispatcherClientType::e_CLUSTER);
 
     d_isStarted = true;
 
