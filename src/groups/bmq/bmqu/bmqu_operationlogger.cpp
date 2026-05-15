@@ -13,12 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <bmqsys_operationlogger.h>
+#include <bmqu_operationlogger.h>
 
 #include <bmqscm_version.h>
 
 namespace BloombergLP {
-namespace bmqsys {
+namespace bmqu {
 
 // ---------------------
 // class OperationLogger

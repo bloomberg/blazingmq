@@ -46,8 +46,8 @@
 
 #include <bmqscm_version.h>
 #include <bmqst_statcontext.h>
-#include <bmqsys_operationlogger.h>
 #include <bmqu_memoutstream.h>
+#include <bmqu_operationlogger.h>
 #include <bmqu_time.h>
 
 // BDE
@@ -991,7 +991,7 @@ int Application::processCommandCb(
     const bsl::function<void(int, const bsl::string&)>& onProcessedCb,
     bool                                                fromReroute)
 {
-    bmqsys::OperationLogger opLogger(d_allocator_p);
+    bmqu::OperationLogger opLogger(d_allocator_p);
     // Set operation name later when we have a return code
     opLogger.start();
 

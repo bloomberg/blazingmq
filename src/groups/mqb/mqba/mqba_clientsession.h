@@ -46,8 +46,8 @@
 
 #include <bmqio_channel.h>
 #include <bmqio_channelfactory.h>
-#include <bmqsys_operationlogger.h>
 #include <bmqu_operationchain.h>
+#include <bmqu_operationlogger.h>
 #include <bmqu_sharedresource.h>
 #include <bmqu_time.h>
 
@@ -424,20 +424,20 @@ class ClientSession : public mqbnet::Session,
     /// control when it gets destroyed.
     void tearDownAllQueuesDone(const bsl::shared_ptr<void>& session);
 
-    void onHandleConfigured(
-        const bmqp_ctrlmsg::Status&                     status,
-        const bmqp_ctrlmsg::StreamParameters&           streamParameters,
-        const bmqp_ctrlmsg::ControlMessage&             streamParamsCtrlMsg,
-        const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger);
+    void
+    onHandleConfigured(const bmqp_ctrlmsg::Status&           status,
+                       const bmqp_ctrlmsg::StreamParameters& streamParameters,
+                       const bmqp_ctrlmsg::ControlMessage& streamParamsCtrlMsg,
+                       const bsl::shared_ptr<bmqu::OperationLogger>& opLogger);
 
     /// Called when handle configure response comes to the client session
     /// with the specified `status`, `streamParameters` and
     /// `streamParamsCtrlMsg`.
     void onHandleConfiguredDispatched(
-        const bmqp_ctrlmsg::Status&                     status,
-        const bmqp_ctrlmsg::StreamParameters&           streamParameters,
-        const bmqp_ctrlmsg::ControlMessage&             streamParamsCtrlMsg,
-        const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger);
+        const bmqp_ctrlmsg::Status&                   status,
+        const bmqp_ctrlmsg::StreamParameters&         streamParameters,
+        const bmqp_ctrlmsg::ControlMessage&           streamParamsCtrlMsg,
+        const bsl::shared_ptr<bmqu::OperationLogger>& opLogger);
 
     /// Initiate the shutdown of the session.
     void initiateShutdownDispatched();
@@ -461,8 +461,8 @@ class ClientSession : public mqbnet::Session,
 
     // Step 1/3.
     void processDisconnectAllQueues(
-        const bmqp_ctrlmsg::ControlMessage&             controlMessage,
-        const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger);
+        const bmqp_ctrlmsg::ControlMessage&           controlMessage,
+        const bsl::shared_ptr<bmqu::OperationLogger>& opLogger);
 
     // Step 2/3.
     /// Process the disconnect request in the specified `controlMessage`.
@@ -479,25 +479,25 @@ class ClientSession : public mqbnet::Session,
     /// round trip to the queue dispatcher thread, we must ensure the close
     /// queue response will be delivered before the disconnect response.
     void processDisconnectAllQueuesDone(
-        const bmqp_ctrlmsg::ControlMessage&             controlMessage,
-        const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger);
+        const bmqp_ctrlmsg::ControlMessage&           controlMessage,
+        const bsl::shared_ptr<bmqu::OperationLogger>& opLogger);
 
     // Step 3/3.
-    void processDisconnect(
-        const bmqp_ctrlmsg::ControlMessage&             controlMessage,
-        const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger);
+    void
+    processDisconnect(const bmqp_ctrlmsg::ControlMessage& controlMessage,
+                      const bsl::shared_ptr<bmqu::OperationLogger>& opLogger);
 
     void
     processOpenQueue(const bmqp_ctrlmsg::ControlMessage& handleParamsCtrlMsg,
-                     const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger);
+                     const bsl::shared_ptr<bmqu::OperationLogger>& opLogger);
 
-    void processCloseQueue(
-        const bmqp_ctrlmsg::ControlMessage&             handleParamsCtrlMsg,
-        const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger);
+    void
+    processCloseQueue(const bmqp_ctrlmsg::ControlMessage& handleParamsCtrlMsg,
+                      const bsl::shared_ptr<bmqu::OperationLogger>& opLogger);
 
     void processConfigureStream(
-        const bmqp_ctrlmsg::ControlMessage&             streamParamsCtrlMsg,
-        const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger);
+        const bmqp_ctrlmsg::ControlMessage&           streamParamsCtrlMsg,
+        const bsl::shared_ptr<bmqu::OperationLogger>& opLogger);
 
     /// Process the specified ack `event`.
     void onAckEvent(const mqbevt::AckEvent& event);
@@ -528,12 +528,11 @@ class ClientSession : public mqbnet::Session,
                      mqbi::QueueHandle*                     handle,
                      const bmqp_ctrlmsg::OpenQueueResponse& openQueueResponse,
                      const bmqp_ctrlmsg::ControlMessage& handleParamsCtrlMsg,
-                     const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger);
+                     const bsl::shared_ptr<bmqu::OperationLogger>& opLogger);
 
-    void
-    closeQueueCb(const bsl::shared_ptr<mqbi::QueueHandle>& handle,
-                 const bmqp_ctrlmsg::ControlMessage&       handleParamsCtrlMsg,
-                 const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger);
+    void closeQueueCb(const bsl::shared_ptr<mqbi::QueueHandle>& handle,
+                      const bmqp_ctrlmsg::ControlMessage& handleParamsCtrlMsg,
+                      const bsl::shared_ptr<bmqu::OperationLogger>& opLogger);
 
     /// Return a pointer to the stats associated with an unknown queue.
     /// Note that these stats are lazily created in the first invocation of

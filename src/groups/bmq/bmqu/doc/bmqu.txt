@@ -9,12 +9,13 @@ reused through various applications.
 
 /Hierarchical Synopsis
 /---------------------
-The 'bmqu' package currently has 20 components having 2 level of physical
+The 'bmqu' package currently has 21 components having 2 level of physical
 dependency.  The list below shows the hierarchal ordering of the components.
 ..
   2. bmqu_blobiterator
      bmqu_blobojectproxy
      bmqu_operationchain
+     bmqu_operationlogger
      bmqu_printutil
      bmqu_tempdirectory
 
@@ -60,6 +61,9 @@ dependency.  The list below shows the hierarchal ordering of the components.
 :
 : 'bmqu_operationchain':
 :      Provide a mechanism to serialize execution of async operations.
+:
+: 'bmqu_operationlogger':
+:      Provide utility to measure and log operation time.
 :
 : 'bmqu_outstreamformatsaver':
 :      Provide a scoped guard for an ostream's format state.
