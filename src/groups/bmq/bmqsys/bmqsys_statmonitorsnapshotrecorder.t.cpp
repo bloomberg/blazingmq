@@ -15,7 +15,7 @@
 
 #include <bmqsys_statmonitorsnapshotrecorder.h>
 
-#include <bmqsys_mocktime.h>
+#include <bmqtst_mocktime.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_time.h>
 
@@ -257,7 +257,7 @@ static void test2_totalElapsed()
 {
     bmqtst::TestHelper::printTestName("TOTAL ELAPSED");
 
-    bmqsys::MockTime mockTime;
+    bmqtst::MockTime mockTime;
 
     bmqsys::StatMonitorSnapshotRecorder obj("HEADER");
 

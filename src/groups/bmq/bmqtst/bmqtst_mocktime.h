@@ -13,16 +13,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef INCLUDED_BMQSYS_MOCKTIME
-#define INCLUDED_BMQSYS_MOCKTIME
+#ifndef INCLUDED_BMQTST_MOCKTIME
+#define INCLUDED_BMQTST_MOCKTIME
 
-//@PURPOSE: Provide a mock of the time accessors usable with 'bmqsys::Time'.
+//@PURPOSE: Provide a mock of the time accessors usable with 'bmqu::Time'.
 //
 //@CLASSES:
-//   bmqsys::MockTime: mock utility of the 'bmqsys::Time' accessors
+//   bmqtst::MockTime: mock utility of the 'bmqu::Time' accessors
 //
-//@DESCRIPTION: 'bmqsys::MockTime' provides a utility that can be used with
-//'bmqsys::Time' to control the time.
+//@DESCRIPTION: 'bmqtst::MockTime' provides a utility that can be used with
+//'bmqu::Time' to control the time.
 //
 /// Usage Example
 ///-------------
@@ -42,13 +42,13 @@
 #include <bsls_types.h>
 
 namespace BloombergLP {
-namespace bmqsys {
+namespace bmqtst {
 
 // ==============
 // class MockTime
 // ==============
 
-/// A mock utility of the time accessors usable with `bmqsys::Time`.
+/// A mock utility of the time accessors usable with `bmqu::Time`.
 class MockTime {
   private:
     // DATA
@@ -61,13 +61,13 @@ class MockTime {
     MockTime(const MockTime&) BSLS_KEYWORD_DELETED;
     MockTime& operator=(const MockTime&) BSLS_KEYWORD_DELETED;
     // Copy constructor and assignment operator not implemented (because
-    // MockTime, for convenience, registers itself to 'bmqsys::Time' in
+    // MockTime, for convenience, registers itself to 'bmqu::Time' in
     // its constructor).
 
   public:
     // CREATORS
 
-    /// Default constructor - and register this object to the bmqsys::Time
+    /// Default constructor - and register this object to the bmqu::Time
     MockTime();
 
     /// Destructor
