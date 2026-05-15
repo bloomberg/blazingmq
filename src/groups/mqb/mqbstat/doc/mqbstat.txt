@@ -9,10 +9,11 @@
 
 /Hierarchical Synopsis
 /---------------------
- The 'mqbstat' package currently has 2 components having 2 levels of physical
+ The 'mqbstat' package currently has 3 components having 2 levels of physical
  dependency.  The list below shows the hierarchical ordering of the components.
 ..
   2. mqbstat_statcontroller
+     mqbstat_statmonitorsnapshotrecorder
 
   1. mqbstat_queuestats
 
@@ -25,3 +26,6 @@
 :
 : 'mqbstat_statcontroller'
 :       Provide a processor for statistics collected by the bmqbrkr.
+:
+: 'mqbstat_statmonitorsnapshotrecorder'
+:       Provide a mechanism to record snapshot of time, cpu, and ctx switch.

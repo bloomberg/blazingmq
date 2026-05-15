@@ -39,6 +39,7 @@
 #include <mqbs_replicatedstorage.h>
 #include <mqbs_storageutil.h>
 #include <mqbstat_clusterstats.h>
+#include <mqbstat_statmonitorsnapshotrecorder.h>
 #include <mqbu_exit.h>
 
 // BMQ
@@ -49,7 +50,6 @@
 #include <bmqp_storagemessageiterator.h>
 #include <bmqt_resultcode.h>
 
-#include <bmqsys_statmonitorsnapshotrecorder.h>
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_blobobjectproxy.h>
 #include <bmqu_memoutstream.h>
@@ -2725,8 +2725,8 @@ int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
 
     // Start a StatMonitorSnapshotRecorder to track system stats during
     // rollover
-    bmqsys::StatMonitorSnapshotRecorder statRecorder(partitionDesc(),
-                                                     d_allocator_p);
+    mqbstat::StatMonitorSnapshotRecorder statRecorder(partitionDesc(),
+                                                      d_allocator_p);
 
     // Create new files, add header etc.
     FileSetSp newActiveFileSetSp;

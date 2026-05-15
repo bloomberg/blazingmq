@@ -50,7 +50,6 @@
 #include <bmqma_countingallocatorstore.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqst_statcontextuserdata.h>
-#include <bmqsys_statmonitorsnapshotrecorder.h>
 #include <bmqt_uri.h>
 #include <bmqu_operationchain.h>
 #include <bmqu_throttledaction.h>
@@ -103,6 +102,9 @@ class StorageManager;
 }
 namespace mqbnet {
 class TransportManager;
+}
+namespace mqbstat {
+class StatMonitorSnapshotRecorder;
 }
 
 namespace mqbblp {
@@ -419,13 +421,13 @@ class Cluster : public mqbi::Cluster,
     void
     onRecoveryStatus(int                              status,
                      const bsl::vector<unsigned int>& primaryLeaseIds,
-                     const bmqsys::StatMonitorSnapshotRecorder& statRecorder);
+                     const mqbstat::StatMonitorSnapshotRecorder& statRecorder);
 
     /// Executes in cluster's dispatcher thread.
     void onRecoveryStatusDispatched(
-        int                                        status,
-        const bsl::vector<unsigned int>&           primaryLeaseIds,
-        const bmqsys::StatMonitorSnapshotRecorder& statRecorder);
+        int                                         status,
+        const bsl::vector<unsigned int>&            primaryLeaseIds,
+        const mqbstat::StatMonitorSnapshotRecorder& statRecorder);
 
     /// Executes in the scheduler thread.
     void gcExpiredQueues();

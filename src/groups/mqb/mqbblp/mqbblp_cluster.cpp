@@ -37,6 +37,7 @@
 #include <mqbs_datastore.h>
 #include <mqbs_replicatedstorage.h>
 #include <mqbstat_queuestats.h>
+#include <mqbstat_statmonitorsnapshotrecorder.h>
 
 // BMQ
 #include <bmqp_ackmessageiterator.h>
@@ -175,8 +176,8 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
 
     // Start a StatMonitorSnapshotRecorder to track system stats during
     // recovery
-    bmqsys::StatMonitorSnapshotRecorder statRecorder(description() + ": ",
-                                                     d_allocator_p);
+    mqbstat::StatMonitorSnapshotRecorder statRecorder(description() + ": ",
+                                                      d_allocator_p);
 
     // Get named allocator from associated bmqma::CountingAllocatorStore
     bslma::Allocator* storageManagerAllocator = d_allocators.get(
@@ -1603,9 +1604,9 @@ void Cluster::onRelayPushEvent(const mqbevt::PushEvent& event)
 }
 
 void Cluster::onRecoveryStatus(
-    int                                        status,
-    const bsl::vector<unsigned int>&           primaryLeaseIds,
-    const bmqsys::StatMonitorSnapshotRecorder& statRecorder)
+    int                                         status,
+    const bsl::vector<unsigned int>&            primaryLeaseIds,
+    const mqbstat::StatMonitorSnapshotRecorder& statRecorder)
 
 {
     // exected by *ANY* thread
@@ -1620,9 +1621,9 @@ void Cluster::onRecoveryStatus(
 }
 
 void Cluster::onRecoveryStatusDispatched(
-    int                                        status,
-    const bsl::vector<unsigned int>&           primaryLeaseIds,
-    const bmqsys::StatMonitorSnapshotRecorder& statRecorder)
+    int                                         status,
+    const bsl::vector<unsigned int>&            primaryLeaseIds,
+    const mqbstat::StatMonitorSnapshotRecorder& statRecorder)
 {
     // executed by the *DISPATCHER* thread
 

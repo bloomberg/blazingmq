@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <bmqsys_statmonitorsnapshotrecorder.h>
+#include <mqbstat_statmonitorsnapshotrecorder.h>
 
 #include <bmqtst_mocktime.h>
 #include <bmqu_memoutstream.h>
@@ -136,7 +136,7 @@ static void test1_usageExample()
     // Begin testing
     PV("Valued constructor");
     {
-        bmqsys::StatMonitorSnapshotRecorder statRecorder(k_HEADER);
+        mqbstat::StatMonitorSnapshotRecorder statRecorder(k_HEADER);
 
         // Perform some intensive work - step 1
         doWork(7500,  // rate
@@ -187,8 +187,8 @@ static void test1_usageExample()
 
     PV("Copy constructor");
     {
-        bmqsys::StatMonitorSnapshotRecorder statRecorderTemp(k_HEADER);
-        bmqsys::StatMonitorSnapshotRecorder statRecorder(
+        mqbstat::StatMonitorSnapshotRecorder statRecorderTemp(k_HEADER);
+        mqbstat::StatMonitorSnapshotRecorder statRecorder(
             statRecorderTemp,
             bmqtst::TestHelperUtil::allocator());
 
@@ -249,7 +249,7 @@ static void test2_totalElapsed()
 //   Ensure that the totalElapsed accessor returns the right value.
 //
 // Plan:
-//   1 Manipulate the time by using custom time accessor with bmqsys::Time
+//   1 Manipulate the time by using custom time accessor with bmqu::Time
 //
 // Testing:
 //   'bsls::Types::Int64 totalElapsed() const'
@@ -259,7 +259,7 @@ static void test2_totalElapsed()
 
     bmqtst::MockTime mockTime;
 
-    bmqsys::StatMonitorSnapshotRecorder obj("HEADER");
+    mqbstat::StatMonitorSnapshotRecorder obj("HEADER");
 
     BMQTST_ASSERT_EQ(obj.totalElapsed(), 0);
 

@@ -13,15 +13,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef INCLUDED_BMQSYS_STATMONITORSNAPSHOTRECORDER
-#define INCLUDED_BMQSYS_STATMONITORSNAPSHOTRECORDER
+#ifndef INCLUDED_MQBSTAT_STATMONITORSNAPSHOTRECORDER
+#define INCLUDED_MQBSTAT_STATMONITORSNAPSHOTRECORDER
 
 //@PURPOSE: Provide a mechanism to record snapshot of time, cpu, ctx switch.
 //
 //@CLASSES:
-//  bmqsys::StatMonitorSnapshotRecorder: Mechanism to record snapshot of stats
+//  mqbstat::StatMonitorSnapshotRecorder: Mechanism to record snapshot of stats
 //
-//@DESCRIPTION: 'bmqsys::StatMonitorSnapshotRecorder' provides a mechanism to
+//@DESCRIPTION: 'mqbstat::StatMonitorSnapshotRecorder' provides a mechanism to
 // record and report a snapshot of wall time, average CPU utilization
 // percentage (%) for user, system, and their sum, and voluntary context
 // switches.  The measurements recorded and reported by this object are
@@ -62,10 +62,10 @@
 // The following code illustrates how to monitor and log stats throughout an
 // expensive recovery operation.
 //
-// In this example, the 'bmqsys::StatMonitorSnapshotRecorder' is created on the
-// stack before beginning recovery, with a 'header' string that will be used as
-// the top-level header in its output.  Then the first step of recovery is
-// initiated, and when it is finished, a snapshot of the stats recorded is
+// In this example, the 'mqbstat::StatMonitorSnapshotRecorder' is created on
+// the stack before beginning recovery, with a 'header' string that will be
+// used as the top-level header in its output.  Then the first step of recovery
+// is initiated, and when it is finished, a snapshot of the stats recorded is
 // logged using the 'print' method.  Note that this also resets the recording
 // of stats.  Next, the second step of recovery begins, and finally, when it
 // completes, the stat recorder is again used to log a snapshot of the stats
@@ -76,7 +76,7 @@
 //  FileStore::recoverMessages(...)
 //  {
 //      ...
-//      bmqsys::StatMonitorSnapshotRecorder statRecorder(
+//      mqbstat::StatMonitorSnapshotRecorder statRecorder(
 //                                                    "Cluster (testCluster)");
 //      // Perform step 1 of recovery
 //      ...
@@ -110,7 +110,7 @@
 
 namespace BloombergLP {
 
-namespace bmqsys {
+namespace mqbstat {
 
 // =================================
 // class StatMonitorSnapshotRecorder
@@ -122,7 +122,7 @@ namespace bmqsys {
 class StatMonitorSnapshotRecorder {
   private:
     // CLASS-SCOPE CATEGORY
-    BALL_LOG_SET_CLASS_CATEGORY("BMQSYS.STATMONITORSNAPSHOTRECORDER");
+    BALL_LOG_SET_CLASS_CATEGORY("MQBSTAT.STATMONITORSNAPSHOTRECORDER");
 
   private:
     // DATA
@@ -140,19 +140,19 @@ class StatMonitorSnapshotRecorder {
 
     // CREATORS
 
-    /// Create a new `bmqsys::StatMonitorSnapshotRecorder` using the
+    /// Create a new `mqbstat::StatMonitorSnapshotRecorder` using the
     /// specified `header`, used as the top-level header when printing
     /// statistics, and begin recording statistics.  Use the optionally
     /// specified `allocator` to supply memory.
     explicit StatMonitorSnapshotRecorder(const bsl::string& header,
                                          bslma::Allocator*  allocator = 0);
 
-    /// Copy constructor, create a new `bmqsys::StatMonitorSnapshotRecorder`
+    /// Copy constructor, create a new `mqbstat::StatMonitorSnapshotRecorder`
     /// having the same values as the specified `other`, and using the
     /// optionally specified `allocator`.
     StatMonitorSnapshotRecorder(
-        const bmqsys::StatMonitorSnapshotRecorder& other,
-        bslma::Allocator*                          allocator = 0);
+        const mqbstat::StatMonitorSnapshotRecorder& other,
+        bslma::Allocator*                           allocator = 0);
 
     // MANIPULATORS
 
