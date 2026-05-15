@@ -328,14 +328,22 @@ int BlobUtil::appendToBlob(bdlbb::Blob*       dest,
 
     // Now we just have to append new buffers to 'dest'
     while (localSection.start().buffer() < localSection.end().buffer()) {
-        const BlobPosition&         pos    = localSection.start();
-        const bdlbb::BlobBuffer&    srcBuf = src.buffer(pos.buffer());
-        const bsl::shared_ptr<char> buf(srcBuf.buffer(),
-                                        srcBuf.data() + pos.byte());
-        const bdlbb::BlobBuffer     newBuf(buf,
-                                       bufferSize(src, pos.buffer()) -
-                                           pos.byte());
-        dest->appendDataBuffer(newBuf);
+        const BlobPosition&      pos    = localSection.start();
+        const bdlbb::BlobBuffer& srcBuf = src.buffer(pos.buffer());
+        const int size = bufferSize(src, pos.buffer()) - pos.byte();
+
+        if (pos.byte() == 0) {
+            // Can use the same shared_ptr (start byte is 0)
+            bdlbb::BlobBuffer newBuf(srcBuf.buffer(), size);
+            dest->appendDataBuffer(bslmf::MovableRefUtil::move(newBuf));
+        }
+        else {
+            // Have to chop off the beginning (needs aliasing)
+            bsl::shared_ptr<char> buf(srcBuf.buffer(),
+                                      srcBuf.data() + pos.byte());
+            bdlbb::BlobBuffer newBuf(bslmf::MovableRefUtil::move(buf), size);
+            dest->appendDataBuffer(bslmf::MovableRefUtil::move(newBuf));
+        }
 
         localSection.start().setBuffer(localSection.start().buffer() + 1);
         localSection.start().setByte(0);
@@ -350,16 +358,16 @@ int BlobUtil::appendToBlob(bdlbb::Blob*       dest,
         const int size     = endPos - startPos;
 
         if (startPos == 0) {
-            // Can use the same SharedPtr
-            const bdlbb::BlobBuffer appendBuf(buf.buffer(), size);
-            dest->appendDataBuffer(appendBuf);
+            // Can use the same shared_ptr (start byte is 0)
+            bdlbb::BlobBuffer newBuf(buf.buffer(), size);
+            dest->appendDataBuffer(bslmf::MovableRefUtil::move(newBuf));
         }
         else {
-            // Have to chop off the beginning
-            const bsl::shared_ptr<char> srcBuf(buf.buffer(),
-                                               buf.data() + startPos);
-            const bdlbb::BlobBuffer     appendBuf(srcBuf, size);
-            dest->appendDataBuffer(appendBuf);
+            // Have to chop off the beginning (needs aliasing)
+            bsl::shared_ptr<char> srcBuf(buf.buffer(), buf.data() + startPos);
+            bdlbb::BlobBuffer     newBuf(bslmf::MovableRefUtil::move(srcBuf),
+                                     size);
+            dest->appendDataBuffer(bslmf::MovableRefUtil::move(newBuf));
         }
     }
 
