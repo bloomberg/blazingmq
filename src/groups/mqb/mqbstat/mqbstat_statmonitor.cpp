@@ -13,9 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <bmqsys_statmonitor.h>
+#include <mqbstat_statmonitor.h>
 
-#include <bmqscm_version.h>
+#include <mqbscm_version.h>
 
 #include <bmqst_statutil.h>
 #include <bmqst_statvalue.h>
@@ -38,7 +38,7 @@
 #include <sys/resource.h>  // for getrusage()
 
 namespace BloombergLP {
-namespace bmqsys {
+namespace mqbstat {
 
 namespace {
 

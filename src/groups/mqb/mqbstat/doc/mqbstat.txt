@@ -9,23 +9,52 @@
 
 /Hierarchical Synopsis
 /---------------------
- The 'mqbstat' package currently has 3 components having 2 levels of physical
+ The 'mqbstat' package currently has 10 components having 3 levels of physical
  dependency.  The list below shows the hierarchical ordering of the components.
 ..
-  2. mqbstat_statcontroller
+  3. mqbstat_statcontroller
+
+  2. mqbstat_jsonprinter
+     mqbstat_printer
      mqbstat_statmonitorsnapshotrecorder
 
-  1. mqbstat_queuestats
+  1. mqbstat_brokerstats
+     mqbstat_clusterstats
+     mqbstat_dispatcherstats
+     mqbstat_domainstats
+     mqbstat_queuestats
+     mqbstat_statmonitor
 
 ..
 
 /Component Synopsis
 /------------------
+: 'mqbstat_brokerstats'
+:       Provide mechanism to keep track of Broker statistics.
+:
+: 'mqbstat_clusterstats'
+:       Provide mechanism to keep track of Cluster statistics.
+:
+: 'mqbstat_dispatcherstats'
+:       Provide mechanism to keep track of Dispatcher statistics.
+:
+: 'mqbstat_domainstats'
+:       Provide mechanism to keep track of Domain statistics.
+:
+: 'mqbstat_jsonprinter'
+:       Provide a mechanism to print statistics as a JSON.
+:
+: 'mqbstat_printer'
+:       Provide a mechanism to print statistics to streams.
+:
 : 'mqbstat_queuestats'
 :       Provide mechanism to keep track of Queue statistics.
 :
 : 'mqbstat_statcontroller'
 :       Provide a processor for statistics collected by the bmqbrkr.
+:
+: 'mqbstat_statmonitor'
+:       Provide a mechanism to monitor cpu, memory, and os stats.
 :
 : 'mqbstat_statmonitorsnapshotrecorder'
 :       Provide a mechanism to record snapshot of time, cpu, and ctx switch.

@@ -13,16 +13,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef INCLUDED_BMQSYS_STATMONITOR
-#define INCLUDED_BMQSYS_STATMONITOR
+#ifndef INCLUDED_MQBSTAT_STATMONITOR
+#define INCLUDED_MQBSTAT_STATMONITOR
 
 //@PURPOSE: Provide a mechanism to monitor cpu, memory, and os stats.
 //
 //@CLASSES:
-//  bmqsys::StatMonitor    : Mechanism to monitor cpu, memory, os stats.
-//  bmqsys::StatMonitorUtil: Utility to access monitor cpu, memory, os stats.
+//  mqbstat::StatMonitor    : Mechanism to monitor cpu, memory, os stats.
+//  mqbstat::StatMonitorUtil: Utility to access monitor cpu, memory, os stats.
 //
-//@DESCRIPTION: 'bmqsys::StatMonitor' provides a mechanism that takes snapshots
+//@DESCRIPTION: 'mqbstat::StatMonitor' provides a mechanism that takes
+// snapshots
 // of the cpu, memory usage, and context switches of the current process and
 // provides accessors to those values over a range of historical snapshots.
 // The last 'maxSnapshots' (from the constructor parameter) values are kept,
@@ -31,9 +32,9 @@
 // cpu (user, system and all) and the maximum memory (resident and virtual)
 // used as reported by the 'balb::PerformanceMonitor'.  It also tracks page
 // faults (minor and major) and context switches (voluntary and involuntary) as
-// reported by the 'getrusage' system call.  'bmqsys::StatMonitorUtil' provides
-// a utility namespace for static accessors that allow access of system
-// statistics from a stat context.
+// reported by the 'getrusage' system call.  'mqbstat::StatMonitorUtil'
+// provides a utility namespace for static accessors that allow access of
+// system statistics from a stat context.
 //..
 // Measure                                Description
 // -------                                -----------
@@ -100,7 +101,7 @@
 #include <bsls_types.h>
 
 namespace BloombergLP {
-namespace bmqsys {
+namespace mqbstat {
 
 // =================
 // class StatMonitor
@@ -118,7 +119,7 @@ namespace bmqsys {
 class StatMonitor {
   private:
     // CLASS-SCOPE CATEGORY
-    BALL_LOG_SET_CLASS_CATEGORY("BMQSYS.STATMONITOR");
+    BALL_LOG_SET_CLASS_CATEGORY("MQBSTAT.STATMONITOR");
 
   private:
     // DATA

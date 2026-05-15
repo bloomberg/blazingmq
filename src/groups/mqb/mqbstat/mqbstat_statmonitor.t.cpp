@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <bmqsys_statmonitor.h>
+#include <mqbstat_statmonitor.h>
 
 #include <bmqu_memoutstream.h>
 
@@ -251,9 +251,9 @@ static void test1_breathingTest()
     {
         const int k_HISTORY_SIZE = 5;
 
-        bmqu::MemOutStream  errorDesc(bmqtst::TestHelperUtil::allocator());
-        bmqsys::StatMonitor obj(k_HISTORY_SIZE,
-                                bmqtst::TestHelperUtil::allocator());
+        bmqu::MemOutStream   errorDesc(bmqtst::TestHelperUtil::allocator());
+        mqbstat::StatMonitor obj(k_HISTORY_SIZE,
+                                 bmqtst::TestHelperUtil::allocator());
 
         BMQTST_ASSERT(obj.isStarted() == false);
         BMQTST_ASSERT(obj.statContext() != 0);
@@ -303,9 +303,9 @@ static void test2_start()
 
     const int k_HISTORY_SIZE = 5;
 
-    bmqu::MemOutStream  errorDesc(bmqtst::TestHelperUtil::allocator());
-    bmqsys::StatMonitor obj(k_HISTORY_SIZE,
-                            bmqtst::TestHelperUtil::allocator());
+    bmqu::MemOutStream   errorDesc(bmqtst::TestHelperUtil::allocator());
+    mqbstat::StatMonitor obj(k_HISTORY_SIZE,
+                             bmqtst::TestHelperUtil::allocator());
 
     // Given
     BSLS_ASSERT_OPT(obj.isStarted() == false);
@@ -357,9 +357,9 @@ static void test3_stop()
 
     const int k_HISTORY_SIZE = 5;
 
-    bmqu::MemOutStream  errorDesc(bmqtst::TestHelperUtil::allocator());
-    bmqsys::StatMonitor obj(k_HISTORY_SIZE,
-                            bmqtst::TestHelperUtil::allocator());
+    bmqu::MemOutStream   errorDesc(bmqtst::TestHelperUtil::allocator());
+    mqbstat::StatMonitor obj(k_HISTORY_SIZE,
+                             bmqtst::TestHelperUtil::allocator());
 
     // Given
     BSLS_ASSERT_OPT(obj.start(errorDesc) == 0);
@@ -448,9 +448,9 @@ static void test4_snapshot()
 
     const int k_HISTORY_SIZE = 5;
 
-    bmqu::MemOutStream  errorDesc(bmqtst::TestHelperUtil::allocator());
-    bmqsys::StatMonitor obj(k_HISTORY_SIZE,
-                            bmqtst::TestHelperUtil::allocator());
+    bmqu::MemOutStream   errorDesc(bmqtst::TestHelperUtil::allocator());
+    mqbstat::StatMonitor obj(k_HISTORY_SIZE,
+                             bmqtst::TestHelperUtil::allocator());
 
     // Given
     int rc = obj.start(errorDesc);

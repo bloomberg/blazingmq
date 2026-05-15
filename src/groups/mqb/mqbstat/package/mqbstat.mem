@@ -6,4 +6,5 @@ mqbstat_jsonprinter
 mqbstat_printer
 mqbstat_queuestats
 mqbstat_statcontroller
+mqbstat_statmonitor
 mqbstat_statmonitorsnapshotrecorder
