@@ -34,11 +34,11 @@
 #include <bmqio_statchannelfactory.h>
 #include <bmqst_statcontext.h>
 #include <bmqst_statvalue.h>
-#include <bmqsys_time.h>
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
 #include <bmqu_stringutil.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <ball_context.h>
@@ -532,7 +532,7 @@ void StatController::listTunables(mqbcmd::StatResult* result,
 bool StatController::snapshot()
 {
     // executed by the *SCHEDULER* thread
-    const bsls::Types::Int64 now = bmqsys::Time::highResolutionTimer();
+    const bsls::Types::Int64 now = bmqu::Time::highResolutionTimer();
 
     // Safeguard against too frequent invocation from the scheduler.
     if (!d_snapshotThrottle.requestPermission()) {
@@ -865,7 +865,7 @@ int StatController::start(bsl::ostream& errorDescription)
     // of all stat contexts.
     d_statConsumerMaxPublishInterval =
         bsl::min(maxInterval, brkrCfg.stats().printer().printInterval());
-    d_lastSnapshotTime = bmqsys::Time::highResolutionTimer();
+    d_lastSnapshotTime = bmqu::Time::highResolutionTimer();
 
     // Start the clock
     d_scheduler_mp->startClock(

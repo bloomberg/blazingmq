@@ -67,9 +67,9 @@
 #include <bmqp_protocol.h>
 #include <bmqp_schemaeventbuilder.h>
 #include <bmqst_statcontext.h>
-#include <bmqsys_time.h>
 #include <bmqu_blob.h>
 #include <bmqu_memoutstream.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <ball_log.h>

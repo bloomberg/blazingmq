@@ -147,7 +147,7 @@ void MessageDumper::processDumpMessageHelper(
         dumpContext->d_isEnabled  = true;
         dumpContext->d_actionType = static_cast<int>(
             bmqp_ctrlmsg::DumpActionType::E_TIME_IN_SECONDS);
-        dumpContext->d_actionValue = bmqsys::Time::highResolutionTimer() +
+        dumpContext->d_actionValue = bmqu::Time::highResolutionTimer() +
                                      (dumpMsg.dumpActionValue() *
                                       bdlt::TimeUnitRatio::k_NS_PER_S);
     } break;  // BREAK

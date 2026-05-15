@@ -47,9 +47,9 @@
 #include <bmqio_channel.h>
 #include <bmqio_channelfactory.h>
 #include <bmqsys_operationlogger.h>
-#include <bmqsys_time.h>
 #include <bmqu_operationchain.h>
 #include <bmqu_sharedresource.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlb_nullablevalue.h>
@@ -724,7 +724,7 @@ inline ClientSession::ShutdownContext::ShutdownContext(
     const ShutdownCb&         callback,
     const bsls::TimeInterval& timeout)
 : d_callback(callback)
-, d_stopTime(bmqsys::Time::nowMonotonicClock())
+, d_stopTime(bmqu::Time::nowMonotonicClock())
 , d_numUnconfirmedTotal(0)
 {
     BSLS_ASSERT_SAFE(d_callback);

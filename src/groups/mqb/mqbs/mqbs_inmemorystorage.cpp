@@ -22,8 +22,8 @@
 #include <mqbstat_queuestats.h>
 
 #include <bmqma_countingallocatorstore.h>
-#include <bmqsys_time.h>
 #include <bmqu_printutil.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bsl_algorithm.h>
@@ -446,7 +446,7 @@ int InMemoryStorage::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc,
 {
     bsls::Types::Uint64      latestMsgTimestampEpoch = 0;
     int                      numMsgsDeleted = 0;
-    const bsls::Types::Int64 now = bmqsys::Time::highResolutionTimer();
+    const bsls::Types::Int64 now = bmqu::Time::highResolutionTimer();
 
     for (ItemsMapIter next = d_items.begin(), cit; next != d_items.end();) {
         if (0 == limit--) {

@@ -28,8 +28,8 @@
 // BMQ
 #include <bmqio_statchannelfactory.h>
 #include <bmqsys_statmonitor.h>
-#include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <ball_log.h>

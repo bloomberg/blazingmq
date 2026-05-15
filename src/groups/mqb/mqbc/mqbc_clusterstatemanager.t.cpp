@@ -33,9 +33,9 @@
 #include <bmqp_crc32c.h>
 #include <bmqp_ctrlmsg_messages.h>
 
-#include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_tempdirectory.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlf_bind.h>
@@ -168,7 +168,7 @@ struct Tester {
         d_cluster_mp->_clusterData()->stats().setIsMember(true);
         BSLS_ASSERT_OPT(d_cluster_mp->_channels().size() > 0);
 
-        bmqsys::Time::initialize(
+        bmqu::Time::initialize(
             &bsls::SystemTime::nowRealtimeClock,
             bdlf::BindUtil::bind(&Tester::nowMonotonicClock, this),
             bdlf::BindUtil::bind(&Tester::highResolutionTimer, this),
@@ -223,7 +223,7 @@ struct Tester {
         d_clusterStateManager_mp->stop();
         d_cluster_mp->stop();
 
-        bmqsys::Time::shutdown();
+        bmqu::Time::shutdown();
     }
 
     // MANIPULATORS

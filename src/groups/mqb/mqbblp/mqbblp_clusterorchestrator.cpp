@@ -33,9 +33,9 @@
 #include <mqbu_exit.h>
 
 // BMQ
-#include <bmqsys_time.h>
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_memoutstream.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdld_datummapbuilder.h>

@@ -24,10 +24,10 @@
 // BMQ
 #include <bmqscm_versiontag.h>
 
-#include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
 #include <bmqu_stringutil.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlma_localsequentialallocator.h>
@@ -65,7 +65,7 @@ bool ConfigProvider::cacheLookup(bsl::string* config, bsl::string_view key)
     }
 
     // Check expiration time
-    if (it->second.d_expireTime < bmqsys::Time::nowMonotonicClock()) {
+    if (it->second.d_expireTime < bmqu::Time::nowMonotonicClock()) {
         // Value has expired, remove from the map
         d_cache.erase(it);
         return false;  // RETURN
@@ -83,7 +83,7 @@ void ConfigProvider::cacheAdd(bsl::string_view key, const bsl::string& config)
     CacheEntry cacheEntry(d_allocator_p);
     cacheEntry.d_data = config;
     cacheEntry.d_expireTime =
-        bmqsys::Time::nowMonotonicClock() +
+        bmqu::Time::nowMonotonicClock() +
         bsls::TimeInterval(
             mqbcfg::BrokerConfig::get().bmqconfConfig().cacheTTLSeconds());
     d_cache.insert(

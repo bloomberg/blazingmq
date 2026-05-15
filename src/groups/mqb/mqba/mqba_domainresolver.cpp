@@ -22,10 +22,10 @@
 #include <mqbconfm_messages.h>
 #include <mqbscm_version.h>
 
-#include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
 #include <bmqu_stringutil.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <baljsn_decoder.h>
@@ -62,7 +62,7 @@ void DomainResolver::updateTimestamps()
 
     BSLMT_MUTEXASSERT_IS_LOCKED_SAFE(&d_mutex);  // mutex LOCKED
 
-    const bsls::TimeInterval now = bmqsys::Time::nowRealtimeClock();
+    const bsls::TimeInterval now = bmqu::Time::nowRealtimeClock();
 
     if (now <= d_timestampsValidUntil) {
         // We last checked recently, don't do anything

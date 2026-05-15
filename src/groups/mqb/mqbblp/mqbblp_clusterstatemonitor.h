@@ -31,7 +31,7 @@
 ///   * primary: each partition must have an active primary
 ///   * node:    each node must either be disconnected, or in available status
 ///
-/// Note that @bbref{bmqsys::TimeUtil::initialize()} must have been called
+/// Note that @bbref{bmqu::TimeUtil::initialize()} must have been called
 /// prior to the start of this component
 
 // MQB

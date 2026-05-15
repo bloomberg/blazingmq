@@ -36,9 +36,9 @@
 #include <bmqt_resultcode.h>
 #include <bmqt_uri.h>
 
-#include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_stringutil.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlb_tokenizer.h>
@@ -338,7 +338,7 @@ Tester::Tester(bslma::Allocator* allocator)
 , d_confirmEventBuilder(d_blobSpPool_sp.get(), allocator)
 , d_allocator_p(allocator)
 {
-    bmqsys::Time::initialize(
+    bmqu::Time::initialize(
         bdlf::BindUtil::bindS(d_allocator_p, &Tester::now, this),
         bdlf::BindUtil::bindS(d_allocator_p, &Tester::now, this),
         bdlf::BindUtil::bindS(d_allocator_p,
@@ -349,7 +349,7 @@ Tester::Tester(bslma::Allocator* allocator)
 
 Tester::~Tester()
 {
-    bmqsys::Time::shutdown();
+    bmqu::Time::shutdown();
 }
 
 // MANIPULATORS

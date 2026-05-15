@@ -136,7 +136,7 @@
 
 #include <bmqc_monitoredqueue_bdlccsingleproducerqueue.h>
 #include <bmqc_multiqueuethreadpool.h>
-#include <bmqsys_time.h>
+#include <bmqu_time.h>
 
 #include <bmqst_basictableinfoprovider.h>
 #include <bmqst_statcontext.h>
@@ -375,7 +375,7 @@ class EventQueue {
     /// Return the front item of the queue, if the queue is not empty; or
     /// wait for up to the specified `timeout` in respect to the specified
     /// `now` - as a relative offset from between
-    /// `bmqsys::Time::nowMonotonicClock()` - argument for an item to be
+    /// `bmqu::Time::nowMonotonicClock()` - argument for an item to be
     /// pushed to the queue.  If no item is found after the provided
     /// `timeout`, the method will return a `SessionEvent` of type
     /// `bmqt::SessionEventType::e_TIMEOUT`.  If an error occurs while

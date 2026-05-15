@@ -18,9 +18,9 @@
 #include <bmqscm_version.h>
 
 #include <bmqsys_statmonitor.h>
-#include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlma_localsequentialallocator.h>
@@ -95,7 +95,7 @@ StatMonitorSnapshotRecorder::StatMonitorSnapshotRecorder(
 : d_impl_sp()
 {
     // Set the pimpl
-    const bsls::Types::Int64 now   = bmqsys::Time::highResolutionTimer();
+    const bsls::Types::Int64 now   = bmqu::Time::highResolutionTimer();
     bslma::Allocator*        alloc = bslma::Default::allocator(allocator);
 
     d_impl_sp.createInplace(alloc, now, now, header, alloc);
@@ -131,7 +131,7 @@ void StatMonitorSnapshotRecorder::print(bsl::ostream&      os,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_impl_sp);
 
-    const bsls::Types::Int64 now = bmqsys::Time::highResolutionTimer();
+    const bsls::Types::Int64 now = bmqu::Time::highResolutionTimer();
     const bsls::Types::Int64 totalWallTimeNs = now - d_impl_sp->d_startTimeNs;
     const bsls::Types::Int64 wallTimeNs      = now -
                                           d_impl_sp->d_lastSnapshotTimeNs;
@@ -182,7 +182,7 @@ void StatMonitorSnapshotRecorder::print(bsl::ostream&      os,
 // ACCESSORS
 bsls::Types::Int64 StatMonitorSnapshotRecorder::totalElapsed() const
 {
-    return bmqsys::Time::highResolutionTimer() - d_impl_sp->d_startTimeNs;
+    return bmqu::Time::highResolutionTimer() - d_impl_sp->d_startTimeNs;
 }
 
 }  // close package namespace

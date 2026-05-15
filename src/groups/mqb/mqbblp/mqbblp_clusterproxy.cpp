@@ -117,7 +117,7 @@ void ClusterProxy::startDispatched()
 
     // Schedule an event, to ensure we will eventually use a connection - refer
     // to the ClusterActiveNodeManager documentation for more details.
-    bsls::TimeInterval interval = bmqsys::Time::nowMonotonicClock() +
+    bsls::TimeInterval interval = bmqu::Time::nowMonotonicClock() +
                                   bsls::TimeInterval(
                                       k_ACTIVE_NODE_INITIAL_WAIT);
     d_clusterData.scheduler().scheduleEvent(

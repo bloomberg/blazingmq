@@ -57,12 +57,12 @@
 
 #include <bmqex_systemexecutor.h>
 #include <bmqst_statcontext.h>
-#include <bmqsys_time.h>
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_blob.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_outstreamformatsaver.h>
 #include <bmqu_printutil.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlb_print.h>
@@ -586,7 +586,7 @@ void Cluster::initiateShutdownDispatched(const VoidFunctor& callback)
     d_shutdownChain.appendInplace(
         bdlf::BindUtil::bind(&Cluster::continueShutdown,
                              this,
-                             bmqsys::Time::highResolutionTimer(),  // startTime
+                             bmqu::Time::highResolutionTimer(),  // startTime
                              bdlf::PlaceHolders::_1),  // completionCb
         callback);
 
@@ -619,7 +619,7 @@ void Cluster::continueShutdownDispatched(
 
     BALL_LOG_INFO_BLOCK
     {
-        bsls::Types::Int64 now = bmqsys::Time::highResolutionTimer();
+        bsls::Types::Int64 now = bmqu::Time::highResolutionTimer();
         BALL_LOG_OUTPUT_STREAM
             << "Continuing shutting down Cluster: [name: '" << name()
             << "', elapsed time: "

@@ -35,10 +35,10 @@
 #include <bmqt_uri.h>
 
 #include <bmqc_orderedhashmap.h>
-#include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_outstreamformatsaver.h>
 #include <bmqu_printutil.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <ball_logthrottle.h>
@@ -437,7 +437,7 @@ mqbu::ResourceUsageMonitorStateTransition::Enum QueueHandle::updateMonitor(
     //       overflow and the update actually increments by a very large
     //       value
 
-    const bsls::Types::Int64 timeDelta = bmqsys::Time::highResolutionTimer() -
+    const bsls::Types::Int64 timeDelta = bmqu::Time::highResolutionTimer() -
                                          it->second.d_timeStamp;
     BSLS_ASSERT_SAFE(timeDelta >= 0);
 
@@ -961,7 +961,7 @@ void QueueHandle::deliverMessage(
 
     const unsigned int msgSize = iter.attributes().appDataLen();
     bmqp::Protocol::SubQueueInfosArray targetSubscriptions;
-    bsls::Types::Int64 now = bmqsys::Time::highResolutionTimer();
+    bsls::Types::Int64                 now = bmqu::Time::highResolutionTimer();
     for (size_t i = 0; i < subscriptions.size(); ++i) {
         unsigned int          subscriptionId = subscriptions[i].id();
         const SubscriptionSp& subscription   = d_subscriptions[subscriptionId];

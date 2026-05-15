@@ -63,7 +63,7 @@
 ///---------------------
 // Wherever this component supports timed operations, specifically in
 // 'timedPopFront()', the specified timeout is an absolute offset which matches
-// the epoch used in 'bmqsys::Time::nowMonotonicTime()'.
+// the epoch used in 'bmqu::Time::nowMonotonicTime()'.
 
 // BDE
 #include <bsl_functional.h>

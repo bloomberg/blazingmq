@@ -38,11 +38,11 @@
 #include <bmqp_protocolutil.h>
 #include <bmqt_uri.h>
 
-#include <bmqsys_time.h>
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_blobobjectproxy.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlb_print.h>

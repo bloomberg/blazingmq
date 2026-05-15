@@ -38,7 +38,7 @@
 #include <bsls_platform.h>
 #include <bsls_protocoltest.h>
 
-#include <bmqsys_time.h>
+#include <bmqu_time.h>
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>

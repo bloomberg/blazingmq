@@ -50,12 +50,12 @@
 #include <bmqt_resultcode.h>
 
 #include <bmqsys_statmonitorsnapshotrecorder.h>
-#include <bmqsys_time.h>
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_blobobjectproxy.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_outstreamformatsaver.h>
 #include <bmqu_printutil.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlb_bigendian.h>
@@ -3016,7 +3016,7 @@ int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
     // to avoid any race while deleting archived files.
 
     d_config.scheduler()->scheduleEvent(
-        bmqsys::Time::nowMonotonicClock(),
+        bmqu::Time::nowMonotonicClock(),
         bdlf::BindUtil::bind(&FileStore::deleteArchiveFilesCb, this));
 
     BALL_LOG_INFO_BLOCK
@@ -3626,9 +3626,9 @@ void FileStore::gcWorkerDispatched(const bsl::shared_ptr<FileSet>& fileSet)
         BALL_LOG_OUTPUT_STREAM << " as it can be gc'd.";
     }
 
-    bsls::Types::Int64 startTime = bmqsys::Time::highResolutionTimer();
+    bsls::Types::Int64 startTime = bmqu::Time::highResolutionTimer();
     int                rc        = close(*fileSet, false);
-    bsls::Types::Int64 closeTime = bmqsys::Time::highResolutionTimer();
+    bsls::Types::Int64 closeTime = bmqu::Time::highResolutionTimer();
     if (rc != 0) {
         BALL_LOG_ERROR << partitionDesc()
                        << "Failed to closed file set. Time taken: "
@@ -3640,9 +3640,9 @@ void FileStore::gcWorkerDispatched(const bsl::shared_ptr<FileSet>& fileSet)
                   << bmqu::PrintUtil::prettyTimeInterval(closeTime -
                                                          startTime);
 
-    bsls::Types::Int64 archiveStartTime = bmqsys::Time::highResolutionTimer();
+    bsls::Types::Int64 archiveStartTime = bmqu::Time::highResolutionTimer();
     rc                                  = archive(fileSet.get());
-    bsls::Types::Int64 archiveEndTime   = bmqsys::Time::highResolutionTimer();
+    bsls::Types::Int64 archiveEndTime   = bmqu::Time::highResolutionTimer();
     if (rc != 0) {
         BALL_LOG_ERROR << partitionDesc()
                        << "Failed to archive file set. Time taken: "
@@ -4213,7 +4213,7 @@ void FileStore::processReceiptEvent(unsigned int         primaryLeaseId,
             // Calculate time it took for the message to be stored and
             // replicated.
             const bsls::Types::Int64 timeDelta =
-                bmqsys::Time::highResolutionTimer() -
+                bmqu::Time::highResolutionTimer() -
                 from->second.d_handle->second.d_arrivalTimepoint;
             d_partitionStats_sp->setReplicationTime(timeDelta);
 
@@ -5439,19 +5439,19 @@ void FileStore::close(bool flush, bool archive)
         }
 
         // TBD Revisit: handle non-zero rc from close()
-        bsls::Types::Int64 startTime = bmqsys::Time::highResolutionTimer();
+        bsls::Types::Int64 startTime = bmqu::Time::highResolutionTimer();
         close(*activeFileSet, flush);
-        bsls::Types::Int64 closeTime = bmqsys::Time::highResolutionTimer();
+        bsls::Types::Int64 closeTime = bmqu::Time::highResolutionTimer();
         BALL_LOG_INFO << partitionDesc() << "File set closed. Time taken: "
                       << bmqu::PrintUtil::prettyTimeInterval(closeTime -
                                                              startTime);
 
         if (archive) {
             bsls::Types::Int64 archiveStartTime =
-                bmqsys::Time::highResolutionTimer();
+                bmqu::Time::highResolutionTimer();
             FileStore::archive(activeFileSet);
             bsls::Types::Int64 archiveEndTime =
-                bmqsys::Time::highResolutionTimer();
+                bmqu::Time::highResolutionTimer();
             BALL_LOG_INFO << partitionDesc()
                           << "File set archived. Time taken: "
                           << bmqu::PrintUtil::prettyTimeInterval(
@@ -7174,7 +7174,7 @@ void FileStore::gcHistory()
     // we might lose a lot of time on allocations of new items to the history,
     // as well as get OOM due to uncontrollable history size increase.
 
-    const bsls::Types::Int64 now = bmqsys::Time::highResolutionTimer();
+    const bsls::Types::Int64 now = bmqu::Time::highResolutionTimer();
     for (StorageMapIter it = d_storages.begin(); it != d_storages.end();
          ++it) {
         it->second->gcHistory(now);
@@ -7350,7 +7350,7 @@ void FileStore::setReplicationFactor(int value)
             // Calculate time it took for the message to be stored and
             // replicated.
             const bsls::Types::Int64 timeDelta =
-                bmqsys::Time::highResolutionTimer() -
+                bmqu::Time::highResolutionTimer() -
                 it->second.d_handle->second.d_arrivalTimepoint;
             d_partitionStats_sp->setReplicationTime(timeDelta);
 

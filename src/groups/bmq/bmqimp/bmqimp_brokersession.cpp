@@ -37,10 +37,10 @@
 #include <bmqio_channel.h>
 #include <bmqio_status.h>
 #include <bmqst_statcontext.h>
-#include <bmqsys_time.h>
 #include <bmqu_blob.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdld_datum.h>
@@ -637,7 +637,7 @@ bmqt::GenericResult::Enum BrokerSession::SessionFsm::handleStartRequest()
         res = bmqt::GenericResult::e_NOT_SUPPORTED;
     } break;
     case State::e_STOPPED: {
-        d_beginTimestamp = bmqsys::Time::highResolutionTimer();
+        d_beginTimestamp = bmqu::Time::highResolutionTimer();
         res              = setStarting(event);
     } break;
     default: {
@@ -722,7 +722,7 @@ void BrokerSession::SessionFsm::handleStopRequest()
 
     switch (state()) {
     case State::e_STARTED: {
-        d_beginTimestamp = bmqsys::Time::highResolutionTimer();
+        d_beginTimestamp = bmqu::Time::highResolutionTimer();
 
         bmqt::GenericResult::Enum res = setClosingSession(event);
         if (res != bmqt::GenericResult::e_SUCCESS) {
@@ -952,8 +952,8 @@ void BrokerSession::SessionFsm::handleAllQueuesResumed()
 void BrokerSession::SessionFsm::logOperationTime(const char* operation)
 {
     if (d_beginTimestamp) {
-        const bsls::Types::Int64 elapsed =
-            bmqsys::Time::highResolutionTimer() - d_beginTimestamp;
+        const bsls::Types::Int64 elapsed = bmqu::Time::highResolutionTimer() -
+                                           d_beginTimestamp;
         BALL_LOG_INFO << id() << operation << " took: "
                       << bmqu::PrintUtil::prettyTimeInterval(elapsed) << " ("
                       << elapsed << " nanoseconds)";
@@ -1201,7 +1201,7 @@ void BrokerSession::QueueFsm::actionCloseQueue(
     context->setGroupId(k_NON_BUFFERED_REQUEST_GROUP_ID);
 
     const bsls::TimeInterval absTimeout =
-        bmqsys::Time::nowMonotonicClock() +
+        bmqu::Time::nowMonotonicClock() +
         d_session.d_sessionOptions.closeQueueTimeout();
 
     actionCloseQueue(context, queue, absTimeout);
@@ -1403,8 +1403,8 @@ void BrokerSession::QueueFsm::logOperationTime(const bsl::string& queueUri,
 {
     TimestampMap::iterator it = d_timestampMap.find(queueUri);
     if (it != d_timestampMap.end()) {
-        const bsls::Types::Int64 elapsed =
-            bmqsys::Time::highResolutionTimer() - it->second;
+        const bsls::Types::Int64 elapsed = bmqu::Time::highResolutionTimer() -
+                                           it->second;
         BALL_LOG_INFO << id() << operation << " [uri=" << queueUri
                       << "] took: "
                       << bmqu::PrintUtil::prettyTimeInterval(elapsed) << " ("
@@ -1526,7 +1526,7 @@ bmqt::OpenQueueResult::Enum BrokerSession::QueueFsm::handleOpenRequest(
         setQueueId(queue, context);
 
         d_timestampMap[queue->uri().asString()] =
-            bmqsys::Time::highResolutionTimer();
+            bmqu::Time::highResolutionTimer();
 
         // Switch to OPENING_OPN
         setQueueState(queue, QueueState::e_OPENING_OPN, event);
@@ -1881,7 +1881,7 @@ void BrokerSession::QueueFsm::handleReopenRequest(
     switch (state) {
     case QueueState::e_PENDING: {
         d_timestampMap[queue->uri().asString()] =
-            bmqsys::Time::highResolutionTimer();
+            bmqu::Time::highResolutionTimer();
 
         // Set REOPENING_OPN state
         setQueueState(queue, QueueState::e_REOPENING_OPN, event);
@@ -1937,7 +1937,7 @@ BrokerSession::QueueFsm::handleConfigureRequest(
     switch (state) {
     case QueueState::e_OPENED: {
         d_timestampMap[queue->uri().asString()] =
-            bmqsys::Time::highResolutionTimer();
+            bmqu::Time::highResolutionTimer();
 
         // Keep the state OPENED
         setQueueState(queue, QueueState::e_OPENED, event);
@@ -1948,7 +1948,7 @@ BrokerSession::QueueFsm::handleConfigureRequest(
     } break;
     case QueueState::e_PENDING: {
         d_timestampMap[queue->uri().asString()] =
-            bmqsys::Time::highResolutionTimer();
+            bmqu::Time::highResolutionTimer();
 
         // Keep the state PENDING
         setQueueState(queue, QueueState::e_PENDING, event);
@@ -2015,7 +2015,7 @@ bmqt::CloseQueueResult::Enum BrokerSession::QueueFsm::handleCloseRequest(
     switch (state) {
     case QueueState::e_OPENED: {
         d_timestampMap[queue->uri().asString()] =
-            bmqsys::Time::highResolutionTimer();
+            bmqu::Time::highResolutionTimer();
 
         // Set CLOSING_CFG state
         setQueueState(queue, QueueState::e_CLOSING_CFG, event);
@@ -2035,7 +2035,7 @@ bmqt::CloseQueueResult::Enum BrokerSession::QueueFsm::handleCloseRequest(
                 queue->uri().canonical());
             handleResponseOk(queue,
                              context,
-                             bmqsys::Time::nowMonotonicClock() + timeout);
+                             bmqu::Time::nowMonotonicClock() + timeout);
             break;  // BREAK
         }
 
@@ -3539,7 +3539,7 @@ void BrokerSession::processPutEvent(const bmqp::Event& event)
         }
     }
 
-    const bsls::TimeInterval sentTime = bmqsys::Time::nowMonotonicClock();
+    const bsls::TimeInterval sentTime = bmqu::Time::nowMonotonicClock();
     bmqp::PutMessageIterator putIter(d_bufferFactory_p, d_allocator_p);
 
     // Get PUT iterator without decompression
@@ -3864,7 +3864,7 @@ bmqt::OpenQueueResult::Enum BrokerSession::sendOpenQueueRequest(
     BSLS_ASSERT_SAFE(d_fsmThreadChecker.inSameThread());
     BSLS_ASSERT_SAFE(context->request().choice().isOpenQueueValue());
 
-    const bsls::TimeInterval absTimeout = bmqsys::Time::nowMonotonicClock() +
+    const bsls::TimeInterval absTimeout = bmqu::Time::nowMonotonicClock() +
                                           timeout;
 
     RequestManagerType::RequestType::ResponseCb response =
@@ -4172,7 +4172,7 @@ BrokerSession::sendDeconfigureRequest(const bsl::shared_ptr<Queue>& queue)
     closeQueueContext->setGroupId(k_NON_BUFFERED_REQUEST_GROUP_ID);
 
     const bsls::TimeInterval absTimeout =
-        bmqsys::Time::nowMonotonicClock() +
+        bmqu::Time::nowMonotonicClock() +
         d_sessionOptions.configureQueueTimeout();
     const ConfiguredCallback configuredCb = bdlf::BindUtil::bind(
         &BrokerSession::onCloseQueueConfigured,
@@ -4213,7 +4213,7 @@ bmqt::ConfigureQueueResult::Enum BrokerSession::sendDeconfigureRequest(
                              queue->uri().canonical()) == 1;
 
     // Set the configure callback
-    const bsls::TimeInterval absTimeout = bmqsys::Time::nowMonotonicClock() +
+    const bsls::TimeInterval absTimeout = bmqu::Time::nowMonotonicClock() +
                                           timeout;
     const ConfiguredCallback configuredCb = bdlf::BindUtil::bind(
         &BrokerSession::onCloseQueueConfigured,
@@ -4286,7 +4286,7 @@ void BrokerSession::doHandlePendingPutExpirationTimeout(
         d_messageCorrelationIdContainer.getExpiredIds(
             &expiredKeys,
             d_queueRetransmissionTimeoutMap,
-            bmqsys::Time::nowMonotonicClock());
+            bmqu::Time::nowMonotonicClock());
     d_messageCorrelationIdContainer.iterateAndInvoke(expiredKeys, callback);
 
     // Push the final ack event if there are any messages in the builder
@@ -5936,8 +5936,7 @@ int BrokerSession::start(const bsls::TimeInterval& timeout)
         return rc;  // RETURN
     }
 
-    rc = d_startSemaphore.timedWait(bmqsys::Time::nowMonotonicClock() +
-                                    timeout);
+    rc = d_startSemaphore.timedWait(bmqu::Time::nowMonotonicClock() + timeout);
     if (rc != 0) {
         // Timeout
         BALL_LOG_ERROR << id() << "Start (SYNC) has timed out";
@@ -6158,7 +6157,7 @@ bmqt::ConfigureQueueResult::Enum BrokerSession::sendOpenConfigureQueue(
         openQueueContext,        // openQueue context
         isReopenRequest);
     const bsls::TimeInterval timeout = absTimeout -
-                                       bmqsys::Time::nowMonotonicClock();
+                                       bmqu::Time::nowMonotonicClock();
 
     // For reopen request do not reset pendingConfigureId which could have been
     // set by buffered configure request.
@@ -6199,7 +6198,7 @@ bmqt::GenericResult::Enum BrokerSession::sendCloseQueue(
     closeQueueContext->setResponseCb(response);
 
     const bsls::TimeInterval timeout = absTimeout -
-                                       bmqsys::Time::nowMonotonicClock();
+                                       bmqu::Time::nowMonotonicClock();
     return sendRequest(closeQueueContext,
                        bmqp::QueueId(queue->id(), queue->subQueueId()),
                        timeout);
@@ -6664,7 +6663,7 @@ BrokerSession::nextEvent(const bsls::TimeInterval& timeout)
     BSLS_ASSERT_SAFE(!d_usingSessionEventHandler &&
                      "nextEvent() should be used without EventHandler");
 
-    const bsls::TimeInterval beginTime = bmqsys::Time::nowMonotonicClock();
+    const bsls::TimeInterval beginTime = bmqu::Time::nowMonotonicClock();
     bsl::shared_ptr<Event>   event     = d_eventQueue.timedPopFront(timeout);
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
@@ -6696,7 +6695,7 @@ BrokerSession::nextEvent(const bsls::TimeInterval& timeout)
 
         // Continue waiting for next event for the duration of the remaining
         // timeout (if any)
-        const bsls::TimeInterval now = bmqsys::Time::nowMonotonicClock();
+        const bsls::TimeInterval now = bmqu::Time::nowMonotonicClock();
         const bsls::TimeInterval remainingTimeout = timeout -
                                                     (now - beginTime);
         if (remainingTimeout > bsls::TimeInterval(0, 0)) {
@@ -7136,7 +7135,7 @@ bool BrokerSession::acceptUserEvent(
         }
 
         const bsls::TimeInterval expireAfter =
-            bmqsys::Time::nowMonotonicClock() + timeout;
+            bmqu::Time::nowMonotonicClock() + timeout;
 
         bslmt::LockGuard<bslmt::Mutex> guard(&d_extensionBufferLock);
         // LOCK

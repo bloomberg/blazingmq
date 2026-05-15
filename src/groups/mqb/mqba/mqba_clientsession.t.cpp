@@ -47,9 +47,9 @@
 #include <bmqio_channel.h>
 #include <bmqio_testchannel.h>
 #include <bmqst_statcontext.h>
-#include <bmqsys_time.h>
 #include <bmqu_blob.h>
 #include <bmqu_blobobjectproxy.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlbb_blobutil.h>
@@ -734,8 +734,8 @@ class TestBench {
         d_cs.setThreadId(bslmt::ThreadUtil::selfId());
 
         // Setup test time source
-        bmqsys::Time::shutdown();
-        bmqsys::Time::initialize(
+        bmqu::Time::shutdown();
+        bmqu::Time::initialize(
             bdlf::BindUtil::bind(&TestClock::realtimeClock, &d_testClock),
             bdlf::BindUtil::bind(&TestClock::monotonicClock, &d_testClock),
             bdlf::BindUtil::bind(&TestClock::highResTimer, &d_testClock),
@@ -2495,7 +2495,7 @@ int main(int argc, char* argv[])
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     {
-        bmqsys::Time::initialize(bmqtst::TestHelperUtil::allocator());
+        bmqu::Time::initialize(bmqtst::TestHelperUtil::allocator());
 
         mqbcfg::AppConfig brokerConfig(bmqtst::TestHelperUtil::allocator());
         brokerConfig.brokerVersion() = 999999;  // required for test case 8
@@ -2530,7 +2530,7 @@ int main(int argc, char* argv[])
         } break;
         }
 
-        bmqsys::Time::shutdown();
+        bmqu::Time::shutdown();
     }
 
     TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);

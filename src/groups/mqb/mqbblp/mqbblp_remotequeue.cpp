@@ -42,11 +42,11 @@
 #include <bmqt_resultcode.h>
 #include <bmqt_uri.h>
 
-#include <bmqsys_time.h>
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_blob.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
+#include <bmqu_time.h>
 #include <bmqu_weakmemfn.h>
 
 // BDE
@@ -859,7 +859,7 @@ void RemoteQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
 void RemoteQueue::flush()
 {
     if (d_state_p->storage() && !d_state_p->isStopping()) {
-        const bsls::Types::Int64 now = bmqsys::Time::highResolutionTimer();
+        const bsls::Types::Int64 now = bmqu::Time::highResolutionTimer();
         d_state_p->storage()->gcHistory(now);
     }
     if (d_queueEngine_mp) {
@@ -998,7 +998,7 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
         // an ACK for 'd_ackWindowSize' PUTs.
     }
     else {
-        now = bmqsys::Time::highResolutionTimer();
+        now = bmqu::Time::highResolutionTimer();
 
         if (!d_pendingMessagesTimerEventHandle) {
             bsls::TimeInterval time;
@@ -1403,7 +1403,7 @@ void RemoteQueue::expirePendingMessagesDispatched()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
-    bsls::Types::Int64 now         = bmqsys::Time::highResolutionTimer();
+    bsls::Types::Int64 now         = bmqu::Time::highResolutionTimer();
     bsls::Types::Int64 nextTime    = 0;
     bsls::Types::Int64 numExpired  = 0;
     bsls::Types::Int64 numMessages = d_pendingMessages.size();
@@ -1458,7 +1458,7 @@ void RemoteQueue::expirePendingMessagesDispatched()
         BALL_LOG_DEBUG << d_state_p->uri() << ": will check again to expire"
                        << " pending PUSH messages in "
                        << bmqu::PrintUtil::prettyTimeInterval(
-                              nextTime - bmqsys::Time::highResolutionTimer());
+                              nextTime - bmqu::Time::highResolutionTimer());
     }
     else {
         d_pendingMessagesTimerEventHandle.release();

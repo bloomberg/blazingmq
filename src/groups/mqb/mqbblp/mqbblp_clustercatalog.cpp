@@ -26,11 +26,11 @@
 #include <mqbnet_negotiator.h>
 #include <mqbnet_transportmanager.h>
 
-#include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_outstreamformatsaver.h>
 #include <bmqu_printutil.h>
 #include <bmqu_stringutil.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <baljsn_decoder.h>

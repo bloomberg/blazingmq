@@ -13,15 +13,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef INCLUDED_BMQSYS_TIME
-#define INCLUDED_BMQSYS_TIME
+#ifndef INCLUDED_BMQU_TIME
+#define INCLUDED_BMQU_TIME
 
 //@PURPOSE: Provide a pluggable functional interface to system clocks.
 //
 //@CLASSES:
-//   bmqsys::Time: namespace for pluggable interface to system clocks
+//   bmqu::Time: namespace for pluggable interface to system clocks
 //
-//@DESCRIPTION: This component provides a 'struct', 'bmqsys::Time', in which
+//@DESCRIPTION: This component provides a 'struct', 'bmqu::Time', in which
 // are defined a series of static methods for retrieving the current system
 // time from the currently installed mechanism.  This component provides access
 // to monotonic clock, real-time (wall) clock and a high resolution timer.  The
@@ -34,7 +34,7 @@
 #include <bsls_types.h>
 
 namespace BloombergLP {
-namespace bmqsys {
+namespace bmqu {
 
 // ===========
 // struct Time

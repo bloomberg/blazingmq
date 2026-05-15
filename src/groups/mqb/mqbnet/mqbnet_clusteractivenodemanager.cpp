@@ -20,8 +20,8 @@
 #include <mqbcmd_messages.h>
 #include <mqbnet_session.h>
 
-#include <bmqsys_time.h>
 #include <bmqtsk_alarmlog.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlf_bind.h>

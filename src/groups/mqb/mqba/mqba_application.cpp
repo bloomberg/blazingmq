@@ -47,8 +47,8 @@
 #include <bmqscm_version.h>
 #include <bmqst_statcontext.h>
 #include <bmqsys_operationlogger.h>
-#include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <baljsn_encoder.h>
@@ -104,7 +104,7 @@ void Application::oneTimeInit()
     BSLMT_ONCE_DO
     {
         // Initialize Time with platform-specific clocks/timers
-        bmqsys::Time::initialize();
+        bmqu::Time::initialize();
 
         // Initialize pseudo-random number generator.  We add some
         // machine-specific (high resolution timer) and task-specific (pid)
@@ -113,7 +113,7 @@ void Application::oneTimeInit()
         unsigned int seed =
             bsl::time(NULL) +
             static_cast<unsigned int>(bdls::ProcessUtil::getProcessId()) +
-            static_cast<unsigned int>(bmqsys::Time::highResolutionTimer() &
+            static_cast<unsigned int>(bmqu::Time::highResolutionTimer() &
                                       0xFFFFFFFF);
 
         bsl::srand(seed);
@@ -124,7 +124,7 @@ void Application::oneTimeShutdown()
 {
     BSLMT_ONCE_DO
     {
-        bmqsys::Time::shutdown();
+        bmqu::Time::shutdown();
     }
 }
 

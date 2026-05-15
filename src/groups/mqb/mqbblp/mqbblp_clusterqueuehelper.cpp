@@ -55,11 +55,11 @@
 #include <bmqp_queueid.h>
 #include <bmqp_queueutil.h>
 
-#include <bmqsys_time.h>
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_outstreamformatsaver.h>
 #include <bmqu_printutil.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <ball_logthrottle.h>
@@ -1630,7 +1630,7 @@ void ClusterQueueHelper::onReopenQueueResponse(
                    .reopenRetryIntervalMs()
             << " milliseconds.";
 
-        bsls::TimeInterval after(bmqsys::Time::nowMonotonicClock());
+        bsls::TimeInterval after(bmqu::Time::nowMonotonicClock());
         after.addMilliseconds(d_clusterData_p->clusterConfig()
                                   .queueOperations()
                                   .reopenRetryIntervalMs());
@@ -5769,8 +5769,8 @@ int ClusterQueueHelper::gcExpiredQueues(bool               immediate,
         return rc_SELF_IS_NOT_PRIMARY;  // RETURN
     }
 
-    bsls::Types::Int64 currentTimestampMs =
-        bmqsys::Time::highResolutionTimer() / bdlt::TimeUnitRatio::k_NS_PER_MS;
+    bsls::Types::Int64 currentTimestampMs = bmqu::Time::highResolutionTimer() /
+                                            bdlt::TimeUnitRatio::k_NS_PER_MS;
 
     bdlma::LocalSequentialAllocator<512> vecAlloc(d_allocator_p);
     bsl::vector<QueueContextMapIter>     queuesToGc(&vecAlloc);

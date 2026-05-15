@@ -35,8 +35,8 @@
 #include <bmqt_queueflags.h>
 #include <bmqt_uri.h>
 
-#include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlb_string.h>
@@ -422,7 +422,7 @@ void QueueEngineTester::oneTimeInit()
 {
     BSLMT_ONCE_DO
     {
-        bmqsys::Time::initialize();
+        bmqu::Time::initialize();
     }
 }
 
@@ -624,7 +624,7 @@ void QueueEngineTester::oneTimeShutdown()
 {
     BSLMT_ONCE_DO
     {
-        bmqsys::Time::shutdown();
+        bmqu::Time::shutdown();
     }
 }
 

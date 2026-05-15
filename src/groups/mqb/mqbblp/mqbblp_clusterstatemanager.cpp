@@ -34,9 +34,9 @@
 #include <bmqt_uri.h>
 
 #include <bmqio_status.h>
-#include <bmqsys_time.h>
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_printutil.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlf_bind.h>
@@ -1026,7 +1026,7 @@ void ClusterStateManager::initiateLeaderSync(bool wait)
                                  leaderSyncDelayNs)
                           << " before initiating leader sync.";
 
-            bsls::TimeInterval after(bmqsys::Time::nowMonotonicClock());
+            bsls::TimeInterval after(bmqu::Time::nowMonotonicClock());
             after.addMilliseconds(leaderSyncDelayMs);
             d_clusterData_p->scheduler().scheduleEvent(
                 d_clusterData_p->electorInfo().leaderSyncEventHandle(),

@@ -9,7 +9,7 @@ reused through various applications.
 
 /Hierarchical Synopsis
 /---------------------
-The 'bmqu' package currently has 19 components having 2 level of physical
+The 'bmqu' package currently has 20 components having 2 level of physical
 dependency.  The list below shows the hierarchal ordering of the components.
 ..
   2. bmqu_blobiterator
@@ -31,6 +31,7 @@ dependency.  The list below shows the hierarchal ordering of the components.
      bmqu_tempfile
      bmqu_temputil
      bmqu_throttledaction
+     bmqu_time
      bmqu_weakmemfn
 ..
 
@@ -89,6 +90,9 @@ dependency.  The list below shows the hierarchal ordering of the components.
 :
 : 'bmqu_throttledaction':
 :      Provide macros and utilities to throttle an action.
+:
+: 'bmqu_time':
+:      Provide a pluggable functional interface to system clocks.
 :
 : 'bmqu_weakmemfn':
 :      Provide a wrapper type for invoking member functions on a weak_ptr.

@@ -20,8 +20,8 @@
 #include <mqbcfg_messages.h>
 #include <mqbplug_pluginmanager.h>
 
-#include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlbb_pooledblobbufferfactory.h>
@@ -114,7 +114,7 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqsys::Time::initialize();
+    bmqu::Time::initialize();
 
     switch (_testCase) {
     case 0:
