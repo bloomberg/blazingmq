@@ -656,6 +656,10 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// using the specified `nodeContext`.
     void sendReceipt(mqbnet::ClusterNode* node, NodeContext* nodeContext);
 
+    /// Generate and send Replication Receipt for the
+    /// `d_lastRecoveredStrongConsistency`, if any, to the current primary.
+    void sendImplicitReceipt();
+
     /// Insert the specified `record` value by the specified `key` into the
     /// list of outstanding records, and assign to the specified `handle` an
     /// iterator to the inserted record.
@@ -1251,6 +1255,8 @@ FileStore::setLastStrongConsistency(unsigned int        primaryLeaseId,
 {
     d_lastRecoveredStrongConsistency.d_primaryLeaseId = primaryLeaseId;
     d_lastRecoveredStrongConsistency.d_sequenceNum    = sequenceNum;
+
+    sendImplicitReceipt();
 }
 
 inline void
