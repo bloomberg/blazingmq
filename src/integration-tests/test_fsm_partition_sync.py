@@ -17,6 +17,11 @@
 Testing primary-replica partition synchronization in FSM mode.
 """
 
+import glob
+import os
+import shutil
+import tempfile
+
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (
     Cluster,
@@ -628,3 +633,150 @@ def test_sync_after_replicas_missed_or_extra_records(
     # Check that new primary and replicas' journal files are equal
     for replica in (replica1, replica2, leader):
         stop_cluster_and_compare_journal_files(replica3.name, replica.name, cluster)
+
+
+def test_sync_after_primary_extra_records(
+    fsm_multi_cluster: Cluster,
+    domain_urls: tc.DomainUrls,
+) -> None:
+    """
+    Test that when an old primary with extra records becomes primary again,
+    the replica detects irreconcilable data and the primary removes its
+    storage and re-pulls from (0,0).
+    - Start cluster
+    - Put 2 messages
+    - Stop Replica 1, 2, and 3
+    - Put 2 more messages
+    - Stop the original primary
+    - Start all nodes except the original primary.  Wait for the second primary
+      to heal the cluster
+    - Put 2 more messages
+    - Simulate: original primary joins the cluster and syncs CSL, but crashes
+      before syncing partition files
+    - Stop all nodes
+    - Start all nodes.  Force the original primary to become the new primary
+    - Original primary will send ReplicaDataRequestPull to a replica; verify
+      that replica replies with irreconcilable ReplicaDataResponsePull
+    - Verify original primary will remove its storage and resend
+      ReplicaDataRequestPull with a beginSeqNum of (0,0)
+    - Verify that all nodes are synchronized by examining storage files
+    """
+    cluster: Cluster = fsm_multi_cluster
+    uri_priority = domain_urls.uri_priority
+
+    leader = cluster.last_known_leader
+    proxy = next(cluster.proxy_cycle())
+
+    producer = proxy.create_client("producer")
+    producer.open(uri_priority, flags=["write,ack"], succeed=True)
+
+    consumer = proxy.create_client("consumer")
+    consumer.open(uri_priority, flags=["read"], succeed=True)
+
+    # Put 2 messages
+    for i in range(1, 3):
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+
+    # Stop all replicas
+    cluster.stop_nodes(exclude=[leader])
+
+    # Put 2 more messages (only original primary has these)
+    for i in range(3, 5):
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+
+    # Stop original primary
+    leader.stop()
+    cluster.make_sure_node_stopped(leader)
+    for node in cluster.nodes():
+        node.drain()
+
+    # Restart the cluster except the original primary
+    for node in cluster.nodes(exclude=leader):
+        node.start()
+        node.wait_until_started()
+    cluster.wait_leader()
+    for node in cluster.nodes(exclude=leader):
+        assert node.outputs_substr("Cluster (itCluster) is available", 10)
+
+    # Put 2 more messages (only original primary will miss these)
+    for i in range(5, 7):
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+
+    # Simulate: original primary joins the cluster and syncs CSL, but crashes
+    # before syncing partition files.  We do this by saving the original
+    # primary's storage files, letting it fully heal, then restoring the old
+    # storage files.
+
+    # 1. Copy original primary's partition files (not CSL) to temp
+    leader_storage_dir = str(cluster.work_dir.joinpath(leader.name, "storage"))
+    tmp_storage_dir = tempfile.mkdtemp()
+    partition_patterns = ["*.bmq_journal", "*.bmq_data", "*.bmq_qlist"]
+    for pattern in partition_patterns:
+        for f in glob.glob(os.path.join(leader_storage_dir, pattern)):
+            shutil.copy2(f, tmp_storage_dir)
+
+    # 2. Start original primary and let it sync (heals CSL + elector term)
+    leader.start()
+    leader.wait_until_started()
+    assert leader.outputs_substr("Cluster (itCluster) is available", 10), (
+        f"Leader {leader} did not become available after rejoining"
+    )
+
+    # 3. Stop all nodes
+    cluster.stop_nodes()
+    for node in cluster.nodes():
+        cluster.make_sure_node_stopped(node)
+        node.drain()
+
+    # 4. Copy back original partition files (overwrite healed partition data,
+    #    but leave the up-to-date CSL intact)
+    for f in os.listdir(tmp_storage_dir):
+        shutil.copy2(os.path.join(tmp_storage_dir, f), leader_storage_dir)
+    shutil.rmtree(tmp_storage_dir)
+
+    # Start all nodes.  Force the original primary to become the new primary
+    test_logger.info("Starting all nodes")
+    for node in cluster.nodes():
+        node.start()
+        node.wait_until_started()
+        quorum = 3 if node == leader else 5
+        node.set_quorum(quorum)
+    cluster.wait_leader()
+    assert leader == cluster.last_known_leader, (
+        f"Original primary {leader} is not cluster.last_known_leader {cluster.last_known_leader}"
+    )
+
+    # Capture all leader-side events in a single pass to avoid backlog
+    # consumption issues.
+    matches = leader.capture_n(
+        [
+            r"Sending request to '\[(\w+), \d+\]'.*replicaDataRequest = \[ replicaDataType = E_PULL",
+            r"Removing entire storage and requesting it from replica",
+            r"Cluster \(itCluster\) is available",
+        ],
+        3,
+        timeout=10,
+    )
+    assert matches[0] is not None, (
+        f"Leader {leader} did not send ReplicaDataRequestPull to any replica"
+    )
+    assert matches[1] is not None, (
+        f"Leader {leader} did not remove its storage upon irreconcilable data"
+    )
+    assert matches[2] is not None, (
+        f"Leader {leader} did not output 'Cluster (itCluster) is available'"
+    )
+
+    target_replica_name = matches[0].group(1)
+    target_replica = next(
+        n for n in cluster.nodes(exclude=leader) if n.name == target_replica_name
+    )
+
+    # Verify replica detects irreconcilable data on the primary
+    assert target_replica.outputs_substr(
+        "implying that primary has irreconcilable records", 10
+    ), f"Replica {target_replica} did not detect irreconcilable primary data"
+
+    # Check that primary and replicas' journal files are equal
+    for replica in cluster.nodes(exclude=leader):
+        stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
