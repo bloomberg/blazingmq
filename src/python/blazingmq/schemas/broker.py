@@ -18,14 +18,14 @@ BlazingMQ Broker schemas.
 """
 
 from enum import IntEnum, IntFlag
-from typing import Any, Dict
+from typing import Any
 
 # =============================================================================
 #                                  CONSTANTS
 # =============================================================================
 
 
-SchemaDescription = Dict[str, Any]
+SchemaDescription = dict[str, Any]
 
 
 class EventType(IntEnum):
