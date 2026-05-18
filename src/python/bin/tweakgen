@@ -21,7 +21,7 @@ Tweak generator.
 import dataclasses
 from pathlib import Path
 import subprocess
-from typing import IO, Type
+from typing import IO, Type, Union
 import typing
 
 from blazingmq.schemas import mqbcfg, mqbconf
@@ -34,9 +34,9 @@ def type_str(type_) -> str:
         return type_
 
     if origin := typing.get_origin(type_):
-        if origin == typing.Union:
+        if origin == Union:
             nested = [type_str(item_type) for item_type in typing.get_args(type_)]
-            return "{}[{}]".format(origin, ",".join(nested))
+            return "Union[{}]".format(",".join(nested))
     else:
         return (
             type_.__qualname__
@@ -108,7 +108,7 @@ GENERATED CODE - DO NOT EDIT
 
 import decimal
 import typing
-from typing import Callable
+from typing import Callable, Union
 
 import blazingmq.schemas.mqbcfg
 import blazingmq.schemas.mqbconf
