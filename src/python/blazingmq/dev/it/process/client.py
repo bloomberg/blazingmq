@@ -258,6 +258,7 @@ class Client(BMQProcess):
         succeed=None,
         no_except=None,
         wait_ack=None,
+        timeout=None,
         **kw,
     ):
         """
@@ -291,6 +292,7 @@ class Client(BMQProcess):
             succeed,
             no_except,
             extra_patterns=extra_patterns,
+            timeout=timeout,
         )
         error_code = res.error_code
         if wait_ack:
