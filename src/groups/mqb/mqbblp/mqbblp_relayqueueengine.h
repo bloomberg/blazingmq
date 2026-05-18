@@ -370,9 +370,9 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
   public:
     // CREATORS
-    RelayQueueEngine(QueueState*             queueState,
+    RelayQueueEngine(QueueState*                 queueState,
                      const mqbdomaincfg::Domain& domainConfig,
-                     bslma::Allocator*       allocator);
+                     bslma::Allocator*           allocator);
 
     /// Destructor
     ~RelayQueueEngine() BSLS_KEYWORD_OVERRIDE;

@@ -338,7 +338,7 @@ class Cluster : public DispatcherClient {
 
     /// Invoked whenever a `domain` previously configured with `oldDefn`
     /// is reconfigured with the definition `newDefn`.
-    virtual void onDomainReconfigured(const Domain&           domain,
+    virtual void onDomainReconfigured(const Domain&               domain,
                                       const mqbdomaincfg::Domain& oldDefn,
                                       const mqbdomaincfg::Domain& newDefn) = 0;
 

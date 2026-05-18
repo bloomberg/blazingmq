@@ -129,7 +129,7 @@ class Domain {
     /// calling `configure` on an already configured domain should
     /// atomically reconfigure that domain (and all of it's queues) with the
     /// new configuration (or fail and leave the storage untouched).
-    virtual int configure(bsl::ostream&           errorDescription,
+    virtual int configure(bsl::ostream&               errorDescription,
                           const mqbdomaincfg::Domain& config) = 0;
 
     /// Teardown this `Domain` instance and invoke the specified

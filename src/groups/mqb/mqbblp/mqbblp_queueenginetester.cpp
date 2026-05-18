@@ -381,8 +381,8 @@ static int parseStreamParameters(bmqp_ctrlmsg::StreamParameters* streamParams,
 
 // CREATORS
 QueueEngineTester::QueueEngineTester(const mqbdomaincfg::Domain& domainConfig,
-                                     bool                    startScheduler,
-                                     bslma::Allocator*       allocator)
+                                     bool              startScheduler,
+                                     bslma::Allocator* allocator)
 : d_invalidGuid()
 , d_handles(allocator)
 , d_subIds(allocator)
@@ -427,7 +427,7 @@ void QueueEngineTester::oneTimeInit()
 }
 
 void QueueEngineTester::init(const mqbdomaincfg::Domain& domainConfig,
-                             bool                    startScheduler)
+                             bool                        startScheduler)
 {
     bmqu::MemOutStream errorDescription(d_allocator_p);
     int                rc = 0;

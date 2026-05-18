@@ -560,7 +560,7 @@ class Cluster : public mqbi::Cluster,
 
     /// Invoked whenever `domain` previously configured having `oldDefn` is
     /// reconfigured with `newDefn`.
-    void onDomainReconfigured(const mqbi::Domain&     domain,
+    void onDomainReconfigured(const mqbi::Domain&         domain,
                               const mqbdomaincfg::Domain& oldDefn,
                               const mqbdomaincfg::Domain& newDefn)
         BSLS_KEYWORD_OVERRIDE;

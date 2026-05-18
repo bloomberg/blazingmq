@@ -279,7 +279,7 @@ void RootQueueEngine::onHandleCreation(void* ptr, void* cookie)
 void RootQueueEngine::create(bslma::ManagedPtr<mqbi::QueueEngine>* queueEngine,
                              QueueState*                           queueState,
                              const mqbdomaincfg::Domain& domainConfig,
-                             bslma::Allocator*       allocator)
+                             bslma::Allocator*           allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(queueEngine);
@@ -323,9 +323,9 @@ void RootQueueEngine::BroadcastConfiguration::loadRoutingConfiguration(
 }
 
 // CREATORS
-RootQueueEngine::RootQueueEngine(QueueState*             queueState,
+RootQueueEngine::RootQueueEngine(QueueState*                 queueState,
                                  const mqbdomaincfg::Domain& domainConfig,
-                                 bslma::Allocator*       allocator)
+                                 bslma::Allocator*           allocator)
 : d_queueState_p(queueState)
 , d_consumptionMonitor(
       queueState,

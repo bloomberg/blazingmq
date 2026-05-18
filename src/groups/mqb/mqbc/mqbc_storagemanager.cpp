@@ -4499,13 +4499,13 @@ void StorageManager::processReplicaDataRequest(
 }
 
 int StorageManager::configureStorage(
-    bsl::ostream&                      errorDescription,
-    bsl::shared_ptr<mqbi::Storage>*    out,
-    const bmqt::Uri&                   uri,
-    const mqbu::StorageKey&            queueKey,
-    int                                partitionId,
-    const bsls::Types::Int64           messageTtl,
-    int                                maxDeliveryAttempts,
+    bsl::ostream&                          errorDescription,
+    bsl::shared_ptr<mqbi::Storage>*        out,
+    const bmqt::Uri&                       uri,
+    const mqbu::StorageKey&                queueKey,
+    int                                    partitionId,
+    const bsls::Types::Int64               messageTtl,
+    int                                    maxDeliveryAttempts,
     const mqbdomaincfg::StorageDefinition& storageDef)
 {
     // PRECONDITIONS

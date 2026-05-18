@@ -196,7 +196,7 @@ struct ClusterUtil {
         ClusterState*                          clusterState,
         ClusterData*                           clusterData,
         const bmqt::Uri&                       uri,
-        const mqbdomaincfg::QueueMode&             config);
+        const mqbdomaincfg::QueueMode&         config);
 
     /// Populate the specified `advisory` with information describing a
     /// queue unassignment of the specified `uri` having the specified `key`
@@ -244,7 +244,7 @@ struct ClusterUtil {
     /// and populate them into the specified `appIdInfos`.
     static void
     populateAppInfos(bsl::vector<bmqp_ctrlmsg::AppIdInfo>* appIdInfos,
-                     const mqbdomaincfg::QueueMode&            domainConfig);
+                     const mqbdomaincfg::QueueMode&        domainConfig);
 
     /// Unregister the specified 'removed' and register the specified `added`
     /// for the specified  `domainName` and the specified `uri`.  if the `uri`

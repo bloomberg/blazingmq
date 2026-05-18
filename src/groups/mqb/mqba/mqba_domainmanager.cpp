@@ -330,7 +330,7 @@ void DomainManager::initializeNonClusterMemberDomain(
     const mqbi::DomainFactory::CreateDomainCb& callback)
 {
     UpsertDomainValue upsertDomainValue;
-    mqbdomaincfg::Domain  definition;
+    mqbdomaincfg::Domain definition;
     upsertDomain(&upsertDomainValue, definition, domain, domainLocation);
 
     DecodeAndUpsertValue decodeAndUpsertValue;
@@ -341,7 +341,7 @@ void DomainManager::initializeNonClusterMemberDomain(
 
 DomainManager::UpsertDomainValue&
 DomainManager::upsertDomain(UpsertDomainValue*             out,
-                            const mqbdomaincfg::Domain&        definition,
+                            const mqbdomaincfg::Domain&    definition,
                             const bsl::string&             domain,
                             const bsl::string&             clusterName,
                             bsl::shared_ptr<mqbi::Cluster> cluster)

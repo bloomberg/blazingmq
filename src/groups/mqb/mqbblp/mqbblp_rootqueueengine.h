@@ -225,7 +225,7 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// `scheduler` and `allocator`.
     static void create(bslma::ManagedPtr<mqbi::QueueEngine>* queueEngine,
                        QueueState*                           queueState,
-                       const mqbdomaincfg::Domain&               domainConfig,
+                       const mqbdomaincfg::Domain&           domainConfig,
                        bslma::Allocator*                     allocator);
 
     /// Loads the specified `config` with the appropriate values for
@@ -250,9 +250,9 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     };
 
     // CREATORS
-    RootQueueEngine(QueueState*             queueState,
+    RootQueueEngine(QueueState*                 queueState,
                     const mqbdomaincfg::Domain& domainConfig,
-                    bslma::Allocator*       allocator);
+                    bslma::Allocator*           allocator);
 
     // MANIPULATORS
     //   (virtual mqbi::QueueEngine)
@@ -474,7 +474,8 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 // struct RootQueueEngine
 // ----------------------
 
-inline bsl::shared_ptr<const mqbdomaincfg::Domain> RootQueueEngine::config() const
+inline bsl::shared_ptr<const mqbdomaincfg::Domain>
+RootQueueEngine::config() const
 {
     return d_queueState_p->queue()->domain()->config();
 }

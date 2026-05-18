@@ -889,7 +889,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     void match(bsl::vector<bsl::string>*          added,
                bsl::vector<bsl::string>*          removed,
                const mqbc::ClusterStateQueueInfo& state,
-               const mqbdomaincfg::QueueMode&         domainConfig) const;
+               const mqbdomaincfg::QueueMode&     domainConfig) const;
 
     /// Respond to all pending OpenQueue requests with the specified
     /// `status`.

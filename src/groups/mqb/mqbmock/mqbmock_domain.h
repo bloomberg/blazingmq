@@ -162,7 +162,7 @@ class Domain : public mqbi::Domain {
     /// calling `configure` on an already configured domain should
     /// atomically reconfigure that domain (and all of it's queues) with the
     /// new configuration (or fail and leave the storage untouched).
-    int configure(bsl::ostream&           errorDescription,
+    int configure(bsl::ostream&               errorDescription,
                   const mqbdomaincfg::Domain& config) BSLS_KEYWORD_OVERRIDE;
 
     /// Do some logging.

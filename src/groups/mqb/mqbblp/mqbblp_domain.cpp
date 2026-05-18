@@ -73,7 +73,7 @@ void queueHolderDummy(const bsl::shared_ptr<mqbi::Queue>& queue)
 /// Validates an application subscription.
 bool validateSubscriptionExpression(bsl::ostream& errorDescription,
                                     const mqbdomaincfg::Expression& expression,
-                                    bslma::Allocator*           allocator)
+                                    bslma::Allocator*               allocator)
 {
     if (mqbdomaincfg::ExpressionVersion::E_VERSION_1 == expression.version()) {
         if (!expression.text().empty()) {
@@ -100,10 +100,10 @@ bool validateSubscriptionExpression(bsl::ostream& errorDescription,
 
 /// Validates a domain configuration. If `previousDefn` is provided, also
 /// checks that the implied reconfiguration is also valid.
-int validateConfig(bsl::ostream&           errorDescription,
+int validateConfig(bsl::ostream&               errorDescription,
                    const mqbdomaincfg::Domain* previousDefn,
                    const mqbdomaincfg::Domain& newConfig,
-                   bslma::Allocator*       allocator)
+                   bslma::Allocator*           allocator)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -120,7 +120,8 @@ int validateConfig(bsl::ostream&           errorDescription,
     {
         bool failed = false;
 
-        const mqbdomaincfg::Limits& limits = newConfig.storage().domainLimits();
+        const mqbdomaincfg::Limits& limits =
+            newConfig.storage().domainLimits();
 
         if (!(0 <= limits.messagesWatermarkRatio() &&
               limits.messagesWatermarkRatio() <= 1.0)) {
@@ -200,8 +201,8 @@ int validateConfig(bsl::ostream&           errorDescription,
 /// of updates made to `defn`: a return value of zero indicates that `defn`
 /// was not modified.
 int normalizeConfig(mqbdomaincfg::Domain* defn,
-                    bsl::ostream&     errorDescription,
-                    const Domain&     domain)
+                    bsl::ostream&         errorDescription,
+                    const Domain&         domain)
 {
     int updatedValues = 0;
 
@@ -293,7 +294,7 @@ Domain::~Domain()
                      "'teardown' must be called before the destructor");
 }
 
-int Domain::configure(bsl::ostream&           errorDescription,
+int Domain::configure(bsl::ostream&               errorDescription,
                       const mqbdomaincfg::Domain& newConfig)
 {
     enum RcEnum {

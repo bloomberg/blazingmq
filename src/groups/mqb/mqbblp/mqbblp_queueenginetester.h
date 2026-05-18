@@ -305,8 +305,8 @@ class QueueEngineTester {
     /// `startScheduler` to determine whether the scheduler is started on
     /// creation.  Use the specified `allocator` for any memory allocation.
     explicit QueueEngineTester(const mqbdomaincfg::Domain& domainConfig,
-                               bool                    startScheduler,
-                               bslma::Allocator*       allocator);
+                               bool                        startScheduler,
+                               bslma::Allocator*           allocator);
 
     /// Destructor
     ~QueueEngineTester();
@@ -592,7 +592,7 @@ class TimeControlledQueueEngineTester : public mqbblp::QueueEngineTester {
   public:
     // CREATORS
     TimeControlledQueueEngineTester(const mqbdomaincfg::Domain& domainConfig,
-                                    bslma::Allocator*       allocator)
+                                    bslma::Allocator*           allocator)
     : mqbblp::QueueEngineTester(domainConfig, true, allocator)
     , d_testClock(d_mockCluster_mp->_timeSource())
     {

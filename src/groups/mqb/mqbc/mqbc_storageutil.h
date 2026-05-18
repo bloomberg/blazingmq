@@ -727,16 +727,17 @@ struct StorageUtil {
                          const bmqt::Uri&                    uri,
                          const bsl::shared_ptr<mqbi::Queue>& queue_sp);
 
-    static int configureStorage(bsl::ostream& errorDescription,
-                                bsl::shared_ptr<mqbi::Storage>* out,
-                                StorageSpMap*                   storageMap,
-                                bslmt::Mutex*                   storagesLock,
-                                const bmqt::Uri&                uri,
-                                const mqbu::StorageKey&         queueKey,
-                                int                             partitionId,
-                                const bsls::Types::Int64        messageTtl,
-                                const int maxDeliveryAttempts,
-                                const mqbdomaincfg::StorageDefinition& storageDef);
+    static int
+    configureStorage(bsl::ostream&                   errorDescription,
+                     bsl::shared_ptr<mqbi::Storage>* out,
+                     StorageSpMap*                   storageMap,
+                     bslmt::Mutex*                   storagesLock,
+                     const bmqt::Uri&                uri,
+                     const mqbu::StorageKey&         queueKey,
+                     int                             partitionId,
+                     const bsls::Types::Int64        messageTtl,
+                     const int                       maxDeliveryAttempts,
+                     const mqbdomaincfg::StorageDefinition& storageDef);
 
     /// THREAD: Executed by the queue dispatcher thread associated with
     ///         'partitionId'.

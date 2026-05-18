@@ -459,8 +459,8 @@ class Storage {
     /// atomically reconfigure that storage with the new configuration.
     virtual void configure(const mqbdomaincfg::Storage& config,
                            const mqbdomaincfg::Limits&  limits,
-                           bsls::Types::Int64       messageTtl,
-                           int                      maxDeliveryAttempts) = 0;
+                           bsls::Types::Int64           messageTtl,
+                           int maxDeliveryAttempts) = 0;
 
     /// Set the consistency level associated to this storage to the specified
     /// `value`.

@@ -937,7 +937,7 @@ static void test11_roundRobinAndRedelivery()
 {
     bmqtst::TestHelper::printTestName("ROUND-ROBIN AND REDELIVERY");
 
-    mqbdomaincfg::Domain          config = fanoutConfig();
+    mqbdomaincfg::Domain      config = fanoutConfig();
     bsl::vector<bsl::string>& appIDs = config.mode().fanout().appIDs();
     appIDs.push_back("a");
     appIDs.push_back("b");
@@ -1155,7 +1155,7 @@ static void test14_throttleRedeliveryPriority()
 {
     bmqtst::TestHelper::printTestName("THROTTLED REDELIVERY PRIORITY");
 
-    mqbdomaincfg::Domain config      = priorityDomainConfig();
+    mqbdomaincfg::Domain config  = priorityDomainConfig();
     config.maxDeliveryAttempts() = 5;
 
     mqbblp::TimeControlledQueueEngineTester tester(
@@ -1247,7 +1247,7 @@ static void test15_throttleRedeliveryFanout()
 {
     bmqtst::TestHelper::printTestName("THROTTLED REDELIVERY FANOUT");
 
-    mqbdomaincfg::Domain          config = fanoutConfig();
+    mqbdomaincfg::Domain      config = fanoutConfig();
     bsl::vector<bsl::string>& appIDs = config.mode().fanout().appIDs();
     appIDs.push_back("a");
     appIDs.push_back("b");
@@ -1388,7 +1388,7 @@ static void test16_throttleRedeliveryCancelledDelay()
 {
     bmqtst::TestHelper::printTestName("THROTTLED REDELIVERY CANCELLED DELAY");
 
-    mqbdomaincfg::Domain config      = priorityDomainConfig();
+    mqbdomaincfg::Domain config  = priorityDomainConfig();
     config.maxDeliveryAttempts() = 5;
 
     mqbblp::TimeControlledQueueEngineTester tester(
@@ -1478,7 +1478,7 @@ static void test17_throttleRedeliveryNewHandle()
 {
     bmqtst::TestHelper::printTestName("THROTTLED REDELIVERY NEW HANDLE");
 
-    mqbdomaincfg::Domain config      = priorityDomainConfig();
+    mqbdomaincfg::Domain config  = priorityDomainConfig();
     config.maxDeliveryAttempts() = 5;
 
     mqbblp::TimeControlledQueueEngineTester tester(
@@ -1537,7 +1537,7 @@ static void test18_throttleRedeliveryNoMoreHandles()
 {
     bmqtst::TestHelper::printTestName("THROTTLED REDELIVERY NO MORE HANDLES");
 
-    mqbdomaincfg::Domain config      = priorityDomainConfig();
+    mqbdomaincfg::Domain config  = priorityDomainConfig();
     config.maxDeliveryAttempts() = 5;
 
     mqbblp::TimeControlledQueueEngineTester tester(
@@ -1619,7 +1619,7 @@ static void test19_redeliveryAndResume()
 {
     bmqtst::TestHelper::printTestName("ROUND-ROBIN AND REDELIVERY");
 
-    mqbdomaincfg::Domain          config = fanoutConfig();
+    mqbdomaincfg::Domain      config = fanoutConfig();
     bsl::vector<bsl::string>& appIDs = config.mode().fanout().appIDs();
     appIDs.push_back("a");
     appIDs.push_back("b");
@@ -1827,7 +1827,7 @@ static void test21_deliverOutOfOrder()
 {
     bmqtst::TestHelper::printTestName("DETECTING OUT-OF-ORDER");
 
-    mqbdomaincfg::Domain          config = fanoutConfig();
+    mqbdomaincfg::Domain      config = fanoutConfig();
     bsl::vector<bsl::string>& appIDs = config.mode().fanout().appIDs();
     appIDs.push_back("a");
     appIDs.push_back("b");
@@ -1933,7 +1933,7 @@ static void test22_resumeAfterTTL()
 {
     bmqtst::TestHelper::printTestName("RESUME AFTER TTL");
 
-    mqbdomaincfg::Domain          config = fanoutConfig();
+    mqbdomaincfg::Domain      config = fanoutConfig();
     bsl::vector<bsl::string>& appIDs = config.mode().fanout().appIDs();
     appIDs.push_back("a");
     appIDs.push_back("b");

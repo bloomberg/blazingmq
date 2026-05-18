@@ -255,7 +255,7 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
                     const mqbu::StorageKey&        queueKey,
                     mqbi::Domain*                  domain,
                     int                            partitionId,
-                    const mqbdomaincfg::Domain&        config,
+                    const mqbdomaincfg::Domain&    config,
                     mqbu::CapacityMeter*           parentCapacityMeter,
                     bslma::Allocator*              allocator,
                     bmqma::CountingAllocatorStore* allocatorStore = 0);
@@ -271,13 +271,13 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// atomically reconfigure that storage with the new configuration.
     void configure(const mqbdomaincfg::Storage& config,
                    const mqbdomaincfg::Limits&  limits,
-                   bsls::Types::Int64       messageTtl,
+                   bsls::Types::Int64           messageTtl,
                    int maxDeliveryAttempts) BSLS_KEYWORD_OVERRIDE;
 
     /// Set the consistency level associated to this storage to the specified
     /// `value`.
-    void
-    setConsistency(const mqbdomaincfg::Consistency& value) BSLS_KEYWORD_OVERRIDE;
+    void setConsistency(const mqbdomaincfg::Consistency& value)
+        BSLS_KEYWORD_OVERRIDE;
 
     void setQueue(mqbi::Queue* queue) BSLS_KEYWORD_OVERRIDE;
 

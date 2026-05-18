@@ -1376,7 +1376,7 @@ static void test9_priorityCreateAndConfigure()
       public:
         // CREATORS
         PriorityQueueEngineTester(const mqbdomaincfg::Domain& domainConfig,
-                                  bslma::Allocator*       allocator)
+                                  bslma::Allocator*           allocator)
         : mqbblp::QueueEngineTester(domainConfig, true, allocator)
         {
         }
@@ -2585,7 +2585,7 @@ static void test22_createAndConfigure()
       public:
         // CREATORS
         FanoutQueueEngineTester(const mqbdomaincfg::Domain& domainConfig,
-                                bslma::Allocator*       allocator)
+                                bslma::Allocator*           allocator)
         : mqbblp::QueueEngineTester(domainConfig, true, allocator)
         {
         }
@@ -4529,7 +4529,7 @@ static void test42_throttleRedeliveryPriority()
 {
     bmqtst::TestHelper::printTestName("THROTTLED REDELIVERY PRIORITY");
 
-    mqbdomaincfg::Domain config      = priorityDomainConfig();
+    mqbdomaincfg::Domain config  = priorityDomainConfig();
     config.maxDeliveryAttempts() = 5;
 
     mqbblp::TimeControlledQueueEngineTester tester(
@@ -4619,7 +4619,7 @@ static void test43_throttleRedeliveryFanout()
 {
     bmqtst::TestHelper::printTestName("THROTTLED REDELIVERY FANOUT");
 
-    mqbdomaincfg::Domain config      = fanoutConfig("a,b,c");
+    mqbdomaincfg::Domain config  = fanoutConfig("a,b,c");
     config.maxDeliveryAttempts() = 5;
 
     mqbblp::TimeControlledQueueEngineTester tester(
@@ -4754,7 +4754,7 @@ static void test44_throttleRedeliveryCancelledDelay()
 {
     bmqtst::TestHelper::printTestName("THROTTLED REDELIVERY CANCELLED DELAY");
 
-    mqbdomaincfg::Domain config      = priorityDomainConfig();
+    mqbdomaincfg::Domain config  = priorityDomainConfig();
     config.maxDeliveryAttempts() = 5;
 
     mqbblp::TimeControlledQueueEngineTester tester(
@@ -4862,7 +4862,7 @@ static void test45_throttleRedeliveryNewHandle()
 {
     bmqtst::TestHelper::printTestName("THROTTLED REDELIVERY NEW HANDLE");
 
-    mqbdomaincfg::Domain config      = priorityDomainConfig();
+    mqbdomaincfg::Domain config  = priorityDomainConfig();
     config.maxDeliveryAttempts() = 5;
 
     mqbblp::TimeControlledQueueEngineTester tester(
@@ -4921,7 +4921,7 @@ static void test46_throttleRedeliveryNoMoreHandles()
 {
     bmqtst::TestHelper::printTestName("THROTTLED REDELIVERY NO MORE HANDLES");
 
-    mqbdomaincfg::Domain config      = priorityDomainConfig();
+    mqbdomaincfg::Domain config  = priorityDomainConfig();
     config.maxDeliveryAttempts() = 5;
 
     mqbblp::TimeControlledQueueEngineTester tester(
@@ -5093,7 +5093,7 @@ static void test48_unknownReject()
 {
     bmqtst::TestHelper::printTestName("UNEXPECTED_REJECT");
 
-    mqbdomaincfg::Domain config      = fanoutConfig("a,b,c");
+    mqbdomaincfg::Domain config  = fanoutConfig("a,b,c");
     config.maxDeliveryAttempts() = 5;
 
     mqbblp::QueueEngineTester tester(config,

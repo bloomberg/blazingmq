@@ -71,10 +71,10 @@ Domain::~Domain()
 
 // MANIPULATORS
 int Domain::configure(BSLA_MAYBE_UNUSED bsl::ostream& errorDescription,
-                      const mqbdomaincfg::Domain&         config)
+                      const mqbdomaincfg::Domain&     config)
 {
     d_config = bsl::allocate_shared<const mqbdomaincfg::Domain>(d_allocator_p,
-                                                            config);
+                                                                config);
 
     return 0;
 }

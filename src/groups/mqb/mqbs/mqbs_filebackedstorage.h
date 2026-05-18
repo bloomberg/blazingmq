@@ -275,7 +275,7 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
                       const bmqt::Uri&               queueUri,
                       const mqbu::StorageKey&        queueKey,
                       mqbi::Domain*                  domain,
-                      const mqbdomaincfg::Domain&        config,
+                      const mqbdomaincfg::Domain&    config,
                       bslma::Allocator*              allocator,
                       bmqma::CountingAllocatorStore* allocatorStore = 0);
 
@@ -387,13 +387,13 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// atomically reconfigure that storage with the new configuration.
     void configure(const mqbdomaincfg::Storage& config,
                    const mqbdomaincfg::Limits&  limits,
-                   bsls::Types::Int64       messageTtl,
+                   bsls::Types::Int64           messageTtl,
                    int maxDeliveryAttempts) BSLS_KEYWORD_OVERRIDE;
 
     /// Set the consistency level associated to this storage to the specified
     /// `value`.
-    void
-    setConsistency(const mqbdomaincfg::Consistency& value) BSLS_KEYWORD_OVERRIDE;
+    void setConsistency(const mqbdomaincfg::Consistency& value)
+        BSLS_KEYWORD_OVERRIDE;
 
     /// Return the resource capacity meter associated to this storage.
     mqbu::CapacityMeter* capacityMeter() BSLS_KEYWORD_OVERRIDE;

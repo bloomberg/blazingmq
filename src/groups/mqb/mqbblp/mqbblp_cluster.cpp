@@ -2333,7 +2333,7 @@ void Cluster::onQueueHandleDestroyed(mqbi::Queue* queue, const bmqt::Uri& uri)
     d_clusterOrchestrator.queueHelper().onQueueHandleDestroyed(queue, uri);
 }
 
-void Cluster::onDomainReconfigured(const mqbi::Domain&     domain,
+void Cluster::onDomainReconfigured(const mqbi::Domain&         domain,
                                    const mqbdomaincfg::Domain& oldDefn,
                                    const mqbdomaincfg::Domain& newDefn)
 {

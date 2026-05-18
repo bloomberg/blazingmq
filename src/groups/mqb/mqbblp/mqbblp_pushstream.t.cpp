@@ -120,7 +120,8 @@ static void test2_iterations()
     mqbmock::Cluster dummyCluster(bmqtst::TestHelperUtil::allocator());
     mqbmock::Domain  dummyDomain(&dummyCluster,
                                 bmqtst::TestHelperUtil::allocator());
-    mqbdomaincfg::Domain dummyDomainConfig(bmqtst::TestHelperUtil::allocator());
+    mqbdomaincfg::Domain dummyDomainConfig(
+        bmqtst::TestHelperUtil::allocator());
 
     mqbs::InMemoryStorage dummyStorage(0,  // No FileStore
                                        dummyUri,

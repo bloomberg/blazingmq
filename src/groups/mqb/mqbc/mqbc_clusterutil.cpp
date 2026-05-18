@@ -776,7 +776,7 @@ void ClusterUtil::populateQueueAssignmentAdvisory(
     ClusterState*                          clusterState,
     ClusterData*                           clusterData,
     const bmqt::Uri&                       uri,
-    const mqbdomaincfg::QueueMode&             config)
+    const mqbdomaincfg::QueueMode&         config)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(advisory);
@@ -1197,7 +1197,7 @@ void ClusterUtil::registerQueueInfo(ClusterState*        clusterState,
 
 void ClusterUtil::populateAppInfos(
     bsl::vector<bmqp_ctrlmsg::AppIdInfo>* appInfos,
-    const mqbdomaincfg::QueueMode&            domainConfig)
+    const mqbdomaincfg::QueueMode&        domainConfig)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(appInfos && appInfos->empty());
