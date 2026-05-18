@@ -84,7 +84,7 @@ jobs:
         run: |
           cd ${{ github.workspace }}
           cat src/python/blazingmq/schemas/mqbcfg.py
-          cat src/python/blazingmq/schemas/mqbconf.py
+          cat src/python/blazingmq/schemas/mqbdomaincfg.py
           cat src/python/blazingmq/dev/it/tweaks/generated.py
 
   integration_tests_ubuntu:

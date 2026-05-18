@@ -83,7 +83,7 @@ class StorageCommand;
 class StorageQueueInfo;
 class StorageResult;
 }
-namespace mqbconfm {
+namespace mqbdomaincfg {
 class StorageDefinition;
 }
 namespace mqbnet {
@@ -736,7 +736,7 @@ struct StorageUtil {
                                 int                             partitionId,
                                 const bsls::Types::Int64        messageTtl,
                                 const int maxDeliveryAttempts,
-                                const mqbconfm::StorageDefinition& storageDef);
+                                const mqbdomaincfg::StorageDefinition& storageDef);
 
     /// THREAD: Executed by the queue dispatcher thread associated with
     ///         'partitionId'.

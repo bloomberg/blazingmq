@@ -294,7 +294,7 @@ Cluster::Cluster(bslma::Allocator*        allocator,
                               d_allocator_p),
                           d_allocator_p);
 
-    mqbconfm::Domain domainConfig(d_allocator_p);
+    mqbdomaincfg::Domain domainConfig(d_allocator_p);
     domainConfig.name() = "mock-domain";
     domainConfig.mode().makePriority();
     domainConfig.storage().config().makeFileBacked();
@@ -474,8 +474,8 @@ void Cluster::onQueueHandleDestroyed(BSLA_MAYBE_UNUSED mqbi::Queue* queue,
 
 void Cluster::onDomainReconfigured(
     BSLA_MAYBE_UNUSED const mqbi::Domain& domain,
-    BSLA_MAYBE_UNUSED const mqbconfm::Domain& oldDefn,
-    BSLA_MAYBE_UNUSED const mqbconfm::Domain& newDefn)
+    BSLA_MAYBE_UNUSED const mqbdomaincfg::Domain& oldDefn,
+    BSLA_MAYBE_UNUSED const mqbdomaincfg::Domain& newDefn)
 {
 }
 

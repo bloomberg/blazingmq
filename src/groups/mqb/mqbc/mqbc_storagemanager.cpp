@@ -4506,7 +4506,7 @@ int StorageManager::configureStorage(
     int                                partitionId,
     const bsls::Types::Int64           messageTtl,
     int                                maxDeliveryAttempts,
-    const mqbconfm::StorageDefinition& storageDef)
+    const mqbdomaincfg::StorageDefinition& storageDef)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 <= partitionId &&

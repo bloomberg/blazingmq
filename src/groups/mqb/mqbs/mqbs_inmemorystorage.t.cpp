@@ -18,7 +18,7 @@
 // MQB
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
-#include <mqbconfm_messages.h>
+#include <mqbdomaincfg_messages.h>
 #include <mqbi_queue.h>
 #include <mqbmock_cluster.h>
 #include <mqbmock_domain.h>
@@ -126,9 +126,9 @@ const bsls::Types::Int64 k_INT64_MAX =
 const mqbu::StorageKey k_NULL_KEY = mqbu::StorageKey::k_NULL_KEY;
 
 // FUNCTIONS
-static mqbconfm::Storage inMemoryStorageConfig()
+static mqbdomaincfg::Storage inMemoryStorageConfig()
 {
-    mqbconfm::Storage config;
+    mqbdomaincfg::Storage config;
     config.makeInMemory();
     return config;
 }
@@ -191,7 +191,7 @@ struct Tester {
         d_mockDomain.capacityMeter()->setLimits(k_INT64_MAX, k_INT64_MAX);
         d_mockQueue._setQueueEngine(&d_mockQueueEngine);
 
-        mqbconfm::Domain domainCfg;
+        mqbdomaincfg::Domain domainCfg;
         domainCfg.deduplicationTimeMs() = 0;  // No history
         domainCfg.messageTtl()          = k_INT64_MAX;
 
@@ -223,8 +223,8 @@ struct Tester {
         // PRECONDITIONS
         BSLS_ASSERT_OPT(d_replicatedStorage_mp && "Storage was not created");
 
-        mqbconfm::Storage config;
-        mqbconfm::Limits  limits;
+        mqbdomaincfg::Storage config;
+        mqbdomaincfg::Limits  limits;
 
         config.makeInMemory();
 
@@ -391,7 +391,7 @@ BMQTST_TEST(breathingTest)
 
     BMQTST_ASSERT_EQ(storage.queueUri().asString(), k_URI_STR);
     BMQTST_ASSERT_EQ(storage.queueKey(), k_QUEUE_KEY);
-    BMQTST_ASSERT_EQ(storage.config(), mqbconfm::Storage());
+    BMQTST_ASSERT_EQ(storage.config(), mqbdomaincfg::Storage());
     BMQTST_ASSERT_EQ(storage.isPersistent(), false);
     BMQTST_ASSERT_EQ(storage.numMessages(k_NULL_KEY), k_INT64_ZERO);
     BMQTST_ASSERT_EQ(storage.numBytes(k_NULL_KEY), k_INT64_ZERO);

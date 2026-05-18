@@ -211,7 +211,7 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
     PushStream d_pushStream;
 
-    const mqbconfm::Domain d_domainConfig;
+    const mqbdomaincfg::Domain d_domainConfig;
 
     /// Map of (appId) to App_State.
     AppsMap d_apps;
@@ -371,7 +371,7 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
   public:
     // CREATORS
     RelayQueueEngine(QueueState*             queueState,
-                     const mqbconfm::Domain& domainConfig,
+                     const mqbdomaincfg::Domain& domainConfig,
                      bslma::Allocator*       allocator);
 
     /// Destructor

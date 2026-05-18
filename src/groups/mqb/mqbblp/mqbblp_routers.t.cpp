@@ -54,7 +54,7 @@ struct TestStorage {
     bslma::Allocator* d_allocator_p;
 
     unsigned int                             d_subQueueId;
-    mqbconfm::Domain                         d_domainCfg;
+    mqbdomaincfg::Domain                         d_domainCfg;
     mqbu::CapacityMeter                      d_capacityMeter;
     mqbu::StorageKey                         d_storageKey;
     mqbmock::Cluster                         d_cluster;

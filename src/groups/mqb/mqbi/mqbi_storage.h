@@ -63,7 +63,7 @@
 namespace BloombergLP {
 
 // FORWARD DECLARATION
-namespace mqbconfm {
+namespace mqbdomaincfg {
 class Consistency;
 class Limits;
 class Storage;
@@ -457,14 +457,14 @@ class Storage {
     /// Configure this storage using the specified `config` and `limits`.
     /// Note that calling `configure` on an already configured storage should
     /// atomically reconfigure that storage with the new configuration.
-    virtual void configure(const mqbconfm::Storage& config,
-                           const mqbconfm::Limits&  limits,
+    virtual void configure(const mqbdomaincfg::Storage& config,
+                           const mqbdomaincfg::Limits&  limits,
                            bsls::Types::Int64       messageTtl,
                            int                      maxDeliveryAttempts) = 0;
 
     /// Set the consistency level associated to this storage to the specified
     /// `value`.
-    virtual void setConsistency(const mqbconfm::Consistency& value) = 0;
+    virtual void setConsistency(const mqbdomaincfg::Consistency& value) = 0;
 
     virtual void setQueue(mqbi::Queue* queue) = 0;
 
@@ -627,7 +627,7 @@ class Storage {
 
     /// Return the current configuration used by this storage. The behavior
     /// is undefined unless `configure` was successfully called.
-    virtual const mqbconfm::Storage& config() const = 0;
+    virtual const mqbdomaincfg::Storage& config() const = 0;
 
     /// Return the partitionId associated with this storage.
     virtual int partitionId() const = 0;

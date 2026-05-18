@@ -27,7 +27,7 @@
 // MQB
 #include <mqbblp_routers.h>
 #include <mqbcfg_messages.h>
-#include <mqbconfm_messages.h>
+#include <mqbdomaincfg_messages.h>
 #include <mqbi_queue.h>
 #include <mqbi_storage.h>
 
@@ -371,7 +371,7 @@ struct QueueEngineUtil_AppState {
     bsls::AtomicBool d_isScheduled;
 
     /// The application subscription expression, if any.
-    mqbconfm::Expression d_subcriptionExpression;
+    mqbdomaincfg::Expression d_subcriptionExpression;
 
     /// Evaluator of the application subscription.
     Routers::Expression d_appSubscription;
@@ -500,7 +500,7 @@ struct QueueEngineUtil_AppState {
                                    unsigned int                 ordinal);
 
     /// Set the application subscription
-    int setSubscription(const mqbconfm::Expression& value);
+    int setSubscription(const mqbdomaincfg::Expression& value);
 
     /// Evaluate the application subscription
     bool evaluateAppSubcription();

@@ -32,7 +32,7 @@
 /// are called only from there.  It is not thread safe.
 
 // MQB
-#include <mqbconfm_messages.h>
+#include <mqbdomaincfg_messages.h>
 #include <mqbnet_negotiationcontext.h>
 #include <mqbnet_negotiator.h>
 #include <mqbnet_session.h>

@@ -68,7 +68,7 @@ ignore=CVS
 # format. Because '\' represents the directory delimiter on Windows systems, it
 # can't be used as an escape character.
 ignore-paths=blazingmq/dev/it/tweaks/generated.py,
-      blazingmq/schemas/mqbconf.py,
+      blazingmq/schemas/mqbdomaincfg.py,
       blazingmq/schemas/mqbcfg.py,
       blazingmq/dev/it/tweaks/generated.py
 

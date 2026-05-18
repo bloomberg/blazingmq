@@ -19,7 +19,7 @@
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
 #include <mqbcmd_messages.h>
-#include <mqbconfm_messages.h>
+#include <mqbdomaincfg_messages.h>
 #include <mqbscm_version.h>
 
 #include <bmqu_memoutstream.h>
@@ -223,7 +223,7 @@ int DomainResolver::getOrRead(bsl::ostream&    errorDescription,
         // a subset of the former. Just decode the whole thing, skipping the
         // other fields. We should consider merging the two caches. Not doing
         // it now because they have different caching strategies. TODO: discuss
-        mqbconfm::DomainVariant domainVariant;
+        mqbdomaincfg::DomainVariant domainVariant;
         baljsn::Decoder         decoder;
         baljsn::DecoderOptions  options;
         bsl::istringstream      jsonStream(content);

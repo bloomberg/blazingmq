@@ -34,7 +34,7 @@
 #include <mqbc_clusterstateledger.h>
 #include <mqbc_clusterstateledgeriterator.h>
 #include <mqbcfg_messages.h>
-#include <mqbconfm_messages.h>
+#include <mqbdomaincfg_messages.h>
 #include <mqbi_clusterstatemanager.h>
 #include <mqbi_dispatcher.h>
 #include <mqbu_storagekey.h>
@@ -196,7 +196,7 @@ struct ClusterUtil {
         ClusterState*                          clusterState,
         ClusterData*                           clusterData,
         const bmqt::Uri&                       uri,
-        const mqbconfm::QueueMode&             config);
+        const mqbdomaincfg::QueueMode&             config);
 
     /// Populate the specified `advisory` with information describing a
     /// queue unassignment of the specified `uri` having the specified `key`
@@ -244,7 +244,7 @@ struct ClusterUtil {
     /// and populate them into the specified `appIdInfos`.
     static void
     populateAppInfos(bsl::vector<bmqp_ctrlmsg::AppIdInfo>* appIdInfos,
-                     const mqbconfm::QueueMode&            domainConfig);
+                     const mqbdomaincfg::QueueMode&            domainConfig);
 
     /// Unregister the specified 'removed' and register the specified `added`
     /// for the specified  `domainName` and the specified `uri`.  if the `uri`

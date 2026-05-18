@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from blazingmq.schemas.mqbconf import (
+from blazingmq.schemas.mqbdomaincfg import (
     Consistency,
     Domain,
     DomainDefinition,

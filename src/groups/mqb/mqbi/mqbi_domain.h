@@ -59,7 +59,7 @@ class DomainCommand;
 namespace mqbcmd {
 class DomainResult;
 }
-namespace mqbconfm {
+namespace mqbdomaincfg {
 class Domain;
 }
 namespace mqbu {
@@ -130,7 +130,7 @@ class Domain {
     /// atomically reconfigure that domain (and all of it's queues) with the
     /// new configuration (or fail and leave the storage untouched).
     virtual int configure(bsl::ostream&           errorDescription,
-                          const mqbconfm::Domain& config) = 0;
+                          const mqbdomaincfg::Domain& config) = 0;
 
     /// Teardown this `Domain` instance and invoke the specified
     /// `teardownCb` callback when done.  This method is called during
@@ -200,7 +200,7 @@ class Domain {
     virtual const bsl::string& name() const = 0;
 
     /// Return a thread-safe snapshot of the configuration of this domain.
-    virtual bsl::shared_ptr<const mqbconfm::Domain> config() const = 0;
+    virtual bsl::shared_ptr<const mqbdomaincfg::Domain> config() const = 0;
 
     /// Return the `DomainStats` object associated to this Domain.
     virtual mqbstat::DomainStats* domainStats() = 0;

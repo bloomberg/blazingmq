@@ -59,7 +59,7 @@ namespace BloombergLP {
 namespace mqbc {
 class ClusterState;
 }
-namespace mqbconfm {
+namespace mqbdomaincfg {
 class StorageDefinition;
 }
 namespace mqbcmd {
@@ -338,7 +338,7 @@ class StorageManager {
                      int                                partitionId,
                      const bsls::Types::Int64           messageTtl,
                      const int                          maxDeliveryAttempts,
-                     const mqbconfm::StorageDefinition& storageDef) = 0;
+                     const mqbdomaincfg::StorageDefinition& storageDef) = 0;
 
     /// Executed in cluster dispatcher thread.
     virtual void processStorageEvent(const mqbevt::StorageEvent& event) = 0;

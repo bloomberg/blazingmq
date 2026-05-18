@@ -38,7 +38,7 @@
 // with a leading underscore ('_').
 
 // MQB
-#include <mqbconfm_messages.h>
+#include <mqbdomaincfg_messages.h>
 #include <mqbi_domain.h>
 #include <mqbstat_domainstats.h>
 #include <mqbu_capacitymeter.h>
@@ -125,7 +125,7 @@ class Domain : public mqbi::Domain {
     bsl::shared_ptr<bmqst::StatContext> d_statContext;
 
     // Configuration for the domain
-    bsl::shared_ptr<const mqbconfm::Domain> d_config;
+    bsl::shared_ptr<const mqbdomaincfg::Domain> d_config;
 
     // Domain resource capacity meter
     mqbu::CapacityMeter d_capacityMeter;
@@ -163,7 +163,7 @@ class Domain : public mqbi::Domain {
     /// atomically reconfigure that domain (and all of it's queues) with the
     /// new configuration (or fail and leave the storage untouched).
     int configure(bsl::ostream&           errorDescription,
-                  const mqbconfm::Domain& config) BSLS_KEYWORD_OVERRIDE;
+                  const mqbdomaincfg::Domain& config) BSLS_KEYWORD_OVERRIDE;
 
     /// Do some logging.
     void teardown(const Domain::TeardownCb& teardownCb) BSLS_KEYWORD_OVERRIDE;
@@ -229,7 +229,7 @@ class Domain : public mqbi::Domain {
     const bsl::string& name() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return a thread-safe snapshot of the configuration of this domain.
-    bsl::shared_ptr<const mqbconfm::Domain>
+    bsl::shared_ptr<const mqbdomaincfg::Domain>
     config() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return the `DomainStats` object associated to this Domain.

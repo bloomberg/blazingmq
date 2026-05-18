@@ -26,7 +26,7 @@ import typing
 from typing import Callable, Union
 
 import blazingmq.schemas.mqbcfg
-import blazingmq.schemas.mqbconf
+import blazingmq.schemas.mqbdomaincfg
 
 from . import TweakMetaclass, decorator
 
@@ -791,7 +791,9 @@ class TweakFactory:
 
                 def __call__(
                     self,
-                    value: Union[NoneType, blazingmq.schemas.mqbconf.QueueModeFanout],
+                    value: Union[
+                        NoneType, blazingmq.schemas.mqbdomaincfg.QueueModeFanout
+                    ],
                 ) -> Callable: ...
 
             fanout = Fanout()
@@ -799,7 +801,9 @@ class TweakFactory:
             class Priority(metaclass=TweakMetaclass):
                 def __call__(
                     self,
-                    value: Union[NoneType, blazingmq.schemas.mqbconf.QueueModePriority],
+                    value: Union[
+                        NoneType, blazingmq.schemas.mqbdomaincfg.QueueModePriority
+                    ],
                 ) -> Callable: ...
 
             priority = Priority()
@@ -808,14 +812,14 @@ class TweakFactory:
                 def __call__(
                     self,
                     value: Union[
-                        NoneType, blazingmq.schemas.mqbconf.QueueModeBroadcast
+                        NoneType, blazingmq.schemas.mqbdomaincfg.QueueModeBroadcast
                     ],
                 ) -> Callable: ...
 
             broadcast = Broadcast()
 
             def __call__(
-                self, value: blazingmq.schemas.mqbconf.QueueMode
+                self, value: blazingmq.schemas.mqbdomaincfg.QueueMode
             ) -> Callable: ...
 
         mode = Mode()
@@ -843,7 +847,7 @@ class TweakFactory:
                 bytes_watermark_ratio = BytesWatermarkRatio()
 
                 def __call__(
-                    self, value: blazingmq.schemas.mqbconf.Limits
+                    self, value: blazingmq.schemas.mqbdomaincfg.Limits
                 ) -> Callable: ...
 
             domain_limits = DomainLimits()
@@ -870,7 +874,7 @@ class TweakFactory:
                 bytes_watermark_ratio = BytesWatermarkRatio()
 
                 def __call__(
-                    self, value: blazingmq.schemas.mqbconf.Limits
+                    self, value: blazingmq.schemas.mqbdomaincfg.Limits
                 ) -> Callable: ...
 
             queue_limits = QueueLimits()
@@ -880,7 +884,7 @@ class TweakFactory:
                     def __call__(
                         self,
                         value: Union[
-                            NoneType, blazingmq.schemas.mqbconf.InMemoryStorage
+                            NoneType, blazingmq.schemas.mqbdomaincfg.InMemoryStorage
                         ],
                     ) -> Callable: ...
 
@@ -890,20 +894,20 @@ class TweakFactory:
                     def __call__(
                         self,
                         value: Union[
-                            NoneType, blazingmq.schemas.mqbconf.FileBackedStorage
+                            NoneType, blazingmq.schemas.mqbdomaincfg.FileBackedStorage
                         ],
                     ) -> Callable: ...
 
                 file_backed = FileBacked()
 
                 def __call__(
-                    self, value: blazingmq.schemas.mqbconf.Storage
+                    self, value: blazingmq.schemas.mqbdomaincfg.Storage
                 ) -> Callable: ...
 
             config = Config()
 
             def __call__(
-                self, value: blazingmq.schemas.mqbconf.StorageDefinition
+                self, value: blazingmq.schemas.mqbdomaincfg.StorageDefinition
             ) -> Callable: ...
 
         storage = Storage()
@@ -940,7 +944,8 @@ class TweakFactory:
             ttl_seconds = TtlSeconds()
 
             def __call__(
-                self, value: Union[NoneType, blazingmq.schemas.mqbconf.MsgGroupIdConfig]
+                self,
+                value: Union[NoneType, blazingmq.schemas.mqbdomaincfg.MsgGroupIdConfig],
             ) -> Callable: ...
 
         msg_group_id_config = MsgGroupIdConfig()
@@ -970,7 +975,8 @@ class TweakFactory:
                 def __call__(
                     self,
                     value: Union[
-                        NoneType, blazingmq.schemas.mqbconf.QueueConsistencyEventual
+                        NoneType,
+                        blazingmq.schemas.mqbdomaincfg.QueueConsistencyEventual,
                     ],
                 ) -> Callable: ...
 
@@ -980,14 +986,14 @@ class TweakFactory:
                 def __call__(
                     self,
                     value: Union[
-                        NoneType, blazingmq.schemas.mqbconf.QueueConsistencyStrong
+                        NoneType, blazingmq.schemas.mqbdomaincfg.QueueConsistencyStrong
                     ],
                 ) -> Callable: ...
 
             strong = Strong()
 
             def __call__(
-                self, value: blazingmq.schemas.mqbconf.Consistency
+                self, value: blazingmq.schemas.mqbdomaincfg.Consistency
             ) -> Callable: ...
 
         consistency = Consistency()
@@ -1001,7 +1007,7 @@ class TweakFactory:
             class Expression(metaclass=TweakMetaclass):
                 class Version(metaclass=TweakMetaclass):
                     def __call__(
-                        self, value: blazingmq.schemas.mqbconf.ExpressionVersion
+                        self, value: blazingmq.schemas.mqbdomaincfg.ExpressionVersion
                     ) -> Callable: ...
 
                 version = Version()
@@ -1012,7 +1018,7 @@ class TweakFactory:
                 text = Text()
 
                 def __call__(
-                    self, value: blazingmq.schemas.mqbconf.Expression
+                    self, value: blazingmq.schemas.mqbdomaincfg.Expression
                 ) -> Callable: ...
 
             expression = Expression()

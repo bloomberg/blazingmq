@@ -6178,7 +6178,7 @@ void ClusterQueueHelper::convertToLocal(const QueueContextSp& queueContext,
 void ClusterQueueHelper::match(bsl::vector<bsl::string>*          added,
                                bsl::vector<bsl::string>*          removed,
                                const mqbc::ClusterStateQueueInfo& state,
-                               const mqbconfm::QueueMode& domainConfig) const
+                               const mqbdomaincfg::QueueMode& domainConfig) const
 {
     // executed by the cluster *DISPATCHER* thread
 

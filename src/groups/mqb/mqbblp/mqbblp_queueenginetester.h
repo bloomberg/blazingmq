@@ -264,7 +264,7 @@ class QueueEngineTester {
 
     /// Reset and recreate all objects using the currently set options and
     /// the specific `domainConfig`.
-    void init(const mqbconfm::Domain& domainConfig, bool startScheduler);
+    void init(const mqbdomaincfg::Domain& domainConfig, bool startScheduler);
 
     /// Pendant operation of the `oneTimeInit` one.
     void oneTimeShutdown();
@@ -304,7 +304,7 @@ class QueueEngineTester {
     /// `domainConfig` to the internally created domain.  Use the specified
     /// `startScheduler` to determine whether the scheduler is started on
     /// creation.  Use the specified `allocator` for any memory allocation.
-    explicit QueueEngineTester(const mqbconfm::Domain& domainConfig,
+    explicit QueueEngineTester(const mqbdomaincfg::Domain& domainConfig,
                                bool                    startScheduler,
                                bslma::Allocator*       allocator);
 
@@ -591,7 +591,7 @@ class TimeControlledQueueEngineTester : public mqbblp::QueueEngineTester {
 
   public:
     // CREATORS
-    TimeControlledQueueEngineTester(const mqbconfm::Domain& domainConfig,
+    TimeControlledQueueEngineTester(const mqbdomaincfg::Domain& domainConfig,
                                     bslma::Allocator*       allocator)
     : mqbblp::QueueEngineTester(domainConfig, true, allocator)
     , d_testClock(d_mockCluster_mp->_timeSource())

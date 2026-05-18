@@ -52,7 +52,7 @@ codegen() {
 
 usage() {
   echo "Usage: codegen.sh <schema-name>\
-  Valid schema names include: [ m_bmqtool, bmqp_ctrlmsg, bmqstm, mqbcfg, mqbcmd, mqbconf ]"\ >&2
+  Valid schema names include: [ m_bmqtool, bmqp_ctrlmsg, bmqstm, mqbcfg, mqbcmd, mqbdomaincfg ]"\ >&2
 }
 
 main() {
@@ -87,8 +87,8 @@ script with the CODEGEN enviornment variable set to the internal codegen tool." 
     mqbcmd)
       codegen ./src/groups/mqb/mqbcmd mqbcmd.xsd mqbcmd messages
       ;;
-    mqbconf)
-      codegen ./src/groups/mqb/mqbconfm mqbconf.xsd mqbconfm messages
+    mqbdomaincfg)
+      codegen ./src/groups/mqb/mqbdomaincfg mqbdomaincfg.xsd mqbdomaincfg messages
       ;;
     *)
       usage

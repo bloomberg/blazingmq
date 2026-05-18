@@ -30,7 +30,7 @@
 
 // MQB
 
-#include <mqbconfm_messages.h>
+#include <mqbdomaincfg_messages.h>
 #include <mqbi_storage.h>
 #include <mqbs_replicatedstorage.h>
 #include <mqbs_virtualstoragecatalog.h>
@@ -188,7 +188,7 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     int d_partitionId;
 
-    mqbconfm::Storage d_config;
+    mqbdomaincfg::Storage d_config;
 
     mqbu::CapacityMeter d_capacityMeter;
 
@@ -255,7 +255,7 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
                     const mqbu::StorageKey&        queueKey,
                     mqbi::Domain*                  domain,
                     int                            partitionId,
-                    const mqbconfm::Domain&        config,
+                    const mqbdomaincfg::Domain&        config,
                     mqbu::CapacityMeter*           parentCapacityMeter,
                     bslma::Allocator*              allocator,
                     bmqma::CountingAllocatorStore* allocatorStore = 0);
@@ -269,15 +269,15 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// Configure this storage using the specified `config` and `limits`.
     /// Note that calling `configure` on an already configured storage should
     /// atomically reconfigure that storage with the new configuration.
-    void configure(const mqbconfm::Storage& config,
-                   const mqbconfm::Limits&  limits,
+    void configure(const mqbdomaincfg::Storage& config,
+                   const mqbdomaincfg::Limits&  limits,
                    bsls::Types::Int64       messageTtl,
                    int maxDeliveryAttempts) BSLS_KEYWORD_OVERRIDE;
 
     /// Set the consistency level associated to this storage to the specified
     /// `value`.
     void
-    setConsistency(const mqbconfm::Consistency& value) BSLS_KEYWORD_OVERRIDE;
+    setConsistency(const mqbdomaincfg::Consistency& value) BSLS_KEYWORD_OVERRIDE;
 
     void setQueue(mqbi::Queue* queue) BSLS_KEYWORD_OVERRIDE;
 
@@ -444,7 +444,7 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     /// Return the current configuration used by this storage. The behavior
     /// is undefined unless `configure` was successfully called.
-    const mqbconfm::Storage& config() const BSLS_KEYWORD_OVERRIDE;
+    const mqbdomaincfg::Storage& config() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return true if storage is backed by a persistent data store,
     /// otherwise return false.
@@ -705,7 +705,7 @@ inline const mqbu::StorageKey& InMemoryStorage::queueKey() const
     return d_key;
 }
 
-inline const mqbconfm::Storage& InMemoryStorage::config() const
+inline const mqbdomaincfg::Storage& InMemoryStorage::config() const
 {
     return d_config;
 }

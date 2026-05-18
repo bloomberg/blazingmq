@@ -32,7 +32,7 @@
 /// This component is thread safe.
 
 // MQB
-#include <mqbconfm_messages.h>
+#include <mqbdomaincfg_messages.h>
 #include <mqbi_domain.h>
 
 // BMQ
@@ -105,7 +105,7 @@ class DomainManager BSLS_CPP11_FINAL : public mqbi::DomainFactory {
     typedef bsl::function<int(bsl::ostream& errorDescription,
                               bslma::ManagedPtr<mqbs::StorageDomain>* out,
                               const bsl::string&                      name,
-                              const mqbconfm::StorageDefinition&      config)>
+                              const mqbdomaincfg::StorageDefinition&      config)>
         DomainStorageCreator;
 
     /// Signature of a factory method to create a domain in the specified
@@ -254,7 +254,7 @@ class DomainManager BSLS_CPP11_FINAL : public mqbi::DomainFactory {
     /// error values in case any part of the operation fails.
     UpsertDomainValue&
     upsertDomain(UpsertDomainValue*             out,
-                 const mqbconfm::Domain&        definition,
+                 const mqbdomaincfg::Domain&        definition,
                  const bsl::string&             domain,
                  const bsl::string&             clusterName,
                  bsl::shared_ptr<mqbi::Cluster> cluster = 0);

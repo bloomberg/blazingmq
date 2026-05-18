@@ -52,7 +52,7 @@ InMemoryStorage::InMemoryStorage(DataStore*              dataStore_p,
                                  const mqbu::StorageKey& queueKey,
                                  mqbi::Domain*           domain,
                                  int                     partitionId,
-                                 const mqbconfm::Domain& config,
+                                 const mqbdomaincfg::Domain& config,
                                  mqbu::CapacityMeter*    parentCapacityMeter,
                                  bslma::Allocator*       allocator,
                                  bmqma::CountingAllocatorStore* allocatorStore)
@@ -100,8 +100,8 @@ InMemoryStorage::~InMemoryStorage()
 
 // MANIPULATORS
 //   (virtual mqbi::Storage)
-void InMemoryStorage::configure(const mqbconfm::Storage& config,
-                                const mqbconfm::Limits&  limits,
+void InMemoryStorage::configure(const mqbdomaincfg::Storage& config,
+                                const mqbdomaincfg::Limits&  limits,
                                 bsls::Types::Int64       messageTtl,
                                 int                      maxDeliveryAttempts)
 {
@@ -114,7 +114,7 @@ void InMemoryStorage::configure(const mqbconfm::Storage& config,
     d_virtualStorageCatalog.setDefaultRda(maxDeliveryAttempts);
 }
 
-void InMemoryStorage::setConsistency(const mqbconfm::Consistency& value)
+void InMemoryStorage::setConsistency(const mqbdomaincfg::Consistency& value)
 {
     if (value.isStrongValue()) {
         BALL_LOG_WARN << "Trying to configure strong consistency "

@@ -28,7 +28,7 @@
 
 // MQB
 
-#include <mqbconfm_messages.h>
+#include <mqbdomaincfg_messages.h>
 #include <mqbi_storage.h>
 #include <mqbs_datastore.h>
 #include <mqbs_filestoreprotocol.h>
@@ -169,7 +169,7 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     mqbu::StorageKey d_queueKey;
 
-    mqbconfm::Storage d_config;
+    mqbdomaincfg::Storage d_config;
 
     bmqt::Uri d_queueUri;
 
@@ -275,7 +275,7 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
                       const bmqt::Uri&               queueUri,
                       const mqbu::StorageKey&        queueKey,
                       mqbi::Domain*                  domain,
-                      const mqbconfm::Domain&        config,
+                      const mqbdomaincfg::Domain&        config,
                       bslma::Allocator*              allocator,
                       bmqma::CountingAllocatorStore* allocatorStore = 0);
 
@@ -285,7 +285,7 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     /// Return the current configuration used by this storage. The behavior
     /// is undefined unless `configure` was successfully called.
-    const mqbconfm::Storage& config() const BSLS_KEYWORD_OVERRIDE;
+    const mqbdomaincfg::Storage& config() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return true if storage is backed by a persistent data store,
     /// otherwise return false.
@@ -385,15 +385,15 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// Configure this storage using the specified `config` and `limits`.
     /// Note that calling `configure` on an already configured storage should
     /// atomically reconfigure that storage with the new configuration.
-    void configure(const mqbconfm::Storage& config,
-                   const mqbconfm::Limits&  limits,
+    void configure(const mqbdomaincfg::Storage& config,
+                   const mqbdomaincfg::Limits&  limits,
                    bsls::Types::Int64       messageTtl,
                    int maxDeliveryAttempts) BSLS_KEYWORD_OVERRIDE;
 
     /// Set the consistency level associated to this storage to the specified
     /// `value`.
     void
-    setConsistency(const mqbconfm::Consistency& value) BSLS_KEYWORD_OVERRIDE;
+    setConsistency(const mqbdomaincfg::Consistency& value) BSLS_KEYWORD_OVERRIDE;
 
     /// Return the resource capacity meter associated to this storage.
     mqbu::CapacityMeter* capacityMeter() BSLS_KEYWORD_OVERRIDE;
@@ -640,7 +640,7 @@ inline int FileBackedStorage::addVirtualStorage(bsl::ostream& errorDescription,
 }
 
 // ACCESSORS
-inline const mqbconfm::Storage& FileBackedStorage::config() const
+inline const mqbdomaincfg::Storage& FileBackedStorage::config() const
 {
     return d_config;
 }

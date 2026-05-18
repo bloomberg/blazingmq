@@ -39,7 +39,7 @@ from xsdata.formats.dataclass.serializers.config import SerializerConfig
 from blazingmq.dev.configurator import *
 from blazingmq.dev.configurator.site import Site
 from blazingmq.dev.paths import required_paths as paths
-from blazingmq.schemas import mqbcfg, mqbconf
+from blazingmq.schemas import mqbcfg, mqbdomaincfg
 
 logger = logging.getLogger(__name__)
 
@@ -362,7 +362,7 @@ class Configurator:
 
         for domain in broker.domains.values():
             self._create_json_file(
-                mqbconf.DomainVariant(definition=domain.definition),
+                mqbdomaincfg.DomainVariant(definition=domain.definition),
                 site,
                 f"etc/domains/{domain.name}.json",
             )

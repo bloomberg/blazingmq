@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from enum import Enum
 
-__NAMESPACE__ = "urn:x-bloomberg-com:mqbconfm"
+__NAMESPACE__ = "urn:x-bloomberg-com:mqbdomaincfg"
 
 
 class ExpressionVersion(Enum):
@@ -60,7 +60,7 @@ class Limits:
     messages: int = field(
         metadata={
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         }
     )
     messages_watermark_ratio: Decimal = field(
@@ -68,13 +68,13 @@ class Limits:
         metadata={
             "name": "messagesWatermarkRatio",
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         },
     )
     bytes: int = field(
         metadata={
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         }
     )
     bytes_watermark_ratio: Decimal = field(
@@ -82,7 +82,7 @@ class Limits:
         metadata={
             "name": "bytesWatermarkRatio",
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         },
     )
 
@@ -111,7 +111,7 @@ class MsgGroupIdConfig:
         default=False,
         metadata={
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         },
     )
     max_groups: int = field(
@@ -119,7 +119,7 @@ class MsgGroupIdConfig:
         metadata={
             "name": "maxGroups",
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         },
     )
     ttl_seconds: int = field(
@@ -127,7 +127,7 @@ class MsgGroupIdConfig:
         metadata={
             "name": "ttlSeconds",
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         },
     )
 
@@ -166,7 +166,7 @@ class QueueModeFanout:
         metadata={
             "name": "appIDs",
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
             "min_occurs": 1,
         },
     )
@@ -175,7 +175,7 @@ class QueueModeFanout:
         metadata={
             "name": "publishAppIdMetrics",
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         },
     )
 
@@ -199,14 +199,14 @@ class Consistency:
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         },
     )
     strong: None | QueueConsistencyStrong = field(
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         },
     )
 
@@ -224,13 +224,13 @@ class Expression:
         default=ExpressionVersion.E_UNDEFINED,
         metadata={
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         },
     )
     text: str = field(
         metadata={
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         }
     )
 
@@ -249,21 +249,21 @@ class QueueMode:
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         },
     )
     priority: None | QueueModePriority = field(
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         },
     )
     broadcast: None | QueueModeBroadcast = field(
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         },
     )
 
@@ -280,7 +280,7 @@ class Storage:
         metadata={
             "name": "inMemory",
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         },
     )
     file_backed: None | FileBackedStorage = field(
@@ -288,7 +288,7 @@ class Storage:
         metadata={
             "name": "fileBacked",
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         },
     )
 
@@ -307,20 +307,20 @@ class StorageDefinition:
         metadata={
             "name": "domainLimits",
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         }
     )
     queue_limits: Limits = field(
         metadata={
             "name": "queueLimits",
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         }
     )
     config: Storage = field(
         metadata={
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         }
     )
 
@@ -338,13 +338,13 @@ class Subscription:
         metadata={
             "name": "appId",
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         }
     )
     expression: Expression = field(
         metadata={
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         }
     )
 
@@ -380,19 +380,19 @@ class Domain:
     name: str = field(
         metadata={
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         }
     )
     mode: QueueMode = field(
         metadata={
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         }
     )
     storage: StorageDefinition = field(
         metadata={
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         }
     )
     max_consumers: int = field(
@@ -400,7 +400,7 @@ class Domain:
         metadata={
             "name": "maxConsumers",
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         },
     )
     max_producers: int = field(
@@ -408,7 +408,7 @@ class Domain:
         metadata={
             "name": "maxProducers",
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         },
     )
     max_queues: int = field(
@@ -416,7 +416,7 @@ class Domain:
         metadata={
             "name": "maxQueues",
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         },
     )
     msg_group_id_config: None | MsgGroupIdConfig = field(
@@ -424,7 +424,7 @@ class Domain:
         metadata={
             "name": "msgGroupIdConfig",
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         },
     )
     max_idle_time: int = field(
@@ -432,14 +432,14 @@ class Domain:
         metadata={
             "name": "maxIdleTime",
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         },
     )
     message_ttl: int = field(
         metadata={
             "name": "messageTtl",
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         }
     )
     max_delivery_attempts: int = field(
@@ -447,7 +447,7 @@ class Domain:
         metadata={
             "name": "maxDeliveryAttempts",
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         },
     )
     deduplication_time_ms: int = field(
@@ -455,20 +455,20 @@ class Domain:
         metadata={
             "name": "deduplicationTimeMs",
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         },
     )
     consistency: Consistency = field(
         metadata={
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         }
     )
     subscriptions: list[Subscription] = field(
         default_factory=list,
         metadata={
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
             "min_occurs": 1,
         },
     )
@@ -486,13 +486,13 @@ class DomainDefinition:
     location: str = field(
         metadata={
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         }
     )
     parameters: Domain = field(
         metadata={
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         }
     )
 
@@ -509,13 +509,13 @@ class DomainVariant:
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         },
     )
     redirect: None | str = field(
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "namespace": "urn:x-bloomberg-com:mqbdomaincfg",
         },
     )

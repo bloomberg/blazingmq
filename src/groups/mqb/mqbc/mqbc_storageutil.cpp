@@ -18,7 +18,7 @@
 #include <mqbscm_version.h>
 // MQB
 #include <mqbcmd_messages.h>
-#include <mqbconfm_messages.h>
+#include <mqbdomaincfg_messages.h>
 #include <mqbevt_dispatcherevent.h>
 #include <mqbi_queueengine.h>
 #include <mqbnet_cluster.h>
@@ -1810,8 +1810,8 @@ void StorageUtil::recoveredQueuesCb(
                       << "], queueKey [" << queueKey << "].";
 
         // Update 'storageMap'.
-        bsl::shared_ptr<const mqbconfm::Domain> domainCfg = domain->config();
-        const mqbconfm::StorageDefinition& storageDef = domainCfg->storage();
+        bsl::shared_ptr<const mqbdomaincfg::Domain> domainCfg = domain->config();
+        const mqbdomaincfg::StorageDefinition& storageDef = domainCfg->storage();
 
         if (domainCfg->mode().isUndefinedValue()) {
             BMQTSK_ALARMLOG_ALARM("RECOVERY")
@@ -2430,9 +2430,9 @@ void StorageUtil::registerQueueAsPrimary(const mqbi::Cluster*    cluster,
     // If StorageMgr is not aware of the queue, then its a simpler process --
     // simply register it and its associated appIds, if any.
 
-    bsl::shared_ptr<const mqbconfm::Domain> domainCfg  = domain->config();
-    const mqbconfm::StorageDefinition&      storageDef = domainCfg->storage();
-    const mqbconfm::QueueMode&              queueMode  = domainCfg->mode();
+    bsl::shared_ptr<const mqbdomaincfg::Domain> domainCfg  = domain->config();
+    const mqbdomaincfg::StorageDefinition&      storageDef = domainCfg->storage();
+    const mqbdomaincfg::QueueMode&              queueMode  = domainCfg->mode();
 
     bmqu::Printer<AppInfos> printer1(&appIdKeyPairs);
 
@@ -2566,9 +2566,9 @@ void StorageUtil::createQueueStorageAsPrimary(StorageSpMap*    storageMap,
     BSLS_ASSERT_SAFE(!appIdKeyPairs.empty());
     BSLS_ASSERT_SAFE(domain);
 
-    bsl::shared_ptr<const mqbconfm::Domain> domainCfg  = domain->config();
-    const mqbconfm::StorageDefinition&      storageDef = domainCfg->storage();
-    const mqbconfm::QueueMode&              queueMode  = domainCfg->mode();
+    bsl::shared_ptr<const mqbdomaincfg::Domain> domainCfg  = domain->config();
+    const mqbdomaincfg::StorageDefinition&      storageDef = domainCfg->storage();
+    const mqbdomaincfg::QueueMode&              queueMode  = domainCfg->mode();
 
     bmqu::Printer<AppInfos> printer(&appIdKeyPairs);
 
@@ -2861,7 +2861,7 @@ void StorageUtil::createQueueStorageAsReplica(
         }
     }
 
-    bsl::shared_ptr<const mqbconfm::Domain> domainCfg = domain->config();
+    bsl::shared_ptr<const mqbdomaincfg::Domain> domainCfg = domain->config();
     if (domainCfg->storage().config().isInMemoryValue() !=
         domainCfg->mode().isBroadcastValue()) {
         // In-memory storage without broadcast mode, as well as broadcast mode
@@ -2914,8 +2914,8 @@ StorageUtil::createQueueStorageImpl(mqbs::FileStore*        fs,
     BSLS_ASSERT_SAFE(uri.isValid());
     BSLS_ASSERT_SAFE(!queueKey.isNull());
 
-    bsl::shared_ptr<const mqbconfm::Domain>  domainCfg  = domain->config();
-    const mqbconfm::StorageDefinition&       storageDef = domainCfg->storage();
+    bsl::shared_ptr<const mqbdomaincfg::Domain>  domainCfg  = domain->config();
+    const mqbdomaincfg::StorageDefinition&       storageDef = domainCfg->storage();
     bsl::shared_ptr<mqbs::ReplicatedStorage> rs_sp;
 
     if (domainCfg->mode().isUndefinedValue()) {
@@ -3140,7 +3140,7 @@ int StorageUtil::configureStorage(
     BSLA_MAYBE_UNUSED int              partitionId,
     const bsls::Types::Int64           messageTtl,
     const int                          maxDeliveryAttempts,
-    const mqbconfm::StorageDefinition& storageDef)
+    const mqbdomaincfg::StorageDefinition& storageDef)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(storageMap);

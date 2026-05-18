@@ -24,7 +24,7 @@ import subprocess
 from typing import IO, Type, Union
 import typing
 
-from blazingmq.schemas import mqbcfg, mqbconf
+from blazingmq.schemas import mqbcfg, mqbdomaincfg
 
 from blazingmq.dev import it
 
@@ -114,7 +114,7 @@ import typing
 from typing import Callable, Union
 
 import blazingmq.schemas.mqbcfg
-import blazingmq.schemas.mqbconf
+import blazingmq.schemas.mqbdomaincfg
 
 from . import TweakMetaclass, decorator
 
@@ -139,7 +139,7 @@ with open(generated, "w", encoding="ascii") as fp:
     print("    class Broker:", file=fp)
     generate(mqbcfg.Configuration, 2, fp)
     print("    class Domain:", file=fp)
-    generate(mqbconf.Domain, 2, fp)
+    generate(mqbdomaincfg.Domain, 2, fp)
     print("    class Cluster:", file=fp)
     generate(mqbcfg.ClusterDefinition, 2, fp)
     print(FOOTER, file=fp)

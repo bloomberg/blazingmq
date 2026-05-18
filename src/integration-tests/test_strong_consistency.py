@@ -22,7 +22,7 @@ from blazingmq.dev.it.fixtures import (
     tweak,
 )
 from blazingmq.dev.it.util import wait_until
-from blazingmq.schemas import mqbconf
+from blazingmq.schemas import mqbdomaincfg
 
 pytestmark = order(5)
 
@@ -261,8 +261,8 @@ class TestStrongConsistency:
 
                 multi_node.config.domains[
                     tc.DOMAIN_PRIORITY
-                ].definition.parameters.consistency = mqbconf.Consistency(  # type: ignore
-                    strong=mqbconf.QueueConsistencyStrong()
+                ].definition.parameters.consistency = mqbdomaincfg.Consistency(  # type: ignore
+                    strong=mqbdomaincfg.QueueConsistencyStrong()
                 )
                 multi_node.reconfigure_domain(tc.DOMAIN_PRIORITY, write_only=True)
 

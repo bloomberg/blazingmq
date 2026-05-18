@@ -50,7 +50,7 @@ namespace BloombergLP {
 namespace bmqt {
 class Uri;
 }
-namespace mqbconfm {
+namespace mqbdomaincfg {
 class DomainQualification;
 }
 namespace mqbi {

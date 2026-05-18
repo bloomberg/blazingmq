@@ -20,7 +20,7 @@
 #include <mqbblp_queuehandlecatalog.h>
 #include <mqbblp_storagemanager.h>
 #include <mqbcmd_messages.h>
-#include <mqbconfm_messages.h>
+#include <mqbdomaincfg_messages.h>
 #include <mqbevt_ackevent.h>
 #include <mqbevt_callbackevent.h>
 #include <mqbevt_pushevent.h>
@@ -107,7 +107,7 @@ int RemoteQueue::configureAsProxy(bsl::ostream& errorDescription,
         return rc_SUCCESS;  // RETURN
     }
 
-    mqbconfm::Domain domainCfg;
+    mqbdomaincfg::Domain domainCfg;
     domainCfg.deduplicationTimeMs() = 0;  // No history is maintained at proxy
     domainCfg.messageTtl() = bsl::numeric_limits<bsls::Types::Int64>::max();
     // TTL is not applicable at proxy
@@ -126,8 +126,8 @@ int RemoteQueue::configureAsProxy(bsl::ostream& errorDescription,
                        d_allocator_p),
                    d_allocator_p);
 
-    mqbconfm::Storage config;
-    mqbconfm::Limits  limits;
+    mqbdomaincfg::Storage config;
+    mqbdomaincfg::Limits  limits;
     config.makeInMemory();
     limits.messages() = bsl::numeric_limits<bsls::Types::Int64>::max();
     limits.bytes()    = bsl::numeric_limits<bsls::Types::Int64>::max();
@@ -154,7 +154,7 @@ int RemoteQueue::configureAsProxy(bsl::ostream& errorDescription,
     // Create the queueEngine.
     d_queueEngine_mp.load(
         new (*d_allocator_p)
-            RelayQueueEngine(d_state_p, mqbconfm::Domain(), d_allocator_p),
+            RelayQueueEngine(d_state_p, mqbdomaincfg::Domain(), d_allocator_p),
         d_allocator_p);
 
     const int rc = d_queueEngine_mp->configure(errorDescription,
@@ -195,7 +195,7 @@ int RemoteQueue::configureAsClusterMember(bool isReconfigure)
 
     int                     rc        = 0;
     mqbi::Queue*            queue     = d_state_p->queue();
-    bsl::shared_ptr<const mqbconfm::Domain> domainCfg =
+    bsl::shared_ptr<const mqbdomaincfg::Domain> domainCfg =
         d_state_p->domain()->config();
 
     if (!isReconfigure) {
@@ -537,7 +537,7 @@ int RemoteQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
 
     // Update stats
     if (isReconfigure) {
-        bsl::shared_ptr<const mqbconfm::Domain> domainCfg =
+        bsl::shared_ptr<const mqbdomaincfg::Domain> domainCfg =
             d_state_p->domain()->config();
         if (domainCfg->mode().isFanoutValue()) {
             d_state_p->stats()->updateDomainAppIds(

@@ -2334,8 +2334,8 @@ void Cluster::onQueueHandleDestroyed(mqbi::Queue* queue, const bmqt::Uri& uri)
 }
 
 void Cluster::onDomainReconfigured(const mqbi::Domain&     domain,
-                                   const mqbconfm::Domain& oldDefn,
-                                   const mqbconfm::Domain& newDefn)
+                                   const mqbdomaincfg::Domain& oldDefn,
+                                   const mqbdomaincfg::Domain& newDefn)
 {
     if (!oldDefn.mode().isFanoutValue()) {
         return;  // RETURN

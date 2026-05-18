@@ -1,7 +1,7 @@
 #! /usr/bin/env bash
 
 # This script generates Python classes corresponding to 'mqbcfg.xsd' and
-# 'mqbconf.xsd'
+# 'mqbdomaincfg.xsd'
 
 set -e
 
@@ -56,5 +56,5 @@ function generate {
 }
 
 generate "${blazingmq_root}/src/groups/mqb/mqbcfg/mqbcfg.xsd" blazingmq/schemas/mqbcfg.py
-generate "${blazingmq_root}/src/groups/mqb/mqbconfm/mqbconf.xsd" blazingmq/schemas/mqbconf.py
+generate "${blazingmq_root}/src/groups/mqb/mqbdomaincfg/mqbdomaincfg.xsd" blazingmq/schemas/mqbdomaincfg.py
 copyright_ruff blazingmq/schemas/__init__.py

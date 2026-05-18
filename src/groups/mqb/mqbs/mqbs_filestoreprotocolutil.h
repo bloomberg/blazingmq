@@ -27,7 +27,7 @@
 // file store protocol, in the 'mqbs::FileStoreProtocolUtil' namespace.
 
 // MQB
-#include <mqbconfm_messages.h>
+#include <mqbdomaincfg_messages.h>
 #include <mqbi_storage.h>
 #include <mqbs_filestoreprotocol.h>
 #include <mqbs_mappedfiledescriptor.h>

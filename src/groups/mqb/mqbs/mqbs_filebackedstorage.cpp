@@ -106,7 +106,7 @@ FileBackedStorage::FileBackedStorage(
     const bmqt::Uri&               queueUri,
     const mqbu::StorageKey&        queueKey,
     mqbi::Domain*                  domain,
-    const mqbconfm::Domain&        config,
+    const mqbdomaincfg::Domain&        config,
     bslma::Allocator*              allocator,
     bmqma::CountingAllocatorStore* allocatorStore)
 : d_allocator_p(allocator)
@@ -231,8 +231,8 @@ bool FileBackedStorage::hasReceipt(const bmqt::MessageGUID& msgGUID) const
     return d_store_p->hasReceipt(handles[0]);
 }
 
-void FileBackedStorage::configure(const mqbconfm::Storage& config,
-                                  const mqbconfm::Limits&  limits,
+void FileBackedStorage::configure(const mqbdomaincfg::Storage& config,
+                                  const mqbdomaincfg::Limits&  limits,
                                   bsls::Types::Int64       messageTtl,
                                   int                      maxDeliveryAttempts)
 {
@@ -245,7 +245,7 @@ void FileBackedStorage::configure(const mqbconfm::Storage& config,
     d_virtualStorageCatalog.setDefaultRda(maxDeliveryAttempts);
 }
 
-void FileBackedStorage::setConsistency(const mqbconfm::Consistency& value)
+void FileBackedStorage::setConsistency(const mqbdomaincfg::Consistency& value)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(value.isEventualValue() || value.isStrongValue());

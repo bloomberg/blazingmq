@@ -72,10 +72,10 @@ void queueHolderDummy(const bsl::shared_ptr<mqbi::Queue>& queue)
 
 /// Validates an application subscription.
 bool validateSubscriptionExpression(bsl::ostream& errorDescription,
-                                    const mqbconfm::Expression& expression,
+                                    const mqbdomaincfg::Expression& expression,
                                     bslma::Allocator*           allocator)
 {
-    if (mqbconfm::ExpressionVersion::E_VERSION_1 == expression.version()) {
+    if (mqbdomaincfg::ExpressionVersion::E_VERSION_1 == expression.version()) {
         if (!expression.text().empty()) {
             bmqeval::CompilationContext context(allocator);
 
@@ -101,8 +101,8 @@ bool validateSubscriptionExpression(bsl::ostream& errorDescription,
 /// Validates a domain configuration. If `previousDefn` is provided, also
 /// checks that the implied reconfiguration is also valid.
 int validateConfig(bsl::ostream&           errorDescription,
-                   const mqbconfm::Domain* previousDefn,
-                   const mqbconfm::Domain& newConfig,
+                   const mqbdomaincfg::Domain* previousDefn,
+                   const mqbdomaincfg::Domain& newConfig,
                    bslma::Allocator*       allocator)
 {
     enum RcEnum {
@@ -120,7 +120,7 @@ int validateConfig(bsl::ostream&           errorDescription,
     {
         bool failed = false;
 
-        const mqbconfm::Limits& limits = newConfig.storage().domainLimits();
+        const mqbdomaincfg::Limits& limits = newConfig.storage().domainLimits();
 
         if (!(0 <= limits.messagesWatermarkRatio() &&
               limits.messagesWatermarkRatio() <= 1.0)) {
@@ -169,7 +169,7 @@ int validateConfig(bsl::ostream&           errorDescription,
     }
 
     // Validate properties of new configurations relative to old ones.
-    const mqbconfm::Domain& previousCfg = *previousDefn;
+    const mqbdomaincfg::Domain& previousCfg = *previousDefn;
 
     // Reconfiguring the routing mode is not allowed.
     if (previousCfg.mode().selectionId() != newConfig.mode().selectionId()) {
@@ -199,7 +199,7 @@ int validateConfig(bsl::ostream&           errorDescription,
 /// error-message will be written to `errorDescription`. Returns the number
 /// of updates made to `defn`: a return value of zero indicates that `defn`
 /// was not modified.
-int normalizeConfig(mqbconfm::Domain* defn,
+int normalizeConfig(mqbdomaincfg::Domain* defn,
                     bsl::ostream&     errorDescription,
                     const Domain&     domain)
 {
@@ -207,7 +207,7 @@ int normalizeConfig(mqbconfm::Domain* defn,
 
     if (defn->mode().isBroadcastValue() &&
         defn->consistency().selectionId() ==
-            mqbconfm::Consistency::SELECTION_ID_STRONG) {
+            mqbdomaincfg::Consistency::SELECTION_ID_STRONG) {
         errorDescription << domain.cluster()->name() << ", " << domain.name()
                          << ": A broadcast domain cannot be of strong "
                          << "consistency. Updated this domain's consistency to"
@@ -294,7 +294,7 @@ Domain::~Domain()
 }
 
 int Domain::configure(bsl::ostream&           errorDescription,
-                      const mqbconfm::Domain& newConfig)
+                      const mqbdomaincfg::Domain& newConfig)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -306,7 +306,7 @@ int Domain::configure(bsl::ostream&           errorDescription,
     };
 
     // Store a copy of the old configuration.
-    bsl::shared_ptr<const mqbconfm::Domain> oldConfig;
+    bsl::shared_ptr<const mqbdomaincfg::Domain> oldConfig;
     {
         bslmt::ReadLockGuard<bslmt::ReaderWriterMutex> guard(&d_configLock);
         oldConfig = d_config_sp;
@@ -314,7 +314,7 @@ int Domain::configure(bsl::ostream&           errorDescription,
     const bool isReconfigure(oldConfig.get() != 0);
 
     // Certain invalid values might need to be updated in the configuration.
-    mqbconfm::Domain finalConfig(newConfig);
+    mqbdomaincfg::Domain finalConfig(newConfig);
     {
         bmqu::MemOutStream err;
         if (normalizeConfig(&finalConfig, err, *this)) {
@@ -345,13 +345,13 @@ int Domain::configure(bsl::ostream&           errorDescription,
     // Adopt the updated domain configuration.
     {
         bslmt::WriteLockGuard<bslmt::ReaderWriterMutex> guard(&d_configLock);
-        d_config_sp = bsl::allocate_shared<const mqbconfm::Domain>(
+        d_config_sp = bsl::allocate_shared<const mqbdomaincfg::Domain>(
             d_allocator_p,
             finalConfig);
     }
 
     // Configure domain limits.
-    const mqbconfm::Limits& limits = finalConfig.storage().domainLimits();
+    const mqbdomaincfg::Limits& limits = finalConfig.storage().domainLimits();
     d_capacityMeter.setLimits(limits.messages(), limits.bytes())
         .setWatermarkThresholds(limits.messagesWatermarkRatio(),
                                 limits.bytesWatermarkRatio());
@@ -667,7 +667,7 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
 
         domainInfo.name()        = d_name;
         domainInfo.clusterName() = d_cluster_sp->name();
-        bsl::shared_ptr<const mqbconfm::Domain> cfgSnapshot;
+        bsl::shared_ptr<const mqbdomaincfg::Domain> cfgSnapshot;
         {
             bslmt::ReadLockGuard<bslmt::ReaderWriterMutex> guard(
                 &d_configLock);
@@ -870,7 +870,7 @@ void Domain::loadRoutingConfiguration(
 
     bmqp::RoutingConfigurationUtils::clear(config);
 
-    bsl::shared_ptr<const mqbconfm::Domain> cfgSnapshot;
+    bsl::shared_ptr<const mqbdomaincfg::Domain> cfgSnapshot;
     {
         bslmt::ReadLockGuard<bslmt::ReaderWriterMutex> guard(&d_configLock);
         cfgSnapshot = d_config_sp;
@@ -883,18 +883,18 @@ void Domain::loadRoutingConfiguration(
     }
 
     switch (cfgSnapshot->mode().selectionId()) {
-    case mqbconfm::QueueMode::SELECTION_ID_FANOUT: {
+    case mqbdomaincfg::QueueMode::SELECTION_ID_FANOUT: {
         RootQueueEngine::FanoutConfiguration::loadRoutingConfiguration(config);
     } break;
-    case mqbconfm::QueueMode::SELECTION_ID_PRIORITY: {
+    case mqbdomaincfg::QueueMode::SELECTION_ID_PRIORITY: {
         RootQueueEngine::PriorityConfiguration::loadRoutingConfiguration(
             config);
     } break;
-    case mqbconfm::QueueMode::SELECTION_ID_BROADCAST: {
+    case mqbdomaincfg::QueueMode::SELECTION_ID_BROADCAST: {
         RootQueueEngine::BroadcastConfiguration::loadRoutingConfiguration(
             config);
     } break;
-    case mqbconfm::QueueMode::SELECTION_ID_UNDEFINED:
+    case mqbdomaincfg::QueueMode::SELECTION_ID_UNDEFINED:
     default: {
         BSLS_ASSERT_SAFE(false && "Invalid domain routing mode");
         BALL_LOG_ERROR << "#DOMAIN_INVALID_CONFIG "

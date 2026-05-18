@@ -68,9 +68,9 @@ namespace {
 
 const mqbmock::QueueHandle* k_nullMockHandle_p = 0;
 
-mqbconfm::Domain broadcastConfig()
+mqbdomaincfg::Domain broadcastConfig()
 {
-    mqbconfm::Domain domainConfig(bmqtst::TestHelperUtil::allocator());
+    mqbdomaincfg::Domain domainConfig(bmqtst::TestHelperUtil::allocator());
     domainConfig.mode().makeBroadcast();
     domainConfig.storage().config().makeInMemory();
     return domainConfig;
@@ -609,9 +609,9 @@ static void parseStrings(bsl::vector<bsl::string>* strings, bsl::string str)
 ///  `[appId_1],[appId_2],...,[appIdN]`
 ///
 /// The behavior is undefined unless `appIdsStr` is formatted as above.
-mqbconfm::Domain fanoutConfig(const bsl::string& appIdsStr)
+mqbdomaincfg::Domain fanoutConfig(const bsl::string& appIdsStr)
 {
-    mqbconfm::Domain domainConfig(bmqtst::TestHelperUtil::allocator());
+    mqbdomaincfg::Domain domainConfig(bmqtst::TestHelperUtil::allocator());
     domainConfig.mode().makeFanout();
     bsl::vector<bsl::string>& appIDs = domainConfig.mode().fanout().appIDs();
     parseStrings(&appIDs, appIdsStr);
@@ -619,9 +619,9 @@ mqbconfm::Domain fanoutConfig(const bsl::string& appIdsStr)
     return domainConfig;
 }
 
-mqbconfm::Domain priorityDomainConfig()
+mqbdomaincfg::Domain priorityDomainConfig()
 {
-    mqbconfm::Domain domainConfig(bmqtst::TestHelperUtil::allocator());
+    mqbdomaincfg::Domain domainConfig(bmqtst::TestHelperUtil::allocator());
     domainConfig.mode().makePriority();
     return domainConfig;
 }
@@ -936,7 +936,7 @@ static void test5_broadcastReleaseHandle_isDeletedFlag()
 {
     bmqtst::TestHelper::printTestName("RELEASE HANDLE - IS-DELETED FLAG");
 
-    mqbconfm::Domain domainConfig(bmqtst::TestHelperUtil::allocator());
+    mqbdomaincfg::Domain domainConfig(bmqtst::TestHelperUtil::allocator());
 
     mqbblp::QueueEngineTester tester(broadcastConfig(),
                                      false,  // start scheduler
@@ -1375,7 +1375,7 @@ static void test9_priorityCreateAndConfigure()
     class PriorityQueueEngineTester : public mqbblp::QueueEngineTester {
       public:
         // CREATORS
-        PriorityQueueEngineTester(const mqbconfm::Domain& domainConfig,
+        PriorityQueueEngineTester(const mqbdomaincfg::Domain& domainConfig,
                                   bslma::Allocator*       allocator)
         : mqbblp::QueueEngineTester(domainConfig, true, allocator)
         {
@@ -1395,7 +1395,7 @@ static void test9_priorityCreateAndConfigure()
         ~PriorityQueueEngineTester() {}
     };
 
-    mqbconfm::Domain domainConfig;
+    mqbdomaincfg::Domain domainConfig;
     domainConfig.mode().makePriority();
 
     PriorityQueueEngineTester            tester(domainConfig,
@@ -2288,7 +2288,7 @@ static void test19_priorityReleaseHandle_isDeletedFlag()
 {
     bmqtst::TestHelper::printTestName("RELEASE HANDLE - IS-DELETED FLAG");
 
-    mqbconfm::Domain domainConfig(bmqtst::TestHelperUtil::allocator());
+    mqbdomaincfg::Domain domainConfig(bmqtst::TestHelperUtil::allocator());
 
     mqbblp::QueueEngineTester tester(domainConfig,
                                      false,  // start scheduler
@@ -2584,7 +2584,7 @@ static void test22_createAndConfigure()
     class FanoutQueueEngineTester : public mqbblp::QueueEngineTester {
       public:
         // CREATORS
-        FanoutQueueEngineTester(const mqbconfm::Domain& domainConfig,
+        FanoutQueueEngineTester(const mqbdomaincfg::Domain& domainConfig,
                                 bslma::Allocator*       allocator)
         : mqbblp::QueueEngineTester(domainConfig, true, allocator)
         {
@@ -4300,7 +4300,7 @@ static void test39_maxConsumersProducers()
 
     // 1. Set maxConsumers and maxProducers limits to the value (2) less than
     //    number of applications (3).
-    mqbconfm::Domain config = fanoutConfig("a,b,c");
+    mqbdomaincfg::Domain config = fanoutConfig("a,b,c");
     config.maxProducers()   = 2;
     config.maxConsumers()   = 2;
 
@@ -4357,7 +4357,7 @@ static void test40_roundRobinAndRedelivery()
 {
     bmqtst::TestHelper::printTestName("ROUND-ROBIN AND REDELIVERY");
 
-    mqbconfm::Domain config = fanoutConfig("a,b,c");
+    mqbdomaincfg::Domain config = fanoutConfig("a,b,c");
 
     mqbblp::QueueEngineTester tester(config,
                                      false,  // start scheduler
@@ -4454,7 +4454,7 @@ static void test41_redeliverAfterGc()
 {
     bmqtst::TestHelper::printTestName("REDELIVERY AFTER GC");
 
-    mqbconfm::Domain config = fanoutConfig("a");
+    mqbdomaincfg::Domain config = fanoutConfig("a");
 
     mqbblp::QueueEngineTester tester(config,
                                      false,  // start scheduler
@@ -4529,7 +4529,7 @@ static void test42_throttleRedeliveryPriority()
 {
     bmqtst::TestHelper::printTestName("THROTTLED REDELIVERY PRIORITY");
 
-    mqbconfm::Domain config      = priorityDomainConfig();
+    mqbdomaincfg::Domain config      = priorityDomainConfig();
     config.maxDeliveryAttempts() = 5;
 
     mqbblp::TimeControlledQueueEngineTester tester(
@@ -4619,7 +4619,7 @@ static void test43_throttleRedeliveryFanout()
 {
     bmqtst::TestHelper::printTestName("THROTTLED REDELIVERY FANOUT");
 
-    mqbconfm::Domain config      = fanoutConfig("a,b,c");
+    mqbdomaincfg::Domain config      = fanoutConfig("a,b,c");
     config.maxDeliveryAttempts() = 5;
 
     mqbblp::TimeControlledQueueEngineTester tester(
@@ -4754,7 +4754,7 @@ static void test44_throttleRedeliveryCancelledDelay()
 {
     bmqtst::TestHelper::printTestName("THROTTLED REDELIVERY CANCELLED DELAY");
 
-    mqbconfm::Domain config      = priorityDomainConfig();
+    mqbdomaincfg::Domain config      = priorityDomainConfig();
     config.maxDeliveryAttempts() = 5;
 
     mqbblp::TimeControlledQueueEngineTester tester(
@@ -4862,7 +4862,7 @@ static void test45_throttleRedeliveryNewHandle()
 {
     bmqtst::TestHelper::printTestName("THROTTLED REDELIVERY NEW HANDLE");
 
-    mqbconfm::Domain config      = priorityDomainConfig();
+    mqbdomaincfg::Domain config      = priorityDomainConfig();
     config.maxDeliveryAttempts() = 5;
 
     mqbblp::TimeControlledQueueEngineTester tester(
@@ -4921,7 +4921,7 @@ static void test46_throttleRedeliveryNoMoreHandles()
 {
     bmqtst::TestHelper::printTestName("THROTTLED REDELIVERY NO MORE HANDLES");
 
-    mqbconfm::Domain config      = priorityDomainConfig();
+    mqbdomaincfg::Domain config      = priorityDomainConfig();
     config.maxDeliveryAttempts() = 5;
 
     mqbblp::TimeControlledQueueEngineTester tester(
@@ -5093,7 +5093,7 @@ static void test48_unknownReject()
 {
     bmqtst::TestHelper::printTestName("UNEXPECTED_REJECT");
 
-    mqbconfm::Domain config      = fanoutConfig("a,b,c");
+    mqbdomaincfg::Domain config      = fanoutConfig("a,b,c");
     config.maxDeliveryAttempts() = 5;
 
     mqbblp::QueueEngineTester tester(config,

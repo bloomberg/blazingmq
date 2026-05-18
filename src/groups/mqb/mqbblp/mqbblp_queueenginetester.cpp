@@ -17,7 +17,7 @@
 
 // MQB
 #include <mqbcfg_messages.h>
-#include <mqbconfm_messages.h>
+#include <mqbdomaincfg_messages.h>
 #include <mqbi_queue.h>
 #include <mqbi_storage.h>
 #include <mqbs_inmemorystorage.h>
@@ -380,7 +380,7 @@ static int parseStreamParameters(bmqp_ctrlmsg::StreamParameters* streamParams,
 // -----------------------
 
 // CREATORS
-QueueEngineTester::QueueEngineTester(const mqbconfm::Domain& domainConfig,
+QueueEngineTester::QueueEngineTester(const mqbdomaincfg::Domain& domainConfig,
                                      bool                    startScheduler,
                                      bslma::Allocator*       allocator)
 : d_invalidGuid()
@@ -397,7 +397,7 @@ QueueEngineTester::QueueEngineTester(const mqbconfm::Domain& domainConfig,
 {
     oneTimeInit();
 
-    mqbconfm::Domain config = domainConfig;
+    mqbdomaincfg::Domain config = domainConfig;
 
     config.deduplicationTimeMs() = 0;  // No history
     config.messageTtl()          = k_MAX_MESSAGES;
@@ -426,7 +426,7 @@ void QueueEngineTester::oneTimeInit()
     }
 }
 
-void QueueEngineTester::init(const mqbconfm::Domain& domainConfig,
+void QueueEngineTester::init(const mqbdomaincfg::Domain& domainConfig,
                              bool                    startScheduler)
 {
     bmqu::MemOutStream errorDescription(d_allocator_p);
@@ -466,7 +466,7 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig,
                                              d_allocator_p),
                          d_allocator_p);
 
-    mqbconfm::Domain domainDef(d_allocator_p);
+    mqbdomaincfg::Domain domainDef(d_allocator_p);
     domainDef.name() = "my.domain";
     // TODO: domainDef.version() = "0.0 (b1.0)";
     domainDef = domainConfig;
@@ -558,10 +558,10 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig,
                               d_mockDomain_mp->capacityMeter(),
                               d_allocator_p);
 
-    mqbconfm::Storage config;
+    mqbdomaincfg::Storage config;
     config.makeInMemory();
 
-    mqbconfm::Limits limits;
+    mqbdomaincfg::Limits limits;
     limits.messages() = bsl::numeric_limits<bsls::Types::Int64>::max();
     limits.bytes()    = bsl::numeric_limits<bsls::Types::Int64>::max();
 
@@ -720,7 +720,7 @@ QueueEngineTester::getHandle(const bsl::string& clientText)
     // Consistency
     // NOTE: appId can only be specified in fanout mode, and it must be
     //       associated with a readCount of 1
-    bsl::shared_ptr<const mqbconfm::Domain> domainConfig =
+    bsl::shared_ptr<const mqbdomaincfg::Domain> domainConfig =
         d_queueState_mp->domain()->config();
     const bool   isFanout           = domainConfig->mode().isFanoutValue();
     unsigned int upstreamSubQueueId = bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID;
@@ -894,7 +894,7 @@ int QueueEngineTester::configureHandle(const bsl::string& clientText)
 
     // Consistency
     // NOTE: appId can only be specified in fanout mode
-    bsl::shared_ptr<const mqbconfm::Domain> domainConfig =
+    bsl::shared_ptr<const mqbdomaincfg::Domain> domainConfig =
         d_queueState_mp->domain()->config();
     const bool isFanout = domainConfig->mode().isFanoutValue();
     BSLS_ASSERT_OPT((appId == bmqp::ProtocolUtil::k_DEFAULT_APP_ID) ||
@@ -1220,7 +1220,7 @@ void QueueEngineTester::purgeQueue(const bslstl::StringRef& appId)
     mqbu::StorageKey          appKey = mqbi::QueueEngine::k_DEFAULT_APP_KEY;
 
     bsl::string appIdInternal = bmqp::ProtocolUtil::k_DEFAULT_APP_ID;
-    bsl::shared_ptr<const mqbconfm::Domain> domainConfig =
+    bsl::shared_ptr<const mqbdomaincfg::Domain> domainConfig =
         d_queueState_mp->domain()->config();
     const bool isFanout = domainConfig->mode().isFanoutValue();
     if (isFanout) {
@@ -1540,7 +1540,7 @@ bool QueueEngineTester::getUpstreamParameters(
     const bslstl::StringRef&        appId) const
 {
     unsigned int upstreamSubQueueId = bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID;
-    bsl::shared_ptr<const mqbconfm::Domain> domainConfig =
+    bsl::shared_ptr<const mqbdomaincfg::Domain> domainConfig =
         d_queueState_mp->domain()->config();
     const bool isFanout = domainConfig->mode().isFanoutValue();
 

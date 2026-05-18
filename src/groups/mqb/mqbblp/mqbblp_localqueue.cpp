@@ -108,7 +108,7 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
 
     int                     rc        = 0;
     mqbi::Queue*            queue     = d_state_p->queue();
-    bsl::shared_ptr<const mqbconfm::Domain> domainCfg =
+    bsl::shared_ptr<const mqbdomaincfg::Domain> domainCfg =
         d_state_p->domain()->config();
 
     // Create the associated storage.

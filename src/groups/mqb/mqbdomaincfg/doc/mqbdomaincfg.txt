@@ -1,0 +1,22 @@
+    mqbdomaincfg.txt
+
+@PURPOSE: Domain configuration for BlazingMQ
+
+@MNEMONIC: BlazingMQ Domain Config (mqbdomaincfg)
+
+@DESCRIPTION: This package provides configuration files for BlazingMQ domains
+
+
+/Hierarchical Synopsis
+/---------------------
+ The 'mqbdomaincfg' package currently has 1 component having 1 level of
+ physical dependency.  The list below shows the hierarchical ordering of the
+ components.
+..
+  1. mqbdomaincfg_messages
+..
+
+/Component Synopsis
+/------------------
+: mqbdomaincfg_messages':
+:      Provide domain configuration types

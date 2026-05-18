@@ -1102,8 +1102,8 @@ void ClusterProxy::onQueueHandleDestroyed(mqbi::Queue*     queue,
 
 void ClusterProxy::onDomainReconfigured(
     BSLA_MAYBE_UNUSED const mqbi::Domain& domain,
-    BSLA_MAYBE_UNUSED const mqbconfm::Domain& oldDefn,
-    BSLA_MAYBE_UNUSED const mqbconfm::Domain& newDefn)
+    BSLA_MAYBE_UNUSED const mqbdomaincfg::Domain& oldDefn,
+    BSLA_MAYBE_UNUSED const mqbdomaincfg::Domain& newDefn)
 {
     // NOTHING
     //

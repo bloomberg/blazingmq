@@ -940,7 +940,7 @@ class StorageManager BSLS_KEYWORD_FINAL
                          int                             partitionId,
                          const bsls::Types::Int64        messageTtl,
                          const int                       maxDeliveryAttempts,
-                         const mqbconfm::StorageDefinition& storageDef)
+                         const mqbdomaincfg::StorageDefinition& storageDef)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Executed in cluster dispatcher thread.
