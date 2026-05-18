@@ -189,8 +189,8 @@ class Configurator:
                 name=broker.name,
                 data_center=broker.data_center,
                 transport=mqbcfg.ClusterNodeConnection(
-                    mqbcfg.TcpClusterNodeConnection(
-                        "tcp://{host}:{port}".format(
+                    tcp=mqbcfg.TcpClusterNodeConnection(
+                        endpoint="tcp://{host}:{port}".format(
                             host=tcp_interface.name,  # type: ignore
                             port=port(tcp_interface),  # type: ignore
                         )
@@ -238,7 +238,7 @@ class Configurator:
 
         for ws_node, cfg_node in zip(nodes, definition.nodes):
             ws_node.clusters.my_virtual_clusters.append(
-                mqbcfg.VirtualClusterInformation(name, self_node_id=cfg_node.id)
+                mqbcfg.VirtualClusterInformation(name=name, self_node_id=cfg_node.id)
             )
 
         cluster = VirtualCluster(

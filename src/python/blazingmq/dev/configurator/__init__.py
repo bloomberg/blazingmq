@@ -66,7 +66,7 @@ class Broker:
     id: int
     config: mqbcfg.Configuration
     clusters: mqbcfg.ClustersDefinition = field(
-        default_factory=lambda: mqbcfg.ClustersDefinition([], [], [])
+        default_factory=mqbcfg.ClustersDefinition
     )
     domains: Dict[str, "Domain"] = field(default_factory=dict)
     proxy_clusters: Set[str] = field(default_factory=set)
@@ -187,7 +187,7 @@ class AbstractCluster:
 
 class Cluster(AbstractCluster):
     def domain(self, parameters: mqbconf.Domain) -> "Domain":
-        domain = mqbconf.DomainDefinition(self.name, parameters)
+        domain = mqbconf.DomainDefinition(location=self.name, parameters=parameters)
 
         return self._add_domain(Domain(self, domain))
 
@@ -196,7 +196,7 @@ class Cluster(AbstractCluster):
         parameters.name = name
         parameters.storage.config.in_memory = mqbconf.InMemoryStorage()
         parameters.storage.config.file_backed = None
-        domain = mqbconf.DomainDefinition(self.name, parameters)
+        domain = mqbconf.DomainDefinition(location=self.name, parameters=parameters)
 
         return self._add_domain(Domain(self, domain))
 
@@ -204,14 +204,14 @@ class Cluster(AbstractCluster):
         parameters = self.configurator.fanout_domain()
         parameters.name = name
         parameters.mode.fanout.app_ids = app_ids.copy()
-        domain = mqbconf.DomainDefinition(self.name, parameters)
+        domain = mqbconf.DomainDefinition(location=self.name, parameters=parameters)
 
         return self._add_domain(Domain(self, domain))
 
     def priority_domain(self, name: str) -> "Domain":
         parameters = self.configurator.priority_domain()
         parameters.name = name
-        domain = mqbconf.DomainDefinition(self.name, parameters)
+        domain = mqbconf.DomainDefinition(location=self.name, parameters=parameters)
 
         return self._add_domain(Domain(self, domain))
 
@@ -288,6 +288,7 @@ class Proto:
     domain: mqbconf.Domain = field(
         default_factory=functools.partial(
             mqbconf.Domain,
+            name="",
             mode=mqbconf.QueueMode(
                 broadcast=mqbconf.QueueModeBroadcast(),
                 fanout=mqbconf.QueueModeFanout(),
@@ -347,13 +348,16 @@ class Proto:
                         log_format="%d (%t) %s %F:%l %m\n\n",
                         verbosity="",
                     ),
+                    log_dump=mqbcfg.LogDumpConfig(),
                 ),
             ),
             app_config=mqbcfg.AppConfig(
                 broker_instance_name="default",
                 broker_version=999999,
                 config_version=999999,
+                etc_dir="etc",
                 host_name="",  # overwritten
+                host_tags="",
                 host_data_center="",  # overwritten
                 logs_observer_max_size=1000,
                 dispatcher_config=mqbcfg.DispatcherConfig(
