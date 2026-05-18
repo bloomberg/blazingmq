@@ -6684,7 +6684,7 @@ void FileStore::sendImplicitReceipt()
     }
     BALL_LOG_INFO << partitionDesc() << "Issuing Implicit Receipt ["
                   << "primaryLeaseId = " << d_primaryLeaseId
-                  << ", d_sequenceNum = " << d_sequenceNum << "].";
+                  << ", d_sequenceNum = " << sequenceNumber() << "].";
 
     FileStore::NodeContext* nodeContext = generateReceipt(
         0,

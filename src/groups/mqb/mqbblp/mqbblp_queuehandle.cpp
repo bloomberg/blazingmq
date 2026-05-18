@@ -1121,11 +1121,12 @@ void QueueHandle::configureDispatched(
         d_queue_sp->configureHandle(this, streamParameters, configuredCb);
     }
     else {
-        BALL_LOG_ERROR
-            << "#CLIENT_IMPROPER_BEHAVIOR "
-            << "Attempting to configure handle without a client. Queue '"
-            << d_queue_sp->uri() << "', stream params: " << streamParameters
-            << ", handlePtr '" << this << "'.";
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+
+        BALL_LOG_ERROR << "#CLIENT_IMPROPER_BEHAVIOR "
+                       << "Attempting to configure handle [" << this
+                       << "] without a client, queue '" << d_queue_sp->uri()
+                       << "', stream params: [" << streamParameters << "].";
 
         bmqp_ctrlmsg::Status status(d_allocator_p);
         status.category() = bmqp_ctrlmsg::StatusCategory::E_UNKNOWN;

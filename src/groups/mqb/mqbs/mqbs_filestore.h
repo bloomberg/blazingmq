@@ -655,6 +655,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Send previously generated Replication Receipt to the specified `node`
     /// using the specified `nodeContext`.
     void sendReceipt(mqbnet::ClusterNode* node, NodeContext* nodeContext);
+
+    /// Generate and send Replication Receipt for the
+    /// `d_lastRecoveredStrongConsistency`, if any, to the current primary.
     void sendImplicitReceipt();
 
     /// Insert the specified `record` value by the specified `key` into the
