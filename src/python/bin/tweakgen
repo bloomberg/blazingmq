@@ -62,7 +62,9 @@ def generate(cls: Type, indent: int, file: IO[str]):
 
         print_indented(f"class {class_name}(metaclass=TweakMetaclass):", indent, file)
 
-        if origin := typing.get_origin(field.type):
+        if dataclasses.is_dataclass(field.type):
+            generate(field.type, indent + 1, file)
+        elif origin := typing.get_origin(field.type):
             if origin in (typing.Union, list):
                 nested_types = typing.get_args(field.type)
             else:
