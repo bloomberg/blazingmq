@@ -57,19 +57,20 @@ def print_indented(text: str, indent: int, file: IO[str]):
 
 
 def generate(cls: Type, indent: int, file: IO[str]):
+    resolved_hints = typing.get_type_hints(cls)
     for field in dataclasses.fields(cls):
+        field_type = resolved_hints[field.name]
         class_name = "".join([word.capitalize() for word in field.name.split("_")])
 
         print_indented(f"class {class_name}(metaclass=TweakMetaclass):", indent, file)
 
-        if dataclasses.is_dataclass(field.type):
-            generate(field.type, indent + 1, file)
-        elif origin := typing.get_origin(field.type):
-            if origin in (typing.Union, list):
-                nested_types = typing.get_args(field.type)
-            else:
+        if dataclasses.is_dataclass(field_type):
+            generate(field_type, indent + 1, file)
+        elif origin := typing.get_origin(field_type):
+            if origin not in (typing.Union, list):
                 assert False, f"add support for {origin}"
 
+            nested_types = typing.get_args(field_type)
             for item_type in nested_types:
                 if dataclasses.is_dataclass(item_type):
                     generate(item_type, indent + 1, file)
@@ -77,7 +78,7 @@ def generate(cls: Type, indent: int, file: IO[str]):
         print_indented(
             TWEAK_FORMAT.format(
                 class_name=class_name,
-                type=type_str(field.type),
+                type=type_str(field_type),
                 attr=field.name,
             ),
             indent,
