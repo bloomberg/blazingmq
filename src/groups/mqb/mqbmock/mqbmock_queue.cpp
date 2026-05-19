@@ -452,7 +452,7 @@ const mqbi::DispatcherClientData& Queue::dispatcherClientData() const
     return d_dispatcherClientData;
 }
 
-const bsl::string& Queue::description() const
+bsl::string_view Queue::description() const
 {
     return d_description;
 }

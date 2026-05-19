@@ -347,7 +347,7 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
 
         rc = addVirtualStoragesInternal(storage,
                                         addedIdKeyPairs,
-                                        fs->description(),
+                                        bsl::string(fs->description()),
                                         isFanout);
         if (0 != rc) {
             // In the transition phase, App creation trigger can be either
@@ -1656,7 +1656,7 @@ void StorageUtil::recoveredQueuesCb(
                                  bdlf::PlaceHolders::_2,  // domain*
                                  &(dit->second),
                                  &latch,
-                                 fs->description(),
+                                 bsl::string(fs->description()),
                                  dit->first));
     }
 
@@ -2846,7 +2846,7 @@ void StorageUtil::createQueueStorageAsReplica(
                                  bdlf::PlaceHolders::_2,  // domain*
                                  &domain,
                                  &latch,
-                                 fs->description(),
+                                 bsl::string(fs->description()),
                                  uri.qualifiedDomain()));
         latch.wait();
 
@@ -2939,7 +2939,7 @@ StorageUtil::createQueueStorageImpl(mqbs::FileStore*        fs,
 
     if (0 != addVirtualStoragesInternal(rs_sp.get(),
                                         appIdKeyPairs,
-                                        fs->description(),
+                                        bsl::string(fs->description()),
                                         domainCfg->mode().isFanoutValue())) {
         // Discard
         rs_sp.reset();

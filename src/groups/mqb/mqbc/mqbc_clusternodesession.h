@@ -286,7 +286,7 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     dispatcherClientData() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return a printable description of the client (e.g. for logging).
-    const bsl::string& description() const BSLS_KEYWORD_OVERRIDE;
+    bsl::string_view description() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return the associated cluster as the dispatcher client.
     mqbi::DispatcherClient* cluster() const;
@@ -512,7 +512,7 @@ ClusterNodeSession::dispatcherClientData() const
     return d_cluster_p->dispatcherClientData();
 }
 
-inline const bsl::string& ClusterNodeSession::description() const
+inline bsl::string_view ClusterNodeSession::description() const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p);

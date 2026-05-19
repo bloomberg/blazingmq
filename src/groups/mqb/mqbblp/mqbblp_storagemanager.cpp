@@ -400,7 +400,7 @@ void StorageManager::queueCreationCb(int                     partitionId,
             &d_storages[partitionId],
             d_storageLockVec[partitionId].get(),
             d_domainFactory_p,
-            fs->description(),
+            bsl::string(fs->description()),
             uri,
             queueKey,
             appIdKeyPairs,
@@ -1128,7 +1128,7 @@ void StorageManager::resetQueue(const bmqt::Uri& uri,
         bdlf::BindUtil::bind(&mqbc::StorageUtil::resetQueueDispatched,
                              &d_storages[partitionId],
                              d_storageLockVec[partitionId].get(),
-                             fs->description(),
+                             bsl::string(fs->description()),
                              uri,
                              queue_sp));
 
@@ -1306,7 +1306,7 @@ int StorageManager::start(bsl::ostream& errorDescription)
     BALL_LOG_INFO_BLOCK
     {
         printRecoveryBanner(BALL_LOG_OUTPUT_STREAM,
-                            d_cluster_p->description());
+                            bsl::string(d_cluster_p->description()));
     }
 
     for (unsigned int i = 0; i < d_fileStores.size(); ++i) {

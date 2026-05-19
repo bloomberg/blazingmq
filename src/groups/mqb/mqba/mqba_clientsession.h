@@ -668,7 +668,7 @@ class ClientSession : public mqbnet::Session,
     // negotiation phase.
 
     /// Return a printable description of the client (e.g. for logging).
-    const bsl::string& description() const BSLS_KEYWORD_OVERRIDE;
+    bsl::string_view description() const BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
     //   (virtual: mqbi::DispatcherClient)
@@ -780,7 +780,7 @@ ClientSession::negotiationMessage() const
     return d_negotiationMessage;
 }
 
-inline const bsl::string& ClientSession::description() const
+inline bsl::string_view ClientSession::description() const
 {
     return d_description;
 }

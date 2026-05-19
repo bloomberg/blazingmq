@@ -176,8 +176,9 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
 
     // Start a StatMonitorSnapshotRecorder to track system stats during
     // recovery
-    mqbstat::StatMonitorSnapshotRecorder statRecorder(description() + ": ",
-                                                      d_allocator_p);
+    mqbstat::StatMonitorSnapshotRecorder statRecorder(
+        bsl::string(description()) + ": ",
+        d_allocator_p);
 
     // Get named allocator from associated bmqma::CountingAllocatorStore
     bslma::Allocator* storageManagerAllocator = d_allocators.get(
@@ -3120,7 +3121,7 @@ void Cluster::loadClusterStatus(mqbcmd::ClusterResult* result)
     mqbcmd::ClusterStatus& clusterStatus = result->makeClusterStatus();
 
     clusterStatus.name()        = d_clusterData.identity().name();
-    clusterStatus.description() = description();
+    clusterStatus.description() = bsl::string(description());
     clusterStatus.selfNodeDescription() =
         d_clusterData.membership().selfNode()->nodeDescription();
     clusterStatus.isHealthy() = d_clusterMonitor.isHealthy();

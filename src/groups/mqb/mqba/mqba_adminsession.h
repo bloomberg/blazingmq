@@ -288,7 +288,7 @@ class AdminSession : public mqbnet::Session, public mqbi::DispatcherClient {
     //   (virtual: mqbnet::Session)
 
     /// Return a printable description of the client (e.g. for logging).
-    const bsl::string& description() const BSLS_KEYWORD_OVERRIDE;
+    bsl::string_view description() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return a reference not offering modifiable access to the negotiation
     /// message received from the remote peer of this session during the
@@ -335,7 +335,7 @@ inline mqbnet::ClusterNode* AdminSession::clusterNode() const
     return 0;
 }
 
-inline const bsl::string& AdminSession::description() const
+inline bsl::string_view AdminSession::description() const
 {
     return d_description;
 }

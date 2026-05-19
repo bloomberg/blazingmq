@@ -226,7 +226,7 @@ class MultiRequestManager {
     const bsl::string&
     targetDescription(const mqbnet::ClusterNode* target) const;
 
-    const bsl::string&
+    bsl::string
     targetDescription(const bsl::shared_ptr<mqbnet::Session>& target) const;
 
     void setGroupId(typename RequestManagerType::RequestSp& context,
@@ -542,12 +542,12 @@ MultiRequestManager<REQUEST, RESPONSE, TARGET>::targetDescription(
 }
 
 template <class REQUEST, class RESPONSE, class TARGET>
-inline const bsl::string&
+inline bsl::string
 MultiRequestManager<REQUEST, RESPONSE, TARGET>::targetDescription(
     const bsl::shared_ptr<mqbnet::Session>& target) const
 {
     return target->clusterNode() ? target->clusterNode()->nodeDescription()
-                                 : target->description();
+                                 : bsl::string(target->description());
 }
 
 template <class REQUEST, class RESPONSE, class TARGET>

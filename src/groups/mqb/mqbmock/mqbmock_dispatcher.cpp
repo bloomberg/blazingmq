@@ -304,7 +304,7 @@ DispatcherClient::dispatcherClientData() const
     return d_dispatcherClientData;
 }
 
-const bsl::string& DispatcherClient::description() const
+bsl::string_view DispatcherClient::description() const
 {
     return d_description;
 }

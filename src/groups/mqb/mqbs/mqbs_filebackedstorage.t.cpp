@@ -386,7 +386,7 @@ class MockDataStore : public mqbs::DataStore {
         return d_dispatcherClientData;
     }
 
-    const bsl::string& description() const BSLS_KEYWORD_OVERRIDE
+    bsl::string_view description() const BSLS_KEYWORD_OVERRIDE
     {
         return d_description;
     }

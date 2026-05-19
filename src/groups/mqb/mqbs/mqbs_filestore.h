@@ -1031,7 +1031,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     dispatcherClientData() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return a printable description of the client (e.g. for logging).
-    const bsl::string& description() const BSLS_KEYWORD_OVERRIDE;
+    bsl::string_view description() const BSLS_KEYWORD_OVERRIDE;
 
     /// Load into the specified `fileStoreSet` the active (current) file
     /// set.  The behavior is undefined unless there is a fileSet in current
@@ -1301,7 +1301,7 @@ inline mqbi::DispatcherClientData& FileStore::dispatcherClientData()
     return d_dispatcherClientData;
 }
 
-inline const bsl::string& FileStore::description() const
+inline bsl::string_view FileStore::description() const
 {
     return partitionDesc();
 }

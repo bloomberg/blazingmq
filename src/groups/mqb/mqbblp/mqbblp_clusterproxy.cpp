@@ -1135,7 +1135,7 @@ void ClusterProxy::loadClusterStatus(mqbcmd::ClusterResult* out)
     mqbcmd::ClusterProxyStatus& clusterProxyStatus =
         out->makeClusterProxyStatus();
 
-    clusterProxyStatus.description() = description();
+    clusterProxyStatus.description() = bsl::string(description());
     if (d_activeNode_p) {
         clusterProxyStatus.activeNodeDescription().makeValue(
             d_activeNode_p->nodeDescription());

@@ -677,11 +677,11 @@ void TCPSessionFactory::initialConnectionComplete(
         // schedule channelStateCb/poolSessionStateCb/onClose/tearDown
         channel->close();
 
-        logOpenSessionTime(session->description(), channel);
+        logOpenSessionTime(bsl::string(session->description()), channel);
         return;  // RETURN
     }
 
-    logOpenSessionTime(session->description(), channel);
+    logOpenSessionTime(bsl::string(session->description()), channel);
 }
 
 void TCPSessionFactory::onSessionDestroyed(
@@ -1003,7 +1003,8 @@ void TCPSessionFactory::reauthnOnAuthenticationEvent(
 
     const bsl::shared_ptr<AuthenticationContext>& context =
         channelInfo->d_authenticationCtx_sp;
-    const bsl::string& description = channelInfo->d_session_sp->description();
+    const bsl::string_view description =
+        channelInfo->d_session_sp->description();
     bmqu::MemOutStream errStream(d_allocator_p);
 
     bmqp_ctrlmsg::AuthenticationMessage authenticationMessage;

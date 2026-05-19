@@ -110,6 +110,7 @@
 #include <bsl_iostream.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
+#include <bsl_string_view.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
@@ -704,7 +705,9 @@ class DispatcherClient {
     virtual const DispatcherClientData& dispatcherClientData() const = 0;
 
     /// Return a printable description of the client (e.g., for logging).
-    virtual const bsl::string& description() const = 0;
+    /// The returned view is valid for the lifetime of this object and must
+    /// be copied before any deferred use.
+    virtual bsl::string_view description() const = 0;
 
     /// Return whether the current thread is the thread this client is
     /// associated with in dispatcher.

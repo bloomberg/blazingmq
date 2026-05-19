@@ -823,7 +823,7 @@ class Cluster : public mqbi::Cluster,
     dispatcherClientData() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return a printable description of the client (e.g. for logging).
-    const bsl::string& description() const BSLS_KEYWORD_OVERRIDE;
+    bsl::string_view description() const BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
     //   (specific to mqbblp::Cluster)
@@ -921,7 +921,7 @@ inline mqbi::DispatcherClientData& Cluster::dispatcherClientData()
     return d_clusterData.dispatcherClientData();
 }
 
-inline const bsl::string& Cluster::description() const
+inline bsl::string_view Cluster::description() const
 {
     return d_clusterData.identity().description();
 }
