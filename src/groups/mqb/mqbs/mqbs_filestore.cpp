@@ -5389,13 +5389,19 @@ int FileStore::open(QueueKeyInfoMap* queueKeyInfoMap)
     return rc_SUCCESS;
 }
 
-void FileStore::close(bool flush, bool archive)
+int FileStore::close(bool flush, bool archive)
 {
+    enum RcEnum {
+        rc_SUCCESS         = 0,
+        rc_CLOSE_FAILURE   = -1,
+        rc_ARCHIVE_FAILURE = -2,
+    };
+
     // The FileStore might be not opened by the time we call `close()`
     cancelTimersAndWait();
 
     if (!d_isOpen) {
-        return;  // RETURN
+        return rc_SUCCESS;  // RETURN
     }
 
     d_isOpen             = false;
@@ -5416,6 +5422,8 @@ void FileStore::close(bool flush, bool archive)
     // remaining in 'd_fileSets' (the active one).  Truncate and close it out.
     BSLS_ASSERT_SAFE(1 == d_fileSets.size());
     FileSet* activeFileSet = d_fileSets[0].get();
+
+    // Failure to truncate is non-fatal.  No need to check rc.
     truncate(activeFileSet);
 
     if (0 == --activeFileSet->d_aliasedBlobBufferCount) {
@@ -5435,7 +5443,12 @@ void FileStore::close(bool flush, bool archive)
 
         // TBD Revisit: handle non-zero rc from close()
         bsls::Types::Int64 startTime = bmqu::Time::highResolutionTimer();
-        close(*activeFileSet, flush);
+        int                rc        = close(*activeFileSet, flush);
+        if (rc != 0) {
+            BALL_LOG_ERROR << partitionDesc()
+                           << "Failed to close file set, rc: " << rc;
+            return rc * 10 + rc_CLOSE_FAILURE;  // RETURN
+        }
         bsls::Types::Int64 closeTime = bmqu::Time::highResolutionTimer();
         BALL_LOG_INFO << partitionDesc() << "File set closed. Time taken: "
                       << bmqu::PrintUtil::prettyTimeInterval(closeTime -
@@ -5444,7 +5457,12 @@ void FileStore::close(bool flush, bool archive)
         if (archive) {
             bsls::Types::Int64 archiveStartTime =
                 bmqu::Time::highResolutionTimer();
-            FileStore::archive(activeFileSet);
+            rc = FileStore::archive(activeFileSet);
+            if (rc != 0) {
+                BALL_LOG_ERROR << partitionDesc()
+                               << "Failed to archive file set, rc: " << rc;
+                return rc * 10 + rc_ARCHIVE_FAILURE;  // RETURN
+            }
             bsls::Types::Int64 archiveEndTime =
                 bmqu::Time::highResolutionTimer();
             BALL_LOG_INFO << partitionDesc()
@@ -5466,6 +5484,8 @@ void FileStore::close(bool flush, bool archive)
         }
         BSLS_ASSERT_SAFE(!archive);
     }
+
+    return rc_SUCCESS;
 }
 
 void FileStore::createStorage(bsl::shared_ptr<ReplicatedStorage>* storageSp,
