@@ -213,6 +213,12 @@ int ClusterStateLedgerUtil::extractLogId(mqbu::StorageKey*  logId,
     int                    rc      = ClusterStateLedgerUtilRc::e_UNKNOWN;
     do {
         rc = ::read(fd, reinterpret_cast<char*>(&header) + numRead, length);
+        if (rc == 0) {
+            BALL_LOG_ERROR << "'read()' reached EOF before reading the "
+                           << "expected number of bytes for file [path: "
+                           << logPath << ", remaining: " << length << "]";
+            return ClusterStateLedgerUtilRc::e_BYTE_READ_FAILURE;  // RETURN
+        }
         if (rc < 0) {
             BALL_LOG_ERROR << "'read()' failure for file [path: " << logPath
                            << ", errno: " << errno << " ("
