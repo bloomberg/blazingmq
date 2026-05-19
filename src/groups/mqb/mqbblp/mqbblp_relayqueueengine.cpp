@@ -976,10 +976,13 @@ void RelayQueueEngine::applyConfiguration(App_State&        app,
 
     app.routing()->apply();
 
+    typedef bsl::vector<bsl::weak_ptr<Routers::Consumers::Item> > InvalidItems;
     Routers::Consumers& consumers = app.routing()->d_consumers;
+    InvalidItems        invalid(d_allocator_p);
 
     for (Routers::Consumers::const_iterator itConsumer = consumers.begin();
-         itConsumer != consumers.end();) {
+         itConsumer != consumers.end();
+         ++itConsumer) {
         Routers::Consumer& consumer = consumers.value(itConsumer);
         mqbi::QueueHandle* handle   = itConsumer->first;
 
@@ -987,16 +990,21 @@ void RelayQueueEngine::applyConfiguration(App_State&        app,
             // This can happen with out-of-order Configure responses as in the
             // case when network disconnects with two concurrent requests and
             // the second gets (error) response before the first one gets
-            // cancelled.  Advance before invalidate() erases the element.
-            (itConsumer++)->second.lock()->invalidate();
-
-            app.routing()->finalize();
+            // cancelled.
+            invalid.push_back(itConsumer->second);
 
             continue;  // CONTINUE
         }
 
         consumer.registerSubscriptions(handle);
-        ++itConsumer;
+    }
+    if (!invalid.empty()) {
+        for (InvalidItems::const_iterator cit = invalid.cbegin();
+             cit != invalid.cend();
+             ++cit) {
+            cit->lock()->invalidate();
+        }
+        app.routing()->finalize();
     }
 
     BMQ_LOGTHROTTLE_INFO << "For queue '" << d_queueState_p->uri() << "', "
