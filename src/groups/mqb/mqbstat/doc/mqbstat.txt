@@ -15,7 +15,7 @@
   3. mqbstat_statcontroller
 
   2. mqbstat_jsonprinter
-     mqbstat_printer
+     mqbstat_tableprinter
      mqbstat_statmonitorsnapshotrecorder
 
   1. mqbstat_brokerstats
@@ -44,9 +44,6 @@
 : 'mqbstat_jsonprinter'
 :       Provide a mechanism to print statistics as a JSON.
 :
-: 'mqbstat_printer'
-:       Provide a mechanism to print statistics to streams.
-:
 : 'mqbstat_queuestats'
 :       Provide mechanism to keep track of Queue statistics.
 :
@@ -58,3 +55,6 @@
 :
 : 'mqbstat_statmonitorsnapshotrecorder'
 :       Provide a mechanism to record snapshot of time, cpu, and ctx switch.
+:
+: 'mqbstat_tableprinter'
+:       Provide a mechanism to print statistics to streams.

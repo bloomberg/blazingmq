@@ -1,4 +1,4 @@
-// Copyright 2017-2023 Bloomberg Finance L.P.
+// Copyright 2026 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <mqbstat_printer.h>
+#include <mqbstat_tableprinter.h>
 
 #include <mqbscm_version.h>
 // MQB
@@ -23,24 +23,19 @@
 #include <bmqma_countingallocator.h>
 #include <bmqst_statvalue.h>
 #include <bmqst_tableutil.h>
-#include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
 
 // BDE
 #include <ball_context.h>
 #include <ball_log.h>
 #include <ball_logfilecleanerutil.h>
-#include <ball_loggermanager.h>
-#include <ball_multiplexobserver.h>
 #include <ball_recordattributes.h>
 #include <ball_recordstringformatter.h>
 #include <ball_transmission.h>
 #include <bdls_processutil.h>
 #include <bdlt_datetime.h>
 #include <bdlt_epochutil.h>
-#include <bsl_algorithm.h>
 #include <bsl_ctime.h>
-#include <bsl_iostream.h>
 #include <bsl_utility.h>
 #include <bslma_allocator.h>
 #include <bslmt_threadutil.h>
@@ -54,18 +49,18 @@ namespace mqbstat {
 
 namespace {
 
-const char k_LOG_CATEGORY[] = "MQBSTAT.PRINTER";
+const char k_LOG_CATEGORY[] = "MQBSTAT.TABLEPRINTER";
 
 // Subcontext names
 const char k_SUBCONTEXT_ALLOCATORS[] = "allocators";
 
 }  // close unnamed namespace
 
-// -------------
-// class Printer
-// -------------
+// ------------------
+// class TablePrinter
+// ------------------
 
-void Printer::initializeTablesAndTips()
+void TablePrinter::initializeTablesAndTips()
 {
     const int historySize = d_config.printer().printInterval() /
                                 d_config.snapshotInterval() +
@@ -112,10 +107,10 @@ void Printer::initializeTablesAndTips()
         end);
 }
 
-Printer::Printer(const mqbcfg::StatsConfig& config,
-                 bdlmt::EventScheduler*     eventScheduler,
-                 const StatContextsMap&     statContextsMap,
-                 bslma::Allocator*          allocator)
+TablePrinter::TablePrinter(const mqbcfg::StatsConfig& config,
+                           bdlmt::EventScheduler*     eventScheduler,
+                           const StatContextsMap&     statContextsMap,
+                           bslma::Allocator*          allocator)
 : d_config(config)
 , d_statsLogFile(allocator)
 , d_lastStatId(0)
@@ -143,7 +138,7 @@ Printer::Printer(const mqbcfg::StatsConfig& config,
     }
 }
 
-int Printer::start(BSLA_MAYBE_UNUSED bsl::ostream& errorDescription)
+int TablePrinter::start(BSLA_MAYBE_UNUSED bsl::ostream& errorDescription)
 {
     // Setup the print of stats if configured for it
     if (!isEnabled()) {
@@ -191,7 +186,7 @@ int Printer::start(BSLA_MAYBE_UNUSED bsl::ostream& errorDescription)
     return 0;
 }
 
-void Printer::stop()
+void TablePrinter::stop()
 {
     // Dump the final stats (to ensure all events have been accounted for, even
     // if they happen within less than the print interval).  Note that since
@@ -210,7 +205,7 @@ void Printer::stop()
     d_statLogCleaner.stop();
 }
 
-void Printer::printStats(bsl::ostream& stream)
+void TablePrinter::printStats(bsl::ostream& stream)
 {
     // This must execute in the 'snapshot' thread
 
@@ -266,7 +261,7 @@ void Printer::printStats(bsl::ostream& stream)
     bmqst::TableUtil::printTable(stream, context->d_tip);
 }
 
-void Printer::logStats()
+void TablePrinter::logStats()
 {
     ++d_lastStatId;
 
@@ -298,7 +293,7 @@ void Printer::logStats()
         ball::Context(ball::Transmission::e_MANUAL_PUBLISH, 0, 1));
 }
 
-void Printer::onSnapshot()
+void TablePrinter::onSnapshot()
 {
     // Check if we need to print the stats to log
     if (!isEnabled() || --d_actionCounter != 0) {
