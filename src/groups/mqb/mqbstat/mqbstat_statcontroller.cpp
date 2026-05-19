@@ -149,7 +149,7 @@ void StatController::initializeStats()
                                true)));
         d_allocatorsStatContext_p->snapshot();
         // Call snaphost to create the 'subContext', so that the
-        // 'mqbstat::Printer::start' can access it.
+        // 'mqbstat::TablePrinter::start' can access it.
     }
 
     // --------
@@ -267,7 +267,7 @@ void StatController::captureStatsAndSemaphorePost(
     switch (encoding) {
     case mqbcmd::EncodingFormat::TEXT: {
         bmqu::MemOutStream os;
-        d_printer_mp->printStats(os);
+        d_tablePrinter_mp->printStats(os);
         result->makeStats() = os.str();
     } break;  // BREAK
 
@@ -561,13 +561,13 @@ bool StatController::snapshot()
     // through snapshot
     d_systemStatMonitor_mp->snapshot();
 
-    // Printer needs to be notified of every snapshot, but has an internal
+    // TablePrinter needs to be notified of every snapshot, but has an internal
     // action counter to know when it's time to print.  Allocator stat context
     // only has a history size of 2, so we need to snapshot only once, just
     // before printing.
     // TODO: adopt this code for `mqbstat::JsonPrinter` when we report
     //       allocator stats in json
-    const bool willPrint = d_printer_mp->nextSnapshotWillPrint();
+    const bool willPrint = d_tablePrinter_mp->nextSnapshotWillPrint();
     if (d_allocatorsStatContext_p && willPrint) {
         d_allocatorsStatContext_p->snapshot();
     }
@@ -595,15 +595,16 @@ void StatController::snapshotAndNotify()
         }
     }
 
-    const bool willPrint = d_printer_mp->nextSnapshotWillPrint();
-    d_printer_mp->onSnapshot();
+    const bool willPrint = d_tablePrinter_mp->nextSnapshotWillPrint();
+    d_tablePrinter_mp->onSnapshot();
 
     // Finally, perform cleanup of expired stat contexts if we have printed
     // them.
-    // TBD: Currently the code relies on the fact that 'printer' is the one
+    // TBD: Currently the code relies on the fact that 'tablePrinter' is the
+    // one
     //      with the largest 'actionInterval', but normally cleanup should be
     //      done after the less frequent consumer has performed its action.
-    if (!d_printer_mp->isEnabled() || willPrint) {
+    if (!d_tablePrinter_mp->isEnabled() || willPrint) {
         // Cleanup deleted subcontexts now that we printed them, or don't care
         for (StatContextDetailsMap::iterator mit = d_statContextsMap.begin();
              mit != d_statContextsMap.end();
@@ -684,7 +685,7 @@ StatController::StatController(const CommandProcessorFn& commandProcessor,
 , d_pluginManager_p(pluginManager)
 , d_bufferFactory_p(bufferFactory)
 , d_commandProcessorFn(bsl::allocator_arg, allocator, commandProcessor)
-, d_printer_mp(0)
+, d_tablePrinter_mp(0)
 , d_jsonPrinter_mp(0)
 , d_statConsumers(allocator)
 , d_statConsumerMaxPublishInterval(0)
@@ -837,20 +838,21 @@ int StatController::start(bsl::ostream& errorDescription)
         }
     }
 
-    // Start the printer
-    d_printer_mp.load(new (*d_allocator_p) Printer(brkrCfg.stats(),
-                                                   d_eventScheduler_p,
-                                                   ctxPtrMap,
-                                                   d_allocator_p),
-                      d_allocator_p);
+    // Start the table printer
+    d_tablePrinter_mp.load(new (*d_allocator_p)
+                               TablePrinter(brkrCfg.stats(),
+                                            d_eventScheduler_p,
+                                            ctxPtrMap,
+                                            d_allocator_p),
+                           d_allocator_p);
 
-    // Give the printer a map of statContext ptrs for its printing. It has been
-    // done this way to break the cyclic dependency of ctxPtrMap,
-    // initializeStats() and creation of d_printer.
-    rc = d_printer_mp->start(errorStream);
+    // Give the table printer a map of statContext ptrs for its printing.  It
+    // has been done this way to break the cyclic dependency of ctxPtrMap,
+    // initializeStats() and creation of d_tablePrinter.
+    rc = d_tablePrinter_mp->start(errorStream);
     if (rc != 0) {
         BMQTSK_ALARMLOG_ALARM("#STATS")
-            << "Failed to start Printer [rc: " << rc << ", error: '"
+            << "Failed to start TablePrinter [rc: " << rc << ", error: '"
             << errorStream.str() << "']" << BMQTSK_ALARMLOG_END;
         rc = 0;
         errorStream.reset();
@@ -903,14 +905,14 @@ void StatController::stop()
         STOP_OBJ((*it), it->name());
     }
 
-    STOP_OBJ(d_printer_mp, "Printer");
+    STOP_OBJ(d_tablePrinter_mp, "TablePrinter");
     STOP_OBJ(d_systemStatMonitor_mp, "SystemStatMonitor");
 
     // Destroy everything!!
     for (it = d_statConsumers.begin(); it != d_statConsumers.end(); ++it) {
         DESTROY_OBJ((*it), it->name());
     }
-    DESTROY_OBJ(d_printer_mp, "Printer");
+    DESTROY_OBJ(d_tablePrinter_mp, "TablePrinter");
     DESTROY_OBJ(d_jsonPrinter_mp, "JsonPrinter");
     DESTROY_OBJ(d_systemStatMonitor_mp, "SystemStatMonitor");
     DESTROY_OBJ(d_scheduler_mp, "Scheduler");

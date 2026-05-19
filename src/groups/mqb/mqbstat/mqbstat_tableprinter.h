@@ -1,4 +1,4 @@
-// Copyright 2017-2023 Bloomberg Finance L.P.
+// Copyright 2026 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,16 +13,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef INCLUDED_MQBSTAT_PRINTER
-#define INCLUDED_MQBSTAT_PRINTER
+#ifndef INCLUDED_MQBSTAT_TABLEPRINTER
+#define INCLUDED_MQBSTAT_TABLEPRINTER
 
 //@PURPOSE: Provide a mechanism to print statistics to streams
 //
 //@CLASSES:
-//  mqbstat::Printer: bmqbrkr statistics printer
+//  mqbstat::TablePrinter: bmqbrkr statistics printer
 //
-//@DESCRIPTION: 'mqbstat::Printer' handles the printing of all the statistics.
-// It holds the tables and table info providers which can be printed.
+//@DESCRIPTION: 'mqbstat::TablePrinter' handles the printing of all the
+// statistics.  It holds the tables and table info providers which can be
+// printed.
 
 // MQB
 #include <mqbcfg_messages.h>
@@ -40,28 +41,30 @@
 #include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
-#include <bsl_vector.h>
 #include <bslma_allocator.h>
-#include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
-#include <bsls_cpp11.h>
+#include <bsls_keyword.h>
 #include <bsls_types.h>
 
 namespace BloombergLP {
 
 namespace mqbstat {
 
-// =============
-// class Printer
-// =============
+// ==================
+// class TablePrinter
+// ==================
 
-class Printer {
+class TablePrinter {
+  public:
+    // PUBLIC TYPES
+    typedef bsl::unordered_map<bsl::string, bmqst::StatContext*>
+        StatContextsMap;
+
   private:
     // CLASS-SCOPE CATEGORY
-    BALL_LOG_SET_CLASS_CATEGORY("MQBSTAT.PRINTER");
+    BALL_LOG_SET_CLASS_CATEGORY("MQBSTAT.TABLEPRINTER");
 
-  private:
     // PRIVATE TYPES
 
     /// Context including table and tip for printing and statcontext for
@@ -79,10 +82,7 @@ class Printer {
 
     typedef bsl::shared_ptr<Context>                   ContextSp;
     typedef bsl::unordered_map<bsl::string, ContextSp> ContextsMap;
-    typedef bsl::unordered_map<bsl::string, bmqst::StatContext*>
-        StatContextsMap;
 
-  private:
     // DATA
 
     /// Config to use.
@@ -91,18 +91,13 @@ class Printer {
     /// FileObserver for the stats log dump.
     ball::FileObserver2 d_statsLogFile;
 
-    /// Sequence number for stat log
-    /// records, used to synchronize the
-    /// stat log and the normal log.
+    /// Sequence number for stat log records.
     int d_lastStatId;
 
-    /// Counter to know when to periodically
-    /// print the stats to file.
+    /// Counter to know when to periodically print the stats to file.
     int d_actionCounter;
 
-    /// HiRes timer value of the last time
-    /// the Counting Allocators snapshot
-    /// happened on the context.
+    /// HiRes timer value of the last allocator snapshot.
     bsls::Types::Int64 d_lastAllocatorSnapshot;
 
     /// Contexts map
@@ -111,31 +106,32 @@ class Printer {
     /// Mechanism to clean up old stat logs.
     bmqtsk::LogCleaner d_statLogCleaner;
 
-  private:
     // NOT IMPLEMENTED
-    Printer(const Printer& other) BSLS_CPP11_DELETED;
-    Printer& operator=(const Printer& other) BSLS_CPP11_DELETED;
+    TablePrinter(const TablePrinter& other) BSLS_KEYWORD_DELETED;
+    TablePrinter& operator=(const TablePrinter& other) BSLS_KEYWORD_DELETED;
+
+    // PRIVATE MANIPULATORS
 
     /// Initialize table and tips.
     void initializeTablesAndTips();
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(Printer, bslma::UsesBslmaAllocator)
+    BSLMF_NESTED_TRAIT_DECLARATION(TablePrinter, bslma::UsesBslmaAllocator)
 
     // CREATORS
 
-    /// Create a new `Printer` object, using the specified `config`,
+    /// Create a new `TablePrinter` object, using the specified `config`,
     /// `eventScheduler`, `statContextsMap` and the specified `allocator`
     /// for memory allocation.
-    explicit Printer(const mqbcfg::StatsConfig& config,
-                     bdlmt::EventScheduler*     eventScheduler,
-                     const StatContextsMap&     statContextsMap,
-                     bslma::Allocator*          allocator);
+    explicit TablePrinter(const mqbcfg::StatsConfig& config,
+                          bdlmt::EventScheduler*     eventScheduler,
+                          const StatContextsMap&     statContextsMap,
+                          bslma::Allocator*          allocator);
 
     // MANIPULATORS
 
-    /// Start the Printer.  Return 0 on success, or a non-zero return
+    /// Start the TablePrinter.  Return 0 on success, or a non-zero return
     /// code on error and fill in the specified `errorDescription` stream
     /// with the description of the error.
     int start(bsl::ostream& errorDescription);
@@ -168,17 +164,17 @@ class Printer {
 //                             INLINE DEFINITIONS
 // ============================================================================
 
-// -------------
-// class Printer
-// -------------
+// ------------------
+// class TablePrinter
+// ------------------
 
-inline bool Printer::isEnabled() const
+inline bool TablePrinter::isEnabled() const
 {
     return (d_config.printer().printInterval() > 0 &&
             d_config.snapshotInterval() > 0);
 }
 
-inline bool Printer::nextSnapshotWillPrint() const
+inline bool TablePrinter::nextSnapshotWillPrint() const
 {
     return d_actionCounter == 1;
 }
