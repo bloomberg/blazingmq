@@ -171,7 +171,7 @@ bool TransportManager::processSession(
         // Handle incoming proxy connection
         cluster->onProxyConnectionUp(session->channel(),
                                      peerIdentity,
-                                     bsl::string(session->description()));
+                                     session->description());
     }
     else {
         BALL_LOG_INFO << "Client session is up [channel: '"

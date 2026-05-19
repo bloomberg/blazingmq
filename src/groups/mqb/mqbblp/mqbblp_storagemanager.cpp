@@ -78,8 +78,8 @@ namespace mqbblp {
 namespace {
 const int k_GC_MESSAGES_INTERVAL_SECONDS = 5;
 
-bsl::ostream& printRecoveryBanner(bsl::ostream&      out,
-                                  const bsl::string& lastLineSuffix)
+bsl::ostream& printRecoveryBanner(bsl::ostream&    out,
+                                  bsl::string_view lastLineSuffix)
 {
     out << "Starting"
         << "\n   _____"
@@ -400,7 +400,7 @@ void StorageManager::queueCreationCb(int                     partitionId,
             &d_storages[partitionId],
             d_storageLockVec[partitionId].get(),
             d_domainFactory_p,
-            bsl::string(fs->description()),
+            fs->description(),
             uri,
             queueKey,
             appIdKeyPairs,
@@ -1128,7 +1128,7 @@ void StorageManager::resetQueue(const bmqt::Uri& uri,
         bdlf::BindUtil::bind(&mqbc::StorageUtil::resetQueueDispatched,
                              &d_storages[partitionId],
                              d_storageLockVec[partitionId].get(),
-                             bsl::string(fs->description()),
+                             bsl::string(fs->description(), d_allocator_p),
                              uri,
                              queue_sp));
 
@@ -1306,7 +1306,7 @@ int StorageManager::start(bsl::ostream& errorDescription)
     BALL_LOG_INFO_BLOCK
     {
         printRecoveryBanner(BALL_LOG_OUTPUT_STREAM,
-                            bsl::string(d_cluster_p->description()));
+                            d_cluster_p->description());
     }
 
     for (unsigned int i = 0; i < d_fileStores.size(); ++i) {

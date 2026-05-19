@@ -347,7 +347,7 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
 
         rc = addVirtualStoragesInternal(storage,
                                         addedIdKeyPairs,
-                                        bsl::string(fs->description()),
+                                        fs->description(),
                                         isFanout);
         if (0 != rc) {
             // In the transition phase, App creation trigger can be either
@@ -415,9 +415,9 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
 }
 
 int StorageUtil::addVirtualStoragesInternal(mqbs::ReplicatedStorage* storage,
-                                            const AppInfos&    appIdKeyPairs,
-                                            const bsl::string& partitionDesc,
-                                            bool               isFanout)
+                                            const AppInfos&  appIdKeyPairs,
+                                            bsl::string_view partitionDesc,
+                                            bool             isFanout)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
@@ -1656,7 +1656,7 @@ void StorageUtil::recoveredQueuesCb(
                                  bdlf::PlaceHolders::_2,  // domain*
                                  &(dit->second),
                                  &latch,
-                                 bsl::string(fs->description()),
+                                 fs,
                                  dit->first));
     }
 
@@ -2846,7 +2846,7 @@ void StorageUtil::createQueueStorageAsReplica(
                                  bdlf::PlaceHolders::_2,  // domain*
                                  &domain,
                                  &latch,
-                                 bsl::string(fs->description()),
+                                 fs,
                                  uri.qualifiedDomain()));
         latch.wait();
 
@@ -2939,7 +2939,7 @@ StorageUtil::createQueueStorageImpl(mqbs::FileStore*        fs,
 
     if (0 != addVirtualStoragesInternal(rs_sp.get(),
                                         appIdKeyPairs,
-                                        bsl::string(fs->description()),
+                                        fs->description(),
                                         domainCfg->mode().isFanoutValue())) {
         // Discard
         rs_sp.reset();
@@ -3038,7 +3038,7 @@ void StorageUtil::updateQueueStorageDispatched(
     StorageSpMap*           storageMap,
     bslmt::Mutex*           storagesLock,
     mqbi::DomainFactory*    domainFactory,
-    const bsl::string&      description,
+    bsl::string_view        description,
     const bmqt::Uri&        uri,
     const mqbu::StorageKey& queueKey,
     const AppInfos&         appIdKeyPairs,
@@ -3781,7 +3781,7 @@ void StorageUtil::onDomain(const bmqp_ctrlmsg::Status& status,
                            mqbi::Domain*               domain,
                            mqbi::Domain**              out,
                            bslmt::Latch*               latch,
-                           const bsl::string&          description,
+                           const mqbs::FileStore*      fs,
                            const bsl::string&          domainName)
 {
     // executed by *ANY* thread
@@ -3789,13 +3789,15 @@ void StorageUtil::onDomain(const bmqp_ctrlmsg::Status& status,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(latch);
     BSLS_ASSERT_SAFE(out);
+    BSLS_ASSERT_SAFE(fs);
 
     if (bmqp_ctrlmsg::StatusCategory::E_SUCCESS != status.category()) {
         BSLS_ASSERT_SAFE(0 == domain);
         *out = 0;
 
-        BALL_LOG_ERROR << description << ": Failed to create domain for ["
-                       << domainName << "], reason: " << status;
+        BALL_LOG_ERROR << fs->description()
+                       << ": Failed to create domain for [" << domainName
+                       << "], reason: " << status;
     }
     else {
         BSLS_ASSERT_SAFE(domain);

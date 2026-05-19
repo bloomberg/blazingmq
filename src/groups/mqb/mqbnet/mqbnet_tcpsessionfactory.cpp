@@ -677,11 +677,11 @@ void TCPSessionFactory::initialConnectionComplete(
         // schedule channelStateCb/poolSessionStateCb/onClose/tearDown
         channel->close();
 
-        logOpenSessionTime(bsl::string(session->description()), channel);
+        logOpenSessionTime(session->description(), channel);
         return;  // RETURN
     }
 
-    logOpenSessionTime(bsl::string(session->description()), channel);
+    logOpenSessionTime(session->description(), channel);
 }
 
 void TCPSessionFactory::onSessionDestroyed(
@@ -950,7 +950,7 @@ void TCPSessionFactory::disableHeartbeat(const bmqio::Channel* channel_p)
 }
 
 void TCPSessionFactory::logOpenSessionTime(
-    const bsl::string&                     sessionDescription,
+    bsl::string_view                       sessionDescription,
     const bsl::shared_ptr<bmqio::Channel>& channel)
 {
     bsls::Types::Int64 begin = 0;

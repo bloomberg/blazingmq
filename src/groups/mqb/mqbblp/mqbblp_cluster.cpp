@@ -177,7 +177,7 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
     // Start a StatMonitorSnapshotRecorder to track system stats during
     // recovery
     mqbstat::StatMonitorSnapshotRecorder statRecorder(
-        bsl::string(description()) + ": ",
+        bsl::string(description(), d_allocator_p) + ": ",
         d_allocator_p);
 
     // Get named allocator from associated bmqma::CountingAllocatorStore
@@ -2955,7 +2955,7 @@ void Cluster::onNodeStateChange(mqbnet::ClusterNode* node, bool isAvailable)
 void Cluster::onProxyConnectionUp(
     const bsl::shared_ptr<bmqio::Channel>& channel,
     const bmqp_ctrlmsg::ClientIdentity&    identity,
-    const bsl::string&                     description)
+    bsl::string_view                       description)
 {
     // executed by the *IO* thread
 
@@ -2964,7 +2964,7 @@ void Cluster::onProxyConnectionUp(
                              this,
                              channel,
                              identity,
-                             description),
+                             bsl::string(description, d_allocator_p)),
         this);
 }
 
@@ -3121,7 +3121,7 @@ void Cluster::loadClusterStatus(mqbcmd::ClusterResult* result)
     mqbcmd::ClusterStatus& clusterStatus = result->makeClusterStatus();
 
     clusterStatus.name()        = d_clusterData.identity().name();
-    clusterStatus.description() = bsl::string(description());
+    clusterStatus.description() = bsl::string(description(), d_allocator_p);
     clusterStatus.selfNodeDescription() =
         d_clusterData.membership().selfNode()->nodeDescription();
     clusterStatus.isHealthy() = d_clusterMonitor.isHealthy();

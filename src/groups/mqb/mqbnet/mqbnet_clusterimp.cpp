@@ -293,7 +293,7 @@ void ClusterImp::enableRead()
 void ClusterImp::onProxyConnectionUp(
     const bsl::shared_ptr<bmqio::Channel>& channel,
     const bmqp_ctrlmsg::ClientIdentity&    identity,
-    const bsl::string&                     description)
+    bsl::string_view                       description)
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
