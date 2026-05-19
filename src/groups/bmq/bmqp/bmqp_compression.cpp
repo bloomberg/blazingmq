@@ -133,7 +133,7 @@ struct ZLib {
 void* ZLib::zAllocate(void* opaque, unsigned int items, unsigned int size)
 {
     bslma::Allocator* allocator = static_cast<bslma::Allocator*>(opaque);
-    return allocator->allocate(items * size);
+    return allocator->allocate(static_cast<size_t>(items) * size);
 }
 
 void ZLib::zFree(void* opaque, void* address)
