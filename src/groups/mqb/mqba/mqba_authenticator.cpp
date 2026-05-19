@@ -29,6 +29,7 @@
 /// asynchronously.
 
 // MQB
+#include <mqba_authenticationclient.h>
 #include <mqbcfg_messages.h>
 #include <mqbnet_authenticationcontext.h>
 #include <mqbnet_initialconnectioncontext.h>
@@ -104,19 +105,6 @@ int Authenticator::onAuthenticationRequest(
         false);
 
     return rc;
-}
-
-int Authenticator::onAuthenticationResponse(
-    BSLA_MAYBE_UNUSED bsl::ostream& errorDescription,
-    BSLA_MAYBE_UNUSED mqbnet::InitialConnectionContext* context_p,
-    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::AuthenticationMessage&
-                            authenticationMsg)
-{
-    // executed by one of the *IO* threads
-
-    BALL_LOG_ERROR << "Not Implemented";
-
-    return -1;
 }
 
 int Authenticator::sendAuthenticationResponse(
@@ -485,12 +473,6 @@ int Authenticator::handleAuthentication(
                                      context_p,
                                      authenticationMsg);
     } break;  // BREAK
-    case bmqp_ctrlmsg::AuthenticationMessage::
-        SELECTION_ID_AUTHENTICATION_RESPONSE: {
-        rc = onAuthenticationResponse(errorDescription,
-                                      context_p,
-                                      authenticationMsg);
-    } break;  // BREAK
     default: {
         errorDescription
             << "Invalid authentication message received (unknown type): "
@@ -542,13 +524,22 @@ int Authenticator::handleReauthentication(
     return rc;
 }
 
-int Authenticator::authenticationOutbound(
-    BSLA_MAYBE_UNUSED bsl::ostream&                  errorDescription,
-    BSLA_MAYBE_UNUSED const AuthenticationContextSp& context)
+bool Authenticator::hasOutboundAuthentication() const
 {
-    BALL_LOG_ERROR << "Not Implemented";
+    return d_authnController_p->hasCredentialProvider();
+}
 
-    return -1;
+bsl::shared_ptr<mqbnet::AuthenticationClient>
+Authenticator::createAuthenticationClient(
+    const bsl::shared_ptr<bmqio::Channel>& channel,
+    bslma::Allocator*                      allocator) const
+{
+    return bsl::allocate_shared<AuthenticationClient>(
+        allocator,
+        d_authnController_p->credentialFunc(),
+        channel,
+        d_blobSpPool_p,
+        d_scheduler_p);
 }
 
 // ACCESSORS

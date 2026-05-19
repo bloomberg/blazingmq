@@ -28,6 +28,7 @@
 #include <mqbnet_authenticationcontext.h>
 
 // BMQ
+#include <bmqio_channel.h>
 #include <bmqp_ctrlmsg_messages.h>
 
 // BDE
@@ -40,6 +41,7 @@ namespace BloombergLP {
 namespace mqbnet {
 
 // FORWARD DECLARATION
+class AuthenticationClient;
 class InitialConnectionContext;
 
 // ===================
@@ -86,14 +88,15 @@ class Authenticator {
         const bsl::shared_ptr<AuthenticationContext>& context_sp,
         const bsl::shared_ptr<bmqio::Channel>&        channel) = 0;
 
-    /// Produce and send outbound authentication message with the specified
-    /// `context_sp`.  Return 0 on success, or a non-zero error code and
-    /// populate the specified `errorDescription` with a description of the
-    /// error otherwise.
-    /// TODO: Rethink the need for this method in the interface.
-    virtual int authenticationOutbound(
-        bsl::ostream&                                 errorDescription,
-        const bsl::shared_ptr<AuthenticationContext>& context_sp) = 0;
+    /// Return true if outbound authentication is configured for this host.
+    virtual bool hasOutboundAuthentication() const = 0;
+
+    /// Create and return a per-connection AuthenticationClient for the
+    /// specified outbound `channel` using the specified `allocator`.  The
+    /// behavior is undefined unless `hasOutboundAuthentication()` is true.
+    virtual bsl::shared_ptr<AuthenticationClient>
+    createAuthenticationClient(const bsl::shared_ptr<bmqio::Channel>& channel,
+                               bslma::Allocator* allocator) const = 0;
 
     // ACCESSORS
 
