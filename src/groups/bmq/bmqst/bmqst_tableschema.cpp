@@ -62,40 +62,44 @@ void defaultIdColumn(Value*                 value,
                      int                    level,
                      StatContext::ValueType type)
 {
-    bslstl::StringRef name;
-    if (type == StatContext::e_TOTAL_VALUE) {
-        if (context.hasName()) {
-            name = context.name();
-        }
-    }
-    else if (type == StatContext::e_DIRECT_VALUE) {
-        name = DIRECT_NAME;
-    }
-    else if (type == StatContext::e_EXPIRED_VALUE) {
-        name = EXPIRED_NAME;
-    }
-    else {
-        name = UNKNOWN_NAME;
-    }
-
-    char idBuf[64];
-    if (name.isEmpty()) {
-        // Must be Id
-        sprintf(idBuf, "%lld", context.id());
-        name = idBuf;
-    }
-
     bdlma::LocalSequentialAllocator<128> seqAlloc;
 
     bsl::string storage(&seqAlloc);
+    storage.reserve(2 * level + 32 + 2);
 
+    // 1. Indentation
     storage.assign(2 * level, ' ');
+
+    // 2. Open quote (optional)
     if (context.isDeleted()) {
-        storage.append(1, '(');
+        storage += '(';
     }
-    storage.append(name.begin(), name.end());
+
+    // 3. Context name
+    switch (type) {
+    case StatContext::e_TOTAL_VALUE: BSLA_FALLTHROUGH;
+    case StatContext::e_ACTIVE_CHILDREN_TOTAL_VALUE: {
+        if (context.hasName()) {
+            storage += context.name();
+        }
+        else {
+            storage += bsl::to_string(context.id());
+        }
+    } break;
+    case StatContext::e_DIRECT_VALUE: {
+        storage += DIRECT_NAME;
+    } break;
+    case StatContext::e_EXPIRED_VALUE: {
+        storage += EXPIRED_NAME;
+    } break;
+    default: {
+        storage += UNKNOWN_NAME;
+    } break;
+    }
+
+    // 4. Close quote (optional)
     if (context.isDeleted()) {
-        storage.append(1, ')');
+        storage += ')';
     }
 
     value->set(storage);
