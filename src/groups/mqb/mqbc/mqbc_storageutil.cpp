@@ -1261,7 +1261,7 @@ bool StorageUtil::validatePartitionSyncEvent(
                 << clusterData.identity().description()
                 << ": Received partition-sync event from node with "
                 << source->nodeDescription()
-                << " with different partitionIds: " << partitionId << "vs "
+                << " with different partitionIds: " << partitionId << " vs "
                 << header.partitionId() << ". Ignoring this entire event."
                 << BMQTSK_ALARMLOG_END;
             return false;  // RETURN

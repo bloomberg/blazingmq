@@ -614,7 +614,7 @@ int PutMessageIterator::next()
     const int length = compressedApplicationDataSize();
 
     // Validation: 'length' is an unpadded application data size, with
-    // substracted size of the padding bytes section.
+    // subtracted size of the padding bytes section.
     //: o Negative 'length' is a sign that packet is malformed.
     //: o Zero 'length' is not supported.
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(length <= 0)) {
