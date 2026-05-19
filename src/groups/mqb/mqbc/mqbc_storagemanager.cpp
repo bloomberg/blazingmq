@@ -3901,18 +3901,6 @@ int StorageManager::start(bsl::ostream& errorDescription)
         return rc * 10 + rc_NOT_ENOUGH_DISK_SPACE;  // RETURN
     }
 
-    // Schedule a periodic event (every minute) which monitors storage
-    // (disk space, archive clean up, etc).
-    d_clusterData_p->scheduler().scheduleRecurringEvent(
-        &d_storageMonitorEventHandle,
-        bsls::TimeInterval(bdlt::TimeUnitRatio::k_SECONDS_PER_MINUTE),
-        bdlf::BindUtil::bind(&StorageUtil::storageMonitorCb,
-                             &d_lowDiskspaceWarning,
-                             &d_isStarted,
-                             d_minimumRequiredDiskSpace,
-                             d_clusterData_p->identity().description(),
-                             d_clusterConfig.partitionConfig()));
-
     rc = StorageUtil::assignPartitionDispatcherThreads(
         &d_miscWorkThreadPool,
         d_clusterData_p,
@@ -3982,6 +3970,18 @@ int StorageManager::start(bsl::ostream& errorDescription)
                                          this,
                                          static_cast<int>(i)));  // partitionId
     }
+
+    // Schedule a periodic event (every minute) which monitors storage
+    // (disk space, archive clean up, etc).
+    d_clusterData_p->scheduler().scheduleRecurringEvent(
+        &d_storageMonitorEventHandle,
+        bsls::TimeInterval(bdlt::TimeUnitRatio::k_SECONDS_PER_MINUTE),
+        bdlf::BindUtil::bind(&StorageUtil::storageMonitorCb,
+                             &d_lowDiskspaceWarning,
+                             &d_isStarted,
+                             d_minimumRequiredDiskSpace,
+                             d_clusterData_p->identity().description(),
+                             d_clusterConfig.partitionConfig()));
 
     d_isStarted = true;
     return rc_SUCCESS;
