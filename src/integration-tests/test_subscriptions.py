@@ -389,16 +389,25 @@ class Consumer:
         return self._client.list(self._uri, block=True)
 
     def expect_messages(
-        self, expected: List[str], confirm: bool, timeout: Optional[float] = 2
+        self,
+        expected: List[str],
+        confirm: bool,
+        timeout: Optional[float] = 2,
+        ordered: bool = True,
     ) -> None:
         """
         Wait for the specified 'expected' message payloads and ensure fail if
         observed message payloads are not the same as expected.  Confirm all
         unconfirmed messages after check if the specified 'confirm' flag is True.
+        If the specified 'ordered' flag is False, the order of messages is not
+        checked.
         """
         msgs = self.wait_for_messages(len(expected), timeout)
         payloads = [message.payload for message in msgs]
-        assert payloads == expected
+        if ordered:
+            assert payloads == expected
+        else:
+            assert sorted(payloads) == sorted(expected)
 
         if confirm:
             self.confirm_all()
@@ -1852,8 +1861,8 @@ def test_redelivery_on_primary_node_crash(
     # Used for synchronization.
     Consumer(multi_node, uri, ["x > 100000"])
 
-    consumer_low1.expect_messages(expected1, confirm=True)
-    consumer_low2.expect_messages(expected2, confirm=True)
+    consumer_low1.expect_messages(expected1, confirm=True, ordered=False)
+    consumer_low2.expect_messages(expected2, confirm=True, ordered=False)
 
     expected1 = producer.post_diff(num=10, offset=-200)
     expected2 = producer.post_diff(num=10, offset=200)
