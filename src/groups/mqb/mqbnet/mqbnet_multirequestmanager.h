@@ -496,7 +496,7 @@ void MultiRequestManager<REQUEST, RESPONSE, TARGET>::sendRequest(
         bmqt::GenericResult::Enum sendRc = d_requestManager_p->sendRequest(
             singleRequestCtx,
             sendFn(it->first),
-            targetDescription(it->first),
+            bsl::string(targetDescription(it->first)),
             timeout,
             &errorDescription);
         if (bmqt::GenericResult::e_SUCCESS != sendRc) {
