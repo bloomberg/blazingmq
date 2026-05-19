@@ -1056,7 +1056,16 @@ inline const bsl::string&
 MessageProperties::getPropertyAsStringOr(bsl::string_view   name,
                                          const bsl::string& value) const
 {
-    return getPropertyOr(name, value);
+    PropertyMapIter it = findProperty(name);
+    if (it == d_properties.end()) {
+        return value;
+    }
+
+    const PropertyVariant& v = getPropertyValueAsString(it->second);
+
+    BSLS_ASSERT(v.is<bsl::string>() && "Property data type mismatch");
+
+    return v.the<bsl::string>();
 }
 
 inline const bsl::vector<char>&
