@@ -3014,15 +3014,32 @@ void StorageManager::do_cleanupMetadata(const EventWithData& event)
                      d_partitionFSMVec[partitionId]->state() ==
                          PartitionFSM::State::e_STOPPED);
 
+    d_nodeToPSNCtxMapVec[partitionId].clear();
+    d_numReplicaDataResponsesReceivedVec[partitionId] = 0;
+    d_recoveryManager_mp->resetReceiveDataCtx(partitionId);
+}
+
+void StorageManager::do_clearPrimary(const EventWithData& event)
+{
+    // executed by the *QUEUE DISPATCHER* thread associated with the
+    // paritionId contained in 'event'
+
+    const EventData& eventDataVec = event.second;
+    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+
+    const PartitionFSMEventData& eventData   = eventDataVec[0];
+    const int                    partitionId = eventData.partitionId();
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
+
     StorageUtil::clearPrimaryForPartition(
         d_fileStores[partitionId].get(),
         &d_partitionInfoVec[partitionId],
         d_clusterData_p->identity().description(),
         partitionId);
-
-    d_nodeToPSNCtxMapVec[partitionId].clear();
-    d_numReplicaDataResponsesReceivedVec[partitionId] = 0;
-    d_recoveryManager_mp->resetReceiveDataCtx(partitionId);
 }
 
 void StorageManager::do_cancelRequests(const EventWithData& event)

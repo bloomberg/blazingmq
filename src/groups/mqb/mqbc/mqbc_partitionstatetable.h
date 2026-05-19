@@ -319,6 +319,8 @@ class PartitionStateTableActions {
     virtual void do_cleanupMetadata(const ARGS& args) = 0;
 
     virtual void do_cancelRequests(const ARGS& args) = 0;
+    
+    virtual void do_clearPrimary(const ARGS& args) = 0;
 
     virtual void do_setExpectedDataChunkRange(const ARGS& args) = 0;
 
@@ -360,7 +362,14 @@ class PartitionStateTableActions {
         const ARGS& args);
 
     void
+    do_startWatchdog_openRecoveryFileSet_storeSelfSeq_replicaStateRequest_checkQuorumSeq(
+        const ARGS& args);
+
+    void
     do_setPrimary_startWatchdog_openRecoveryFileSet_storeSelfSeq_primaryStateRequest(
+        const ARGS& args);
+
+    void do_startWatchdog_openRecoveryFileSet_storeSelfSeq_primaryStateRequest(
         const ARGS& args);
 
     void
@@ -373,11 +382,17 @@ class PartitionStateTableActions {
     void
     do_cleanupMetadata_closeRecoveryFileSet_stopWatchdog(const ARGS& args);
 
-    void do_cleanupMetadata_closeRecoveryFileSet_stopWatchdog_reapplyEvent(
+    void do_cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog(
+        const ARGS& args);
+
+    void
+    do_cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_reapplyEvent(
         const ARGS& args);
 
     void
     do_cleanupMetadata_closeRecoveryFileSet_reapplyEvent(const ARGS& args);
+
+    void do_cleanupMetadata_clearPrimary_reapplyEvent(const ARGS& args);
 
     void do_cleanupMetadata_closeRecoveryFileSet_stopWatchdog_cancelRequests(
         const ARGS& args);
@@ -491,7 +506,7 @@ class PartitionStateTable
         PST_CFG(
             UNKNOWN,
             REAPPLY_SELF_PRIMARY,
-            setPrimary_startWatchdog_openRecoveryFileSet_storeSelfSeq_replicaStateRequest_checkQuorumSeq,
+            startWatchdog_openRecoveryFileSet_storeSelfSeq_replicaStateRequest_checkQuorumSeq,
             PRIMARY_HEALING_STG1);
         PST_CFG(
             UNKNOWN,
@@ -501,7 +516,7 @@ class PartitionStateTable
         PST_CFG(
             UNKNOWN,
             REAPPLY_SELF_REPLICA,
-            setPrimary_startWatchdog_openRecoveryFileSet_storeSelfSeq_primaryStateRequest,
+            startWatchdog_openRecoveryFileSet_storeSelfSeq_primaryStateRequest,
             REPLICA_WAITING);
         PST_CFG(UNKNOWN,
                 PRIMARY_STATE_RQST,
@@ -550,7 +565,7 @@ class PartitionStateTable
         PST_CFG(
             PRIMARY_HEALING_STG1,
             STOP_NODE,
-            cleanupMetadata_closeRecoveryFileSet_stopWatchdog_cancelRequests,
+                cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests,
             STOPPED);
         PST_CFG(
             PRIMARY_HEALING_STG1,
@@ -614,7 +629,7 @@ class PartitionStateTable
         PST_CFG(
             PRIMARY_HEALING_STG2,
             RST_UNKNOWN,
-            cleanupMetadata_closeRecoveryFileSet_stopWatchdog_cancelRequests,
+                cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests,
             UNKNOWN);
         PST_CFG(PRIMARY_HEALING_STG2,
                 WATCHDOG,
@@ -623,17 +638,17 @@ class PartitionStateTable
         PST_CFG(
             PRIMARY_HEALING_STG2,
             STOP_NODE,
-            cleanupMetadata_closeRecoveryFileSet_stopWatchdog_cancelRequests,
+                cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests,
             STOPPED);
         PST_CFG(
             REPLICA_WAITING,
             DETECT_SELF_PRIMARY,
-            cleanupMetadata_closeRecoveryFileSet_stopWatchdog_cancelRequests_reapplyEvent,
+            cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests_reapplyEvent,
             UNKNOWN);
         PST_CFG(
             REPLICA_WAITING,
             DETECT_SELF_REPLICA,
-            cleanupMetadata_closeRecoveryFileSet_stopWatchdog_cancelRequests_reapplyEvent,
+            cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests_reapplyEvent,
             UNKNOWN);
         PST_CFG(
             REPLICA_WAITING,
@@ -673,12 +688,12 @@ class PartitionStateTable
         PST_CFG(
             REPLICA_HEALING,
             DETECT_SELF_PRIMARY,
-            cleanupMetadata_closeRecoveryFileSet_stopWatchdog_cancelRequests_reapplyEvent,
+            cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests_reapplyEvent,
             UNKNOWN);
         PST_CFG(
             REPLICA_HEALING,
             DETECT_SELF_REPLICA,
-            cleanupMetadata_closeRecoveryFileSet_stopWatchdog_cancelRequests_reapplyEvent,
+            cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests_reapplyEvent,
             UNKNOWN);
         PST_CFG(
             REPLICA_HEALING,
@@ -740,7 +755,7 @@ class PartitionStateTable
         PST_CFG(
             REPLICA_HEALING,
             RST_UNKNOWN,
-            cleanupMetadata_closeRecoveryFileSet_stopWatchdog_cancelRequests,
+                cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests,
             UNKNOWN);
         PST_CFG(REPLICA_HEALING,
                 WATCHDOG,
@@ -749,15 +764,15 @@ class PartitionStateTable
         PST_CFG(
             REPLICA_HEALING,
             STOP_NODE,
-            cleanupMetadata_closeRecoveryFileSet_stopWatchdog_cancelRequests,
+                cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests,
             STOPPED);
         PST_CFG(REPLICA_HEALED,
                 DETECT_SELF_PRIMARY,
-                cleanupMetadata_reapplyEvent,
+                cleanupMetadata_clearPrimary_reapplyEvent,
                 UNKNOWN);
         PST_CFG(REPLICA_HEALED,
                 DETECT_SELF_REPLICA,
-                cleanupMetadata_reapplyEvent,
+                cleanupMetadata_clearPrimary_reapplyEvent,
                 UNKNOWN);
         PST_CFG(REPLICA_HEALED,
                 REAPPLY_SELF_REPLICA,
@@ -874,6 +889,18 @@ void PartitionStateTableActions<ARGS>::
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
+    do_startWatchdog_openRecoveryFileSet_storeSelfSeq_replicaStateRequest_checkQuorumSeq(
+        const ARGS& args)
+{
+    do_startWatchdog(args);
+    do_openRecoveryFileSet(args);
+    do_storeSelfSeq(args);
+    do_replicaStateRequest(args);
+    do_checkQuorumSeq(args);
+}
+
+template <typename ARGS>
+void PartitionStateTableActions<ARGS>::
     do_setPrimary_startWatchdog_openRecoveryFileSet_storeSelfSeq_replicaStateRequest_checkQuorumSeq(
         const ARGS& args)
 {
@@ -891,6 +918,17 @@ void PartitionStateTableActions<ARGS>::
         const ARGS& args)
 {
     do_setPrimary(args);
+    do_startWatchdog(args);
+    do_openRecoveryFileSet(args);
+    do_storeSelfSeq(args);
+    do_primaryStateRequest(args);
+}
+
+template <typename ARGS>
+void PartitionStateTableActions<ARGS>::
+    do_startWatchdog_openRecoveryFileSet_storeSelfSeq_primaryStateRequest(
+        const ARGS& args)
+{
     do_startWatchdog(args);
     do_openRecoveryFileSet(args);
     do_storeSelfSeq(args);
@@ -933,10 +971,22 @@ void PartitionStateTableActions<ARGS>::
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_cleanupMetadata_closeRecoveryFileSet_stopWatchdog_reapplyEvent(
+    do_cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog(
         const ARGS& args)
 {
     do_cleanupMetadata(args);
+    do_clearPrimary(args);
+    do_closeRecoveryFileSet(args);
+    do_stopWatchdog(args);
+}
+
+template <typename ARGS>
+void PartitionStateTableActions<ARGS>::
+    do_cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_reapplyEvent(
+        const ARGS& args)
+{
+    do_cleanupMetadata(args);
+    do_clearPrimary(args);
     do_closeRecoveryFileSet(args);
     do_stopWatchdog(args);
     do_reapplyEvent(args);
@@ -972,6 +1022,15 @@ void PartitionStateTableActions<ARGS>::do_cleanupMetadata_reapplyEvent(
     const ARGS& args)
 {
     do_cleanupMetadata(args);
+    do_reapplyEvent(args);
+}
+
+template <typename ARGS>
+void PartitionStateTableActions<
+    ARGS>::do_cleanupMetadata_clearPrimary_reapplyEvent(const ARGS& args)
+{
+    do_cleanupMetadata(args);
+    do_clearPrimary(args);
     do_reapplyEvent(args);
 }
 
