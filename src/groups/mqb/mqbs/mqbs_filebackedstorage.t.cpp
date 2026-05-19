@@ -393,7 +393,7 @@ class MockDataStore : public mqbs::DataStore {
 
     int open(QueueKeyInfoMap*) BSLS_KEYWORD_OVERRIDE { return 0; }
 
-    void close(bool, bool) BSLS_KEYWORD_OVERRIDE {}
+    int close(bool, bool) BSLS_KEYWORD_OVERRIDE { return 0; }
 
     void createStorage(bsl::shared_ptr<mqbs::ReplicatedStorage>*,
                        const bmqt::Uri&,

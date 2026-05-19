@@ -786,8 +786,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     /// Close this instance.  If the optional `flush` flag is true, flush
     /// the data store to disk.  If the optional `archive` flag is true,
-    /// archive the data store.
-    void close(bool flush = false, bool archive = false) BSLS_KEYWORD_OVERRIDE;
+    /// archive the data store.  Return zero on success, non-zero value
+    /// otherwise.
+    int close(bool flush = false, bool archive = false) BSLS_KEYWORD_OVERRIDE;
 
     /// Create and load into the specified `storageSp` an instance of
     /// ReplicatedStorage for the queue having the specified `queueUri` and

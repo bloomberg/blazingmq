@@ -3332,8 +3332,9 @@ void StorageManager::do_removeStorageAndSendReplicaDataDropResponse(
 
     bool deprecateSuccess = false;
     if (fs->isOpen()) {
-        fs->close(false, true);  // flush, archive
-        deprecateSuccess = true;
+        if (0 == fs->close(false, true)) {  // flush, archive
+            deprecateSuccess = true;
+        }
     }
     else {
         if (0 == d_recoveryManager_mp->deprecateFileSet(partitionId)) {
