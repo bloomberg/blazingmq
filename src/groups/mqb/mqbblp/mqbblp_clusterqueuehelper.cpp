@@ -1180,6 +1180,8 @@ void ClusterQueueHelper::sendOpenQueueRequest(
         bmqp::QueueUtil::mergeHandleParameters(&subQueueContext.d_parameters,
                                                context->d_handleParameters);
         ++subQueueContext.d_numOpenRequestsInFlight;
+
+        subQueueContext.d_generationCount = currentGenCount(pid);
     }
     else {
         // Put back the context to the pending list so that it will get
@@ -1251,11 +1253,16 @@ bmqt::GenericResult::Enum ClusterQueueHelper::sendReopenQueueRequest(
         rc = d_cluster_p->sendRequest(request, activeNode, timeoutMs);
     }
     if (rc == bmqt::GenericResult::e_SUCCESS) {
+        const bsls::Types::Uint64 generationCount = cycle->generationCount();
+
         // Wait for 'onReopenQueueResponse' to decrement
         // 'd_numPendingReopenQueueRequests'
         BMQ_LOGTHROTTLE_INFO << "Sent ReopenQueue request "
-                             << request->request();
+                             << request->request() << " generationCount "
+                             << generationCount;
         subQueueContext->d_state = SubQueueContext::k_REOPENING;
+        subQueueContext->d_generationCount = generationCount;
+
         ++queueContext->d_liveQInfo.d_numReopenQueueRequests;
     }
     else {
@@ -2124,18 +2131,10 @@ bool ClusterQueueHelper::createQueue(
                 !bmqt::QueueFlagsUtil::isReader(parameters.flags())) {
                 // Writer's configure request gets optimized out so notify the
                 // queue now.
-                bsls::Types::Uint64 genCount;
 
-                if (!d_cluster_p->isRemote()) {
-                    genCount =
-                        d_clusterState_p->partition(pid).primaryLeaseId();
-                }
-                else {
-                    genCount = d_clusterData_p->electorInfo().electorTerm();
-                }
                 notifyQueue(queueContext,
                             bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID,
-                            genCount,
+                            currentGenCount(pid),
                             true,   // isOpen
                             true);  // isWriterOnly
             }
@@ -4026,15 +4025,28 @@ bmqt::GenericResult::Enum ClusterQueueHelper::restoreStateHelper(
             return bmqt::GenericResult::e_INVALID_ARGUMENT;  // RETURN
         }
 
-        if (subQueueContext.d_state == SubQueueContext::k_REOPENING) {
-            if (subQueueContext.d_generationCount == generationCount) {
+        if (subQueueContext.d_generationCount == generationCount) {
+            if (subQueueContext.d_state == SubQueueContext::k_REOPENING) {
                 // Wait for the pending response
+                BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                                     << ": Not sending ReopenQueue request to "
+                                     << activeNode->nodeDescription()
+                                     << "[parameters: " << parameters
+                                     << ", reason: the state is REOPENING]";
                 continue;  // CONTINUE
             }
-            // else will send new request and drop the pending response
+            if (subQueueContext.d_state == SubQueueContext::k_OPEN) {
+                BMQ_LOGTHROTTLE_INFO
+                    << d_cluster_p->description()
+                    << ": Not sending ReopenQueue request to "
+                    << activeNode->nodeDescription()
+                    << "[parameters: " << parameters
+                    << ", reason: the generationCount is the same]";
+                continue;  // CONTINUE
+            }
         }
+        // else will send new request and drop the pending response
 
-        subQueueContext.d_generationCount = generationCount;
         setAsClosed(&subQueueContext);
 
         // All pending Open requests must be cancelled by 'cancelAllRequests'
