@@ -905,6 +905,46 @@ static void test5_streamInTest()
     BMQTST_ASSERT_EQ((p.totalSize() + padding), wireRep.length());
 
     verify(&pmap, p);
+
+    // Verify that string accessors work after 'streamIn' with contiguous blob
+    // data.  A large buffer forces 'streamInPropertyValue' to store strings as
+    // 'bsl::string_view'; the accessors must convert before returning.
+    {
+        PV("Testing 'getPropertyAsString' after 'streamIn' (contiguous)");
+
+        bdlbb::PooledBlobBufferFactory bigFactory(
+            4096,
+            bmqtst::TestHelperUtil::allocator());
+        bmqp::MessageProperties src(bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT_EQ(0, src.setPropertyAsString("tableName", "mytable"));
+
+        const bdlbb::Blob& wire = src.streamOut(&bigFactory, logic);
+
+        bmqp::MessageProperties dst(bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT_EQ(0, dst.streamIn(wire, logic.isExtended()));
+
+        BMQTST_ASSERT_EQ(dst.getPropertyAsString("tableName"), "mytable");
+    }
+
+    {
+        PV("Testing 'getPropertyAsStringOr' after 'streamIn' (contiguous)");
+
+        bdlbb::PooledBlobBufferFactory bigFactory(
+            4096,
+            bmqtst::TestHelperUtil::allocator());
+        bmqp::MessageProperties src(bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT_EQ(0, src.setPropertyAsString("tableName", "mytable"));
+
+        const bdlbb::Blob& wire = src.streamOut(&bigFactory, logic);
+
+        bmqp::MessageProperties dst(bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT_EQ(0, dst.streamIn(wire, logic.isExtended()));
+
+        BMQTST_ASSERT_EQ(dst.getPropertyAsStringOr("tableName", ""),
+                         "mytable");
+        BMQTST_ASSERT_EQ(dst.getPropertyAsStringOr("noSuchProp", "fallback"),
+                         "fallback");
+    }
 }
 
 static void test6_streamOutTest()
