@@ -942,8 +942,8 @@ void StorageManager::primaryRemoveStorageImpl(int partitionId)
     if (rc != 0) {
         BMQTSK_ALARMLOG_ALARM("FILE_IO")
             << d_clusterData_p->identity().description() << " Partition ["
-            << partitionId << "]: "
-            << "Error while creating recovery file set, rc: " << rc
+            << partitionId
+            << "]: " << "Error while creating recovery file set, rc: " << rc
             << ", error: " << errorDesc.str() << BMQTSK_ALARMLOG_END;
 
         mqbu::ExitUtil::terminate(mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
@@ -2860,9 +2860,9 @@ void StorageManager::do_sendDataToPrimary(const EventWithData& event)
     if (PSNCit != highestPSNs.end() &&
         beginSeqNum.sequenceNumber() > PSNCit->second) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << " Partition [" << partitionId << "]: "
-                      << "Primary " << destNode->nodeDescription()
-                      << " has PSN " << mqbs::printPSN(beginSeqNum)
+                      << " Partition [" << partitionId << "]: " << "Primary "
+                      << destNode->nodeDescription() << " has PSN "
+                      << mqbs::printPSN(beginSeqNum)
                       << ", while the highest PSN for the same lease ID is "
                       << mqbs::printPSN(PSNCit->first, PSNCit->second)
                       << ", implying that primary has irreconcilable "
@@ -3505,8 +3505,8 @@ void StorageManager::do_primaryRemoveStorage(const EventWithData& event)
     BSLS_ASSERT_SAFE(highestSeqNumNode);
 
     BALL_LOG_WARN << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
-                  << "Replica " << highestSeqNumNode->nodeDescription()
+                  << " Partition [" << partitionId << "]: " << "Replica "
+                  << highestSeqNumNode->nodeDescription()
                   << " reported irreconcilable data on self primary. "
                   << "Removing entire storage and requesting it from replica.";
 
