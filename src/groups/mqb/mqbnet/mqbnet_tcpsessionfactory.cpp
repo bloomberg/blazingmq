@@ -30,6 +30,7 @@
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
 #include <mqbcfg_tcpinterfaceconfigvalidator.h>
+#include <mqbnet_authenticationclient.h>
 #include <mqbnet_authenticationcontext.h>
 #include <mqbnet_authenticator.h>
 #include <mqbnet_cluster.h>
@@ -80,6 +81,7 @@
 #include <bsl_iostream.h>
 #include <bsl_limits.h>
 #include <bsl_memory.h>
+#include <bsl_string_view.h>
 #include <bsl_utility.h>
 #include <bsl_vector.h>
 #include <bsla_annotations.h>
@@ -342,6 +344,84 @@ struct ChannelFactoryBuilders {
     }
 };
 
+/// Process a reauthentication response received on an outbound connection.
+/// Forwards the specified `message` to the specified `authClient` for
+/// handling.  Log using the specified `channel` and `description`.
+void handleOutboundReauthentication(
+    const bmqp_ctrlmsg::AuthenticationMessage&   message,
+    const bsl::shared_ptr<AuthenticationClient>& authClient,
+    const bsl::shared_ptr<bmqio::Channel>&       channel,
+    const bsl::string_view&                      description,
+    bslma::Allocator*                            allocator)
+{
+    // executed by the *IO* thread
+
+    BSLS_ASSERT_SAFE(authClient);
+
+    BALL_LOG_INFO << description
+                  << ": Received outbound reauthentication response"
+                  << " [peer: " << channel.get() << "]";
+
+    bmqu::MemOutStream errorStream(allocator);
+    int                rc = authClient->handleResponse(errorStream, message);
+    if (rc != 0) {
+        BALL_LOG_ERROR << "#AUTHENTICATION_FAILED " << description
+                       << ": Outbound reauthentication failed"
+                       << " [peer: " << channel.get() << "] [reason: '"
+                       << errorStream.str() << "', rc: " << rc << "]";
+    }
+}
+
+/// Process a reauthentication request received on an inbound connection.
+/// Store the specified `message` and `encodingType` on the specified
+/// `context`, then invoke the specified `authenticator` to perform
+/// authentication.  Log using the specified `channel` and `description`.
+void handleInboundReauthentication(
+    const bmqp_ctrlmsg::AuthenticationMessage&    message,
+    bmqp::EncodingType::Enum                      encodingType,
+    const bsl::shared_ptr<AuthenticationContext>& context,
+    const bsl::shared_ptr<bmqio::Channel>&        channel,
+    const bsl::string_view&                       description,
+    Authenticator*                                authenticator,
+    bslma::Allocator*                             allocator)
+{
+    // executed by the *IO* thread
+
+    BSLS_ASSERT_SAFE(context);
+    BSLS_ASSERT_SAFE(authenticator);
+
+    BALL_LOG_INFO << description
+                  << ": Received inbound reauthentication request"
+                  << " [peer: " << channel.get() << "]";
+
+    context->setAuthenticationMessage(message);
+    context->setAuthenticationEncodingType(encodingType);
+
+    if (!context->tryStartReauthentication()) {
+        BALL_LOG_ERROR << "#CLIENT_IMPROPER_BEHAVIOR " << description
+                       << ": Dropping Authentication event since "
+                          "authentication is in progress"
+                       << " [peer: " << channel.get() << "]";
+        return;  // RETURN
+    }
+
+    bmqu::MemOutStream errorStream(allocator);
+    int                rc = authenticator->handleReauthentication(errorStream,
+                                                   context,
+                                                   channel);
+    if (rc != 0) {
+        bmqu::MemOutStream errStream(allocator);
+        errStream << "#AUTHENTICATION_FAILED " << description
+                  << ": Inbound reauthentication failed"
+                  << " [peer: " << channel.get() << "] [reason: '"
+                  << errorStream.str() << "', rc: " << rc << "]";
+        context->onReauthenticateErrorOrTimeout(rc,
+                                                "reauthenticationError",
+                                                errStream.str(),
+                                                channel);
+    }
+}
+
 }  // close unnamed namespace
 
 // -----------------------------------------
@@ -571,7 +651,7 @@ void TCPSessionFactory::read(ChannelInfo*       channelInfo,
     if (channelInfo->d_monitor_mp->checkData(channelInfo->d_channel_sp.get(),
                                              event)) {
         if (event.isAuthenticationEvent()) {
-            reauthnOnAuthenticationEvent(event, channelInfo);
+            handleAuthenticationEvent(event, channelInfo);
         }
         else {
             channelInfo->d_eventProcessor_p->processEvent(
@@ -691,12 +771,14 @@ void TCPSessionFactory::initialConnectionComplete(
             d_allocator_p,
             channel,
             initialConnectionContext_sp->authenticationContext(),
+            initialConnectionContext_sp->authenticationClient(),
             monitoredSession,
             initialConnectionContext_sp->negotiationContext()
                 ->eventProcessor(),
             initialConnectionContext_sp->negotiationContext()
                 ->maxMissedHeartbeats(),
-            d_initialMissedHeartbeatCounter);
+            d_initialMissedHeartbeatCounter,
+            initialConnectionContext_sp->isIncoming());
         // See comments in 'calculateInitialMissedHbCounter'.
 
         bsl::pair<bmqio::Channel*, ChannelInfoSp> toInsert(channel.get(),
@@ -1072,7 +1154,7 @@ int TCPSessionFactory::validateTcpInterfaces() const
     return validator(*d_config_mp);
 }
 
-void TCPSessionFactory::reauthnOnAuthenticationEvent(
+void TCPSessionFactory::handleAuthenticationEvent(
     const bmqp::Event& event,
     const ChannelInfo* channelInfo) const
 {
@@ -1080,55 +1162,37 @@ void TCPSessionFactory::reauthnOnAuthenticationEvent(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(channelInfo);
-    BSLS_ASSERT_SAFE(channelInfo->d_authenticationCtx_sp);
     BSLS_ASSERT_SAFE(channelInfo->d_session_sp);
 
-    const bsl::shared_ptr<AuthenticationContext>& context =
-        channelInfo->d_authenticationCtx_sp;
     const bsl::string_view description =
         channelInfo->d_session_sp->description();
-    bmqu::MemOutStream errStream(d_allocator_p);
 
     bmqp_ctrlmsg::AuthenticationMessage authenticationMessage;
     int rc = event.loadAuthenticationEvent(&authenticationMessage);
     if (rc != 0) {
         BALL_LOG_ERROR << "#CORRUPTED_EVENT " << description
                        << ": Received invalid authentication message "
-                          "from client [reason: 'failed to decode', rc: "
+                          "[reason: 'failed to decode', rc: "
                        << rc << "]:\n"
                        << bmqu::BlobStartHexDumper(event.blob());
         return;  // RETURN
     }
 
-    BALL_LOG_INFO << description << ": Received an authentication message";
-
-    context->setAuthenticationMessage(authenticationMessage);
-    context->setAuthenticationEncodingType(
-        event.authenticationEventEncodingType());
-
-    // Try to start reauthentication.  If another reauthentication is
-    // in progress, drop this event.
-    if (!context->tryStartReauthentication()) {
-        BALL_LOG_ERROR << "#CLIENT_IMPROPER_BEHAVIOR " << description
-                       << ": Dropping Authentication event since "
-                          "authentication is in progress: "
-                       << event;
-        return;  // RETURN
+    if (channelInfo->d_isIncoming) {
+        handleInboundReauthentication(authenticationMessage,
+                                      event.authenticationEventEncodingType(),
+                                      channelInfo->d_authenticationCtx_sp,
+                                      channelInfo->d_channel_sp,
+                                      description,
+                                      d_authenticator_p,
+                                      d_allocator_p);
     }
-
-    bmqu::MemOutStream errorStream;
-    rc = d_authenticator_p->handleReauthentication(errorStream,
-                                                   context,
-                                                   channelInfo->d_channel_sp);
-    if (rc != 0) {
-        errStream << "#AUTHENTICATION_FAILED " << description
-                  << ": Authentication failed [reason: '" << errorStream.str()
-                  << "', rc: " << rc << "]";
-        context->onReauthenticateErrorOrTimeout(rc,
-                                                "reauthenticationError",
-                                                errStream.str(),
-                                                channelInfo->d_channel_sp);
-        return;  // RETURN
+    else {
+        handleOutboundReauthentication(authenticationMessage,
+                                       channelInfo->d_authenticationClient_sp,
+                                       channelInfo->d_channel_sp,
+                                       description,
+                                       d_allocator_p);
     }
 }
 
@@ -1670,19 +1734,23 @@ bool TCPSessionFactory::isEndpointLoopback(bsl::string_view uri) const
 TCPSessionFactory::ChannelInfo::ChannelInfo(
     const bsl::shared_ptr<bmqio::Channel>&        channel_sp,
     const bsl::shared_ptr<AuthenticationContext>& authenticationContext,
+    const bsl::shared_ptr<AuthenticationClient>&  authenticationClient,
     const bsl::shared_ptr<Session>&               monitoredSession,
     SessionEventProcessor*                        eventProcessor,
     int                                           maxMissedHeartbeats,
     int               initialMissedHeartbeatCounter,
+    bool              isIncoming,
     bslma::Allocator* allocator)
 : d_channel_sp(channel_sp)
 , d_authenticationCtx_sp(authenticationContext)
+, d_authenticationClient_sp(authenticationClient)
 , d_session_sp(monitoredSession)
 , d_eventProcessor_p(eventProcessor)
 , d_monitor_mp(bslma::ManagedPtrUtil::allocateManaged<bmqp::HeartbeatMonitor>(
       allocator,
       maxMissedHeartbeats,
       initialMissedHeartbeatCounter))
+, d_isIncoming(isIncoming)
 {
     if (!d_eventProcessor_p) {
         // No eventProcessor was provided default to the negotiated session

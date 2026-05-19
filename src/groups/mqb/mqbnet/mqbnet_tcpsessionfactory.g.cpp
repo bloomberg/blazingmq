@@ -63,6 +63,13 @@ class MockAuthenticator : public mqbnet::Authenticator {
         int(bsl::ostream& errorDescription,
             const bsl::shared_ptr<mqbnet::AuthenticationContext>& context_sp));
 
+    MOCK_CONST_METHOD0(hasOutboundAuthentication, bool());
+
+    MOCK_CONST_METHOD2(createAuthenticationClient,
+                       bsl::shared_ptr<mqbnet::AuthenticationClient>(
+                           const bsl::shared_ptr<bmqio::Channel>& channel,
+                           bslma::Allocator*                      allocator));
+
     MOCK_CONST_METHOD0(anonymousCredential,
                        const bsl::optional<mqbcfg::Credential>&());
 };
