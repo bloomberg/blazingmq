@@ -794,6 +794,13 @@ int StatController::start(bsl::ostream& errorDescription)
         for (; factoryIt != pluginFactories.cend(); ++factoryIt) {
             mqbplug::StatConsumerPluginFactory* factory =
                 dynamic_cast<mqbplug::StatConsumerPluginFactory*>(*factoryIt);
+            if (!factory) {
+                BMQTSK_ALARMLOG_ALARM("#STATS")
+                    << "Not a StatConsumerPluginFactory [" << (*factoryIt)
+                    << "]" << BMQTSK_ALARMLOG_END;
+                continue;  // CONTINUE
+            }
+
             StatConsumerMp consumer = factory->create(ctxPtrMap,
                                                       d_commandProcessorFn,
                                                       d_bufferFactory_p,
