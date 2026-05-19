@@ -3373,10 +3373,10 @@ void FileStore::truncate(FileSet* fileSet)
 int FileStore::close(FileSet& fileSetRef, bool flush)
 {
     enum RcEnum {
-        rc_SUCCESS                  = 0,
-        rc_FLUSH_FAILURE            = -1,
-        rc_CLOSE_FAILURE            = -2,
-        rc_FLUSH_AND_CLOSE_FAILURES = -3
+        rc_SUCCESS               = 0,
+        rc_DATA_CLOSE_FAILURE    = -1,
+        rc_JOURNAL_CLOSE_FAILURE = -2,
+        rc_QLIST_CLOSE_FAILURE   = -3,
     };
 
     BALL_LOG_INFO_BLOCK
@@ -3386,9 +3386,11 @@ int FileStore::close(FileSet& fileSetRef, bool flush)
         d_config.print(BALL_LOG_OUTPUT_STREAM);
     }
 
-    int rcFinal = rc_SUCCESS;
-
     if (flush) {
+        // NOTE: Even if flush fails, we still want to continue to close the
+        // files.  Otherwise, we may end up with file descriptors getting
+        // leaked.
+
         BALL_LOG_INFO << partitionDesc() << "Flushing partition to disk.";
 
         bmqu::MemOutStream errorDesc;
@@ -3401,7 +3403,6 @@ int FileStore::close(FileSet& fileSetRef, bool flush)
                 << fileSetRef.d_dataFileName << "], error: " << errorDesc.str()
                 << BMQTSK_ALARMLOG_END;
             errorDesc.reset();
-            rcFinal = rc_FLUSH_FAILURE;
         }
 
         rc = FileSystemUtil::flush(fileSetRef.d_journalFile.mapping(),
@@ -3413,7 +3414,6 @@ int FileStore::close(FileSet& fileSetRef, bool flush)
                 << fileSetRef.d_journalFileName
                 << "], error: " << errorDesc.str() << BMQTSK_ALARMLOG_END;
             errorDesc.reset();
-            rcFinal = rc_FLUSH_FAILURE;
         }
 
         if (d_qListAware) {
@@ -3426,7 +3426,6 @@ int FileStore::close(FileSet& fileSetRef, bool flush)
                     << fileSetRef.d_qlistFileName
                     << "], error: " << errorDesc.str() << BMQTSK_ALARMLOG_END;
                 errorDesc.reset();
-                rcFinal = rc_FLUSH_FAILURE;
             }
         }
 
@@ -3439,8 +3438,7 @@ int FileStore::close(FileSet& fileSetRef, bool flush)
             << partitionDesc() << "Failed to close data file ["
             << fileSetRef.d_dataFileName << "], rc: " << rc
             << BMQTSK_ALARMLOG_END;
-        rcFinal = (rcFinal == rc_FLUSH_FAILURE) ? rc_FLUSH_AND_CLOSE_FAILURES
-                                                : rc_CLOSE_FAILURE;
+        return rc * 10 + rc_DATA_CLOSE_FAILURE;  // RETURN
     }
 
     rc = FileSystemUtil::close(&fileSetRef.d_journalFile);
@@ -3449,8 +3447,7 @@ int FileStore::close(FileSet& fileSetRef, bool flush)
             << partitionDesc() << "Failed to close journal file ["
             << fileSetRef.d_journalFileName << "], rc: " << rc
             << BMQTSK_ALARMLOG_END;
-        rcFinal = (rcFinal == rc_FLUSH_FAILURE) ? rc_FLUSH_AND_CLOSE_FAILURES
-                                                : rc_CLOSE_FAILURE;
+        return rc * 10 + rc_JOURNAL_CLOSE_FAILURE;  // RETURN
     }
 
     if (d_qListAware) {
@@ -3460,13 +3457,11 @@ int FileStore::close(FileSet& fileSetRef, bool flush)
                 << partitionDesc() << "Failed to close qlist file ["
                 << fileSetRef.d_qlistFileName << "], rc: " << rc
                 << BMQTSK_ALARMLOG_END;
-            rcFinal = (rcFinal == rc_FLUSH_FAILURE)
-                          ? rc_FLUSH_AND_CLOSE_FAILURES
-                          : rc_CLOSE_FAILURE;
+            return rc * 10 + rc_QLIST_CLOSE_FAILURE;  // RETURN
         }
     }
 
-    return rcFinal;
+    return rc_SUCCESS;
 }
 
 int FileStore::archive(FileSet* fileSet)
