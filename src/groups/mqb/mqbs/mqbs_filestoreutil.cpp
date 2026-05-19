@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <ball_log.h>
 #include <mqbs_filestoreutil.h>
 
 #include <mqbscm_version.h>
@@ -803,6 +804,67 @@ int FileStoreUtil::findFileSets(bsl::vector<FileStoreSet>* fileSets,
     return 0;
 }
 
+int FileStoreUtil::archiveFileSet(const bslstl::StringRef& dataFile,
+                                  const bslstl::StringRef& journalFile,
+                                  const bslstl::StringRef& qlistFile,
+                                  const bslstl::StringRef& archiveLocation,
+                                  bool                     qlistAware)
+{
+    enum RcEnum {
+        rc_SUCCESS              = 0,
+        rc_DATA_MOVE_FAILURE    = -1,
+        rc_JOURNAL_MOVE_FAILURE = -2,
+        rc_QLIST_MOVE_FAILURE   = -3
+    };
+
+    int rc = FileSystemUtil::move(dataFile, archiveLocation);
+    if (0 != rc) {
+        BMQTSK_ALARMLOG_ALARM("FILE_IO")
+            << "Failed to archive data file [" << dataFile << "] to location ["
+            << archiveLocation << "], rc: " << rc << BMQTSK_ALARMLOG_END;
+        return rc * 10 + rc_DATA_MOVE_FAILURE;  // RETURN
+    }
+    BALL_LOG_INFO << "Archived data file [" << dataFile << "] to location ["
+                  << archiveLocation << "]";
+
+    rc = FileSystemUtil::move(journalFile, archiveLocation);
+    if (0 != rc) {
+        BMQTSK_ALARMLOG_ALARM("FILE_IO")
+            << "Failed to archive journal file [" << journalFile
+            << "] to location [" << archiveLocation << "], rc: " << rc
+            << BMQTSK_ALARMLOG_END;
+        return rc * 10 + rc_JOURNAL_MOVE_FAILURE;  // RETURN
+    }
+    BALL_LOG_INFO << "Archived journal file [" << journalFile
+                  << "] to location [" << archiveLocation << "]";
+
+    if (qlistAware) {
+        rc = FileSystemUtil::move(qlistFile, archiveLocation);
+        if (0 != rc) {
+            BMQTSK_ALARMLOG_ALARM("FILE_IO")
+                << "Failed to archive qlist file [" << qlistFile
+                << "] to location [" << archiveLocation << "], rc: " << rc
+                << BMQTSK_ALARMLOG_END;
+            return rc * 10 + rc_QLIST_MOVE_FAILURE;  // RETURN
+        }
+        BALL_LOG_INFO << "Archived qlist file [" << qlistFile
+                      << "] to location [" << archiveLocation << "]";
+    }
+
+    return rc_SUCCESS;
+}
+
+int FileStoreUtil::archiveFileSet(const FileStoreSet&      fileSet,
+                                  const bslstl::StringRef& archiveLocation,
+                                  bool                     qlistAware)
+{
+    return archiveFileSet(fileSet.dataFile(),
+                          fileSet.journalFile(),
+                          fileSet.qlistFile(),
+                          archiveLocation,
+                          qlistAware);
+}
+
 void FileStoreUtil::deleteArchiveFiles(int                partitionId,
                                        const bsl::string& archiveLocation,
                                        int                maxArchivedFileSets,
@@ -1223,28 +1285,14 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
         }
 
         const FileStoreSet& archivingFileSet = fileSets[archivingIndices[i]];
-        rc = FileSystemUtil::move(archivingFileSet.dataFile(),
-                                  config.archiveLocation());
-        if (rc != 0) {
-            BALL_LOG_WARN << "Partition [" << partitionId << "]: Failed to "
-                          << "archive data file ["
-                          << archivingFileSet.dataFile() << "], rc: " << rc;
-        }
-
-        rc = FileSystemUtil::move(archivingFileSet.qlistFile(),
-                                  config.archiveLocation());
+        rc = FileStoreUtil::archiveFileSet(archivingFileSet.dataFile(),
+                                           archivingFileSet.journalFile(),
+                                           archivingFileSet.qlistFile(),
+                                           config.archiveLocation());
         if (0 != rc) {
             BALL_LOG_WARN << "Partition [" << partitionId << "]: Failed to "
-                          << "archive qlist file ["
-                          << archivingFileSet.qlistFile() << "], rc: " << rc;
-        }
-
-        rc = FileSystemUtil::move(archivingFileSet.journalFile(),
-                                  config.archiveLocation());
-        if (0 != rc) {
-            BALL_LOG_WARN << "Partition [" << partitionId << "]: Failed to "
-                          << "archive journal file ["
-                          << archivingFileSet.journalFile() << "], rc: " << rc;
+                          << "archive file set [" << archivingFileSet
+                          << "], rc: " << rc;
         }
     }
 

@@ -155,11 +155,9 @@ int RecoveryManager::deprecateFileSet(int partitionId)
     validatePartitionId(partitionId);
 
     enum rcEnum {
-        rc_SUCCESS              = 0,
-        rc_FD_CLOSE_FAILURE     = -1,
-        rc_JOURNAL_MOVE_FAILURE = -2,
-        rc_DATA_MOVE_FAILURE    = -3,
-        rc_QLIST_MOVE_FAILURE   = -4
+        rc_SUCCESS          = 0,
+        rc_FD_CLOSE_FAILURE = -1,
+        rc_MOVE_FAILURE     = -2
     };
 
     int rc = closeRecoveryFileSet(partitionId);
@@ -168,65 +166,11 @@ int RecoveryManager::deprecateFileSet(int partitionId)
     }
 
     RecoveryContext& recoveryCtx = d_recoveryContextVec[partitionId];
-    rc                           = mqbs::FileSystemUtil::move(
-        recoveryCtx.d_recoveryFileSet.journalFile(),
+    rc                           = mqbs::FileStoreUtil::archiveFileSet(
+        recoveryCtx.d_recoveryFileSet,
         d_dataStoreConfig.archiveLocation());
-    if (0 != rc) {
-        BMQTSK_ALARMLOG_ALARM("FILE_IO")
-            << d_clusterData.identity().description() << " Partition ["
-            << partitionId << "]: " << "Failed to move file ["
-            << recoveryCtx.d_recoveryFileSet.journalFile() << "] "
-            << "to location [" << d_dataStoreConfig.archiveLocation()
-            << "] rc: " << rc << BMQTSK_ALARMLOG_END;
-        return rc * 10 + rc_JOURNAL_MOVE_FAILURE;  // RETURN
-    }
-    else {
-        BALL_LOG_INFO << d_clusterData.identity().description()
-                      << " Partition [" << partitionId
-                      << "]: " << "Moved journal file ["
-                      << recoveryCtx.d_recoveryFileSet.journalFile()
-                      << "] to location ["
-                      << d_dataStoreConfig.archiveLocation() << "].";
-    }
-
-    rc = mqbs::FileSystemUtil::move(recoveryCtx.d_recoveryFileSet.dataFile(),
-                                    d_dataStoreConfig.archiveLocation());
-    if (0 != rc) {
-        BMQTSK_ALARMLOG_ALARM("FILE_IO")
-            << d_clusterData.identity().description() << " Partition ["
-            << partitionId << "]: " << "Failed to move file ["
-            << recoveryCtx.d_recoveryFileSet.dataFile() << "] "
-            << "to location [" << d_dataStoreConfig.archiveLocation()
-            << "] rc: " << rc << BMQTSK_ALARMLOG_END;
-        return rc * 10 + rc_DATA_MOVE_FAILURE;  // RETURN
-    }
-    else {
-        BALL_LOG_INFO << d_clusterData.identity().description()
-                      << " Partition [" << partitionId
-                      << "]: " << "Moved data file ["
-                      << recoveryCtx.d_recoveryFileSet.dataFile()
-                      << "] to location ["
-                      << d_dataStoreConfig.archiveLocation() << "].";
-    }
-
-    rc = mqbs::FileSystemUtil::move(recoveryCtx.d_recoveryFileSet.qlistFile(),
-                                    d_dataStoreConfig.archiveLocation());
-    if (0 != rc) {
-        BMQTSK_ALARMLOG_ALARM("FILE_IO")
-            << d_clusterData.identity().description() << " Partition ["
-            << partitionId << "]: " << "Failed to move file ["
-            << recoveryCtx.d_recoveryFileSet.qlistFile() << "] "
-            << "to location [" << d_dataStoreConfig.archiveLocation()
-            << "] rc: " << rc << BMQTSK_ALARMLOG_END;
-        return rc * 10 + rc_QLIST_MOVE_FAILURE;  // RETURN
-    }
-    else {
-        BALL_LOG_INFO << d_clusterData.identity().description()
-                      << " Partition [" << partitionId
-                      << "]: " << "Moved QList file ["
-                      << recoveryCtx.d_recoveryFileSet.qlistFile()
-                      << "] to location ["
-                      << d_dataStoreConfig.archiveLocation() << "].";
+    if (rc != 0) {
+        return rc * 10 + rc_MOVE_FAILURE;  // RETURN
     }
 
     return rc_SUCCESS;

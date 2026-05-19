@@ -3468,59 +3468,23 @@ int FileStore::archive(FileSet* fileSet)
 {
     enum rcEnum { rc_SUCCESS = 0, rc_FILE_MOVE_FAILURE = -1 };
 
-    int rcFinal = rc_SUCCESS;
-
-    int rc = FileSystemUtil::move(fileSet->d_dataFileName,
-                                  d_config.archiveLocation());
+    int rc = FileStoreUtil::archiveFileSet(fileSet->d_dataFileName,
+                                           fileSet->d_journalFileName,
+                                           fileSet->d_qlistFileName,
+                                           d_config.archiveLocation(),
+                                           d_qListAware);
     if (0 != rc) {
         BMQTSK_ALARMLOG_ALARM("FILE_IO")
-            << partitionDesc() << "Failed to move data file ["
-            << fileSet->d_dataFileName << "] " << "to location ["
-            << d_config.archiveLocation() << "] rc: " << rc
+            << partitionDesc() << "Failed to archive file set to location ["
+            << d_config.archiveLocation() << "], rc: " << rc
             << BMQTSK_ALARMLOG_END;
-        rcFinal = rc_FILE_MOVE_FAILURE;
-    }
-    else {
-        BALL_LOG_INFO << partitionDesc() << "Moved data file ["
-                      << fileSet->d_dataFileName << "] to location ["
-                      << d_config.archiveLocation() << "].";
+        return rc_FILE_MOVE_FAILURE;  // RETURN
     }
 
-    rc = FileSystemUtil::move(fileSet->d_journalFileName,
-                              d_config.archiveLocation());
-    if (0 != rc) {
-        BMQTSK_ALARMLOG_ALARM("FILE_IO")
-            << partitionDesc() << "Failed to move journal file ["
-            << fileSet->d_journalFileName << "] " << "to location ["
-            << d_config.archiveLocation() << "] rc: " << rc
-            << BMQTSK_ALARMLOG_END;
-        rcFinal = rc_FILE_MOVE_FAILURE;
-    }
-    else {
-        BALL_LOG_INFO << partitionDesc() << "Moved journal file ["
-                      << fileSet->d_journalFileName << "] to location ["
-                      << d_config.archiveLocation() << "].";
-    }
+    BALL_LOG_INFO << partitionDesc() << "Archived file set to location ["
+                  << d_config.archiveLocation() << "].";
 
-    if (d_qListAware) {
-        rc = FileSystemUtil::move(fileSet->d_qlistFileName,
-                                  d_config.archiveLocation());
-        if (0 != rc) {
-            BMQTSK_ALARMLOG_ALARM("FILE_IO")
-                << partitionDesc() << "Failed to move qlistfile ["
-                << fileSet->d_qlistFileName << "] " << "to location ["
-                << d_config.archiveLocation() << "] rc: " << rc
-                << BMQTSK_ALARMLOG_END;
-            rcFinal = rc_FILE_MOVE_FAILURE;
-        }
-        else {
-            BALL_LOG_INFO << partitionDesc() << "Moved qlist file ["
-                          << fileSet->d_qlistFileName << "] to location ["
-                          << d_config.archiveLocation() << "].";
-        }
-    }
-
-    return rcFinal;
+    return rc_SUCCESS;
 }
 
 void FileStore::gc(FileSet* fileSet)
@@ -3636,8 +3600,12 @@ void FileStore::gcWorkerDispatched(const bsl::shared_ptr<FileSet>& fileSet)
                                                          startTime);
 
     bsls::Types::Int64 archiveStartTime = bmqu::Time::highResolutionTimer();
-    rc                                  = archive(fileSet.get());
-    bsls::Types::Int64 archiveEndTime   = bmqu::Time::highResolutionTimer();
+    rc = FileStoreUtil::archiveFileSet(fileSet->d_dataFileName,
+                                       fileSet->d_journalFileName,
+                                       fileSet->d_qlistFileName,
+                                       d_config.archiveLocation(),
+                                       d_qListAware);
+    bsls::Types::Int64 archiveEndTime = bmqu::Time::highResolutionTimer();
     if (rc != 0) {
         BALL_LOG_ERROR << partitionDesc()
                        << "Failed to archive file set. Time taken: "
@@ -5457,7 +5425,12 @@ int FileStore::close(bool flush, bool archive)
         if (archive) {
             bsls::Types::Int64 archiveStartTime =
                 bmqu::Time::highResolutionTimer();
-            rc = FileStore::archive(activeFileSet);
+            rc = FileStoreUtil::archiveFileSet(
+                activeFileSet->d_dataFileName,
+                activeFileSet->d_journalFileName,
+                activeFileSet->d_qlistFileName,
+                d_config.archiveLocation(),
+                d_qListAware);
             if (rc != 0) {
                 BALL_LOG_ERROR << partitionDesc()
                                << "Failed to archive file set, rc: " << rc;

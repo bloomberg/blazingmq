@@ -25,6 +25,7 @@
 #include <mqbs_datafileiterator.h>
 #include <mqbs_filestoreprotocol.h>
 #include <mqbs_filestoreprotocolutil.h>
+#include <mqbs_filestoreutil.h>
 #include <mqbs_filesystemutil.h>
 #include <mqbs_journalfileiterator.h>
 #include <mqbs_offsetptr.h>
@@ -122,11 +123,7 @@ void movePartitionFiles(int                      partitionId,
     }
 
     for (unsigned int i = 0; i < fileSets.size(); ++i) {
-        BALL_LOG_INFO << "For Partition [" << partitionId
-                      << "], archiving file set: " << fileSets[i];
-        mqbs::FileSystemUtil::move(fileSets[i].dataFile(), archiveLocation);
-        mqbs::FileSystemUtil::move(fileSets[i].journalFile(), archiveLocation);
-        mqbs::FileSystemUtil::move(fileSets[i].qlistFile(), archiveLocation);
+        mqbs::FileStoreUtil::archiveFileSet(fileSets[i], archiveLocation);
     }
 }
 
@@ -1178,17 +1175,8 @@ void RecoveryManager::onStorageSyncResponseDispatched(
         }
         else {
             for (unsigned int i = 0; i < fileSets.size(); ++i) {
-                BALL_LOG_INFO << d_clusterData_p->identity().description()
-                              << ": For Partition [" << partitionId
-                              << "], archiving file set: " << fileSets[i];
-                mqbs::FileSystemUtil::move(
-                    fileSets[i].dataFile(),
-                    d_dataStoreConfig.archiveLocation());
-                mqbs::FileSystemUtil::move(
-                    fileSets[i].journalFile(),
-                    d_dataStoreConfig.archiveLocation());
-                mqbs::FileSystemUtil::move(
-                    fileSets[i].qlistFile(),
+                mqbs::FileStoreUtil::archiveFileSet(
+                    fileSets[i],
                     d_dataStoreConfig.archiveLocation());
             }
         }
