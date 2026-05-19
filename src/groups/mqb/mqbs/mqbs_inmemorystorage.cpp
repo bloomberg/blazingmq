@@ -47,14 +47,14 @@ const int k_GC_HISTORY_BATCH_SIZE = 1000;
 // ---------------------
 
 // CREATORS
-InMemoryStorage::InMemoryStorage(DataStore*              dataStore_p,
-                                 const bmqt::Uri&        uri,
-                                 const mqbu::StorageKey& queueKey,
-                                 mqbi::Domain*           domain,
-                                 int                     partitionId,
-                                 const mqbconfm::Domain& config,
-                                 mqbu::CapacityMeter*    parentCapacityMeter,
-                                 bslma::Allocator*       allocator,
+InMemoryStorage::InMemoryStorage(DataStore*                  dataStore_p,
+                                 const bmqt::Uri&            uri,
+                                 const mqbu::StorageKey&     queueKey,
+                                 mqbi::Domain*               domain,
+                                 int                         partitionId,
+                                 const mqbdomaincfg::Domain& config,
+                                 mqbu::CapacityMeter* parentCapacityMeter,
+                                 bslma::Allocator*    allocator,
                                  bmqma::CountingAllocatorStore* allocatorStore)
 : d_allocator_p(allocator)
 , d_store_p(dataStore_p)
@@ -100,10 +100,10 @@ InMemoryStorage::~InMemoryStorage()
 
 // MANIPULATORS
 //   (virtual mqbi::Storage)
-void InMemoryStorage::configure(const mqbconfm::Storage& config,
-                                const mqbconfm::Limits&  limits,
-                                bsls::Types::Int64       messageTtl,
-                                int                      maxDeliveryAttempts)
+void InMemoryStorage::configure(const mqbdomaincfg::Storage& config,
+                                const mqbdomaincfg::Limits&  limits,
+                                bsls::Types::Int64           messageTtl,
+                                int maxDeliveryAttempts)
 {
     d_config = config;
     d_capacityMeter.setLimits(limits.messages(), limits.bytes())
@@ -114,7 +114,7 @@ void InMemoryStorage::configure(const mqbconfm::Storage& config,
     d_virtualStorageCatalog.setDefaultRda(maxDeliveryAttempts);
 }
 
-void InMemoryStorage::setConsistency(const mqbconfm::Consistency& value)
+void InMemoryStorage::setConsistency(const mqbdomaincfg::Consistency& value)
 {
     if (value.isStrongValue()) {
         BALL_LOG_WARN << "Trying to configure strong consistency "

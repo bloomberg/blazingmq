@@ -21,7 +21,7 @@
 // See notes in mqba_clientsession.cpp with regards to shutdown handling.
 
 // MQB
-#include <mqbconfm_messages.h>
+#include <mqbdomaincfg_messages.h>
 #include <mqbi_cluster.h>
 #include <mqbi_dispatcher.h>
 #include <mqbi_queue.h>

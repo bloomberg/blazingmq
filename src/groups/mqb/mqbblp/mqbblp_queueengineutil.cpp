@@ -178,7 +178,7 @@ bool QueueEngineUtil::consumerAndProducerLimitsAreValid(
     bool              isValid = true;
     mqbi::QueueCounts counts  = queueState->consumerAndProducerCounts(
         handleParameters);
-    bsl::shared_ptr<const mqbconfm::Domain> domainConfig =
+    bsl::shared_ptr<const mqbdomaincfg::Domain> domainConfig =
         queueState->queue()->domain()->config();
 
     if (domainConfig->maxProducers() &&
@@ -1365,11 +1365,11 @@ Routers::Result QueueEngineUtil_AppState::selectConsumer(
 }
 
 int QueueEngineUtil_AppState::setSubscription(
-    const mqbconfm::Expression& value)
+    const mqbdomaincfg::Expression& value)
 {
     d_subcriptionExpression = value;
 
-    if (mqbconfm::ExpressionVersion::E_VERSION_1 == value.version()) {
+    if (mqbdomaincfg::ExpressionVersion::E_VERSION_1 == value.version()) {
         if (d_subcriptionExpression.text().length()) {
             int rc = d_appSubscription.d_evaluator.compile(
                 d_subcriptionExpression.text(),

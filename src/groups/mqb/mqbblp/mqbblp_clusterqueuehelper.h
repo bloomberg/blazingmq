@@ -34,7 +34,7 @@
 #include <mqbc_clusterstate.h>
 #include <mqbc_electorinfo.h>
 #include <mqbcfg_messages.h>
-#include <mqbconfm_messages.h>
+#include <mqbdomaincfg_messages.h>
 #include <mqbi_cluster.h>
 #include <mqbi_clusterstatemanager.h>
 #include <mqbi_domain.h>
@@ -889,7 +889,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     void match(bsl::vector<bsl::string>*          added,
                bsl::vector<bsl::string>*          removed,
                const mqbc::ClusterStateQueueInfo& state,
-               const mqbconfm::QueueMode&         domainConfig) const;
+               const mqbdomaincfg::QueueMode&     domainConfig) const;
 
     /// Respond to all pending OpenQueue requests with the specified
     /// `status`.

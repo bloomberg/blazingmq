@@ -28,7 +28,7 @@
 
 // MQB
 #include <mqbblp_queuesessionmanager.h>
-#include <mqbconfm_messages.h>
+#include <mqbdomaincfg_messages.h>
 #include <mqbi_dispatcher.h>
 #include <mqbi_domain.h>
 #include <mqbi_queue.h>

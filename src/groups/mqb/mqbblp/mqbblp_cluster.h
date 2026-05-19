@@ -34,7 +34,7 @@
 #include <mqbc_clusterstate.h>
 #include <mqbc_electorinfo.h>
 #include <mqbcfg_messages.h>
-#include <mqbconfm_messages.h>
+#include <mqbdomaincfg_messages.h>
 #include <mqbi_cluster.h>
 #include <mqbi_dispatcher.h>
 #include <mqbi_domain.h>
@@ -560,9 +560,9 @@ class Cluster : public mqbi::Cluster,
 
     /// Invoked whenever `domain` previously configured having `oldDefn` is
     /// reconfigured with `newDefn`.
-    void onDomainReconfigured(const mqbi::Domain&     domain,
-                              const mqbconfm::Domain& oldDefn,
-                              const mqbconfm::Domain& newDefn)
+    void onDomainReconfigured(const mqbi::Domain&         domain,
+                              const mqbdomaincfg::Domain& oldDefn,
+                              const mqbdomaincfg::Domain& newDefn)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Process the specified `command`, and load the result in the

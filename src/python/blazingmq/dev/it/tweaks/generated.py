@@ -1,4 +1,4 @@
-# Copyright 2024 Bloomberg Finance L.P.
+# Copyright 2026 Bloomberg Finance L.P.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,10 +23,10 @@ GENERATED CODE - DO NOT EDIT
 
 import decimal
 import typing
-from typing import Callable
+from typing import Callable, Union
 
 import blazingmq.schemas.mqbcfg
-import blazingmq.schemas.mqbconf
+import blazingmq.schemas.mqbdomaincfg
 
 from . import TweakMetaclass, decorator
 
@@ -41,59 +41,44 @@ class TweakFactory:
         class TaskConfig(metaclass=TweakMetaclass):
             class AllocatorType(metaclass=TweakMetaclass):
                 def __call__(
-                    self,
-                    value: typing.Union[
-                        blazingmq.schemas.mqbcfg.AllocatorType, NoneType
-                    ],
+                    self, value: blazingmq.schemas.mqbcfg.AllocatorType
                 ) -> Callable: ...
 
             allocator_type = AllocatorType()
 
             class AllocationLimit(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[int, NoneType]) -> Callable: ...
+                def __call__(self, value: int) -> Callable: ...
 
             allocation_limit = AllocationLimit()
 
             class LogController(metaclass=TweakMetaclass):
                 class FileName(metaclass=TweakMetaclass):
-                    def __call__(
-                        self, value: typing.Union[str, NoneType]
-                    ) -> Callable: ...
+                    def __call__(self, value: str) -> Callable: ...
 
                 file_name = FileName()
 
                 class FileMaxAgeDays(metaclass=TweakMetaclass):
-                    def __call__(
-                        self, value: typing.Union[int, NoneType]
-                    ) -> Callable: ...
+                    def __call__(self, value: int) -> Callable: ...
 
                 file_max_age_days = FileMaxAgeDays()
 
                 class RotationBytes(metaclass=TweakMetaclass):
-                    def __call__(
-                        self, value: typing.Union[int, NoneType]
-                    ) -> Callable: ...
+                    def __call__(self, value: int) -> Callable: ...
 
                 rotation_bytes = RotationBytes()
 
                 class LogfileFormat(metaclass=TweakMetaclass):
-                    def __call__(
-                        self, value: typing.Union[str, NoneType]
-                    ) -> Callable: ...
+                    def __call__(self, value: str) -> Callable: ...
 
                 logfile_format = LogfileFormat()
 
                 class ConsoleFormat(metaclass=TweakMetaclass):
-                    def __call__(
-                        self, value: typing.Union[str, NoneType]
-                    ) -> Callable: ...
+                    def __call__(self, value: str) -> Callable: ...
 
                 console_format = ConsoleFormat()
 
                 class LoggingVerbosity(metaclass=TweakMetaclass):
-                    def __call__(
-                        self, value: typing.Union[str, NoneType]
-                    ) -> Callable: ...
+                    def __call__(self, value: str) -> Callable: ...
 
                 logging_verbosity = LoggingVerbosity()
 
@@ -103,9 +88,7 @@ class TweakFactory:
                 bsls_log_severity_threshold = BslsLogSeverityThreshold()
 
                 class ConsoleSeverityThreshold(metaclass=TweakMetaclass):
-                    def __call__(
-                        self, value: typing.Union[str, NoneType]
-                    ) -> Callable: ...
+                    def __call__(self, value: str) -> Callable: ...
 
                 console_severity_threshold = ConsoleSeverityThreshold()
 
@@ -121,31 +104,22 @@ class TweakFactory:
                     enabled = Enabled()
 
                     class AppName(metaclass=TweakMetaclass):
-                        def __call__(
-                            self, value: typing.Union[str, NoneType]
-                        ) -> Callable: ...
+                        def __call__(self, value: str) -> Callable: ...
 
                     app_name = AppName()
 
                     class LogFormat(metaclass=TweakMetaclass):
-                        def __call__(
-                            self, value: typing.Union[str, NoneType]
-                        ) -> Callable: ...
+                        def __call__(self, value: str) -> Callable: ...
 
                     log_format = LogFormat()
 
                     class Verbosity(metaclass=TweakMetaclass):
-                        def __call__(
-                            self, value: typing.Union[str, NoneType]
-                        ) -> Callable: ...
+                        def __call__(self, value: str) -> Callable: ...
 
                     verbosity = Verbosity()
 
                     def __call__(
-                        self,
-                        value: typing.Union[
-                            blazingmq.schemas.mqbcfg.SyslogConfig, NoneType
-                        ],
+                        self, value: blazingmq.schemas.mqbcfg.SyslogConfig
                     ) -> Callable: ...
 
                 syslog = Syslog()
@@ -167,67 +141,61 @@ class TweakFactory:
                     trigger_level = TriggerLevel()
 
                     def __call__(
-                        self,
-                        value: typing.Union[
-                            blazingmq.schemas.mqbcfg.LogDumpConfig, NoneType
-                        ],
+                        self, value: blazingmq.schemas.mqbcfg.LogDumpConfig
                     ) -> Callable: ...
 
                 log_dump = LogDump()
 
                 def __call__(
-                    self,
-                    value: typing.Union[
-                        blazingmq.schemas.mqbcfg.LogController, NoneType
-                    ],
+                    self, value: blazingmq.schemas.mqbcfg.LogController
                 ) -> Callable: ...
 
             log_controller = LogController()
 
             def __call__(
-                self, value: typing.Union[blazingmq.schemas.mqbcfg.TaskConfig, NoneType]
+                self, value: blazingmq.schemas.mqbcfg.TaskConfig
             ) -> Callable: ...
 
         task_config = TaskConfig()
 
         class AppConfig(metaclass=TweakMetaclass):
             class BrokerInstanceName(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[str, NoneType]) -> Callable: ...
+                def __call__(self, value: str) -> Callable: ...
 
             broker_instance_name = BrokerInstanceName()
 
             class BrokerVersion(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[int, NoneType]) -> Callable: ...
+                def __call__(self, value: int) -> Callable: ...
 
             broker_version = BrokerVersion()
 
             class ConfigVersion(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[int, NoneType]) -> Callable: ...
+                def __call__(self, value: int) -> Callable: ...
 
             config_version = ConfigVersion()
 
             class EtcDir(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[str, NoneType]) -> Callable: ...
+                def __call__(self, value: str) -> Callable: ...
 
             etc_dir = EtcDir()
 
             class HostName(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[str, NoneType]) -> Callable: ...
+                def __call__(self, value: str) -> Callable: ...
 
             host_name = HostName()
 
             class HostTags(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[str, NoneType]) -> Callable: ...
+                def __call__(self, value: str) -> Callable: ...
 
             host_tags = HostTags()
 
             class HostDataCenter(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[str, NoneType]) -> Callable: ...
+                def __call__(self, value: str) -> Callable: ...
 
             host_data_center = HostDataCenter()
 
             class LogsObserverMaxSize(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[int, NoneType]) -> Callable: ...
+                def __call__(self, value: int) -> Callable: ...
 
             logs_observer_max_size = LogsObserverMaxSize()
 
@@ -239,156 +207,121 @@ class TweakFactory:
             class DispatcherConfig(metaclass=TweakMetaclass):
                 class Sessions(metaclass=TweakMetaclass):
                     class NumProcessors(metaclass=TweakMetaclass):
-                        def __call__(
-                            self, value: typing.Union[int, NoneType]
-                        ) -> Callable: ...
+                        def __call__(self, value: int) -> Callable: ...
 
                     num_processors = NumProcessors()
 
                     class ProcessorConfig(metaclass=TweakMetaclass):
                         class QueueSize(metaclass=TweakMetaclass):
-                            def __call__(
-                                self, value: typing.Union[int, NoneType]
-                            ) -> Callable: ...
+                            def __call__(self, value: int) -> Callable: ...
 
                         queue_size = QueueSize()
 
                         class QueueSizeLowWatermark(metaclass=TweakMetaclass):
-                            def __call__(
-                                self, value: typing.Union[int, NoneType]
-                            ) -> Callable: ...
+                            def __call__(self, value: int) -> Callable: ...
 
                         queue_size_low_watermark = QueueSizeLowWatermark()
 
                         class QueueSizeHighWatermark(metaclass=TweakMetaclass):
-                            def __call__(
-                                self, value: typing.Union[int, NoneType]
-                            ) -> Callable: ...
+                            def __call__(self, value: int) -> Callable: ...
 
                         queue_size_high_watermark = QueueSizeHighWatermark()
 
                         def __call__(
                             self,
-                            value: typing.Union[
-                                blazingmq.schemas.mqbcfg.DispatcherProcessorParameters,
-                                NoneType,
-                            ],
+                            value: blazingmq.schemas.mqbcfg.DispatcherProcessorParameters,
                         ) -> Callable: ...
 
                     processor_config = ProcessorConfig()
 
                     def __call__(
-                        self,
-                        value: typing.Union[
-                            blazingmq.schemas.mqbcfg.DispatcherProcessorConfig, NoneType
-                        ],
+                        self, value: blazingmq.schemas.mqbcfg.DispatcherProcessorConfig
                     ) -> Callable: ...
 
                 sessions = Sessions()
 
                 class Queues(metaclass=TweakMetaclass):
                     class NumProcessors(metaclass=TweakMetaclass):
-                        def __call__(
-                            self, value: typing.Union[int, NoneType]
-                        ) -> Callable: ...
+                        def __call__(self, value: int) -> Callable: ...
 
                     num_processors = NumProcessors()
 
                     class ProcessorConfig(metaclass=TweakMetaclass):
                         class QueueSize(metaclass=TweakMetaclass):
-                            def __call__(
-                                self, value: typing.Union[int, NoneType]
-                            ) -> Callable: ...
+                            def __call__(self, value: int) -> Callable: ...
 
                         queue_size = QueueSize()
 
                         class QueueSizeLowWatermark(metaclass=TweakMetaclass):
-                            def __call__(
-                                self, value: typing.Union[int, NoneType]
-                            ) -> Callable: ...
+                            def __call__(self, value: int) -> Callable: ...
 
                         queue_size_low_watermark = QueueSizeLowWatermark()
 
                         class QueueSizeHighWatermark(metaclass=TweakMetaclass):
-                            def __call__(
-                                self, value: typing.Union[int, NoneType]
-                            ) -> Callable: ...
+                            def __call__(self, value: int) -> Callable: ...
 
                         queue_size_high_watermark = QueueSizeHighWatermark()
 
                         def __call__(
                             self,
-                            value: typing.Union[
-                                blazingmq.schemas.mqbcfg.DispatcherProcessorParameters,
-                                NoneType,
-                            ],
+                            value: blazingmq.schemas.mqbcfg.DispatcherProcessorParameters,
                         ) -> Callable: ...
 
                     processor_config = ProcessorConfig()
 
                     def __call__(
-                        self,
-                        value: typing.Union[
-                            blazingmq.schemas.mqbcfg.DispatcherProcessorConfig, NoneType
-                        ],
+                        self, value: blazingmq.schemas.mqbcfg.DispatcherProcessorConfig
                     ) -> Callable: ...
 
                 queues = Queues()
 
                 class Clusters(metaclass=TweakMetaclass):
                     class NumProcessors(metaclass=TweakMetaclass):
-                        def __call__(
-                            self, value: typing.Union[int, NoneType]
-                        ) -> Callable: ...
+                        def __call__(self, value: int) -> Callable: ...
 
                     num_processors = NumProcessors()
 
                     class ProcessorConfig(metaclass=TweakMetaclass):
                         class QueueSize(metaclass=TweakMetaclass):
-                            def __call__(
-                                self, value: typing.Union[int, NoneType]
-                            ) -> Callable: ...
+                            def __call__(self, value: int) -> Callable: ...
 
                         queue_size = QueueSize()
 
                         class QueueSizeLowWatermark(metaclass=TweakMetaclass):
-                            def __call__(
-                                self, value: typing.Union[int, NoneType]
-                            ) -> Callable: ...
+                            def __call__(self, value: int) -> Callable: ...
 
                         queue_size_low_watermark = QueueSizeLowWatermark()
 
                         class QueueSizeHighWatermark(metaclass=TweakMetaclass):
-                            def __call__(
-                                self, value: typing.Union[int, NoneType]
-                            ) -> Callable: ...
+                            def __call__(self, value: int) -> Callable: ...
 
                         queue_size_high_watermark = QueueSizeHighWatermark()
 
                         def __call__(
                             self,
-                            value: typing.Union[
-                                blazingmq.schemas.mqbcfg.DispatcherProcessorParameters,
-                                NoneType,
-                            ],
+                            value: blazingmq.schemas.mqbcfg.DispatcherProcessorParameters,
                         ) -> Callable: ...
 
                     processor_config = ProcessorConfig()
 
                     def __call__(
-                        self,
-                        value: typing.Union[
-                            blazingmq.schemas.mqbcfg.DispatcherProcessorConfig, NoneType
-                        ],
+                        self, value: blazingmq.schemas.mqbcfg.DispatcherProcessorConfig
                     ) -> Callable: ...
 
                 clusters = Clusters()
 
+                class AlarmTimeoutMs(metaclass=TweakMetaclass):
+                    def __call__(self, value: int) -> Callable: ...
+
+                alarm_timeout_ms = AlarmTimeoutMs()
+
+                class WarningTimeoutMs(metaclass=TweakMetaclass):
+                    def __call__(self, value: int) -> Callable: ...
+
+                warning_timeout_ms = WarningTimeoutMs()
+
                 def __call__(
-                    self,
-                    value: typing.Union[
-                        blazingmq.schemas.mqbcfg.DispatcherConfig, NoneType
-                    ],
+                    self, value: blazingmq.schemas.mqbcfg.DispatcherConfig
                 ) -> Callable: ...
 
             dispatcher_config = DispatcherConfig()
@@ -460,9 +393,9 @@ class TweakFactory:
 
                         def __call__(
                             self,
-                            value: typing.Union[
-                                blazingmq.schemas.mqbcfg.StatPluginConfigPrometheus,
+                            value: Union[
                                 NoneType,
+                                blazingmq.schemas.mqbcfg.StatPluginConfigPrometheus,
                             ],
                         ) -> Callable: ...
 
@@ -479,16 +412,12 @@ class TweakFactory:
                     print_interval = PrintInterval()
 
                     class File(metaclass=TweakMetaclass):
-                        def __call__(
-                            self, value: typing.Union[str, NoneType]
-                        ) -> Callable: ...
+                        def __call__(self, value: str) -> Callable: ...
 
                     file = File()
 
                     class MaxAgeDays(metaclass=TweakMetaclass):
-                        def __call__(
-                            self, value: typing.Union[int, NoneType]
-                        ) -> Callable: ...
+                        def __call__(self, value: int) -> Callable: ...
 
                     max_age_days = MaxAgeDays()
 
@@ -503,17 +432,13 @@ class TweakFactory:
                     rotate_days = RotateDays()
 
                     def __call__(
-                        self,
-                        value: typing.Union[
-                            blazingmq.schemas.mqbcfg.StatsPrinterConfig, NoneType
-                        ],
+                        self, value: blazingmq.schemas.mqbcfg.StatsPrinterConfig
                     ) -> Callable: ...
 
                 printer = Printer()
 
                 def __call__(
-                    self,
-                    value: typing.Union[blazingmq.schemas.mqbcfg.StatsConfig, NoneType],
+                    self, value: blazingmq.schemas.mqbcfg.StatsConfig
                 ) -> Callable: ...
 
             stats = Stats()
@@ -541,33 +466,24 @@ class TweakFactory:
                     cluster_peer = ClusterPeer()
 
                     def __call__(
-                        self,
-                        value: typing.Union[
-                            blazingmq.schemas.mqbcfg.Heartbeat, NoneType
-                        ],
+                        self, value: blazingmq.schemas.mqbcfg.Heartbeat
                     ) -> Callable: ...
 
                 heartbeats = Heartbeats()
 
                 class TcpInterface(metaclass=TweakMetaclass):
                     class Name(metaclass=TweakMetaclass):
-                        def __call__(
-                            self, value: typing.Union[str, NoneType]
-                        ) -> Callable: ...
+                        def __call__(self, value: str) -> Callable: ...
 
                     name = Name()
 
                     class Port(metaclass=TweakMetaclass):
-                        def __call__(
-                            self, value: typing.Union[int, NoneType]
-                        ) -> Callable: ...
+                        def __call__(self, value: int) -> Callable: ...
 
                     port = Port()
 
                     class IoThreads(metaclass=TweakMetaclass):
-                        def __call__(
-                            self, value: typing.Union[int, NoneType]
-                        ) -> Callable: ...
+                        def __call__(self, value: int) -> Callable: ...
 
                     io_threads = IoThreads()
 
@@ -577,16 +493,12 @@ class TweakFactory:
                     max_connections = MaxConnections()
 
                     class LowWatermark(metaclass=TweakMetaclass):
-                        def __call__(
-                            self, value: typing.Union[int, NoneType]
-                        ) -> Callable: ...
+                        def __call__(self, value: int) -> Callable: ...
 
                     low_watermark = LowWatermark()
 
                     class HighWatermark(metaclass=TweakMetaclass):
-                        def __call__(
-                            self, value: typing.Union[int, NoneType]
-                        ) -> Callable: ...
+                        def __call__(self, value: int) -> Callable: ...
 
                     high_watermark = HighWatermark()
 
@@ -607,9 +519,7 @@ class TweakFactory:
 
                     class Listeners(metaclass=TweakMetaclass):
                         class Name(metaclass=TweakMetaclass):
-                            def __call__(
-                                self, value: typing.Union[str, NoneType]
-                            ) -> Callable: ...
+                            def __call__(self, value: str) -> Callable: ...
 
                         name = Name()
 
@@ -619,9 +529,7 @@ class TweakFactory:
                         address = Address()
 
                         class Port(metaclass=TweakMetaclass):
-                            def __call__(
-                                self, value: typing.Union[int, NoneType]
-                            ) -> Callable: ...
+                            def __call__(self, value: int) -> Callable: ...
 
                         port = Port()
 
@@ -636,35 +544,27 @@ class TweakFactory:
 
                     def __call__(
                         self,
-                        value: typing.Union[
-                            blazingmq.schemas.mqbcfg.TcpInterfaceConfig, NoneType
+                        value: Union[
+                            NoneType, blazingmq.schemas.mqbcfg.TcpInterfaceConfig
                         ],
                     ) -> Callable: ...
 
                 tcp_interface = TcpInterface()
 
                 def __call__(
-                    self,
-                    value: typing.Union[
-                        blazingmq.schemas.mqbcfg.NetworkInterfaces, NoneType
-                    ],
+                    self, value: blazingmq.schemas.mqbcfg.NetworkInterfaces
                 ) -> Callable: ...
 
             network_interfaces = NetworkInterfaces()
 
             class BmqconfConfig(metaclass=TweakMetaclass):
                 class CacheTtlseconds(metaclass=TweakMetaclass):
-                    def __call__(
-                        self, value: typing.Union[int, NoneType]
-                    ) -> Callable: ...
+                    def __call__(self, value: int) -> Callable: ...
 
                 cache_ttlseconds = CacheTtlseconds()
 
                 def __call__(
-                    self,
-                    value: typing.Union[
-                        blazingmq.schemas.mqbcfg.BmqconfConfig, NoneType
-                    ],
+                    self, value: blazingmq.schemas.mqbcfg.BmqconfConfig
                 ) -> Callable: ...
 
             bmqconf_config = BmqconfConfig()
@@ -681,8 +581,7 @@ class TweakFactory:
                 enabled = Enabled()
 
                 def __call__(
-                    self,
-                    value: typing.Union[blazingmq.schemas.mqbcfg.Plugins, NoneType],
+                    self, value: blazingmq.schemas.mqbcfg.Plugins
                 ) -> Callable: ...
 
             plugins = Plugins()
@@ -704,10 +603,7 @@ class TweakFactory:
                 min_java_sdk_version = MinJavaSdkVersion()
 
                 def __call__(
-                    self,
-                    value: typing.Union[
-                        blazingmq.schemas.mqbcfg.MessagePropertiesV2, NoneType
-                    ],
+                    self, value: blazingmq.schemas.mqbcfg.MessagePropertiesV2
                 ) -> Callable: ...
 
             message_properties_v2 = MessagePropertiesV2()
@@ -730,62 +626,54 @@ class TweakFactory:
             class Authentication(metaclass=TweakMetaclass):
                 class Authenticators(metaclass=TweakMetaclass):
                     class Name(metaclass=TweakMetaclass):
-                        def __call__(
-                            self, value: typing.Union[str, NoneType]
-                        ) -> Callable: ...
+                        def __call__(self, value: str) -> Callable: ...
 
                     name = Name()
 
                     class Settings(metaclass=TweakMetaclass):
                         class Key(metaclass=TweakMetaclass):
-                            def __call__(
-                                self, value: typing.Union[str, NoneType]
-                            ) -> Callable: ...
+                            def __call__(self, value: str) -> Callable: ...
 
                         key = Key()
 
                         class Value(metaclass=TweakMetaclass):
                             class BoolVal(metaclass=TweakMetaclass):
                                 def __call__(
-                                    self, value: typing.Union[bool, NoneType]
+                                    self, value: Union[NoneType, bool]
                                 ) -> Callable: ...
 
                             bool_val = BoolVal()
 
                             class IntVal(metaclass=TweakMetaclass):
                                 def __call__(
-                                    self, value: typing.Union[int, NoneType]
+                                    self, value: Union[NoneType, int]
                                 ) -> Callable: ...
 
                             int_val = IntVal()
 
                             class LongVal(metaclass=TweakMetaclass):
                                 def __call__(
-                                    self, value: typing.Union[int, NoneType]
+                                    self, value: Union[NoneType, int]
                                 ) -> Callable: ...
 
                             long_val = LongVal()
 
                             class DoubleVal(metaclass=TweakMetaclass):
                                 def __call__(
-                                    self, value: typing.Union[float, NoneType]
+                                    self, value: Union[NoneType, float]
                                 ) -> Callable: ...
 
                             double_val = DoubleVal()
 
                             class StringVal(metaclass=TweakMetaclass):
                                 def __call__(
-                                    self, value: typing.Union[str, NoneType]
+                                    self, value: Union[NoneType, str]
                                 ) -> Callable: ...
 
                             string_val = StringVal()
 
                             def __call__(
-                                self,
-                                value: typing.Union[
-                                    blazingmq.schemas.mqbcfg.PluginSettingValue,
-                                    NoneType,
-                                ],
+                                self, value: blazingmq.schemas.mqbcfg.PluginSettingValue
                             ) -> Callable: ...
 
                         value = Value()
@@ -802,41 +690,33 @@ class TweakFactory:
                     class Disallow(metaclass=TweakMetaclass):
                         def __call__(
                             self,
-                            value: typing.Union[
-                                blazingmq.schemas.mqbcfg.Disallow, NoneType
-                            ],
+                            value: Union[NoneType, blazingmq.schemas.mqbcfg.Disallow],
                         ) -> Callable: ...
 
                     disallow = Disallow()
 
                     class Credential(metaclass=TweakMetaclass):
                         class Mechanism(metaclass=TweakMetaclass):
-                            def __call__(
-                                self, value: typing.Union[str, NoneType]
-                            ) -> Callable: ...
+                            def __call__(self, value: str) -> Callable: ...
 
                         mechanism = Mechanism()
 
                         class Identity(metaclass=TweakMetaclass):
-                            def __call__(
-                                self, value: typing.Union[str, NoneType]
-                            ) -> Callable: ...
+                            def __call__(self, value: str) -> Callable: ...
 
                         identity = Identity()
 
                         def __call__(
                             self,
-                            value: typing.Union[
-                                blazingmq.schemas.mqbcfg.Credential, NoneType
-                            ],
+                            value: Union[NoneType, blazingmq.schemas.mqbcfg.Credential],
                         ) -> Callable: ...
 
                     credential = Credential()
 
                     def __call__(
                         self,
-                        value: typing.Union[
-                            blazingmq.schemas.mqbcfg.AnonymousCredential, NoneType
+                        value: Union[
+                            NoneType, blazingmq.schemas.mqbcfg.AnonymousCredential
                         ],
                     ) -> Callable: ...
 
@@ -853,59 +733,47 @@ class TweakFactory:
                 max_threads = MaxThreads()
 
                 def __call__(
-                    self,
-                    value: typing.Union[
-                        blazingmq.schemas.mqbcfg.AuthenticatorConfig, NoneType
-                    ],
+                    self, value: blazingmq.schemas.mqbcfg.AuthenticatorConfig
                 ) -> Callable: ...
 
             authentication = Authentication()
 
             class TlsConfig(metaclass=TweakMetaclass):
                 class CertificateAuthority(metaclass=TweakMetaclass):
-                    def __call__(
-                        self, value: typing.Union[str, NoneType]
-                    ) -> Callable: ...
+                    def __call__(self, value: str) -> Callable: ...
 
                 certificate_authority = CertificateAuthority()
 
                 class Certificate(metaclass=TweakMetaclass):
-                    def __call__(
-                        self, value: typing.Union[str, NoneType]
-                    ) -> Callable: ...
+                    def __call__(self, value: str) -> Callable: ...
 
                 certificate = Certificate()
 
                 class Key(metaclass=TweakMetaclass):
-                    def __call__(
-                        self, value: typing.Union[str, NoneType]
-                    ) -> Callable: ...
+                    def __call__(self, value: str) -> Callable: ...
 
                 key = Key()
 
                 class Versions(metaclass=TweakMetaclass):
-                    def __call__(
-                        self, value: typing.Union[str, NoneType]
-                    ) -> Callable: ...
+                    def __call__(self, value: str) -> Callable: ...
 
                 versions = Versions()
 
                 def __call__(
-                    self,
-                    value: typing.Union[blazingmq.schemas.mqbcfg.TlsConfig, NoneType],
+                    self, value: Union[NoneType, blazingmq.schemas.mqbcfg.TlsConfig]
                 ) -> Callable: ...
 
             tls_config = TlsConfig()
 
             def __call__(
-                self, value: typing.Union[blazingmq.schemas.mqbcfg.AppConfig, NoneType]
+                self, value: blazingmq.schemas.mqbcfg.AppConfig
             ) -> Callable: ...
 
         app_config = AppConfig()
 
     class Domain:
         class Name(metaclass=TweakMetaclass):
-            def __call__(self, value: typing.Union[str, NoneType]) -> Callable: ...
+            def __call__(self, value: str) -> Callable: ...
 
         name = Name()
 
@@ -923,8 +791,8 @@ class TweakFactory:
 
                 def __call__(
                     self,
-                    value: typing.Union[
-                        blazingmq.schemas.mqbconf.QueueModeFanout, NoneType
+                    value: Union[
+                        NoneType, blazingmq.schemas.mqbdomaincfg.QueueModeFanout
                     ],
                 ) -> Callable: ...
 
@@ -933,8 +801,8 @@ class TweakFactory:
             class Priority(metaclass=TweakMetaclass):
                 def __call__(
                     self,
-                    value: typing.Union[
-                        blazingmq.schemas.mqbconf.QueueModePriority, NoneType
+                    value: Union[
+                        NoneType, blazingmq.schemas.mqbdomaincfg.QueueModePriority
                     ],
                 ) -> Callable: ...
 
@@ -943,15 +811,15 @@ class TweakFactory:
             class Broadcast(metaclass=TweakMetaclass):
                 def __call__(
                     self,
-                    value: typing.Union[
-                        blazingmq.schemas.mqbconf.QueueModeBroadcast, NoneType
+                    value: Union[
+                        NoneType, blazingmq.schemas.mqbdomaincfg.QueueModeBroadcast
                     ],
                 ) -> Callable: ...
 
             broadcast = Broadcast()
 
             def __call__(
-                self, value: typing.Union[blazingmq.schemas.mqbconf.QueueMode, NoneType]
+                self, value: blazingmq.schemas.mqbdomaincfg.QueueMode
             ) -> Callable: ...
 
         mode = Mode()
@@ -959,9 +827,7 @@ class TweakFactory:
         class Storage(metaclass=TweakMetaclass):
             class DomainLimits(metaclass=TweakMetaclass):
                 class Messages(metaclass=TweakMetaclass):
-                    def __call__(
-                        self, value: typing.Union[int, NoneType]
-                    ) -> Callable: ...
+                    def __call__(self, value: int) -> Callable: ...
 
                 messages = Messages()
 
@@ -971,9 +837,7 @@ class TweakFactory:
                 messages_watermark_ratio = MessagesWatermarkRatio()
 
                 class Bytes(metaclass=TweakMetaclass):
-                    def __call__(
-                        self, value: typing.Union[int, NoneType]
-                    ) -> Callable: ...
+                    def __call__(self, value: int) -> Callable: ...
 
                 bytes = Bytes()
 
@@ -983,17 +847,14 @@ class TweakFactory:
                 bytes_watermark_ratio = BytesWatermarkRatio()
 
                 def __call__(
-                    self,
-                    value: typing.Union[blazingmq.schemas.mqbconf.Limits, NoneType],
+                    self, value: blazingmq.schemas.mqbdomaincfg.Limits
                 ) -> Callable: ...
 
             domain_limits = DomainLimits()
 
             class QueueLimits(metaclass=TweakMetaclass):
                 class Messages(metaclass=TweakMetaclass):
-                    def __call__(
-                        self, value: typing.Union[int, NoneType]
-                    ) -> Callable: ...
+                    def __call__(self, value: int) -> Callable: ...
 
                 messages = Messages()
 
@@ -1003,9 +864,7 @@ class TweakFactory:
                 messages_watermark_ratio = MessagesWatermarkRatio()
 
                 class Bytes(metaclass=TweakMetaclass):
-                    def __call__(
-                        self, value: typing.Union[int, NoneType]
-                    ) -> Callable: ...
+                    def __call__(self, value: int) -> Callable: ...
 
                 bytes = Bytes()
 
@@ -1015,8 +874,7 @@ class TweakFactory:
                 bytes_watermark_ratio = BytesWatermarkRatio()
 
                 def __call__(
-                    self,
-                    value: typing.Union[blazingmq.schemas.mqbconf.Limits, NoneType],
+                    self, value: blazingmq.schemas.mqbdomaincfg.Limits
                 ) -> Callable: ...
 
             queue_limits = QueueLimits()
@@ -1025,8 +883,8 @@ class TweakFactory:
                 class InMemory(metaclass=TweakMetaclass):
                     def __call__(
                         self,
-                        value: typing.Union[
-                            blazingmq.schemas.mqbconf.InMemoryStorage, NoneType
+                        value: Union[
+                            NoneType, blazingmq.schemas.mqbdomaincfg.InMemoryStorage
                         ],
                     ) -> Callable: ...
 
@@ -1035,25 +893,21 @@ class TweakFactory:
                 class FileBacked(metaclass=TweakMetaclass):
                     def __call__(
                         self,
-                        value: typing.Union[
-                            blazingmq.schemas.mqbconf.FileBackedStorage, NoneType
+                        value: Union[
+                            NoneType, blazingmq.schemas.mqbdomaincfg.FileBackedStorage
                         ],
                     ) -> Callable: ...
 
                 file_backed = FileBacked()
 
                 def __call__(
-                    self,
-                    value: typing.Union[blazingmq.schemas.mqbconf.Storage, NoneType],
+                    self, value: blazingmq.schemas.mqbdomaincfg.Storage
                 ) -> Callable: ...
 
             config = Config()
 
             def __call__(
-                self,
-                value: typing.Union[
-                    blazingmq.schemas.mqbconf.StorageDefinition, NoneType
-                ],
+                self, value: blazingmq.schemas.mqbdomaincfg.StorageDefinition
             ) -> Callable: ...
 
         storage = Storage()
@@ -1091,9 +945,7 @@ class TweakFactory:
 
             def __call__(
                 self,
-                value: typing.Union[
-                    blazingmq.schemas.mqbconf.MsgGroupIdConfig, NoneType
-                ],
+                value: Union[NoneType, blazingmq.schemas.mqbdomaincfg.MsgGroupIdConfig],
             ) -> Callable: ...
 
         msg_group_id_config = MsgGroupIdConfig()
@@ -1104,7 +956,7 @@ class TweakFactory:
         max_idle_time = MaxIdleTime()
 
         class MessageTtl(metaclass=TweakMetaclass):
-            def __call__(self, value: typing.Union[int, NoneType]) -> Callable: ...
+            def __call__(self, value: int) -> Callable: ...
 
         message_ttl = MessageTtl()
 
@@ -1122,8 +974,9 @@ class TweakFactory:
             class Eventual(metaclass=TweakMetaclass):
                 def __call__(
                     self,
-                    value: typing.Union[
-                        blazingmq.schemas.mqbconf.QueueConsistencyEventual, NoneType
+                    value: Union[
+                        NoneType,
+                        blazingmq.schemas.mqbdomaincfg.QueueConsistencyEventual,
                     ],
                 ) -> Callable: ...
 
@@ -1132,44 +985,40 @@ class TweakFactory:
             class Strong(metaclass=TweakMetaclass):
                 def __call__(
                     self,
-                    value: typing.Union[
-                        blazingmq.schemas.mqbconf.QueueConsistencyStrong, NoneType
+                    value: Union[
+                        NoneType, blazingmq.schemas.mqbdomaincfg.QueueConsistencyStrong
                     ],
                 ) -> Callable: ...
 
             strong = Strong()
 
             def __call__(
-                self,
-                value: typing.Union[blazingmq.schemas.mqbconf.Consistency, NoneType],
+                self, value: blazingmq.schemas.mqbdomaincfg.Consistency
             ) -> Callable: ...
 
         consistency = Consistency()
 
         class Subscriptions(metaclass=TweakMetaclass):
             class AppId(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[str, NoneType]) -> Callable: ...
+                def __call__(self, value: str) -> Callable: ...
 
             app_id = AppId()
 
             class Expression(metaclass=TweakMetaclass):
                 class Version(metaclass=TweakMetaclass):
                     def __call__(
-                        self, value: blazingmq.schemas.mqbconf.ExpressionVersion
+                        self, value: blazingmq.schemas.mqbdomaincfg.ExpressionVersion
                     ) -> Callable: ...
 
                 version = Version()
 
                 class Text(metaclass=TweakMetaclass):
-                    def __call__(
-                        self, value: typing.Union[str, NoneType]
-                    ) -> Callable: ...
+                    def __call__(self, value: str) -> Callable: ...
 
                 text = Text()
 
                 def __call__(
-                    self,
-                    value: typing.Union[blazingmq.schemas.mqbconf.Expression, NoneType],
+                    self, value: blazingmq.schemas.mqbdomaincfg.Expression
                 ) -> Callable: ...
 
             expression = Expression()
@@ -1180,49 +1029,44 @@ class TweakFactory:
 
     class Cluster:
         class Name(metaclass=TweakMetaclass):
-            def __call__(self, value: typing.Union[str, NoneType]) -> Callable: ...
+            def __call__(self, value: str) -> Callable: ...
 
         name = Name()
 
         class Nodes(metaclass=TweakMetaclass):
             class Id(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[int, NoneType]) -> Callable: ...
+                def __call__(self, value: int) -> Callable: ...
 
             id = Id()
 
             class Name(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[str, NoneType]) -> Callable: ...
+                def __call__(self, value: str) -> Callable: ...
 
             name = Name()
 
             class DataCenter(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[str, NoneType]) -> Callable: ...
+                def __call__(self, value: str) -> Callable: ...
 
             data_center = DataCenter()
 
             class Transport(metaclass=TweakMetaclass):
                 class Tcp(metaclass=TweakMetaclass):
                     class Endpoint(metaclass=TweakMetaclass):
-                        def __call__(
-                            self, value: typing.Union[str, NoneType]
-                        ) -> Callable: ...
+                        def __call__(self, value: str) -> Callable: ...
 
                     endpoint = Endpoint()
 
                     def __call__(
                         self,
-                        value: typing.Union[
-                            blazingmq.schemas.mqbcfg.TcpClusterNodeConnection, NoneType
+                        value: Union[
+                            NoneType, blazingmq.schemas.mqbcfg.TcpClusterNodeConnection
                         ],
                     ) -> Callable: ...
 
                 tcp = Tcp()
 
                 def __call__(
-                    self,
-                    value: typing.Union[
-                        blazingmq.schemas.mqbcfg.ClusterNodeConnection, NoneType
-                    ],
+                    self, value: blazingmq.schemas.mqbcfg.ClusterNodeConnection
                 ) -> Callable: ...
 
             transport = Transport()
@@ -1233,32 +1077,32 @@ class TweakFactory:
 
         class PartitionConfig(metaclass=TweakMetaclass):
             class NumPartitions(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[int, NoneType]) -> Callable: ...
+                def __call__(self, value: int) -> Callable: ...
 
             num_partitions = NumPartitions()
 
             class Location(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[str, NoneType]) -> Callable: ...
+                def __call__(self, value: str) -> Callable: ...
 
             location = Location()
 
             class ArchiveLocation(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[str, NoneType]) -> Callable: ...
+                def __call__(self, value: str) -> Callable: ...
 
             archive_location = ArchiveLocation()
 
             class MaxDataFileSize(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[int, NoneType]) -> Callable: ...
+                def __call__(self, value: int) -> Callable: ...
 
             max_data_file_size = MaxDataFileSize()
 
             class MaxJournalFileSize(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[int, NoneType]) -> Callable: ...
+                def __call__(self, value: int) -> Callable: ...
 
             max_journal_file_size = MaxJournalFileSize()
 
             class MaxQlistFileSize(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[int, NoneType]) -> Callable: ...
+                def __call__(self, value: int) -> Callable: ...
 
             max_qlist_file_size = MaxQlistFileSize()
 
@@ -1273,7 +1117,7 @@ class TweakFactory:
             preallocate = Preallocate()
 
             class MaxArchivedFileSets(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[int, NoneType]) -> Callable: ...
+                def __call__(self, value: int) -> Callable: ...
 
             max_archived_file_sets = MaxArchivedFileSets()
 
@@ -1334,27 +1178,20 @@ class TweakFactory:
                 partition_sync_event_size = PartitionSyncEventSize()
 
                 def __call__(
-                    self,
-                    value: typing.Union[
-                        blazingmq.schemas.mqbcfg.StorageSyncConfig, NoneType
-                    ],
+                    self, value: blazingmq.schemas.mqbcfg.StorageSyncConfig
                 ) -> Callable: ...
 
             sync_config = SyncConfig()
 
             def __call__(
-                self,
-                value: typing.Union[blazingmq.schemas.mqbcfg.PartitionConfig, NoneType],
+                self, value: blazingmq.schemas.mqbcfg.PartitionConfig
             ) -> Callable: ...
 
         partition_config = PartitionConfig()
 
         class MasterAssignment(metaclass=TweakMetaclass):
             def __call__(
-                self,
-                value: typing.Union[
-                    blazingmq.schemas.mqbcfg.MasterAssignmentAlgorithm, NoneType
-                ],
+                self, value: blazingmq.schemas.mqbcfg.MasterAssignmentAlgorithm
             ) -> Callable: ...
 
         master_assignment = MasterAssignment()
@@ -1406,8 +1243,7 @@ class TweakFactory:
             leader_sync_delay_ms = LeaderSyncDelayMs()
 
             def __call__(
-                self,
-                value: typing.Union[blazingmq.schemas.mqbcfg.ElectorConfig, NoneType],
+                self, value: blazingmq.schemas.mqbcfg.ElectorConfig
             ) -> Callable: ...
 
         elector = Elector()
@@ -1474,10 +1310,7 @@ class TweakFactory:
             ack_window_size = AckWindowSize()
 
             def __call__(
-                self,
-                value: typing.Union[
-                    blazingmq.schemas.mqbcfg.QueueOperationsConfig, NoneType
-                ],
+                self, value: blazingmq.schemas.mqbcfg.QueueOperationsConfig
             ) -> Callable: ...
 
         queue_operations = QueueOperations()
@@ -1519,10 +1352,7 @@ class TweakFactory:
             partition_fsm_watchdog_num_retries = PartitionFsmWatchdogNumRetries()
 
             def __call__(
-                self,
-                value: typing.Union[
-                    blazingmq.schemas.mqbcfg.ClusterAttributes, NoneType
-                ],
+                self, value: blazingmq.schemas.mqbcfg.ClusterAttributes
             ) -> Callable: ...
 
         cluster_attributes = ClusterAttributes()
@@ -1569,10 +1399,7 @@ class TweakFactory:
             threshold_failover = ThresholdFailover()
 
             def __call__(
-                self,
-                value: typing.Union[
-                    blazingmq.schemas.mqbcfg.ClusterMonitorConfig, NoneType
-                ],
+                self, value: blazingmq.schemas.mqbcfg.ClusterMonitorConfig
             ) -> Callable: ...
 
         cluster_monitor_config = ClusterMonitorConfig()
@@ -1599,10 +1426,7 @@ class TweakFactory:
             high_interval = HighInterval()
 
             def __call__(
-                self,
-                value: typing.Union[
-                    blazingmq.schemas.mqbcfg.MessageThrottleConfig, NoneType
-                ],
+                self, value: blazingmq.schemas.mqbcfg.MessageThrottleConfig
             ) -> Callable: ...
 
         message_throttle_config = MessageThrottleConfig()

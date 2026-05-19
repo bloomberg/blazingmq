@@ -54,9 +54,9 @@ using namespace mqbblp;
 //                                  UTILITIES
 // ----------------------------------------------------------------------------
 
-static mqbconfm::Domain getDomainConfig()
+static mqbdomaincfg::Domain getDomainConfig()
 {
-    mqbconfm::Domain domainCfg;
+    mqbdomaincfg::Domain domainCfg;
     domainCfg.deduplicationTimeMs() = 0;  // No history
     domainCfg.messageTtl() = bsl::numeric_limits<bsls::Types::Int64>::max();
     return domainCfg;
@@ -298,8 +298,8 @@ Test::Test()
                                            bslma::ManagedPtrUtil::noOpDeleter);
     d_domain.registerQueue(queueMp);
 
-    mqbconfm::Storage config;
-    mqbconfm::Limits  limits;
+    mqbdomaincfg::Storage config;
+    mqbdomaincfg::Limits  limits;
 
     config.makeInMemory();
 

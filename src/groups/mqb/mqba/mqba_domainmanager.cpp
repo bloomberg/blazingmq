@@ -284,7 +284,7 @@ DomainManager::decodeAndUpsert(DecodeAndUpsertValue* out,
 
     // Convert from JSON to 'DomainDefinition' schema object
     // - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    mqbconfm::DomainVariant domainVariant;
+    mqbdomaincfg::DomainVariant domainVariant;
     baljsn::Decoder         decoder;
     baljsn::DecoderOptions  options;
     bsl::istringstream      jsonStream(result);
@@ -330,7 +330,7 @@ void DomainManager::initializeNonClusterMemberDomain(
     const mqbi::DomainFactory::CreateDomainCb& callback)
 {
     UpsertDomainValue upsertDomainValue;
-    mqbconfm::Domain  definition;
+    mqbdomaincfg::Domain definition;
     upsertDomain(&upsertDomainValue, definition, domain, domainLocation);
 
     DecodeAndUpsertValue decodeAndUpsertValue;
@@ -341,7 +341,7 @@ void DomainManager::initializeNonClusterMemberDomain(
 
 DomainManager::UpsertDomainValue&
 DomainManager::upsertDomain(UpsertDomainValue*             out,
-                            const mqbconfm::Domain&        definition,
+                            const mqbdomaincfg::Domain&    definition,
                             const bsl::string&             domain,
                             const bsl::string&             clusterName,
                             bsl::shared_ptr<mqbi::Cluster> cluster)

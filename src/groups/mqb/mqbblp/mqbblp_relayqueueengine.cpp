@@ -1005,9 +1005,9 @@ void RelayQueueEngine::applyConfiguration(App_State&        app,
 }
 
 // CREATORS
-RelayQueueEngine::RelayQueueEngine(QueueState*             queueState,
-                                   const mqbconfm::Domain& domainConfig,
-                                   bslma::Allocator*       allocator)
+RelayQueueEngine::RelayQueueEngine(QueueState*                 queueState,
+                                   const mqbdomaincfg::Domain& domainConfig,
+                                   bslma::Allocator*           allocator)
 : d_queueState_p(queueState)
 , d_pushStream(queueState->pushElementsPool(), allocator)
 , d_domainConfig(domainConfig, allocator)

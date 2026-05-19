@@ -278,8 +278,8 @@ void RootQueueEngine::onHandleCreation(void* ptr, void* cookie)
 
 void RootQueueEngine::create(bslma::ManagedPtr<mqbi::QueueEngine>* queueEngine,
                              QueueState*                           queueState,
-                             const mqbconfm::Domain& domainConfig,
-                             bslma::Allocator*       allocator)
+                             const mqbdomaincfg::Domain& domainConfig,
+                             bslma::Allocator*           allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(queueEngine);
@@ -323,9 +323,9 @@ void RootQueueEngine::BroadcastConfiguration::loadRoutingConfiguration(
 }
 
 // CREATORS
-RootQueueEngine::RootQueueEngine(QueueState*             queueState,
-                                 const mqbconfm::Domain& domainConfig,
-                                 bslma::Allocator*       allocator)
+RootQueueEngine::RootQueueEngine(QueueState*                 queueState,
+                                 const mqbdomaincfg::Domain& domainConfig,
+                                 bslma::Allocator*           allocator)
 : d_queueState_p(queueState)
 , d_consumptionMonitor(
       queueState,
@@ -389,9 +389,9 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription,
     // Populate map of appId to appKey for statically registered consumers
     size_t numApps = 0;
 
-    bsl::shared_ptr<const mqbconfm::Domain> domainCfg = config();
+    bsl::shared_ptr<const mqbdomaincfg::Domain> domainCfg = config();
 
-    const bsl::vector<mqbconfm::Subscription>& subscriptions =
+    const bsl::vector<mqbdomaincfg::Subscription>& subscriptions =
         domainCfg->subscriptions();
     d_hasAppSubscriptions = !subscriptions.empty();
 
@@ -462,7 +462,7 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription,
             rc = itApp->second->setSubscription(subscriptions[0].expression());
         }
         else {
-            mqbconfm::Expression empty(d_allocator_p);
+            mqbdomaincfg::Expression empty(d_allocator_p);
             rc = itApp->second->setSubscription(empty);
         }
 
@@ -495,7 +495,7 @@ int RootQueueEngine::initializeAppId(const bsl::string& appId,
     Apps::iterator iter = d_apps.find(appId);
 
     if (iter != d_apps.end()) {
-        mqbconfm::Expression empty(d_allocator_p);
+        mqbdomaincfg::Expression empty(d_allocator_p);
         iter->second->setSubscription(empty);
 
         // Don't reconfigure an AppId that is already registered.
@@ -2325,7 +2325,7 @@ void RootQueueEngine::loadInternals(mqbcmd::QueueEngine* out) const
     mqbcmd::FanoutQueueEngine& fanoutQueueEngine = out->makeFanout();
     // TODO: Implement in a way that makes sense
 
-    bsl::shared_ptr<const mqbconfm::Domain> cfg = config();
+    bsl::shared_ptr<const mqbdomaincfg::Domain> cfg = config();
     fanoutQueueEngine.mode()                    = cfg->mode().selectionName();
     fanoutQueueEngine.maxConsumers()            = cfg->maxConsumers();
     Apps& consumerStatesRef          = const_cast<Apps&>(d_apps);

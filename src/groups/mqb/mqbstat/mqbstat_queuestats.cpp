@@ -21,7 +21,7 @@
 
 // MQB
 #include <mqbcfg_brokerconfig.h>
-#include <mqbconfm_messages.h>
+#include <mqbdomaincfg_messages.h>
 #include <mqbi_cluster.h>
 #include <mqbi_domain.h>
 #include <mqbi_queue.h>
@@ -431,7 +431,7 @@ void QueueStatsDomain::initialize(const bmqt::Uri& uri, mqbi::Domain* domain)
     // Create subcontexts for each AppId to store per-AppId metrics, such as
     // `e_CONFIRM_TIME_MAX` or `e_QUEUE_TIME_MAX`, so the metrics can be
     // inspected separately for each application.
-    bsl::shared_ptr<const mqbconfm::Domain> domainCfg = domain->config();
+    bsl::shared_ptr<const mqbdomaincfg::Domain> domainCfg = domain->config();
     if (domainCfg->mode().isFanoutValue() &&
         domainCfg->mode().fanout().publishAppIdMetrics()) {
         const bsl::vector<bsl::string>& appIDs =

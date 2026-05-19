@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <schema xmlns              = 'http://www.w3.org/2001/XMLSchema'
         xmlns:bdem         = 'http://bloomberg.com/schemas/bdem'
-        xmlns:mqbconfm     = 'urn:x-bloomberg-com:mqbconfm'
-        targetNamespace    = 'urn:x-bloomberg-com:mqbconfm'
-        bdem:package       = 'mqbconfm'
+        xmlns:mqbdomaincfg = 'urn:x-bloomberg-com:mqbdomaincfg'
+        targetNamespace    = 'urn:x-bloomberg-com:mqbdomaincfg'
+        bdem:package       = 'mqbdomaincfg'
         elementFormDefault = 'qualified'>
 
   <!-- ========================================================================
@@ -76,19 +76,19 @@
     </annotation>
     <sequence>
       <element name='name'                type='string'/>
-      <element name='mode'                type='mqbconfm:QueueMode'/>
-      <element name='storage'             type='mqbconfm:StorageDefinition'/>
+      <element name='mode'                type='mqbdomaincfg:QueueMode'/>
+      <element name='storage'             type='mqbdomaincfg:StorageDefinition'/>
       <element name='maxConsumers'        type='int' default='0'/>
       <element name='maxProducers'        type='int' default='0'/>
       <element name='maxQueues'           type='int' default='0'/>
-      <element name='msgGroupIdConfig'    type='mqbconfm:MsgGroupIdConfig'
+      <element name='msgGroupIdConfig'    type='mqbdomaincfg:MsgGroupIdConfig'
                                                   minOccurs='0' maxOccurs='1'/>
       <element name='maxIdleTime'         type='int' default='0'/>
       <element name='messageTtl'          type='long'/>
       <element name='maxDeliveryAttempts' type='int' default='0'/>
       <element name='deduplicationTimeMs' type='int' default='300000'/>   <!-- 5 minutes -->
-      <element name='consistency'         type='mqbconfm:Consistency'/>
-      <element name='subscriptions'       type='mqbconfm:Subscription' maxOccurs='unbounded'/>
+      <element name='consistency'         type='mqbdomaincfg:Consistency'/>
+      <element name='subscriptions'       type='mqbdomaincfg:Subscription' maxOccurs='unbounded'/>
     </sequence>
   </complexType>
 
@@ -132,9 +132,9 @@
       </documentation>
     </annotation>
     <choice>
-      <element name='fanout'    type='mqbconfm:QueueModeFanout'/>
-      <element name='priority'  type='mqbconfm:QueueModePriority'/>
-      <element name='broadcast' type='mqbconfm:QueueModeBroadcast'/>
+      <element name='fanout'    type='mqbdomaincfg:QueueModeFanout'/>
+      <element name='priority'  type='mqbdomaincfg:QueueModePriority'/>
+      <element name='broadcast' type='mqbdomaincfg:QueueModeBroadcast'/>
     </choice>
   </complexType>
 
@@ -186,8 +186,8 @@
       </documentation>
     </annotation>
     <choice>
-      <element name='eventual' type='mqbconfm:QueueConsistencyEventual'/>
-      <element name='strong'   type='mqbconfm:QueueConsistencyStrong'/>
+      <element name='eventual' type='mqbdomaincfg:QueueConsistencyEventual'/>
+      <element name='strong'   type='mqbdomaincfg:QueueConsistencyStrong'/>
     </choice>
   </complexType>
 
@@ -274,9 +274,9 @@
       </documentation>
     </annotation>
     <sequence>
-      <element name='domainLimits' type='mqbconfm:Limits'/>
-      <element name='queueLimits'  type='mqbconfm:Limits'/>
-      <element name='config'       type='mqbconfm:Storage'/>
+      <element name='domainLimits' type='mqbdomaincfg:Limits'/>
+      <element name='queueLimits'  type='mqbdomaincfg:Limits'/>
+      <element name='config'       type='mqbdomaincfg:Storage'/>
     </sequence>
   </complexType>
 
@@ -290,8 +290,8 @@
       </documentation>
     </annotation>
    <choice>
-     <element name='inMemory'   type='mqbconfm:InMemoryStorage'/>
-     <element name='fileBacked' type='mqbconfm:FileBackedStorage'/>
+     <element name='inMemory'   type='mqbdomaincfg:InMemoryStorage'/>
+     <element name='fileBacked' type='mqbdomaincfg:FileBackedStorage'/>
    </choice>
   </complexType>
 
@@ -334,7 +334,7 @@
     </annotation>
     <sequence>
       <element name='location'   type='string'/>
-      <element name='parameters' type='mqbconfm:Domain'/>
+      <element name='parameters' type='mqbdomaincfg:Domain'/>
     </sequence>
   </complexType>
 
@@ -352,7 +352,7 @@
       </documentation>
     </annotation>
     <choice>
-      <element name='definition' type='mqbconfm:DomainDefinition'/>
+      <element name='definition' type='mqbdomaincfg:DomainDefinition'/>
       <element name='redirect' type='string'/>
     </choice>
   </complexType>

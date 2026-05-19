@@ -71,10 +71,10 @@ Domain::~Domain()
 
 // MANIPULATORS
 int Domain::configure(BSLA_MAYBE_UNUSED bsl::ostream& errorDescription,
-                      const mqbconfm::Domain&         config)
+                      const mqbdomaincfg::Domain&     config)
 {
-    d_config = bsl::allocate_shared<const mqbconfm::Domain>(d_allocator_p,
-                                                            config);
+    d_config = bsl::allocate_shared<const mqbdomaincfg::Domain>(d_allocator_p,
+                                                                config);
 
     return 0;
 }
@@ -195,7 +195,7 @@ const bsl::string& Domain::name() const
     return d_name;
 }
 
-bsl::shared_ptr<const mqbconfm::Domain> Domain::config() const
+bsl::shared_ptr<const mqbdomaincfg::Domain> Domain::config() const
 {
     return d_config;
 }

@@ -60,7 +60,7 @@ namespace BloombergLP {
 namespace mqbc {
 class ClusterState;
 }
-namespace mqbconfm {
+namespace mqbdomaincfg {
 class StorageDefinition;
 }
 namespace mqbcmd {
@@ -344,14 +344,14 @@ class StorageManager {
                               mqbnet::ClusterNode*                source) = 0;
 
     virtual int
-    configureStorage(bsl::ostream&                      errorDescription,
-                     bsl::shared_ptr<mqbi::Storage>*    out,
-                     const bmqt::Uri&                   uri,
-                     const mqbu::StorageKey&            queueKey,
-                     int                                partitionId,
-                     const bsls::Types::Int64           messageTtl,
-                     const int                          maxDeliveryAttempts,
-                     const mqbconfm::StorageDefinition& storageDef) = 0;
+    configureStorage(bsl::ostream&                   errorDescription,
+                     bsl::shared_ptr<mqbi::Storage>* out,
+                     const bmqt::Uri&                uri,
+                     const mqbu::StorageKey&         queueKey,
+                     int                             partitionId,
+                     const bsls::Types::Int64        messageTtl,
+                     const int                       maxDeliveryAttempts,
+                     const mqbdomaincfg::StorageDefinition& storageDef) = 0;
 
     /// Executed in cluster dispatcher thread.
     virtual void processStorageEvent(const mqbevt::StorageEvent& event) = 0;

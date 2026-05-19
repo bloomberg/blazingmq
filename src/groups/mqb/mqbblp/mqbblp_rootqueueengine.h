@@ -26,7 +26,7 @@
 // MQB
 #include <mqbblp_queueconsumptionmonitor.h>
 #include <mqbblp_queueengineutil.h>
-#include <mqbconfm_messages.h>
+#include <mqbdomaincfg_messages.h>
 #include <mqbi_dispatcher.h>
 #include <mqbi_queue.h>
 #include <mqbi_queueengine.h>
@@ -225,7 +225,7 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// `scheduler` and `allocator`.
     static void create(bslma::ManagedPtr<mqbi::QueueEngine>* queueEngine,
                        QueueState*                           queueState,
-                       const mqbconfm::Domain&               domainConfig,
+                       const mqbdomaincfg::Domain&           domainConfig,
                        bslma::Allocator*                     allocator);
 
     /// Loads the specified `config` with the appropriate values for
@@ -250,9 +250,9 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     };
 
     // CREATORS
-    RootQueueEngine(QueueState*             queueState,
-                    const mqbconfm::Domain& domainConfig,
-                    bslma::Allocator*       allocator);
+    RootQueueEngine(QueueState*                 queueState,
+                    const mqbdomaincfg::Domain& domainConfig,
+                    bslma::Allocator*           allocator);
 
     // MANIPULATORS
     //   (virtual mqbi::QueueEngine)
@@ -463,7 +463,7 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     bsl::ostream& logAppSubscriptionInfo(bsl::ostream&     stream,
                                          const AppStateSp& appState) const;
 
-    bsl::shared_ptr<const mqbconfm::Domain> config() const;
+    bsl::shared_ptr<const mqbdomaincfg::Domain> config() const;
 };
 
 // ============================================================================
@@ -474,7 +474,8 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 // struct RootQueueEngine
 // ----------------------
 
-inline bsl::shared_ptr<const mqbconfm::Domain> RootQueueEngine::config() const
+inline bsl::shared_ptr<const mqbdomaincfg::Domain>
+RootQueueEngine::config() const
 {
     return d_queueState_p->queue()->domain()->config();
 }

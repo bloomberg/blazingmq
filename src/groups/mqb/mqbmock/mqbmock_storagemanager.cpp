@@ -166,7 +166,7 @@ int StorageManager::configureStorage(
     BSLA_MAYBE_UNUSED int                     partitionId,
     BSLA_MAYBE_UNUSED const bsls::Types::Int64 messageTtl,
     BSLA_MAYBE_UNUSED const int                maxDeliveryAttempts,
-    BSLA_MAYBE_UNUSED const mqbconfm::StorageDefinition& storageDef)
+    BSLA_MAYBE_UNUSED const mqbdomaincfg::StorageDefinition& storageDef)
 {
     return 0;
 }

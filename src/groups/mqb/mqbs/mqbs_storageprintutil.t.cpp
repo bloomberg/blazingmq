@@ -140,7 +140,7 @@ struct Tester {
     {
         d_capacityMeter.setLimits(k_INT64_MAX, k_INT64_MAX);
 
-        mqbconfm::Domain domainCfg;
+        mqbdomaincfg::Domain domainCfg;
         domainCfg.deduplicationTimeMs() = 0;  // No history
         domainCfg.messageTtl()          = k_INT64_MAX;
 
@@ -164,10 +164,10 @@ struct Tester {
                                         k_APP_ID2,
                                         k_APP_KEY2);
 
-        mqbconfm::Storage config;
+        mqbdomaincfg::Storage config;
         config.makeInMemory();
 
-        mqbconfm::Limits limits;
+        mqbdomaincfg::Limits limits;
         limits.messages()               = k_INT64_MAX;
         limits.messagesWatermarkRatio() = 0.8;
         limits.bytes()                  = k_INT64_MAX;

@@ -776,7 +776,7 @@ void ClusterUtil::populateQueueAssignmentAdvisory(
     ClusterState*                          clusterState,
     ClusterData*                           clusterData,
     const bmqt::Uri&                       uri,
-    const mqbconfm::QueueMode&             config)
+    const mqbdomaincfg::QueueMode&         config)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(advisory);
@@ -969,7 +969,7 @@ bool ClusterUtil::assignQueue(ClusterState*         clusterState,
     };
 
     // It is not a proxy: guaranteed to have a domain configuration:
-    const bsl::shared_ptr<const mqbconfm::Domain> domainCfg =
+    const bsl::shared_ptr<const mqbdomaincfg::Domain> domainCfg =
         domIt->second->domain()->config();
 
     if (queueIt == domIt->second->queuesInfo().end()) {
@@ -1197,7 +1197,7 @@ void ClusterUtil::registerQueueInfo(ClusterState*        clusterState,
 
 void ClusterUtil::populateAppInfos(
     bsl::vector<bmqp_ctrlmsg::AppIdInfo>* appInfos,
-    const mqbconfm::QueueMode&            domainConfig)
+    const mqbdomaincfg::QueueMode&        domainConfig)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(appInfos && appInfos->empty());

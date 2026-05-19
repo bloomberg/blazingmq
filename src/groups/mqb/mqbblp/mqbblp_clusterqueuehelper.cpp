@@ -6175,10 +6175,11 @@ void ClusterQueueHelper::convertToLocal(const QueueContextSp& queueContext,
     queueContext->d_liveQInfo.d_id = bmqp::QueueId::k_PRIMARY_QUEUE_ID;
 }
 
-void ClusterQueueHelper::match(bsl::vector<bsl::string>*          added,
-                               bsl::vector<bsl::string>*          removed,
-                               const mqbc::ClusterStateQueueInfo& state,
-                               const mqbconfm::QueueMode& domainConfig) const
+void ClusterQueueHelper::match(
+    bsl::vector<bsl::string>*          added,
+    bsl::vector<bsl::string>*          removed,
+    const mqbc::ClusterStateQueueInfo& state,
+    const mqbdomaincfg::QueueMode&     domainConfig) const
 {
     // executed by the cluster *DISPATCHER* thread
 

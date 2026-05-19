@@ -26,7 +26,7 @@
 
 // MQB
 #include <mqbc_clusterstate.h>
-#include <mqbconfm_messages.h>
+#include <mqbdomaincfg_messages.h>
 #include <mqbi_cluster.h>
 #include <mqbi_domain.h>
 #include <mqbi_storage.h>
@@ -130,7 +130,7 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain {
     bsl::string d_name;
 
     /// Configuration for the domain.  Protected by `d_configLock`.
-    bsl::shared_ptr<const mqbconfm::Domain> d_config_sp;
+    bsl::shared_ptr<const mqbdomaincfg::Domain> d_config_sp;
 
     /// Read-write lock for `d_config_sp` to allow thread-safe concurrent reads
     /// from dispatcher threads while the admin thread writes.
@@ -238,8 +238,8 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain {
     /// calling `configure` on an already configured domain should
     /// atomically reconfigure that domain (and all of it's queues) with the
     /// new configuration (or fail and leave the storage untouched).
-    int configure(bsl::ostream&           errorDescription,
-                  const mqbconfm::Domain& config) BSLS_KEYWORD_OVERRIDE;
+    int configure(bsl::ostream&               errorDescription,
+                  const mqbdomaincfg::Domain& config) BSLS_KEYWORD_OVERRIDE;
 
     /// Teardown this `Domain` instance and invoke the specified
     /// `teardownCb` callback when done.  This method is called during
@@ -313,7 +313,7 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain {
     const bsl::string& name() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return a thread-safe snapshot of the configuration of this domain.
-    bsl::shared_ptr<const mqbconfm::Domain>
+    bsl::shared_ptr<const mqbdomaincfg::Domain>
     config() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return the `DomainStats` object associated to this Domain.
@@ -362,9 +362,9 @@ inline const bsl::string& Domain::name() const
     return d_name;
 }
 
-inline bsl::shared_ptr<const mqbconfm::Domain> Domain::config() const
+inline bsl::shared_ptr<const mqbdomaincfg::Domain> Domain::config() const
 {
-    bsl::shared_ptr<const mqbconfm::Domain> copy;
+    bsl::shared_ptr<const mqbdomaincfg::Domain> copy;
 
     {
         bslmt::ReadLockGuard<bslmt::ReaderWriterMutex> guard(&d_configLock);

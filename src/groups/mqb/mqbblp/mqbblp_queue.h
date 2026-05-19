@@ -28,7 +28,7 @@
 #include <mqbblp_queuestate.h>
 #include <mqbblp_remotequeue.h>
 #include <mqbcfg_messages.h>
-#include <mqbconfm_messages.h>
+#include <mqbdomaincfg_messages.h>
 #include <mqbi_cluster.h>
 #include <mqbi_dispatcher.h>
 #include <mqbi_queue.h>

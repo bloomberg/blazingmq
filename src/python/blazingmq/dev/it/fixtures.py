@@ -55,7 +55,7 @@ from blazingmq.dev.it.util import internal_use
 from blazingmq.dev.paths import paths
 from blazingmq.dev.pytest import PYTEST_LOG_SPEC_VAR
 from blazingmq.dev.reserveport import reserve_port, reserve_port_pool
-from blazingmq.schemas import mqbcfg, mqbconf
+from blazingmq.schemas import mqbcfg, mqbdomaincfg
 from blazingmq.dev.it.testhooks import is_test_reported_failed
 
 order = pytest.mark.order
@@ -534,12 +534,12 @@ def add_test_domains(cluster: cfg.Cluster):
         domain: cfg.Domain = domain_factory(domain_name, *args)
         assert domain.definition.parameters is not None
         if domain_name.endswith(".sc"):
-            domain.definition.parameters.consistency = mqbconf.Consistency(
-                strong=mqbconf.QueueConsistencyStrong()
+            domain.definition.parameters.consistency = mqbdomaincfg.Consistency(
+                strong=mqbdomaincfg.QueueConsistencyStrong()
             )
         else:
-            domain.definition.parameters.consistency = mqbconf.Consistency(
-                eventual=mqbconf.QueueConsistencyEventual()
+            domain.definition.parameters.consistency = mqbdomaincfg.Consistency(
+                eventual=mqbdomaincfg.QueueConsistencyEventual()
             )
 
 

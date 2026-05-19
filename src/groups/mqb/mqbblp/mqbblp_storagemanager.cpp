@@ -1513,14 +1513,14 @@ void StorageManager::processReplicaDataRequest(
 }
 
 int StorageManager::configureStorage(
-    bsl::ostream&                      errorDescription,
-    bsl::shared_ptr<mqbi::Storage>*    out,
-    const bmqt::Uri&                   uri,
-    const mqbu::StorageKey&            queueKey,
-    int                                partitionId,
-    const bsls::Types::Int64           messageTtl,
-    const int                          maxDeliveryAttempts,
-    const mqbconfm::StorageDefinition& storageDef)
+    bsl::ostream&                          errorDescription,
+    bsl::shared_ptr<mqbi::Storage>*        out,
+    const bmqt::Uri&                       uri,
+    const mqbu::StorageKey&                queueKey,
+    int                                    partitionId,
+    const bsls::Types::Int64               messageTtl,
+    const int                              maxDeliveryAttempts,
+    const mqbdomaincfg::StorageDefinition& storageDef)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 <= partitionId &&

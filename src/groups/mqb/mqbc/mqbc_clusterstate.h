@@ -223,7 +223,7 @@ class ClusterStateQueueInfo {
 
     /// List of App id and key pairs.
     ///
-    /// @todo Should also be added to @bbref{mqbconfm::Domain}.
+    /// @todo Should also be added to @bbref{mqbdomaincfg::Domain}.
     AppInfos d_appInfos;
 
     /// Flag indicating whether this queue is in the process of being assigned

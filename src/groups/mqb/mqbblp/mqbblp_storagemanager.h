@@ -32,7 +32,7 @@
 #include <mqbc_clusterstate.h>
 #include <mqbc_storageutil.h>
 #include <mqbcfg_messages.h>
-#include <mqbconfm_messages.h>
+#include <mqbdomaincfg_messages.h>
 #include <mqbi_dispatcher.h>
 #include <mqbi_domain.h>
 #include <mqbi_storagemanager.h>
@@ -560,7 +560,7 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
                          int                             partitionId,
                          const bsls::Types::Int64        messageTtl,
                          const int                       maxDeliveryAttempts,
-                         const mqbconfm::StorageDefinition& storageDef)
+                         const mqbdomaincfg::StorageDefinition& storageDef)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Executed in cluster dispatcher thread.

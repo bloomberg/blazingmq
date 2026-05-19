@@ -33,7 +33,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from blazingmq.dev.configurator import Configurator
 
-from blazingmq.schemas import mqbcfg, mqbconf
+from blazingmq.schemas import mqbcfg, mqbdomaincfg
 
 __all__ = [
     "AbstractCluster",
@@ -53,7 +53,7 @@ class ConfiguratorError(RuntimeError):
 @dataclass
 class Domain:
     cluster: "AbstractCluster"
-    definition: mqbconf.DomainDefinition
+    definition: mqbdomaincfg.DomainDefinition
 
     @property
     def name(self) -> str:
@@ -66,7 +66,7 @@ class Broker:
     id: int
     config: mqbcfg.Configuration
     clusters: mqbcfg.ClustersDefinition = field(
-        default_factory=lambda: mqbcfg.ClustersDefinition([], [], [])
+        default_factory=mqbcfg.ClustersDefinition
     )
     domains: Dict[str, "Domain"] = field(default_factory=dict)
     proxy_clusters: Set[str] = field(default_factory=set)
@@ -186,17 +186,21 @@ class AbstractCluster:
 
 
 class Cluster(AbstractCluster):
-    def domain(self, parameters: mqbconf.Domain) -> "Domain":
-        domain = mqbconf.DomainDefinition(self.name, parameters)
+    def domain(self, parameters: mqbdomaincfg.Domain) -> "Domain":
+        domain = mqbdomaincfg.DomainDefinition(
+            location=self.name, parameters=parameters
+        )
 
         return self._add_domain(Domain(self, domain))
 
     def broadcast_domain(self, name: str) -> "Domain":
         parameters = self.configurator.broadcast_domain()
         parameters.name = name
-        parameters.storage.config.in_memory = mqbconf.InMemoryStorage()
+        parameters.storage.config.in_memory = mqbdomaincfg.InMemoryStorage()
         parameters.storage.config.file_backed = None
-        domain = mqbconf.DomainDefinition(self.name, parameters)
+        domain = mqbdomaincfg.DomainDefinition(
+            location=self.name, parameters=parameters
+        )
 
         return self._add_domain(Domain(self, domain))
 
@@ -204,14 +208,18 @@ class Cluster(AbstractCluster):
         parameters = self.configurator.fanout_domain()
         parameters.name = name
         parameters.mode.fanout.app_ids = app_ids.copy()
-        domain = mqbconf.DomainDefinition(self.name, parameters)
+        domain = mqbdomaincfg.DomainDefinition(
+            location=self.name, parameters=parameters
+        )
 
         return self._add_domain(Domain(self, domain))
 
     def priority_domain(self, name: str) -> "Domain":
         parameters = self.configurator.priority_domain()
         parameters.name = name
-        domain = mqbconf.DomainDefinition(self.name, parameters)
+        domain = mqbdomaincfg.DomainDefinition(
+            location=self.name, parameters=parameters
+        )
 
         return self._add_domain(Domain(self, domain))
 
@@ -285,27 +293,32 @@ def _cluster_definition_partial_prototype(partition_config: mqbcfg.PartitionConf
 
 @dataclass(frozen=True)
 class Proto:
-    domain: mqbconf.Domain = field(
+    domain: mqbdomaincfg.Domain = field(
         default_factory=functools.partial(
-            mqbconf.Domain,
-            mode=mqbconf.QueueMode(
-                broadcast=mqbconf.QueueModeBroadcast(),
-                fanout=mqbconf.QueueModeFanout(),
-                priority=mqbconf.QueueModePriority(),
+            mqbdomaincfg.Domain,
+            name="",
+            mode=mqbdomaincfg.QueueMode(
+                broadcast=mqbdomaincfg.QueueModeBroadcast(),
+                fanout=mqbdomaincfg.QueueModeFanout(),
+                priority=mqbdomaincfg.QueueModePriority(),
             ),
             max_delivery_attempts=0,
             deduplication_time_ms=300000,
-            consistency=mqbconf.Consistency(strong=mqbconf.QueueConsistencyStrong()),
+            consistency=mqbdomaincfg.Consistency(
+                strong=mqbdomaincfg.QueueConsistencyStrong()
+            ),
             subscriptions=[],
-            storage=mqbconf.StorageDefinition(
-                config=mqbconf.Storage(file_backed=mqbconf.FileBackedStorage()),
-                domain_limits=mqbconf.Limits(
+            storage=mqbdomaincfg.StorageDefinition(
+                config=mqbdomaincfg.Storage(
+                    file_backed=mqbdomaincfg.FileBackedStorage()
+                ),
+                domain_limits=mqbdomaincfg.Limits(
                     bytes=2097152,
                     messages=2000,
                     bytes_watermark_ratio=Decimal("0.8"),
                     messages_watermark_ratio=Decimal("0.8"),
                 ),
-                queue_limits=mqbconf.Limits(
+                queue_limits=mqbdomaincfg.Limits(
                     bytes=1048576,
                     messages=1000,
                     bytes_watermark_ratio=Decimal("0.8"),
@@ -347,13 +360,16 @@ class Proto:
                         log_format="%d (%t) %s %F:%l %m\n\n",
                         verbosity="",
                     ),
+                    log_dump=mqbcfg.LogDumpConfig(),
                 ),
             ),
             app_config=mqbcfg.AppConfig(
                 broker_instance_name="default",
                 broker_version=999999,
                 config_version=999999,
+                etc_dir="etc",
                 host_name="",  # overwritten
+                host_tags="",
                 host_data_center="",  # overwritten
                 logs_observer_max_size=1000,
                 dispatcher_config=mqbcfg.DispatcherConfig(

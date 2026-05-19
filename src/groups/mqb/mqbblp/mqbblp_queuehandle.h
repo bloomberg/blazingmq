@@ -22,7 +22,7 @@
 
 // MQB
 
-#include <mqbconfm_messages.h>
+#include <mqbdomaincfg_messages.h>
 #include <mqbi_queue.h>
 #include <mqbstat_queuestats.h>
 #include <mqbu_resourceusagemonitor.h>

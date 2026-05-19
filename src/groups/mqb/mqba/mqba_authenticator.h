@@ -31,7 +31,7 @@
 
 // MQB
 #include <mqbauthn_authenticationcontroller.h>
-#include <mqbconfm_messages.h>
+#include <mqbdomaincfg_messages.h>
 #include <mqbnet_authenticationcontext.h>
 #include <mqbnet_authenticator.h>
 #include <mqbnet_initialconnectioncontext.h>

@@ -587,8 +587,8 @@ static void test5_appIdMetrics()
     const char* k_APPID_BAR = "bar";
     const char* k_APPID_BAZ = "baz";
 
-    mqbconfm::Domain domainConfig(bmqtst::TestHelperUtil::allocator());
-    mqbconfm::QueueModeFanout& mode = domainConfig.mode().makeFanout();
+    mqbdomaincfg::Domain domainConfig(bmqtst::TestHelperUtil::allocator());
+    mqbdomaincfg::QueueModeFanout& mode = domainConfig.mode().makeFanout();
     mode.publishAppIdMetrics()      = true;
     mode.appIDs().push_back(k_APPID_FOO);
 

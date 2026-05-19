@@ -74,7 +74,7 @@ namespace mqbcfg {
 class ClusterDefinition;
 class ClusterProxyDefinition;
 }
-namespace mqbconfm {
+namespace mqbdomaincfg {
 class Domain;
 }
 namespace mqbcmd {
@@ -338,9 +338,9 @@ class Cluster : public DispatcherClient {
 
     /// Invoked whenever a `domain` previously configured with `oldDefn`
     /// is reconfigured with the definition `newDefn`.
-    virtual void onDomainReconfigured(const Domain&           domain,
-                                      const mqbconfm::Domain& oldDefn,
-                                      const mqbconfm::Domain& newDefn) = 0;
+    virtual void onDomainReconfigured(const Domain&               domain,
+                                      const mqbdomaincfg::Domain& oldDefn,
+                                      const mqbdomaincfg::Domain& newDefn) = 0;
 
     /// Process the specified `command`, and load the result in the
     /// specified `result`.  Return 0 if the command was successfully
