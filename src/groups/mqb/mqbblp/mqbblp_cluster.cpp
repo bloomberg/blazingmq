@@ -3377,6 +3377,10 @@ void Cluster::getPartitionPrimaryNode(int*                  rc,
     BSLS_ASSERT_SAFE(isSelfPrimary);
     BSLS_ASSERT_SAFE(inDispatcherThread());
 
+    // Reset if uninitialized
+    *node          = NULL;
+    *isSelfPrimary = false;
+
     enum RcEnum {
         rc_SUCCESS = 0,
         rc_ERROR   = -1,
