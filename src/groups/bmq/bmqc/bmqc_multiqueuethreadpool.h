@@ -166,6 +166,7 @@
 #include <bslma_default.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
+#include <bslmt_latch.h>
 #include <bslmt_threadutil.h>
 #include <bslmt_timedsemaphore.h>
 #include <bsls_assert.h>
@@ -321,21 +322,6 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
         e_MONITOR_STUCK
     };
 
-    /// The thread functor.
-    struct ProcessQueueJob {
-        ThisClass* d_pool_p;
-        int        d_queueId;
-
-        explicit ProcessQueueJob(ThisClass* pool, int queueId)
-        : d_pool_p(pool)
-        , d_queueId(queueId)
-        {
-            // NOTHING
-        }
-
-        void operator()() const { d_pool_p->processQueue(d_queueId); }
-    };
-
     struct QueueInfo {
         // PUBLIC DATA
         /// Pointer to the queue
@@ -367,9 +353,7 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
         bsls::AtomicInt64 d_lastProcessingStartTime;
 
         /// A semaphore used to verify that a queue has stopped.
-        /// Note: shared_ptr is used because copy/move are not defined for
-        ///       `TimedSemaphore` and we still need to copy `QueueInfo`.
-        bsl::shared_ptr<bslmt::TimedSemaphore> d_finished_sp;
+        bslmt::TimedSemaphore d_finished;
 
         bslmt::ThreadUtil::Id d_threadId;
 
@@ -384,40 +368,45 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
         , d_monitorState(e_MONITOR_PROCESSED)
         , d_processQueueRefCount(1)
         , d_lastProcessingStartTime(0)
-        , d_finished_sp(bsl::allocate_shared<bslmt::TimedSemaphore>(
-              basicAllocator,
-              0,
-              bsls::SystemClockType::e_MONOTONIC))
+        , d_finished(0, bsls::SystemClockType::e_MONOTONIC)
         , d_threadId(0)
         {
             // NOTHING
         }
 
-        explicit QueueInfo(const QueueInfo&  other,
-                           bslma::Allocator* basicAllocator = 0)
-        : d_queue_p(other.d_queue_p)
-        , d_name(other.d_name, basicAllocator)
-        , d_eventCallback(bsl::allocator_arg,
-                          basicAllocator,
-                          other.d_eventCallback)
-        , d_monitorState(static_cast<int>(other.d_monitorState))
-        , d_processQueueRefCount(
-              static_cast<int>(other.d_processQueueRefCount))
-        , d_lastProcessingStartTime(0)
-        , d_finished_sp(other.d_finished_sp)
-        , d_threadId(other.d_threadId)
+      private:
+        // NOT IMPLEMENTED
+        QueueInfo(const QueueInfo&) BSLS_KEYWORD_DELETED;
+        QueueInfo& operator=(const QueueInfo&) BSLS_KEYWORD_DELETED;
+    };
+
+    /// The thread functor.
+    struct ProcessQueueJob {
+        bslmt::Latch*              d_ready_p;
+        ThisClass*                 d_pool_p;
+        bsl::shared_ptr<QueueInfo> d_queueInfo_sp;
+
+        explicit ProcessQueueJob(
+            bslmt::Latch*                     ready_p,
+            ThisClass*                        pool_p,
+            const bsl::shared_ptr<QueueInfo>& queueInfo_sp)
+        : d_ready_p(ready_p)
+        , d_pool_p(pool_p)
+        , d_queueInfo_sp(queueInfo_sp)
         {
-            // NOTHING
+            // PRECONDITIONS
+            BSLS_ASSERT_SAFE(d_pool_p);
+            BSLS_ASSERT_SAFE(d_queueInfo_sp);
+            BSLS_ASSERT_SAFE(d_ready_p);
         }
 
-        // MANIPULATORS
-        void reset()
+        void operator()()
         {
-            d_queue_p                 = 0;
-            d_monitorState            = e_MONITOR_PROCESSED;
-            d_threadId                = 0;
-            d_eventCallback           = bsl::nullptr_t();
-            d_lastProcessingStartTime = 0;
+            d_queueInfo_sp->d_threadId = bslmt::ThreadUtil::selfId();
+            d_ready_p->arrive();
+            d_ready_p = 0;
+
+            d_pool_p->processQueue(*d_queueInfo_sp);
         }
     };
 
@@ -438,7 +427,7 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
 
     EventSp d_queueEmptyEvent_sp;
 
-    bsl::vector<QueueInfo> d_queues;
+    bsl::vector<bsl::shared_ptr<QueueInfo> > d_queues;
 
     bool d_started;
 
@@ -458,9 +447,9 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
     void checkStuckEvents();
 
     /// Thread pool worker function.
-    /// Pop and process events from the queue with the specified `queue`
+    /// Pop and process events from the specified `info` queue
     /// until a `0` event is popped off.
-    void processQueue(int queue);
+    void processQueue(QueueInfo& info);
 
   private:
     // NOT IMPLEMENTED
@@ -645,42 +634,43 @@ inline void MultiQueueThreadPool<TYPE>::processMonitorEvents()
     // (this will always succeed on the first iteration because of the way
     // QueueInfo is initialized)
     for (size_t i = 0; i < d_queues.size(); ++i) {
+        QueueInfo& queue = *d_queues[i];
+
         const MonitorEventState prevState = static_cast<MonitorEventState>(
-            d_queues[i].d_monitorState.testAndSwap(e_MONITOR_PROCESSED,
-                                                   e_MONITOR_PENDING));
+            queue.d_monitorState.testAndSwap(e_MONITOR_PROCESSED,
+                                             e_MONITOR_PENDING));
         if (prevState == e_MONITOR_PENDING) {
             // The queue hasn't processed its event yet
             BALL_LOG_ERROR_BLOCK
             {
                 BALL_LOG_OUTPUT_STREAM
                     << d_config.d_monitorAlarmString << " Queue '"
-                    << d_queues[i].d_name
-                    << "' hasn't processed an event enqueued "
+                    << queue.d_name << "' hasn't processed an event enqueued "
                     << bmqu::PrintUtil::prettyTimeInterval(
                            d_config.d_monitorAlarmTimeout.totalNanoseconds())
                     << " ago. Current queue size: "
-                    << d_queues[i].d_queue_p->numElements();
+                    << queue.d_queue_p->numElements();
             }
 
-            d_queues[i].d_monitorState.testAndSwap(e_MONITOR_PENDING,
-                                                   e_MONITOR_STUCK);
+            queue.d_monitorState.testAndSwap(e_MONITOR_PENDING,
+                                             e_MONITOR_STUCK);
         }
         else if (prevState == e_MONITOR_PROCESSED) {
             // Enqueue next monitor event
 
-            d_queues[i].d_processQueueRefCount.addRelaxed(1);
-            const int ret = d_queues[i].d_queue_p->tryPushBack(
+            queue.d_processQueueRefCount.addRelaxed(1);
+            const int ret = queue.d_queue_p->tryPushBack(
                 NULL /* monitor event */);
             if (ret != 0) {
                 BALL_LOG_ERROR << d_config.d_monitorAlarmString
                                << " Couldn't enqueue monitor event on queue '"
-                               << d_queues[i].d_name << "'.  Ret: " << ret;
+                               << queue.d_name << "'.  Ret: " << ret;
 
                 // Ensure that we try to enqueue again on next pass
-                d_queues[i].d_monitorState = e_MONITOR_PROCESSED;
+                queue.d_monitorState = e_MONITOR_PROCESSED;
 
                 // Event push failed, update the ref count:
-                d_queues[i].d_processQueueRefCount.subtractRelaxed(1);
+                queue.d_processQueueRefCount.subtractRelaxed(1);
             }
         }
 
@@ -695,32 +685,29 @@ inline void MultiQueueThreadPool<TYPE>::checkStuckEvents()
     const bsls::Types::Int64 now =
         bsls::SystemTime::nowMonotonicClock().totalNanoseconds();
     for (size_t i = 0; i < d_queues.size(); ++i) {
+        const QueueInfo& queue = *d_queues[i];
+
         const bsls::Types::Int64 lastProcessingStartTime =
-            d_queues[i].d_lastProcessingStartTime.load();
+            queue.d_lastProcessingStartTime.load();
         if (lastProcessingStartTime != 0) {
             const bsls::Types::Int64 processingTime = now -
                                                       lastProcessingStartTime;
             if (processingTime >
                 d_config.d_monitorWarningTimeout.totalNanoseconds()) {
                 BALL_LOG_WARN
-                    << "Queue '" << d_queues[i].d_name
+                    << "Queue '" << queue.d_name
                     << "' started processing an event "
                     << bmqu::PrintUtil::prettyTimeInterval(processingTime)
                     << " ago and still has not finished. Current queue size: "
-                    << d_queues[i].d_queue_p->numElements();
+                    << queue.d_queue_p->numElements();
             }
         }
     }
 }
 
 template <typename TYPE>
-inline void MultiQueueThreadPool<TYPE>::processQueue(int queue)
+inline void MultiQueueThreadPool<TYPE>::processQueue(QueueInfo& info)
 {
-    QueueInfo& info = d_queues[queue];
-
-    // Store the thread id of the thread being exclusively used
-    info.d_threadId = bslmt::ThreadUtil::selfId();
-
     while (true) {
         EventSp   event;
         const int popRet = info.d_queue_p->tryPopFront(&event);
@@ -742,7 +729,7 @@ inline void MultiQueueThreadPool<TYPE>::processQueue(int queue)
                 // Note: it is possible that another monitor event will be
                 //       enqueued right after the check is done, but it's okay.
                 //       We will skip it with any remainder events on `stop()`.
-                info.d_finished_sp->post();
+                info.d_finished.post();
                 return;  // RETURN
             }
 
@@ -767,7 +754,7 @@ inline MultiQueueThreadPool<TYPE>::MultiQueueThreadPool(
     bslma::Allocator* basicAllocator)
 : d_config(config, basicAllocator)
 , d_queueEmptyEvent_sp(0, basicAllocator)
-, d_queues(config.d_numQueues, QueueInfo(), basicAllocator)
+, d_queues(basicAllocator)
 , d_started(false)
 , d_alarmMonitorEventHandle()
 , d_warningMonitorEventHandle()
@@ -803,13 +790,18 @@ inline int MultiQueueThreadPool<TYPE>::start()
     const int numAvailableThreads =
         d_config.d_threadPool_p->maxThreads() -
         d_config.d_threadPool_p->numActiveThreads();
-    if (numAvailableThreads < static_cast<int>(d_queues.size())) {
+    if (numAvailableThreads < d_config.d_numQueues) {
         // Not enough threads for exclusive use
         return rc_NOT_ENOUGH_THREADS;  // RETURN
     }
 
     // Create the queues
+    d_queues.resize(d_config.d_numQueues);
     for (size_t i = 0; i < d_queues.size(); ++i) {
+        d_queues[i] = bsl::allocate_shared<QueueInfo>(d_allocator_p);
+
+        QueueInfo& queue = *d_queues[i];
+
         // Generate a name for the queue
         bsl::string name(d_allocator_p);
         if (!d_config.d_name.empty()) {
@@ -819,7 +811,6 @@ inline int MultiQueueThreadPool<TYPE>::start()
         name += "Queue ";
         name += bsl::to_string(i);
 
-        QueueInfo& queue      = d_queues[i];
         queue.d_name          = name;
         queue.d_queue_p       = d_config.d_queueCreatorFn(static_cast<int>(i),
                                                     d_allocator_p);
@@ -830,12 +821,14 @@ inline int MultiQueueThreadPool<TYPE>::start()
 
     BSLS_ASSERT_SAFE(d_config.d_threadPool_p->enabled());
 
-    // Set up threads
+    // Set up threads and wait until all have started
+    bslmt::Latch latch(d_config.d_numQueues);
     for (size_t i = 0; i < d_queues.size(); ++i) {
         BSLA_MAYBE_UNUSED const int rc = d_config.d_threadPool_p->enqueueJob(
-            ThisClass::ProcessQueueJob(this, static_cast<int>(i)));
+            ThisClass::ProcessQueueJob(&latch, this, d_queues[i]));
         BSLS_ASSERT_SAFE(rc == 0);
     }
+    latch.wait();
 
     // See if we have to start monitoring job
     if (d_config.d_eventScheduler_p) {
@@ -866,22 +859,14 @@ inline void MultiQueueThreadPool<TYPE>::stop()
     d_started = false;
 
     if (d_config.d_eventScheduler_p) {
-        if (d_alarmMonitorEventHandle) {
-            d_config.d_eventScheduler_p->cancelEventAndWait(
-                &d_alarmMonitorEventHandle);
-        }
-        if (d_warningMonitorEventHandle) {
-            d_config.d_eventScheduler_p->cancelEventAndWait(
-                &d_warningMonitorEventHandle);
-        }
+        d_config.d_eventScheduler_p->cancelEventAndWait(
+            &d_alarmMonitorEventHandle);
+        d_config.d_eventScheduler_p->cancelEventAndWait(
+            &d_warningMonitorEventHandle);
     }
 
-    // If we create the queues in the constructor, and delete them in the
-    // destructor, then we should be able to just disable the queues in the
-    // loop below and let the Queues handle failing the enqueue if we're
-    // stopped/stopping.
     for (size_t i = 0; i < d_queues.size(); ++i) {
-        QueueInfo& info = d_queues[i];
+        QueueInfo& info = *d_queues[i];
 
         // According to `d_processQueueRefCount` usage contract,
         // we have to apply the following updates here:
@@ -901,7 +886,7 @@ inline void MultiQueueThreadPool<TYPE>::stop()
         const bsls::TimeInterval timeout =
             bsls::SystemTime::nowMonotonicClock().addSeconds(
                 k_MAX_WAIT_SECONDS_AT_SHUTDOWN);
-        const int rc = info.d_finished_sp->timedWait(timeout);
+        const int rc = info.d_finished.timedWait(timeout);
         if (0 != rc) {
             BALL_LOG_ERROR << "#MQTP_STOP_FAILURE MQTP failed to stop in "
                            << k_MAX_WAIT_SECONDS_AT_SHUTDOWN
@@ -917,8 +902,9 @@ inline void MultiQueueThreadPool<TYPE>::stop()
         }
 
         d_allocator_p->deleteObject(info.d_queue_p);
-        info.reset();
     }
+
+    d_queues.clear();
 }
 
 template <typename TYPE>
@@ -932,7 +918,7 @@ MultiQueueThreadPool<TYPE>::enqueueEvent(bslmf::MovableRef<EventSp> event,
     BSLS_ASSERT_SAFE(isStarted() && "MQTP has not been started");
 
     // [try to] Push back item
-    return d_queues[queueId].d_queue_p->pushBack(
+    return d_queues[queueId]->d_queue_p->pushBack(
         bslmf::MovableRefUtil::move(event));
 }
 
@@ -949,10 +935,8 @@ inline int MultiQueueThreadPool<TYPE>::enqueueEventOnAllQueues(
     // Enqueue on each selected queue
     int lastError = 0;
     for (size_t queueIdx = 0; queueIdx < d_queues.size(); ++queueIdx) {
-        QueueInfo& info = d_queues[queueIdx];
-
         // [try to] Push back item
-        const int pushRet = info.d_queue_p->pushBack(eventObj);
+        const int pushRet = d_queues[queueIdx]->d_queue_p->pushBack(eventObj);
 
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(0 != pushRet)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -970,7 +954,7 @@ inline void MultiQueueThreadPool<TYPE>::waitUntilEmpty()
     while (!fullPass) {
         fullPass = true;
         for (size_t i = 0; i < d_queues.size(); ++i) {
-            while (!d_queues[i].d_queue_p->isEmpty()) {
+            while (!d_queues[i]->d_queue_p->isEmpty()) {
                 bslmt::ThreadUtil::yield();
                 fullPass = false;
             }
@@ -999,7 +983,7 @@ MultiQueueThreadPool<TYPE>::queueThreadId(int queueId) const
     BSLS_ASSERT_SAFE(0 <= queueId);
     BSLS_ASSERT_SAFE(queueId < numQueues());
 
-    return d_queues[queueId].d_threadId;
+    return d_queues[queueId]->d_threadId;
 }
 
 template <typename TYPE>
@@ -1009,9 +993,9 @@ MultiQueueThreadPool<TYPE>::numElements(int queueId) const
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 <= queueId);
     BSLS_ASSERT_SAFE(queueId < numQueues());
-    BSLS_ASSERT_SAFE(d_queues[queueId].d_queue_p);
+    BSLS_ASSERT_SAFE(d_queues[queueId]->d_queue_p);
 
-    return d_queues[queueId].d_queue_p->numElements();
+    return d_queues[queueId]->d_queue_p->numElements();
 }
 
 template <typename TYPE>
@@ -1021,9 +1005,9 @@ MultiQueueThreadPool<TYPE>::queueName(int queueId) const
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 <= queueId);
     BSLS_ASSERT_SAFE(queueId < numQueues());
-    BSLS_ASSERT_SAFE(d_queues[queueId].d_queue_p);
+    BSLS_ASSERT_SAFE(d_queues[queueId]->d_queue_p);
 
-    return d_queues[queueId].d_name;
+    return d_queues[queueId]->d_name;
 }
 
 }  // close package namespace
