@@ -177,6 +177,24 @@
     </restriction>
   </simpleType>
 
+  <simpleType name='StatsPrinterEncodingFormat'>
+    <annotation>
+      <documentation>
+        Bitmask of stats output encoding formats:
+        - NONE:           no stats output (0)
+        - TABLE:          human-readable table format (1)
+        - JSON:           machine-readable JSON format (2)
+        - TABLE_AND_JSON: both formats (TABLE | JSON = 3)
+      </documentation>
+    </annotation>
+    <restriction base='string' bdem:preserveEnumOrder='1'>
+      <enumeration value='NONE'           bdem:id='0'/>
+      <enumeration value='TABLE'          bdem:id='1'/>
+      <enumeration value='JSON'           bdem:id='2'/>
+      <enumeration value='TABLE_AND_JSON' bdem:id='3'/>
+    </restriction>
+  </simpleType>
+
   <complexType name="StatsPrinterConfig">
     <sequence>
       <element name='printInterval' type='int' default='60'/>  <!-- 0 to disable -->
@@ -184,6 +202,7 @@
       <element name='maxAgeDays'    type='int'/>
       <element name='rotateBytes'   type='int' default='268435456'/> <!-- 256 * 1024 * 1024 -->
       <element name='rotateDays'    type='int' default='1'/>
+      <element name='encoding'      type='tns:StatsPrinterEncodingFormat' default='TABLE_AND_JSON'/>
     </sequence>
   </complexType>
 
