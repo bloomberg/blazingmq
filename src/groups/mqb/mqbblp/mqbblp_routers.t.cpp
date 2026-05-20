@@ -445,6 +445,16 @@ static void test3_parse()
                 BMQTST_ASSERT_EQ(&handle1, visitor2.d_handle);
                 BMQTST_ASSERT_EQ(subscription.sId(), visitor2.d_subQueueId);
             }
+
+            // Verify safe iteration: advance before invalidating,
+            // then finalize and registerSubscriptions on the remaining
+            // consumer.
+            mqbblp::Routers::Consumers& consumers = appContext.d_consumers;
+            mqbblp::Routers::Consumers::const_iterator cit = consumers.begin();
+            (cit++)->second.lock()->invalidate();
+            appContext.finalize();
+            BSLS_ASSERT_OPT(cit != consumers.end());
+            consumers.value(cit).registerSubscriptions(cit->first);
         }
 
         BMQTST_ASSERT_EQ(handle2.unregisterSubStream(subStreamInfo1,
