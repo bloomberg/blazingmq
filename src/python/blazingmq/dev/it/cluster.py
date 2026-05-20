@@ -323,9 +323,9 @@ class Cluster(contextlib.AbstractContextManager):
         else:
             self._logger.info("stopping all nodes")
 
-        nodes_to_stop = (
+        nodes_to_stop = [
             node for node in self.nodes() if (exclude is None or node not in exclude)
-        )
+        ]
 
         if prevent_leader_bounce:
             if self.last_known_leader is not None and self.last_known_leader.is_alive():
