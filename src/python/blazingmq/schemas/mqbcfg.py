@@ -894,52 +894,17 @@ class ResolvedDomain:
     )
 
 
-@dataclass
-class StatsPrinterConfig:
-    print_interval: int = field(
-        default=60,
-        metadata={
-            "name": "printInterval",
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "required": True,
-        },
-    )
-    file: Optional[str] = field(
-        default=None,
-        metadata={
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "required": True,
-        },
-    )
-    max_age_days: Optional[int] = field(
-        default=None,
-        metadata={
-            "name": "maxAgeDays",
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "required": True,
-        },
-    )
-    rotate_bytes: int = field(
-        default=268435456,
-        metadata={
-            "name": "rotateBytes",
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "required": True,
-        },
-    )
-    rotate_days: int = field(
-        default=1,
-        metadata={
-            "name": "rotateDays",
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "required": True,
-        },
-    )
+class StatsPrinterEncodingFormat(Enum):
+    """Bitmask of stats output encoding formats:
+    - NONE:           no stats output (0)
+    - TABLE:          human-readable table format (1)
+    - JSON:           machine-readable JSON format (2)
+    - TABLE_AND_JSON: both formats (TABLE | JSON = 3)"""
+
+    NONE = "NONE"
+    TABLE = "TABLE"
+    JSON = "JSON"
+    TABLE_AND_JSON = "TABLE_AND_JSON"
 
 
 @dataclass
@@ -1235,8 +1200,8 @@ class TlsConfig:
             "required": True,
         },
     )
-    versions: Optional[str] = field(
-        default=None,
+    versions: str = field(
+        default="TLSv1.3",
         metadata={
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
@@ -1629,6 +1594,62 @@ class StatPluginConfigPrometheus:
 
 
 @dataclass
+class StatsPrinterConfig:
+    print_interval: int = field(
+        default=60,
+        metadata={
+            "name": "printInterval",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    file: Optional[str] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    max_age_days: Optional[int] = field(
+        default=None,
+        metadata={
+            "name": "maxAgeDays",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    rotate_bytes: int = field(
+        default=268435456,
+        metadata={
+            "name": "rotateBytes",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    rotate_days: int = field(
+        default=1,
+        metadata={
+            "name": "rotateDays",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    encoding: StatsPrinterEncodingFormat = field(
+        default=StatsPrinterEncodingFormat.TABLE_AND_JSON,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+
+
+@dataclass
 class TcpInterfaceConfig:
     """name.................:
 
@@ -1813,6 +1834,33 @@ class ClusterNode:
 
 
 @dataclass
+class CredentialProviderConfig:
+    """The configuration for the broker's credential provider.
+
+    name.....:
+    The name of the credential provider.
+    settings.:
+    Plugin-specific settings.
+    """
+
+    name: Optional[str] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    settings: List[PluginSettingKeyValue] = field(
+        default_factory=list,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+        },
+    )
+
+
+@dataclass
 class DispatcherConfig:
     sessions: Optional[DispatcherProcessorConfig] = field(
         default=None,
@@ -1833,6 +1881,24 @@ class DispatcherConfig:
     clusters: Optional[DispatcherProcessorConfig] = field(
         default=None,
         metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    alarm_timeout_ms: int = field(
+        default=180000,
+        metadata={
+            "name": "alarmTimeoutMs",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    warning_timeout_ms: int = field(
+        default=10000,
+        metadata={
+            "name": "warningTimeoutMs",
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
@@ -1990,6 +2056,11 @@ class AuthenticatorConfig:
     Minimum number of threads in the authentication thread pool.
     maxThreads..............:
     Maximum number of threads in the authentication thread pool.
+    credentialProvider...:
+    Optional credential provider. When specified, the broker uses credentials
+    provided by the credential provider to authenticate with other brokers.
+    If not specified, the broker will attempt to directly negotiate sessions
+    with other brokers without explicitly authenticating.
     """
 
     authenticators: List[AuthenticatorPluginConfig] = field(
@@ -2023,6 +2094,14 @@ class AuthenticatorConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
+        },
+    )
+    credential_provider: Optional[CredentialProviderConfig] = field(
+        default=None,
+        metadata={
+            "name": "credentialProvider",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
         },
     )
 
