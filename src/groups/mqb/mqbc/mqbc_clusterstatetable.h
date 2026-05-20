@@ -31,6 +31,7 @@
 #include <mqbu_statetable.h>
 
 // BDE
+#include <ball_log.h>
 #include <bsl_iostream.h>
 #include <bsl_string.h>
 #include <bsl_utility.h>
@@ -267,6 +268,10 @@ bsl::ostream& operator<<(bsl::ostream&                stream,
 /// This class defines the actions in the cluster state table.
 template <typename ARGS>
 class ClusterStateTableActions {
+  private:
+    // CLASS-SCOPE CATEGORY
+    BALL_LOG_SET_CLASS_CATEGORY("MQBC.CLUSTERSTATETABLEACTIONS");
+
   public:
     // TYPES
     typedef void (ClusterStateTableActions<ARGS>::*ActionFunctor)(
@@ -737,7 +742,7 @@ template <typename ARGS>
 void ClusterStateTableActions<ARGS>::do_none(
     BSLA_MAYBE_UNUSED const ARGS& args)
 {
-    // NOTHING
+    BALL_LOG_INFO << "Cluster FSM: NO ACTION PERFORMED.";
 }
 
 template <typename ARGS>

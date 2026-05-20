@@ -131,7 +131,7 @@ PartitionFSM& PartitionFSM::registerObserver(PartitionFSMObserver* observer)
     BSLS_ASSERT_SAFE(observer);
 
     d_observers.insert(observer);
-    BALL_LOG_DEBUG << "PartitionFSM: Registered 1 new observer (" << observer
+    BALL_LOG_DEBUG << "Partition FSM: Registered 1 new observer (" << observer
                    << "). Total number of observers is now "
                    << d_observers.size();
 
@@ -144,7 +144,7 @@ PartitionFSM& PartitionFSM::unregisterObserver(PartitionFSMObserver* observer)
     BSLS_ASSERT_SAFE(observer);
 
     d_observers.erase(observer);
-    BALL_LOG_DEBUG << "PartitionFSM: Unregistered 1 observer (" << observer
+    BALL_LOG_DEBUG << "Partition FSM: Unregistered 1 observer (" << observer
                    << "). Total number of observers is now "
                    << d_observers.size();
 
