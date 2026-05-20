@@ -152,8 +152,13 @@ def test_stuck_downstream(multi_node: Cluster, domain_urls: tc.DomainUrls):
     leader = multi_node.last_known_leader
 
     # 80 messages are unconfirmed
-    leader.list_messages(domain_urls.domain_priority, tc.TEST_QUEUE, 0, 100)
-    assert leader.outputs_substr("Printing 80 message(s)", 5)
+    # Confirms propagate asynchronously from the proxy to the primary; retry
+    # the LIST command until all confirms have arrived.
+    def check_message_count(expected):
+        leader.list_messages(domain_urls.domain_priority, tc.TEST_QUEUE, 0, 100)
+        return leader.outputs_substr(f"Printing {expected} message(s)", 1)
+
+    assert wait_until(lambda: check_message_count(80), 5)
 
     # post 20 messages which go straight to the proxy
     # pylint: disable=cell-var-from-loop
@@ -194,5 +199,4 @@ def test_stuck_downstream(multi_node: Cluster, domain_urls: tc.DomainUrls):
 
     producer.close(uri, succeed=True)
 
-    leader.list_messages(domain_urls.domain_priority, tc.TEST_QUEUE, 0, 100)
-    assert leader.outputs_substr("Printing 0 message(s)", 5)
+    assert wait_until(lambda: check_message_count(0), 5)
