@@ -251,10 +251,12 @@ void ClusterQueueHelper::finishAllOpening(const QueueContextSp& queueContext,
 {
     BSLS_ASSERT_SAFE(queueContext);
 
-    for (bsl::vector<OpenQueueContextSp>::const_iterator
-             cIt   = queueContext->d_liveQInfo.d_pending.begin(),
-             cLast = queueContext->d_liveQInfo.d_pending.end();
-         cIt != cLast;
+    bsl::vector<OpenQueueContextSp> contexts(d_allocator_p);
+    contexts.swap(queueContext->d_liveQInfo.d_pending);
+
+    for (bsl::vector<OpenQueueContextSp>::const_iterator cIt =
+             contexts.begin();
+         cIt != contexts.end();
          ++cIt) {
         finishOpening(*cIt,
                       status,
@@ -5295,6 +5297,11 @@ void ClusterQueueHelper::processShutdownEvent()
     // This works for both cluster members and proxies: 'deleteQueue' skips
     // storage reset when 'isRemote()' and 'unregisterQueue' is proxy-safe.
 
+    bmqp_ctrlmsg::Status cancelStatus;
+    cancelStatus.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+    cancelStatus.code()     = mqbi::ClusterErrorCode::e_STOPPING;
+    cancelStatus.message()  = "Node is stopping";
+
     for (QueueContextMapIter it = d_queues.begin(); it != d_queues.end();
          ++it) {
         QueueContextSp& queueContextSp = it->second;
@@ -5304,6 +5311,8 @@ void ClusterQueueHelper::processShutdownEvent()
         if (!queue) {
             continue;  // CONTINUE
         }
+
+        finishAllOpening(queueContextSp, cancelStatus);
 
         if (!qinfo.isIdle()) {
             // Queue has non-zero handles.  Since self is stopping, self will
