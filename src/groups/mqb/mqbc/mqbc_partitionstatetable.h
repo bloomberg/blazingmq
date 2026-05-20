@@ -814,6 +814,37 @@ class PartitionStateTable
 // class PartitionStateTableActions
 // --------------------------------
 
+// MACROS
+
+/// Generate a composite action implementation that calls exactly the 4
+/// sub-actions named by the arguments, in order.  The function name is
+/// `do_<a1>_<a2>_<a3>_<a4>`, derived from the same arguments, so the name
+/// and body cannot diverge.
+#define PST_COMPOSITE_4(a1, a2, a3, a4)                                       \
+    template <typename ARGS>                                                  \
+    void PartitionStateTableActions<ARGS>::do_##a1##_##a2##_##a3##_##a4(      \
+        const ARGS& args)                                                     \
+    {                                                                         \
+        do_##a1(args);                                                        \
+        do_##a2(args);                                                        \
+        do_##a3(args);                                                        \
+        do_##a4(args);                                                        \
+    }
+
+/// Generate a composite action implementation that calls exactly the 5
+/// sub-actions named by the arguments, in order.
+#define PST_COMPOSITE_5(a1, a2, a3, a4, a5)                                   \
+    template <typename ARGS>                                                  \
+    void PartitionStateTableActions<                                          \
+        ARGS>::do_##a1##_##a2##_##a3##_##a4##_##a5(const ARGS& args)          \
+    {                                                                         \
+        do_##a1(args);                                                        \
+        do_##a2(args);                                                        \
+        do_##a3(args);                                                        \
+        do_##a4(args);                                                        \
+        do_##a5(args);                                                        \
+    }
+
 // CREATORS
 template <typename ARGS>
 PartitionStateTableActions<ARGS>::~PartitionStateTableActions()
@@ -919,39 +950,21 @@ void PartitionStateTableActions<ARGS>::
     do_reapplyEvent(args);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
-    do_cleanupMetadata_closeRecoveryFileSet_stopWatchdog_cancelRequests(
-        const ARGS& args)
-{
-    do_cleanupMetadata(args);
-    do_closeRecoveryFileSet(args);
-    do_stopWatchdog(args);
-    do_cancelRequests(args);
-}
+PST_COMPOSITE_4(cleanupMetadata,
+                closeRecoveryFileSet,
+                stopWatchdog,
+                cancelRequests)
 
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
-    do_cleanupMetadata_closeRecoveryFileSet_cancelRequests_reapplyEvent(
-        const ARGS& args)
-{
-    do_cleanupMetadata(args);
-    do_closeRecoveryFileSet(args);
-    do_cancelRequests(args);
-    do_reapplyEvent(args);
-}
+PST_COMPOSITE_4(cleanupMetadata,
+                closeRecoveryFileSet,
+                cancelRequests,
+                reapplyEvent)
 
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
-    do_cleanupMetadata_closeRecoveryFileSet_stopWatchdog_cancelRequests_reapplyEvent(
-        const ARGS& args)
-{
-    do_cleanupMetadata(args);
-    do_closeRecoveryFileSet(args);
-    do_stopWatchdog(args);
-    do_cancelRequests(args);
-    do_reapplyEvent(args);
-}
+PST_COMPOSITE_5(cleanupMetadata,
+                closeRecoveryFileSet,
+                stopWatchdog,
+                cancelRequests,
+                reapplyEvent)
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::do_cleanupMetadata_reapplyEvent(
