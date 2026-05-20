@@ -118,7 +118,7 @@ ClusterFSM& ClusterFSM::registerObserver(ClusterFSMObserver* observer)
     BSLS_ASSERT_SAFE(observer);
 
     d_observers.insert(observer);
-    BALL_LOG_DEBUG << "ClusterFSM: Registered 1 new observer (" << observer
+    BALL_LOG_DEBUG << "Cluster FSM: Registered 1 new observer (" << observer
                    << "). Total number of observers is now "
                    << d_observers.size();
 
@@ -131,7 +131,7 @@ ClusterFSM& ClusterFSM::unregisterObserver(ClusterFSMObserver* observer)
     BSLS_ASSERT_SAFE(observer);
 
     d_observers.erase(observer);
-    BALL_LOG_DEBUG << "ClusterFSM: Unregistered 1 observer. (" << observer
+    BALL_LOG_DEBUG << "Cluster FSM: Unregistered 1 observer. (" << observer
                    << "). Total number of observers is now "
                    << d_observers.size();
 
