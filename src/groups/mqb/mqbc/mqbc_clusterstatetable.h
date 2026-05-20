@@ -683,7 +683,7 @@ class ClusterStateTable
         CST_CFG(FOL_HEALED,
                 FOL_LSN_RSPN,
                 logStaleFollowerLSNResponse,
-                UNKNOWN);
+                FOL_HEALED);
         CST_CFG(FOL_HEALED,
                 REGISTRATION_RQST,
                 sendFailureRegistrationResponse,
