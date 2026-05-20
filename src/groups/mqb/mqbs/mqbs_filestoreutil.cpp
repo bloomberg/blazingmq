@@ -804,11 +804,11 @@ int FileStoreUtil::findFileSets(bsl::vector<FileStoreSet>* fileSets,
     return 0;
 }
 
-int FileStoreUtil::archiveFileSet(const bslstl::StringRef& dataFile,
-                                  const bslstl::StringRef& journalFile,
-                                  const bslstl::StringRef& qlistFile,
-                                  const bslstl::StringRef& archiveLocation,
-                                  bool                     qlistAware)
+int FileStoreUtil::archiveFileSet(bsl::string_view dataFile,
+                                  bsl::string_view journalFile,
+                                  bsl::string_view qlistFile,
+                                  bsl::string_view archiveLocation,
+                                  bool             qlistAware)
 {
     enum RcEnum {
         rc_SUCCESS              = 0,
@@ -854,9 +854,9 @@ int FileStoreUtil::archiveFileSet(const bslstl::StringRef& dataFile,
     return rc_SUCCESS;
 }
 
-int FileStoreUtil::archiveFileSet(const FileStoreSet&      fileSet,
-                                  const bslstl::StringRef& archiveLocation,
-                                  bool                     qlistAware)
+int FileStoreUtil::archiveFileSet(const FileStoreSet& fileSet,
+                                  bsl::string_view    archiveLocation,
+                                  bool                qlistAware)
 {
     return archiveFileSet(fileSet.dataFile(),
                           fileSet.journalFile(),
