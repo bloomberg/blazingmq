@@ -4024,23 +4024,15 @@ bmqt::GenericResult::Enum ClusterQueueHelper::restoreStateHelper(
 
             return bmqt::GenericResult::e_INVALID_ARGUMENT;  // RETURN
         }
-
+        const SubQueueContext::Enum state = subQueueContext.d_state;
         if (subQueueContext.d_generationCount == generationCount) {
-            if (subQueueContext.d_state == SubQueueContext::k_REOPENING) {
-                // Wait for the pending response
-                BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
-                                     << ": Not sending ReopenQueue request to "
-                                     << activeNode->nodeDescription()
-                                     << "[parameters: " << parameters
-                                     << ", reason: the state is REOPENING]";
-                continue;  // CONTINUE
-            }
-            if (subQueueContext.d_state == SubQueueContext::k_OPEN) {
+            if (state == SubQueueContext::k_REOPENING ||
+                state == SubQueueContext::k_OPEN) {
                 BMQ_LOGTHROTTLE_INFO
                     << d_cluster_p->description()
                     << ": Not sending ReopenQueue request to "
                     << activeNode->nodeDescription()
-                    << "[parameters: " << parameters
+                    << "[parameters: " << parameters << ", state: " << state
                     << ", reason: the generationCount is the same]";
                 continue;  // CONTINUE
             }

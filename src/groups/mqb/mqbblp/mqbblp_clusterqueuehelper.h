@@ -1410,11 +1410,11 @@ inline bool ClusterQueueHelper::isShutdownLogicOn() const
 
 inline bsls::Types::Uint64 ClusterQueueHelper::currentGenCount(int pid) const
 {
-    if (!d_cluster_p->isRemote()) {
-        return d_clusterState_p->partition(pid).primaryLeaseId();
+    if (d_cluster_p->isRemote()) {
+        return d_clusterData_p->electorInfo().electorTerm();
     }
     else {
-        return d_clusterData_p->electorInfo().electorTerm();
+        return d_clusterState_p->partition(pid).primaryLeaseId();
     }
 }
 
