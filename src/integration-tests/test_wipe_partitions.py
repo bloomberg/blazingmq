@@ -243,3 +243,90 @@ def test_wipe_csl_only(
     replica_consumer.close(uri_priority, succeed=True)
 
     stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
+
+
+@tweak.cluster.queue_operations.shutdown_timeout_ms(100)
+def test_wipe_storage_all_but_one_node(
+    fsm_multi_cluster: Cluster,
+    sc_domain_urls: tc.DomainUrls,
+) -> None:
+    """
+    Test recovery when all partition files are wiped from every node except one.
+    The surviving node should become primary for the partitions it still has
+    data for, and the wiped nodes should heal from it.
+
+    - start cluster
+    - post messages
+    - stop all nodes
+    - wipe all partition files + CSL on every node except one
+    - restart all nodes, but make sure the surviving node is part of the initial
+      leader quorum
+    - verify the cluster becomes available
+    - connect a consumer, verify messages are received
+
+    NOTE: This test is run in FSM mode only; in legacy mode, the cluster cannot
+    heal when the majority of nodes have empty storage simultaneously.
+    """
+    cluster = fsm_multi_cluster
+    uri_priority = sc_domain_urls.uri_priority
+
+    leader = cluster.last_known_leader
+    proxy = next(cluster.proxy_cycle())
+
+    producer = proxy.create_client("producer")
+    producer.open(uri_priority, flags=["write,ack"], succeed=True)
+
+    # Post messages
+    for i in range(1, 5):
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+
+    # Stop all nodes
+    cluster.stop_nodes()
+    for node in cluster.nodes():
+        node.drain()
+
+    # Wipe all partition files + CSL on every node except the surviving one
+    surviving_node = cluster.nodes(exclude=leader)[0]
+    wiped_nodes = cluster.nodes(exclude=surviving_node)
+    for node in wiped_nodes:
+        storage_dir = str(cluster.work_dir.joinpath(node.name, "storage"))
+        wipe_files(
+            ["*.bmq_journal", "*.bmq_data", "*.bmq_qlist", "*csl*"],
+            storage_dir,
+        )
+
+    # Restart all nodes, but make sure the surviving node is part of the initial
+    # leader quorum
+    first_batch = [surviving_node] + wiped_nodes[:2]
+    last_node = wiped_nodes[2]
+    for node in first_batch:
+        node.start()
+        node.wait_until_started()
+
+    cluster.wait_status(wait_leader=True, wait_ready=False)
+    assert surviving_node == cluster.last_known_leader, (
+        f"Surviving node {surviving_node} is not cluster.last_known_leader "
+        f"{cluster.last_known_leader}"
+    )
+
+    last_node.start()
+    last_node.wait_until_started()
+    last_node.wait_status(wait_leader=True, wait_ready=True)
+
+    # Verify a consumer connected to a wiped replica can receive messages
+    wiped_node = wiped_nodes[0]
+    consumer = wiped_node.create_client("consumer")
+    consumer.open(uri_priority, flags=["read"], succeed=True)
+
+    assert wait_until(
+        lambda: len(consumer.list(uri_priority, block=True)) == 4,
+        3,
+    ), "Consumer on wiped node did not receive 4 messages"
+
+    consumer.confirm(uri_priority, "*", succeed=True)
+    consumer.close(uri_priority, succeed=True)
+
+    # Compare surviving node vs wiped node
+    stop_cluster_and_compare_journal_files(
+        surviving_node.name, wiped_node.name, cluster
+    )
