@@ -1305,6 +1305,56 @@ static void test11_binaryPropertyRvalueTest()
     BMQTST_ASSERT_EQ('z', out2[0]);
 }
 
+static void test12_emptyPropertyValueStreamOutTest()
+// ------------------------------------------------------------------------
+// EMPTY PROPERTY VALUE STREAM OUT TEST
+//
+// Concerns:
+//   'streamOut' should handle properties with empty string and binary
+//   values without asserting or corrupting the wire format.
+//
+// Plan:
+//   1. Set a string property with an empty value.
+//   2. Set a binary property with an empty value.
+//   3. Call 'streamOut' and verify it does not assert.
+//   4. Round-trip via 'streamIn' and verify the properties are preserved.
+//
+// Testing:
+//   const bdlbb::Blob& streamOut(BlobBufferFactory*, const MPI&) const;
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("EMPTY PROPERTY VALUE STREAM OUT TEST");
+
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::MessageProperties     p(bmqtst::TestHelperUtil::allocator());
+    bmqp::MessagePropertiesInfo logic =
+        bmqp::MessagePropertiesInfo::makeNoSchema();
+
+    // Set an empty string property.
+    BMQTST_ASSERT_EQ(0, p.setPropertyAsString("emptyStr", ""));
+
+    // Set an empty binary property.
+    bsl::vector<char> emptyBin(bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT_EQ(0, p.setPropertyAsBinary("emptyBin", emptyBin));
+
+    BMQTST_ASSERT_EQ(2, p.numProperties());
+
+    // streamOut should not assert.
+    const bdlbb::Blob& wireRep = p.streamOut(&bufferFactory, logic);
+    BMQTST_ASSERT_GT(wireRep.length(), 0);
+
+    // Round-trip: streamIn to a new instance.
+    bmqp::MessageProperties p2(bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT_EQ(0, p2.streamIn(wireRep, logic.isExtended()));
+
+    BMQTST_ASSERT_EQ(2, p2.numProperties());
+    BMQTST_ASSERT_EQ(p2.getPropertyAsString("emptyStr"),
+                     bsl::string("", bmqtst::TestHelperUtil::allocator()));
+    BMQTST_ASSERT_EQ(p2.getPropertyAsBinary("emptyBin"), emptyBin);
+}
+
 #ifdef BMQTST_BENCHMARK_ENABLED
 
 struct MessagePropertiesBenchmark_getPropertyRef {
@@ -1482,6 +1532,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 12: test12_emptyPropertyValueStreamOutTest(); break;
     case 11: test11_binaryPropertyRvalueTest(); break;
     case 10: test10_empty(); break;
     case 9: test9_copyAssignTest(); break;
