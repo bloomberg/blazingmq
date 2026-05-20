@@ -1971,6 +1971,7 @@ void StorageManager::do_storeReplicaSeq(const EventWithData& event)
         BSLS_ASSERT_SAFE(0 <= partitionId &&
                          partitionId < static_cast<int>(d_fileStores.size()));
         BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfPrimary());
+        BSLS_ASSERT_SAFE(d_partitionInfoVec[partitionId].primary());
         BSLS_ASSERT_SAFE(d_partitionInfoVec[partitionId].primary()->nodeId() ==
                          d_clusterData_p->membership().selfNode()->nodeId());
 
@@ -2074,6 +2075,7 @@ void StorageManager::do_replicaStateResponse(const EventWithData& event)
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(eventData.source());
+    BSLS_ASSERT_SAFE(d_partitionInfoVec[partitionId].primary());
     BSLS_ASSERT_SAFE(eventData.source()->nodeId() ==
                      d_partitionInfoVec[partitionId].primary()->nodeId());
 
@@ -2139,6 +2141,7 @@ void StorageManager::do_failureReplicaStateResponse(const EventWithData& event)
     else {
         BSLS_ASSERT_SAFE(partitionHealthState(partitionId) ==
                          PartitionFSM::State::e_REPLICA_WAITING);
+        BSLS_ASSERT_SAFE(d_partitionInfoVec[partitionId].primary());
         BSLS_ASSERT_SAFE(eventData.source()->nodeId() ==
                          d_partitionInfoVec[partitionId].primary()->nodeId());
 
@@ -2276,6 +2279,7 @@ void StorageManager::do_primaryStateRequest(const EventWithData& event)
 
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(d_partitionInfoVec[partitionId].primary());
     BSLS_ASSERT_SAFE(primary->nodeId() ==
                      d_partitionInfoVec[partitionId].primary()->nodeId());
     BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfReplica());
@@ -2424,6 +2428,7 @@ void StorageManager::do_replicaDataResponsePush(const EventWithData& event)
     BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfReplica());
 
     BSLS_ASSERT_SAFE(destNode);
+    BSLS_ASSERT_SAFE(d_partitionInfoVec[partitionId].primary());
     BSLS_ASSERT_SAFE(destNode->nodeId() ==
                      d_partitionInfoVec[partitionId].primary()->nodeId());
 
@@ -2546,6 +2551,7 @@ void StorageManager::do_replicaDataResponsePull(const EventWithData& event)
 
     mqbnet::ClusterNode* destNode = eventData.source();
     BSLS_ASSERT_SAFE(destNode);
+    BSLS_ASSERT_SAFE(d_partitionInfoVec[partitionId].primary());
     BSLS_ASSERT_SAFE(destNode->nodeId() ==
                      d_partitionInfoVec[partitionId].primary()->nodeId());
 
@@ -2593,6 +2599,7 @@ void StorageManager::do_failureReplicaDataResponsePull(
     mqbnet::ClusterNode* destNode = eventData.source();
 
     BSLS_ASSERT_SAFE(destNode);
+    BSLS_ASSERT_SAFE(d_partitionInfoVec[partitionId].primary());
     BSLS_ASSERT_SAFE(destNode->nodeId() ==
                      d_partitionInfoVec[partitionId].primary()->nodeId());
     // TODO Continue verifying here
@@ -2691,6 +2698,7 @@ void StorageManager::do_sendDataToPrimary(const EventWithData& event)
 
     mqbnet::ClusterNode* const destNode = eventData.source();
     BSLS_ASSERT_SAFE(destNode->nodeId() != selfNode->nodeId());
+    BSLS_ASSERT_SAFE(d_partitionInfoVec[partitionId].primary());
     BSLS_ASSERT_SAFE(destNode->nodeId() ==
                      d_partitionInfoVec[partitionId].primary()->nodeId());
 
@@ -3317,6 +3325,7 @@ void StorageManager::do_removeStorageAndSendReplicaDataDropResponse(
     BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfReplica());
     mqbnet::ClusterNode* destNode = eventData.source();
     BSLS_ASSERT_SAFE(destNode);
+    BSLS_ASSERT_SAFE(d_partitionInfoVec[partitionId].primary());
     BSLS_ASSERT_SAFE(destNode->nodeId() ==
                      d_partitionInfoVec[partitionId].primary()->nodeId());
 
@@ -3568,6 +3577,7 @@ void StorageManager::do_flagFailedReplicaSeq(const EventWithData& event)
 
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(d_partitionInfoVec[partitionId].primary());
     BSLS_ASSERT_SAFE(d_clusterData_p->membership().selfNode()->nodeId() ==
                      d_partitionInfoVec[partitionId].primary()->nodeId());
     BSLS_ASSERT_SAFE(d_clusterData_p->membership().selfNode()->nodeId() !=
