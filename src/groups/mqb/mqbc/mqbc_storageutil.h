@@ -231,9 +231,9 @@ struct StorageUtil {
                                      bool            isFanout);
 
     static int addVirtualStoragesInternal(mqbs::ReplicatedStorage* storage,
-                                          const AppInfos&    appIdKeyPairs,
-                                          const bsl::string& description,
-                                          bool               isFanout);
+                                          const AppInfos&  appIdKeyPairs,
+                                          bsl::string_view description,
+                                          bool             isFanout);
 
     static int removeVirtualStorageInternal(mqbs::ReplicatedStorage* storage,
                                             const mqbu::StorageKey&  appKey,
@@ -712,7 +712,7 @@ struct StorageUtil {
     updateQueueStorageDispatched(StorageSpMap*           storageMap,
                                  bslmt::Mutex*           storagesLock,
                                  mqbi::DomainFactory*    domainFactory,
-                                 const bsl::string&      description,
+                                 bsl::string_view        description,
                                  const bmqt::Uri&        uri,
                                  const mqbu::StorageKey& queueKey,
                                  const AppInfos&         addedIdKeyPairs,
@@ -794,7 +794,7 @@ struct StorageUtil {
                          mqbi::Domain*               domain,
                          mqbi::Domain**              out,
                          bslmt::Latch*               latch,
-                         const bsl::string&          description,
+                         const mqbs::FileStore*      fs,
                          const bsl::string&          domainName);
 
     /// THREAD: Executed by the Queue's dispatcher thread for the partitionId

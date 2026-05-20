@@ -78,8 +78,8 @@ namespace mqbblp {
 namespace {
 const int k_GC_MESSAGES_INTERVAL_SECONDS = 5;
 
-bsl::ostream& printRecoveryBanner(bsl::ostream&      out,
-                                  const bsl::string& lastLineSuffix)
+bsl::ostream& printRecoveryBanner(bsl::ostream&    out,
+                                  bsl::string_view lastLineSuffix)
 {
     out << "Starting"
         << "\n   _____"
@@ -1128,7 +1128,7 @@ void StorageManager::resetQueue(const bmqt::Uri& uri,
         bdlf::BindUtil::bind(&mqbc::StorageUtil::resetQueueDispatched,
                              &d_storages[partitionId],
                              d_storageLockVec[partitionId].get(),
-                             fs->description(),
+                             bsl::string(fs->description(), d_allocator_p),
                              uri,
                              queue_sp));
 

@@ -90,7 +90,7 @@ struct SessionTestImp : bsls::ProtocolTestImp<mqbnet::Session> {
         return markDoneRef();
     }
 
-    const bsl::string& description() const BSLS_KEYWORD_OVERRIDE
+    bsl::string_view description() const BSLS_KEYWORD_OVERRIDE
     {
         return markDoneRef();
     }

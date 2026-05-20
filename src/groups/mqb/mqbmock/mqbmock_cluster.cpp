@@ -568,7 +568,7 @@ const mqbi::DispatcherClientData& Cluster::dispatcherClientData() const
     return d_dispatcherClientData;
 }
 
-const bsl::string& Cluster::description() const
+bsl::string_view Cluster::description() const
 {
     return d_clusterData_mp->identity().description();
 }

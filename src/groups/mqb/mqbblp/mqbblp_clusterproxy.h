@@ -623,7 +623,7 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     dispatcherClientData() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return a printable description of the client (e.g. for logging).
-    const bsl::string& description() const BSLS_KEYWORD_OVERRIDE;
+    bsl::string_view description() const BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
     //   (virtual: mqbi::Cluster)
@@ -803,7 +803,7 @@ ClusterProxy::dispatcherClientData() const
     return d_clusterData.dispatcherClientData();
 }
 
-inline const bsl::string& ClusterProxy::description() const
+inline bsl::string_view ClusterProxy::description() const
 {
     return d_clusterData.identity().description();
 }

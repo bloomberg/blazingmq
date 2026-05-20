@@ -1284,7 +1284,9 @@ void ClientSession::closeQueueCb(
     //       and the process of this event by the dispatcher should not add it
     //       to the flush list.
     handle->queue()->dispatcher()->execute(
-        bdlf::BindUtil::bind(&finalizeClosedHandle, description(), handle),
+        bdlf::BindUtil::bind(&finalizeClosedHandle,
+                             bsl::string(description(), d_state.d_allocator_p),
+                             handle),
         handle->queue(),
         mqbi::DispatcherEventType::e_DISPATCHER);
 }

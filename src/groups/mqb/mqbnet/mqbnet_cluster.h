@@ -97,7 +97,7 @@ class ClusterObserver {
     virtual void
     onProxyConnectionUp(const bsl::shared_ptr<bmqio::Channel>& channel,
                         const bmqp_ctrlmsg::ClientIdentity&    identity,
-                        const bsl::string&                     description);
+                        bsl::string_view                       description);
 };
 
 // =================
@@ -235,7 +235,7 @@ class Cluster {
     virtual void
     onProxyConnectionUp(const bsl::shared_ptr<bmqio::Channel>& channel,
                         const bmqp_ctrlmsg::ClientIdentity&    identity,
-                        const bsl::string& description) = 0;
+                        bsl::string_view description) = 0;
 
     // ACCESSORS
 

@@ -165,7 +165,7 @@ class DummySession : public Session {
     // negotiation phase.
 
     /// Return a printable description of this session (e.g. for logging).
-    const bsl::string& description() const BSLS_KEYWORD_OVERRIDE;
+    bsl::string_view description() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ============================================================================
@@ -192,7 +192,7 @@ DummySession::negotiationMessage() const
     return d_negotiationMessage;
 }
 
-inline const bsl::string& DummySession::description() const
+inline bsl::string_view DummySession::description() const
 {
     return d_description;
 }

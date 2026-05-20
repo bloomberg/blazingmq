@@ -683,7 +683,7 @@ class Cluster : public mqbi::Cluster,
     void
     onProxyConnectionUp(const bsl::shared_ptr<bmqio::Channel>& channel,
                         const bmqp_ctrlmsg::ClientIdentity&    identity,
-                        const bsl::string& description) BSLS_KEYWORD_OVERRIDE;
+                        bsl::string_view description) BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
     //   (virtual: mqbc::ElectorInfoObserver)
@@ -823,7 +823,7 @@ class Cluster : public mqbi::Cluster,
     dispatcherClientData() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return a printable description of the client (e.g. for logging).
-    const bsl::string& description() const BSLS_KEYWORD_OVERRIDE;
+    bsl::string_view description() const BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
     //   (specific to mqbblp::Cluster)
@@ -921,7 +921,7 @@ inline mqbi::DispatcherClientData& Cluster::dispatcherClientData()
     return d_clusterData.dispatcherClientData();
 }
 
-inline const bsl::string& Cluster::description() const
+inline bsl::string_view Cluster::description() const
 {
     return d_clusterData.identity().description();
 }

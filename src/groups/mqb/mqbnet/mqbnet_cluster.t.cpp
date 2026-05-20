@@ -157,7 +157,7 @@ struct ClusterTestImp : bsls::ProtocolTestImp<mqbnet::Cluster> {
     void
     onProxyConnectionUp(const bsl::shared_ptr<bmqio::Channel>& channel,
                         const bmqp_ctrlmsg::ClientIdentity&    identity,
-                        const bsl::string& description) BSLS_KEYWORD_OVERRIDE
+                        bsl::string_view description) BSLS_KEYWORD_OVERRIDE
     {
         markDone();
     }
@@ -403,7 +403,7 @@ static void test3_Cluster()
             testObj,
             onProxyConnectionUp(bsl::shared_ptr<bmqio::Channel>(),
                                 bmqp_ctrlmsg::ClientIdentity(),
-                                bsl::string()));
+                                bsl::string_view()));
         BSLS_PROTOCOLTEST_ASSERT(testObj, nodes());
         BSLS_PROTOCOLTEST_ASSERT(testObj, name());
         BSLS_PROTOCOLTEST_ASSERT(testObj, selfNodeId());

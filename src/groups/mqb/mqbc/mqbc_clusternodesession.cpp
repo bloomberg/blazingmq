@@ -59,7 +59,7 @@ ClusterNodeSession::ClusterNodeSession(
 
     d_queueHandleRequesterContext_sp->setClient(this)
         .setIdentity(identity)
-        .setDescription(description())
+        .setDescription(bsl::string(description(), allocator))
         .setIsClusterMember(true)
         .setRequesterId(
             mqbi::QueueHandleRequesterContext ::generateUniqueRequesterId())

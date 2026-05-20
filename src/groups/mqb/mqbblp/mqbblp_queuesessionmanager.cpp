@@ -519,7 +519,8 @@ QueueSessionManager::QueueSessionManager(
 
     d_requesterContext_sp->setClient(dispatcherClient)
         .setIdentity(clientIdentity)
-        .setDescription(dispatcherClient->description())
+        .setDescription(
+            bsl::string(dispatcherClient->description(), allocator))
         .setIsClusterMember(false)
         .setRequesterId(
             mqbi::QueueHandleRequesterContext::generateUniqueRequesterId())

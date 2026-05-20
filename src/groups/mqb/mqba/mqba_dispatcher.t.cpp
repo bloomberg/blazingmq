@@ -208,7 +208,7 @@ struct TestDispatcherClient : public mqbi::DispatcherClient {
     }
 
     /// Return a printable description of the client (e.g., for logging).
-    const bsl::string& description() const BSLS_KEYWORD_OVERRIDE
+    bsl::string_view description() const BSLS_KEYWORD_OVERRIDE
     {
         return d_description;
     }

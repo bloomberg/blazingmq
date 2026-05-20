@@ -518,7 +518,7 @@ class TCPSessionFactory {
     /// `channel`, using the stored begin
     /// timestamp. After logging, begin timestamp is removed from
     /// timestamps map.
-    void logOpenSessionTime(const bsl::string& sessionDescription,
+    void logOpenSessionTime(bsl::string_view sessionDescription,
                             const bsl::shared_ptr<bmqio::Channel>& channel);
 
     /// Cancel any open listener operations and clear them out.

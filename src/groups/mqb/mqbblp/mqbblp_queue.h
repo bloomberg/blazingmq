@@ -444,7 +444,7 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
     dispatcherClientData() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return a printable description of the client (e.g. for logging).
-    const bsl::string& description() const BSLS_KEYWORD_OVERRIDE;
+    bsl::string_view description() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return the Schema Leaner associated with this queue.
     bmqp::SchemaLearner& schemaLearner() const BSLS_KEYWORD_OVERRIDE;
@@ -569,7 +569,7 @@ Queue::messageThrottleConfig() const
     return d_state.messageThrottleConfig();
 }
 
-inline const bsl::string& Queue::description() const
+inline bsl::string_view Queue::description() const
 {
     return d_state.description();
 }

@@ -42,7 +42,7 @@ void ClusterObserver::onNodeStateChange(BSLA_MAYBE_UNUSED ClusterNode* node,
 void ClusterObserver::onProxyConnectionUp(
     BSLA_MAYBE_UNUSED const bsl::shared_ptr<bmqio::Channel>& channel,
     BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::ClientIdentity& identity,
-    BSLA_MAYBE_UNUSED const bsl::string& description)
+    BSLA_MAYBE_UNUSED bsl::string_view description)
 {
     // NOTHING: void impl to not require interface clients to define it if they
     //          don't care about this notification

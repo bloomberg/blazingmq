@@ -36,6 +36,7 @@
 #include <bsl_functional.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
+#include <bsl_string_view.h>
 #include <bsls_timeinterval.h>
 
 namespace BloombergLP {
@@ -151,7 +152,9 @@ class Session : public SessionEventProcessor {
     negotiationMessage() const = 0;
 
     /// Return a printable description of this session (e.g. for logging).
-    virtual const bsl::string& description() const = 0;
+    /// The returned view is valid for the lifetime of this object and must
+    /// be copied before any deferred use.
+    virtual bsl::string_view description() const = 0;
 };
 
 }  // close package namespace

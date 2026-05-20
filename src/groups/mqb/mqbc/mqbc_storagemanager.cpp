@@ -4172,7 +4172,7 @@ void StorageManager::resetQueue(const bmqt::Uri& uri,
         bdlf::BindUtil::bind(&StorageUtil::resetQueueDispatched,
                              &d_storages[partitionId],
                              d_storageLockVec[partitionId].get(),
-                             fs->description(),
+                             bsl::string(fs->description(), d_allocator_p),
                              uri,
                              queue_sp));
 

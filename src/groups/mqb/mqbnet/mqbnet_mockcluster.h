@@ -292,7 +292,7 @@ class MockCluster : public Cluster {
     void
     onProxyConnectionUp(const bsl::shared_ptr<bmqio::Channel>& channel,
                         const bmqp_ctrlmsg::ClientIdentity&    identity,
-                        const bsl::string& description) BSLS_KEYWORD_OVERRIDE;
+                        bsl::string_view description) BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
     //   (specific to mqbnet::MockCluster)
