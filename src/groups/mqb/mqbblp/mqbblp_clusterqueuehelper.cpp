@@ -1267,7 +1267,7 @@ bmqt::GenericResult::Enum ClusterQueueHelper::sendReopenQueueRequest(
             << "ReopenQueue request: " << request->request() << ", rc: " << rc
             << ".";
 
-        subQueueContext->d_state = SubQueueContext::k_CLOSED;
+        setAsClosed(subQueueContext);
     }
     return rc;
 }
@@ -1556,7 +1556,7 @@ void ClusterQueueHelper::onReopenQueueResponse(
 
     if (bmqt::GenericResult::e_SUCCESS != requestContext->result()) {
         // Can now process Close requests instead of caching them
-        subQueueContext.d_state = SubQueueContext::k_CLOSED;
+        setAsClosed(&subQueueContext);
 
         if (bmqt::GenericResult::e_CANCELED == requestContext->result()) {
             // Connection to upstream has been lost.  Simply decrement the
@@ -1637,6 +1637,7 @@ void ClusterQueueHelper::onReopenQueueResponse(
 
         // Keep the state as 'k_CLOSED'.
         d_clusterData_p->scheduler().scheduleEvent(
+            &subQueueContext.d_reopenRetryHandle,
             after,
             bdlf::BindUtil::bindS(d_allocator_p,
                                   &ClusterQueueHelper::onReopenQueueRetry,
@@ -1738,7 +1739,7 @@ void ClusterQueueHelper::onReopenQueueResponse(
         // Decrement all counters.
         // Do not report "state is restored"
 
-        subQueueContext.d_state = SubQueueContext::k_CLOSED;
+        setAsClosed(&subQueueContext);
 
         // TBD: Note that invoking 'd_queue_p->streamParameters()' above is not
         // thread safe as queue's parameteres are supposed to be read/written
@@ -3587,6 +3588,7 @@ bool ClusterQueueHelper::subtractCounters(
             << itSubStream->appId() << ", " << itSubStream->subId()
             << "] on close-queue request for queue [" << handleParameters.uri()
             << "].";
+        setAsClosed(&subQueueContext);
         qinfo->d_subQueueIds.erase(itSubStream);
 
         return false;
@@ -4033,8 +4035,7 @@ bmqt::GenericResult::Enum ClusterQueueHelper::restoreStateHelper(
         }
 
         subQueueContext.d_generationCount = generationCount;
-        // block and cache all new OpenQueue requests
-        subQueueContext.d_state = SubQueueContext::k_CLOSED;
+        setAsClosed(&subQueueContext);
 
         // All pending Open requests must be cancelled by 'cancelAllRequests'
         // upon node state change or Stop request or active node down.
@@ -4445,6 +4446,7 @@ void ClusterQueueHelper::onQueueUnassigned(
                     -1);
             }
             d_queuesById.erase(qinfo.d_id);
+            setAsClosed(queueContextSp);
             qinfo.resetButKeepPending();
             // CQH will recreate 'queueContextSp->d_liveQInfo.d_queue_sp' upon
             // 'onOpenQueueResponse'
@@ -4606,20 +4608,21 @@ void ClusterQueueHelper::onUpstreamNodeChange(mqbnet::ClusterNode* node,
     }
 }
 
+void ClusterQueueHelper::setAsClosed(SubQueueContext* subQueueContext)
+{
+    d_clusterData_p->scheduler().cancelEvent(
+        &subQueueContext->d_reopenRetryHandle);
+    subQueueContext->d_state = SubQueueContext::k_CLOSED;
+}
+
 void ClusterQueueHelper::setAsClosed(const QueueContextSp& queueContextSp)
 {
-    QueueLiveState&    queueInfo = queueContextSp->d_liveQInfo;
-    const mqbi::Queue* queuePtr  = queueInfo.d_queue_sp.get();
-
-    BSLS_ASSERT_SAFE(queuePtr);
+    QueueLiveState& queueInfo = queueContextSp->d_liveQInfo;
 
     for (StreamsMap::iterator iter = queueInfo.d_subQueueIds.begin();
          iter != queueInfo.d_subQueueIds.end();
          ++iter) {
-        SubQueueContext& subQueueContext = iter->value();
-
-        // block and cache all new OpenQueue requests
-        subQueueContext.d_state = SubQueueContext::k_CLOSED;
+        setAsClosed(&iter->value());
     }
 }
 
