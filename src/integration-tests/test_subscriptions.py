@@ -1942,8 +1942,8 @@ def test_reconfigure_on_primary_node_crash(
     # Used for synchronization.
     Consumer(multi_node, uri, ["x > 100000"])
 
-    consumer_low1.expect_messages(expected1, confirm=True)
-    consumer_low2.expect_messages(expected2, confirm=True)
+    consumer_low1.expect_messages(expected1, confirm=True, ordered=False)
+    consumer_low2.expect_messages(expected2, confirm=True, ordered=False)
 
     expected1 = producer.post_diff(num=10, offset=-200)
     expected2 = producer.post_diff(num=10, offset=200)
