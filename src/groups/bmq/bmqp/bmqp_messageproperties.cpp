@@ -104,16 +104,20 @@ class PropertyValueStreamOutVisitor {
 
     void operator()(const bsl::string_view& value)
     {
-        bdlbb::BlobUtil::append(d_blob_p,
-                                value.data(),
-                                static_cast<int>(value.length()));
+        if (!value.empty()) {
+            bdlbb::BlobUtil::append(d_blob_p,
+                                    value.data(),
+                                    static_cast<int>(value.length()));
+        }
     }
 
     void operator()(const bsl::vector<char>& value)
     {
-        bdlbb::BlobUtil::append(d_blob_p,
-                                value.data(),
-                                static_cast<int>(value.size()));
+        if (!value.empty()) {
+            bdlbb::BlobUtil::append(d_blob_p,
+                                    value.data(),
+                                    static_cast<int>(value.size()));
+        }
     }
 };
 
@@ -315,6 +319,10 @@ bool MessageProperties::streamInPropertyValue(const Property& p) const
     }
 
     case bmqt::PropertyType::e_STRING: {
+        if (p.d_length == 0) {
+            p.d_value = bsl::string("", d_allocator_p);
+            break;  // BREAK
+        }
         // Try to avoid copying the string.  'd_blop' already keeps a copy.
         bmqu::BlobPosition end;
         const int          ret =
@@ -344,10 +352,12 @@ bool MessageProperties::streamInPropertyValue(const Property& p) const
     }
     case bmqt::PropertyType::e_BINARY: {
         bsl::vector<char> value(p.d_length, d_allocator_p);
-        rc = bmqu::BlobUtil::readNBytes(&value[0],
-                                        *d_blob_p,
-                                        position,
-                                        p.d_length);
+        if (p.d_length > 0) {
+            rc = bmqu::BlobUtil::readNBytes(&value[0],
+                                            *d_blob_p,
+                                            position,
+                                            p.d_length);
+        }
 
         p.d_value = value;
         break;
