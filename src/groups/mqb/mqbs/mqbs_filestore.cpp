@@ -1440,7 +1440,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 // 'QueueOpType::e_ADDITION' as well).
 
                 QueueKeyInfoMapInsertRc insertRc = queueKeyInfoMap->insert(
-                    bsl::make_pair(queueKey, DataStoreConfigQueueInfo(false)));
+                    bsl::make_pair(queueKey, DataStoreConfigQueueInfo()));
                 insertRc.first->second.setPartitionId(d_config.partitionId());
 
                 if (false == insertRc.second) {
@@ -2069,6 +2069,8 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                     return rc_INVALID_PARTITION_ID;  // RETURN
                 }
 
+                iter->second.setAsRecorded();
+
                 if (d_qListAware) {
                     // Retrieve QueueUri from QueueUriRecord.
 
@@ -2216,7 +2218,9 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                                 // done in StorageMgr because we have recovered
                                 // all appId/appKey pairs by that time.
 
-                                qinfo.addAppInfo(cit->first, cit->second);
+                                qinfo.addAppInfo(cit->first,
+                                                 cit->second,
+                                                 withCSL);
                             }
                             BALL_LOG_INFO << partitionDesc()
                                           << "Recovered appId/appKey pair ['"

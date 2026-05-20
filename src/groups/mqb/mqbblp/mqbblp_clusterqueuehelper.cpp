@@ -3765,7 +3765,7 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
             BALL_LOG_INFO << d_cluster_p->description() << " Partition ["
                           << partitionId
                           << "]: Not restoring partition state because there "
-                          << "is no primary or primary isn't ACTIVE. Current "
+                          << "is no ACTIVE and AVAIALBLE primary. Current "
                           << "primary: "
                           << (pinfo->primaryNode()
                                   ? pinfo->primaryNode()->nodeDescription()
