@@ -28,6 +28,7 @@ from blazingmq.dev.it.fixtures import (
     Cluster,
     order,
 )
+from blazingmq.dev.it.util import wait_until
 
 pytestmark = order(4)
 
@@ -64,15 +65,21 @@ class TestRolloverJournal:
         leader.trigger_rollover(partitionId=all_partitions)
         leader.wait_rollover_complete()
 
-        journal_files_after_rollover = glob.glob(
+        # Old files are archived asynchronously by a worker thread after
+        # "ROLLOVER COMPLETE" is logged, so poll until the old files are moved.
+        storage_pattern = (
             str(cluster.work_dir.joinpath(leader.name, "storage")) + "/*journal*"
         )
-        journal_files_after_rollover.sort()
 
-        assert len(journal_files_after_rollover) == NUM_PARTITIONS, (
+        def _journal_files_cleaned_up():
+            return len(glob.glob(storage_pattern)) == NUM_PARTITIONS
+
+        assert wait_until(_journal_files_cleaned_up, timeout=10), (
             f"Expected {NUM_PARTITIONS} journal files after rollover, "
-            f"got {len(journal_files_after_rollover)}"
+            f"got: {glob.glob(storage_pattern)}"
         )
+
+        journal_files_after_rollover = sorted(glob.glob(storage_pattern))
         assert journal_files_before_rollover[0] != journal_files_after_rollover[0], (
             f"Journal file for partition 0 did not change after rollover: "
             f"{journal_files_before_rollover[0]}"
