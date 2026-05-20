@@ -204,6 +204,23 @@ struct FileStoreUtil {
                             bool                       withSize  = false,
                             bool                       needQList = true);
 
+    /// Move the specified `dataFile` and `journalFile` (and optionally
+    /// `qlistFile` if the specified `qlistAware` is true) to the specified
+    /// `archiveLocation` directory.  Return zero on success, non-zero value
+    /// otherwise.
+    static int archiveFileSet(bsl::string_view dataFile,
+                              bsl::string_view journalFile,
+                              bsl::string_view qlistFile,
+                              bsl::string_view archiveLocation,
+                              bool             qlistAware = true);
+
+    /// Move the data, journal, and qlist files if `qlistAware` is true, from
+    /// the specified `fileSet` to the specified `archiveLocation` directory.
+    /// Return zero on success, non-zero value otherwise.
+    static int archiveFileSet(const FileStoreSet& fileSet,
+                              bsl::string_view    archiveLocation,
+                              bool                qlistAware = true);
+
     /// Delete the archived files located at the specified `archiveLocation`
     /// belonging to the specified `partitionId` of the specified `cluster`
     /// and keep at most a maximum of the specified `maxArchivedFileSets`.
