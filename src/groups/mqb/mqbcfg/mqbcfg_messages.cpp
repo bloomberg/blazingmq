@@ -1,4 +1,4 @@
-// Copyright 2025-2026 Bloomberg Finance L.P.
+// Copyright 2026 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,9 +48,9 @@ namespace mqbcfg {
 const char AllocatorType::CLASS_NAME[] = "AllocatorType";
 
 const bdlat_EnumeratorInfo AllocatorType::ENUMERATOR_INFO_ARRAY[] = {
-    {AllocatorType::NEWDELETE, "NEWDELETE", sizeof("NEWDELETE") - 1, ""},
-    {AllocatorType::COUNTING, "COUNTING", sizeof("COUNTING") - 1, ""},
-    {AllocatorType::STACKTRACETEST,
+    {AllocatorType::e_NEWDELETE, "NEWDELETE", sizeof("NEWDELETE") - 1, ""},
+    {AllocatorType::e_COUNTING, "COUNTING", sizeof("COUNTING") - 1, ""},
+    {AllocatorType::e_STACKTRACETEST,
      "STACKTRACETEST",
      sizeof("STACKTRACETEST") - 1,
      ""}};
@@ -60,9 +60,9 @@ const bdlat_EnumeratorInfo AllocatorType::ENUMERATOR_INFO_ARRAY[] = {
 int AllocatorType::fromInt(AllocatorType::Value* result, int number)
 {
     switch (number) {
-    case AllocatorType::NEWDELETE:
-    case AllocatorType::COUNTING:
-    case AllocatorType::STACKTRACETEST:
+    case AllocatorType::e_NEWDELETE:
+    case AllocatorType::e_COUNTING:
+    case AllocatorType::e_STACKTRACETEST:
         *result = static_cast<AllocatorType::Value>(number);
         return 0;
     default: return -1;
@@ -91,13 +91,13 @@ int AllocatorType::fromString(AllocatorType::Value* result,
 const char* AllocatorType::toString(AllocatorType::Value value)
 {
     switch (value) {
-    case NEWDELETE: {
+    case e_NEWDELETE: {
         return "NEWDELETE";
     }
-    case COUNTING: {
+    case e_COUNTING: {
         return "COUNTING";
     }
-    case STACKTRACETEST: {
+    case e_STACKTRACETEST: {
         return "STACKTRACETEST";
     }
     }
@@ -951,16 +951,16 @@ ElectorConfig::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 const char ExportMode::CLASS_NAME[] = "ExportMode";
 
 const bdlat_EnumeratorInfo ExportMode::ENUMERATOR_INFO_ARRAY[] = {
-    {ExportMode::E_PUSH, "E_PUSH", sizeof("E_PUSH") - 1, ""},
-    {ExportMode::E_PULL, "E_PULL", sizeof("E_PULL") - 1, ""}};
+    {ExportMode::e_E_PUSH, "E_PUSH", sizeof("E_PUSH") - 1, ""},
+    {ExportMode::e_E_PULL, "E_PULL", sizeof("E_PULL") - 1, ""}};
 
 // CLASS METHODS
 
 int ExportMode::fromInt(ExportMode::Value* result, int number)
 {
     switch (number) {
-    case ExportMode::E_PUSH:
-    case ExportMode::E_PULL:
+    case ExportMode::e_E_PUSH:
+    case ExportMode::e_E_PULL:
         *result = static_cast<ExportMode::Value>(number);
         return 0;
     default: return -1;
@@ -988,10 +988,10 @@ int ExportMode::fromString(ExportMode::Value* result,
 const char* ExportMode::toString(ExportMode::Value value)
 {
     switch (value) {
-    case E_PUSH: {
+    case e_E_PUSH: {
         return "E_PUSH";
     }
-    case E_PULL: {
+    case e_E_PULL: {
         return "E_PULL";
     }
     }
@@ -1265,11 +1265,11 @@ const char MasterAssignmentAlgorithm::CLASS_NAME[] =
     "MasterAssignmentAlgorithm";
 
 const bdlat_EnumeratorInfo MasterAssignmentAlgorithm::ENUMERATOR_INFO_ARRAY[] =
-    {{MasterAssignmentAlgorithm::E_LEADER_IS_MASTER_ALL,
+    {{MasterAssignmentAlgorithm::e_E_LEADER_IS_MASTER_ALL,
       "E_LEADER_IS_MASTER_ALL",
       sizeof("E_LEADER_IS_MASTER_ALL") - 1,
       ""},
-     {MasterAssignmentAlgorithm::E_LEAST_ASSIGNED,
+     {MasterAssignmentAlgorithm::e_E_LEAST_ASSIGNED,
       "E_LEAST_ASSIGNED",
       sizeof("E_LEAST_ASSIGNED") - 1,
       ""}};
@@ -1281,8 +1281,8 @@ int MasterAssignmentAlgorithm::fromInt(
     int                               number)
 {
     switch (number) {
-    case MasterAssignmentAlgorithm::E_LEADER_IS_MASTER_ALL:
-    case MasterAssignmentAlgorithm::E_LEAST_ASSIGNED:
+    case MasterAssignmentAlgorithm::e_E_LEADER_IS_MASTER_ALL:
+    case MasterAssignmentAlgorithm::e_E_LEAST_ASSIGNED:
         *result = static_cast<MasterAssignmentAlgorithm::Value>(number);
         return 0;
     default: return -1;
@@ -1313,10 +1313,10 @@ const char*
 MasterAssignmentAlgorithm::toString(MasterAssignmentAlgorithm::Value value)
 {
     switch (value) {
-    case E_LEADER_IS_MASTER_ALL: {
+    case e_E_LEADER_IS_MASTER_ALL: {
         return "E_LEADER_IS_MASTER_ALL";
     }
-    case E_LEAST_ASSIGNED: {
+    case e_E_LEAST_ASSIGNED: {
         return "E_LEAST_ASSIGNED";
     }
     }
@@ -5658,6 +5658,141 @@ ClusterNode::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     return stream;
 }
 
+// ------------------------------
+// class CredentialProviderConfig
+// ------------------------------
+
+// CONSTANTS
+
+const char CredentialProviderConfig::CLASS_NAME[] = "CredentialProviderConfig";
+
+const bdlat_AttributeInfo CredentialProviderConfig::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_NAME,
+     "name",
+     sizeof("name") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_SETTINGS,
+     "settings",
+     sizeof("settings") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo*
+CredentialProviderConfig::lookupAttributeInfo(const char* name, int nameLength)
+{
+    for (int i = 0; i < 2; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            CredentialProviderConfig::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo*
+CredentialProviderConfig::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_NAME: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME];
+    case ATTRIBUTE_ID_SETTINGS:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SETTINGS];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+CredentialProviderConfig::CredentialProviderConfig(
+    bslma::Allocator* basicAllocator)
+: d_settings(basicAllocator)
+, d_name(basicAllocator)
+{
+}
+
+CredentialProviderConfig::CredentialProviderConfig(
+    const CredentialProviderConfig& original,
+    bslma::Allocator*               basicAllocator)
+: d_settings(original.d_settings, basicAllocator)
+, d_name(original.d_name, basicAllocator)
+{
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+CredentialProviderConfig::CredentialProviderConfig(
+    CredentialProviderConfig&& original) noexcept
+: d_settings(bsl::move(original.d_settings)),
+  d_name(bsl::move(original.d_name))
+{
+}
+
+CredentialProviderConfig::CredentialProviderConfig(
+    CredentialProviderConfig&& original,
+    bslma::Allocator*          basicAllocator)
+: d_settings(bsl::move(original.d_settings), basicAllocator)
+, d_name(bsl::move(original.d_name), basicAllocator)
+{
+}
+#endif
+
+CredentialProviderConfig::~CredentialProviderConfig()
+{
+}
+
+// MANIPULATORS
+
+CredentialProviderConfig&
+CredentialProviderConfig::operator=(const CredentialProviderConfig& rhs)
+{
+    if (this != &rhs) {
+        d_name     = rhs.d_name;
+        d_settings = rhs.d_settings;
+    }
+
+    return *this;
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+CredentialProviderConfig&
+CredentialProviderConfig::operator=(CredentialProviderConfig&& rhs)
+{
+    if (this != &rhs) {
+        d_name     = bsl::move(rhs.d_name);
+        d_settings = bsl::move(rhs.d_settings);
+    }
+
+    return *this;
+}
+#endif
+
+void CredentialProviderConfig::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_name);
+    bdlat_ValueTypeFunctions::reset(&d_settings);
+}
+
+// ACCESSORS
+
+bsl::ostream& CredentialProviderConfig::print(bsl::ostream& stream,
+                                              int           level,
+                                              int spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("name", this->name());
+    printer.printAttribute("settings", this->settings());
+    printer.end();
+    return stream;
+}
+
 // ----------------------
 // class DispatcherConfig
 // ----------------------
@@ -6317,19 +6452,24 @@ const bdlat_AttributeInfo AuthenticatorConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "minThreads",
      sizeof("minThreads") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MAX_THREADS,
      "maxThreads",
      sizeof("maxThreads") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+    {ATTRIBUTE_ID_CREDENTIAL_PROVIDER,
+     "credentialProvider",
+     sizeof("credentialProvider") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT}};
 
 // CLASS METHODS
 
 const bdlat_AttributeInfo*
 AuthenticatorConfig::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 5; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             AuthenticatorConfig::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -6353,6 +6493,8 @@ const bdlat_AttributeInfo* AuthenticatorConfig::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MIN_THREADS];
     case ATTRIBUTE_ID_MAX_THREADS:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_THREADS];
+    case ATTRIBUTE_ID_CREDENTIAL_PROVIDER:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CREDENTIAL_PROVIDER];
     default: return 0;
     }
 }
@@ -6361,6 +6503,7 @@ const bdlat_AttributeInfo* AuthenticatorConfig::lookupAttributeInfo(int id)
 
 AuthenticatorConfig::AuthenticatorConfig(bslma::Allocator* basicAllocator)
 : d_authenticators(basicAllocator)
+, d_credentialProvider(basicAllocator)
 , d_anonymousCredential(basicAllocator)
 , d_minThreads(DEFAULT_INITIALIZER_MIN_THREADS)
 , d_maxThreads(DEFAULT_INITIALIZER_MAX_THREADS)
@@ -6370,6 +6513,7 @@ AuthenticatorConfig::AuthenticatorConfig(bslma::Allocator* basicAllocator)
 AuthenticatorConfig::AuthenticatorConfig(const AuthenticatorConfig& original,
                                          bslma::Allocator* basicAllocator)
 : d_authenticators(original.d_authenticators, basicAllocator)
+, d_credentialProvider(original.d_credentialProvider, basicAllocator)
 , d_anonymousCredential(original.d_anonymousCredential, basicAllocator)
 , d_minThreads(original.d_minThreads)
 , d_maxThreads(original.d_maxThreads)
@@ -6381,6 +6525,7 @@ AuthenticatorConfig::AuthenticatorConfig(const AuthenticatorConfig& original,
 AuthenticatorConfig::AuthenticatorConfig(
     AuthenticatorConfig&& original) noexcept
 : d_authenticators(bsl::move(original.d_authenticators)),
+  d_credentialProvider(bsl::move(original.d_credentialProvider)),
   d_anonymousCredential(bsl::move(original.d_anonymousCredential)),
   d_minThreads(bsl::move(original.d_minThreads)),
   d_maxThreads(bsl::move(original.d_maxThreads))
@@ -6390,6 +6535,8 @@ AuthenticatorConfig::AuthenticatorConfig(
 AuthenticatorConfig::AuthenticatorConfig(AuthenticatorConfig&& original,
                                          bslma::Allocator*     basicAllocator)
 : d_authenticators(bsl::move(original.d_authenticators), basicAllocator)
+, d_credentialProvider(bsl::move(original.d_credentialProvider),
+                       basicAllocator)
 , d_anonymousCredential(bsl::move(original.d_anonymousCredential),
                         basicAllocator)
 , d_minThreads(bsl::move(original.d_minThreads))
@@ -6412,6 +6559,7 @@ AuthenticatorConfig::operator=(const AuthenticatorConfig& rhs)
         d_anonymousCredential = rhs.d_anonymousCredential;
         d_minThreads          = rhs.d_minThreads;
         d_maxThreads          = rhs.d_maxThreads;
+        d_credentialProvider  = rhs.d_credentialProvider;
     }
 
     return *this;
@@ -6426,6 +6574,7 @@ AuthenticatorConfig& AuthenticatorConfig::operator=(AuthenticatorConfig&& rhs)
         d_anonymousCredential = bsl::move(rhs.d_anonymousCredential);
         d_minThreads          = bsl::move(rhs.d_minThreads);
         d_maxThreads          = bsl::move(rhs.d_maxThreads);
+        d_credentialProvider  = bsl::move(rhs.d_credentialProvider);
     }
 
     return *this;
@@ -6438,6 +6587,7 @@ void AuthenticatorConfig::reset()
     bdlat_ValueTypeFunctions::reset(&d_anonymousCredential);
     d_minThreads = DEFAULT_INITIALIZER_MIN_THREADS;
     d_maxThreads = DEFAULT_INITIALIZER_MAX_THREADS;
+    bdlat_ValueTypeFunctions::reset(&d_credentialProvider);
 }
 
 // ACCESSORS
@@ -6452,6 +6602,7 @@ bsl::ostream& AuthenticatorConfig::print(bsl::ostream& stream,
     printer.printAttribute("anonymousCredential", this->anonymousCredential());
     printer.printAttribute("minThreads", this->minThreads());
     printer.printAttribute("maxThreads", this->maxThreads());
+    printer.printAttribute("credentialProvider", this->credentialProvider());
     printer.end();
     return stream;
 }
@@ -7705,6 +7856,6 @@ Configuration::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY BLP_BAS_CODEGEN_2026.02.26
+// GENERATED BY BLP_BAS_CODEGEN_2026.04.30
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd
