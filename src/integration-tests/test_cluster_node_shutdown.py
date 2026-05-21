@@ -301,16 +301,16 @@ class TestClusterNodeShutdown:
             node.wait()
         assert primary.outputs_regex("LEADER lost quorum")
 
-        # Prevent the old leader from winning re-election.  A replica will
-        # become the new leader; the old leader will detect leader-primary
-        # divergence and abort.
+        # Prevent the old leader from winning re-election and steer
+        # leadership to active_replica.  active_replica with quorum=0
+        # self-elects immediately, assigns itself as primary
+        # (E_LEADER_IS_MASTER_ALL), and prevents cascading divergence:
+        # when the old primary restarts it will not be assigned as
+        # primary, so no second divergence can occur.
         primary.set_quorum(99, succeed=True)
+        active_replica.set_quorum(0, succeed=True)
 
-        # Leader-primary divergence can cascade: the old primary (leader in
-        # term N) detects divergence and aborts; its crash causes the new
-        # leader (term N+1) to lose a voter and drop below quorum; a third
-        # node wins the next election (term N+2), and the former leader of
-        # term N+1 — now still primary — hits the same divergence and aborts.
+        # The old primary will detect leader-primary divergence and abort.
         for node in cluster.nodes():
             node.check_exit_code = False
 
@@ -319,44 +319,26 @@ class TestClusterNodeShutdown:
             node.start()
             node.wait_until_started()
 
-        # Wait for re-elections to settle, then restart any node that
-        # crashed or is stuck in graceful shutdown from cascading
-        # leader-primary divergence.  A node that called shutdown() may
-        # still appear alive (is_alive() True) while being functionally
-        # dead, so check for the shutdown marker explicitly.
-        sleep(5)
-        divergence_count = 0
-        for node in cluster.nodes():
-            if not node.is_alive():
-                node.wait()
-                node.start()
-                node.wait_until_started()
-                divergence_count += 1
-            elif node.outputs_regex("UNSUPPORTED_SCENARIO", timeout=1):
-                node.kill()
-                node.wait()
-                node.start()
-                node.wait_until_started()
-                divergence_count += 1
+        # The old primary must crash from leader-primary divergence.
+        assert primary.outputs_regex("UNSUPPORTED_SCENARIO", timeout=120)
+        primary.wait()
 
-        # Use wait_healthy (admin command) instead of wait_status (log
-        # capture) because outputs_regex above may have consumed the
-        # "leader status: ACTIVE" backlog from healthy nodes.
-        alive_node = next(n for n in cluster.nodes() if n.is_alive())
-        alive_node.wait_healthy()
+        # Wait for active_replica to become the ACTIVE leader.
+        active_replica.outputs_regex(r"leader status: ACTIVE", timeout=120)
 
-        if divergence_count > 1:
-            # TODO: Cascading leader-primary divergence causes the proxy to
-            # lose connection to its upstream, dropping producer2's pending
-            # open request.  This scenario needs a broker-side fix.
-            pass
-        else:
-            # With a single divergence, the proxy stays connected and
-            # producer2 should receive the openQueueResponse.
-            assert self.producer2.outputs_regex(
-                rf"openQueue.*uri = {re.escape(du.uri_priority_2)}.*\(0\)",
-                timeout=30,
-            ), f"producer2 did not receive openQueueResponse for {du.uri_priority_2}"
+        # Restart the old primary — it is no longer assigned as primary,
+        # so no second divergence will occur.
+        primary.start()
+        primary.wait_until_started()
+
+        active_replica.wait_healthy()
+
+        # active_replica is leader+primary, so producer2's pending
+        # openQueue should now succeed.
+        assert self.producer2.outputs_regex(
+            rf"openQueue.*uri = {re.escape(du.uri_priority_2)}.*\(0\)",
+            timeout=30,
+        ), f"producer2 did not receive openQueueResponse for {du.uri_priority_2}"
 
         # Opening the queue from a new client should succeed.
         self.producer3 = self.proxy_replica_dc.create_client("producer3")
