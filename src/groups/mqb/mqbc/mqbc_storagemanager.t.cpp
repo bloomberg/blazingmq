@@ -3279,6 +3279,60 @@ static void test21_watchdogMultipleRetries()
     helper.d_cluster_mp->stop();
 }
 
+static void test22_stopMiscWorkThreadPool()
+// ------------------------------------------------------------------------
+// STOP MISC WORK THREAD POOL
+//
+// Concerns:
+//   StorageManager::stop() should stop d_miscWorkThreadPool.
+//
+// Plan:
+//  1) Create and start a StorageManager.
+//  2) Verify the thread pool is started.
+//  3) Invoke stop.
+//  4) Verify the thread pool is no longer started.
+//
+// Testing:
+//   StorageManager::stop() stops d_miscWorkThreadPool.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("STOP MISC WORK THREAD POOL");
+
+    TestHelper helper;
+
+    mqbs::DataStoreRecordHandle handle;
+    helper.initializeRecords(&handle, 1);
+
+    mqbc::StorageManager storageManager(
+        helper.d_cluster_mp->_clusterDefinition(),
+        helper.d_cluster_mp.get(),
+        helper.d_cluster_mp->_clusterData(),
+        helper.d_cluster_mp->_state(),
+        helper.d_cluster_mp->_clusterData()->domainFactory(),
+        helper.d_cluster_mp->dispatcher(),
+        k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
+        mockOnRecoveryStatus,
+        mockOnPartitionPrimaryStatus,
+        bmqtst::TestHelperUtil::allocator());
+
+    bmqu::MemOutStream errorDescription;
+    const int          rc = storageManager.start(errorDescription);
+    BSLS_ASSERT_OPT(rc == 0);
+
+    // Verify thread pool is started after start()
+    BMQTST_ASSERT_EQ(storageManager.isMiscWorkThreadPoolStarted(), true);
+
+    // Stop the storage manager
+    storageManager.stopPFSMs();
+    storageManager.stop();
+
+    // Verify thread pool is stopped after stop()
+    BMQTST_ASSERT_EQ(storageManager.isMiscWorkThreadPoolStarted(), false);
+
+    helper.d_cluster_mp->stop();
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -3296,6 +3350,7 @@ int main(int argc, char* argv[])
         //      - test21_replicaHealingReceivesReplicaDataRqstDrop();
         //      - test20_replicaHealingReceivesReplicaDataRqstPush();
         //      - test19_primaryHealedSendsDataChunks();
+    case 22: test22_stopMiscWorkThreadPool(); break;
     case 21: test21_watchdogMultipleRetries(); break;
     case 20: test20_watchdogStopResetsState(); break;
     case 19: test19_replicaWaitingWatchdogRetry(); break;

@@ -1077,6 +1077,11 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// THREAD: Must be called from the cluster dispatcher thread or the
     ///         partition dispatcher thread for the specified `partitionId`.
     bool isWatchdogActive(int partitionId) const;
+
+    /// Return whether the miscellaneous work thread pool is currently
+    /// started.  This accessor is meant to be used for unit testing
+    /// purposes.
+    bool isMiscWorkThreadPoolStarted() const;
 };
 
 // ============================
@@ -1308,6 +1313,11 @@ inline bool StorageManager::isWatchdogActive(int partitionId) const
                      d_fileStores[partitionId]->inDispatcherThread());
 
     return d_watchdogContexts[partitionId].d_active;
+}
+
+inline bool StorageManager::isMiscWorkThreadPoolStarted() const
+{
+    return d_miscWorkThreadPool.isStarted();
 }
 
 inline unsigned int StorageManager::getSeqNumQuorum() const
