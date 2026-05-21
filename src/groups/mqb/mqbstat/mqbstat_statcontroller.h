@@ -30,6 +30,7 @@
 #include <mqbcmd_messages.h>
 #include <mqbstat_jsonprinter.h>
 #include <mqbstat_statmonitor.h>
+#include <mqbstat_statsfilelogger.h>
 #include <mqbstat_tableprinter.h>
 
 #include <bmqma_countingallocatorstore.h>
@@ -71,9 +72,6 @@ class StatResult;
 }
 namespace mqbplug {
 class PluginManager;
-}
-namespace mqbplug {
-class StatPublisher;
 }
 namespace mqbplug {
 class StatConsumer;
@@ -127,9 +125,34 @@ class StatController {
     typedef bsl::shared_ptr<bmqst::StatContext>           StatContextSp;
     typedef bslma::ManagedPtr<mqbstat::StatMonitor>       SystemStatMonitorMp;
     typedef bslma::ManagedPtr<TablePrinter>               TablePrinterMp;
+    typedef bslma::ManagedPtr<StatsFileLogger>            StatsFileLoggerMp;
     typedef bslma::ManagedPtr<JsonPrinter>                JsonPrinterMp;
-    typedef bslma::ManagedPtr<mqbplug::StatPublisher>     StatPublisherMp;
     typedef bslma::ManagedPtr<mqbplug::StatConsumer>      StatConsumerMp;
+
+    /// Tracks snapshot IDs and the action counter that determines when
+    /// periodic stats output should be produced.
+    class SnapshotTracker {
+        // DATA
+        int d_actionInterval;
+
+        int d_actionCounter;
+        int d_statId;
+
+      public:
+        // CREATORS
+        SnapshotTracker();
+
+        // MANIPULATORS
+        void initialize(int printInterval, int snapshotInterval);
+        void onSnapshot();
+
+        // ACCESSORS
+        bool isEnabled() const;
+        int  actionInterval() const;
+
+        bool willPrintOnNextSnapshot() const;
+        int  statId() const;
+    };
 
     /// Struct containing a statcontext and bool specifying if the
     /// statcontext is managed.
@@ -204,8 +227,14 @@ class StatController {
     /// from a command processor plugin.
     CommandProcessorFn d_commandProcessorFn;
 
-    /// Console and log file stats printer
+    /// Tracks snapshot IDs and print interval countdown.
+    SnapshotTracker d_snapshotTracker;
+
+    /// Stats formatter for console and admin commands
     TablePrinterMp d_tablePrinter_mp;
+
+    /// File logger for periodic stats output
+    StatsFileLoggerMp d_statsFileLogger_mp;
 
     /// JsonPrinter used for admin commands processing
     JsonPrinterMp d_jsonPrinter_mp;
