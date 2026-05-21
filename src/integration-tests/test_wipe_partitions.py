@@ -330,3 +330,69 @@ def test_wipe_storage_all_but_one_node(
     stop_cluster_and_compare_journal_files(
         surviving_node.name, wiped_node.name, cluster
     )
+
+
+@tweak.cluster.queue_operations.shutdown_timeout_ms(100)
+def test_wipe_qlist_all_nodes(
+    multi_node: Cluster,
+    domain_urls: tc.DomainUrls,
+) -> None:
+    """
+    Test that the cluster survives when qlist files are wiped from ALL nodes.
+    Without qlist, the broker cannot map queues to partition data files, so
+    old messages are orphaned and lost.  The cluster should still come up
+    cleanly and accept new messages.
+    - start cluster
+    - post messages
+    - stop all nodes
+    - wipe qlist files from every node
+    - restart all nodes
+    - verify the cluster becomes available
+    - verify the queue is functional by posting and consuming new messages
+    """
+    cluster = multi_node
+    uri_priority = domain_urls.uri_priority
+
+    leader = cluster.last_known_leader
+    proxy = next(cluster.proxy_cycle())
+
+    producer = proxy.create_client("producer")
+    producer.open(uri_priority, flags=["write,ack"], succeed=True)
+
+    # Post messages
+    for i in range(1, 5):
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+
+    # Stop all nodes
+    cluster.stop_nodes(prevent_leader_bounce=True)
+
+    # Wipe qlist files from every node
+    for node in cluster.nodes():
+        storage_dir = str(cluster.work_dir.joinpath(node.name, "storage"))
+        wipe_files(["*.bmq_qlist"], storage_dir)
+
+    # Restart all nodes
+    cluster.start_nodes(wait_leader=True, wait_ready=True)
+
+    new_leader = cluster.last_known_leader
+
+    # Old messages are lost (qlist maps queues to partition data).
+    # Verify the queue is still functional by posting and consuming new ones.
+    new_proxy = next(cluster.proxy_cycle())
+    new_producer = new_proxy.create_client("new_producer")
+    new_producer.open(uri_priority, flags=["write,ack"], succeed=True)
+
+    for i in range(1, 4):
+        new_producer.post(uri_priority, [f"new_msg{i}"], succeed=True, wait_ack=True)
+
+    consumer_node = cluster.nodes(exclude=new_leader)[0]
+    consumer = consumer_node.create_client("consumer")
+    consumer.open(uri_priority, flags=["read"], succeed=True)
+
+    assert wait_until(
+        lambda: len(consumer.list(uri_priority, block=True)) == 3,
+        3,
+    ), "Consumer did not receive 3 new messages after qlist wipe"
+
+    consumer.confirm(uri_priority, "*", succeed=True)
+    consumer.close(uri_priority, succeed=True)
