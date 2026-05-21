@@ -893,6 +893,8 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
                const mqbc::ClusterStateQueueInfo& state,
                const mqbconfm::QueueMode&         domainConfig) const;
 
+    bsls::Types::Uint64 currentGenCount(int pid) const;
+
     /// Respond to all pending OpenQueue requests with the specified
     /// `status`.
     void finishAllOpening(const QueueContextSp&       queueContext,
@@ -1404,6 +1406,16 @@ inline bool ClusterQueueHelper::isFailoverInProgress() const
 inline bool ClusterQueueHelper::isShutdownLogicOn() const
 {
     return d_isShutdownLogicOn;
+}
+
+inline bsls::Types::Uint64 ClusterQueueHelper::currentGenCount(int pid) const
+{
+    if (d_cluster_p->isRemote()) {
+        return d_clusterData_p->electorInfo().electorTerm();
+    }
+    else {
+        return d_clusterState_p->partition(pid).primaryLeaseId();
+    }
 }
 
 }  // close package namespace
