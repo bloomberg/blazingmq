@@ -484,3 +484,72 @@ def test_wipe_partitions_stale_replica(
     stop_cluster_and_compare_journal_files(
         stale_replica.name, wiped_replica.name, cluster
     )
+
+
+@tweak.cluster.queue_operations.shutdown_timeout_ms(100)
+def test_single_node_wipe_partition_keep_csl(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,
+) -> None:
+    """
+    Test that a single-node cluster can recover after partition files are
+    wiped but the CSL file is preserved.  Since there are no peers to heal
+    from, the node must rely on the CSL for queue metadata recovery.
+    Messages stored in the wiped partition files will be lost, but the
+    node should start cleanly and accept new messages.
+    - start single-node cluster
+    - post messages
+    - stop the node
+    - wipe all partition files (journal + data + qlist) but keep CSL
+    - restart the node
+    - verify the node becomes available
+    - open the queue and post new messages to verify the queue is functional
+    """
+    cluster = single_node
+    uri_priority = domain_urls.uri_priority
+
+    node = cluster.nodes()[0]
+
+    producer = node.create_client("producer")
+    producer.open(uri_priority, flags=["write,ack"], succeed=True)
+
+    # Post messages
+    for i in range(1, 5):
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+
+    # Stop the node
+    node.stop()
+    cluster.make_sure_node_stopped(node)
+    node.drain()
+
+    # Wipe all partition files but keep CSL
+    storage_dir = str(cluster.work_dir.joinpath(node.name, "storage"))
+    wipe_files(["*.bmq_journal", "*.bmq_data", "*.bmq_qlist"], storage_dir)
+
+    # Restart the node
+    node.start()
+    node.wait_until_started()
+
+    assert node.outputs_substr("Cluster (itCluster) is available", 10), (
+        f"Node {node} did not become available within 10s after "
+        f"partition files were wiped"
+    )
+
+    # Old messages are lost (no peers to recover from), but the queue
+    # should be functional — verify by posting and consuming new messages
+    producer2 = node.create_client("producer2")
+    producer2.open(uri_priority, flags=["write,ack"], succeed=True)
+
+    for i in range(1, 4):
+        producer2.post(uri_priority, [f"new_msg{i}"], succeed=True, wait_ack=True)
+
+    consumer = node.create_client("consumer")
+    consumer.open(uri_priority, flags=["read"], succeed=True)
+
+    assert wait_until(
+        lambda: len(consumer.list(uri_priority, block=True)) == 3,
+        3,
+    ), "Consumer did not receive 3 new messages after partition wipe on single node"
+
+    consumer.confirm(uri_priority, "*", succeed=True)
+    consumer.close(uri_priority, succeed=True)
