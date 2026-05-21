@@ -396,3 +396,91 @@ def test_wipe_qlist_all_nodes(
 
     consumer.confirm(uri_priority, "*", succeed=True)
     consumer.close(uri_priority, succeed=True)
+
+
+@tweak.cluster.queue_operations.shutdown_timeout_ms(100)
+def test_wipe_partitions_stale_replica(
+    fsm_multi_node: Cluster,
+    sc_domain_urls: tc.DomainUrls,
+) -> None:
+    """
+    Test recovery when a stale replica (which missed messages) coexists
+    with wiped replicas.
+    - start cluster
+    - post initial messages
+    - stop one replica (it becomes stale)
+    - post more messages
+    - stop the entire cluster
+    - wipe partition files from two other nodes, including the original primary
+    - restart all nodes, but make sure the surviving replica is part of the
+      initial leader quorum
+    - verify all nodes recover and a consumer can receive all messages
+
+    NOTE: This test is run in FSM mode only; in legacy mode, the cluster cannot
+    heal when the majority of nodes have incorrect storage.
+    """
+    cluster = fsm_multi_node
+    uri_priority = sc_domain_urls.uri_priority
+
+    leader = cluster.last_known_leader
+    proxy = next(cluster.proxy_cycle())
+
+    producer = proxy.create_client("producer")
+    producer.open(uri_priority, flags=["write,ack"], succeed=True)
+
+    # Post initial messages
+    for i in range(1, 3):
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+
+    replicas = cluster.nodes(exclude=leader)
+
+    # Stop one replica — it becomes stale
+    stale_replica = replicas[0]
+    stale_replica.stop()
+    cluster.make_sure_node_stopped(stale_replica)
+    stale_replica.drain()
+
+    # Post more messages
+    for i in range(3, 7):
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+
+    # Stop the entire cluster
+    cluster.stop_nodes()
+    for node in cluster.nodes():
+        node.drain()
+
+    # Wipe partition files from two other nodes, including the original primary
+    wiped_replica = replicas[1]
+    for node in [leader, wiped_replica]:
+        storage_dir = str(cluster.work_dir.joinpath(node.name, "storage"))
+        wipe_files(
+            ["*.bmq_journal", "*.bmq_data", "*.bmq_qlist", "*csl*"],
+            storage_dir,
+        )
+
+    # Restart all nodes, but make sure the surviving replica is part of the
+    # initial leader quorum
+    for node in replicas:
+        node.start()
+        node.wait_until_started()
+    cluster.wait_status(wait_leader=True, wait_ready=False)
+
+    leader.start()
+    leader.wait_until_started()
+    leader.wait_status(wait_leader=True, wait_ready=True)
+
+    # Verify a consumer can receive all 6 messages
+    consumer = wiped_replica.create_client("consumer")
+    consumer.open(uri_priority, flags=["read"], succeed=True)
+
+    assert wait_until(
+        lambda: len(consumer.list(uri_priority, block=True)) == 6,
+        10,
+    ), "Consumer did not receive 6 messages after stale + wipe recovery"
+
+    consumer.confirm(uri_priority, "*", succeed=True)
+    consumer.close(uri_priority, succeed=True)
+
+    stop_cluster_and_compare_journal_files(
+        stale_replica.name, wiped_replica.name, cluster
+    )
