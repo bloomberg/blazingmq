@@ -62,46 +62,16 @@ class BasicCredentialProvider : public mqbplug::CredentialProvider {
   public:
     // PUBLIC CLASS DATA
     static const char* k_NAME;
-    static const char* k_MECHANISM;
-
-    // ========================
-    // class CredentialFunctor
-    // ========================
-
-    /// A self-contained functor that produces an `AuthnCredential` with the
-    /// "BASIC" mechanism and "username:password" data.
-    class CredentialFunctor {
-        // DATA
-        bsl::string d_mechanism;
-        bsl::string d_username;
-        bsl::string d_password;
-
-      public:
-        // CREATORS
-
-        /// Create a `CredentialFunctor` with the specified `mechanism`,
-        /// `username`, and `password`.
-        CredentialFunctor(const bsl::string& mechanism,
-                          const bsl::string& username,
-                          const bsl::string& password);
-
-        // ACCESSORS
-
-        /// Return an `AuthnCredential` containing the configured
-        /// credentials, or `nullopt` on failure (with a description
-        /// written to the specified `error` stream).
-        bsl::optional<mqbplug::AuthnCredential>
-        operator()(bsl::ostream& error) const;
-    };
 
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBAUTHN.BASICCREDENTIALPROVIDER");
 
     // DATA
-    bsl::string d_username;
-    bsl::string d_password;
-    bool        d_isStarted;
+    bsl::string       d_username;
+    bsl::string       d_password;
+    bool              d_isStarted;
+    bslma::Allocator* d_allocator_p;
 
   private:
     // NOT IMPLEMENTED
@@ -120,9 +90,9 @@ class BasicCredentialProvider : public mqbplug::CredentialProvider {
     /// Create a `BasicCredentialProvider` with the specified `username`
     /// and `password`, using the optionally specified `allocator` to supply
     /// memory.
-    BasicCredentialProvider(bsl::string_view  username,
-                            bsl::string_view  password,
-                            bslma::Allocator* allocator = 0);
+    explicit BasicCredentialProvider(bsl::string_view  username,
+                                     bsl::string_view  password,
+                                     bslma::Allocator* basicAllocator = 0);
 
     /// Destructor.
     ~BasicCredentialProvider() BSLS_KEYWORD_OVERRIDE;
@@ -131,7 +101,7 @@ class BasicCredentialProvider : public mqbplug::CredentialProvider {
 
     /// Return a credential-providing function.  The behavior is undefined
     /// unless `start()` has been called successfully.
-    CredentialFunc load() BSLS_KEYWORD_OVERRIDE;
+    CredentialCb load() BSLS_KEYWORD_OVERRIDE;
 
     /// Start the provider and return 0 on success, or return a non-zero
     /// value and populate the specified `errorDescription` with the

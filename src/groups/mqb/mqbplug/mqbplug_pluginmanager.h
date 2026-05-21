@@ -151,8 +151,9 @@ class PluginManager BSLS_CPP11_FINAL {
     void stop();
 
     // ACCESSORS
-    void get(PluginType::Enum                    type,
-             bsl::unordered_set<PluginFactory*>* result) const;
+
+    void get(bsl::unordered_set<PluginFactory*>* result,
+             PluginType::Enum                    type) const;
 };
 
 }  // close package namespace

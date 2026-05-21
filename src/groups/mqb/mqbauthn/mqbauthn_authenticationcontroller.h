@@ -91,7 +91,7 @@ class AuthenticationController {
 
     /// Credential function loaded from the provider.  Empty if no provider
     /// is configured.
-    mqbplug::CredentialProvider::CredentialFunc d_credentialFunc;
+    mqbplug::CredentialProvider::CredentialCb d_credentialCb;
 
     /// True if this component is started.
     bool d_isStarted;
@@ -191,10 +191,10 @@ class AuthenticationController {
     /// Return true if a credential provider is configured and started.
     bool hasCredentialProvider() const;
 
-    /// Return a reference to the credential function loaded from the
+    /// Return a reference to the credential callback loaded from the
     /// configured provider.  The behavior is undefined unless
     /// `hasCredentialProvider()` returns true.
-    const mqbplug::CredentialProvider::CredentialFunc& credentialFunc() const;
+    const mqbplug::CredentialProvider::CredentialCb& credentialCb() const;
 };
 
 }  // close package namespace

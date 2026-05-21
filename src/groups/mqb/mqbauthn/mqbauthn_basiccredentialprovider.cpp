@@ -30,57 +30,86 @@
 #include <bslma_allocator.h>
 #include <bslma_default.h>
 #include <bslma_managedptr.h>
+#include <bslma_usesbslmaallocator.h>
+#include <bslmf_nestedtraitdeclaration.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {
 namespace mqbauthn {
 
-const char* BasicCredentialProvider::k_NAME      = "BasicCredentialProvider";
-const char* BasicCredentialProvider::k_MECHANISM = "BASIC";
+const char* BasicCredentialProvider::k_NAME = "BasicCredentialProvider";
 
-// ------------------------
-// class CredentialFunctor
-// ------------------------
+namespace {
 
-BasicCredentialProvider::CredentialFunctor::CredentialFunctor(
-    const bsl::string& mechanism,
-    const bsl::string& username,
-    const bsl::string& password)
-: d_mechanism(mechanism)
-, d_username(username)
-, d_password(password)
-{
-}
+const char k_MECHANISM[] = "BASIC";
 
-bsl::optional<mqbplug::AuthnCredential>
-BasicCredentialProvider::CredentialFunctor::operator()(
-    bsl::ostream& error) const
-{
-    if (d_username.empty()) {
-        error << "BasicCredentialProvider: username is empty";
-        return bsl::nullopt;  // RETURN
+// ============================
+// class BasicCredentialFunctor
+// ============================
+
+class BasicCredentialFunctor {
+    // DATA
+    bsl::string       d_username;
+    bsl::string       d_password;
+    bslma::Allocator* d_allocator_p;
+
+  public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(BasicCredentialFunctor,
+                                   bslma::UsesBslmaAllocator)
+
+    // CREATORS
+    BasicCredentialFunctor(const bsl::string& username,
+                           const bsl::string& password,
+                           bslma::Allocator*  basicAllocator = 0)
+    : d_username(username, basicAllocator)
+    , d_password(password, basicAllocator)
+    , d_allocator_p(basicAllocator)
+    {
     }
 
-    bsl::string payload(d_username);
-    payload.append(":");
-    payload.append(d_password);
+    BasicCredentialFunctor(const BasicCredentialFunctor& original,
+                           bslma::Allocator*             basicAllocator = 0)
+    : d_username(original.d_username, basicAllocator)
+    , d_password(original.d_password, basicAllocator)
+    , d_allocator_p(basicAllocator)
+    {
+    }
 
-    bsl::vector<char> data(payload.begin(), payload.end());
+    // ACCESSORS
+    bsl::optional<mqbplug::AuthnCredential>
+    operator()(bsl::ostream& error) const
+    {
+        if (d_username.empty()) {
+            error << "BasicCredentialProvider: username is empty";
+            return bsl::nullopt;  // RETURN
+        }
 
-    return mqbplug::AuthnCredential(d_mechanism, data);
-}
+        bsl::string payload(d_username, d_allocator_p);
+        payload.append(":");
+        payload.append(d_password);
+
+        bsl::vector<char> data(payload.begin(), payload.end(), d_allocator_p);
+
+        return mqbplug::AuthnCredential(k_MECHANISM, data, d_allocator_p);
+    }
+};
+
+}  // close unnamed namespace
 
 // -----------------------------
 // class BasicCredentialProvider
 // -----------------------------
 
 // CREATORS
-BasicCredentialProvider::BasicCredentialProvider(bsl::string_view  username,
-                                                 bsl::string_view  password,
-                                                 bslma::Allocator* allocator)
-: d_username(username, allocator)
-, d_password(password, allocator)
+BasicCredentialProvider::BasicCredentialProvider(
+    bsl::string_view  username,
+    bsl::string_view  password,
+    bslma::Allocator* basicAllocator)
+: d_username(username, basicAllocator)
+, d_password(password, basicAllocator)
 , d_isStarted(false)
+, d_allocator_p(basicAllocator)
 {
 }
 
@@ -91,9 +120,9 @@ BasicCredentialProvider::~BasicCredentialProvider()
 }
 
 // MANIPULATORS
-mqbplug::CredentialProvider::CredentialFunc BasicCredentialProvider::load()
+mqbplug::CredentialProvider::CredentialCb BasicCredentialProvider::load()
 {
-    return CredentialFunctor(k_MECHANISM, d_username, d_password);
+    return BasicCredentialFunctor(d_username, d_password, d_allocator_p);
 }
 
 int BasicCredentialProvider::start(bsl::ostream& errorDescription)
@@ -127,9 +156,9 @@ void BasicCredentialProvider::stop()
     BALL_LOG_INFO << "BasicCredentialProvider stopped";
 }
 
-// ----------------------------------------
+// ------------------------------------------
 // class BasicCredentialProviderPluginFactory
-// ----------------------------------------
+// ------------------------------------------
 
 BasicCredentialProviderPluginFactory::BasicCredentialProviderPluginFactory()
 {
@@ -151,18 +180,17 @@ BasicCredentialProviderPluginFactory::create(bslma::Allocator* allocator)
         return bslma::ManagedPtr<mqbplug::CredentialProvider>();  // RETURN
     }
 
-    if (providerCfg.value().name() != BasicCredentialProvider::k_NAME) {
+    const mqbcfg::CredentialProviderConfig& cfg = providerCfg.value();
+    if (cfg.name() != BasicCredentialProvider::k_NAME) {
         return bslma::ManagedPtr<mqbplug::CredentialProvider>();  // RETURN
     }
-
-    allocator = bslma::Default::allocator(allocator);
 
     bsl::string username(allocator);
     bsl::string password(allocator);
 
     for (bsl::vector<mqbcfg::PluginSettingKeyValue>::const_iterator it =
-             providerCfg.value().settings().cbegin();
-         it != providerCfg.value().settings().cend();
+             cfg.settings().cbegin();
+         it != cfg.settings().cend();
          ++it) {
         if (!it->value().isStringValValue()) {
             continue;  // CONTINUE
@@ -176,9 +204,10 @@ BasicCredentialProviderPluginFactory::create(bslma::Allocator* allocator)
     }
 
     return bslma::ManagedPtr<mqbplug::CredentialProvider>(
-        new (*allocator)
-            BasicCredentialProvider(username, password, allocator),
-        allocator);
+        bslma::ManagedPtrUtil::allocateManaged<BasicCredentialProvider>(
+            allocator,
+            username,
+            password));
 }
 
 }  // close package namespace

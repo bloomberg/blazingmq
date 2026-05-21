@@ -422,9 +422,8 @@ void PluginManager::stop()
     d_pluginHandles.clear();
 }
 
-void PluginManager::get(
-    mqbplug::PluginType::Enum                    type,
-    bsl::unordered_set<mqbplug::PluginFactory*>* result) const
+void PluginManager::get(bsl::unordered_set<mqbplug::PluginFactory*>* result,
+                        mqbplug::PluginType::Enum type) const
 {
     bsl::multimap<PluginType::Enum, const PluginInfo*>::const_iterator it =
         d_enabledPlugins.cbegin();

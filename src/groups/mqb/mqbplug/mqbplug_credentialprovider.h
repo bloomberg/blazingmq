@@ -60,7 +60,7 @@ class CredentialProvider {
     /// stream).  The broker invokes this function each time it needs
     /// credentials for an outbound connection or reauthentication.
     typedef bsl::function<bsl::optional<AuthnCredential>(bsl::ostream& error)>
-        CredentialFunc;
+        CredentialCb;
 
     // CREATORS
 
@@ -74,7 +74,7 @@ class CredentialProvider {
     /// stored and invoked for each outbound connection and
     /// reauthentication.  The behavior is undefined unless `start()` has
     /// been called successfully.
-    virtual CredentialFunc load() = 0;
+    virtual CredentialCb load() = 0;
 
     /// Start the CredentialProvider and return 0 on success, or return
     /// a non-zero value and populate the specified `errorDescription` with

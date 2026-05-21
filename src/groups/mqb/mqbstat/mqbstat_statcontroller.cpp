@@ -788,8 +788,8 @@ int StatController::start(bsl::ostream& errorDescription)
     // Initialize StatConsumers from plugins.
     {
         PluginFactories pluginFactories(d_allocator_p);
-        d_pluginManager_p->get(mqbplug::PluginType::e_STATS_CONSUMER,
-                               &pluginFactories);
+        d_pluginManager_p->get(&pluginFactories,
+                               mqbplug::PluginType::e_STATS_CONSUMER);
 
         PluginFactories::const_iterator factoryIt = pluginFactories.cbegin();
         for (; factoryIt != pluginFactories.cend(); ++factoryIt) {

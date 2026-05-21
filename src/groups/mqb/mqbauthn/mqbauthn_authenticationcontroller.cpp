@@ -173,8 +173,11 @@ int AuthenticationController::collectAvailablePluginFactories(
     mqbplug::PluginType::Enum type,
     PluginFactories*          pluginFactories)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(pluginFactories);
+
     // Collect external plugin factories loaded by PluginManager
-    d_pluginManager_p->get(type, pluginFactories);
+    d_pluginManager_p->get(pluginFactories, type);
 
     // Add built-in plugin factories
     bsl::vector<mqbplug::PluginInfo>::const_iterator it =
@@ -421,9 +424,7 @@ int AuthenticationController::initializeCredentialProvider(
          ++it) {
         mqbplug::CredentialProviderPluginFactory* candidate =
             dynamic_cast<mqbplug::CredentialProviderPluginFactory*>(*it);
-        if (!candidate) {
-            continue;
-        }
+        BSLS_ASSERT_SAFE(candidate);
         bslma::ManagedPtr<mqbplug::CredentialProvider> provider =
             candidate->create(d_allocator_p);
         if (provider) {
@@ -443,7 +444,7 @@ int AuthenticationController::initializeCredentialProvider(
         return rc * 10 + rc_START_FAILED;  // RETURN
     }
 
-    d_credentialFunc = d_credentialProvider_mp->load();
+    d_credentialCb = d_credentialProvider_mp->load();
 
     BALL_LOG_INFO << "Credential provider '" << providerName << "' started";
 
@@ -459,7 +460,7 @@ AuthenticationController::AuthenticationController(
           allocator))
 , d_pluginManager_p(pluginManager)
 , d_credentialProvider_mp()
-, d_credentialFunc()
+, d_credentialCb()
 , d_isStarted(false)
 , d_allocator_p(allocator)
 {
@@ -516,7 +517,7 @@ void AuthenticationController::stop()
     if (d_credentialProvider_mp) {
         d_credentialProvider_mp->stop();
         d_credentialProvider_mp.reset();
-        d_credentialFunc = mqbplug::CredentialProvider::CredentialFunc();
+        d_credentialCb = mqbplug::CredentialProvider::CredentialCb();
     }
 
     // Stop all authenticators
@@ -588,11 +589,11 @@ bool AuthenticationController::hasCredentialProvider() const
     return d_credentialProvider_mp.get() != 0;
 }
 
-const mqbplug::CredentialProvider::CredentialFunc&
-AuthenticationController::credentialFunc() const
+const mqbplug::CredentialProvider::CredentialCb&
+AuthenticationController::credentialCb() const
 {
     BSLS_ASSERT_SAFE(hasCredentialProvider());
-    return d_credentialFunc;
+    return d_credentialCb;
 }
 
 }  // close package namespace
