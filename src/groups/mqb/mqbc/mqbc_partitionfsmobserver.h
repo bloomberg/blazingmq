@@ -59,6 +59,10 @@ class PartitionFSMObserver {
     virtual void
     onTransitionToUnknown(int                            partitionId,
                           PartitionStateTableState::Enum oldState);
+
+    virtual void
+    onTransitionOutOfHealed(int                            partitionId,
+                            PartitionStateTableState::Enum oldState);
 };
 
 }  // close package namespace

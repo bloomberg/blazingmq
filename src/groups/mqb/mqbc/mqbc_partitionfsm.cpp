@@ -121,6 +121,17 @@ void PartitionFSM::processEvent(const EventWithData& event)
             break;  // BREAK
         }
         }
+
+        if (oldState == State::e_PRIMARY_HEALED ||
+            oldState == State::e_REPLICA_HEALED) {
+            BSLS_ASSERT_SAFE(d_state != State::e_PRIMARY_HEALED &&
+                             d_state != State::e_REPLICA_HEALED);
+            for (ObserversSetIter it = d_observers.begin();
+                 it != d_observers.end();
+                 ++it) {
+                (*it)->onTransitionOutOfHealed(partitionId, oldState);
+            }
+        }
     }
 }
 

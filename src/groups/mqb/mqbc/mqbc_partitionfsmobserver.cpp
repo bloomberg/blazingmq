@@ -52,5 +52,12 @@ void PartitionFSMObserver::onTransitionToUnknown(
     // NOTHING
 }
 
+void PartitionFSMObserver::onTransitionOutOfHealed(
+    BSLA_MAYBE_UNUSED int partitionId,
+    BSLA_MAYBE_UNUSED PartitionStateTableState::Enum oldState)
+{
+    // NOTHING
+}
+
 }  // close package namespace
 }  // close enterprise namespace
