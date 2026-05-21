@@ -18,11 +18,9 @@ Testing node recovery after wiping partition files.
 """
 
 import blazingmq.dev.it.testconstants as tc
-import pytest
 from blazingmq.dev.it.fixtures import (
     Cluster,
     order,
-    test_logger,
     tweak,
 )
 from blazingmq.dev.it.cluster_util import (
@@ -353,7 +351,6 @@ def test_wipe_qlist_all_nodes(
     cluster = multi_node
     uri_priority = domain_urls.uri_priority
 
-    leader = cluster.last_known_leader
     proxy = next(cluster.proxy_cycle())
 
     producer = proxy.create_client("producer")
