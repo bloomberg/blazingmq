@@ -400,8 +400,6 @@ static void test3_evaluation()
     EvaluationContext    evaluationContext(&reader,
                                         bmqtst::TestHelperUtil::allocator());
 
-    const bool runtimeErrorResult = false;
-
     struct TestParameters {
         const char* expression;
         bool        expected;
@@ -514,15 +512,6 @@ static void test3_evaluation()
         {"!(b_false || b_false)", true},
         {"!(b_false || b_true)", false},
 
-        // type mismatch yields 'runtimeErrorResult' (see above)
-        {"s_foo == 42", runtimeErrorResult},
-        {"s_foo == 42 && b_false", runtimeErrorResult},
-        {"b_false || s_foo == 42", runtimeErrorResult},
-        {"!(s_foo == 42)", runtimeErrorResult},
-
-        // unknown property yields 'runtimeErrorResult' (see above)
-        {"non_existing_property", runtimeErrorResult},
-
         // arithmetic operators
         {"i_1 + 2 == 3", true},
         {"i_1 - 2 == -1", true},
@@ -598,6 +587,60 @@ static void test3_evaluation()
     }
 }
 
+static void test4_evaluationErrors()
+{
+    MockPropertiesReader reader(bmqtst::TestHelperUtil::allocator());
+    EvaluationContext    evaluationContext(&reader,
+                                        bmqtst::TestHelperUtil::allocator());
+
+    struct TestParameters {
+        const char*     expression;
+        ErrorType::Enum expectedError;
+    } testParameters[] = {
+        // type mismatch
+        {"s_foo == 42", ErrorType::e_TYPE},
+        {"s_foo == 42 && b_false", ErrorType::e_TYPE},
+        {"b_false || s_foo == 42", ErrorType::e_TYPE},
+        {"!(s_foo == 42)", ErrorType::e_TYPE},
+
+        // undefined property
+        {"non_existing_property", ErrorType::e_NAME},
+
+        // division by zero
+        {"i_42 / i_0 == 0", ErrorType::e_ARITHMETIC},
+        {"i_42 / i_0 > 1", ErrorType::e_ARITHMETIC},
+        // modulo by zero
+        {"i_42 % i_0 == 0", ErrorType::e_ARITHMETIC},
+        {"i_42 % i_0 > 1", ErrorType::e_ARITHMETIC},
+
+    };
+    const TestParameters* testParametersEnd = testParameters +
+                                              sizeof(testParameters) /
+                                                  sizeof(*testParameters);
+
+    for (const TestParameters* parameters = testParameters;
+         parameters < testParametersEnd;
+         ++parameters) {
+        PV(bsl::string("TESTING ") + parameters->expression);
+
+        CompilationContext compilationContext(
+            bmqtst::TestHelperUtil::allocator());
+        SimpleEvaluator evaluator;
+
+        if (evaluator.compile(parameters->expression, compilationContext)) {
+            PV(bsl::string("UNEXPECTED: ") +
+               compilationContext.lastErrorMessage());
+            BMQTST_ASSERT(false);
+        }
+        else {
+            BMQTST_ASSERT(evaluator.isValid());
+            BMQTST_ASSERT_EQ(evaluator.evaluate(evaluationContext), false);
+            BMQTST_ASSERT_EQ(evaluationContext.lastError(),
+                             parameters->expectedError);
+        }
+    }
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -608,6 +651,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 4: test4_evaluationErrors(); break;
     case 3: test3_evaluation(); break;
     case 2: test2_propertyNames(); break;
     case 1: test1_compilationErrors(); break;
