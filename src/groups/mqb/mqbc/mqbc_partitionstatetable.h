@@ -319,7 +319,7 @@ class PartitionStateTableActions {
     virtual void do_cleanupMetadata(const ARGS& args) = 0;
 
     virtual void do_cancelRequests(const ARGS& args) = 0;
-    
+
     virtual void do_clearPrimary(const ARGS& args) = 0;
 
     virtual void do_setExpectedDataChunkRange(const ARGS& args) = 0;
@@ -382,11 +382,12 @@ class PartitionStateTableActions {
     void
     do_cleanupMetadata_closeRecoveryFileSet_stopWatchdog(const ARGS& args);
 
-    void do_cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog(
+    void
+    do_cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests(
         const ARGS& args);
 
     void
-    do_cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_reapplyEvent(
+    do_cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests_reapplyEvent(
         const ARGS& args);
 
     void
@@ -405,6 +406,8 @@ class PartitionStateTableActions {
         const ARGS& args);
 
     void do_cleanupMetadata_reapplyEvent(const ARGS& args);
+
+    void do_cleanupMetadata_clearPrimary(const ARGS& args);
 
     void do_resetReceiveDataCtx_flagFailedReplicaSeq_checkQuorumSeq(
         const ARGS& args);
@@ -560,12 +563,12 @@ class PartitionStateTable
         PST_CFG(
             PRIMARY_HEALING_STG1,
             RST_UNKNOWN,
-            cleanupMetadata_closeRecoveryFileSet_stopWatchdog_cancelRequests,
+            cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests,
             UNKNOWN);
         PST_CFG(
             PRIMARY_HEALING_STG1,
             STOP_NODE,
-                cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests,
+            cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests,
             STOPPED);
         PST_CFG(
             PRIMARY_HEALING_STG1,
@@ -629,7 +632,7 @@ class PartitionStateTable
         PST_CFG(
             PRIMARY_HEALING_STG2,
             RST_UNKNOWN,
-                cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests,
+            cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests,
             UNKNOWN);
         PST_CFG(PRIMARY_HEALING_STG2,
                 WATCHDOG,
@@ -638,7 +641,7 @@ class PartitionStateTable
         PST_CFG(
             PRIMARY_HEALING_STG2,
             STOP_NODE,
-                cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests,
+            cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests,
             STOPPED);
         PST_CFG(
             REPLICA_WAITING,
@@ -674,7 +677,7 @@ class PartitionStateTable
         PST_CFG(
             REPLICA_WAITING,
             RST_UNKNOWN,
-            cleanupMetadata_closeRecoveryFileSet_stopWatchdog_cancelRequests,
+            cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests,
             UNKNOWN);
         PST_CFG(REPLICA_WAITING,
                 WATCHDOG,
@@ -683,7 +686,7 @@ class PartitionStateTable
         PST_CFG(
             REPLICA_WAITING,
             STOP_NODE,
-            cleanupMetadata_closeRecoveryFileSet_stopWatchdog_cancelRequests,
+            cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests,
             STOPPED);
         PST_CFG(
             REPLICA_HEALING,
@@ -755,7 +758,7 @@ class PartitionStateTable
         PST_CFG(
             REPLICA_HEALING,
             RST_UNKNOWN,
-                cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests,
+            cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests,
             UNKNOWN);
         PST_CFG(REPLICA_HEALING,
                 WATCHDOG,
@@ -764,7 +767,7 @@ class PartitionStateTable
         PST_CFG(
             REPLICA_HEALING,
             STOP_NODE,
-                cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests,
+            cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests,
             STOPPED);
         PST_CFG(REPLICA_HEALED,
                 DETECT_SELF_PRIMARY,
@@ -795,8 +798,14 @@ class PartitionStateTable
                 ISSUE_LIVESTREAM,
                 reapplyDetectSelfReplica,
                 REPLICA_HEALED);
-        PST_CFG(REPLICA_HEALED, RST_UNKNOWN, cleanupMetadata, UNKNOWN);
-        PST_CFG(REPLICA_HEALED, STOP_NODE, cleanupMetadata, STOPPED);
+        PST_CFG(REPLICA_HEALED,
+                RST_UNKNOWN,
+                cleanupMetadata_clearPrimary,
+                UNKNOWN);
+        PST_CFG(REPLICA_HEALED,
+                STOP_NODE,
+                cleanupMetadata_clearPrimary,
+                STOPPED);
         PST_CFG(PRIMARY_HEALED,
                 DETECT_SELF_REPLICA,
                 unsupportedPrimaryDowngrade,
@@ -814,8 +823,14 @@ class PartitionStateTable
             PRIMARY_STATE_RQST,
             storeSelfSeq_storeReplicaSeq_primaryStateResponse_sendDataToReplicas,
             PRIMARY_HEALED);
-        PST_CFG(PRIMARY_HEALED, RST_UNKNOWN, cleanupMetadata, UNKNOWN);
-        PST_CFG(PRIMARY_HEALED, STOP_NODE, cleanupMetadata, STOPPED);
+        PST_CFG(PRIMARY_HEALED,
+                RST_UNKNOWN,
+                cleanupMetadata_clearPrimary,
+                UNKNOWN);
+        PST_CFG(PRIMARY_HEALED,
+                STOP_NODE,
+                cleanupMetadata_clearPrimary,
+                STOPPED);
 
 #undef PST_CFG
     }
@@ -971,24 +986,26 @@ void PartitionStateTableActions<ARGS>::
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog(
+    do_cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests(
         const ARGS& args)
 {
     do_cleanupMetadata(args);
     do_clearPrimary(args);
     do_closeRecoveryFileSet(args);
     do_stopWatchdog(args);
+    do_cancelRequests(args);
 }
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_reapplyEvent(
+    do_cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests_reapplyEvent(
         const ARGS& args)
 {
     do_cleanupMetadata(args);
     do_clearPrimary(args);
     do_closeRecoveryFileSet(args);
     do_stopWatchdog(args);
+    do_cancelRequests(args);
     do_reapplyEvent(args);
 }
 
@@ -1023,6 +1040,14 @@ void PartitionStateTableActions<ARGS>::do_cleanupMetadata_reapplyEvent(
 {
     do_cleanupMetadata(args);
     do_reapplyEvent(args);
+}
+
+template <typename ARGS>
+void PartitionStateTableActions<ARGS>::do_cleanupMetadata_clearPrimary(
+    const ARGS& args)
+{
+    do_cleanupMetadata(args);
+    do_clearPrimary(args);
 }
 
 template <typename ARGS>
