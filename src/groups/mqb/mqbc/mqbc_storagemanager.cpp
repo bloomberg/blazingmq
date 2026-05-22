@@ -4011,8 +4011,6 @@ void StorageManager::stop()
 
     d_isStarted = false;
 
-    d_miscWorkThreadPool.stop();
-
     for (size_t pid = 0; pid < d_fileStores.size(); ++pid) {
         mqbs::FileStore* fs = d_fileStores[pid].get();
         BSLS_ASSERT_SAFE(fs);
@@ -4045,6 +4043,8 @@ void StorageManager::stop()
                              this,
                              bdlf::PlaceHolders::_1,    // partitionId
                              bdlf::PlaceHolders::_2));  // latch
+
+    d_miscWorkThreadPool.stop();
 }
 
 void StorageManager::initializeQueueKeyInfoMap(
