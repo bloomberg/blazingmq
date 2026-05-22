@@ -31,3 +31,6 @@ class Site(abc.ABC):
 
     @abc.abstractmethod
     def rmdir(self, path: str) -> None: ...
+
+    @abc.abstractmethod
+    def remove_stale_files(self, directory: str, keep: set) -> None: ...

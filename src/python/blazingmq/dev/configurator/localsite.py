@@ -46,6 +46,16 @@ class LocalSite(Site):
     def create_file(self, path: Union[str, Path], content: str, mode=None) -> None:
         path = self.root_dir / path
         path.parent.mkdir(0o755, exist_ok=True, parents=True)
-        with open(path, "w", encoding="ascii") as out:
+        tmp_path = path.with_suffix(path.suffix + ".tmp")
+        with open(tmp_path, "w", encoding="ascii") as out:
             out.write(content)
-        path.chmod(mode or 0o644)
+        tmp_path.chmod(mode or 0o644)
+        tmp_path.rename(path)
+
+    def remove_stale_files(self, directory: Union[str, Path], keep: set) -> None:
+        target = self.root_dir / directory
+        if not target.is_dir():
+            return
+        for entry in target.iterdir():
+            if entry.is_file() and entry.name not in keep:
+                entry.unlink()

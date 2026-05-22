@@ -358,11 +358,14 @@ class Configurator:
         ``etc/domains`` directory.
         """
 
-        site.rmdir(str("etc/domains"))
-
+        current_files = set()
         for domain in broker.domains.values():
+            filename = f"{domain.name}.json"
+            current_files.add(filename)
             self._create_json_file(
                 mqbconf.DomainVariant(definition=domain.definition),
                 site,
-                f"etc/domains/{domain.name}.json",
+                f"etc/domains/{filename}",
             )
+
+        site.remove_stale_files("etc/domains", current_files)
