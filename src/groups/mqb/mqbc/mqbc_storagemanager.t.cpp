@@ -3279,6 +3279,109 @@ static void test21_watchdogMultipleRetries()
     helper.d_cluster_mp->stop();
 }
 
+static void test22_rstUnknownCancelsInFlightRequests()
+// ------------------------------------------------------------------------
+// RST_UNKNOWN CANCELS IN-FLIGHT REQUESTS
+//
+// Concerns:
+//   When a partition receives RST_UNKNOWN while in a healing state,
+//   in-flight requests for that partition are cancelled so that stale
+//   responses are not processed by a subsequent healing session.
+//
+// Plan:
+//  1) Start as primary -> PRIMARY_HEALING_STG1 (sends ReplicaStateRequests)
+//  2) Collect the request IDs of those in-flight requests
+//  3) Trigger RST_UNKNOWN via detectPrimaryLossInPFSM
+//  4) Verify processResponse returns non-zero for the old request IDs
+//     (proving they were removed from the RequestManager)
+//
+// Testing:
+//   do_cancelRequests via RST_UNKNOWN transition
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName(
+        "RST_UNKNOWN CANCELS IN-FLIGHT REQUESTS");
+
+    TestHelper helper;
+
+    mqbc::StorageManager storageManager(
+        helper.d_cluster_mp->_clusterDefinition(),
+        helper.d_cluster_mp.get(),
+        helper.d_cluster_mp->_clusterData(),
+        helper.d_cluster_mp->_state(),
+        helper.d_cluster_mp->_clusterData()->domainFactory(),
+        helper.d_cluster_mp->dispatcher(),
+        k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
+        mockOnRecoveryStatus,
+        mockOnPartitionPrimaryStatus,
+        bmqtst::TestHelperUtil::allocator());
+
+    static const int k_PARTITION_ID = 0;
+    const int        selfNodeId     = helper.d_cluster_mp->_clusterData()
+                               ->membership()
+                               .netCluster()
+                               ->selfNodeId();
+    mqbnet::ClusterNode* selfNode = helper.d_cluster_mp->_clusterData()
+                                        ->membership()
+                                        .netCluster()
+                                        ->lookupNode(selfNodeId);
+
+    helper.startStorageManager(&storageManager, selfNode);
+    helper.relaxFileStoreThreadChecks(&storageManager);
+
+    BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+                     mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
+
+    // Collect request IDs from the ReplicaStateRequests sent to peers
+    bsl::vector<int> requestIds;
+    for (TestChannelMapCIter cit = helper.d_cluster_mp->_channels().cbegin();
+         cit != helper.d_cluster_mp->_channels().cend();
+         ++cit) {
+        if (cit->first->nodeId() != selfNodeId) {
+            bmqio::TestChannel::WriteCall writeCall;
+            BMQTST_ASSERT(cit->second->getWriteCall(&writeCall, 0));
+
+            bmqp_ctrlmsg::ControlMessage message;
+            mqbc::ClusterUtil::extractMessage(
+                &message,
+                writeCall.d_blob,
+                bmqtst::TestHelperUtil::allocator());
+            BMQTST_ASSERT(message.rId().has_value());
+            requestIds.push_back(message.rId().value());
+        }
+    }
+    helper.clearChannels();
+
+    // Trigger RST_UNKNOWN -> calls do_cancelRequests
+    storageManager.detectPrimaryLossInPFSM(k_PARTITION_ID);
+    BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+                     mqbc::PartitionFSM::State::e_UNKNOWN);
+
+    // Verify that the old requests were cancelled: processResponse should
+    // return non-zero for each request ID (meaning the request is no longer
+    // in the RequestManager's map).
+    for (size_t i = 0; i < requestIds.size(); ++i) {
+        bmqp_ctrlmsg::ControlMessage fakeResponse;
+        fakeResponse.rId() = requestIds[i];
+        fakeResponse.choice()
+            .makeClusterMessage()
+            .choice()
+            .makePartitionMessage()
+            .choice()
+            .makeReplicaStateResponse();
+
+        const int rc = helper.d_cluster_mp->requestManager().processResponse(
+            fakeResponse);
+        BMQTST_ASSERT_NE_D("requestId " << requestIds[i], rc, 0);
+    }
+
+    // Cleanup
+    storageManager.stopPFSMs();
+    storageManager.stop();
+    helper.d_cluster_mp->stop();
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -3296,6 +3399,7 @@ int main(int argc, char* argv[])
         //      - test21_replicaHealingReceivesReplicaDataRqstDrop();
         //      - test20_replicaHealingReceivesReplicaDataRqstPush();
         //      - test19_primaryHealedSendsDataChunks();
+    case 22: test22_rstUnknownCancelsInFlightRequests(); break;
     case 21: test21_watchdogMultipleRetries(); break;
     case 20: test20_watchdogStopResetsState(); break;
     case 19: test19_replicaWaitingWatchdogRetry(); break;

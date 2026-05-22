@@ -805,6 +805,8 @@ void StorageManager::sendReplicaDataRequestPush(
 
         RequestManagerType::RequestSp request =
             d_clusterData_p->requestManager().createRequest();
+        request->setComponentId(
+            bmqp::RequestManagerComponentId::partitionFSM(partitionId));
         bmqp_ctrlmsg::ReplicaDataRequest& replicaDataRqst =
             request->request()
                 .choice()
@@ -877,6 +879,8 @@ void StorageManager::sendReplicaDataRequestDrop(
 
         RequestManagerType::RequestSp request =
             d_clusterData_p->requestManager().createRequest();
+        request->setComponentId(
+            bmqp::RequestManagerComponentId::partitionFSM(partitionId));
         bmqp_ctrlmsg::ReplicaDataRequest& replicaDataRqst =
             request->request()
                 .choice()
@@ -2052,6 +2056,8 @@ void StorageManager::do_replicaStateRequest(const EventWithData& event)
         getSelfFirstSyncPointAfterRolloverPSN(partitionId);
 
     contextSp->setDestinationNodes(replicas);
+    contextSp->setComponentId(
+        bmqp::RequestManagerComponentId::partitionFSM(partitionId));
     contextSp->setResponseCb(
         bdlf::BindUtil::bind(&StorageManager::processReplicaStateResponse,
                              this,
@@ -2288,6 +2294,8 @@ void StorageManager::do_primaryStateRequest(const EventWithData& event)
 
     RequestManagerType::RequestSp request =
         d_clusterData_p->requestManager().createRequest();
+    request->setComponentId(
+        bmqp::RequestManagerComponentId::partitionFSM(partitionId));
 
     bmqp_ctrlmsg::PrimaryStateRequest& primaryStateRequest =
         request->request()
@@ -2491,6 +2499,8 @@ void StorageManager::do_replicaDataRequestPull(const EventWithData& event)
 
     RequestManagerType::RequestSp request =
         d_clusterData_p->requestManager().createRequest();
+    request->setComponentId(
+        bmqp::RequestManagerComponentId::partitionFSM(partitionId));
 
     bmqp_ctrlmsg::ReplicaDataRequest& replicaDataRequest =
         request->request()
@@ -3013,6 +3023,29 @@ void StorageManager::do_cleanupMetadata(const EventWithData& event)
     d_nodeToPSNCtxMapVec[partitionId].clear();
     d_numReplicaDataResponsesReceivedVec[partitionId] = 0;
     d_recoveryManager_mp->resetReceiveDataCtx(partitionId);
+}
+
+void StorageManager::do_cancelRequests(const EventWithData& event)
+{
+    // executed by the *QUEUE DISPATCHER* thread associated with the
+    // paritionId contained in 'event'
+
+    const EventData& eventDataVec = event.second;
+    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+
+    const int partitionId = eventDataVec[0].partitionId();
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+
+    bmqp_ctrlmsg::ControlMessage response;
+    bmqp_ctrlmsg::Status&        failure = response.choice().makeStatus();
+    failure.category() = bmqp_ctrlmsg::StatusCategory::E_CANCELED;
+    failure.code()     = mqbi::ClusterErrorCode::e_UNKNOWN;
+    failure.message()  = "Cancellation by Partition FSM";
+
+    d_clusterData_p->requestManager().cancelComponentRequests(
+        response,
+        bmqp::RequestManagerComponentId::partitionFSM(partitionId));
 }
 
 void StorageManager::do_setExpectedDataChunkRange(const EventWithData& event)

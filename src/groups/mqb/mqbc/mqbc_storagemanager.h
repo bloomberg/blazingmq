@@ -696,6 +696,8 @@ class StorageManager BSLS_KEYWORD_FINAL
 
     void do_cleanupMetadata(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
 
+    void do_cancelRequests(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+
     void do_setExpectedDataChunkRange(const EventWithData& event)
         BSLS_KEYWORD_OVERRIDE;
 
