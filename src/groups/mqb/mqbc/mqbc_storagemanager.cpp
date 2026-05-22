@@ -4076,6 +4076,8 @@ void StorageManager::stop()
                              this,
                              bdlf::PlaceHolders::_1,    // partitionId
                              bdlf::PlaceHolders::_2));  // latch
+
+    d_miscWorkThreadPool.stop();
 }
 
 void StorageManager::initializeQueueKeyInfoMap(
