@@ -445,6 +445,11 @@ int AuthenticationController::initializeCredentialProvider(
     }
 
     d_credentialCb = d_credentialProvider_mp->load();
+    if (!d_credentialCb) {
+        errorDescription << "CredentialProvider '" << providerName
+                         << "' did not return a valid credential callback";
+        return rc_START_FAILED;  // RETURN
+    }
 
     BALL_LOG_INFO << "Credential provider '" << providerName << "' started";
 
@@ -593,6 +598,8 @@ const mqbplug::CredentialProvider::CredentialCb&
 AuthenticationController::credentialCb() const
 {
     BSLS_ASSERT_SAFE(hasCredentialProvider());
+    BSLS_ASSERT_SAFE(d_credentialCb);
+
     return d_credentialCb;
 }
 

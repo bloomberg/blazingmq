@@ -49,9 +49,7 @@ const char k_MECHANISM[] = "BASIC";
 
 class BasicCredentialFunctor {
     // DATA
-    bsl::string       d_username;
-    bsl::string       d_password;
-    bslma::Allocator* d_allocator_p;
+    mqbplug::AuthnCredential d_credential;
 
   public:
     // TRAITS
@@ -59,39 +57,32 @@ class BasicCredentialFunctor {
                                    bslma::UsesBslmaAllocator)
 
     // CREATORS
-    BasicCredentialFunctor(const bsl::string& username,
-                           const bsl::string& password,
-                           bslma::Allocator*  basicAllocator = 0)
-    : d_username(username, basicAllocator)
-    , d_password(password, basicAllocator)
-    , d_allocator_p(basicAllocator)
+    BasicCredentialFunctor(bsl::string_view  username,
+                           bsl::string_view  password,
+                           bslma::Allocator* basicAllocator = 0)
+    : d_credential(basicAllocator)
     {
+        bsl::string payload(username, basicAllocator);
+        payload.append(":");
+        payload.append(password);
+
+        bsl::vector<char> data(payload.begin(), payload.end(), basicAllocator);
+
+        d_credential = mqbplug::AuthnCredential(k_MECHANISM,
+                                                data,
+                                                basicAllocator);
     }
 
     BasicCredentialFunctor(const BasicCredentialFunctor& original,
                            bslma::Allocator*             basicAllocator = 0)
-    : d_username(original.d_username, basicAllocator)
-    , d_password(original.d_password, basicAllocator)
-    , d_allocator_p(basicAllocator)
+    : d_credential(original.d_credential, basicAllocator)
     {
     }
 
     // ACCESSORS
-    bsl::optional<mqbplug::AuthnCredential>
-    operator()(bsl::ostream& error) const
+    bsl::optional<mqbplug::AuthnCredential> operator()(bsl::ostream&) const
     {
-        if (d_username.empty()) {
-            error << "BasicCredentialProvider: username is empty";
-            return bsl::nullopt;  // RETURN
-        }
-
-        bsl::string payload(d_username, d_allocator_p);
-        payload.append(":");
-        payload.append(d_password);
-
-        bsl::vector<char> data(payload.begin(), payload.end(), d_allocator_p);
-
-        return mqbplug::AuthnCredential(k_MECHANISM, data, d_allocator_p);
+        return d_credential;
     }
 };
 
