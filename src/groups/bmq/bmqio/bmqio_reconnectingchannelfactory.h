@@ -292,6 +292,9 @@ class ReconnectingChannelFactory : public ChannelFactory {
     /// Remove the specified `handle` from `d_handles`.
     void removeConnectHandle(ConnectHandle* handle);
 
+    /// Cancel all handles
+    void cancelAllHandles();
+
     // FRIENDS
     friend struct ReconnectingChannelFactory_ConnectHandle;
 

@@ -489,6 +489,13 @@ void ReconnectingChannelFactory::stop()
 {
     d_validator.invalidate();
 
+    cancelAllHandles();
+
+    d_config.d_base_p->stop();
+}
+
+void ReconnectingChannelFactory::cancelAllHandles()
+{
     // Canceling a handle involves acquiring the factory's lock, so need to
     // call 'cancel' on the handles outside of the lock. This swap enables
     // doing that in a thread-safe manner.
@@ -503,13 +510,13 @@ void ReconnectingChannelFactory::stop()
          ++iter) {
         iter->second->cancel();
     }
-
-    d_config.d_base_p->stop();
 }
 
 void ReconnectingChannelFactory::disableReconnect()
 {
     d_isReconnectEnabled = false;
+
+    cancelAllHandles();
 }
 
 void ReconnectingChannelFactory::listen(Status*                      status,
