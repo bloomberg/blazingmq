@@ -47,7 +47,7 @@ void AuthenticationClient::onReauthenticate()
 {
     // executed by the *SCHEDULER* thread
 
-    bmqu::MemOutStream errStream;
+    bmqu::MemOutStream errStream(d_allocator_p);
     const int          rc = authenticate(errStream);
     if (rc != 0) {
         BALL_LOG_ERROR << "Reauthentication failed: " << errStream.str();
@@ -66,10 +66,7 @@ void AuthenticationClient::scheduleReauthentication(
     {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
 
-        if (d_reauthHandle) {
-            d_scheduler_p->cancelEvent(&d_reauthHandle);
-        }
-
+        d_scheduler_p->cancelEvent(&d_reauthHandle);
         d_scheduler_p->scheduleEvent(
             &d_reauthHandle,
             bsls::TimeInterval(bmqu::Time::nowMonotonicClock())
@@ -78,6 +75,7 @@ void AuthenticationClient::scheduleReauthentication(
                                  this));
     }
 
+    // Guaranteed to exist, the caller has already checked
     bsl::shared_ptr<bmqio::Channel> channel = d_channel_wp.lock();
     BALL_LOG_INFO << "Scheduled reauthentication"
                   << " [peer: " << channel.get() << "]" << " in " << reauthMs
@@ -132,7 +130,7 @@ int AuthenticationClient::authenticate(bsl::ostream& errorDescription)
     }
 
     // Obtain credentials
-    bmqu::MemOutStream                      credErrStream;
+    bmqu::MemOutStream                      credErrStream(d_allocator_p);
     bsl::optional<mqbplug::AuthnCredential> credential = d_credentialCb(
         credErrStream);
 
@@ -143,7 +141,7 @@ int AuthenticationClient::authenticate(bsl::ostream& errorDescription)
     }
 
     BALL_LOG_INFO << "Sending AuthenticationRequest"
-                  << " [peer: " << channel.get() << "]" << " with mechanism '"
+                  << " [peer: " << channel.get() << "] with mechanism '"
                   << credential->mechanism() << "'";
 
     // Build AuthenticationRequest
@@ -210,9 +208,15 @@ int AuthenticationClient::handleResponse(
     }
 
     bsl::shared_ptr<bmqio::Channel> channel = d_channel_wp.lock();
+    if (!channel) {
+        // This should never happen. The owner of this client should keep
+        // the channel alive while the response is being processed.
+        BALL_LOG_WARN << "Channel is no longer available";
+        return rc_SUCCESS;  // RETURN
+    }
 
-    BALL_LOG_INFO << "Authentication successful" << " [peer: " << channel.get()
-                  << "]" << " [lifetimeMs: "
+    BALL_LOG_INFO << "Authentication successful [peer: " << channel.get()
+                  << "], [lifetimeMs: "
                   << (authnResponse.lifetimeMs().isNull()
                           ? "N/A"
                           : bsl::to_string(authnResponse.lifetimeMs().value()))
@@ -231,10 +235,7 @@ void AuthenticationClient::stop()
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
 
-    if (d_reauthHandle) {
-        d_scheduler_p->cancelEvent(&d_reauthHandle);
-    }
-
+    d_scheduler_p->cancelEvent(&d_reauthHandle);
     d_channel_wp.reset();
 }
 

@@ -30,7 +30,6 @@
 #include <bmqp_ctrlmsg_messages.h>
 
 // BDE
-#include <bsl_memory.h>
 #include <bsl_ostream.h>
 
 namespace BloombergLP {

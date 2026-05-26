@@ -31,7 +31,6 @@
 #include <mqbplug_credentialprovider.h>
 
 // BMQ
-#include <bmqio_channel.h>
 
 // BDE
 #include <ball_log.h>
@@ -46,6 +45,11 @@
 #include <bslmt_mutex.h>
 
 namespace BloombergLP {
+
+// FORWARD DECLARATION
+namespace bmqio {
+class Channel;
+}
 namespace mqba {
 
 // ==========================
