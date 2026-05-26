@@ -800,6 +800,10 @@ class StorageManager BSLS_KEYWORD_FINAL
         int                                  partitionId,
         mqbc::PartitionStateTableState::Enum oldState) BSLS_KEYWORD_OVERRIDE;
 
+    void onTransitionOutOfHealed(int                            partitionId,
+                                 PartitionStateTableState::Enum oldState)
+        BSLS_KEYWORD_OVERRIDE;
+
     // MANIPULATORS
 
     /// Start this storage manager.  Return 0 on success, or a non-zero rc

@@ -49,6 +49,7 @@
 #include <bsl_algorithm.h>
 #include <bsl_queue.h>
 #include <bsla_annotations.h>
+#include <bslmt_once.h>
 #include <bsls_performancehint.h>
 
 namespace BloombergLP {
@@ -328,8 +329,15 @@ void StorageManager::onPartitionRecovery(int partitionId)
         d_recoveryStartTimes[partitionId]);
     BALL_LOG_INFO << out.str();
 
-    if (++d_numPartitionsRecoveredFully ==
+    if (++d_numPartitionsRecoveredFully !=
         static_cast<int>(d_fileStores.size())) {
+        BSLS_ASSERT_SAFE(d_numPartitionsRecoveredFully <
+                         static_cast<int>(d_fileStores.size()));
+        return;  // RETURN
+    }
+
+    BSLMT_ONCE_DO
+    {
         // First time healing logic
 
         out.reset();
@@ -341,20 +349,9 @@ void StorageManager::onPartitionRecovery(int partitionId)
         BALL_LOG_INFO << out.str();
 
         if (success) {
-            // All partitions have opened successfully.  Schedule a recurring
-            // event in StorageMgr, which will in turn enqueue an event in each
-            // partition's dispatcher thread for GC'ing expired messages as
-            // well as cleaning history.
-
-            d_clusterData_p->scheduler().scheduleRecurringEvent(
-                &d_gcMessagesEventHandle,
-                bsls::TimeInterval(k_GC_MESSAGES_INTERVAL_SECONDS),
-                bdlf::BindUtil::bind(&StorageManager::forceFlushFileStores,
-                                     this));
-
-            // Even though Cluster FSM and all Partition FSMs are now healed,
-            // we must check that all partitions have an active primary before
-            // transitioning ourself to E_AVAILABLE.
+            // Even though Cluster FSM and all Partition FSMs are now
+            // healed, we must check that all partitions have an active
+            // primary before transitioning ourself to E_AVAILABLE.
             if (allPartitionsAvailable()) {
                 d_recoveryStatusCb(0);
             }
@@ -3864,6 +3861,26 @@ void StorageManager::onTransitionToReplicaHealed(
     onPartitionRecovery(partitionId);
 }
 
+void StorageManager::onTransitionOutOfHealed(
+    int               partitionId,
+    BSLA_MAYBE_UNUSED PartitionStateTableState::Enum oldState)
+{
+    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << " Partition [" << partitionId
+                  << "]: Transitioned out of healed state '" << oldState
+                  << "'.";
+
+    --d_numPartitionsRecoveredFully;
+    BSLS_ASSERT_SAFE(d_numPartitionsRecoveredFully >= 0);
+}
+
 // MANIPULATORS
 int StorageManager::start(bsl::ostream& errorDescription)
 {
@@ -4026,6 +4043,14 @@ int StorageManager::start(bsl::ostream& errorDescription)
                              d_minimumRequiredDiskSpace,
                              d_clusterData_p->identity().description(),
                              d_clusterConfig.partitionConfig()));
+
+    // Schedule a periodic event which will in turn enqueue an event in each
+    // partition's dispatcher thread for GC'ing expired messages as well as
+    // cleaning history.
+    d_clusterData_p->scheduler().scheduleRecurringEvent(
+        &d_gcMessagesEventHandle,
+        bsls::TimeInterval(k_GC_MESSAGES_INTERVAL_SECONDS),
+        bdlf::BindUtil::bind(&StorageManager::forceFlushFileStores, this));
 
     d_isStarted = true;
     return rc_SUCCESS;
