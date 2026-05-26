@@ -380,9 +380,6 @@ class PartitionStateTableActions {
     void do_storePrimarySeq_replicaStateResponse(const ARGS& args);
 
     void
-    do_cleanupMetadata_closeRecoveryFileSet_stopWatchdog(const ARGS& args);
-
-    void
     do_cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests(
         const ARGS& args);
 
@@ -390,19 +387,9 @@ class PartitionStateTableActions {
     do_cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests_reapplyEvent(
         const ARGS& args);
 
-    void
-    do_cleanupMetadata_closeRecoveryFileSet_reapplyEvent(const ARGS& args);
-
     void do_cleanupMetadata_clearPrimary_reapplyEvent(const ARGS& args);
 
-    void do_cleanupMetadata_closeRecoveryFileSet_stopWatchdog_cancelRequests(
-        const ARGS& args);
-
     void do_cleanupMetadata_closeRecoveryFileSet_cancelRequests_reapplyEvent(
-        const ARGS& args);
-
-    void
-    do_cleanupMetadata_closeRecoveryFileSet_stopWatchdog_cancelRequests_reapplyEvent(
         const ARGS& args);
 
     void do_cleanupMetadata_reapplyEvent(const ARGS& args);
@@ -434,9 +421,6 @@ class PartitionStateTableActions {
     void do_stopWatchdog_transitionToActivePrimary(const ARGS& args);
 
     void do_replicaStateResponse_storePrimarySeq(const ARGS& args);
-
-    void
-    do_resetReceiveDataCtx_closeRecoveryFileSet_stopWatchdog(const ARGS& args);
 
     void
     do_replicaDataResponsePull_processBufferedLiveData_processBufferedPrimaryStatusAdvisories_stopWatchdog(
@@ -977,15 +961,6 @@ void PartitionStateTableActions<ARGS>::do_storePrimarySeq_replicaStateResponse(
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_cleanupMetadata_closeRecoveryFileSet_stopWatchdog(const ARGS& args)
-{
-    do_cleanupMetadata(args);
-    do_closeRecoveryFileSet(args);
-    do_stopWatchdog(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
     do_cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests(
         const ARGS& args)
 {
@@ -1009,28 +984,8 @@ void PartitionStateTableActions<ARGS>::
     do_reapplyEvent(args);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
-    do_cleanupMetadata_closeRecoveryFileSet_reapplyEvent(const ARGS& args)
-{
-    do_cleanupMetadata(args);
-    do_closeRecoveryFileSet(args);
-    do_reapplyEvent(args);
-}
-
 PST_COMPOSITE_4(cleanupMetadata,
                 closeRecoveryFileSet,
-                stopWatchdog,
-                cancelRequests)
-
-PST_COMPOSITE_4(cleanupMetadata,
-                closeRecoveryFileSet,
-                cancelRequests,
-                reapplyEvent)
-
-PST_COMPOSITE_5(cleanupMetadata,
-                closeRecoveryFileSet,
-                stopWatchdog,
                 cancelRequests,
                 reapplyEvent)
 
@@ -1145,15 +1100,6 @@ void PartitionStateTableActions<ARGS>::do_replicaStateResponse_storePrimarySeq(
 {
     do_replicaStateResponse(args);
     do_storePrimarySeq(args);
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
-    do_resetReceiveDataCtx_closeRecoveryFileSet_stopWatchdog(const ARGS& args)
-{
-    do_resetReceiveDataCtx(args);
-    do_closeRecoveryFileSet(args);
-    do_stopWatchdog(args);
 }
 
 template <typename ARGS>
