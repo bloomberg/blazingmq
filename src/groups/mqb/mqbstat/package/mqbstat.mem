@@ -7,4 +7,5 @@ mqbstat_queuestats
 mqbstat_statcontroller
 mqbstat_statmonitor
 mqbstat_statmonitorsnapshotrecorder
+mqbstat_statsfilelogger
 mqbstat_tableprinter

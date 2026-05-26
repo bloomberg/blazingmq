@@ -32,6 +32,8 @@
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
 #include <bslma_allocator.h>
+#include <bslma_usesbslmaallocator.h>
+#include <bslmf_nestedtraitdeclaration.h>
 
 namespace BloombergLP {
 
@@ -57,6 +59,9 @@ class JsonPrinter {
     JsonPrinter& operator=(const JsonPrinter& other) BSLS_CPP11_DELETED;
 
   public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(JsonPrinter, bslma::UsesBslmaAllocator)
+
     // PUBLIC TYPES
     typedef bsl::unordered_map<bsl::string, bmqst::StatContext*>
         StatContextsMap;

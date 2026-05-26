@@ -21,22 +21,16 @@
 //@CLASSES:
 //  mqbstat::TablePrinter: bmqbrkr statistics printer
 //
-//@DESCRIPTION: 'mqbstat::TablePrinter' handles the printing of all the
-// statistics.  It holds the tables and table info providers which can be
-// printed.
+//@DESCRIPTION: 'mqbstat::TablePrinter' handles the formatting and printing of
+// all the statistics to a given stream.  It holds the tables and table info
+// providers which can be printed.
 
 // MQB
-#include <mqbcfg_messages.h>
-
 #include <bmqst_basictableinfoprovider.h>
 #include <bmqst_statcontext.h>
 #include <bmqst_table.h>
-#include <bmqtsk_logcleaner.h>
 
 // BDE
-#include <ball_fileobserver2.h>
-#include <ball_log.h>
-#include <bdlmt_eventscheduler.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>
@@ -62,9 +56,6 @@ class TablePrinter {
         StatContextsMap;
 
   private:
-    // CLASS-SCOPE CATEGORY
-    BALL_LOG_SET_CLASS_CATEGORY("MQBSTAT.TABLEPRINTER");
-
     // PRIVATE TYPES
 
     /// Context including table and tip for printing and statcontext for
@@ -85,26 +76,11 @@ class TablePrinter {
 
     // DATA
 
-    /// Config to use.
-    const mqbcfg::StatsConfig& d_config;
-
-    /// FileObserver for the stats log dump.
-    ball::FileObserver2 d_statsLogFile;
-
-    /// Sequence number for stat log records.
-    int d_lastStatId;
-
-    /// Counter to know when to periodically print the stats to file.
-    int d_actionCounter;
-
     /// HiRes timer value of the last allocator snapshot.
     bsls::Types::Int64 d_lastAllocatorSnapshot;
 
     /// Contexts map
     ContextsMap d_contexts;
-
-    /// Mechanism to clean up old stat logs.
-    bmqtsk::LogCleaner d_statLogCleaner;
 
     // NOT IMPLEMENTED
     TablePrinter(const TablePrinter& other) BSLS_KEYWORD_DELETED;
@@ -113,7 +89,7 @@ class TablePrinter {
     // PRIVATE MANIPULATORS
 
     /// Initialize table and tips.
-    void initializeTablesAndTips();
+    void initializeTablesAndTips(int historySize);
 
   public:
     // TRAITS
@@ -121,63 +97,20 @@ class TablePrinter {
 
     // CREATORS
 
-    /// Create a new `TablePrinter` object, using the specified `config`,
-    /// `eventScheduler`, `statContextsMap` and the specified `allocator`
-    /// for memory allocation.
-    explicit TablePrinter(const mqbcfg::StatsConfig& config,
-                          bdlmt::EventScheduler*     eventScheduler,
-                          const StatContextsMap&     statContextsMap,
-                          bslma::Allocator*          allocator);
+    /// Create a new `TablePrinter` object, using the specified
+    /// `statContextsMap`, `historySize` and the specified `allocator` for
+    /// memory allocation.
+    explicit TablePrinter(const StatContextsMap& statContextsMap,
+                          int                    historySize,
+                          bslma::Allocator*      allocator);
 
     // MANIPULATORS
-
-    /// Start the TablePrinter.  Return 0 on success, or a non-zero return
-    /// code on error and fill in the specified `errorDescription` stream
-    /// with the description of the error.
-    int start(bsl::ostream& errorDescription);
-
-    /// Stop the printer.
-    void stop();
 
     /// Print the stats to the specified `stream`.
     ///
     /// THREAD: This method is called in the `snapshot` thread.
     void printStats(bsl::ostream& stream);
-
-    /// Dump the stats to the stat log file.
-    void logStats();
-
-    /// Print the stats to the stats log file at the appropriate time.
-    void onSnapshot();
-
-    // ACCESSORS
-
-    /// Returns true if printing is enabled, false otherwise.
-    bool isEnabled() const;
-
-    /// Returns true if the next call to `onSnapshot` will perform the
-    /// action (i.e., print).
-    bool nextSnapshotWillPrint() const;
 };
-
-// ============================================================================
-//                             INLINE DEFINITIONS
-// ============================================================================
-
-// ------------------
-// class TablePrinter
-// ------------------
-
-inline bool TablePrinter::isEnabled() const
-{
-    return (d_config.printer().printInterval() > 0 &&
-            d_config.snapshotInterval() > 0);
-}
-
-inline bool TablePrinter::nextSnapshotWillPrint() const
-{
-    return d_actionCounter == 1;
-}
 
 }  // close package namespace
 }  // close enterprise namespace

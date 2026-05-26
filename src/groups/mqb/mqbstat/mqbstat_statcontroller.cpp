@@ -93,6 +93,57 @@ void optionalSemaphorePost(bslmt::Semaphore* semaphore)
 
 }  // close unnamed namespace
 
+// -------------------------------------
+// class StatController::SnapshotTracker
+// -------------------------------------
+
+StatController::SnapshotTracker::SnapshotTracker()
+: d_actionInterval(0)
+, d_actionCounter(0)
+, d_statId(0)
+{
+    // NOTHING
+}
+
+void StatController::SnapshotTracker::initialize(int printInterval,
+                                                 int snapshotInterval)
+{
+    if (snapshotInterval > 0 && printInterval > 0) {
+        d_actionInterval = printInterval / snapshotInterval;
+        d_actionCounter  = d_actionInterval;
+    }
+}
+
+void StatController::SnapshotTracker::onSnapshot()
+{
+    if (!isEnabled() || --d_actionCounter != 0) {
+        return;  // RETURN
+    }
+
+    d_actionCounter = d_actionInterval;
+    d_statId += 1;
+}
+
+bool StatController::SnapshotTracker::willPrintOnNextSnapshot() const
+{
+    return d_actionCounter == 1;
+}
+
+bool StatController::SnapshotTracker::isEnabled() const
+{
+    return d_actionInterval > 0;
+}
+
+int StatController::SnapshotTracker::statId() const
+{
+    return d_statId;
+}
+
+int StatController::SnapshotTracker::actionInterval() const
+{
+    return d_actionInterval;
+}
+
 // ------------------------
 // class StatContextDetails
 // ------------------------
@@ -130,11 +181,8 @@ void StatController::initializeStats()
 {
     // NOTE: For now, use only one level and with the snapshot interval (10s).
     //       Later, we may need to snapshot every seconds, or keep 5 minutes
-    //       stats with multiple levels..
-    const mqbcfg::AppConfig& brkrCfg = mqbcfg::BrokerConfig::get();
-    int historySize = brkrCfg.stats().printer().printInterval() /
-                          brkrCfg.stats().snapshotInterval() +
-                      1;
+    //       stats with multiple levels.
+    const int historySize = d_snapshotTracker.actionInterval() + 1;
 
     // ----------
     // Allocators
@@ -148,8 +196,8 @@ void StatController::initializeStats()
                                              d_allocator_p),
                                true)));
         d_allocatorsStatContext_p->snapshot();
-        // Call snaphost to create the 'subContext', so that the
-        // 'mqbstat::TablePrinter::start' can access it.
+        // Call snapshot to create the 'subContext', so that the
+        // 'mqbstat::TablePrinter' can access it.
     }
 
     // --------
@@ -561,14 +609,12 @@ bool StatController::snapshot()
     // through snapshot
     d_systemStatMonitor_mp->snapshot();
 
-    // TablePrinter needs to be notified of every snapshot, but has an internal
-    // action counter to know when it's time to print.  Allocator stat context
-    // only has a history size of 2, so we need to snapshot only once, just
-    // before printing.
+    // Allocator stat context only has a history size of 2, so we need to
+    // snapshot only once, just before printing.
     // TODO: adopt this code for `mqbstat::JsonPrinter` when we report
     //       allocator stats in json
-    const bool willPrint = d_tablePrinter_mp->nextSnapshotWillPrint();
-    if (d_allocatorsStatContext_p && willPrint) {
+    if (d_allocatorsStatContext_p &&
+        d_snapshotTracker.willPrintOnNextSnapshot()) {
         d_allocatorsStatContext_p->snapshot();
     }
 
@@ -595,17 +641,21 @@ void StatController::snapshotAndNotify()
         }
     }
 
-    const bool willPrint = d_tablePrinter_mp->nextSnapshotWillPrint();
-    d_tablePrinter_mp->onSnapshot();
+    const bool willPrint = d_snapshotTracker.willPrintOnNextSnapshot();
+    d_snapshotTracker.onSnapshot();
 
-    // Finally, perform cleanup of expired stat contexts if we have printed
-    // them.
-    // TBD: Currently the code relies on the fact that 'tablePrinter' is the
-    // one
-    //      with the largest 'actionInterval', but normally cleanup should be
-    //      done after the less frequent consumer has performed its action.
-    if (!d_tablePrinter_mp->isEnabled() || willPrint) {
-        // Cleanup deleted subcontexts now that we printed them, or don't care
+    if (willPrint && d_statsFileLogger_mp) {
+        d_statsFileLogger_mp->logStats(
+            d_snapshotTracker.statId(),
+            bdlf::BindUtil::bind(&TablePrinter::printStats,
+                                 d_tablePrinter_mp.get(),
+                                 bdlf::PlaceHolders::_1));
+    }
+
+    // Cleanup is required if either:
+    // - We don't log stats (so we don't have an explicit trigger for cleanup)
+    // - We've just logged stats on this snapshot
+    if (!d_snapshotTracker.isEnabled() || willPrint) {
         for (StatContextDetailsMap::iterator mit = d_statContextsMap.begin();
              mit != d_statContextsMap.end();
              ++mit) {
@@ -685,7 +735,9 @@ StatController::StatController(const CommandProcessorFn& commandProcessor,
 , d_pluginManager_p(pluginManager)
 , d_bufferFactory_p(bufferFactory)
 , d_commandProcessorFn(bsl::allocator_arg, allocator, commandProcessor)
+, d_snapshotTracker()
 , d_tablePrinter_mp(0)
+, d_statsFileLogger_mp(0)
 , d_jsonPrinter_mp(0)
 , d_statConsumers(allocator)
 , d_statConsumerMaxPublishInterval(0)
@@ -727,10 +779,10 @@ int StatController::start(bsl::ostream& errorDescription)
                                       k_MAX_SNAPSHOTS_PER_INTERVAL);
 
     // Start the scheduler
-    d_scheduler_mp.load(new (*d_allocator_p) bdlmt::TimerEventScheduler(
-                            bsls::SystemClockType::e_MONOTONIC,
-                            d_allocator_p),
-                        d_allocator_p);
+    d_scheduler_mp =
+        bslma::ManagedPtrUtil::allocateManaged<bdlmt::TimerEventScheduler>(
+            d_allocator_p,
+            bsls::SystemClockType::e_MONOTONIC);
     rc = d_scheduler_mp->start();
     if (rc != 0) {
         errorDescription << "Failed to start StatController "
@@ -752,9 +804,10 @@ int StatController::start(bsl::ostream& errorDescription)
     for (; consumerIt != brkrCfg.stats().plugins().end(); ++consumerIt) {
         maxInterval = bsl::max(maxInterval, consumerIt->publishInterval());
     }
-    d_systemStatMonitor_mp.load(
-        new (*d_allocator_p) mqbstat::StatMonitor(maxInterval, d_allocator_p),
-        d_allocator_p);
+    d_systemStatMonitor_mp =
+        bslma::ManagedPtrUtil::allocateManaged<mqbstat::StatMonitor>(
+            d_allocator_p,
+            maxInterval);
 
     // Failing to start some subsystems of StatController should not result in
     // a broker shutdown, but rather be intercepted here and printed as an
@@ -770,6 +823,9 @@ int StatController::start(bsl::ostream& errorDescription)
         rc = 0;
         errorStream.reset();
     }
+
+    d_snapshotTracker.initialize(brkrCfg.stats().printer().printInterval(),
+                                 brkrCfg.stats().snapshotInterval());
 
     // We now need to initialize our stats *AFTER* the system stat monitor has
     // been created to ensure that we have a valid stat contexts in our map.
@@ -845,30 +901,26 @@ int StatController::start(bsl::ostream& errorDescription)
         }
     }
 
-    // Start the table printer
-    d_tablePrinter_mp.load(new (*d_allocator_p)
-                               TablePrinter(brkrCfg.stats(),
-                                            d_eventScheduler_p,
-                                            ctxPtrMap,
-                                            d_allocator_p),
-                           d_allocator_p);
+    // Create the table printer
+    d_tablePrinter_mp = bslma::ManagedPtrUtil::allocateManaged<TablePrinter>(
+        d_allocator_p,
+        ctxPtrMap,
+        d_snapshotTracker.actionInterval() + 1);
 
-    // Give the table printer a map of statContext ptrs for its printing.  It
-    // has been done this way to break the cyclic dependency of ctxPtrMap,
-    // initializeStats() and creation of d_tablePrinter.
-    rc = d_tablePrinter_mp->start(errorStream);
-    if (rc != 0) {
-        BMQTSK_ALARMLOG_ALARM("#STATS")
-            << "Failed to start TablePrinter [rc: " << rc << ", error: '"
-            << errorStream.str() << "']" << BMQTSK_ALARMLOG_END;
-        rc = 0;
-        errorStream.reset();
+    // Start the stats file logger
+    if (d_snapshotTracker.isEnabled()) {
+        d_statsFileLogger_mp =
+            bslma::ManagedPtrUtil::allocateManaged<StatsFileLogger>(
+                d_allocator_p,
+                d_eventScheduler_p);
+
+        d_statsFileLogger_mp->start();
     }
 
     // Create the json printer
-    d_jsonPrinter_mp.load(new (*d_allocator_p)
-                              JsonPrinter(ctxPtrMap, d_allocator_p),
-                          d_allocator_p);
+    d_jsonPrinter_mp = bslma::ManagedPtrUtil::allocateManaged<JsonPrinter>(
+        d_allocator_p,
+        ctxPtrMap);
 
     // Max value for the stat publish interval must be the minimum history size
     // of all stat contexts.
@@ -912,13 +964,24 @@ void StatController::stop()
         STOP_OBJ((*it), it->name());
     }
 
-    STOP_OBJ(d_tablePrinter_mp, "TablePrinter");
+    if (d_snapshotTracker.statId() > 0 && d_statsFileLogger_mp) {
+        // Stats were logged with `statId()` id from scheduler already.
+        // For shutdown, use the next id: `statId() + 1`.
+        d_statsFileLogger_mp->logStats(
+            d_snapshotTracker.statId() + 1,
+            bdlf::BindUtil::bind(&TablePrinter::printStats,
+                                 d_tablePrinter_mp.get(),
+                                 bdlf::PlaceHolders::_1));
+    }
+
+    STOP_OBJ(d_statsFileLogger_mp, "StatsFileLogger");
     STOP_OBJ(d_systemStatMonitor_mp, "SystemStatMonitor");
 
     // Destroy everything!!
     for (it = d_statConsumers.begin(); it != d_statConsumers.end(); ++it) {
         DESTROY_OBJ((*it), it->name());
     }
+    DESTROY_OBJ(d_statsFileLogger_mp, "StatsFileLogger");
     DESTROY_OBJ(d_tablePrinter_mp, "TablePrinter");
     DESTROY_OBJ(d_jsonPrinter_mp, "JsonPrinter");
     DESTROY_OBJ(d_systemStatMonitor_mp, "SystemStatMonitor");
