@@ -618,7 +618,7 @@ void ClusterStateManager::do_sendFailureFollowerClusterStateResponse(
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << ": sent failure response " << controlMsg
-                  << " to follower CSL request from "
+                  << " to follower cluster state request from "
                   << inputMessage.source()->nodeDescription();
 }
 
@@ -902,7 +902,7 @@ void ClusterStateManager::do_logStaleFollowerClusterStateResponse(
     const InputMessage& inputMessage = metadata.inputMessages().at(0);
 
     BALL_LOG_WARN << d_clusterData_p->identity().description()
-                  << ": Follower CSL response from "
+                  << ": Follower cluster state response from "
                   << inputMessage.source()->nodeDescription()
                   << " with rId = " << inputMessage.requestId()
                   << " is stale.  Contained snapshot: "
@@ -978,7 +978,7 @@ void ClusterStateManager::do_logFailFollowerClusterStateResponse(
         // We failed to send the request
 
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << ": Failed to send follower CSL request to "
+                       << ": Failed to send follower cluster state request to "
                        << metadata.highestLSNNode();
     }
     else {
