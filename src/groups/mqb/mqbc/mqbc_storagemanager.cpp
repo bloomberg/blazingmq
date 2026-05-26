@@ -329,42 +329,35 @@ void StorageManager::onPartitionRecovery(int partitionId)
         d_recoveryStartTimes[partitionId]);
     BALL_LOG_INFO << out.str();
 
-    if (++d_numPartitionsRecoveredFully ==
+    if (++d_numPartitionsRecoveredFully !=
         static_cast<int>(d_fileStores.size())) {
-        BSLMT_ONCE_DO
-        {
-            // First time healing logic
+        BSLS_ASSERT_SAFE(d_numPartitionsRecoveredFully <
+                         static_cast<int>(d_fileStores.size()));
+        return;  // RETURN
+    }
 
-            out.reset();
-            const bool success =
-                mqbs::StoragePrintUtil::printStorageRecoveryCompletion(
-                    out,
-                    d_fileStores,
-                    d_clusterData_p->identity().description());
-            BALL_LOG_INFO << out.str();
+    BSLMT_ONCE_DO
+    {
+        // First time healing logic
 
-            if (success) {
-                // All partitions have opened successfully.  Schedule a
-                // recurring event in StorageMgr, which will in turn enqueue an
-                // event in each partition's dispatcher thread for GC'ing
-                // expired messages as well as cleaning history.
+        out.reset();
+        const bool success =
+            mqbs::StoragePrintUtil::printStorageRecoveryCompletion(
+                out,
+                d_fileStores,
+                d_clusterData_p->identity().description());
+        BALL_LOG_INFO << out.str();
 
-                d_clusterData_p->scheduler().scheduleRecurringEvent(
-                    &d_gcMessagesEventHandle,
-                    bsls::TimeInterval(k_GC_MESSAGES_INTERVAL_SECONDS),
-                    bdlf::BindUtil::bind(&StorageManager::forceFlushFileStores,
-                                         this));
-
-                // Even though Cluster FSM and all Partition FSMs are now
-                // healed, we must check that all partitions have an active
-                // primary before transitioning ourself to E_AVAILABLE.
-                if (allPartitionsAvailable()) {
-                    d_recoveryStatusCb(0);
-                }
+        if (success) {
+            // Even though Cluster FSM and all Partition FSMs are now
+            // healed, we must check that all partitions have an active
+            // primary before transitioning ourself to E_AVAILABLE.
+            if (allPartitionsAvailable()) {
+                d_recoveryStatusCb(0);
             }
-            else {
-                d_recoveryStatusCb(-1);
-            }
+        }
+        else {
+            d_recoveryStatusCb(-1);
         }
     }
 }
@@ -3875,9 +3868,9 @@ void StorageManager::onTransitionOutOfHealed(
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId
@@ -4050,6 +4043,14 @@ int StorageManager::start(bsl::ostream& errorDescription)
                              d_minimumRequiredDiskSpace,
                              d_clusterData_p->identity().description(),
                              d_clusterConfig.partitionConfig()));
+
+    // Schedule a periodic event which will in turn enqueue an event in each
+    // partition's dispatcher thread for GC'ing expired messages as well as
+    // cleaning history.
+    d_clusterData_p->scheduler().scheduleRecurringEvent(
+        &d_gcMessagesEventHandle,
+        bsls::TimeInterval(k_GC_MESSAGES_INTERVAL_SECONDS),
+        bdlf::BindUtil::bind(&StorageManager::forceFlushFileStores, this));
 
     d_isStarted = true;
     return rc_SUCCESS;
