@@ -386,9 +386,6 @@ class ClusterStateTableActions {
 
     void do_sendFollowerLSNResponse_logErrorLeaderNotHealed(const ARGS& args);
 
-    void do_sendFollowerClusterStateResponse_logErrorLeaderNotHealed(
-        const ARGS& args);
-
     void do_storeFollowerLSNs_checkLSNQuorum(const ARGS& args);
 
     void do_storeFollowerLSNs_checkLSNQuorum_sendRegistrationResponse(
@@ -695,8 +692,8 @@ class ClusterStateTable
                 FOL_HEALED);
         CST_CFG(FOL_HEALED,
                 FOL_CSL_RQST,
-                sendFollowerClusterStateResponse_logErrorLeaderNotHealed,
-                FOL_HEALING);
+                sendFollowerClusterStateResponse,
+                FOL_HEALED);
         CST_CFG(FOL_HEALED, CSL_CMT_SUCCESS, updatePrimaryInPFSMs, FOL_HEALED);
         CST_CFG(FOL_HEALED, RST_UNKNOWN, none, UNKNOWN);
         CST_CFG(FOL_HEALED, RST_PRIMARY, updatePrimaryInPFSMs, FOL_HEALED);
@@ -874,15 +871,6 @@ void ClusterStateTableActions<
     ARGS>::do_sendFollowerLSNResponse_logErrorLeaderNotHealed(const ARGS& args)
 {
     do_sendFollowerLSNResponse(args);
-    do_logErrorLeaderNotHealed(args);
-}
-
-template <typename ARGS>
-void ClusterStateTableActions<ARGS>::
-    do_sendFollowerClusterStateResponse_logErrorLeaderNotHealed(
-        const ARGS& args)
-{
-    do_sendFollowerClusterStateResponse(args);
     do_logErrorLeaderNotHealed(args);
 }
 

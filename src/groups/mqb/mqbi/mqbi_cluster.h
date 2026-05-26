@@ -126,9 +126,9 @@ struct ClusterErrorCode {
 
         // Cluster specific
         // - - - - - - - -
-        /// The node is not the leader of the cluster
+        /// Self node is not the leader of the cluster
         e_NOT_LEADER = -200,
-        /// The node is not the primary of the partition
+        /// Self node is not the primary of the partition
         e_NOT_PRIMARY = -201,
         /// Unable to find a partition for the queue
         e_NO_PARTITION = -202,
@@ -139,9 +139,9 @@ struct ClusterErrorCode {
         /// A limit has been reached, currently:
         ///   - too many active queues in the domain
         e_LIMIT = -205,
-        /// The node is not a follower in the cluster
+        /// Self node is not a follower in the cluster
         e_NOT_FOLLOWER = -206,
-        /// The node is not a replica of the partition
+        /// Self node is not a replica of the partition
         e_NOT_REPLICA = -207,
         /// Failure to apply to the CSL
         e_CSL_FAILURE = -208,
@@ -150,7 +150,9 @@ struct ClusterErrorCode {
         /// Self is replica waiting for PrimaryStateResponse, and **must**
         /// reject the ReplicaStateRequest to prevent primary from healing us
         /// twice in a row, leading to duplicate work.
-        e_REPLICA_WAITING = -210
+        e_REPLICA_WAITING = -210,
+        /// Source node is not recognized as the leader
+        e_SOURCE_NOT_LEADER = -211
     };
 
     // CLASS METHODS
