@@ -334,8 +334,6 @@ class ClusterStateTableActions {
 
     virtual void do_logStaleFollowerClusterStateResponse(const ARGS& args) = 0;
 
-    virtual void do_logErrorLeaderNotHealed(const ARGS& args) = 0;
-
     virtual void do_logFailFollowerLSNResponses(const ARGS& args) = 0;
 
     virtual void do_logFailFollowerClusterStateResponse(const ARGS& args) = 0;

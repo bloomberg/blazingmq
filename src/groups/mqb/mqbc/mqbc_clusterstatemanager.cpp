@@ -967,30 +967,6 @@ void ClusterStateManager::do_logStaleFollowerClusterStateResponse(
                   << metadata.clusterStateSnapshot();
 }
 
-void ClusterStateManager::do_logErrorLeaderNotHealed(
-    const EventWithMetadata& event)
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
-    BSLS_ASSERT_SAFE(!d_clusterData_p->electorInfo().isSelfLeader());
-    BSLS_ASSERT_SAFE(d_clusterFSM.state() == ClusterFSM::State::e_FOL_HEALING);
-
-    const ClusterFSMEventMetadata& metadata = event.second;
-    BSLS_ASSERT_SAFE(metadata.inputMessages().size() == 1);
-    const InputMessage& inputMessage = metadata.inputMessages().at(0);
-    BSLS_ASSERT_SAFE(inputMessage.source()->nodeId() ==
-                     d_clusterData_p->electorInfo().leaderNodeId());
-
-    BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                   << ": Self detecting leader: "
-                   << inputMessage.source()->nodeDescription()
-                   << " as not healed.  Transitioning self from healed "
-                   << " follower to healing follower.";
-}
-
 void ClusterStateManager::do_logFailFollowerLSNResponses(
     const EventWithMetadata& event)
 {
