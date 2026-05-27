@@ -65,6 +65,7 @@ const char* ClusterErrorCode::toAscii(ClusterErrorCode::Enum value)
         CASE(CSL_FAILURE)
         CASE(STORAGE_FAILURE)
         CASE(REPLICA_WAITING)
+        CASE(SOURCE_NOT_LEADER)
     default: return "(* UNKNOWN *)";
     }
 
@@ -93,6 +94,10 @@ bool ClusterErrorCode::fromAscii(ClusterErrorCode::Enum*  out,
     CHECKVALUE(LIMIT)
     CHECKVALUE(NOT_FOLLOWER)
     CHECKVALUE(NOT_REPLICA)
+    CHECKVALUE(CSL_FAILURE)
+    CHECKVALUE(STORAGE_FAILURE)
+    CHECKVALUE(REPLICA_WAITING)
+    CHECKVALUE(SOURCE_NOT_LEADER)
 
     // Invalid string
     return false;

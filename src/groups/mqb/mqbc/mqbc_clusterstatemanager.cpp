@@ -417,6 +417,35 @@ void ClusterStateManager::do_sendFollowerLSNResponse(
     bmqp_ctrlmsg::ControlMessage controlMsg;
     controlMsg.rId() = inputMessage.requestId();
 
+    if (inputMessage.source()->nodeId() !=
+        d_clusterData_p->electorInfo().leaderNodeId()) {
+        bmqp_ctrlmsg::Status& response = controlMsg.choice().makeStatus();
+        response.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+        response.code()     = mqbi::ClusterErrorCode::e_SOURCE_NOT_LEADER;
+        response.message()  = "Source node is not recognized as the leader";
+
+        d_clusterData_p->messageTransmitter().sendMessage(
+            controlMsg,
+            inputMessage.source());
+
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << ": Sent failure response " << controlMsg
+                      << " to follower LSN request from "
+                      << inputMessage.source()->nodeDescription();
+
+        return;  // RETURN
+    }
+
+    if (d_clusterFSM.isSelfHealed()) {
+        BALL_LOG_ERROR
+            << d_clusterData_p->identity().description()
+            << ": Received follower LSN request from "
+            << inputMessage.source()->nodeDescription()
+            << " after self is already healed.  This is not supposed"
+            << " to happen, but will still respond.  Please review "
+            << "Cluster FSM logic.";
+    }
+
     bmqp_ctrlmsg::ClusterMessage& clusterMsg =
         controlMsg.choice().makeClusterMessage();
     bmqp_ctrlmsg::ClusterStateFSMMessage& clusterFSMMessage =
@@ -429,7 +458,7 @@ void ClusterStateManager::do_sendFollowerLSNResponse(
                                                       inputMessage.source());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << ": sent response " << controlMsg
+                  << ": Sent response " << controlMsg
                   << " to follower LSN request from "
                   << inputMessage.source()->nodeDescription();
 }
@@ -459,7 +488,7 @@ void ClusterStateManager::do_sendFailureFollowerLSNResponse(
                                                       inputMessage.source());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << ": sent failure response " << controlMsg
+                  << ": Sent failure response " << controlMsg
                   << " to follower LSN request from "
                   << inputMessage.source()->nodeDescription();
 }
@@ -564,6 +593,35 @@ void ClusterStateManager::do_sendFollowerClusterStateResponse(
     bmqp_ctrlmsg::ControlMessage controlMsg;
     controlMsg.rId() = inputMessage.requestId();
 
+    if (inputMessage.source()->nodeId() !=
+        d_clusterData_p->electorInfo().leaderNodeId()) {
+        bmqp_ctrlmsg::Status& response = controlMsg.choice().makeStatus();
+        response.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+        response.code()     = mqbi::ClusterErrorCode::e_SOURCE_NOT_LEADER;
+        response.message()  = "Source node is not recognized as the leader";
+
+        d_clusterData_p->messageTransmitter().sendMessage(
+            controlMsg,
+            inputMessage.source());
+
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << ": Sent failure response " << controlMsg
+                      << " to follower cluster state request from "
+                      << inputMessage.source()->nodeDescription();
+
+        return;  // RETURN
+    }
+
+    if (d_clusterFSM.isSelfHealed()) {
+        BALL_LOG_ERROR
+            << d_clusterData_p->identity().description()
+            << ": Received follower cluster state request from "
+            << inputMessage.source()->nodeDescription()
+            << " after self is already healed.  This is not supposed"
+            << " to happen, but will still respond.  Please review "
+            << "Cluster FSM logic.";
+    }
+
     bmqp_ctrlmsg::FollowerClusterStateResponse& response =
         controlMsg.choice()
             .makeClusterMessage()
@@ -587,7 +645,7 @@ void ClusterStateManager::do_sendFollowerClusterStateResponse(
                                                       inputMessage.source());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << ": sent response " << controlMsg
+                  << ": Sent response " << controlMsg
                   << " to follower cluster state request from "
                   << inputMessage.source()->nodeDescription();
 }
@@ -617,7 +675,7 @@ void ClusterStateManager::do_sendFailureFollowerClusterStateResponse(
                                                       inputMessage.source());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << ": sent failure response " << controlMsg
+                  << ": Sent failure response " << controlMsg
                   << " to follower cluster state request from "
                   << inputMessage.source()->nodeDescription();
 }
@@ -907,30 +965,6 @@ void ClusterStateManager::do_logStaleFollowerClusterStateResponse(
                   << " with rId = " << inputMessage.requestId()
                   << " is stale.  Contained snapshot: "
                   << metadata.clusterStateSnapshot();
-}
-
-void ClusterStateManager::do_logErrorLeaderNotHealed(
-    const EventWithMetadata& event)
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
-    BSLS_ASSERT_SAFE(!d_clusterData_p->electorInfo().isSelfLeader());
-    BSLS_ASSERT_SAFE(d_clusterFSM.state() == ClusterFSM::State::e_FOL_HEALING);
-
-    const ClusterFSMEventMetadata& metadata = event.second;
-    BSLS_ASSERT_SAFE(metadata.inputMessages().size() == 1);
-    const InputMessage& inputMessage = metadata.inputMessages().at(0);
-    BSLS_ASSERT_SAFE(inputMessage.source()->nodeId() ==
-                     d_clusterData_p->electorInfo().leaderNodeId());
-
-    BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                   << ": Self detecting leader: "
-                   << inputMessage.source()->nodeDescription()
-                   << " as not healed.  Transitioning self from healed "
-                   << " follower to healing follower.";
 }
 
 void ClusterStateManager::do_logFailFollowerLSNResponses(

@@ -246,9 +246,6 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     void do_logStaleFollowerClusterStateResponse(
         const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
 
-    void do_logErrorLeaderNotHealed(const EventWithMetadata& event)
-        BSLS_KEYWORD_OVERRIDE;
-
     void do_logFailFollowerLSNResponses(const EventWithMetadata& event)
         BSLS_KEYWORD_OVERRIDE;
 
