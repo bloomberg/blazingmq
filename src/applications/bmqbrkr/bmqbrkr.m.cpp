@@ -588,8 +588,9 @@ int main(int argc, const char* argv[])
     bsl::string hostName;
     bsl::string hostTags;
     bsl::string hostDataCenter;
-    int         port    = 0;
-    bool        version = false;
+    int         port     = 0;
+    bool        version  = false;
+    bool        showHelp = false;
 
     {
         balcl::OptionInfo specTable[] = {
@@ -628,6 +629,11 @@ int main(int argc, const char* argv[])
              "show version number",
              balcl::TypeInfo(&version),
              balcl::OccurrenceInfo::e_OPTIONAL},
+            {"help",
+             "help",
+             "show usage",
+             balcl::TypeInfo(&showHelp),
+             balcl::OccurrenceInfo::e_OPTIONAL},
         };
 
         balcl::CommandLine commandLine(specTable);
@@ -637,6 +643,11 @@ int main(int argc, const char* argv[])
                       << bsl::flush;
             commandLine.printUsage();
             return mqbu::ExitCode::e_COMMAND_LINE;  // RETURN
+        }
+
+        if (showHelp) {
+            commandLine.printUsage();
+            return 0;
         }
 
         if (version) {
