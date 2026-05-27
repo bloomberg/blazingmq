@@ -4303,12 +4303,19 @@ int FileStore::writeMessageRecord(const bmqp::StorageHeader& header,
 
     StorageMapIter sit = d_storages.find(queueKey);
     if (sit == d_storages.end()) {
+        BALL_LOG_ERROR << partitionDesc() << " Received DATA record for an "
+                       << " unknown storage [queueKey: " << queueKey << "].";
+
         return rc_UNKNOWN_QUEUE_KEY;  // RETURN
     }
 
     ReplicatedStorage* rstorage = sit->second;
     BSLS_ASSERT_SAFE(rstorage);
     if (!rstorage->isPersistent()) {
+        BALL_LOG_ERROR << partitionDesc() << " Received DATA record for an "
+                       << " incompatible storage which is not persistent "
+                       << "[queueKey: " << queueKey << "].";
+
         return rc_INCOMPATIBLE_STORAGE;  // RETURN
     }
 
@@ -4437,10 +4444,16 @@ int FileStore::writeQueueCreationRecord(
     StorageMapIter sit = d_storages.find(queueKey);
     if (sit == d_storages.end()) {
         if (d_isFSMWorkflow) {
+            BALL_LOG_ERROR << partitionDesc()
+                           << " Received QLIST record for queue creation, "
+                           << "but storage does not exist [queueKey: "
+                           << queueKey << "].";
+
             return rc_QUEUE_CREATION_FAILURE;  // RETURN
         }
         else {
-            BSLS_ASSERT_SAFE(false && "Queue storage must have been created");
+            BSLS_ASSERT_SAFE(sit != d_storages.end() &&
+                             "Queue storage must have been created");
         }
     }
 
@@ -4622,6 +4635,11 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
             // file-backed.
 
             if (!rstorage->isPersistent()) {
+                BALL_LOG_ERROR
+                    << partitionDesc() << " Received journal record of type ["
+                    << messageType << "] for an incompatible storage which "
+                    << "is not persistent [queueKey: " << queueKey << "].";
+
                 return rc_INCOMPATIBLE_STORAGE;  // RETURN
             }
         }
@@ -4629,7 +4647,8 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
         if (!appKey->isNull()) {
             if (!rstorage->hasVirtualStorage(*appKey)) {
                 BALL_LOG_ERROR << partitionDesc()
-                               << " storage does not have the key [" << *appKey
+                               << " storage for [queueKey: " << queueKey
+                               << "] does not have the key [" << *appKey
                                << "]";
 
                 return rc_UNKNOWN_APP_KEY;  // RETURN
