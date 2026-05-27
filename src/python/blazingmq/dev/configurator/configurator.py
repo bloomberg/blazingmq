@@ -368,4 +368,4 @@ class Configurator:
                 f"etc/domains/{filename}",
             )
 
-        site.remove_stale_files("etc/domains", current_files)
+        site.remove_stale_files("etc/domains", list(current_files))
