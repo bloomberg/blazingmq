@@ -5181,21 +5181,26 @@ void FileStore::aliasMessage(bsl::shared_ptr<bdlbb::Blob>* appData,
             deleter,
             activeFileSet->d_dataFile.block().base() + optionsOffset);
 
-        bdlbb::BlobBuffer optionsBlobBuffer(optionsBufferSp, optionsSize);
+        bdlbb::BlobBuffer optionsBlobBuffer(
+            bslmf::MovableRefUtil::move(optionsBufferSp),
+            optionsSize);
 
         *options = d_blobSpPool_p->getObject();
-        (*options)->appendDataBuffer(optionsBlobBuffer);
+        (*options)->appendDataBuffer(
+            bslmf::MovableRefUtil::move(optionsBlobBuffer));
     }
 
     bsl::shared_ptr<char> appDataBufferSp(
         deleter,
         activeFileSet->d_dataFile.block().base() + appDataOffset);
 
-    bdlbb::BlobBuffer appDataBlobBuffer(appDataBufferSp,
-                                        record.d_appDataUnpaddedLen);
+    bdlbb::BlobBuffer appDataBlobBuffer(
+        bslmf::MovableRefUtil::move(appDataBufferSp),
+        record.d_appDataUnpaddedLen);
 
     *appData = d_blobSpPool_p->getObject();
-    (*appData)->appendDataBuffer(appDataBlobBuffer);
+    (*appData)->appendDataBuffer(
+        bslmf::MovableRefUtil::move(appDataBlobBuffer));
 }
 
 void FileStore::flushIfNeeded(bool immediateFlush)
