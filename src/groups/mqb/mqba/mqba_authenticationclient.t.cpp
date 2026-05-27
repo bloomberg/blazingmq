@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <bslstl_sharedptr.h>
 #include <mqba_authenticationclient.h>
 
 // MQB
@@ -21,6 +22,7 @@
 
 // BMQ
 #include <bmqio_testchannel.h>
+#include <bmqp_blobpoolutil.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_event.h>
 #include <bmqtst_scopedlogobserver.h>
@@ -30,7 +32,6 @@
 // BDE
 #include <ball_severity.h>
 #include <bdlbb_pooledblobbufferfactory.h>
-#include <bdlcc_sharedobjectpool.h>
 #include <bdlf_bind.h>
 #include <bdlmt_eventscheduler.h>
 #include <bsl_memory.h>
@@ -38,6 +39,7 @@
 #include <bsl_string.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
+#include <bslma_managedptr.h>
 #include <bsls_systemclocktype.h>
 #include <bsls_timeinterval.h>
 #include <bsls_types.h>
@@ -54,19 +56,13 @@ using namespace bsl;
 // ----------------------------------------------------------------------------
 namespace {
 
-typedef bdlcc::SharedObjectPool<
-    bdlbb::Blob,
-    bdlcc::ObjectPoolFunctors::DefaultCreator,
-    bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
-    BlobSpPool;
-
 struct TestClock {
     bdlmt::EventScheduler&              d_scheduler;
     bdlmt::EventSchedulerTestTimeSource d_timeSource;
 
-    TestClock(bdlmt::EventScheduler& scheduler)
+    TestClock(bdlmt::EventScheduler& scheduler, bslma::Allocator* allocator)
     : d_scheduler(scheduler)
-    , d_timeSource(&scheduler)
+    , d_timeSource(&scheduler, allocator)
     {
     }
 
@@ -78,29 +74,38 @@ struct TestClock {
     }
 };
 
-void createBlob(bdlbb::BlobBufferFactory* bufferFactory,
-                void*                     arena,
-                bslma::Allocator*         allocator)
-{
-    new (arena) bdlbb::Blob(bufferFactory, allocator);
-}
+struct SuccessCredentialCb {
+    const char* d_mechanism;
+    const char* d_payload;
 
-bsl::optional<mqbplug::AuthnCredential>
-successCredentialCb(bsl::ostream&      error,
-                    const bsl::string& mechanism,
-                    const bsl::string& payload)
-{
-    (void)error;
-    bsl::vector<char> data(payload.begin(), payload.end());
-    return mqbplug::AuthnCredential(mechanism, data);
-}
+    SuccessCredentialCb(const char* mechanism, const char* payload)
+    : d_mechanism(mechanism)
+    , d_payload(payload)
+    {
+    }
 
-bsl::optional<mqbplug::AuthnCredential>
-failingCredentialCb(bsl::ostream& error)
-{
-    error << "credential provider is broken";
-    return bsl::nullopt;
-}
+    bsl::optional<mqbplug::AuthnCredential> operator()(bsl::ostream&) const
+    {
+        bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
+        bsl::vector<char> data(d_payload,
+                               d_payload + bsl::strlen(d_payload),
+                               alloc);
+        bsl::optional<mqbplug::AuthnCredential> result(
+            bsl::allocator_arg,
+            alloc,
+            mqbplug::AuthnCredential(d_mechanism, data, alloc));
+        return result;
+    }
+};
+
+struct FailingCredentialCb {
+    bsl::optional<mqbplug::AuthnCredential>
+    operator()(bsl::ostream& error) const
+    {
+        error << "credential provider callback failure";
+        return bsl::nullopt;
+    }
+};
 
 bmqp_ctrlmsg::AuthenticationMessage
 makeSuccessResponse(const bdlb::NullableValue<bsls::Types::Int64>& lifetimeMs =
@@ -132,6 +137,8 @@ int decodeAuthenticationEvent(bmqp_ctrlmsg::AuthenticationMessage* output,
                               const bdlbb::Blob&                   blob,
                               bslma::Allocator*                    allocator)
 {
+    BSLS_ASSERT(output);
+
     bmqp::Event event(&blob, allocator);
     if (!event.isAuthenticationEvent()) {
         return -1;
@@ -143,7 +150,7 @@ class TestBench {
   public:
     // DATA
     bdlbb::PooledBlobBufferFactory      d_bufferFactory;
-    BlobSpPool                          d_blobSpPool;
+    bmqp::BlobPoolUtil::BlobSpPoolSp    d_blobSpPool_sp;
     bsl::shared_ptr<bmqio::TestChannel> d_channel;
     bdlmt::EventScheduler               d_scheduler;
     TestClock                           d_testClock;
@@ -152,22 +159,24 @@ class TestBench {
     // CREATORS
     explicit TestBench(bslma::Allocator* allocator)
     : d_bufferFactory(256, allocator)
-    , d_blobSpPool(bdlf::BindUtil::bind(&createBlob,
-                                        &d_bufferFactory,
-                                        bdlf::PlaceHolders::_1,
-                                        bdlf::PlaceHolders::_2),
-                   1024,
-                   allocator)
-    , d_channel(new bmqio::TestChannel(allocator))
+    , d_blobSpPool_sp(
+          bmqp::BlobPoolUtil::createBlobPool(&d_bufferFactory, allocator))
+    , d_channel(bsl::allocate_shared<bmqio::TestChannel>(allocator))
     , d_scheduler(bsls::SystemClockType::e_MONOTONIC, allocator)
-    , d_testClock(d_scheduler)
+    , d_testClock(d_scheduler, allocator)
     , d_allocator_p(allocator)
     {
         bmqu::Time::shutdown();
         bmqu::Time::initialize(
-            bdlf::BindUtil::bind(&TestClock::realtimeClock, &d_testClock),
-            bdlf::BindUtil::bind(&TestClock::monotonicClock, &d_testClock),
-            bdlf::BindUtil::bind(&TestClock::highResTimer, &d_testClock),
+            bdlf::BindUtil::bindS(allocator,
+                                  &TestClock::realtimeClock,
+                                  &d_testClock),
+            bdlf::BindUtil::bindS(allocator,
+                                  &TestClock::monotonicClock,
+                                  &d_testClock),
+            bdlf::BindUtil::bindS(allocator,
+                                  &TestClock::highResTimer,
+                                  &d_testClock),
             d_allocator_p);
 
         int rc = d_scheduler.start();
@@ -181,29 +190,19 @@ class TestBench {
     }
 
     // MANIPULATORS
-    mqba::AuthenticationClient*
-    createClient(const mqbplug::CredentialProvider::CredentialCb& credCb)
+    template <class CRED_CB>
+    bslma::ManagedPtr<mqba::AuthenticationClient>
+    createClient(const CRED_CB& credentialCb)
     {
-        return new (*d_allocator_p) mqba::AuthenticationClient(credCb,
-                                                               d_channel,
-                                                               &d_blobSpPool,
-                                                               &d_scheduler,
-                                                               d_allocator_p);
-    }
-
-    mqbplug::CredentialProvider::CredentialCb
-    makeSuccessCredentialCb(const bsl::string& mechanism = "BASIC",
-                            const bsl::string& payload   = "user:pass")
-    {
-        return bdlf::BindUtil::bind(&successCredentialCb,
-                                    bdlf::PlaceHolders::_1,
-                                    mechanism,
-                                    payload);
-    }
-
-    mqbplug::CredentialProvider::CredentialCb makeFailingCredentialCb()
-    {
-        return &failingCredentialCb;
+        mqbplug::CredentialProvider::CredentialCb cb(bsl::allocator_arg,
+                                                     d_allocator_p,
+                                                     credentialCb);
+        return bslma::ManagedPtrUtil::allocateManaged<
+            mqba::AuthenticationClient>(d_allocator_p,
+                                        cb,
+                                        d_channel,
+                                        d_blobSpPool_sp.get(),
+                                        &d_scheduler);
     }
 };
 
@@ -234,9 +233,8 @@ static void test1_authenticateSuccess()
     TestBench         tb(alloc);
 
     // 1)
-    bslma::ManagedPtr<mqba::AuthenticationClient> client(
-        tb.createClient(tb.makeSuccessCredentialCb("BASIC", "user:pass")),
-        alloc);
+    bslma::ManagedPtr<mqba::AuthenticationClient> client = tb.createClient(
+        SuccessCredentialCb("BASIC", "user:pass"));
 
     // 2)
     bmqu::MemOutStream errStream(alloc);
@@ -284,9 +282,8 @@ static void test2_authenticateChannelGone()
     TestBench         tb(alloc);
 
     // 1)
-    bslma::ManagedPtr<mqba::AuthenticationClient> client(
-        tb.createClient(tb.makeSuccessCredentialCb()),
-        alloc);
+    bslma::ManagedPtr<mqba::AuthenticationClient> client = tb.createClient(
+        SuccessCredentialCb("BASIC", "user:pass"));
 
     // 2)
     tb.d_channel.reset();
@@ -323,9 +320,8 @@ static void test3_authenticateCredentialFailure()
     TestBench         tb(alloc);
 
     // 1)
-    bslma::ManagedPtr<mqba::AuthenticationClient> client(
-        tb.createClient(tb.makeFailingCredentialCb()),
-        alloc);
+    bslma::ManagedPtr<mqba::AuthenticationClient> client = tb.createClient(
+        FailingCredentialCb());
 
     // 2)
     bmqu::MemOutStream errStream(alloc);
@@ -359,9 +355,8 @@ static void test4_authenticateWriteFails()
     TestBench         tb(alloc);
 
     // 1)
-    bslma::ManagedPtr<mqba::AuthenticationClient> client(
-        tb.createClient(tb.makeSuccessCredentialCb()),
-        alloc);
+    bslma::ManagedPtr<mqba::AuthenticationClient> client = tb.createClient(
+        SuccessCredentialCb("BASIC", "user:pass"));
 
     // 2)
     tb.d_channel->setWriteStatus(
@@ -396,9 +391,8 @@ static void test5_handleResponseSuccessNoLifetime()
     bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
     TestBench         tb(alloc);
 
-    bslma::ManagedPtr<mqba::AuthenticationClient> client(
-        tb.createClient(tb.makeSuccessCredentialCb()),
-        alloc);
+    bslma::ManagedPtr<mqba::AuthenticationClient> client = tb.createClient(
+        SuccessCredentialCb("BASIC", "user:pass"));
 
     // 1)
     bmqu::MemOutStream errStream(alloc);
@@ -434,7 +428,7 @@ static void test6_handleResponseSuccessWithLifetime()
 // Plan:
 //   1) Authenticate, then call 'handleResponse()' with lifetimeMs=10000.
 //   2) Advance time to 7999ms, verify no reauth fires.
-//   3) Advance 1ms more (to 8000ms = 80%), verify one
+//   3) Advance 1ms more to 8000ms to trigger reauth timer. Verify one
 //      AuthenticationRequest is sent.
 // ------------------------------------------------------------------------
 {
@@ -443,9 +437,8 @@ static void test6_handleResponseSuccessWithLifetime()
     bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
     TestBench         tb(alloc);
 
-    bslma::ManagedPtr<mqba::AuthenticationClient> client(
-        tb.createClient(tb.makeSuccessCredentialCb()),
-        alloc);
+    bslma::ManagedPtr<mqba::AuthenticationClient> client = tb.createClient(
+        SuccessCredentialCb("BASIC", "user:pass"));
 
     // 1)
     bmqu::MemOutStream errStream(alloc);
@@ -467,7 +460,7 @@ static void test6_handleResponseSuccessWithLifetime()
         bsls::TimeInterval().addMilliseconds(7999));
     BMQTST_ASSERT_EQ(tb.d_channel->numWriteCalls(), writeCountAfterAuth);
 
-    // 3)
+    // 3) 'advanceTime' triggers events and waits for them to complete
     tb.d_testClock.d_timeSource.advanceTime(
         bsls::TimeInterval().addMilliseconds(1));
     BMQTST_ASSERT_EQ(tb.d_channel->numWriteCalls(), writeCountAfterAuth + 1);
@@ -503,9 +496,8 @@ static void test7_handleResponseAuthenticationFailure()
     TestBench         tb(alloc);
 
     // 1)
-    bslma::ManagedPtr<mqba::AuthenticationClient> client(
-        tb.createClient(tb.makeSuccessCredentialCb()),
-        alloc);
+    bslma::ManagedPtr<mqba::AuthenticationClient> client = tb.createClient(
+        SuccessCredentialCb("BASIC", "user:pass"));
 
     // 2)
     bmqp_ctrlmsg::AuthenticationMessage response =
@@ -541,9 +533,8 @@ static void test8_handleResponseInvalidMessage()
     TestBench         tb(alloc);
 
     // 1)
-    bslma::ManagedPtr<mqba::AuthenticationClient> client(
-        tb.createClient(tb.makeSuccessCredentialCb()),
-        alloc);
+    bslma::ManagedPtr<mqba::AuthenticationClient> client = tb.createClient(
+        SuccessCredentialCb("BASIC", "user:pass"));
 
     // 2)
     bmqp_ctrlmsg::AuthenticationMessage badMsg;
@@ -581,9 +572,8 @@ static void test9_stopCancelsReauthTimer()
     bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
     TestBench         tb(alloc);
 
-    bslma::ManagedPtr<mqba::AuthenticationClient> client(
-        tb.createClient(tb.makeSuccessCredentialCb()),
-        alloc);
+    bslma::ManagedPtr<mqba::AuthenticationClient> client = tb.createClient(
+        SuccessCredentialCb("BASIC", "user:pass"));
 
     // 1)
     bmqu::MemOutStream errStream(alloc);
@@ -630,9 +620,8 @@ static void test10_stopThenAuthenticate()
     TestBench         tb(alloc);
 
     // 1)
-    bslma::ManagedPtr<mqba::AuthenticationClient> client(
-        tb.createClient(tb.makeSuccessCredentialCb()),
-        alloc);
+    bslma::ManagedPtr<mqba::AuthenticationClient> client = tb.createClient(
+        SuccessCredentialCb("BASIC", "user:pass"));
 
     // 2)
     client->stop();
@@ -669,9 +658,8 @@ static void test11_reauthChannelGoneAtTimerFire()
     bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
     TestBench         tb(alloc);
 
-    bslma::ManagedPtr<mqba::AuthenticationClient> client(
-        tb.createClient(tb.makeSuccessCredentialCb()),
-        alloc);
+    bslma::ManagedPtr<mqba::AuthenticationClient> client = tb.createClient(
+        SuccessCredentialCb("BASIC", "user:pass"));
 
     // 1)
     bmqu::MemOutStream errStream(alloc);
@@ -737,5 +725,7 @@ int main(int argc, char* argv[])
         bmqu::Time::shutdown();
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
+    // NOTE: Can't check default allocation because BER codec internals
+    //       (balber::BerEncoder/BerDecoder) use the default allocator.
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
