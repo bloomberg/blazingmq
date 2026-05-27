@@ -54,34 +54,6 @@ void AuthenticationClient::onReauthenticate()
     }
 }
 
-void AuthenticationClient::scheduleReauthentication(
-    bsls::Types::Int64 lifetimeMs)
-{
-    // executed by the *IO* thread
-
-    // Reauthenticate at 80% of the lifetime to give margin
-    const bsls::Types::Int64 reauthMs = static_cast<bsls::Types::Int64>(
-        static_cast<double>(lifetimeMs) * 0.8);
-
-    {
-        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
-
-        d_scheduler_p->cancelEvent(&d_reauthHandle);
-        d_scheduler_p->scheduleEvent(
-            &d_reauthHandle,
-            bsls::TimeInterval(bmqu::Time::nowMonotonicClock())
-                .addMilliseconds(reauthMs),
-            bdlf::BindUtil::bind(&AuthenticationClient::onReauthenticate,
-                                 this));
-    }
-
-    // Guaranteed to exist, the caller has already checked
-    bsl::shared_ptr<bmqio::Channel> channel = d_channel_wp.lock();
-    BALL_LOG_INFO << "Scheduled reauthentication"
-                  << " [peer: " << channel.get() << "]" << " in " << reauthMs
-                  << " ms (lifetimeMs: " << lifetimeMs << ")";
-}
-
 // CREATORS
 AuthenticationClient::AuthenticationClient(
     const mqbplug::CredentialProvider::CredentialCb& credentialCb,
@@ -123,7 +95,11 @@ int AuthenticationClient::authenticate(bsl::ostream& errorDescription)
         rc_WRITE_FAILURE      = -4
     };
 
-    bsl::shared_ptr<bmqio::Channel> channel = d_channel_wp.lock();
+    bsl::shared_ptr<bmqio::Channel> channel;
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
+        channel = d_channel_wp.lock();
+    }
     if (!channel) {
         errorDescription << "Channel is no longer available";
         return rc_CHANNEL_GONE;  // RETURN
@@ -207,7 +183,11 @@ int AuthenticationClient::handleResponse(
         return rc_AUTHENTICATION_FAILURE;  // RETURN
     }
 
-    bsl::shared_ptr<bmqio::Channel> channel = d_channel_wp.lock();
+    bsl::shared_ptr<bmqio::Channel> channel;
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
+        channel = d_channel_wp.lock();
+    }
     if (!channel) {
         // This should never happen. The owner of this client should keep
         // the channel alive while the response is being processed.
@@ -222,8 +202,30 @@ int AuthenticationClient::handleResponse(
                           : bsl::to_string(authnResponse.lifetimeMs().value()))
                   << "]";
 
+    // If a lifetime is provided, schedule a reauthentication request to be
+    // sent at 80% of the lifetime before the connection expires.
     if (authnResponse.lifetimeMs().has_value()) {
-        scheduleReauthentication(authnResponse.lifetimeMs().value());
+        const bsls::Types::Int64 lifetimeMs =
+            authnResponse.lifetimeMs().value();
+
+        const bsls::Types::Int64 reauthMs = static_cast<bsls::Types::Int64>(
+            static_cast<double>(lifetimeMs) * 0.8);
+
+        {
+            bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
+
+            d_scheduler_p->cancelEvent(&d_reauthHandle);
+            d_scheduler_p->scheduleEvent(
+                &d_reauthHandle,
+                bsls::TimeInterval(bmqu::Time::nowMonotonicClock())
+                    .addMilliseconds(reauthMs),
+                bdlf::BindUtil::bind(&AuthenticationClient::onReauthenticate,
+                                     this));
+        }
+
+        BALL_LOG_INFO << "Scheduled reauthentication"
+                      << " [peer: " << channel.get() << "] in " << reauthMs
+                      << " ms (lifetimeMs: " << lifetimeMs << ")";
     }
 
     return rc_SUCCESS;
@@ -233,9 +235,10 @@ void AuthenticationClient::stop()
 {
     // executed by *ANY* thread (during channel teardown)
 
-    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
+    // Cancel future events, synchronize with any currently executing callback
+    d_scheduler_p->cancelEventAndWait(&d_reauthHandle);
 
-    d_scheduler_p->cancelEvent(&d_reauthHandle);
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
     d_channel_wp.reset();
 }
 

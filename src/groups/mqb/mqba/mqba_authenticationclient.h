@@ -30,8 +30,6 @@
 #include <mqbnet_authenticationclient.h>
 #include <mqbplug_credentialprovider.h>
 
-// BMQ
-
 // BDE
 #include <ball_log.h>
 #include <bdlbb_blob.h>
@@ -106,10 +104,6 @@ class AuthenticationClient : public mqbnet::AuthenticationClient {
     /// Callback invoked by the scheduler when the reauthentication timer
     /// fires.  Sends a fresh AuthenticationRequest on the stored channel.
     void onReauthenticate();
-
-    /// Schedule a reauthentication timer to fire before the specified
-    /// `lifetimeMs` expires.  Cancel any previously scheduled timer.
-    void scheduleReauthentication(bsls::Types::Int64 lifetimeMs);
 
   public:
     // TRAITS
