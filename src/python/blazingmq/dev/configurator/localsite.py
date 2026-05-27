@@ -52,10 +52,11 @@ class LocalSite(Site):
         tmp_path.chmod(mode or 0o644)
         tmp_path.rename(path)
 
-    def remove_stale_files(self, directory: Union[str, Path], keep: set) -> None:
+    def remove_stale_files(self, directory: Union[str, Path], keep: list) -> None:
         target = self.root_dir / directory
         if not target.is_dir():
             return
+        keep_set = set(keep)
         for entry in target.iterdir():
-            if entry.is_file() and entry.name not in keep:
+            if entry.is_file() and entry.name not in keep_set:
                 entry.unlink()
