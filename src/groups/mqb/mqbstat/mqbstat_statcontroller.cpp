@@ -315,7 +315,7 @@ void StatController::captureStatsAndSemaphorePost(
     switch (encoding) {
     case mqbcmd::EncodingFormat::TEXT: {
         bmqu::MemOutStream os;
-        d_tablePrinter_mp->printStats(os);
+        d_tablePrinter_mp->printStats(os, -1);
         result->makeStats() = os.str();
     } break;  // BREAK
 
@@ -330,11 +330,9 @@ void StatController::captureStatsAndSemaphorePost(
         if (savedNextSnapshot) {
             const bool compact = (encoding ==
                                   mqbcmd::EncodingFormat::JSON_COMPACT);
-            const int  rc = d_jsonPrinter_mp->printStats(&result->makeStats(),
-                                                        compact);
-            if (0 != rc) {
-                result->makeError().message() = "Stats print to json failed";
-            }
+            bmqu::MemOutStream os(d_allocator_p);
+            d_jsonPrinter_mp->printStats(os, compact);
+            result->makeStats() = os.str();
         }
         else {
             result->makeError().message() =
@@ -644,12 +642,24 @@ void StatController::snapshotAndNotify()
     const bool willPrint = d_snapshotTracker.willPrintOnNextSnapshot();
     d_snapshotTracker.onSnapshot();
 
-    if (willPrint && d_statsFileLogger_mp) {
-        d_statsFileLogger_mp->logStats(
-            d_snapshotTracker.statId(),
-            bdlf::BindUtil::bind(&TablePrinter::printStats,
-                                 d_tablePrinter_mp.get(),
-                                 bdlf::PlaceHolders::_1));
+    if (willPrint) {
+        const int statId = d_snapshotTracker.statId();
+
+        if (d_tableStatsFileLogger_mp) {
+            d_tableStatsFileLogger_mp->logStats(
+                bdlf::BindUtil::bind(&TablePrinter::printStats,
+                                     d_tablePrinter_mp.get(),
+                                     bdlf::PlaceHolders::_1,
+                                     statId));
+        }
+
+        if (d_jsonStatsFileLogger_mp) {
+            d_jsonStatsFileLogger_mp->logStats(
+                bdlf::BindUtil::bind(&JsonPrinter::printStats,
+                                     d_jsonPrinter_mp.get(),
+                                     bdlf::PlaceHolders::_1,
+                                     true));
+        }
     }
 
     // Cleanup is required if either:
@@ -737,7 +747,8 @@ StatController::StatController(const CommandProcessorFn& commandProcessor,
 , d_commandProcessorFn(bsl::allocator_arg, allocator, commandProcessor)
 , d_snapshotTracker()
 , d_tablePrinter_mp(0)
-, d_statsFileLogger_mp(0)
+, d_tableStatsFileLogger_mp(0)
+, d_jsonStatsFileLogger_mp(0)
 , d_jsonPrinter_mp(0)
 , d_statConsumers(allocator)
 , d_statConsumerMaxPublishInterval(0)
@@ -907,14 +918,28 @@ int StatController::start(bsl::ostream& errorDescription)
         ctxPtrMap,
         d_snapshotTracker.actionInterval() + 1);
 
-    // Start the stats file logger
+    // Start the stats file loggers
     if (d_snapshotTracker.isEnabled()) {
-        d_statsFileLogger_mp =
-            bslma::ManagedPtrUtil::allocateManaged<StatsFileLogger>(
-                d_allocator_p,
-                d_eventScheduler_p);
+        const bsl::string& file     = brkrCfg.stats().printer().file();
+        const int          encoding = brkrCfg.stats().printer().encoding();
 
-        d_statsFileLogger_mp->start();
+        if (encoding & mqbcfg::StatsPrinterEncodingFormat::e_TABLE) {
+            d_tableStatsFileLogger_mp =
+                bslma::ManagedPtrUtil::allocateManaged<StatsFileLogger>(
+                    d_allocator_p,
+                    file,
+                    d_eventScheduler_p);
+            d_tableStatsFileLogger_mp->start();
+        }
+
+        if (encoding & mqbcfg::StatsPrinterEncodingFormat::e_JSON) {
+            d_jsonStatsFileLogger_mp =
+                bslma::ManagedPtrUtil::allocateManaged<StatsFileLogger>(
+                    d_allocator_p,
+                    file + ".json",
+                    d_eventScheduler_p);
+            d_jsonStatsFileLogger_mp->start();
+        }
     }
 
     // Create the json printer
@@ -964,24 +989,38 @@ void StatController::stop()
         STOP_OBJ((*it), it->name());
     }
 
-    if (d_snapshotTracker.statId() > 0 && d_statsFileLogger_mp) {
+    if (d_snapshotTracker.statId() > 0) {
         // Stats were logged with `statId()` id from scheduler already.
         // For shutdown, use the next id: `statId() + 1`.
-        d_statsFileLogger_mp->logStats(
-            d_snapshotTracker.statId() + 1,
-            bdlf::BindUtil::bind(&TablePrinter::printStats,
-                                 d_tablePrinter_mp.get(),
-                                 bdlf::PlaceHolders::_1));
+        const int lastStatId = d_snapshotTracker.statId() + 1;
+
+        if (d_tableStatsFileLogger_mp) {
+            d_tableStatsFileLogger_mp->logStats(
+                bdlf::BindUtil::bind(&TablePrinter::printStats,
+                                     d_tablePrinter_mp.get(),
+                                     bdlf::PlaceHolders::_1,
+                                     lastStatId));
+        }
+
+        if (d_jsonStatsFileLogger_mp) {
+            d_jsonStatsFileLogger_mp->logStats(
+                bdlf::BindUtil::bind(&JsonPrinter::printStats,
+                                     d_jsonPrinter_mp.get(),
+                                     bdlf::PlaceHolders::_1,
+                                     true /* compact */));
+        }
     }
 
-    STOP_OBJ(d_statsFileLogger_mp, "StatsFileLogger");
+    STOP_OBJ(d_jsonStatsFileLogger_mp, "JsonStatsFileLogger");
+    STOP_OBJ(d_tableStatsFileLogger_mp, "TableStatsFileLogger");
     STOP_OBJ(d_systemStatMonitor_mp, "SystemStatMonitor");
 
     // Destroy everything!!
     for (it = d_statConsumers.begin(); it != d_statConsumers.end(); ++it) {
         DESTROY_OBJ((*it), it->name());
     }
-    DESTROY_OBJ(d_statsFileLogger_mp, "StatsFileLogger");
+    DESTROY_OBJ(d_jsonStatsFileLogger_mp, "JsonStatsFileLogger");
+    DESTROY_OBJ(d_tableStatsFileLogger_mp, "TableStatsFileLogger");
     DESTROY_OBJ(d_tablePrinter_mp, "TablePrinter");
     DESTROY_OBJ(d_jsonPrinter_mp, "JsonPrinter");
     DESTROY_OBJ(d_systemStatMonitor_mp, "SystemStatMonitor");

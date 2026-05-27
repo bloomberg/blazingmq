@@ -50,9 +50,11 @@ const char k_LOG_CATEGORY[] = "MQBSTAT.STATSFILELOGGER";
 // class StatsFileLogger
 // --------------------
 
-StatsFileLogger::StatsFileLogger(bdlmt::EventScheduler* eventScheduler,
+StatsFileLogger::StatsFileLogger(bsl::string_view       filePattern,
+                                 bdlmt::EventScheduler* eventScheduler,
                                  bslma::Allocator*      allocator)
-: d_statsLogFile(allocator)
+: d_filePattern(filePattern, allocator)
+, d_statsLogFile(allocator)
 , d_statLogCleaner(eventScheduler, allocator)
 {
     // PRECONDITIONS
@@ -67,30 +69,30 @@ void StatsFileLogger::start()
         mqbcfg::BrokerConfig::get().stats().printer();
 
     // Configure the stats dump log file
-    d_statsLogFile.enableFileLogging(printer.file().c_str());
+    d_statsLogFile.enableFileLogging(d_filePattern.c_str());
     d_statsLogFile.rotateOnSize(printer.rotateBytes() / 1024);
     d_statsLogFile.rotateOnTimeInterval(
         bdlt::DatetimeInterval(printer.rotateDays()));
     d_statsLogFile.setLogFileFunctor(ball::RecordStringFormatter("%m\n"));
 
     // LogCleanup
-    if (printer.maxAgeDays() <= 0 || printer.file().empty()) {
+    if (printer.maxAgeDays() <= 0 || d_filePattern.empty()) {
         BALL_LOG_INFO << "StatLogCleaning is *disabled* "
                       << "[reason: either 'maxAgeDays' is set to 0 in config "
                       << "or file pattern is empty]";
         return;  // RETURN
     }
 
-    bsl::string filePattern;
-    ball::LogFileCleanerUtil::logPatternToFilePattern(&filePattern,
-                                                      printer.file());
+    bsl::string cleanupPattern;
+    ball::LogFileCleanerUtil::logPatternToFilePattern(&cleanupPattern,
+                                                      d_filePattern);
     bsls::TimeInterval maxAge(0, 0);
     maxAge.addDays(printer.maxAgeDays());
 
-    int rc = d_statLogCleaner.start(filePattern, maxAge);
+    int rc = d_statLogCleaner.start(cleanupPattern, maxAge);
     if (rc != 0) {
         BALL_LOG_ERROR << "#STATLOG_CLEANING "
-                       << "Failed to start log cleaning of '" << filePattern
+                       << "Failed to start log cleaning of '" << cleanupPattern
                        << "' [rc: " << rc << "]";
     }
 }
@@ -100,7 +102,7 @@ void StatsFileLogger::stop()
     d_statLogCleaner.stop();
 }
 
-void StatsFileLogger::logStats(int statId, const PrinterCb& printerCb)
+void StatsFileLogger::logStats(const PrinterCb& printerCb)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(printerCb);
@@ -119,9 +121,6 @@ void StatsFileLogger::logStats(int statId, const PrinterCb& printerCb)
 
     attributes.clearMessage();
     bsl::ostream os(&attributes.messageStreamBuf());
-    os << "===== ===== ===== ===== ===== ===== ===== ===== ===== =====\n"
-       << "Stats id: " << statId << " @ " << now << "\n"
-       << "===== ===== ===== ===== ===== ===== ===== ===== ===== =====\n";
 
     printerCb(os);
 

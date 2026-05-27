@@ -52,7 +52,7 @@
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bsls_assert.h>
-#include <bsls_cpp11.h>
+#include <bsls_keyword.h>
 #include <bsls_types.h>
 
 namespace BloombergLP {
@@ -233,8 +233,13 @@ class StatController {
     /// Stats formatter for console and admin commands
     TablePrinterMp d_tablePrinter_mp;
 
-    /// File logger for periodic stats output
-    StatsFileLoggerMp d_statsFileLogger_mp;
+    /// File logger for periodic table stats output.
+    /// Null if TABLE stats logging is disabled.
+    StatsFileLoggerMp d_tableStatsFileLogger_mp;
+
+    /// File logger for periodic JSON stats output.
+    /// Null if JSON stats logging is disabled.
+    StatsFileLoggerMp d_jsonStatsFileLogger_mp;
 
     /// JsonPrinter used for admin commands processing
     JsonPrinterMp d_jsonPrinter_mp;
@@ -307,8 +312,9 @@ class StatController {
 
   private:
     // NOT IMPLEMENTED
-    StatController(const StatController& other) BSLS_CPP11_DELETED;
-    StatController& operator=(const StatController& other) BSLS_CPP11_DELETED;
+    StatController(const StatController& other) BSLS_KEYWORD_DELETED;
+    StatController&
+    operator=(const StatController& other) BSLS_KEYWORD_DELETED;
 
   public:
     // TRAITS

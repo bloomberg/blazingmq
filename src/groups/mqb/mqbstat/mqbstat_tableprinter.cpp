@@ -26,6 +26,9 @@
 #include <bmqu_printutil.h>
 
 // BDE
+#include <bdlt_datetime.h>
+#include <bdlt_epochutil.h>
+#include <bsl_ctime.h>
 #include <bsl_utility.h>
 #include <bslma_allocator.h>
 #include <bsls_assert.h>
@@ -115,8 +118,18 @@ TablePrinter::TablePrinter(const StatContextsMap& statContextsMap,
     }
 }
 
-void TablePrinter::printStats(bsl::ostream& stream)
+void TablePrinter::printStats(bsl::ostream& stream, int statId)
 {
+    if (statId >= 0) {
+        bdlt::Datetime now;
+        bdlt::EpochUtil::convertFromTimeT(&now, time(0));
+        stream << "===== ===== ===== ===== ===== ===== ===== ===== ====="
+               << " =====\n"
+               << "Stats id: " << statId << " @ " << now << "\n"
+               << "===== ===== ===== ===== ===== ===== ===== ===== ====="
+               << " =====\n";
+    }
+
     // DOMAINQUEUES
     stream << "\n"
            << ":::::::::: :::::::::: DOMAINQUEUES >>";

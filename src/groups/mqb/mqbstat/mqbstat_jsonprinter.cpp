@@ -20,12 +20,11 @@
 // MQB
 #include <mqbstat_queuestats.h>
 
-#include <bmqu_memoutstream.h>
-
 // BDE
 #include <ball_log.h>
 #include <bdljsn_json.h>
 #include <bdljsn_jsonutil.h>
+#include <bslma_managedptr.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {
@@ -204,13 +203,19 @@ class JsonPrinter::JsonPrinterImpl {
     /// StatContext-s map
     const StatContextsMap d_contexts;
 
+    /// Allocator
+    bslma::Allocator* d_allocator_p;
+
   private:
     // NOT IMPLEMENTED
-    JsonPrinterImpl(const JsonPrinterImpl& other) BSLS_CPP11_DELETED;
+    JsonPrinterImpl(const JsonPrinterImpl& other) BSLS_KEYWORD_DELETED;
     JsonPrinterImpl&
-    operator=(const JsonPrinterImpl& other) BSLS_CPP11_DELETED;
+    operator=(const JsonPrinterImpl& other) BSLS_KEYWORD_DELETED;
 
   public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(JsonPrinterImpl, bslma::UsesBslmaAllocator)
+
     // CREATORS
 
     /// Create a new `JsonPrinterImpl` object, using the specified
@@ -218,15 +223,14 @@ class JsonPrinter::JsonPrinterImpl {
     explicit JsonPrinterImpl(const StatContextsMap& statContextsMap,
                              bslma::Allocator*      allocator);
 
-    // ACCESSORS
+    // MANIPULATORS
 
-    /// Print the JSON-encoded stats to the specified `out`.
+    /// Print the JSON-encoded stats to the specified `stream`.
     /// If the specified `compact` flag is `true`, the JSON is printed in a
     /// compact form, otherwise the JSON is printed in a pretty form.
-    /// Return `0` on success, and non-zero return code on failure.
     ///
-    /// THREAD: This method is called in the *StatController scheduler* thread.
-    int printStats(bsl::string* out, bool compact) const;
+    /// THREAD: This method is called in the `snapshot` thread.
+    void printStats(bsl::ostream& stream, bool compact);
 };
 
 inline JsonPrinter::JsonPrinterImpl::JsonPrinterImpl(
@@ -241,19 +245,17 @@ inline JsonPrinter::JsonPrinterImpl::JsonPrinterImpl(
                   .setStyle(bdljsn::WriteStyle::e_PRETTY)
                   .setSortMembers(true))
 , d_contexts(statContextsMap, allocator)
+, d_allocator_p(allocator)
 {
     // NOTHING
 }
 
-inline int JsonPrinter::JsonPrinterImpl::printStats(bsl::string* out,
-                                                    bool         compact) const
+inline void JsonPrinter::JsonPrinterImpl::printStats(bsl::ostream& stream,
+                                                     bool          compact)
 {
-    // executed by *StatController scheduler* thread
+    // executed by the `snapshot` thread
 
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(out);
-
-    bdljsn::Json        json;
+    bdljsn::Json        json(d_allocator_p);
     bdljsn::JsonObject& obj = json.makeObject();
 
     {
@@ -266,14 +268,10 @@ inline int JsonPrinter::JsonPrinterImpl::printStats(bsl::string* out,
 
     const bdljsn::WriteOptions& ops = compact ? d_opsCompact : d_opsPretty;
 
-    bmqu::MemOutStream os;
-    const int          rc = bdljsn::JsonUtil::write(os, json, ops);
+    const int rc = bdljsn::JsonUtil::write(stream, json, ops);
     if (0 != rc) {
         BALL_LOG_ERROR << "Failed to encode stats JSON, rc = " << rc;
-        return rc;  // RETURN
     }
-    (*out) = os.str();
-    return 0;
 }
 
 // -----------------
@@ -282,22 +280,18 @@ inline int JsonPrinter::JsonPrinterImpl::printStats(bsl::string* out,
 
 JsonPrinter::JsonPrinter(const StatContextsMap& statContextsMap,
                          bslma::Allocator*      allocator)
+: d_impl_mp(
+      bslma::ManagedPtrUtil::allocateManaged<JsonPrinterImpl>(allocator,
+                                                              statContextsMap))
 {
-    bslma::Allocator* alloc = bslma::Default::allocator(allocator);
-
-    d_impl_mp.load(new (*alloc) JsonPrinterImpl(statContextsMap, alloc),
-                   alloc);
+    // NOTHING
 }
 
-int JsonPrinter::printStats(bsl::string* out, bool compact) const
+void JsonPrinter::printStats(bsl::ostream& stream, bool compact)
 {
-    // executed by *StatController scheduler* thread
+    // executed by the `snapshot` thread
 
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(out);
-    BSLS_ASSERT_SAFE(d_impl_mp);
-
-    return d_impl_mp->printStats(out, compact);
+    d_impl_mp->printStats(stream, compact);
 }
 
 }  // close package namespace
