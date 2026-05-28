@@ -17,21 +17,28 @@
 
 #include <mqbscm_version.h>
 // MQB
+#include <mqbc_clusterdata.h>
+#include <mqbc_clusterstate.h>
+#include <mqbcfg_messages.h>
 #include <mqbcmd_messages.h>
 #include <mqbconfm_messages.h>
 #include <mqbevt_dispatcherevent.h>
+#include <mqbi_cluster.h>
+#include <mqbi_dispatcher.h>
+#include <mqbi_domain.h>
+#include <mqbi_queue.h>
 #include <mqbi_queueengine.h>
 #include <mqbnet_cluster.h>
-#include <mqbs_datastore.h>
 #include <mqbs_filestoreprintutil.h>
 #include <mqbs_filestoreprotocol.h>
 #include <mqbs_filestoreutil.h>
 #include <mqbs_filesystemutil.h>
+#include <mqbs_replicatedstorage.h>
 #include <mqbs_storagecollectionutil.h>
-#include <mqbstat_clusterstats.h>
 #include <mqbu_exit.h>
 
 // BMQ
+#include <bmqma_countingallocatorstore.h>
 #include <bmqp_protocolutil.h>
 #include <bmqp_recoverymessageiterator.h>
 #include <bmqt_messageguid.h>
@@ -48,18 +55,17 @@
 #include <bdlf_bind.h>
 #include <bdlf_memfn.h>
 #include <bdlma_localsequentialallocator.h>
+#include <bdlmt_fixedthreadpool.h>
 #include <bdls_filesystemutil.h>
 #include <bdlt_currenttime.h>
 #include <bdlt_epochutil.h>
+#include <bsl_algorithm.h>
 #include <bsl_ios.h>
-#include <bsl_ostream.h>
 #include <bsl_unordered_map.h>
 #include <bsl_utility.h>
 #include <bsla_annotations.h>
-#include <bslma_allocator.h>
 #include <bslmt_lockguard.h>
 #include <bslmt_mutex.h>
-#include <bsls_types.h>
 
 namespace BloombergLP {
 namespace mqbc {
@@ -732,7 +738,7 @@ void StorageUtil::doRolloverDispatched(bslmt::Latch* latch,
 
 void StorageUtil::loadPartitionStorageSummary(
     mqbcmd::StorageResult*   result,
-    FileStores*              fileStores,
+    const FileStores&        fileStores,
     int                      partitionId,
     const bslstl::StringRef& partitionLocation)
 {
@@ -740,20 +746,19 @@ void StorageUtil::loadPartitionStorageSummary(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(result);
-    BSLS_ASSERT_SAFE(fileStores);
 
     mqbcmd::ClusterStorageSummary& summary =
         result->makeClusterStorageSummary();
     summary.clusterFileStoreLocation() = partitionLocation;
-    summary.fileStores().resize(fileStores->size());
+    summary.fileStores().resize(fileStores.size());
 
     bslmt::Latch latch(1);
-    fileStores->at(partitionId)
+    fileStores.at(partitionId)
         ->execute(bdlf::BindUtil::bind(&loadStorageSummaryDispatched,
                                        &summary,
                                        &latch,
                                        partitionId,
-                                       *fileStores));
+                                       fileStores));
     // Wait
     latch.wait();
 
@@ -2835,7 +2840,6 @@ void StorageUtil::createQueueStorageAsReplica(
     BSLS_ASSERT_SAFE(fs->inDispatcherThread());
     BSLS_ASSERT_SAFE(storageMap);
     BSLS_ASSERT_SAFE(domainFactory);
-    ;
     BSLS_ASSERT_SAFE(uri.isValid());
     BSLS_ASSERT_SAFE(!queueKey.isNull());
 
@@ -3579,7 +3583,7 @@ void StorageUtil::processCommand(
 
         if (command.partition().command().isSummaryValue()) {
             loadPartitionStorageSummary(result,
-                                        fileStores,
+                                        *fileStores,
                                         partitionId,
                                         partitionLocation);
             return;  // RETURN

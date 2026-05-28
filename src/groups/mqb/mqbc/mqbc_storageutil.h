@@ -23,23 +23,14 @@
 /// @bbref{mqbc::StorageUtil} provides generic utilities.
 
 // MQB
-#include <mqbc_clusterdata.h>
-#include <mqbc_clusterstate.h>
-#include <mqbcfg_messages.h>
-#include <mqbi_cluster.h>
-#include <mqbi_dispatcher.h>
-#include <mqbi_domain.h>
-#include <mqbi_queue.h>
 #include <mqbi_storage.h>
 #include <mqbi_storagemanager.h>
 #include <mqbs_datastore.h>
 #include <mqbs_filestore.h>
-#include <mqbs_replicatedstorage.h>
 #include <mqbs_storageutil.h>
 #include <mqbu_storagekey.h>
 
 // BMQ
-#include <bmqma_countingallocatorstore.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_event.h>
 #include <bmqp_storagemessageiterator.h>
@@ -47,22 +38,14 @@
 
 // BDE
 #include <ball_log.h>
-#include <bdlb_nullablevalue.h>
-#include <bdlmt_eventscheduler.h>
-#include <bdlmt_fixedthreadpool.h>
-#include <bsl_algorithm.h>
 #include <bsl_functional.h>
-#include <bsl_future.h>
-#include <bsl_limits.h>
 #include <bsl_map.h>
 #include <bsl_memory.h>
-#include <bsl_numeric.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bsl_unordered_set.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
-#include <bslma_managedptr.h>
 #include <bslmt_latch.h>
 #include <bsls_assert.h>
 #include <bsls_atomic.h>
@@ -71,8 +54,32 @@
 namespace BloombergLP {
 
 // FORWARD DECLARATION
+namespace bdlmt {
+class FixedThreadPool;
+}
+namespace bmqma {
+class CountingAllocatorStore;
+}
 namespace bslmt {
 class Mutex;
+}
+namespace mqbc {
+class ClusterData;
+class ClusterState;
+}
+namespace mqbcfg {
+class ClusterDefinition;
+class PartitionConfig;
+}
+namespace mqbi {
+class Cluster;
+class Dispatcher;
+class Domain;
+class DomainFactory;
+class Queue;
+}
+namespace mqbs {
+class ReplicatedStorage;
 }
 namespace mqbcmd {
 class ClusterStorageSummary;
@@ -163,8 +170,6 @@ struct StorageUtil {
         bdlcc::ObjectPoolFunctors::DefaultCreator,
         bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
         BlobSpPool;
-
-    typedef bdlmt::EventScheduler::RecurringEventHandle RecurringEventHandle;
 
     /// Type of the functor required by `executeForEachPartitions`.  It
     /// represents a function to be executed for each partition in the
@@ -287,7 +292,7 @@ struct StorageUtil {
     /// THREAD: Executed by the cluster-dispatcher thread.
     static void
     loadPartitionStorageSummary(mqbcmd::StorageResult*   result,
-                                FileStores*              fileStores,
+                                const FileStores&        fileStores,
                                 int                      partitionId,
                                 const bslstl::StringRef& partitionLocation);
 
