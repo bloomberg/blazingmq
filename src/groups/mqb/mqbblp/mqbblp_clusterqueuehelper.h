@@ -297,6 +297,10 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         /// object.  Note that `uri` is left untouched because it is an
         /// invariant member of a given instance of such a QueueInfo object.
         void resetButKeepPending();
+
+        // ACCESSORS
+        /// Return `false` if there is a handle or handle creation in progress.
+        bool isIdle() const;
     };
 
     typedef bsl::unordered_map<const mqbnet::ClusterNode*,
@@ -1146,6 +1150,16 @@ inline ClusterQueueHelper::StopContext::StopContext(
 , d_callback(callback)
 , d_previous_sp()
 {
+}
+
+// -----------------------------------------
+// struct ClusterQueueHelper::QueueLiveState
+// -----------------------------------------
+
+inline bool ClusterQueueHelper::QueueLiveState::isIdle() const
+{
+    return d_numQueueHandles == 0 && d_numHandleCreationsInProgress == 0 &&
+           d_inFlight == 0;
 }
 
 // ---------------------------------------
