@@ -297,39 +297,6 @@ void printNextEventRecord(bsl::ostream&                       stream,
 
 }  // close unnamed namespace
 
-// -------------------------------------
-// struct FileStore_AliasedBufferDeleter
-// -------------------------------------
-
-// CREATORS
-FileStore_AliasedBufferDeleter::FileStore_AliasedBufferDeleter()
-: d_fileSet_p(0)
-{
-    // NOTHING
-}
-
-// MANIPULATORS
-void FileStore_AliasedBufferDeleter::setFileSet(FileSet* fileSet)
-{
-    d_fileSet_p = fileSet;
-    ++d_fileSet_p->d_aliasedBlobBufferCount;
-}
-
-void FileStore_AliasedBufferDeleter::reset()
-{
-    // executed by *ANY* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_fileSet_p);
-    BSLS_ASSERT_SAFE(0 < d_fileSet_p->d_aliasedBlobBufferCount);
-
-    if (0 == --(d_fileSet_p->d_aliasedBlobBufferCount)) {
-        d_fileSet_p->d_store_p->gc(d_fileSet_p);
-    }
-
-    d_fileSet_p = 0;
-}
-
 // ---------------
 // class FileStore
 // ---------------
@@ -794,6 +761,11 @@ int FileStore::openInRecoveryMode(bsl::ostream&    errorDescription,
     // Create file set.
     FileSetSp fileSetSp;
     fileSetSp.createInplace(d_allocator_p, this, d_allocator_p);
+    FileSet* fs = fileSetSp.get();
+    fs->d_aliasedChunk_sp.reset(
+        fs,
+        bdlf::BindUtil::bind(&FileStore::gc, this, fs));
+    fs->d_aliasedChunk_wp = fs->d_aliasedChunk_sp;
     d_fileSets.insert(d_fileSets.begin(), fileSetSp);
 
     fileSetSp->d_dataFile         = dataFd;
@@ -2711,14 +2683,23 @@ int FileStore::create(FileSetSp* fileSetSp)
     BSLS_ASSERT_SAFE(fileSetSp);
 
     bmqu::MemOutStream errorDesc;
-    return FileStoreUtil::create(errorDesc,
-                                 fileSetSp,
-                                 this,
-                                 d_config.partitionId(),
-                                 d_config,
-                                 partitionDesc(),
-                                 d_qListAware,
-                                 d_allocator_p);
+    int                rc = FileStoreUtil::create(errorDesc,
+                                   fileSetSp,
+                                   this,
+                                   d_config.partitionId(),
+                                   d_config,
+                                   partitionDesc(),
+                                   d_qListAware,
+                                   d_allocator_p);
+    if (0 == rc) {
+        FileSet* fs = fileSetSp->get();
+        fs->d_aliasedChunk_sp.reset(
+            fs,
+            bdlf::BindUtil::bind(&FileStore::gc, this, fs));
+        fs->d_aliasedChunk_wp = fs->d_aliasedChunk_sp;
+    }
+
+    return rc;
 }
 
 int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
@@ -2953,12 +2934,6 @@ int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
                            "ROLLOVER - STEP 1 (COMPACTION)");
     }
 
-    // Decrement the old file set's aliased blob buffer count by 1 to obtain
-    // the 'real' value.  Note that count was initialized with a value of 1
-    // instead of 0 when file set was created.  If count is 0 (ie, if no
-    // payload blob buffers are referring to the old data file), close it out
-    // too.  Old file set can be archived as well after that.
-
     // Irrespective of the aliased blob buffer counter, file set can be
     // truncated because nothing else will be written to the file.
 
@@ -2969,7 +2944,10 @@ int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
                            "ROLLOVER - STEP 2 (TRUNCATE)");
     }
 
-    if (0 == --activeFileSet->d_aliasedBlobBufferCount) {
+    const bool lastReference = (activeFileSet->numReferences() == 1);
+    if (lastReference) {
+        activeFileSet->d_inlineGc = true;
+
         BALL_LOG_INFO_BLOCK
         {
             BALL_LOG_OUTPUT_STREAM << partitionDesc()
@@ -2999,9 +2977,9 @@ int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
         BSLS_ASSERT_SAFE(rc == 0);
     }
     else {
+        activeFileSet->d_aliasedChunk_sp.reset();
         BALL_LOG_INFO << partitionDesc() << "Rollover: number of references to"
-                      << " old file set: "
-                      << activeFileSet->d_aliasedBlobBufferCount;
+                      << " old file set: " << activeFileSet->numReferences();
         BSLS_ASSERT_SAFE(activeFileSet->d_dataFile.isValid());
         BSLS_ASSERT_SAFE(activeFileSet->d_journalFile.isValid());
         if (d_qListAware) {
@@ -3017,10 +2995,9 @@ int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
         BALL_LOG_OUTPUT_STREAM << partitionDesc()
                                << "All data files and alias counts: \n";
         for (unsigned int index = 0; index < d_fileSets.size(); ++index) {
-            const FileSet*     fs    = d_fileSets[index].get();
-            bsls::Types::Int64 count = fs->d_aliasedBlobBufferCount;
+            long count = d_fileSets[index]->numReferences();
             BALL_LOG_OUTPUT_STREAM
-                << fs->d_dataFileName
+                << d_fileSets[index]->d_dataFileName
                 << " : alias count: " << (0 == index ? (count - 1) : count)
                 << "\n";
         }
@@ -3508,6 +3485,10 @@ int FileStore::archive(FileSet* fileSet)
 void FileStore::gc(FileSet* fileSet)
 {
     // executed by *ANY* thread
+
+    if (fileSet->d_inlineGc) {
+        return;  // RETURN
+    }
 
     // Fast path if we are already in dispatcher thread of this file store.
 
@@ -5001,16 +4982,12 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
     const unsigned int journalOffsetWords = journalOffset /
                                             bmqp::Protocol::k_WORD_SIZE;
 
-    MappedFileDescriptor&  journal = activeFileSet->d_journalFile;
-    AliasedBufferDeleterSp deleterSp =
-        d_aliasedBufferDeleterSpPool.getObject();
+    MappedFileDescriptor& journal = activeFileSet->d_journalFile;
 
-    deleterSp->setFileSet(activeFileSet);
-
-    bsl::shared_ptr<char> journalRecordBufferSp(deleterSp,
-                                                journal.mapping() +
-                                                    journalOffset);
-    bdlbb::BlobBuffer     journalRecordBlobBuffer(
+    bsl::shared_ptr<char> journalRecordBufferSp(
+        activeFileSet->d_aliasedChunk_sp,
+        journal.mapping() + journalOffset);
+    bdlbb::BlobBuffer journalRecordBlobBuffer(
         journalRecordBufferSp,
         FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
 
@@ -5070,15 +5047,12 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
     BSLS_ASSERT_SAFE(activeFileSet);
     BSLS_ASSERT_SAFE(0 != journalOffset);
 
-    MappedFileDescriptor&  journal = activeFileSet->d_journalFile;
-    AliasedBufferDeleterSp deleterSp =
-        d_aliasedBufferDeleterSpPool.getObject();
-    deleterSp->setFileSet(activeFileSet);
+    MappedFileDescriptor& journal = activeFileSet->d_journalFile;
 
-    bsl::shared_ptr<char> journalRecordBufferSp(deleterSp,
-                                                journal.mapping() +
-                                                    journalOffset);
-    bdlbb::BlobBuffer     journalRecordBlobBuffer(
+    bsl::shared_ptr<char> journalRecordBufferSp(
+        activeFileSet->d_aliasedChunk_sp,
+        journal.mapping() + journalOffset);
+    bdlbb::BlobBuffer journalRecordBlobBuffer(
         bslmf::MovableRefUtil::move(journalRecordBufferSp),
         FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
 
@@ -5089,7 +5063,7 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
                                         ? activeFileSet->d_dataFile
                                         : activeFileSet->d_qlistFile;
 
-        bsl::shared_ptr<char> dataBufferSp(deleterSp,  // reuse same deleter
+        bsl::shared_ptr<char> dataBufferSp(activeFileSet->d_aliasedChunk_sp,
                                            mfd.mapping() + dataOffset);
         dataBlobBuffer.reset(bslmf::MovableRefUtil::move(dataBufferSp),
                              totalDataLen);
@@ -5259,12 +5233,9 @@ void FileStore::aliasMessage(bsl::shared_ptr<bdlbb::Blob>* appData,
                                             bmqp::Protocol::k_WORD_SIZE;
     const bsls::Types::Uint64 appDataOffset = record.d_messageOffset +
                                               dataHdrSize + optionsSize;
-    AliasedBufferDeleterSp deleter = d_aliasedBufferDeleterSpPool.getObject();
-    deleter->setFileSet(activeFileSet);
-
     if (0 != optionsSize) {
         bsl::shared_ptr<char> optionsBufferSp(
-            deleter,
+            activeFileSet->d_aliasedChunk_sp,
             activeFileSet->d_dataFile.block().base() + optionsOffset);
 
         bdlbb::BlobBuffer optionsBlobBuffer(
@@ -5277,7 +5248,7 @@ void FileStore::aliasMessage(bsl::shared_ptr<bdlbb::Blob>* appData,
     }
 
     bsl::shared_ptr<char> appDataBufferSp(
-        deleter,
+        activeFileSet->d_aliasedChunk_sp,
         activeFileSet->d_dataFile.block().base() + appDataOffset);
 
     bdlbb::BlobBuffer appDataBlobBuffer(
@@ -5322,7 +5293,6 @@ FileStore::FileStore(
 , d_partitionStats_sp(partitionStats)
 , d_blobSpPool_p(blobSpPool)
 , d_statePool_p(statePool)
-, d_aliasedBufferDeleterSpPool(1024, d_allocators.get("AliasedBufferDeleters"))
 , d_isOpen(false)
 , d_isStopping(false)
 , d_flushWhenClosing(false)
@@ -5483,9 +5453,6 @@ int FileStore::close(bool flush, bool archive)
     BALL_LOG_INFO << partitionDesc() << "Closing partition. ";
 
     // Clear 'd_records' so that gc logic is invoked on all mapped data files.
-    // Note that logic will be invoked in this thread.  Note that data file of
-    // active file set will not be gc'd because its alias blob buffer count
-    // will not go to 0 as its initialized with 1.
     d_unreceipted.clear();
     d_records.clear();
 
@@ -5497,7 +5464,10 @@ int FileStore::close(bool flush, bool archive)
     // Failure to truncate is non-fatal.  No need to check rc.
     truncate(activeFileSet);
 
-    if (0 == --activeFileSet->d_aliasedBlobBufferCount) {
+    const bool lastReference = (activeFileSet->numReferences() == 1);
+    if (lastReference) {
+        activeFileSet->d_inlineGc = true;
+
         BALL_LOG_INFO_BLOCK
         {
             BALL_LOG_OUTPUT_STREAM << partitionDesc() << "Closing "
@@ -5512,7 +5482,6 @@ int FileStore::close(bool flush, bool archive)
             BALL_LOG_OUTPUT_STREAM << ".";
         }
 
-        // TBD Revisit: handle non-zero rc from close()
         bsls::Types::Int64 startTime = bmqu::Time::highResolutionTimer();
         int                rc        = close(*activeFileSet, flush);
         if (rc != 0) {
@@ -5550,14 +5519,9 @@ int FileStore::close(bool flush, bool archive)
         d_fileSets.erase(d_fileSets.begin());
     }
     else {
-        BALL_LOG_INFO << partitionDesc() << "Closing: number of references to"
-                      << " active file set: "
-                      << activeFileSet->d_aliasedBlobBufferCount;
-        BSLS_ASSERT_SAFE(activeFileSet->d_dataFile.isValid());
-        BSLS_ASSERT_SAFE(activeFileSet->d_journalFile.isValid());
-        if (d_qListAware) {
-            BSLS_ASSERT_SAFE(activeFileSet->d_qlistFile.isValid());
-        }
+        activeFileSet->d_aliasedChunk_sp.reset();
+        BALL_LOG_INFO << partitionDesc() << "Closing: number of references to "
+                      << "active file set: " << activeFileSet->numReferences();
         BSLS_ASSERT_SAFE(!archive);
     }
 
