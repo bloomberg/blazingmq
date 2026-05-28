@@ -4303,12 +4303,19 @@ int FileStore::writeMessageRecord(const bmqp::StorageHeader& header,
 
     StorageMapIter sit = d_storages.find(queueKey);
     if (sit == d_storages.end()) {
+        BALL_LOG_ERROR << partitionDesc() << " Received DATA record for an "
+                       << " unknown storage [queueKey: " << queueKey << "].";
+
         return rc_UNKNOWN_QUEUE_KEY;  // RETURN
     }
 
     ReplicatedStorage* rstorage = sit->second;
     BSLS_ASSERT_SAFE(rstorage);
     if (!rstorage->isPersistent()) {
+        BALL_LOG_ERROR << partitionDesc() << " Received DATA record for an "
+                       << " incompatible storage which is not persistent "
+                       << "[queueKey: " << queueKey << "].";
+
         return rc_INCOMPATIBLE_STORAGE;  // RETURN
     }
 
@@ -4437,10 +4444,16 @@ int FileStore::writeQueueCreationRecord(
     StorageMapIter sit = d_storages.find(queueKey);
     if (sit == d_storages.end()) {
         if (d_isFSMWorkflow) {
+            BALL_LOG_ERROR << partitionDesc()
+                           << " Received QLIST record for queue creation, "
+                           << "but storage does not exist [queueKey: "
+                           << queueKey << "].";
+
             return rc_QUEUE_CREATION_FAILURE;  // RETURN
         }
         else {
-            BSLS_ASSERT_SAFE(false && "Queue storage must have been created");
+            BSLS_ASSERT_SAFE(sit != d_storages.end() &&
+                             "Queue storage must have been created");
         }
     }
 
@@ -4517,7 +4530,7 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
         printNextEventRecord(os, event, recordPosition, d_allocator_p);
 
         BMQTSK_ALARMLOG_ALARM("REPLICATION")
-            << partitionDesc() << "Received journal record of type ["
+            << partitionDesc() << " Received journal record of type ["
             << messageType
             << "] with journal offset mismatch. Primary's journal offset: "
             << primaryJournalOffset << ", self journal offset: " << journalPos
@@ -4608,8 +4621,8 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
 
         StorageMapIter sit = d_storages.find(*queueKey);
         if (sit == d_storages.end()) {
-            BALL_LOG_ERROR << partitionDesc() << " received message of "
-                           << "type '" << messageType << "' for an unknown"
+            BALL_LOG_ERROR << partitionDesc() << " Received journal record "
+                           << "of type [" << messageType << "] for an unknown"
                            << " storage [queueKey: " << *queueKey << "]";
             return rc_UNKNOWN_QUEUE_KEY;  // RETURN
         }
@@ -4622,6 +4635,11 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
             // file-backed.
 
             if (!rstorage->isPersistent()) {
+                BALL_LOG_ERROR
+                    << partitionDesc() << " Received journal record of type ["
+                    << messageType << "] for an incompatible storage which "
+                    << "is not persistent [queueKey: " << queueKey << "].";
+
                 return rc_INCOMPATIBLE_STORAGE;  // RETURN
             }
         }
@@ -4629,7 +4647,8 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
         if (!appKey->isNull()) {
             if (!rstorage->hasVirtualStorage(*appKey)) {
                 BALL_LOG_ERROR << partitionDesc()
-                               << " storage does not have the key [" << *appKey
+                               << " storage for [queueKey: " << queueKey
+                               << "] does not have the key [" << *appKey
                                << "]";
 
                 return rc_UNKNOWN_APP_KEY;  // RETURN
@@ -4821,8 +4840,8 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
             return rc_INVALID_CONTENT;  // RETURN
         }
 
-        BALL_LOG_INFO << partitionDesc() << "Received QueueOpRecord of type "
-                      << queueOpType << " for queue ["
+        BALL_LOG_INFO << partitionDesc() << "Received QueueOpRecord of type ["
+                      << queueOpType << "] for queue ["
                       << (rstorage ? rstorage->queueUri() : "**UNKNOWN_URI**")
                       << "], queueKey [" << *queueKey << "], appKey ["
                       << *appKey << "].";
@@ -4949,9 +4968,9 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
 
     if (bmqt::EventBuilderResult::e_SUCCESS != buildRc) {
         BMQTSK_ALARMLOG_ALARM("REPLICATION")
-            << partitionDesc()
-            << "Failed to pack storage record of type: " << type
-            << ", of length " << FileStoreProtocol::k_JOURNAL_RECORD_SIZE
+            << partitionDesc() << " Failed to pack storage record of type ["
+            << type << "], of length "
+            << FileStoreProtocol::k_JOURNAL_RECORD_SIZE
             << ", at JOURNAL offset: " << journalOffset << ", rc: " << buildRc
             << ". PSN was: " << printPSN(d_primaryLeaseId, sequenceNumber())
             << ". Current storage "
@@ -5056,9 +5075,8 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
 
     if (bmqt::EventBuilderResult::e_SUCCESS != buildRc) {
         BMQTSK_ALARMLOG_ALARM("REPLICATION")
-            << partitionDesc()
-            << "Failed to pack storage record of type: " << type
-            << ", of length "
+            << partitionDesc() << " Failed to pack storage record of type ["
+            << type << "], of length "
             << bmqu::PrintUtil::prettyNumber(dataBlobBuffer.size())
             << ", at JOURNAL offset: "
             << bmqu::PrintUtil::prettyNumber(
@@ -6491,8 +6509,8 @@ int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
                 BMQTSK_ALARMLOG_ALARM("RECOVERY")
                     << partitionDesc()
                     << "Encountered smaller primaryLeaseId in buffered "
-                       "storage message of type : "
-                    << header.messageType() << ", encountered PSN: "
+                       "storage message of type ["
+                    << header.messageType() << "], encountered PSN: "
                     << printPSN(recHeader->primaryLeaseId(),
                                 recHeader->sequenceNumber())
                     << ", self PSN: "
@@ -6512,9 +6530,9 @@ int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
                 if (recHeader->sequenceNumber() <= sequenceNumber()) {
                     BALL_LOG_INFO
                         << partitionDesc()
-                        << "Skipping a buffered storage message of type "
+                        << "Skipping a buffered storage message of type ["
                         << header.messageType()
-                        << " as it has same or smaller sequence number. "
+                        << "] as it has same or smaller sequence number. "
                         << "PSN in buffered message: "
                         << printPSN(recHeader->primaryLeaseId(),
                                     recHeader->sequenceNumber())
