@@ -4968,7 +4968,7 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
 
     if (bmqt::EventBuilderResult::e_SUCCESS != buildRc) {
         BMQTSK_ALARMLOG_ALARM("REPLICATION")
-            << partitionDesc() << "Failed to pack storage record of type ["
+            << partitionDesc() << " Failed to pack storage record of type ["
             << type << "], of length "
             << FileStoreProtocol::k_JOURNAL_RECORD_SIZE
             << ", at JOURNAL offset: " << journalOffset << ", rc: " << buildRc
@@ -5075,7 +5075,7 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
 
     if (bmqt::EventBuilderResult::e_SUCCESS != buildRc) {
         BMQTSK_ALARMLOG_ALARM("REPLICATION")
-            << partitionDesc() << "Failed to pack storage record of type ["
+            << partitionDesc() << " Failed to pack storage record of type ["
             << type << "], of length "
             << bmqu::PrintUtil::prettyNumber(dataBlobBuffer.size())
             << ", at JOURNAL offset: "
