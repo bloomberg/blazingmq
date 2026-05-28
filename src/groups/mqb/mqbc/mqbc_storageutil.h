@@ -630,13 +630,6 @@ struct StorageUtil {
                          const bsl::string&               clusterDescription,
                          const mqbcfg::ClusterDefinition& clusterConfig);
 
-    /// Return a unique appKey for the specified `appId` for a queue, and
-    /// load the appKey into the specified `appKeys`.  This routine can be
-    /// invoked by any thread.
-    static mqbu::StorageKey
-    generateAppKey(bsl::unordered_set<mqbu::StorageKey>* appKeys,
-                   const bsl::string&                    appId);
-
     /// Lookup queue storage for the specified `uri` in the specified
     /// `storageMap` under specified `storagesLock`.  If the storage is
     /// missing, create it using the specified `appIdKeyPairs`, `domain`.

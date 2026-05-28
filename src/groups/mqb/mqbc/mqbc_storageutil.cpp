@@ -2386,20 +2386,6 @@ void StorageUtil::shutdown(int                              partitionId,
     latch->arrive();
 }
 
-mqbu::StorageKey
-StorageUtil::generateAppKey(bsl::unordered_set<mqbu::StorageKey>* appKeys,
-                            const bsl::string&                    appId)
-{
-    // executed by *QUEUE_DISPATCHER* thread or by *CLUSTER DISPATCHER* thread.
-
-    mqbu::StorageKey appKey;
-    mqbs::StorageUtil::generateStorageKey(&appKey, appKeys, appId);
-    BSLS_ASSERT_SAFE(!appKey.isNull());
-    BSLS_ASSERT_SAFE(appKeys->end() != appKeys->find(appKey));
-
-    return appKey;
-}
-
 void StorageUtil::registerQueueAsPrimary(const mqbi::Cluster*    cluster,
                                          StorageSpMap*           storageMap,
                                          bslmt::Mutex*           storagesLock,
