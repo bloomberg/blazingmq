@@ -723,16 +723,6 @@ struct StorageUtil {
 
     /// THREAD: Executed by the queue dispatcher thread associated with
     ///         'partitionId'.
-    static void processPrimaryStatusAdvisoryDispatched(
-        mqbs::FileStore*                           fs,
-        PartitionInfo*                             pinfo,
-        const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
-        const bsl::string&                         clusterDescription,
-        mqbnet::ClusterNode*                       source,
-        bool                                       isFSMWorkflow);
-
-    /// THREAD: Executed by the queue dispatcher thread associated with
-    ///         'partitionId'.
     static void processReplicaStatusAdvisoryDispatched(
         mqbc::ClusterData*              clusterData,
         mqbs::FileStore*                fs,

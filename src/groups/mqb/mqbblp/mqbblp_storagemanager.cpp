@@ -76,6 +76,9 @@ namespace BloombergLP {
 namespace mqbblp {
 
 namespace {
+
+BALL_LOG_SET_NAMESPACE_CATEGORY("MQBBLP.STORAGEMANAGER");
+
 const int k_GC_MESSAGES_INTERVAL_SECONDS = 5;
 
 bsl::ostream& printRecoveryBanner(bsl::ostream&    out,
@@ -100,6 +103,86 @@ bool isZero(const bmqp_ctrlmsg::LeaderMessageSequence& lsn)
 {
     return lsn.electorTerm() == mqbnet::Elector::k_INVALID_TERM &&
            lsn.sequenceNumber() == 0;
+}
+
+void processPrimaryStatusAdvisoryDispatched(
+    mqbs::FileStore*                           fs,
+    mqbi::StorageManager_PartitionInfo*        pinfo,
+    const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
+    const bsl::string&                         clusterDescription,
+    mqbnet::ClusterNode*                       source,
+    bool                                       isFSMWorkflow)
+{
+    // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(fs && fs->inDispatcherThread());
+    BSLS_ASSERT_SAFE(pinfo);
+    BSLS_ASSERT_SAFE(source);
+    BSLS_ASSERT_SAFE(bmqp_ctrlmsg::PrimaryStatus::E_UNDEFINED !=
+                     advisory.status());
+
+    if (source == pinfo->primary()) {
+        if (advisory.primaryLeaseId() != pinfo->primaryLeaseId()) {
+            BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
+                << clusterDescription << " Partition ["
+                << advisory.partitionId()
+                << "]: received primary advisory: " << advisory
+                << ", from perceived primary: " << source->nodeDescription()
+                << ", but with different leaseId. LeaseId "
+                << "perceived by self: " << pinfo->primaryLeaseId()
+                << BMQTSK_ALARMLOG_END;
+            return;  // RETURN
+        }
+
+        if (!isFSMWorkflow &&
+            bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE == pinfo->primaryStatus()) {
+            BSLS_ASSERT_SAFE(pinfo->primary() == fs->primaryNode());
+            BSLS_ASSERT_SAFE(pinfo->primaryLeaseId() == fs->primaryLeaseId());
+        }
+    }
+    else {
+        if (0 != pinfo->primary()) {
+            BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
+                << clusterDescription << " Partition ["
+                << advisory.partitionId()
+                << "]: received primary advisory: " << advisory
+                << ", from: " << source->nodeDescription()
+                << ", but self perceives: "
+                << pinfo->primary()->nodeDescription()
+                << " as current primary." << BMQTSK_ALARMLOG_END;
+            return;  // RETURN
+        }
+
+        // 'pinfo->primary()' is null.  This means we haven't heard from the
+        // leader about the partition/primary mapping.  We apply this to the
+        // partition anyways, so that we can continue to accept storage events
+        // once self has recovered from the 'source' for this partition but
+        // hasn't transitioned to AVAILABLE (because its awaiting to finish
+        // recovery for other partitions).  This node will eventually hear from
+        // the leader and will not process further storage events once it
+        // becomes AVAILABLE.
+
+        // TBD: This breaks our contracts that only leader informs a node of
+        // partition/primary mapping, so this needs to be reviewed carefully.
+        // See 'ClusterStateMgr::processPrimaryStatusAdvisory' as well.
+
+        BALL_LOG_WARN << clusterDescription << " Partition ["
+                      << advisory.partitionId()
+                      << "]: received primary advisory: " << advisory
+                      << ", from: " << source->nodeDescription()
+                      << ". Self has not received partition/primary advisory "
+                      << "from leader yet, but will go ahead and mark this "
+                      << "node as primary.";
+    }
+
+    pinfo->setPrimary(source);
+    pinfo->setPrimaryLeaseId(advisory.primaryLeaseId());
+    pinfo->setPrimaryStatus(advisory.status());
+
+    if (bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE == advisory.status()) {
+        fs->setActivePrimary(source, advisory.primaryLeaseId());
+    }
 }
 
 }  // close unnamed namespace
@@ -1908,14 +1991,14 @@ void StorageManager::processPrimaryStatusAdvisory(
     mqbs::FileStore* fs = d_fileStores[advisory.partitionId()].get();
     BSLS_ASSERT_SAFE(fs);
 
-    fs->execute(bdlf::BindUtil::bind(
-        &mqbc::StorageUtil::processPrimaryStatusAdvisoryDispatched,
-        fs,
-        &d_partitionInfoVec[advisory.partitionId()],
-        advisory,
-        d_clusterData_p->identity().description(),
-        source,
-        false));  // isFSMWorkflow
+    fs->execute(
+        bdlf::BindUtil::bind(&processPrimaryStatusAdvisoryDispatched,
+                             fs,
+                             &d_partitionInfoVec[advisory.partitionId()],
+                             advisory,
+                             d_clusterData_p->identity().description(),
+                             source,
+                             false));  // isFSMWorkflow
 }
 
 void StorageManager::processReplicaStatusAdvisory(
