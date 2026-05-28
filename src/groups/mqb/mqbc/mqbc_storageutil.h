@@ -239,6 +239,21 @@ struct StorageUtil {
                                             const mqbu::StorageKey&  appKey,
                                             bool asPrimary);
 
+    static void createQueueStorageAsPrimary(StorageSpMap*    storageMap,
+                                            bslmt::Mutex*    storagesLock,
+                                            mqbs::FileStore* fs,
+                                            const bmqt::Uri& uri,
+                                            const mqbu::StorageKey& queueKey,
+                                            const AppInfos& appIdKeyPairs,
+                                            mqbi::Domain*   domain);
+
+    static bsl::shared_ptr<mqbs::ReplicatedStorage>
+    createQueueStorageImpl(mqbs::FileStore*        fs,
+                           const bmqt::Uri&        uri,
+                           const mqbu::StorageKey& queueKey,
+                           const AppInfos&         appIdKeyPairs,
+                           mqbi::Domain*           domain);
+
     /// Load the list of queue storages on the partition from the specified
     /// `fileStores` having the specified `partitionId` into the
     /// corresponding element of the specified `storageLists`, and arrive on
@@ -549,16 +564,6 @@ struct StorageUtil {
     static bsls::Types::Uint64
     findMinReqDiskSpace(const mqbcfg::PartitionConfig& config);
 
-    /// Transition self to active primary of the specified `partitionId` and
-    /// load this info into the specified `partitionInfo`.  Then, broadcast
-    /// a primary status advisory to peers via the specified `fs`.
-    ///
-    /// THREAD: Executed by the queue dispatcher thread associated with
-    ///         'partitionId'.
-    static void transitionToActivePrimary(PartitionInfo*   partitionInfo,
-                                          mqbs::FileStore* fs,
-                                          int              partitionId);
-
     /// Callback executed after primary sync for the specified 'partitionId'
     /// is complete with the specified 'status'.  Use the specified 'fs',
     /// 'pinfo', 'clusterData' and 'partitionPrimaryStatusCb'.
@@ -645,14 +650,6 @@ struct StorageUtil {
                                        const AppInfos&         appIdKeyPairs,
                                        mqbi::Domain*           domain);
 
-    static void createQueueStorageAsPrimary(StorageSpMap*    storageMap,
-                                            bslmt::Mutex*    storagesLock,
-                                            mqbs::FileStore* fs,
-                                            const bmqt::Uri& uri,
-                                            const mqbu::StorageKey& queueKey,
-                                            const AppInfos& appIdKeyPairs,
-                                            mqbi::Domain*   domain);
-
     /// THREAD: Executed by the Queue's dispatcher thread.
     static void unregisterQueueDispatched(mqbs::FileStore*     fs,
                                           StorageSpMap*        storageMap,
@@ -686,13 +683,6 @@ struct StorageUtil {
                                             const mqbu::StorageKey& queueKey,
                                             const AppInfos& appIdKeyPairs,
                                             mqbi::Domain*   domain);
-
-    static bsl::shared_ptr<mqbs::ReplicatedStorage>
-    createQueueStorageImpl(mqbs::FileStore*        fs,
-                           const bmqt::Uri&        uri,
-                           const mqbu::StorageKey& queueKey,
-                           const AppInfos&         appIdKeyPairs,
-                           mqbi::Domain*           domain);
 
     static void removeQueueStorageDispatched(StorageSpMap*    storageMap,
                                              bslmt::Mutex*    storagesLock,
@@ -782,13 +772,6 @@ struct StorageUtil {
                    const mqbcmd::StorageCommand& command,
                    const bslstl::StringRef&      partitionLocation,
                    bslma::Allocator*             allocator);
-
-    static void onDomain(const bmqp_ctrlmsg::Status& status,
-                         mqbi::Domain*               domain,
-                         mqbi::Domain**              out,
-                         bslmt::Latch*               latch,
-                         const mqbs::FileStore*      fs,
-                         const bsl::string&          domainName);
 
     /// THREAD: Executed by the Queue's dispatcher thread for the partitionId
     ///         of the specified `fs`.

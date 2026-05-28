@@ -66,12 +66,71 @@ namespace mqbc {
 
 namespace {
 
+BALL_LOG_SET_NAMESPACE_CATEGORY("MQBC.STORAGEUTIL");
+
+typedef mqbi::StorageManager_PartitionInfo PartitionInfo;
+
 /// Post on the optionally specified `semaphore`.
 void optionalSemaphorePost(bslmt::Semaphore* semaphore)
 {
     if (semaphore) {
         semaphore->post();
     }
+}
+
+void transitionToActivePrimary(PartitionInfo*   partitionInfo,
+                               mqbs::FileStore* fs,
+                               int              partitionId)
+{
+    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(partitionInfo);
+    BSLS_ASSERT_SAFE(fs);
+
+    partitionInfo->setPrimaryStatus(bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE);
+
+    bmqp_ctrlmsg::ControlMessage         controlMsg;
+    bmqp_ctrlmsg::PrimaryStatusAdvisory& primaryAdv =
+        controlMsg.choice()
+            .makeClusterMessage()
+            .choice()
+            .makePrimaryStatusAdvisory();
+    primaryAdv.partitionId()    = partitionId;
+    primaryAdv.primaryLeaseId() = partitionInfo->primaryLeaseId();
+    primaryAdv.status()         = bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE;
+
+    fs->broadcastMessage(controlMsg);
+}
+
+void onDomain(const bmqp_ctrlmsg::Status& status,
+              mqbi::Domain*               domain,
+              mqbi::Domain**              out,
+              bslmt::Latch*               latch,
+              const mqbs::FileStore*      fs,
+              const bsl::string&          domainName)
+{
+    // executed by *ANY* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(latch);
+    BSLS_ASSERT_SAFE(out);
+    BSLS_ASSERT_SAFE(fs);
+
+    if (bmqp_ctrlmsg::StatusCategory::E_SUCCESS != status.category()) {
+        BSLS_ASSERT_SAFE(0 == domain);
+        *out = 0;
+
+        BALL_LOG_ERROR << fs->description()
+                       << ": Failed to create domain for [" << domainName
+                       << "], reason: " << status;
+    }
+    else {
+        BSLS_ASSERT_SAFE(domain);
+        *out = domain;
+    }
+
+    latch->arrive();
 }
 
 }  // close unnamed namespace
@@ -1407,31 +1466,6 @@ StorageUtil::findMinReqDiskSpace(const mqbcfg::PartitionConfig& config)
                                (minimumRequiredDiskSpace / 2);
 
     return minimumRequiredDiskSpace;
-}
-
-void StorageUtil::transitionToActivePrimary(PartitionInfo*   partitionInfo,
-                                            mqbs::FileStore* fs,
-                                            int              partitionId)
-{
-    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(partitionInfo);
-    BSLS_ASSERT_SAFE(fs);
-
-    partitionInfo->setPrimaryStatus(bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE);
-
-    bmqp_ctrlmsg::ControlMessage         controlMsg;
-    bmqp_ctrlmsg::PrimaryStatusAdvisory& primaryAdv =
-        controlMsg.choice()
-            .makeClusterMessage()
-            .choice()
-            .makePrimaryStatusAdvisory();
-    primaryAdv.partitionId()    = partitionId;
-    primaryAdv.primaryLeaseId() = partitionInfo->primaryLeaseId();
-    primaryAdv.status()         = bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE;
-
-    fs->broadcastMessage(controlMsg);
 }
 
 void StorageUtil::onPartitionPrimarySync(
@@ -3771,36 +3805,6 @@ void StorageUtil::processCommand(
     bmqu::MemOutStream                   os(&localAllocator);
     os << "Unknown command '" << command << "'";
     result->makeError().message() = os.str();
-}
-
-void StorageUtil::onDomain(const bmqp_ctrlmsg::Status& status,
-                           mqbi::Domain*               domain,
-                           mqbi::Domain**              out,
-                           bslmt::Latch*               latch,
-                           const mqbs::FileStore*      fs,
-                           const bsl::string&          domainName)
-{
-    // executed by *ANY* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(latch);
-    BSLS_ASSERT_SAFE(out);
-    BSLS_ASSERT_SAFE(fs);
-
-    if (bmqp_ctrlmsg::StatusCategory::E_SUCCESS != status.category()) {
-        BSLS_ASSERT_SAFE(0 == domain);
-        *out = 0;
-
-        BALL_LOG_ERROR << fs->description()
-                       << ": Failed to create domain for [" << domainName
-                       << "], reason: " << status;
-    }
-    else {
-        BSLS_ASSERT_SAFE(domain);
-        *out = domain;
-    }
-
-    latch->arrive();
 }
 
 void StorageUtil::forceIssueAdvisoryAndSyncPt(mqbc::ClusterData*   clusterData,
