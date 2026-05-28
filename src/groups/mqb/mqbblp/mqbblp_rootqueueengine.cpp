@@ -159,7 +159,6 @@ void RootQueueEngine::deliverMessages(AppState* app)
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     BSLS_ASSERT_SAFE(d_queueState_p->storage());
-    BSLS_ASSERT_SAFE(d_apps.find(app->appId()) != d_apps.end());
 
     if (!app->isAuthorized()) {
         return;  // RETURN
@@ -169,6 +168,8 @@ void RootQueueEngine::deliverMessages(AppState* app)
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         return;  // RETURN
     }
+
+    BSLS_ASSERT_SAFE(d_apps.find(app->appId()) != d_apps.end());
 
     bsls::TimeInterval delay;
     size_t             numMessages = app->processDeliveryLists(&delay,

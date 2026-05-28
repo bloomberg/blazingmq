@@ -121,6 +121,11 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
 
   private:
     // PRIVATE MANIPULATORS
+    void onHandleDeconfigured(
+        const bmqp_ctrlmsg::Status&,
+        const bmqp_ctrlmsg::StreamParameters& streamParameters,
+        mqbi::QueueHandle*                    handle);
+
     void configureDispatchedAndPost(int*              result,
                                     bsl::ostream*     errorDescription,
                                     bool              isReconfigure,

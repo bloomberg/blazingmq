@@ -57,31 +57,19 @@
 namespace BloombergLP {
 namespace mqbblp {
 
-namespace {
+// -----------
+// class Queue
+// -----------
 
-struct Counter {
-    bsls::AtomicUint d_count;
-
-    explicit Counter(unsigned count)
-    : d_count(count)
-    {
-        // NOTHING
-    }
-    unsigned decrement()
-    {
-        BSLS_ASSERT_SAFE(d_count.load());
-        return d_count.subtract(1);
-    }
-};
-
-void onHandleDeconfigured(
+void Queue::onHandleDeconfigured(
     const bmqp_ctrlmsg::Status&,
     const bmqp_ctrlmsg::StreamParameters& streamParameters,
-    mqbi::Queue*                          queue,
-    mqbi::QueueHandle*                    handle,
-    const bsl::shared_ptr<Counter>&       counter)
+    mqbi::QueueHandle*                    handle)
 {
-    BSLS_ASSERT_SAFE(queue);
+    // executed by the *QUEUE* dispatcher thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(handle);
 
     // Re-read current counts from the handle because cookie rollback may have
@@ -94,9 +82,12 @@ void onHandleDeconfigured(
         return;
     }
 
-    const bool                           isFinal = (counter->decrement() == 0);
-    const bsl::string&                   appId   = cit->first;
-    const mqbi::QueueHandle::StreamInfo& info    = cit->second;
+    // This is handle drop which results in erasing handle->subStreamInfos()
+    // Use the size as an indication of the last (final) one.
+
+    const bool         isFinal = (handle->subStreamInfos().size() == 1);
+    const bsl::string& appId   = cit->first;
+    const mqbi::QueueHandle::StreamInfo& info = cit->second;
 
     BSLS_ASSERT_SAFE(appId != bmqp::ProtocolUtil::k_NULL_APP_ID);
 
@@ -109,7 +100,7 @@ void onHandleDeconfigured(
     bmqp_ctrlmsg::SubQueueIdInfo subStreamInfo;
     subStreamInfo.appId() = appId;
     subStreamInfo.subId() = info.d_downstreamSubQueueId;
-    queue->releaseHandle(
+    releaseHandleDispatched(
         handle,
         bmqp::QueueUtil::createHandleParameters(handle->handleParameters(),
                                                 subStreamInfo,
@@ -117,12 +108,6 @@ void onHandleDeconfigured(
         isFinal,
         mqbi::QueueHandle::HandleReleasedCallback());
 }
-
-}
-
-// -----------
-// class Queue
-// -----------
 
 void Queue::configureDispatchedAndPost(int*              result,
                                        bsl::ostream*     errorDescription,
@@ -278,10 +263,6 @@ void Queue::dropHandleDispatched(mqbi::QueueHandle* handle, bool doDeconfigure)
         return;  // RETURN
     }
 
-    bsl::shared_ptr<Counter> counter(
-        new (*d_allocator_p) Counter(handle->subStreamInfos().size()),
-        d_allocator_p);
-
     BALL_LOG_INFO << "Dropping QueueHandle [" << handle << "] for queue ["
                   << description() << "] having "
                   << handle->subStreamInfos().size() << " subStreams.";
@@ -332,12 +313,11 @@ void Queue::dropHandleDispatched(mqbi::QueueHandle* handle, bool doDeconfigure)
             // response.
             configureHandle(handle,
                             nullStreamParameters,
-                            bdlf::BindUtil::bind(&onHandleDeconfigured,
+                            bdlf::BindUtil::bind(&Queue::onHandleDeconfigured,
+                                                 this,
                                                  bdlf::PlaceHolders::_1,
                                                  bdlf::PlaceHolders::_2,
-                                                 this,
-                                                 handle,
-                                                 counter));
+                                                 handle));
         }
         else {
             // 'releaseHandle' erases from 'handle->subStreamInfos()'
