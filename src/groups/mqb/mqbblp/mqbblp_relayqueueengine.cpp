@@ -1606,11 +1606,10 @@ int RelayQueueEngine::onRejectMessage(
         result = rda.counter();
 
         if (d_throttledRejectedMessages.requestPermission()) {
-            BMQ_LOGTHROTTLE_INFO
-                << "Queue '" << d_queueState_p->uri()
-                << "' rejecting PUSH [GUID: '" << msgGUID
-                << "', subQueueId: " << app->upstreamSubQueueId()
-                << "] with the counter: [" << rda << "]";
+            BALL_LOG_INFO << "Queue '" << d_queueState_p->uri()
+                          << "' rejecting PUSH [GUID: '" << msgGUID
+                          << "', subQueueId: " << app->upstreamSubQueueId()
+                          << "] with the counter: [" << rda << "]";
         }
 
         if (!rda.isUnlimited()) {
@@ -1636,10 +1635,10 @@ int RelayQueueEngine::onRejectMessage(
         }
     }
     else if (d_throttledRejectedMessages.requestPermission()) {
-        BMQ_LOGTHROTTLE_INFO
-            << "Queue '" << d_queueState_p->uri()
-            << "' got reject for an unknown message [GUID: '" << msgGUID
-            << "', subQueueId: " << app->upstreamSubQueueId() << "]";
+        BALL_LOG_INFO << "Queue '" << d_queueState_p->uri()
+                      << "' got reject for an unknown message [GUID: '"
+                      << msgGUID
+                      << "', subQueueId: " << app->upstreamSubQueueId() << "]";
     }
 
     return result;
