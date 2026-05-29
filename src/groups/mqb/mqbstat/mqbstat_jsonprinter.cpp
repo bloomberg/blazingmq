@@ -24,6 +24,10 @@
 #include <ball_log.h>
 #include <bdljsn_json.h>
 #include <bdljsn_jsonutil.h>
+#include <bdlt_datetime.h>
+#include <bdlt_epochutil.h>
+#include <bsl_ctime.h>
+#include <bsl_sstream.h>
 #include <bslma_managedptr.h>
 #include <bsls_assert.h>
 
@@ -257,6 +261,14 @@ inline void JsonPrinter::JsonPrinterImpl::printStats(bsl::ostream& stream,
 
     bdljsn::Json        json(d_allocator_p);
     bdljsn::JsonObject& obj = json.makeObject();
+
+    {
+        bdlt::Datetime now;
+        bdlt::EpochUtil::convertFromTimeT(&now, time(0));
+        bsl::ostringstream ts(d_allocator_p);
+        ts << now;
+        obj["_timestamp"].makeString(ts.str());
+    }
 
     {
         const bmqst::StatContext& ctx =
