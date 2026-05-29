@@ -33,6 +33,8 @@
 #include <bdlmt_eventscheduler.h>
 #include <bsl_functional.h>
 #include <bsl_ostream.h>
+#include <bsl_string.h>
+#include <bsl_string_view.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
@@ -57,6 +59,9 @@ class StatsFileLogger {
 
     // DATA
 
+    /// Log file pattern.
+    bsl::string d_filePattern;
+
     /// FileObserver for the stats log dump.
     ball::FileObserver2 d_statsLogFile;
 
@@ -75,8 +80,10 @@ class StatsFileLogger {
     // CREATORS
 
     /// Create a new `StatsFileLogger` object, using the specified
+    /// `filePattern` for the log file path, the specified
     /// `eventScheduler` and the specified `allocator` for memory allocation.
-    explicit StatsFileLogger(bdlmt::EventScheduler* eventScheduler,
+    explicit StatsFileLogger(bsl::string_view       filePattern,
+                             bdlmt::EventScheduler* eventScheduler,
                              bslma::Allocator*      allocator);
 
     // MANIPULATORS
@@ -87,9 +94,9 @@ class StatsFileLogger {
     /// Stop the logger.
     void stop();
 
-    /// Dump the stats to the stat log file with the specified `statId`,
-    /// using the specified `printerCb` to format the output.
-    void logStats(int statId, const PrinterCb& printerCb);
+    /// Dump the stats to the stat log file, using the specified `printerCb`
+    /// to format the output.
+    void logStats(const PrinterCb& printerCb);
 };
 
 }  // close package namespace

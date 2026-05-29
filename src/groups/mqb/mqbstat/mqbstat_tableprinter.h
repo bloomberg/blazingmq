@@ -106,10 +106,11 @@ class TablePrinter {
 
     // MANIPULATORS
 
-    /// Print the stats to the specified `stream`.
+    /// Print the stats with the specified `statId` to the specified
+    /// `stream`.  Negative `statId` suppresses the header.
     ///
     /// THREAD: This method is called in the `snapshot` thread.
-    void printStats(bsl::ostream& stream);
+    void printStats(bsl::ostream& stream, int statId);
 };
 
 }  // close package namespace
