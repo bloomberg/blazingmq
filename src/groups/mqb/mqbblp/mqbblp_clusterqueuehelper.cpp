@@ -2713,7 +2713,7 @@ void ClusterQueueHelper::onGetQueueHandleDispatched(
     const mqbi::OpenQueueConfirmationCookieSp& confirmationCookie,
     const bmqp_ctrlmsg::ControlMessage&        request,
     mqbc::ClusterNodeSession*                  requester,
-    const int                                  peerInstanceId)
+    const int                                  requesterId)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -2722,7 +2722,7 @@ void ClusterQueueHelper::onGetQueueHandleDispatched(
     BSLS_ASSERT_SAFE(request.choice().isOpenQueueValue());
     BSLS_ASSERT_SAFE(d_cluster_p->isClusterMember());
 
-    if (peerInstanceId != requester->peerInstanceId() ||
+    if (requesterId != requester->handleRequesterContext()->requesterId() ||
         requester->nodeStatus() == bmqp_ctrlmsg::NodeStatus::E_UNAVAILABLE) {
         // Either a new instance of the peer is up, or old instance is no
         // longer available (ie, channel with old instance went down but has
@@ -2740,9 +2740,9 @@ void ClusterQueueHelper::onGetQueueHandleDispatched(
             << ", because either the peer is down, or new instance "
             << "of the peer has come up. Peer node status: "
             << requester->nodeStatus()
-            << ", initial peerInstanceId: " << peerInstanceId
-            << ", current peerInstanceId: " << requester->peerInstanceId()
-            << ".";
+            << ", initial peerInstanceId: " << requesterId
+            << ", current peerInstanceId: "
+            << requester->handleRequesterContext()->requesterId() << ".";
         return;  // RETURN
     }
 
@@ -2789,8 +2789,8 @@ void ClusterQueueHelper::onGetQueueHandleDispatched(
             << d_cluster_p->description()
             << ": Reused handle when processing peer "
             << "openQueueRequest [requester: " << requester->description()
-            << ", request: " << request
-            << ", peerInstanceId: " << peerInstanceId << "].";
+            << ", request: " << request << ", requesterId: " << requesterId
+            << "].";
 
         BSLS_ASSERT_SAFE(queueHandle == iter->second.d_handle_p);
 
@@ -2811,8 +2811,8 @@ void ClusterQueueHelper::onGetQueueHandleDispatched(
             << d_cluster_p->description()
             << ": Inserting handle to nodeSession, when processing "
             << "peer openQueueRequest [requester: " << requester->description()
-            << ", request: " << request
-            << ", peerInstanceId: " << peerInstanceId << "].";
+            << ", request: " << request << ", requesterId: " << requesterId
+            << "].";
 
         CNSQueueState queueContext;
         queueContext.d_handle_p = queueHandle;
@@ -3727,9 +3727,10 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
         BALL_LOG_OUTPUT_STREAM << "].";
     }
 
-    if (!d_cluster_p->isFSMWorkflow() &&
-        d_clusterData_p->membership().selfNodeStatus() !=
-            bmqp_ctrlmsg::NodeStatus::E_AVAILABLE) {
+    // A node cannot go out of AVAILABLE state other than by stopping.
+    // A node should not attempt to reopen queues if it is not AVAILABLE.
+    if (d_clusterData_p->membership().selfNodeStatus() !=
+        bmqp_ctrlmsg::NodeStatus::E_AVAILABLE) {
         BALL_LOG_INFO << d_cluster_p->description()
                       << ": Not going ahead with restoring partition state "
                       << "because self is not AVAILABLE.  Self status: "
@@ -3737,6 +3738,7 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
         return;  // RETURN
     }
 
+    // TODO: revisit
     if (!d_clusterData_p->electorInfo().hasActiveLeader() &&
         (allPartitions || d_cluster_p->isFSMWorkflow())) {
         // 'allPartitions' indicate this is a transition due to a leader
@@ -5064,14 +5066,15 @@ void ClusterQueueHelper::processPeerOpenQueueRequest(
     BSLS_ASSERT_SAFE(d_clusterData_p->domainFactory());
     d_clusterData_p->domainFactory()->createDomain(
         bmqt::Uri(handleParams.uri()).qualifiedDomain(),
-        bdlf::BindUtil::bindS(d_allocator_p,
-                              &ClusterQueueHelper::onGetDomain,
-                              this,
-                              bdlf::PlaceHolders::_1,  // status
-                              bdlf::PlaceHolders::_2,  // domain
-                              request,
-                              requester,
-                              requester->peerInstanceId()));
+        bdlf::BindUtil::bindS(
+            d_allocator_p,
+            &ClusterQueueHelper::onGetDomain,
+            this,
+            bdlf::PlaceHolders::_1,  // status
+            bdlf::PlaceHolders::_2,  // domain
+            request,
+            requester,
+            requester->handleRequesterContext()->requesterId()));
 }
 
 void ClusterQueueHelper::processPeerConfigureStreamRequest(

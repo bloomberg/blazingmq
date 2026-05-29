@@ -720,7 +720,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// (in the specified `request`).  If the specified `status` is SUCCESS,
     /// the request was success and the specified `queueHandle` contains the
     /// handle representing the queue that was allocated for this specified
-    /// `requester` session having the specified `peerInstanceId`, and the
+    /// `requester` session having the specified `requesterId`, and the
     /// specified `confirmationCookie` a cookie that must be set to `true`
     /// to indicate receiving and processing of that response; otherwise
     /// `status` contains the category, error code and description of the
@@ -732,7 +732,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         const mqbi::OpenQueueConfirmationCookieSp& confirmationCookie,
         const bmqp_ctrlmsg::ControlMessage&        request,
         mqbc::ClusterNodeSession*                  requester,
-        const int                                  peerInstanceId);
+        const int                                  requesterId);
 
     void
     reconfigureCallback(const bmqp_ctrlmsg::Status&           status,

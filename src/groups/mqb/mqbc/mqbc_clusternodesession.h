@@ -144,19 +144,17 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     /// The corresponding cluster node.
     mqbnet::ClusterNode* d_clusterNode_p;
 
-    /// ID of the peer's instance.  This ID is changed everytime the channel
-    /// with the peer is reset.  This instance ID is used to discriminate
-    /// against old instance of the peer.  Note that unlike
+    /// Context used to uniquely identify this client when requesting a queue
+    /// handle.
+    /// Changes every time the channel with the peer is reset.  `requesterId`
+    /// discriminates against old instance of the peer.  Note that unlike
     /// @bbref{mqba::ClientSession}, an instance of `ClusterNodeSession` is not
     /// destroyed every time channel b/w self node and peer goes down, and thus
     /// self node may contain state associated with peer's old instance.  Also
     /// note that there is no invalid value for this ID, and its value alone
     /// cannot be used to determine if the channel with the peer is up or not.
-    int d_peerInstanceId;
 
-    /// Context used to uniquely identify this client when requesting a queue
-    /// handle.
-    const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>
+    bsl::shared_ptr<mqbi::QueueHandleRequesterContext>
         d_queueHandleRequesterContext_sp;
 
     /// Node status.
@@ -176,10 +174,17 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     bmqu::GateKeeper d_gatePut;
     bmqu::GateKeeper d_gateConfirm;
 
+    /// Allocator to use.
+    bslma::Allocator* d_allocator_p;
+
   private:
     // NOT IMPLEMENTED
     ClusterNodeSession(const ClusterNodeSession&);             // = delete;
     ClusterNodeSession& operator=(const ClusterNodeSession&);  // = delete;
+
+    void createQueueHandleRequesterContextImpl(
+        const bmqp_ctrlmsg::ClientIdentity&        identity,
+        const bsl::shared_ptr<bmqst::StatContext>& statContext);
 
   public:
     // TRAITS
@@ -226,8 +231,6 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     /// @param self Node status of the node this session belongs to.
     void setNodeStatus(bmqp_ctrlmsg::NodeStatus::Value other,
                        bmqp_ctrlmsg::NodeStatus::Value self);
-
-    void setPeerInstanceId(int value);
 
     /// Return a reference to the modifiable list of queue handles.
     QueueHandleMap& queueHandles();
@@ -276,6 +279,8 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     bmqu::GateKeeper& gatePut();
     bmqu::GateKeeper& gateConfirm();
 
+    void createQueueHandleRequesterContext();
+
     // ACCESSORS
 
     /// Return a pointer to the dispatcher this client is associated with.
@@ -296,9 +301,6 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
 
     /// Return the node status.
     bmqp_ctrlmsg::NodeStatus::Value nodeStatus() const;
-
-    /// Return the instance ID of the peer.
-    int peerInstanceId() const;
 
     /// Return the associated stat context.
     const bsl::shared_ptr<bmqst::StatContext>& statContext() const;
@@ -431,11 +433,6 @@ ClusterNodeSession::setNodeStatus(bmqp_ctrlmsg::NodeStatus::Value other,
     }
 }
 
-inline void ClusterNodeSession::setPeerInstanceId(int value)
-{
-    d_peerInstanceId = value;
-}
-
 inline void
 ClusterNodeSession::onDispatcherEvent(const mqbi::DispatcherEvent& event)
 {
@@ -534,11 +531,6 @@ inline mqbnet::ClusterNode* ClusterNodeSession::clusterNode() const
 inline bmqp_ctrlmsg::NodeStatus::Value ClusterNodeSession::nodeStatus() const
 {
     return d_nodeStatus;
-}
-
-inline int ClusterNodeSession::peerInstanceId() const
-{
-    return d_peerInstanceId;
 }
 
 inline const bsl::shared_ptr<bmqst::StatContext>&
