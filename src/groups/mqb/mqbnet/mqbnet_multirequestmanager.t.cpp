@@ -279,6 +279,7 @@ TestContext::~TestContext()
                              &called,
                              bdlf::PlaceHolders::_1));
     cancelRequests();
+    d_cluster_mp->netCluster().closeChannels();
     d_cluster_mp->_scheduler().stop();
 }
 
