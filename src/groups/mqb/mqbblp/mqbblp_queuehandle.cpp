@@ -996,9 +996,8 @@ void QueueHandle::deliverMessage(
             // needed we way have to change this method to return a tri-value
             // (delivered, non-delivered, skipped).
             if (d_throttledDroppedPutMessages.requestPermission()) {
-                BMQ_LOGTHROTTLE_INFO << "Queue '" << d_queue_sp->description()
-                                     << "' skipping duplicate PUSH "
-                                     << iter.guid();
+                BALL_LOG_INFO << "Queue '" << d_queue_sp->description()
+                              << "' skipping duplicate PUSH " << iter.guid();
             }
             continue;  // CONTINUE
         }
@@ -1305,15 +1304,15 @@ void QueueHandle::onAckMessage(const bmqp::AckMessage& ackMessage)
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!d_haveClient)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         if (d_throttledFailedAckMessages.requestPermission()) {
-            BMQ_LOGTHROTTLE_INFO
-                << "#CLIENT_ACK_FAILURE: Received an ACK from "
-                << "upstream for unavailable client "
-                << "[queue: " << d_queue_sp->description()
-                << ", upstream queueId: " << ackMessage.queueId()
-                << ", downstream queueId: " << id()
-                << ", guid: " << ackMessage.messageGUID()
-                << ", status: " << ackMessage.status()
-                << ", correlationId: " << ackMessage.correlationId() << "]";
+            BALL_LOG_INFO << "#CLIENT_ACK_FAILURE: Received an ACK from "
+                          << "upstream for unavailable client "
+                          << "[queue: " << d_queue_sp->description()
+                          << ", upstream queueId: " << ackMessage.queueId()
+                          << ", downstream queueId: " << id()
+                          << ", guid: " << ackMessage.messageGUID()
+                          << ", status: " << ackMessage.status()
+                          << ", correlationId: " << ackMessage.correlationId()
+                          << "]";
         }
         return;  // RETURN
     }
