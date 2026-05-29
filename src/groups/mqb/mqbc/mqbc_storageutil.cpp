@@ -17,21 +17,28 @@
 
 #include <mqbscm_version.h>
 // MQB
+#include <mqbc_clusterdata.h>
+#include <mqbc_clusterstate.h>
+#include <mqbcfg_messages.h>
 #include <mqbcmd_messages.h>
 #include <mqbconfm_messages.h>
 #include <mqbevt_dispatcherevent.h>
+#include <mqbi_cluster.h>
+#include <mqbi_dispatcher.h>
+#include <mqbi_domain.h>
+#include <mqbi_queue.h>
 #include <mqbi_queueengine.h>
 #include <mqbnet_cluster.h>
-#include <mqbs_datastore.h>
 #include <mqbs_filestoreprintutil.h>
 #include <mqbs_filestoreprotocol.h>
 #include <mqbs_filestoreutil.h>
 #include <mqbs_filesystemutil.h>
+#include <mqbs_replicatedstorage.h>
 #include <mqbs_storagecollectionutil.h>
-#include <mqbstat_clusterstats.h>
 #include <mqbu_exit.h>
 
 // BMQ
+#include <bmqma_countingallocatorstore.h>
 #include <bmqp_protocolutil.h>
 #include <bmqp_recoverymessageiterator.h>
 #include <bmqt_messageguid.h>
@@ -48,23 +55,26 @@
 #include <bdlf_bind.h>
 #include <bdlf_memfn.h>
 #include <bdlma_localsequentialallocator.h>
+#include <bdlmt_fixedthreadpool.h>
 #include <bdls_filesystemutil.h>
 #include <bdlt_currenttime.h>
 #include <bdlt_epochutil.h>
+#include <bsl_algorithm.h>
 #include <bsl_ios.h>
-#include <bsl_ostream.h>
 #include <bsl_unordered_map.h>
 #include <bsl_utility.h>
 #include <bsla_annotations.h>
-#include <bslma_allocator.h>
 #include <bslmt_lockguard.h>
 #include <bslmt_mutex.h>
-#include <bsls_types.h>
 
 namespace BloombergLP {
 namespace mqbc {
 
 namespace {
+
+BALL_LOG_SET_NAMESPACE_CATEGORY("MQBC.STORAGEUTIL");
+
+typedef mqbi::StorageManager_PartitionInfo PartitionInfo;
 
 /// Post on the optionally specified `semaphore`.
 void optionalSemaphorePost(bslmt::Semaphore* semaphore)
@@ -72,6 +82,61 @@ void optionalSemaphorePost(bslmt::Semaphore* semaphore)
     if (semaphore) {
         semaphore->post();
     }
+}
+
+void transitionToActivePrimary(PartitionInfo*   partitionInfo,
+                               mqbs::FileStore* fs,
+                               int              partitionId)
+{
+    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(partitionInfo);
+    BSLS_ASSERT_SAFE(fs);
+
+    partitionInfo->setPrimaryStatus(bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE);
+
+    bmqp_ctrlmsg::ControlMessage         controlMsg;
+    bmqp_ctrlmsg::PrimaryStatusAdvisory& primaryAdv =
+        controlMsg.choice()
+            .makeClusterMessage()
+            .choice()
+            .makePrimaryStatusAdvisory();
+    primaryAdv.partitionId()    = partitionId;
+    primaryAdv.primaryLeaseId() = partitionInfo->primaryLeaseId();
+    primaryAdv.status()         = bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE;
+
+    fs->broadcastMessage(controlMsg);
+}
+
+void onDomain(const bmqp_ctrlmsg::Status& status,
+              mqbi::Domain*               domain,
+              mqbi::Domain**              out,
+              bslmt::Latch*               latch,
+              const mqbs::FileStore*      fs,
+              const bsl::string&          domainName)
+{
+    // executed by *ANY* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(latch);
+    BSLS_ASSERT_SAFE(out);
+    BSLS_ASSERT_SAFE(fs);
+
+    if (bmqp_ctrlmsg::StatusCategory::E_SUCCESS != status.category()) {
+        BSLS_ASSERT_SAFE(0 == domain);
+        *out = 0;
+
+        BALL_LOG_ERROR << fs->description()
+                       << ": Failed to create domain for [" << domainName
+                       << "], reason: " << status;
+    }
+    else {
+        BSLS_ASSERT_SAFE(domain);
+        *out = domain;
+    }
+
+    latch->arrive();
 }
 
 }  // close unnamed namespace
@@ -673,7 +738,7 @@ void StorageUtil::doRolloverDispatched(bslmt::Latch* latch,
 
 void StorageUtil::loadPartitionStorageSummary(
     mqbcmd::StorageResult*   result,
-    FileStores*              fileStores,
+    const FileStores&        fileStores,
     int                      partitionId,
     const bslstl::StringRef& partitionLocation)
 {
@@ -681,20 +746,19 @@ void StorageUtil::loadPartitionStorageSummary(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(result);
-    BSLS_ASSERT_SAFE(fileStores);
 
     mqbcmd::ClusterStorageSummary& summary =
         result->makeClusterStorageSummary();
     summary.clusterFileStoreLocation() = partitionLocation;
-    summary.fileStores().resize(fileStores->size());
+    summary.fileStores().resize(fileStores.size());
 
     bslmt::Latch latch(1);
-    fileStores->at(partitionId)
+    fileStores.at(partitionId)
         ->execute(bdlf::BindUtil::bind(&loadStorageSummaryDispatched,
                                        &summary,
                                        &latch,
                                        partitionId,
-                                       *fileStores));
+                                       fileStores));
     // Wait
     latch.wait();
 
@@ -1407,31 +1471,6 @@ StorageUtil::findMinReqDiskSpace(const mqbcfg::PartitionConfig& config)
                                (minimumRequiredDiskSpace / 2);
 
     return minimumRequiredDiskSpace;
-}
-
-void StorageUtil::transitionToActivePrimary(PartitionInfo*   partitionInfo,
-                                            mqbs::FileStore* fs,
-                                            int              partitionId)
-{
-    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(partitionInfo);
-    BSLS_ASSERT_SAFE(fs);
-
-    partitionInfo->setPrimaryStatus(bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE);
-
-    bmqp_ctrlmsg::ControlMessage         controlMsg;
-    bmqp_ctrlmsg::PrimaryStatusAdvisory& primaryAdv =
-        controlMsg.choice()
-            .makeClusterMessage()
-            .choice()
-            .makePrimaryStatusAdvisory();
-    primaryAdv.partitionId()    = partitionId;
-    primaryAdv.primaryLeaseId() = partitionInfo->primaryLeaseId();
-    primaryAdv.status()         = bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE;
-
-    fs->broadcastMessage(controlMsg);
 }
 
 void StorageUtil::onPartitionPrimarySync(
@@ -2386,20 +2425,6 @@ void StorageUtil::shutdown(int                              partitionId,
     latch->arrive();
 }
 
-mqbu::StorageKey
-StorageUtil::generateAppKey(bsl::unordered_set<mqbu::StorageKey>* appKeys,
-                            const bsl::string&                    appId)
-{
-    // executed by *QUEUE_DISPATCHER* thread or by *CLUSTER DISPATCHER* thread.
-
-    mqbu::StorageKey appKey;
-    mqbs::StorageUtil::generateStorageKey(&appKey, appKeys, appId);
-    BSLS_ASSERT_SAFE(!appKey.isNull());
-    BSLS_ASSERT_SAFE(appKeys->end() != appKeys->find(appKey));
-
-    return appKey;
-}
-
 void StorageUtil::registerQueueAsPrimary(const mqbi::Cluster*    cluster,
                                          StorageSpMap*           storageMap,
                                          bslmt::Mutex*           storagesLock,
@@ -2815,7 +2840,6 @@ void StorageUtil::createQueueStorageAsReplica(
     BSLS_ASSERT_SAFE(fs->inDispatcherThread());
     BSLS_ASSERT_SAFE(storageMap);
     BSLS_ASSERT_SAFE(domainFactory);
-    ;
     BSLS_ASSERT_SAFE(uri.isValid());
     BSLS_ASSERT_SAFE(!queueKey.isNull());
 
@@ -3202,93 +3226,6 @@ int StorageUtil::configureStorage(
     return rc_SUCCESS;
 }
 
-void StorageUtil::processPrimaryStatusAdvisoryDispatched(
-    mqbs::FileStore*                           fs,
-    PartitionInfo*                             pinfo,
-    const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
-    const bsl::string&                         clusterDescription,
-    mqbnet::ClusterNode*                       source,
-    bool                                       isFSMWorkflow)
-{
-    // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(fs && fs->inDispatcherThread());
-    BSLS_ASSERT_SAFE(pinfo);
-    BSLS_ASSERT_SAFE(source);
-    BSLS_ASSERT_SAFE(bmqp_ctrlmsg::PrimaryStatus::E_UNDEFINED !=
-                     advisory.status());
-
-    if (source == pinfo->primary()) {
-        if (advisory.primaryLeaseId() != pinfo->primaryLeaseId()) {
-            BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
-                << clusterDescription << " Partition ["
-                << advisory.partitionId()
-                << "]: received primary advisory: " << advisory
-                << ", from perceived primary: " << source->nodeDescription()
-                << ", but with different leaseId. LeaseId "
-                << "perceived by self: " << pinfo->primaryLeaseId()
-                << BMQTSK_ALARMLOG_END;
-            return;  // RETURN
-        }
-
-        if (!isFSMWorkflow &&
-            bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE == pinfo->primaryStatus()) {
-            // Self node perceives 'source' as active primary.  Check some
-            // invariant.
-
-            BSLS_ASSERT_SAFE(pinfo->primary() == fs->primaryNode());
-            BSLS_ASSERT_SAFE(pinfo->primaryLeaseId() == fs->primaryLeaseId());
-        }
-    }
-    else {
-        // source !=  pinfo->primary()
-
-        if (0 != pinfo->primary()) {
-            // Primary status advisory from a different node.
-
-            BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
-                << clusterDescription << " Partition ["
-                << advisory.partitionId()
-                << "]: received primary advisory: " << advisory
-                << ", from: " << source->nodeDescription()
-                << ", but self perceives: "
-                << pinfo->primary()->nodeDescription()
-                << " as current primary." << BMQTSK_ALARMLOG_END;
-            return;  // RETURN
-        }
-
-        // 'pinfo->primary()' is null.  This means we haven't heard from the
-        // leader about the partition/primary mapping.  We apply this to the
-        // partition anyways, so that we can continue to accept storage events
-        // once self has recovered from the 'source' for this partition but
-        // hasn't transitioned to AVAILABLE (because its awaiting to finish
-        // recovery for other partitions).  This node will eventually hear from
-        // the leader and will not process further storage events once it
-        // becomes AVAILABLE.
-
-        // TBD: This breaks our contracts that only leader informs a node of
-        // partition/primary mapping, so this needs to be reviewed carefully.
-        // See 'ClusterStateMgr::processPrimaryStatusAdvisory' as well.
-
-        BALL_LOG_WARN << clusterDescription << " Partition ["
-                      << advisory.partitionId()
-                      << "]: received primary advisory: " << advisory
-                      << ", from: " << source->nodeDescription()
-                      << ". Self has not received partition/primary advisory "
-                      << "from leader yet, but will go ahead and mark this "
-                      << "node as primary.";
-    }
-
-    pinfo->setPrimary(source);
-    pinfo->setPrimaryLeaseId(advisory.primaryLeaseId());
-    pinfo->setPrimaryStatus(advisory.status());
-
-    if (bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE == advisory.status()) {
-        fs->setActivePrimary(source, advisory.primaryLeaseId());
-    }
-}
-
 void StorageUtil::processReplicaStatusAdvisoryDispatched(
     mqbc::ClusterData*              clusterData,
     mqbs::FileStore*                fs,
@@ -3646,7 +3583,7 @@ void StorageUtil::processCommand(
 
         if (command.partition().command().isSummaryValue()) {
             loadPartitionStorageSummary(result,
-                                        fileStores,
+                                        *fileStores,
                                         partitionId,
                                         partitionLocation);
             return;  // RETURN
@@ -3785,36 +3722,6 @@ void StorageUtil::processCommand(
     bmqu::MemOutStream                   os(&localAllocator);
     os << "Unknown command '" << command << "'";
     result->makeError().message() = os.str();
-}
-
-void StorageUtil::onDomain(const bmqp_ctrlmsg::Status& status,
-                           mqbi::Domain*               domain,
-                           mqbi::Domain**              out,
-                           bslmt::Latch*               latch,
-                           const mqbs::FileStore*      fs,
-                           const bsl::string&          domainName)
-{
-    // executed by *ANY* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(latch);
-    BSLS_ASSERT_SAFE(out);
-    BSLS_ASSERT_SAFE(fs);
-
-    if (bmqp_ctrlmsg::StatusCategory::E_SUCCESS != status.category()) {
-        BSLS_ASSERT_SAFE(0 == domain);
-        *out = 0;
-
-        BALL_LOG_ERROR << fs->description()
-                       << ": Failed to create domain for [" << domainName
-                       << "], reason: " << status;
-    }
-    else {
-        BSLS_ASSERT_SAFE(domain);
-        *out = domain;
-    }
-
-    latch->arrive();
 }
 
 void StorageUtil::forceIssueAdvisoryAndSyncPt(mqbc::ClusterData*   clusterData,
