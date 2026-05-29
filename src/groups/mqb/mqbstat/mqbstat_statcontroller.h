@@ -28,6 +28,7 @@
 
 // MQB
 #include <mqbcmd_messages.h>
+#include <mqbstat_flatjsonprinter.h>
 #include <mqbstat_jsonprinter.h>
 #include <mqbstat_statmonitor.h>
 #include <mqbstat_statsfilelogger.h>
@@ -126,6 +127,7 @@ class StatController {
     typedef bslma::ManagedPtr<mqbstat::StatMonitor>       SystemStatMonitorMp;
     typedef bslma::ManagedPtr<TablePrinter>               TablePrinterMp;
     typedef bslma::ManagedPtr<StatsFileLogger>            StatsFileLoggerMp;
+    typedef bslma::ManagedPtr<FlatJsonPrinter>            FlatJsonPrinterMp;
     typedef bslma::ManagedPtr<JsonPrinter>                JsonPrinterMp;
     typedef bslma::ManagedPtr<mqbplug::StatConsumer>      StatConsumerMp;
 
@@ -243,6 +245,9 @@ class StatController {
 
     /// JsonPrinter used for admin commands processing
     JsonPrinterMp d_jsonPrinter_mp;
+
+    /// FlatJsonPrinter for periodic flat JSON stats file output
+    FlatJsonPrinterMp d_flatJsonPrinter_mp;
 
     /// Registered stat consumers
     bsl::vector<StatConsumerMp> d_statConsumers;
