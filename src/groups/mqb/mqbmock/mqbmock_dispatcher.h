@@ -51,6 +51,7 @@
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bslmt_mutex.h>
+#include <bsls_atomic.h>
 #include <bsls_cpp11.h>
 
 namespace BloombergLP {
@@ -85,6 +86,9 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
 
     /// Synchronize `functor`s to `execute`
     bsl::queue<mqbi::Dispatcher::VoidFunction> d_queue;
+
+    /// When true, `_execute` only enqueues without running.
+    bsls::AtomicBool d_enqueueOnly;
 
     /// All the event sources allocated by `createEventSource`.
     /// Cached to ensure their lifetime is at least until destructor is called.
@@ -244,6 +248,15 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
     bslmt::Mutex& mutex();
 
     void _execute(const mqbi::Dispatcher::VoidFunction& functor);
+
+    /// Set whether `execute` should only enqueue functors without running
+    /// them.  When `true`, functors are queued for later execution via
+    /// `processQueue`.  When `false` (default), functors are executed
+    /// inline by the calling thread.
+    void setEnqueueOnly(bool value);
+
+    /// Execute all queued functors in the calling thread.
+    void processQueue();
 };
 
 // ======================

@@ -651,6 +651,7 @@ FileBackedStorage::removeAll(const mqbu::StorageKey& appKey)
 
         if (mqbi::StorageResult::e_SUCCESS == rc) {
             purgeCommon(mqbu::StorageKey::k_NULL_KEY, true);
+            d_store_p->onPurgeComplete();
 
             d_isEmpty.storeRelaxed(1);
 

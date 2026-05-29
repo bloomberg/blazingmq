@@ -30,7 +30,7 @@ from blazingmq.dev.it.cluster_util import (
 
 
 # Set max journal file size to a small value to force rollover during the test
-MAX_JOURNAL_FILE_SIZE = 884
+MAX_JOURNAL_FILE_SIZE = 1844
 
 
 @tweak.cluster.partition_config.max_journal_file_size(MAX_JOURNAL_FILE_SIZE)

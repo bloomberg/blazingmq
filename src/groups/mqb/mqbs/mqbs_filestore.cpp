@@ -107,12 +107,31 @@ const int k_NAGLE_PACKET_COUNT = 100;
 
 const int k_KEY_LEN = FileStoreProtocol::k_KEY_LENGTH;
 
-const unsigned int k_REQUESTED_JOURNAL_SPACE =
-    3 * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
-// Above, 3 == 1 journal record being written +
-//             1 journal sync point if rolling over +
-//             1 journal sync point if self needs to issue another sync point
-//             in 'setActivePrimary' with old values
+/// k_RESERVED1_SYNC_POINT_SIZE is the space in the end of the JOURNAL file
+/// reserved for SYNC POINTS:
+/// 1 journal sync point if rolling over +
+/// 1 journal sync point if self needs to issue another sync point in
+///   'setActivePrimary' with old values
+const bsls::Types::Uint64 k_RESERVED1_SYNC_POINT_SIZE =
+    2 * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+
+/// k_RESERVED2_PURGE_SIZE is the space in the end of the JOURNAL file reserved
+/// for PURGE records if JOURNAL file is not available
+const bsls::Types::Uint64 k_RESERVED2_PURGE_SIZE =
+    k_RESERVED1_SYNC_POINT_SIZE +
+    16 * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+
+/// k_REQUESTED_JOURNAL_SPACE is the minimum required space in JOURNAL to write
+/// a next common record
+const bsls::Types::Uint64 k_REQUESTED_JOURNAL_SPACE =
+    FileStoreProtocol::k_JOURNAL_RECORD_SIZE + k_RESERVED2_PURGE_SIZE;
+
+/// Reserved areas of the JOURNAL file (not in scale):
+/// [start ======================= JOURNAL FILE ========================== end]
+/// k_RESERVED1_SYNC_POINT_SIZE                                            [==]
+/// k_RESERVED2_PURGE_SIZE                                     [==============]
+/// k_REQUESTED_JOURNAL_SPACE                                 [===============]
+/// [========= normal JOURNAL records ========================]
 
 /// Return a rounded (down) percentage value (range [0-100]) representing
 /// the space in use on a file with the specified `capacity`, currently
@@ -926,13 +945,13 @@ int FileStore::openInRecoveryMode(bsl::ostream&    errorDescription,
     // to bump the journal file size.
 
     if (d_config.maxJournalFileSize() <
-        (journalFileOffset + 2 * FileStoreProtocol::k_JOURNAL_RECORD_SIZE)) {
+        (journalFileOffset + k_RESERVED1_SYNC_POINT_SIZE)) {
         BALL_LOG_ERROR << partitionDesc() << "Journal does not have enough "
                        << "space. Journal offset: " << journalFileOffset
                        << ", max journal file size per config: "
                        << d_config.maxJournalFileSize()
                        << ", additional space (in bytes) required in journal: "
-                       << (2 * FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+                       << k_RESERVED1_SYNC_POINT_SIZE;
         return rc_PARTITION_FULL;  // RETURN
     }
 
@@ -3034,7 +3053,7 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
                                 const MappedFileDescriptor& file,
                                 const bsl::string&          fileName,
                                 bsls::Types::Uint64         currentSize,
-                                unsigned int                requestedSpace)
+                                bsls::Types::Uint64         requestedSpace)
 {
     FileSet* activeFileSet = d_fileSets[0].get();
     BSLS_ASSERT_SAFE(activeFileSet);
@@ -3654,7 +3673,43 @@ int FileStore::writeQueueOpRecord(DataStoreRecordHandle*  handle,
     }
 
     if (!activeFileSet->d_journalFileAvailable) {
-        return rc_UNAVAILABLE;  // RETURN
+        if (QueueOpType::e_PURGE != queueOpFlag) {
+            // Nothing else we can do unless it is a PURGE record
+            return rc_UNAVAILABLE;  // RETURN
+        }
+        if (!appKey.isNull()) {
+            // Per-appId purge requires writing message deletion records to
+            // journal, but we don't have space for it. Only full queue purges
+            // are supported on unavailable journal.
+            return rc_UNAVAILABLE;  // RETURN
+        }
+
+        const bool useSyncPointReservedArea =
+            (activeFileSet->d_journalFile.fileSize() <
+             FileStoreProtocol::k_JOURNAL_RECORD_SIZE +
+                 activeFileSet->d_journalFilePosition +
+                 k_RESERVED1_SYNC_POINT_SIZE);
+        if (useSyncPointReservedArea) {
+            // This is a PURGE record, but we cannot write it because this
+            // record will use space reserved for SYNC POINTS in the end of the
+            // JOURNAL file
+            return rc_UNAVAILABLE;  // RETURN
+        }
+
+        BALL_LOG_WARN << partitionDesc()
+                      << "Writing PURGE record for queueKey [" << queueKey
+                      << "] to journal despite partition being"
+                      << " unavailable";
+
+        writeQueueOpRecordImpl(handle,
+                               queueKey,
+                               appKey,
+                               queueOpFlag,
+                               timestamp,
+                               startPrimaryLeaseId,
+                               startSequenceNum);
+
+        return rc_SUCCESS;  // RETURN
     }
 
     // Roll over if needed
@@ -3667,19 +3722,35 @@ int FileStore::writeQueueOpRecord(DataStoreRecordHandle*  handle,
         return 10 * rc + rc_ROLLOVER_FAILURE;  // RETURN
     }
 
-    // Update 'activeFileSet' as it may have rolled over above.
-    activeFileSet = d_fileSets[0].get();
+    writeQueueOpRecordImpl(handle,
+                           queueKey,
+                           appKey,
+                           queueOpFlag,
+                           timestamp,
+                           startPrimaryLeaseId,
+                           startSequenceNum);
 
-    // Local refs for convenience.
+    return rc_SUCCESS;
+}
+
+void FileStore::writeQueueOpRecordImpl(DataStoreRecordHandle*  handle,
+                                       const mqbu::StorageKey& queueKey,
+                                       const mqbu::StorageKey& appKey,
+                                       QueueOpType::Enum       queueOpFlag,
+                                       bsls::Types::Uint64     timestamp,
+                                       unsigned int        startPrimaryLeaseId,
+                                       bsls::Types::Uint64 startSequenceNum)
+{
+    FileSet* activeFileSet = d_fileSets[0].get();
+    BSLS_ASSERT_SAFE(activeFileSet);
+
     MappedFileDescriptor& journal    = activeFileSet->d_journalFile;
     bsls::Types::Uint64&  journalPos = activeFileSet->d_journalFilePosition;
 
-    BSLS_ASSERT_SAFE(journal.fileSize() >=
-                     (journalPos + k_REQUESTED_JOURNAL_SPACE));
-    // JOURNAL has been successfully rolled over, so above assert should
-    // not fire.
+    BSLS_ASSERT_SAFE(journalPos + k_RESERVED1_SYNC_POINT_SIZE +
+                         FileStoreProtocol::k_JOURNAL_RECORD_SIZE <=
+                     journal.fileSize());
 
-    // Append queueOp record to journal.
     bsls::Types::Uint64      recordOffset = journalPos;
     OffsetPtr<QueueOpRecord> qRec(journal.block(), journalPos);
     new (qRec.get()) QueueOpRecord();
@@ -3701,8 +3772,6 @@ int FileStore::writeQueueOpRecord(DataStoreRecordHandle*  handle,
                                       bmqp::StorageMessageType::e_QUEUE_OP,
                                       RecordType::e_QUEUE_OP,
                                       recordOffset);
-
-    return rc_SUCCESS;
 }
 
 void FileStore::writeRolledOverRecord(DataStoreRecord*    record,
@@ -5323,7 +5392,8 @@ int FileStore::open(QueueKeyInfoMap* queueKeyInfoMap)
     enum {
         rc_SUCCESS                   = 0,
         rc_NON_RECOVERY_MODE_FAILURE = -1,
-        rc_RECOVERY_MODE_FAILURE     = -2
+        rc_RECOVERY_MODE_FAILURE     = -2,
+        rc_JOURNAL_FILE_TOO_SMALL    = -3
     };
 
     BALL_LOG_INFO_BLOCK
@@ -5336,6 +5406,17 @@ int FileStore::open(QueueKeyInfoMap* queueKeyInfoMap)
     if (d_isOpen) {
         BALL_LOG_INFO << partitionDesc() << "is already open.";
         return rc_SUCCESS;  // RETURN
+    }
+
+    const bsls::Types::Uint64 minJournalFileSize = sizeof(FileHeader) +
+                                                   sizeof(JournalFileHeader) +
+                                                   k_REQUESTED_JOURNAL_SPACE;
+    if (d_config.maxJournalFileSize() < minJournalFileSize) {
+        BALL_LOG_ERROR << partitionDesc() << "maxJournalFileSize ("
+                       << d_config.maxJournalFileSize()
+                       << ") is too small. Minimum required: "
+                       << minJournalFileSize;
+        return rc_JOURNAL_FILE_TOO_SMALL;  // RETURN
     }
 
     bmqu::MemOutStream errorDescription;
@@ -6255,6 +6336,26 @@ void FileStore::removeRecordRaw(const DataStoreRecordHandle& handle)
     }
 
     d_records.erase(recordIt);
+}
+
+void FileStore::onPurgeComplete()
+{
+    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+
+    FileSet* activeFileSet = d_fileSets[0].get();
+    BSLS_ASSERT_SAFE(activeFileSet);
+
+    if (activeFileSet->d_journalFileAvailable) {
+        return;  // RETURN
+    }
+
+    activeFileSet->d_journalFileAvailable = true;
+
+    rolloverIfNeeded(FileType::e_JOURNAL,
+                     activeFileSet->d_journalFile,
+                     activeFileSet->d_journalFileName,
+                     activeFileSet->d_journalFilePosition,
+                     k_REQUESTED_JOURNAL_SPACE);
 }
 
 void FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
