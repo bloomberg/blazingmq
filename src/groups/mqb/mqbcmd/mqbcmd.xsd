@@ -22,7 +22,6 @@
         <element name="configProvider" type="tns:ConfigProviderCommand"/>
         <element name="stat"           type="tns:StatCommand"/>
         <element name="clusters"       type="tns:ClustersCommand"/>
-        <element name="danger"         type="tns:DangerCommand"/>
         <element name="brokerConfig"   type="tns:BrokerConfigCommand"/>
       </choice>
       <element   name='encoding'       type='tns:EncodingFormat' default='TEXT'/>
@@ -814,13 +813,6 @@
     <choice>
       <element name="list"            type="tns:Void"/>
       <element name="cluster"         type="tns:Cluster"/>
-    </choice>
-  </complexType>
-
-  <complexType name="DangerCommand">
-    <choice>
-      <element name="shutdown"  type="tns:Void"/>
-      <element name="terminate" type="tns:Void"/>
     </choice>
   </complexType>
 

@@ -760,16 +760,11 @@ Application::getRelevantCluster(bsl::ostream&          errorDescription,
     return NULL;  // RETURN
 }
 
-int Application::executeCommand(const mqbcmd::Command&  command,
-                                mqbcmd::InternalResult* cmdResult)
+void Application::executeCommand(const mqbcmd::Command&  command,
+                                 mqbcmd::InternalResult* cmdResult)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(cmdResult);
-
-    enum RcEnum {
-        rc_SUCCESS    = 0,
-        rc_EARLY_EXIT = -1,
-    };
 
     const mqbcmd::CommandChoice& commandChoice = command.choice();
 
@@ -833,19 +828,6 @@ int Application::executeCommand(const mqbcmd::Command&  command,
             cmdResult->makeClustersResult(clustersResult);
         }
     }
-    else if (commandChoice.isDangerValue()) {
-        // Intentially _undocumented_ *DANGEROUS* commands!!
-        if (commandChoice.danger().isShutdownValue()) {
-            mqbu::ExitUtil::shutdown(mqbu::ExitCode::e_REQUESTED);
-            return rc_EARLY_EXIT;  // RETURN
-        }
-        else if (commandChoice.danger().isTerminateValue()) {
-            mqbu::ExitUtil::terminate(mqbu::ExitCode::e_REQUESTED);
-            // See the implementation of 'mqbu::ExitUtil::terminate'.  It might
-            // return.
-            return rc_EARLY_EXIT;  // RETURN
-        }
-    }
     else if (commandChoice.isBrokerConfigValue()) {
         if (commandChoice.brokerConfig().isDumpValue()) {
             baljsn::Encoder        encoder;
@@ -872,8 +854,6 @@ int Application::executeCommand(const mqbcmd::Command&  command,
         errorOs << "Unknown command '" << commandChoice << "'";
         cmdResult->makeError().message() = errorOs.str();
     }
-
-    return rc_SUCCESS;
 }
 
 int Application::processCommand(const bslstl::StringRef& source,
@@ -883,7 +863,6 @@ int Application::processCommand(const bslstl::StringRef& source,
 {
     enum RcEnum {
         rc_SUCCESS     = 0,
-        rc_EARLY_EXIT  = -1,
         rc_ERROR       = -2,
         rc_PARSE_ERROR = -3,
     };
@@ -917,10 +896,7 @@ int Application::processCommand(const bslstl::StringRef& source,
     // Currently commands from reroutes are executed on their own dedicated
     // thread.
     if (fromReroute || neverReroute) {
-        if (0 != executeCommand(command, &cmdResult)) {
-            // early exit (caused by "dangerous" command)
-            return rc_EARLY_EXIT;  // RETURN
-        }
+        executeCommand(command, &cmdResult);
         mqbcmd::Util::printCommandResult(cmdResult, command.encoding(), os);
         return cmdResult.isErrorValue() ? rc_ERROR : rc_SUCCESS;  // RETURN
     }
@@ -959,10 +935,7 @@ int Application::processCommand(const bslstl::StringRef& source,
     }
 
     if (shouldSelfExecute) {
-        if (0 != executeCommand(command, &cmdResult)) {
-            // early exit (caused by "dangerous" command)
-            return rc_EARLY_EXIT;  // RETURN
-        }
+        executeCommand(command, &cmdResult);
     }
 
     // While we wait we are blocking the execution of any subsequent commands.

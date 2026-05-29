@@ -1,4 +1,4 @@
-// Copyright 2019-2025 Bloomberg Finance L.P.
+// Copyright 2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -54,6 +54,7 @@
 
 #include <bsl_iosfwd.h>
 #include <bsl_limits.h>
+#include <bsl_type_traits.h>
 
 #include <bsl_ostream.h>
 #include <bsl_string.h>
@@ -168,9 +169,6 @@ class ClusterNodeInfo;
 }
 namespace mqbcmd {
 class ClusterQueue;
-}
-namespace mqbcmd {
-class DangerCommand;
 }
 namespace mqbcmd {
 class ElectorInfo;
@@ -631,7 +629,8 @@ class BrokerConfig {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::BrokerConfig)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    mqbcmd::BrokerConfig);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::BrokerConfig> : bsl::true_type {};
 
@@ -931,7 +930,7 @@ class CapacityMeter {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::CapacityMeter)
+    mqbcmd::CapacityMeter);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::CapacityMeter> : bsl::true_type {};
 
@@ -1159,7 +1158,7 @@ class ClientMsgGroupsCount {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::ClientMsgGroupsCount)
+    mqbcmd::ClientMsgGroupsCount);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::ClientMsgGroupsCount>
 : bsl::true_type {};
@@ -1399,7 +1398,7 @@ class ClusterDomain {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::ClusterDomain)
+    mqbcmd::ClusterDomain);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::ClusterDomain> : bsl::true_type {};
 
@@ -1636,7 +1635,7 @@ class ClusterNode {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::ClusterNode)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::ClusterNode);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::ClusterNode> : bsl::true_type {};
 
@@ -1854,7 +1853,7 @@ class CommandSpec {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::CommandSpec)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::CommandSpec);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::CommandSpec> : bsl::true_type {};
 
@@ -2063,7 +2062,7 @@ class ConsumerInfo {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::ConsumerInfo)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::ConsumerInfo);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::ConsumerInfo> : bsl::true_type {};
 
@@ -2076,9 +2075,17 @@ namespace mqbcmd {
 struct ConsumerStatus {
   public:
     // TYPES
-    enum Value { ALIVE = 0, REGISTERED = 1, UNAUTHORIZED = 2 };
+    enum Value {
+        e_ALIVE        = 0,
+        e_REGISTERED   = 1,
+        e_UNAUTHORIZED = 2,
 
-    enum { NUM_ENUMERATORS = 3 };
+        ALIVE        = e_ALIVE,
+        REGISTERED   = e_REGISTERED,
+        UNAUTHORIZED = e_UNAUTHORIZED
+    };
+
+    enum { k_NUM_ENUMERATORS = 3, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -2126,7 +2133,7 @@ struct ConsumerStatus {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(mqbcmd::ConsumerStatus)
+BDLAT_DECL_ENUMERATION_TRAITS(mqbcmd::ConsumerStatus);
 
 namespace mqbcmd {
 
@@ -2329,7 +2336,7 @@ class Context {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::Context)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::Context);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::Context> : bsl::true_type {};
 
@@ -2550,7 +2557,7 @@ class DomainReconfigure {
 // TRAITS
 
 BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::DomainReconfigure)
+    mqbcmd::DomainReconfigure);
 
 namespace mqbcmd {
 
@@ -2767,7 +2774,8 @@ class DomainRemove {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::DomainRemove)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    mqbcmd::DomainRemove);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::DomainRemove> : bsl::true_type {};
 
@@ -2780,9 +2788,19 @@ namespace mqbcmd {
 struct ElectorState {
   public:
     // TYPES
-    enum Value { DORMANT = 0, FOLLOWER = 1, CANDIDATE = 2, LEADER = 3 };
+    enum Value {
+        e_DORMANT   = 0,
+        e_FOLLOWER  = 1,
+        e_CANDIDATE = 2,
+        e_LEADER    = 3,
 
-    enum { NUM_ENUMERATORS = 4 };
+        DORMANT   = e_DORMANT,
+        FOLLOWER  = e_FOLLOWER,
+        CANDIDATE = e_CANDIDATE,
+        LEADER    = e_LEADER
+    };
+
+    enum { k_NUM_ENUMERATORS = 4, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -2830,7 +2848,7 @@ struct ElectorState {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(mqbcmd::ElectorState)
+BDLAT_DECL_ENUMERATION_TRAITS(mqbcmd::ElectorState);
 
 namespace mqbcmd {
 
@@ -2843,9 +2861,17 @@ struct EncodingFormat {
 
   public:
     // TYPES
-    enum Value { TEXT = 0, JSON_COMPACT = 1, JSON_PRETTY = 2 };
+    enum Value {
+        e_TEXT         = 0,
+        e_JSON_COMPACT = 1,
+        e_JSON_PRETTY  = 2,
 
-    enum { NUM_ENUMERATORS = 3 };
+        TEXT         = e_TEXT,
+        JSON_COMPACT = e_JSON_COMPACT,
+        JSON_PRETTY  = e_JSON_PRETTY
+    };
+
+    enum { k_NUM_ENUMERATORS = 3, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -2893,7 +2919,7 @@ struct EncodingFormat {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(mqbcmd::EncodingFormat)
+BDLAT_DECL_ENUMERATION_TRAITS(mqbcmd::EncodingFormat);
 
 namespace mqbcmd {
 
@@ -3095,7 +3121,7 @@ class Error {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::Error)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::Error);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::Error> : bsl::true_type {};
 
@@ -3288,7 +3314,7 @@ class FileInfo {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::FileInfo)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::FileInfo);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::FileInfo> : bsl::true_type {};
 
@@ -3509,7 +3535,7 @@ class FileSet {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::FileSet)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::FileSet);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::FileSet> : bsl::true_type {};
 
@@ -3522,9 +3548,17 @@ namespace mqbcmd {
 struct FileStoreState {
   public:
     // TYPES
-    enum Value { OPEN = 0, CLOSED = 1, STOPPING = 2 };
+    enum Value {
+        e_OPEN     = 0,
+        e_CLOSED   = 1,
+        e_STOPPING = 2,
 
-    enum { NUM_ENUMERATORS = 3 };
+        OPEN     = e_OPEN,
+        CLOSED   = e_CLOSED,
+        STOPPING = e_STOPPING
+    };
+
+    enum { k_NUM_ENUMERATORS = 3, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -3572,7 +3606,7 @@ struct FileStoreState {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(mqbcmd::FileStoreState)
+BDLAT_DECL_ENUMERATION_TRAITS(mqbcmd::FileStoreState);
 
 namespace mqbcmd {
 
@@ -3738,7 +3772,7 @@ class HelpCommand {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::HelpCommand)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::HelpCommand);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::HelpCommand> : bsl::true_type {};
 
@@ -3921,7 +3955,7 @@ class LeaderMessageSequence {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::LeaderMessageSequence)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::LeaderMessageSequence);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::LeaderMessageSequence>
 : bsl::true_type {};
@@ -3935,9 +3969,17 @@ namespace mqbcmd {
 struct LeaderStatus {
   public:
     // TYPES
-    enum Value { UNDEFINED = 0, PASSIVE = 1, ACTIVE = 2 };
+    enum Value {
+        e_UNDEFINED = 0,
+        e_PASSIVE   = 1,
+        e_ACTIVE    = 2,
 
-    enum { NUM_ENUMERATORS = 3 };
+        UNDEFINED = e_UNDEFINED,
+        PASSIVE   = e_PASSIVE,
+        ACTIVE    = e_ACTIVE
+    };
+
+    enum { k_NUM_ENUMERATORS = 3, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -3985,7 +4027,7 @@ struct LeaderStatus {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(mqbcmd::LeaderStatus)
+BDLAT_DECL_ENUMERATION_TRAITS(mqbcmd::LeaderStatus);
 
 namespace mqbcmd {
 
@@ -4228,7 +4270,7 @@ class LeastRecentlyUsedGroupId {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::LeastRecentlyUsedGroupId)
+    mqbcmd::LeastRecentlyUsedGroupId);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::LeastRecentlyUsedGroupId>
 : bsl::true_type {};
@@ -4465,7 +4507,8 @@ class ListMessages {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::ListMessages)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    mqbcmd::ListMessages);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::ListMessages> : bsl::true_type {};
 
@@ -4478,9 +4521,17 @@ namespace mqbcmd {
 struct Locality {
   public:
     // TYPES
-    enum Value { REMOTE = 0, LOCAL = 1, MEMBER = 2 };
+    enum Value {
+        e_REMOTE = 0,
+        e_LOCAL  = 1,
+        e_MEMBER = 2,
 
-    enum { NUM_ENUMERATORS = 3 };
+        REMOTE = e_REMOTE,
+        LOCAL  = e_LOCAL,
+        MEMBER = e_MEMBER
+    };
+
+    enum { k_NUM_ENUMERATORS = 3, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -4528,7 +4579,7 @@ struct Locality {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(mqbcmd::Locality)
+BDLAT_DECL_ENUMERATION_TRAITS(mqbcmd::Locality);
 
 namespace mqbcmd {
 
@@ -4760,7 +4811,7 @@ class Message {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::Message)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::Message);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::Message> : bsl::true_type {};
 
@@ -4776,14 +4827,20 @@ struct NodeStatus {
   public:
     // TYPES
     enum Value {
-        E_UNKNOWN     = 0,
-        E_STARTING    = 10,
-        E_AVAILABLE   = 20,
-        E_STOPPING    = 30,
-        E_UNAVAILABLE = 40
+        e_E_UNKNOWN     = 0,
+        e_E_STARTING    = 10,
+        e_E_AVAILABLE   = 20,
+        e_E_STOPPING    = 30,
+        e_E_UNAVAILABLE = 40,
+
+        E_UNKNOWN     = e_E_UNKNOWN,
+        E_STARTING    = e_E_STARTING,
+        E_AVAILABLE   = e_E_AVAILABLE,
+        E_STOPPING    = e_E_STOPPING,
+        E_UNAVAILABLE = e_E_UNAVAILABLE
     };
 
-    enum { NUM_ENUMERATORS = 5 };
+    enum { k_NUM_ENUMERATORS = 5, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -4831,7 +4888,7 @@ struct NodeStatus {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(mqbcmd::NodeStatus)
+BDLAT_DECL_ENUMERATION_TRAITS(mqbcmd::NodeStatus);
 
 namespace mqbcmd {
 
@@ -4842,9 +4899,17 @@ namespace mqbcmd {
 struct PrimaryStatus {
   public:
     // TYPES
-    enum Value { UNDEFINED = 0, PASSIVE = 1, ACTIVE = 5 };
+    enum Value {
+        e_UNDEFINED = 0,
+        e_PASSIVE   = 1,
+        e_ACTIVE    = 5,
 
-    enum { NUM_ENUMERATORS = 3 };
+        UNDEFINED = e_UNDEFINED,
+        PASSIVE   = e_PASSIVE,
+        ACTIVE    = e_ACTIVE
+    };
+
+    enum { k_NUM_ENUMERATORS = 3, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -4892,7 +4957,7 @@ struct PrimaryStatus {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(mqbcmd::PrimaryStatus)
+BDLAT_DECL_ENUMERATION_TRAITS(mqbcmd::PrimaryStatus);
 
 namespace mqbcmd {
 
@@ -5154,7 +5219,7 @@ class PurgedQueueDetails {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::PurgedQueueDetails)
+    mqbcmd::PurgedQueueDetails);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::PurgedQueueDetails>
 : bsl::true_type {};
@@ -5398,7 +5463,7 @@ class RelayQueueEngineSubStream {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::RelayQueueEngineSubStream)
+    mqbcmd::RelayQueueEngineSubStream);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::RelayQueueEngineSubStream>
 : bsl::true_type {};
@@ -5638,7 +5703,7 @@ class RemoteStreamInfo {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::RemoteStreamInfo)
+    mqbcmd::RemoteStreamInfo);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::RemoteStreamInfo> : bsl::true_type {
 };
@@ -5652,9 +5717,17 @@ namespace mqbcmd {
 struct ResourceUsageMonitorState {
   public:
     // TYPES
-    enum Value { STATE_NORMAL = 0, STATE_HIGH_WATERMARK = 1, STATE_FULL = 2 };
+    enum Value {
+        e_STATE_NORMAL         = 0,
+        e_STATE_HIGH_WATERMARK = 1,
+        e_STATE_FULL           = 2,
 
-    enum { NUM_ENUMERATORS = 3 };
+        STATE_NORMAL         = e_STATE_NORMAL,
+        STATE_HIGH_WATERMARK = e_STATE_HIGH_WATERMARK,
+        STATE_FULL           = e_STATE_FULL
+    };
+
+    enum { k_NUM_ENUMERATORS = 3, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -5702,7 +5775,7 @@ struct ResourceUsageMonitorState {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(mqbcmd::ResourceUsageMonitorState)
+BDLAT_DECL_ENUMERATION_TRAITS(mqbcmd::ResourceUsageMonitorState);
 
 namespace mqbcmd {
 
@@ -5928,7 +6001,7 @@ class RouteResponse {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::RouteResponse)
+    mqbcmd::RouteResponse);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::RouteResponse> : bsl::true_type {};
 
@@ -6150,7 +6223,7 @@ class StorageQueueCommand {
 // TRAITS
 
 BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::StorageQueueCommand)
+    mqbcmd::StorageQueueCommand);
 
 namespace mqbcmd {
 
@@ -6430,7 +6503,7 @@ class StorageQueueInfo {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::StorageQueueInfo)
+    mqbcmd::StorageQueueInfo);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::StorageQueueInfo> : bsl::true_type {
 };
@@ -6644,7 +6717,7 @@ class SubId {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::SubId)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::SubId);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::SubId> : bsl::true_type {};
 
@@ -6810,7 +6883,7 @@ class Subscriber {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::Subscriber)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::Subscriber);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::Subscriber> : bsl::true_type {};
 
@@ -6959,7 +7032,7 @@ class UninitializedQueue {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::UninitializedQueue)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::UninitializedQueue);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::UninitializedQueue>
 : bsl::true_type {};
@@ -7201,7 +7274,7 @@ class VirtualStorage {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::VirtualStorage)
+    mqbcmd::VirtualStorage);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::VirtualStorage> : bsl::true_type {};
 
@@ -7346,7 +7419,7 @@ class Void {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::Void)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::Void);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::Void> : bsl::true_type {};
 
@@ -7545,7 +7618,7 @@ class ActiveFileSet {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::ActiveFileSet)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::ActiveFileSet);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::ActiveFileSet> : bsl::true_type {};
 
@@ -7750,7 +7823,7 @@ class BrokerConfigCommand {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::BrokerConfigCommand)
+BDLAT_DECL_CHOICE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::BrokerConfigCommand);
 
 namespace mqbcmd {
 
@@ -7992,7 +8065,7 @@ class ClearCache {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::ClearCache)
+BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::ClearCache);
 
 namespace mqbcmd {
 
@@ -8226,7 +8299,7 @@ class ClusterInfo {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::ClusterInfo)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::ClusterInfo);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::ClusterInfo> : bsl::true_type {};
 
@@ -8479,7 +8552,7 @@ class ClusterNodeInfo {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::ClusterNodeInfo)
+    mqbcmd::ClusterNodeInfo);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::ClusterNodeInfo> : bsl::true_type {};
 
@@ -8799,238 +8872,10 @@ class ClusterQueue {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::ClusterQueue)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    mqbcmd::ClusterQueue);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::ClusterQueue> : bsl::true_type {};
-
-namespace mqbcmd {
-
-// ===================
-// class DangerCommand
-// ===================
-
-class DangerCommand {
-    // INSTANCE DATA
-    union {
-        bsls::ObjectBuffer<Void> d_shutdown;
-        bsls::ObjectBuffer<Void> d_terminate;
-    };
-
-    int d_selectionId;
-
-    // PRIVATE ACCESSORS
-    template <typename t_HASH_ALGORITHM>
-    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
-
-    bool isEqualTo(const DangerCommand& rhs) const;
-
-  public:
-    // TYPES
-
-    enum {
-        SELECTION_ID_UNDEFINED = -1,
-        SELECTION_ID_SHUTDOWN  = 0,
-        SELECTION_ID_TERMINATE = 1
-    };
-
-    enum { NUM_SELECTIONS = 2 };
-
-    enum { SELECTION_INDEX_SHUTDOWN = 0, SELECTION_INDEX_TERMINATE = 1 };
-
-    // CONSTANTS
-    static const char CLASS_NAME[];
-
-    static const bdlat_SelectionInfo SELECTION_INFO_ARRAY[];
-
-    // CLASS METHODS
-    static const bdlat_SelectionInfo* lookupSelectionInfo(int id);
-    // Return selection information for the selection indicated by the
-    // specified 'id' if the selection exists, and 0 otherwise.
-
-    static const bdlat_SelectionInfo* lookupSelectionInfo(const char* name,
-                                                          int nameLength);
-    // Return selection information for the selection indicated by the
-    // specified 'name' of the specified 'nameLength' if the selection
-    // exists, and 0 otherwise.
-
-    // CREATORS
-    DangerCommand();
-    // Create an object of type 'DangerCommand' having the default value.
-
-    DangerCommand(const DangerCommand& original);
-    // Create an object of type 'DangerCommand' having the value of the
-    // specified 'original' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    DangerCommand(DangerCommand&& original) noexcept;
-    // Create an object of type 'DangerCommand' having the value of the
-    // specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
-#endif
-
-    ~DangerCommand();
-    // Destroy this object.
-
-    // MANIPULATORS
-    DangerCommand& operator=(const DangerCommand& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    DangerCommand& operator=(DangerCommand&& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-    // After performing this action, the 'rhs' object will be left in a
-    // valid, but unspecified state.
-#endif
-
-    void reset();
-    // Reset this object to the default value (i.e., its value upon default
-    // construction).
-
-    int makeSelection(int selectionId);
-    // Set the value of this object to be the default for the selection
-    // indicated by the specified 'selectionId'.  Return 0 on success, and
-    // non-zero value otherwise (i.e., the selection is not found).
-
-    int makeSelection(const char* name, int nameLength);
-    // Set the value of this object to be the default for the selection
-    // indicated by the specified 'name' of the specified 'nameLength'.
-    // Return 0 on success, and non-zero value otherwise (i.e., the
-    // selection is not found).
-
-    Void& makeShutdown();
-    Void& makeShutdown(const Void& value);
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    Void& makeShutdown(Void&& value);
-#endif
-    // Set the value of this object to be a "Shutdown" value.  Optionally
-    // specify the 'value' of the "Shutdown".  If 'value' is not specified,
-    // the default "Shutdown" value is used.
-
-    Void& makeTerminate();
-    Void& makeTerminate(const Void& value);
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    Void& makeTerminate(Void&& value);
-#endif
-    // Set the value of this object to be a "Terminate" value.  Optionally
-    // specify the 'value' of the "Terminate".  If 'value' is not
-    // specified, the default "Terminate" value is used.
-
-    template <typename t_MANIPULATOR>
-    int manipulateSelection(t_MANIPULATOR& manipulator);
-    // Invoke the specified 'manipulator' on the address of the modifiable
-    // selection, supplying 'manipulator' with the corresponding selection
-    // information structure.  Return the value returned from the
-    // invocation of 'manipulator' if this object has a defined selection,
-    // and -1 otherwise.
-
-    Void& shutdown();
-    // Return a reference to the modifiable "Shutdown" selection of this
-    // object if "Shutdown" is the current selection.  The behavior is
-    // undefined unless "Shutdown" is the selection of this object.
-
-    Void& terminate();
-    // Return a reference to the modifiable "Terminate" selection of this
-    // object if "Terminate" is the current selection.  The behavior is
-    // undefined unless "Terminate" is the selection of this object.
-
-    // ACCESSORS
-    bsl::ostream&
-    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
-    // Format this object to the specified output 'stream' at the
-    // optionally specified indentation 'level' and return a reference to
-    // the modifiable 'stream'.  If 'level' is specified, optionally
-    // specify 'spacesPerLevel', the number of spaces per indentation level
-    // for this and all of its nested objects.  Each line is indented by
-    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
-    // negative, suppress indentation of the first line.  If
-    // 'spacesPerLevel' is negative, suppress line breaks and format the
-    // entire output on one line.  If 'stream' is initially invalid, this
-    // operation has no effect.  Note that a trailing newline is provided
-    // in multiline mode only.
-
-    int selectionId() const;
-    // Return the id of the current selection if the selection is defined,
-    // and -1 otherwise.
-
-    template <typename t_ACCESSOR>
-    int accessSelection(t_ACCESSOR& accessor) const;
-    // Invoke the specified 'accessor' on the non-modifiable selection,
-    // supplying 'accessor' with the corresponding selection information
-    // structure.  Return the value returned from the invocation of
-    // 'accessor' if this object has a defined selection, and -1 otherwise.
-
-    const Void& shutdown() const;
-    // Return a reference to the non-modifiable "Shutdown" selection of
-    // this object if "Shutdown" is the current selection.  The behavior is
-    // undefined unless "Shutdown" is the selection of this object.
-
-    const Void& terminate() const;
-    // Return a reference to the non-modifiable "Terminate" selection of
-    // this object if "Terminate" is the current selection.  The behavior
-    // is undefined unless "Terminate" is the selection of this object.
-
-    bool isShutdownValue() const;
-    // Return 'true' if the value of this object is a "Shutdown" value, and
-    // return 'false' otherwise.
-
-    bool isTerminateValue() const;
-    // Return 'true' if the value of this object is a "Terminate" value,
-    // and return 'false' otherwise.
-
-    bool isUndefinedValue() const;
-    // Return 'true' if the value of this object is undefined, and 'false'
-    // otherwise.
-
-    const char* selectionName() const;
-    // Return the symbolic name of the current selection of this object.
-
-    // HIDDEN FRIENDS
-    friend bool operator==(const DangerCommand& lhs, const DangerCommand& rhs)
-    // Return 'true' if the specified 'lhs' and 'rhs' objects have the same
-    // value, and 'false' otherwise.  Two 'DangerCommand' objects have the
-    // same value if either the selections in both objects have the same
-    // ids and the same values, or both selections are undefined.
-    {
-        return lhs.isEqualTo(rhs);
-    }
-
-    friend bool operator!=(const DangerCommand& lhs, const DangerCommand& rhs)
-    // Return 'true' if the specified 'lhs' and 'rhs' objects do not have
-    // the same values, as determined by 'operator==', and 'false'
-    // otherwise.
-    {
-        return !(lhs == rhs);
-    }
-
-    friend bsl::ostream& operator<<(bsl::ostream&        stream,
-                                    const DangerCommand& rhs)
-    // Format the specified 'rhs' to the specified output 'stream' and
-    // return a reference to the modifiable 'stream'.
-    {
-        return rhs.print(stream, 0, -1);
-    }
-
-    template <typename t_HASH_ALGORITHM>
-    friend void hashAppend(t_HASH_ALGORITHM&    hashAlg,
-                           const DangerCommand& object)
-    // Pass the specified 'object' to the specified 'hashAlg'.  This
-    // function integrates with the 'bslh' modular hashing system and
-    // effectively provides a 'bsl::hash' specialization for
-    // 'DangerCommand'.
-    {
-        return object.hashAppendImpl(hashAlg);
-    }
-};
-
-}  // close package namespace
-
-// TRAITS
-
-BDLAT_DECL_CHOICE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::DangerCommand)
 
 namespace mqbcmd {
 
@@ -9275,7 +9120,7 @@ class ElectorInfo {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::ElectorInfo)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::ElectorInfo);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::ElectorInfo> : bsl::true_type {};
 
@@ -9509,7 +9354,7 @@ class GetTunableChoice {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::GetTunableChoice)
+BDLAT_DECL_CHOICE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::GetTunableChoice);
 
 namespace mqbcmd {
 
@@ -9721,7 +9566,7 @@ class Help {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::Help)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::Help);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::Help> : bsl::true_type {};
 
@@ -9954,7 +9799,7 @@ class MessageGroupIdManagerIndex {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::MessageGroupIdManagerIndex)
+    mqbcmd::MessageGroupIdManagerIndex);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::MessageGroupIdManagerIndex>
 : bsl::true_type {};
@@ -10213,7 +10058,7 @@ class PartitionInfo {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::PartitionInfo)
+    mqbcmd::PartitionInfo);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::PartitionInfo> : bsl::true_type {};
 
@@ -10463,7 +10308,7 @@ class PurgeQueueResult {
 // TRAITS
 
 BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::PurgeQueueResult)
+    mqbcmd::PurgeQueueResult);
 
 namespace mqbcmd {
 
@@ -10738,7 +10583,7 @@ class QueueCommand {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::QueueCommand)
+BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::QueueCommand);
 
 namespace mqbcmd {
 
@@ -10975,7 +10820,7 @@ class QueueContents {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::QueueContents)
+    mqbcmd::QueueContents);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::QueueContents> : bsl::true_type {};
 
@@ -11212,7 +11057,8 @@ class QueueStorage {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::QueueStorage)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    mqbcmd::QueueStorage);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::QueueStorage> : bsl::true_type {};
 
@@ -11495,7 +11341,7 @@ class ResourceUsageMonitor {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::ResourceUsageMonitor)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::ResourceUsageMonitor);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::ResourceUsageMonitor>
 : bsl::true_type {};
@@ -11710,7 +11556,7 @@ class RouteResponseList {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::RouteResponseList)
+    mqbcmd::RouteResponseList);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::RouteResponseList> : bsl::true_type {
 };
@@ -11945,7 +11791,7 @@ class SetTunableChoice {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::SetTunableChoice)
+BDLAT_DECL_CHOICE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::SetTunableChoice);
 
 namespace mqbcmd {
 
@@ -12155,7 +12001,7 @@ class StorageContent {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::StorageContent)
+    mqbcmd::StorageContent);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::StorageContent> : bsl::true_type {};
 
@@ -12389,7 +12235,7 @@ class StorageDomainCommand {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::StorageDomainCommand)
+BDLAT_DECL_CHOICE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::StorageDomainCommand);
 
 namespace mqbcmd {
 
@@ -12679,7 +12525,7 @@ class StoragePartitionCommand {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::StoragePartitionCommand)
+BDLAT_DECL_CHOICE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::StoragePartitionCommand);
 
 namespace mqbcmd {
 
@@ -12896,7 +12742,8 @@ class StorageQueue {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::StorageQueue)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    mqbcmd::StorageQueue);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::StorageQueue> : bsl::true_type {};
 
@@ -13096,7 +12943,7 @@ class Subscription {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::Subscription)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::Subscription);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::Subscription> : bsl::true_type {};
 
@@ -13491,7 +13338,7 @@ class Value {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::Value)
+BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::Value);
 
 namespace mqbcmd {
 
@@ -13696,7 +13543,7 @@ class ClusterList {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::ClusterList)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::ClusterList);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::ClusterList> : bsl::true_type {};
 
@@ -13980,7 +13827,7 @@ class ClusterQueueHelper {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::ClusterQueueHelper)
+    mqbcmd::ClusterQueueHelper);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::ClusterQueueHelper>
 : bsl::true_type {};
@@ -14202,7 +14049,7 @@ class ConfigProviderCommand {
 // TRAITS
 
 BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::ConfigProviderCommand)
+    mqbcmd::ConfigProviderCommand);
 
 namespace mqbcmd {
 
@@ -14471,7 +14318,7 @@ class DomainInfo {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::DomainInfo)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::DomainInfo);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::DomainInfo> : bsl::true_type {};
 
@@ -14688,7 +14535,7 @@ class DomainQueue {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::DomainQueue)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::DomainQueue);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::DomainQueue> : bsl::true_type {};
 
@@ -14909,7 +14756,7 @@ class DomainResolverCommand {
 // TRAITS
 
 BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::DomainResolverCommand)
+    mqbcmd::DomainResolverCommand);
 
 namespace mqbcmd {
 
@@ -15233,7 +15080,7 @@ class FileStoreSummary {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::FileStoreSummary)
+    mqbcmd::FileStoreSummary);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::FileStoreSummary> : bsl::true_type {
 };
@@ -15450,7 +15297,7 @@ class GetTunable {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::GetTunable)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::GetTunable);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::GetTunable> : bsl::true_type {};
 
@@ -15702,7 +15549,7 @@ class MessageGroupIdHelper {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::MessageGroupIdHelper)
+    mqbcmd::MessageGroupIdHelper);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::MessageGroupIdHelper>
 : bsl::true_type {};
@@ -15911,7 +15758,8 @@ class NodeStatuses {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::NodeStatuses)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    mqbcmd::NodeStatuses);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::NodeStatuses> : bsl::true_type {};
 
@@ -16123,7 +15971,7 @@ class PartitionsInfo {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::PartitionsInfo)
+    mqbcmd::PartitionsInfo);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::PartitionsInfo> : bsl::true_type {};
 
@@ -16341,7 +16189,7 @@ class PriorityGroup {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::PriorityGroup)
+    mqbcmd::PriorityGroup);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::PriorityGroup> : bsl::true_type {};
 
@@ -16549,7 +16397,8 @@ class PurgedQueues {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::PurgedQueues)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    mqbcmd::PurgedQueues);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::PurgedQueues> : bsl::true_type {};
 
@@ -16814,7 +16663,7 @@ class QueueHandleSubStream {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::QueueHandleSubStream)
+    mqbcmd::QueueHandleSubStream);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::QueueHandleSubStream>
 : bsl::true_type {};
@@ -17024,7 +16873,7 @@ class QueueStatuses {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::QueueStatuses)
+    mqbcmd::QueueStatuses);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::QueueStatuses> : bsl::true_type {};
 
@@ -17260,7 +17109,7 @@ class SetTunable {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::SetTunable)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::SetTunable);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::SetTunable> : bsl::true_type {};
 
@@ -17479,7 +17328,7 @@ class StorageDomain {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::StorageDomain)
+    mqbcmd::StorageDomain);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::StorageDomain> : bsl::true_type {};
 
@@ -17660,7 +17509,7 @@ class StoragePartition {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::StoragePartition)
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::StoragePartition);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::StoragePartition> : bsl::true_type {
 };
@@ -17895,7 +17744,7 @@ class Tunable {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::Tunable)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::Tunable);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::Tunable> : bsl::true_type {};
 
@@ -18137,7 +17986,7 @@ class TunableConfirmation {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::TunableConfirmation)
+    mqbcmd::TunableConfirmation);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::TunableConfirmation>
 : bsl::true_type {};
@@ -18352,7 +18201,7 @@ class ClusterDomainQueueStatuses {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::ClusterDomainQueueStatuses)
+    mqbcmd::ClusterDomainQueueStatuses);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::ClusterDomainQueueStatuses>
 : bsl::true_type {};
@@ -18617,7 +18466,7 @@ class ClusterProxyStatus {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::ClusterProxyStatus)
+    mqbcmd::ClusterProxyStatus);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::ClusterProxyStatus>
 : bsl::true_type {};
@@ -18894,7 +18743,7 @@ class DomainCommand {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::DomainCommand)
+BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::DomainCommand);
 
 namespace mqbcmd {
 
@@ -19173,7 +19022,8 @@ class ElectorCommand {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::ElectorCommand)
+BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    mqbcmd::ElectorCommand);
 
 namespace mqbcmd {
 
@@ -19403,7 +19253,7 @@ class FileStore {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::FileStore)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::FileStore);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::FileStore> : bsl::true_type {};
 
@@ -19652,7 +19502,7 @@ class QueueHandle {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::QueueHandle)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::QueueHandle);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::QueueHandle> : bsl::true_type {};
 
@@ -19934,7 +19784,7 @@ class ReplicationCommand {
 // TRAITS
 
 BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::ReplicationCommand)
+    mqbcmd::ReplicationCommand);
 
 namespace mqbcmd {
 
@@ -20236,7 +20086,7 @@ class StatCommand {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::StatCommand)
+BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::StatCommand);
 
 namespace mqbcmd {
 
@@ -20486,7 +20336,7 @@ class SubscriptionGroup {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::SubscriptionGroup)
+    mqbcmd::SubscriptionGroup);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::SubscriptionGroup> : bsl::true_type {
 };
@@ -20691,7 +20541,7 @@ class Tunables {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::Tunables)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::Tunables);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::Tunables> : bsl::true_type {};
 
@@ -20912,7 +20762,7 @@ class ClusterStateCommand {
 // TRAITS
 
 BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::ClusterStateCommand)
+    mqbcmd::ClusterStateCommand);
 
 namespace mqbcmd {
 
@@ -21140,7 +20990,7 @@ class ClusterStorageSummary {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::ClusterStorageSummary)
+    mqbcmd::ClusterStorageSummary);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::ClusterStorageSummary>
 : bsl::true_type {};
@@ -21355,7 +21205,7 @@ class Domain {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::Domain)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::Domain);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::Domain> : bsl::true_type {};
 
@@ -21662,7 +21512,7 @@ class ElectorResult {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::ElectorResult)
+BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::ElectorResult);
 
 namespace mqbcmd {
 
@@ -21958,7 +21808,7 @@ class QueueState {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::QueueState)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::QueueState);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::QueueState> : bsl::true_type {};
 
@@ -22269,7 +22119,7 @@ class ReplicationResult {
 // TRAITS
 
 BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::ReplicationResult)
+    mqbcmd::ReplicationResult);
 
 namespace mqbcmd {
 
@@ -22519,7 +22369,7 @@ class RouterConsumer {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::RouterConsumer)
+    mqbcmd::RouterConsumer);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::RouterConsumer> : bsl::true_type {};
 
@@ -22723,7 +22573,7 @@ class Routing {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::Routing)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::Routing);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::Routing> : bsl::true_type {};
 
@@ -23055,7 +22905,7 @@ class StatResult {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::StatResult)
+BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::StatResult);
 
 namespace mqbcmd {
 
@@ -23386,7 +23236,8 @@ class StorageCommand {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::StorageCommand)
+BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    mqbcmd::StorageCommand);
 
 namespace mqbcmd {
 
@@ -23719,7 +23570,8 @@ class ClusterCommand {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::ClusterCommand)
+BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    mqbcmd::ClusterCommand);
 
 namespace mqbcmd {
 
@@ -24022,7 +23874,7 @@ class ClusterStatus {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::ClusterStatus)
+    mqbcmd::ClusterStatus);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::ClusterStatus> : bsl::true_type {};
 
@@ -24328,7 +24180,8 @@ class DomainsCommand {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::DomainsCommand)
+BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    mqbcmd::DomainsCommand);
 
 namespace mqbcmd {
 
@@ -24538,7 +24391,7 @@ class RoundRobinRouter {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::RoundRobinRouter)
+    mqbcmd::RoundRobinRouter);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::RoundRobinRouter> : bsl::true_type {
 };
@@ -24908,7 +24761,7 @@ class StorageResult {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::StorageResult)
+BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::StorageResult);
 
 namespace mqbcmd {
 
@@ -25151,7 +25004,7 @@ class AppState {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::AppState)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::AppState);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::AppState> : bsl::true_type {};
 
@@ -25365,7 +25218,7 @@ class Cluster {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::Cluster)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::Cluster);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::Cluster> : bsl::true_type {};
 
@@ -25763,7 +25616,7 @@ class ClusterResult {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::ClusterResult)
+BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::ClusterResult);
 
 namespace mqbcmd {
 
@@ -26011,7 +25864,7 @@ class ClustersCommand {
 // TRAITS
 
 BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::ClustersCommand)
+    mqbcmd::ClustersCommand);
 
 namespace mqbcmd {
 
@@ -26317,7 +26170,8 @@ class ClustersResult {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::ClustersResult)
+BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    mqbcmd::ClustersResult);
 
 namespace mqbcmd {
 
@@ -26565,7 +26419,7 @@ class ConsumerState {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::ConsumerState)
+    mqbcmd::ConsumerState);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::ConsumerState> : bsl::true_type {};
 
@@ -26818,7 +26672,7 @@ class RelayQueueEngine {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::RelayQueueEngine)
+    mqbcmd::RelayQueueEngine);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::RelayQueueEngine> : bsl::true_type {
 };
@@ -26837,7 +26691,6 @@ class CommandChoice {
         bsls::ObjectBuffer<ConfigProviderCommand> d_configProvider;
         bsls::ObjectBuffer<StatCommand>           d_stat;
         bsls::ObjectBuffer<ClustersCommand>       d_clusters;
-        bsls::ObjectBuffer<DangerCommand>         d_danger;
         bsls::ObjectBuffer<BrokerConfigCommand>   d_brokerConfig;
     };
 
@@ -26860,11 +26713,10 @@ class CommandChoice {
         SELECTION_ID_CONFIG_PROVIDER = 2,
         SELECTION_ID_STAT            = 3,
         SELECTION_ID_CLUSTERS        = 4,
-        SELECTION_ID_DANGER          = 5,
-        SELECTION_ID_BROKER_CONFIG   = 6
+        SELECTION_ID_BROKER_CONFIG   = 5
     };
 
-    enum { NUM_SELECTIONS = 7 };
+    enum { NUM_SELECTIONS = 6 };
 
     enum {
         SELECTION_INDEX_HELP            = 0,
@@ -26872,8 +26724,7 @@ class CommandChoice {
         SELECTION_INDEX_CONFIG_PROVIDER = 2,
         SELECTION_INDEX_STAT            = 3,
         SELECTION_INDEX_CLUSTERS        = 4,
-        SELECTION_INDEX_DANGER          = 5,
-        SELECTION_INDEX_BROKER_CONFIG   = 6
+        SELECTION_INDEX_BROKER_CONFIG   = 5
     };
 
     // CONSTANTS
@@ -27003,16 +26854,6 @@ class CommandChoice {
     // specify the 'value' of the "Clusters".  If 'value' is not specified,
     // the default "Clusters" value is used.
 
-    DangerCommand& makeDanger();
-    DangerCommand& makeDanger(const DangerCommand& value);
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    DangerCommand& makeDanger(DangerCommand&& value);
-#endif
-    // Set the value of this object to be a "Danger" value.  Optionally
-    // specify the 'value' of the "Danger".  If 'value' is not specified,
-    // the default "Danger" value is used.
-
     BrokerConfigCommand& makeBrokerConfig();
     BrokerConfigCommand& makeBrokerConfig(const BrokerConfigCommand& value);
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
@@ -27056,11 +26897,6 @@ class CommandChoice {
     // Return a reference to the modifiable "Clusters" selection of this
     // object if "Clusters" is the current selection.  The behavior is
     // undefined unless "Clusters" is the selection of this object.
-
-    DangerCommand& danger();
-    // Return a reference to the modifiable "Danger" selection of this
-    // object if "Danger" is the current selection.  The behavior is
-    // undefined unless "Danger" is the selection of this object.
 
     BrokerConfigCommand& brokerConfig();
     // Return a reference to the modifiable "BrokerConfig" selection of
@@ -27120,11 +26956,6 @@ class CommandChoice {
     // this object if "Clusters" is the current selection.  The behavior is
     // undefined unless "Clusters" is the selection of this object.
 
-    const DangerCommand& danger() const;
-    // Return a reference to the non-modifiable "Danger" selection of this
-    // object if "Danger" is the current selection.  The behavior is
-    // undefined unless "Danger" is the selection of this object.
-
     const BrokerConfigCommand& brokerConfig() const;
     // Return a reference to the non-modifiable "BrokerConfig" selection of
     // this object if "BrokerConfig" is the current selection.  The
@@ -27149,10 +26980,6 @@ class CommandChoice {
 
     bool isClustersValue() const;
     // Return 'true' if the value of this object is a "Clusters" value, and
-    // return 'false' otherwise.
-
-    bool isDangerValue() const;
-    // Return 'true' if the value of this object is a "Danger" value, and
     // return 'false' otherwise.
 
     bool isBrokerConfigValue() const;
@@ -27208,7 +27035,7 @@ class CommandChoice {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::CommandChoice)
+BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::CommandChoice);
 
 namespace mqbcmd {
 
@@ -27459,7 +27286,7 @@ class FanoutQueueEngine {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::FanoutQueueEngine)
+    mqbcmd::FanoutQueueEngine);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::FanoutQueueEngine> : bsl::true_type {
 };
@@ -27681,7 +27508,7 @@ class Command {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::Command)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::Command);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::Command> : bsl::true_type {};
 
@@ -27926,7 +27753,7 @@ class QueueEngine {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::QueueEngine)
+BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::QueueEngine);
 
 namespace mqbcmd {
 
@@ -28130,7 +27957,7 @@ class LocalQueue {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::LocalQueue)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::LocalQueue);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::LocalQueue> : bsl::true_type {};
 
@@ -28400,7 +28227,7 @@ class RemoteQueue {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::RemoteQueue)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::RemoteQueue);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::RemoteQueue> : bsl::true_type {};
 
@@ -28676,7 +28503,7 @@ class Queue {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::Queue)
+BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::Queue);
 
 namespace mqbcmd {
 
@@ -28896,7 +28723,7 @@ class QueueInternals {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::QueueInternals)
+    mqbcmd::QueueInternals);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::QueueInternals> : bsl::true_type {};
 
@@ -29204,7 +29031,7 @@ class QueueResult {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::QueueResult)
+BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::QueueResult);
 
 namespace mqbcmd {
 
@@ -30117,7 +29944,7 @@ class Result {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::Result)
+BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::Result);
 
 namespace mqbcmd {
 
@@ -30447,7 +30274,7 @@ class DomainResult {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::DomainResult)
+BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::DomainResult);
 
 namespace mqbcmd {
 
@@ -30673,7 +30500,7 @@ class RouteResponseResult {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::RouteResponseResult)
+    mqbcmd::RouteResponseResult);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::RouteResponseResult>
 : bsl::true_type {};
@@ -30952,7 +30779,7 @@ class DomainsResult {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::DomainsResult)
+BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::DomainsResult);
 
 namespace mqbcmd {
 
@@ -31165,7 +30992,7 @@ class RouteResponseResultList {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::RouteResponseResultList)
+    mqbcmd::RouteResponseResultList);
 template <>
 struct bdlat_UsesDefaultValueFlag<mqbcmd::RouteResponseResultList>
 : bsl::true_type {};
@@ -31715,7 +31542,8 @@ class InternalResult {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::InternalResult)
+BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    mqbcmd::InternalResult);
 
 // ============================================================================
 //                          INLINE DEFINITIONS
@@ -37678,135 +37506,6 @@ inline bool ClusterQueue::isCreated() const
 inline const bsl::vector<Context>& ClusterQueue::contexts() const
 {
     return d_contexts;
-}
-
-// -------------------
-// class DangerCommand
-// -------------------
-
-// CLASS METHODS
-// PRIVATE ACCESSORS
-template <typename t_HASH_ALGORITHM>
-void DangerCommand::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
-{
-    typedef DangerCommand Class;
-    using bslh::hashAppend;
-    hashAppend(hashAlgorithm, this->selectionId());
-    switch (this->selectionId()) {
-    case Class::SELECTION_ID_SHUTDOWN:
-        hashAppend(hashAlgorithm, this->shutdown());
-        break;
-    case Class::SELECTION_ID_TERMINATE:
-        hashAppend(hashAlgorithm, this->terminate());
-        break;
-    default: BSLS_ASSERT(this->selectionId() == Class::SELECTION_ID_UNDEFINED);
-    }
-}
-
-inline bool DangerCommand::isEqualTo(const DangerCommand& rhs) const
-{
-    typedef DangerCommand Class;
-    if (this->selectionId() == rhs.selectionId()) {
-        switch (rhs.selectionId()) {
-        case Class::SELECTION_ID_SHUTDOWN:
-            return this->shutdown() == rhs.shutdown();
-        case Class::SELECTION_ID_TERMINATE:
-            return this->terminate() == rhs.terminate();
-        default:
-            BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == rhs.selectionId());
-            return true;
-        }
-    }
-    else {
-        return false;
-    }
-}
-
-// CREATORS
-inline DangerCommand::DangerCommand()
-: d_selectionId(SELECTION_ID_UNDEFINED)
-{
-}
-
-inline DangerCommand::~DangerCommand()
-{
-    reset();
-}
-
-// MANIPULATORS
-template <typename t_MANIPULATOR>
-int DangerCommand::manipulateSelection(t_MANIPULATOR& manipulator)
-{
-    switch (d_selectionId) {
-    case DangerCommand::SELECTION_ID_SHUTDOWN:
-        return manipulator(&d_shutdown.object(),
-                           SELECTION_INFO_ARRAY[SELECTION_INDEX_SHUTDOWN]);
-    case DangerCommand::SELECTION_ID_TERMINATE:
-        return manipulator(&d_terminate.object(),
-                           SELECTION_INFO_ARRAY[SELECTION_INDEX_TERMINATE]);
-    default:
-        BSLS_ASSERT(DangerCommand::SELECTION_ID_UNDEFINED == d_selectionId);
-        return -1;
-    }
-}
-
-inline Void& DangerCommand::shutdown()
-{
-    BSLS_ASSERT(SELECTION_ID_SHUTDOWN == d_selectionId);
-    return d_shutdown.object();
-}
-
-inline Void& DangerCommand::terminate()
-{
-    BSLS_ASSERT(SELECTION_ID_TERMINATE == d_selectionId);
-    return d_terminate.object();
-}
-
-// ACCESSORS
-inline int DangerCommand::selectionId() const
-{
-    return d_selectionId;
-}
-
-template <typename t_ACCESSOR>
-int DangerCommand::accessSelection(t_ACCESSOR& accessor) const
-{
-    switch (d_selectionId) {
-    case SELECTION_ID_SHUTDOWN:
-        return accessor(d_shutdown.object(),
-                        SELECTION_INFO_ARRAY[SELECTION_INDEX_SHUTDOWN]);
-    case SELECTION_ID_TERMINATE:
-        return accessor(d_terminate.object(),
-                        SELECTION_INFO_ARRAY[SELECTION_INDEX_TERMINATE]);
-    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId); return -1;
-    }
-}
-
-inline const Void& DangerCommand::shutdown() const
-{
-    BSLS_ASSERT(SELECTION_ID_SHUTDOWN == d_selectionId);
-    return d_shutdown.object();
-}
-
-inline const Void& DangerCommand::terminate() const
-{
-    BSLS_ASSERT(SELECTION_ID_TERMINATE == d_selectionId);
-    return d_terminate.object();
-}
-
-inline bool DangerCommand::isShutdownValue() const
-{
-    return SELECTION_ID_SHUTDOWN == d_selectionId;
-}
-
-inline bool DangerCommand::isTerminateValue() const
-{
-    return SELECTION_ID_TERMINATE == d_selectionId;
-}
-
-inline bool DangerCommand::isUndefinedValue() const
-{
-    return SELECTION_ID_UNDEFINED == d_selectionId;
 }
 
 // -----------------
@@ -50627,9 +50326,6 @@ void CommandChoice::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     case Class::SELECTION_ID_CLUSTERS:
         hashAppend(hashAlgorithm, this->clusters());
         break;
-    case Class::SELECTION_ID_DANGER:
-        hashAppend(hashAlgorithm, this->danger());
-        break;
     case Class::SELECTION_ID_BROKER_CONFIG:
         hashAppend(hashAlgorithm, this->brokerConfig());
         break;
@@ -50650,7 +50346,6 @@ inline bool CommandChoice::isEqualTo(const CommandChoice& rhs) const
         case Class::SELECTION_ID_STAT: return this->stat() == rhs.stat();
         case Class::SELECTION_ID_CLUSTERS:
             return this->clusters() == rhs.clusters();
-        case Class::SELECTION_ID_DANGER: return this->danger() == rhs.danger();
         case Class::SELECTION_ID_BROKER_CONFIG:
             return this->brokerConfig() == rhs.brokerConfig();
         default:
@@ -50696,9 +50391,6 @@ int CommandChoice::manipulateSelection(t_MANIPULATOR& manipulator)
     case CommandChoice::SELECTION_ID_CLUSTERS:
         return manipulator(&d_clusters.object(),
                            SELECTION_INFO_ARRAY[SELECTION_INDEX_CLUSTERS]);
-    case CommandChoice::SELECTION_ID_DANGER:
-        return manipulator(&d_danger.object(),
-                           SELECTION_INFO_ARRAY[SELECTION_INDEX_DANGER]);
     case CommandChoice::SELECTION_ID_BROKER_CONFIG:
         return manipulator(
             &d_brokerConfig.object(),
@@ -50739,12 +50431,6 @@ inline ClustersCommand& CommandChoice::clusters()
     return d_clusters.object();
 }
 
-inline DangerCommand& CommandChoice::danger()
-{
-    BSLS_ASSERT(SELECTION_ID_DANGER == d_selectionId);
-    return d_danger.object();
-}
-
 inline BrokerConfigCommand& CommandChoice::brokerConfig()
 {
     BSLS_ASSERT(SELECTION_ID_BROKER_CONFIG == d_selectionId);
@@ -50776,9 +50462,6 @@ int CommandChoice::accessSelection(t_ACCESSOR& accessor) const
     case SELECTION_ID_CLUSTERS:
         return accessor(d_clusters.object(),
                         SELECTION_INFO_ARRAY[SELECTION_INDEX_CLUSTERS]);
-    case SELECTION_ID_DANGER:
-        return accessor(d_danger.object(),
-                        SELECTION_INFO_ARRAY[SELECTION_INDEX_DANGER]);
     case SELECTION_ID_BROKER_CONFIG:
         return accessor(d_brokerConfig.object(),
                         SELECTION_INFO_ARRAY[SELECTION_INDEX_BROKER_CONFIG]);
@@ -50816,12 +50499,6 @@ inline const ClustersCommand& CommandChoice::clusters() const
     return d_clusters.object();
 }
 
-inline const DangerCommand& CommandChoice::danger() const
-{
-    BSLS_ASSERT(SELECTION_ID_DANGER == d_selectionId);
-    return d_danger.object();
-}
-
 inline const BrokerConfigCommand& CommandChoice::brokerConfig() const
 {
     BSLS_ASSERT(SELECTION_ID_BROKER_CONFIG == d_selectionId);
@@ -50851,11 +50528,6 @@ inline bool CommandChoice::isStatValue() const
 inline bool CommandChoice::isClustersValue() const
 {
     return SELECTION_ID_CLUSTERS == d_selectionId;
-}
-
-inline bool CommandChoice::isDangerValue() const
-{
-    return SELECTION_ID_DANGER == d_selectionId;
 }
 
 inline bool CommandChoice::isBrokerConfigValue() const
@@ -54058,6 +53730,6 @@ inline bool InternalResult::isUndefinedValue() const
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY BLP_BAS_CODEGEN_2025.11.13
+// GENERATED BY BLP_BAS_CODEGEN_2026.04.30
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcmd --msgComponent messages mqbcmd.xsd

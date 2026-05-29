@@ -208,7 +208,6 @@ DEF_FUNC(StoragePartition, StoragePartition);
 DEF_FUNC(StorageDomain, StorageDomain);
 DEF_FUNC(ClusterState, ClusterCommand);
 DEF_FUNC(Elector, ElectorCommand);
-DEF_FUNC(Danger, DangerCommand);
 DEF_FUNC(Replication, ReplicationCommand);
 #undef DEF_FUNC
 
@@ -272,11 +271,6 @@ int parseCommand(Command* command, bsl::string* error, WordGenerator next)
                                     error,
                                     next);
         // RETURN
-    }
-    else if (equalCaseless(word, "DANGER")) {
-        return parseDanger(&command->choice().makeDanger(),
-                           error,
-                           next);  // RETURN
     }
     else if (equalCaseless(word, "BROKERCONFIG")) {
         return parseBrokerConfig(&command->choice().makeBrokerConfig(),
@@ -1016,29 +1010,6 @@ int parseElector(ElectorCommand* command,
     *error = "Invalid subcommand after CLUSTERS CLUSTER <name> STATE "
              "ELECTOR: " +
              subcommand;
-    return -1;
-}
-
-/// DANGER ...
-int parseDanger(DangerCommand* command, bsl::string* error, WordGenerator next)
-{
-    const bslstl::StringRef subcommand = next();
-
-    if (subcommand.empty()) {
-        *error = "The DANGER command must be followed by a subcommand.";
-        return -1;  // RETURN
-    }
-
-    if (equalCaseless(subcommand, "SHUTDOWN")) {
-        command->makeShutdown();
-        return expectEnd(error, next);  // RETURN
-    }
-    else if (equalCaseless(subcommand, "TERMINATE")) {
-        command->makeTerminate();
-        return expectEnd(error, next);  // RETURN
-    }
-
-    *error = "Invalid subcommand after DANGER: " + subcommand;
     return -1;
 }
 
