@@ -1,4 +1,5 @@
 bmqtsk_alarmlog
+bmqtsk_alarmlogobserver
 bmqtsk_consoleobserver
 bmqtsk_logcleaner
 bmqtsk_logcontroller

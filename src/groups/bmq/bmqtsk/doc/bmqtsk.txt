@@ -8,19 +8,24 @@
 
 /Hierarchical Synopsis
 /---------------------
-The 'bmqtsk' package currently has 4 components having 2 levels of physical
+The 'bmqtsk' package currently has 6 components having 2 levels of physical
 dependency.  The list below shows the hierarchal ordering of the components.
 ..
   2. bmqtsk_logcontroller
 
   1. bmqtsk_alarmlog
+     bmqtsk_alarmlogobserver
      bmqtsk_consoleobserver
      bmqtsk_logcleaner
+     bmqtsk_syslogobserver
 ..
 
 /Component Synopsis
 /------------------
 : 'bmqtsk_alarmlog':
+:      Provide macros for emitting ALARM log records.
+:
+: 'bmqtsk_alarmlogobserver':
 :      Provide a BALL observer for ALARMS with rate-controlled output.
 :
 : 'bmqtsk_consoleobserver':
@@ -31,3 +36,6 @@ dependency.  The list below shows the hierarchal ordering of the components.
 :
 : 'bmqtsk_logcontroller':
 :      Provide a mechanism to interface with the BALL log infrastructure.
+:
+: 'bmqtsk_syslogobserver':
+:      Provide a system log output for BALL logging.

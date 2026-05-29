@@ -118,7 +118,7 @@
 //..
 //
 
-#include <bmqtsk_alarmlog.h>
+#include <bmqtsk_alarmlogobserver.h>
 #include <bmqtsk_consoleobserver.h>
 #include <bmqtsk_logcleaner.h>
 #include <bmqtsk_syslogobserver.h>
@@ -354,7 +354,7 @@ class LogController {
     ball::AsyncFileObserver d_fileObserver;
     // Observer for logging to a file.
 
-    AlarmLog d_alarmLog;
+    AlarmLogObserver d_alarmLog;
     // Log observer to emit alarms to stderr.
 
     ConsoleObserver d_consoleObserver;
