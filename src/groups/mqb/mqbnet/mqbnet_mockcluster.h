@@ -124,7 +124,9 @@ class MockClusterNode : public ClusterNode {
     bool enableRead() BSLS_KEYWORD_OVERRIDE;
 
     /// Reset the channel associated to this node.
-    ClusterNode* resetChannel() BSLS_KEYWORD_OVERRIDE;
+    ClusterNode*
+    resetChannel(const bsl::shared_ptr<bmqio::Channel>& closedChannel)
+        BSLS_KEYWORD_OVERRIDE;
 
     /// Enqueue the specified message `blob` of the specified `type`to be
     /// written to the channel associated to this node.  Return 0 on

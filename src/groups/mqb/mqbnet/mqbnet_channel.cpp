@@ -259,10 +259,19 @@ Channel::writeBlob(const bsl::shared_ptr<bdlbb::Blob>&       data,
     return enqueue(item);
 }
 
-void Channel::resetChannel()
+void Channel::resetChannel(
+    const bsl::shared_ptr<bmqio::Channel>& closedChannel)
 {
     {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+
+        bsl::shared_ptr<bmqio::Channel> currentSp = d_channel_wp.lock();
+
+        if (currentSp && currentSp != closedChannel) {
+            BALL_LOG_INFO << "Ignoring stale resetChannel for "
+                          << d_description;
+            return;  // RETURN
+        }
 
         BALL_LOG_INFO << "Disconnected " << d_description;
 
@@ -296,7 +305,10 @@ void Channel::setChannel(const bsl::weak_ptr<bmqio::Channel>& value)
 
     bsl::shared_ptr<bmqio::Channel> channelSp = value.lock();
     BSLS_ASSERT(channelSp);
-    BSLS_ASSERT(!isAvailable());
+
+    // 'isAvailable()' can be true in the case when 'setChannel' is called
+    // before 'resetChannel' as the result of a new connection on a different
+    // TCP thread
 
     d_description = d_name + " - " + channelSp->peerUri();
     channelSp->onWatermark(bdlf::BindUtil::bind(&Channel::onWatermark,

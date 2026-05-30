@@ -257,17 +257,11 @@ class TransportManager {
 
     // PRIVATE MANIPULATORS
 
-    /// Method invoked by the channel factory to notify that the channel
-    /// with the specified `channelDescription` went down; and with the
-    /// specified `state` corresponding to the `ConnectionState` associated
-    /// to this channel.  Note that we do not bind the channel but rather
-    /// the `channelDescription` because we have a hierarchy of channel
-    /// (`TCP < Resolving < Stat`); and when the close is invoked, it comes
-    /// from the lower channel (`bmqio::TCPChannel`) while the higher
-    /// channel (which is the one that would have been bindable at the time
-    /// of the `onClose` slot registration) has already been destroyed.
-    virtual void onClose(const bsl::string& channelDescription,
-                         ConnectionState*   state);
+    /// Method invoked by the channel factory to notify that the specified
+    /// `closedChannel` went down; and with the specified `state`
+    /// corresponding to the `ConnectionState` associated to this channel.
+    virtual void onClose(const bsl::shared_ptr<bmqio::Channel>& closedChannel,
+                         ConnectionState*                       state);
 
     // PRIVATE ACCESSORS
 

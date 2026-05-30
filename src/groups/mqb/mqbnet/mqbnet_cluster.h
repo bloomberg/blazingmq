@@ -135,8 +135,12 @@ class ClusterNode {
     /// or if it is already reading.
     virtual bool enableRead() = 0;
 
-    /// Reset the channel associated to this node.
-    virtual ClusterNode* resetChannel() = 0;
+    /// Reset the channel associated to this node.  The specified
+    /// `closedChannel` identifies the channel being closed; if the node
+    /// already has a different (newer) channel, this reset is stale and
+    /// will be ignored.
+    virtual ClusterNode*
+    resetChannel(const bsl::shared_ptr<bmqio::Channel>& closedChannel) = 0;
 
     /// Enqueue the specified message `blob` of the specified `type`to be
     /// written to the channel associated to this node.  Return 0 on
