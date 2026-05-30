@@ -90,9 +90,18 @@ namespace BloombergLP {
 namespace mqbblp {
 
 namespace {
+
 const double k_LOG_SUMMARY_INTERVAL = 60.0 * 5;  // 5 minutes
 
 const double k_QUEUE_GC_INTERVAL = 60.0;  // 1 minute
+
+struct ChainNoOp {
+    template <class T>
+    void operator()(const T& completionCb) const
+    {
+        completionCb();
+    }
+};
 
 }  // close unnamed namespace
 
@@ -561,6 +570,17 @@ void Cluster::initiateShutdownDispatched(const VoidFunctor& callback)
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
+
+    if (d_isStopping) {
+        BALL_LOG_INFO << "Cluster: [name: '" << name()
+                      << "'] shutdown already in progress, skipping";
+
+        // Append a no-op link so 'callback' fires when the in-progress
+        // shutdown chain completes.  If the chain has already finished,
+        // the appended link executes immediately.
+        d_shutdownChain.appendInplace(ChainNoOp(), callback);
+        return;  // RETURN
+    }
 
     BALL_LOG_INFO << "Shutting down Cluster: [name: '" << name() << "']";
 
