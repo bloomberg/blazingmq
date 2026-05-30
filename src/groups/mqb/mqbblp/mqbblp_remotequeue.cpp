@@ -1391,8 +1391,9 @@ void RemoteQueue::expirePendingMessages()
 {
     // executed by the *SCHEDULER* thread
     d_state_p->queue()->dispatcher()->execute(
-        bdlf::BindUtil::bind(&RemoteQueue::expirePendingMessagesDispatched,
-                             this),
+        bdlf::BindUtil::bind(bmqu::WeakMemFnUtil::weakMemFn(
+            &RemoteQueue::expirePendingMessagesDispatched,
+            d_self.acquireWeak())),
         d_state_p->queue());
 }
 
