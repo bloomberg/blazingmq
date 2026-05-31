@@ -232,10 +232,11 @@ static void test1_breathingTest()
 
     MQTP mfqtp(config, allocator);
     BMQTST_ASSERT_EQ(mfqtp.isStarted(), false);
-    BMQTST_ASSERT_EQ(mfqtp.numQueues(), k_NUM_QUEUES);
+    BMQTST_ASSERT_EQ(mfqtp.numQueues(), 0);
     BMQTST_ASSERT_EQ(mfqtp.start(), 0);
     BMQTST_ASSERT_NE(mfqtp.start(), 0);  // MQTP has already been started
     BMQTST_ASSERT_EQ(mfqtp.isStarted(), true);
+    BMQTST_ASSERT_EQ(mfqtp.numQueues(), k_NUM_QUEUES);
 
     {
         MQTP::EventSp event;
@@ -264,6 +265,7 @@ static void test1_breathingTest()
 
     mfqtp.stop();
     BMQTST_ASSERT_EQ(mfqtp.isStarted(), false);
+    BMQTST_ASSERT_EQ(mfqtp.numQueues(), 0);
 
     BMQTST_ASSERT_EQ(queueContextMap[0].size(), 2U);
     BMQTST_ASSERT_EQ(queueContextMap[0][0], 0);
