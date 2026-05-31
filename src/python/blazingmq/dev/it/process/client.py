@@ -275,7 +275,11 @@ class Client(BMQProcess):
         function always returns None.
         """
         succeed = succeed or wait_ack
-        extra_patterns = ["ACK #.* type = ACK.*"] if wait_ack else None
+        extra_patterns = (
+            [f"ACK #.* type = ACK.*queue = \\[ uri = {re.escape(uri)} "]
+            if wait_ack
+            else None
+        )
         command = _build_command(
             f'post uri="{uri}" payload={json.dumps(payload)}',
             {
