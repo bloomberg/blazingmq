@@ -1202,11 +1202,51 @@ void StorageManager::processReplicaDataRequestDrop(
                      bmqp_ctrlmsg::ReplicaDataType::E_DROP);
 
     const int partitionId = replicaDataRequest.partitionId();
-    BSLS_ASSERT_SAFE(0 <= partitionId &&
-                     partitionId < static_cast<int>(d_fileStores.size()));
-    BSLS_ASSERT_SAFE(
-        source->nodeId() ==
-        d_clusterState_p->partitionsInfo().at(partitionId).primaryNodeId());
+    if (partitionId < 0 ||
+        partitionId >= static_cast<int>(d_fileStores.size())) {
+        BALL_LOG_ERROR
+            << d_clusterData_p->identity().description()
+            << " Received ReplicaDataRequestDrop: " << message << " from "
+            << source->nodeDescription()
+            << " with invalid partitionId.  Sending failure response.";
+
+        bmqp_ctrlmsg::ControlMessage controlMsg;
+        controlMsg.rId() = message.rId();
+
+        bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
+        status.category()            = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+        status.code()                = mqbi::ClusterErrorCode::e_NO_PARTITION;
+        status.message()             = "Invalid partitionId";
+
+        d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
+                                                              source);
+        return;  // RETURN
+    }
+    if (source->nodeId() !=
+        d_clusterState_p->partitionsInfo().at(partitionId).primaryNodeId()) {
+        const mqbnet::ClusterNode* primaryNode =
+            d_clusterState_p->partitionsInfo().at(partitionId).primaryNode();
+        BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                       << " Partition [" << partitionId << "]: "
+                       << " Received ReplicaDataRequestDrop: " << message
+                       << " from " << source->nodeDescription()
+                       << " but self's perceived primary is "
+                       << (primaryNode ? primaryNode->nodeDescription()
+                                       : " ** NULL **")
+                       << ".  Sending failure response.";
+
+        bmqp_ctrlmsg::ControlMessage controlMsg;
+        controlMsg.rId() = message.rId();
+
+        bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
+        status.category()            = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+        status.code()    = mqbi::ClusterErrorCode::e_SOURCE_NOT_PRIMARY;
+        status.message() = "Source node is not recognized as the primary";
+
+        d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
+                                                              source);
+        return;  // RETURN
+    }
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId
