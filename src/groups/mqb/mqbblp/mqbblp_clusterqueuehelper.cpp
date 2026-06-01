@@ -2579,7 +2579,7 @@ void ClusterQueueHelper::onGetDomain(
     mqbi::Domain*                       domain,
     const bmqp_ctrlmsg::ControlMessage& request,
     mqbc::ClusterNodeSession*           requester,
-    const int                           peerInstanceId)
+    const int                           requesterId)
 {
     // executed by *ANY* thread
 
@@ -2591,7 +2591,7 @@ void ClusterQueueHelper::onGetDomain(
                               domain,
                               request,
                               requester,
-                              peerInstanceId),
+                              requesterId),
         d_cluster_p);
 }
 
@@ -2600,7 +2600,7 @@ void ClusterQueueHelper::onGetDomainDispatched(
     mqbi::Domain*                       domain,
     const bmqp_ctrlmsg::ControlMessage& request,
     mqbc::ClusterNodeSession*           requester,
-    const int                           peerInstanceId)
+    const int                           requesterId)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -2680,7 +2680,7 @@ void ClusterQueueHelper::onGetDomainDispatched(
                               bdlf::PlaceHolders::_4,  // confCookie
                               request,
                               requester,
-                              peerInstanceId));
+                              requesterId));
 }
 
 void ClusterQueueHelper::onGetQueueHandle(
@@ -2740,8 +2740,8 @@ void ClusterQueueHelper::onGetQueueHandleDispatched(
             << ", because either the peer is down, or new instance "
             << "of the peer has come up. Peer node status: "
             << requester->nodeStatus()
-            << ", initial peerInstanceId: " << requesterId
-            << ", current peerInstanceId: "
+            << ", initial requesterId: " << requesterId
+            << ", current requesterId: "
             << requester->handleRequesterContext()->requesterId() << ".";
         return;  // RETURN
     }

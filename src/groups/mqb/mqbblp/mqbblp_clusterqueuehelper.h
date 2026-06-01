@@ -694,11 +694,11 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
                      mqbi::Domain*                       domain,
                      const bmqp_ctrlmsg::ControlMessage& request,
                      mqbc::ClusterNodeSession*           requester,
-                     int                                 peerInstanceId);
+                     int                                 requesterId);
 
     /// Callback invoked in response to an open domain query (in the
     /// specified `request`) made to the domain factory on behalf of the
-    /// specified `requester` with the specified `peerInstanceId`.  If the
+    /// specified `requester` with the specified `requesterId`.  If the
     /// specified `status` is SUCCESS, the request was success and the
     /// specified `domain` contains a pointer to the result; otherwise
     /// `status` contains the category, error code and description of the
@@ -707,7 +707,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
                                mqbi::Domain*                       domain,
                                const bmqp_ctrlmsg::ControlMessage& request,
                                mqbc::ClusterNodeSession*           requester,
-                               const int peerInstanceId);
+                               const int requesterId);
 
     void onGetQueueHandle(
         const bmqp_ctrlmsg::Status&                status,

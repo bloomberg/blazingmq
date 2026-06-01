@@ -279,6 +279,8 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     bmqu::GateKeeper& gatePut();
     bmqu::GateKeeper& gateConfirm();
 
+    /// Create new instance of `QueueHandleRequesterContext` with the same
+    /// `identity` and `statContext` but a unique `requesterId`.
     void createQueueHandleRequesterContext();
 
     // ACCESSORS

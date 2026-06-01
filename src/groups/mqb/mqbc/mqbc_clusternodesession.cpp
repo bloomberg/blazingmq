@@ -166,6 +166,12 @@ void ClusterNodeSession::createQueueHandleRequesterContext()
 {
     BSLS_ASSERT_SAFE(d_queueHandleRequesterContext_sp);
 
+    // Copy before `createInplace` destroys the old object.
+    const bmqp_ctrlmsg::ClientIdentity identity =
+        d_queueHandleRequesterContext_sp->identity();
+    const bsl::shared_ptr<bmqst::StatContext> statContext =
+        d_queueHandleRequesterContext_sp->statContext();
+
     createQueueHandleRequesterContextImpl(
         d_queueHandleRequesterContext_sp->identity(),
         d_queueHandleRequesterContext_sp->statContext());
@@ -187,7 +193,7 @@ void ClusterNodeSession::createQueueHandleRequesterContextImpl(
         .setDescription(bsl::string(description(), d_allocator_p))
         .setIsClusterMember(true)
         .setRequesterId(
-            mqbi::QueueHandleRequesterContext ::generateUniqueRequesterId())
+            mqbi::QueueHandleRequesterContext::generateUniqueRequesterId())
         .setInlineClient(this)
         .setStatContext(statContext);
 }
