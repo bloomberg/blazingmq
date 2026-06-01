@@ -302,13 +302,15 @@ class TestClusterNodeShutdown:
         assert primary.outputs_regex("LEADER lost quorum")
 
         # Prevent the old leader from winning re-election and steer
-        # leadership to active_replica.  active_replica with quorum=0
-        # self-elects immediately, assigns itself as primary
-        # (E_LEADER_IS_MASTER_ALL), and prevents cascading divergence:
-        # when the old primary restarts it will not be assigned as
-        # primary, so no second divergence can occur.
+        # leadership to active_replica.  quorum=1 lets active_replica
+        # self-elect (self-vote alone meets quorum) and retain
+        # leadership when the old primary crashes — without this, the
+        # crash removes a supporter and the leader drops below the
+        # default majority, triggering a new election that the
+        # restarted primary can win.  Note: quorum=0 resets to the
+        # default majority and has no effect.
         primary.set_quorum(99, succeed=True)
-        active_replica.set_quorum(0, succeed=True)
+        active_replica.set_quorum(1, succeed=True)
 
         # The old primary will detect leader-primary divergence and abort.
         for node in cluster.nodes():
