@@ -396,6 +396,7 @@ class TestPoisonMessages:
 
         consumer_0 = proxy.create_client("consumer_0")
         consumer_0.open(f"{uri}", flags=["read"], succeed=True)
+        consumer_0.wait_push_event()
 
         leader = multi_node.last_known_leader
 
