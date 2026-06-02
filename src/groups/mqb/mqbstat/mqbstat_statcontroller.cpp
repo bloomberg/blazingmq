@@ -655,10 +655,10 @@ void StatController::snapshotAndNotify()
 
         if (d_jsonStatsFileLogger_mp) {
             d_jsonStatsFileLogger_mp->logStats(
-                bdlf::BindUtil::bind(&JsonPrinter::printStats,
-                                     d_jsonPrinter_mp.get(),
+                bdlf::BindUtil::bind(&FlatJsonPrinter::printStats,
+                                     d_flatJsonPrinter_mp.get(),
                                      bdlf::PlaceHolders::_1,
-                                     true));
+                                     statId));
         }
     }
 
@@ -750,6 +750,7 @@ StatController::StatController(const CommandProcessorFn& commandProcessor,
 , d_tableStatsFileLogger_mp(0)
 , d_jsonStatsFileLogger_mp(0)
 , d_jsonPrinter_mp(0)
+, d_flatJsonPrinter_mp(0)
 , d_statConsumers(allocator)
 , d_statConsumerMaxPublishInterval(0)
 , d_eventScheduler_p(eventScheduler)
@@ -947,6 +948,10 @@ int StatController::start(bsl::ostream& errorDescription)
         d_allocator_p,
         ctxPtrMap);
 
+    d_flatJsonPrinter_mp =
+        bslma::ManagedPtrUtil::allocateManaged<FlatJsonPrinter>(d_allocator_p,
+                                                                ctxPtrMap);
+
     // Max value for the stat publish interval must be the minimum history size
     // of all stat contexts.
     d_statConsumerMaxPublishInterval =
@@ -1004,10 +1009,10 @@ void StatController::stop()
 
         if (d_jsonStatsFileLogger_mp) {
             d_jsonStatsFileLogger_mp->logStats(
-                bdlf::BindUtil::bind(&JsonPrinter::printStats,
-                                     d_jsonPrinter_mp.get(),
+                bdlf::BindUtil::bind(&FlatJsonPrinter::printStats,
+                                     d_flatJsonPrinter_mp.get(),
                                      bdlf::PlaceHolders::_1,
-                                     true /* compact */));
+                                     lastStatId));
         }
     }
 
@@ -1022,6 +1027,7 @@ void StatController::stop()
     DESTROY_OBJ(d_jsonStatsFileLogger_mp, "JsonStatsFileLogger");
     DESTROY_OBJ(d_tableStatsFileLogger_mp, "TableStatsFileLogger");
     DESTROY_OBJ(d_tablePrinter_mp, "TablePrinter");
+    DESTROY_OBJ(d_flatJsonPrinter_mp, "FlatJsonPrinter");
     DESTROY_OBJ(d_jsonPrinter_mp, "JsonPrinter");
     DESTROY_OBJ(d_systemStatMonitor_mp, "SystemStatMonitor");
     DESTROY_OBJ(d_scheduler_mp, "Scheduler");
