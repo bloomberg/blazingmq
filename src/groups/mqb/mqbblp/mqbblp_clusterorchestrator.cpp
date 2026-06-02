@@ -1195,14 +1195,12 @@ void ClusterOrchestrator::processNodeStateChangeEvent(
             // are seeing this 'available' event for *this* instance of the
             // peer for the first time.  Bump up peer's instance ID.
 
-            int oldInstanceId = ns->peerInstanceId();
-            ns->setPeerInstanceId(oldInstanceId + 1);
+            ns->createQueueHandleRequesterContext();
 
             BALL_LOG_INFO << d_clusterData_p->identity().description()
-                          << ": bumped up instance ID of peer node "
-                          << node->nodeDescription()
-                          << " from: " << oldInstanceId
-                          << " to: " << ns->peerInstanceId();
+                          << ": bumped up requesterId of peer node "
+                          << node->nodeDescription() << " to: "
+                          << ns->handleRequesterContext()->requesterId();
         }
 
         // Node is connected, but we don't know its status as of yet so we mark

@@ -40,10 +40,7 @@ ClusterNodeSession::ClusterNodeSession(
     bslma::Allocator*                          allocator)
 : d_cluster_p(cluster)
 , d_clusterNode_p(netNode)
-, d_peerInstanceId(0)  // There is no invalid value for this field
-, d_queueHandleRequesterContext_sp(
-      new(*allocator) mqbi::QueueHandleRequesterContext(allocator),
-      allocator)
+, d_queueHandleRequesterContext_sp()
 , d_nodeStatus(bmqp_ctrlmsg::NodeStatus::E_UNAVAILABLE)  // See note in ctor
 , d_statContext_sp(statContext)
 , d_primaryPartitions(allocator)
@@ -52,19 +49,13 @@ ClusterNodeSession::ClusterNodeSession(
 , d_gateAck()
 , d_gatePut()
 , d_gateConfirm()
+, d_allocator_p(allocator)
 {
     // Note regarding 'd_nodeStatus': it must be initialized with E_UNAVAILABLE
     // because this value indicates that self node is not connected to this
     // peer, and some startup logic depends on this value being E_UNAVAILABLE.
 
-    d_queueHandleRequesterContext_sp->setClient(this)
-        .setIdentity(identity)
-        .setDescription(bsl::string(description(), allocator))
-        .setIsClusterMember(true)
-        .setRequesterId(
-            mqbi::QueueHandleRequesterContext ::generateUniqueRequesterId())
-        .setInlineClient(this)
-        .setStatContext(statContext);
+    createQueueHandleRequesterContextImpl(identity, statContext);
     // TBD: The passed in 'queueHandleRequesterIdentity' is currently the
     //      'clusterState->identity()' (representing the identity of self node
     //      in the cluster); and it should instead represent the identity of
@@ -169,6 +160,42 @@ bool ClusterNodeSession::removePartitionSafe(int partitionId)
                   << "]: removed self as primary in ClusterNodeSession";
 
     return true;
+}
+
+void ClusterNodeSession::createQueueHandleRequesterContext()
+{
+    BSLS_ASSERT_SAFE(d_queueHandleRequesterContext_sp);
+
+    // Copy before `createInplace` destroys the old object.
+    const bmqp_ctrlmsg::ClientIdentity identity =
+        d_queueHandleRequesterContext_sp->identity();
+    const bsl::shared_ptr<bmqst::StatContext> statContext =
+        d_queueHandleRequesterContext_sp->statContext();
+
+    createQueueHandleRequesterContextImpl(
+        d_queueHandleRequesterContext_sp->identity(),
+        d_queueHandleRequesterContext_sp->statContext());
+}
+
+void ClusterNodeSession::createQueueHandleRequesterContextImpl(
+    const bmqp_ctrlmsg::ClientIdentity&        identity,
+    const bsl::shared_ptr<bmqst::StatContext>& statContext)
+{
+    // executed by the *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(inDispatcherThread());
+    d_queueHandleRequesterContext_sp.createInplace(d_allocator_p,
+                                                   d_allocator_p);
+
+    d_queueHandleRequesterContext_sp->setClient(this)
+        .setIdentity(identity)
+        .setDescription(bsl::string(description(), d_allocator_p))
+        .setIsClusterMember(true)
+        .setRequesterId(
+            mqbi::QueueHandleRequesterContext::generateUniqueRequesterId())
+        .setInlineClient(this)
+        .setStatContext(statContext);
 }
 
 bool ClusterNodeSession::isPrimaryForPartition(int partitionId) const
