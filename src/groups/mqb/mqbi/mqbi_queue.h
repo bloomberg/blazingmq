@@ -869,10 +869,11 @@ class Queue : public DispatcherClient {
     virtual void dropHandle(QueueHandle* handle,
                             bool         doDeconfigure = true) = 0;
 
-    /// Close this queue.
+    /// Close this queue.  Call the specified `callback` when the queue does
+    /// not have any outstanding events.
     ///
     /// THREAD: this method can be called from any thread.
-    virtual void close() = 0;
+    virtual void close(const bsl::function<void(void)>& callback) = 0;
 
     /// Return the resource capacity meter associated to this queue, if
     /// any, or a null pointer otherwise.

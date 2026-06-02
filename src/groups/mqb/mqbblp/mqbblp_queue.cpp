@@ -334,12 +334,14 @@ void Queue::dropHandleDispatched(mqbi::QueueHandle* handle, bool doDeconfigure)
     }
 }
 
-void Queue::closeDispatched()
+void Queue::closeDispatched(const bsl::function<void(void)>& callback)
 {
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
+
+    queueEngine()->close();
 
     if (d_localQueue_mp) {
         d_localQueue_mp->close();
@@ -352,6 +354,18 @@ void Queue::closeDispatched()
     }
 
     updateStats();
+
+    // Enqueue the holder AFTER 'engine->close()'.  Any two-hop callbacks
+    // (scheduler -> queue dispatcher) triggered during 'cancelEventAndWait'
+    // are already on the dispatcher queue ahead of this holder, so the
+    // queue stays alive until they complete.
+
+    // We need to make sure the 'queue' is not in the dispatcher's flush list:
+    // for that purpose, enqueue an 'e_DISPATCHER' type event.
+
+    dispatcher()->execute(callback,
+                          this,
+                          mqbi::DispatcherEventType::e_DISPATCHER);
 }
 
 void Queue::convertToLocalDispatched()
@@ -776,12 +790,13 @@ void Queue::dropHandle(mqbi::QueueHandle* handle, bool doDeconfigure)
                           this);
 }
 
-void Queue::close()
+void Queue::close(const bsl::function<void(void)>& callback)
 {
     // executed by *ANY* thread
 
-    dispatcher()->execute(bdlf::BindUtil::bind(&Queue::closeDispatched, this),
-                          this);
+    dispatcher()->execute(
+        bdlf::BindUtil::bind(&Queue::closeDispatched, this, callback),
+        this);
 }
 
 void Queue::onPushMessage(

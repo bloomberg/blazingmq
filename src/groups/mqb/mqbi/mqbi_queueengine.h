@@ -75,6 +75,10 @@ class QueueEngine {
     virtual int configure(bsl::ostream& errorDescription,
                           bool          isReconfigure) = 0;
 
+    /// Prepare this engine for destruction by cancelling any scheduled
+    /// events.
+    virtual void close() = 0;
+
     /// Reset the internal state of this engine.  If the optionally specified
     /// 'isShuttingDown' is 'true', clear the routing state but keep the Apps
     /// state for CONFIRMs processing.

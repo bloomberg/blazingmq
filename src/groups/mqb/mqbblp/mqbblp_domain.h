@@ -207,6 +207,9 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain {
     Domain(const Domain&);             // = delete;
     Domain& operator=(const Domain&);  // = delete;
 
+    /// Call close for all queues and wait for all callbacks.
+    void closeAllQueues();
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(Domain, bslma::UsesBslmaAllocator)

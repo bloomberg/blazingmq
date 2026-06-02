@@ -5136,6 +5136,51 @@ static void test48_unknownReject()
     BMQTST_ASSERT_EQ(C1->_numMessages("a"), 3);
 }
 
+static void test49_closeWithScheduledAlarm()
+// ------------------------------------------------------------------------
+// CLOSE WITH SCHEDULED ALARM
+//
+// Concerns:
+//   When a queue is destroyed via the non-shutdown path (deleteQueue ->
+//   unregisterQueue -> close), any scheduled consumption monitor alarm
+//   must be cancelled before the engine is destroyed.  Otherwise the
+//   destructor assertion fires and, in production, the scheduler callback
+//   causes a use-after-free.
+//
+// Plan:
+//   1) Configure a priority queue with a large maxIdleTime.
+//   2) Get a consumer handle, post a message.  This triggers
+//      QueueConsumptionMonitor::onMessagePosted which schedules the alarm.
+//   3) Drop handles and let the tester destruct.  The mock Domain's
+//      unregisterQueue calls Queue::close() -> engine->close() which must
+//      cancel the alarm.
+// Testing:
+//   RootQueueEngine::close() cancels the consumption monitor alarm.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("CLOSE WITH SCHEDULED ALARM");
+
+    mqbconfm::Domain config = priorityDomainConfig();
+    config.maxIdleTime()    = 1000;
+
+    mqbblp::QueueEngineTester tester(config,
+                                     true,  // startScheduler
+                                     bmqtst::TestHelperUtil::allocator());
+
+    mqbblp::QueueEngineTesterGuard<mqbblp::RootQueueEngine> guard(&tester);
+
+    tester.getHandle("C1 readCount=1");
+    tester.configureHandle("C1 consumerPriority=1 consumerPriorityCount=1");
+
+    tester.post("1");
+    guard.engine()->afterPostMessage();
+    tester.afterNewMessage(1);
+
+    // At this point, d_alarmEventHandle is set in the consumption monitor.
+    // Without the fix, destruction would crash on:
+    //   BSLS_ASSERT_SAFE(!d_alarmEventHandle)
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -5155,6 +5200,7 @@ int main(int argc, char* argv[])
 
         switch (_testCase) {
         case 0:
+        case 49: test49_closeWithScheduledAlarm(); break;
         case 48: test48_unknownReject(); break;
         case 47: test47_handleParametersLimits(); break;
         case 46: test46_throttleRedeliveryNoMoreHandles(); break;

@@ -225,9 +225,15 @@ void Queue::dropHandle(mqbi::QueueHandle* handle, bool doDeconfigure)
     }
 }
 
-void Queue::close()
+void Queue::close(const bsl::function<void(void)>& callback)
 {
-    // NOTHING
+    if (d_queueEngine_p) {
+        d_queueEngine_p->close();
+    }
+
+    if (callback) {
+        callback();
+    }
 }
 
 mqbu::CapacityMeter* Queue::capacityMeter()

@@ -148,7 +148,7 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
 
     void dropHandleDispatched(mqbi::QueueHandle* handle, bool doDeconfigure);
 
-    void closeDispatched();
+    void closeDispatched(const bsl::function<void(void)>& callback);
 
     void convertToLocalDispatched();
 
@@ -251,10 +251,12 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
     void dropHandle(mqbi::QueueHandle* handle,
                     bool doDeconfigure = true) BSLS_KEYWORD_OVERRIDE;
 
-    /// Close this queue.
+    /// Close this queue.  Call the specified `callback` when the queue does
+    /// not have any outstanding events.
     ///
     /// THREAD: this method can be called from any thread.
-    void close() BSLS_KEYWORD_OVERRIDE;
+    void
+    close(const bsl::function<void(void)>& callback) BSLS_KEYWORD_OVERRIDE;
 
     /// Return the resource capacity meter associated to this queue, if
     /// any, or a null pointer otherwise.

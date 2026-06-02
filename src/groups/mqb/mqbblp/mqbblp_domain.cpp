@@ -55,20 +55,9 @@ namespace BloombergLP {
 namespace mqbblp {
 
 namespace {
-const char k_LOG_CATEGORY[] = "MQBBLP.DOMAIN";
 
 const char k_NODE_IS_STOPPING[]              = "Node is stopping";
 const char k_DOMAIN_IS_REMOVING_OR_REMOVED[] = "Domain is removing or removed";
-
-/// This method does nothing.. it's just used so that we can control the
-/// destruction of the specified `queue` to happen once we guarantee the
-/// associated Dispatcher's queue has been drained and flushed.
-void queueHolderDummy(const bsl::shared_ptr<mqbi::Queue>& queue)
-{
-    BALL_LOG_SET_CATEGORY(k_LOG_CATEGORY);
-
-    BALL_LOG_INFO << "Deleted queue '" << queue->uri().canonical() << "'";
-}
 
 /// Validates an application subscription.
 bool validateSubscriptionExpression(bsl::ostream& errorDescription,
@@ -427,10 +416,7 @@ void Domain::teardown(const mqbi::Domain::TeardownCb& teardownCb)
         return;  // RETURN
     }
 
-    for (QueueMap::iterator it = d_queues.begin(); it != d_queues.end();
-         ++it) {
-        it->second->close();
-    }
+    closeAllQueues();
 }
 
 void Domain::teardownRemove(const TeardownCb& teardownCb)
@@ -453,10 +439,7 @@ void Domain::teardownRemove(const TeardownCb& teardownCb)
         return;  // RETURN
     }
 
-    for (QueueMap::iterator it = d_queues.begin(); it != d_queues.end();
-         ++it) {
-        it->second->close();
-    }
+    closeAllQueues();
 }
 
 void Domain::openQueue(
@@ -592,21 +575,10 @@ void Domain::unregisterQueue(mqbi::Queue* queue)
     bsl::shared_ptr<mqbi::Queue> queueSp(it->second);
     d_queues.erase(it);
 
-    // Close the queue before we schedule Dummy event so that we can clear
-    // any pending messages before the destruction of the queue
-    queueSp->close();
+    bslmt::Latch latch(1);
+    queueSp->close(bdlf::BindUtil::bind(&bslmt::Latch::arrive, &latch));
 
-    // We need to make sure the 'queue' is not in its associated dispatcher's
-    // thread (flush list or 'expirePendingMessagesDispatched': for that
-    // purpose, enqueue an 'e_DISPATCHER' type event with the shared_ptr to the
-    // queue; once it gets processed, we have guarantees that the dispatcher's
-    // work is done and therefore can then safely delete the queue.
-    //
-    // This code relies on queue being in an 'empty' state meaning it will NOT
-    // schedule any new dispatcher work.
-    d_dispatcher_p->execute(bdlf::BindUtil::bind(&queueHolderDummy, queueSp),
-                            queueSp.get(),
-                            mqbi::DispatcherEventType::e_DISPATCHER);
+    latch.wait();
 
     BALL_LOG_INFO << "Unregistered queue from domain '" << d_name
                   << "' [canonicalURI: " << queueSp->uri().canonical() << "]. "
@@ -804,6 +776,17 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
     os << "Unknown command '" << command << "'";
     result->makeError().message() = os.str();
     return -1;
+}
+
+void Domain::closeAllQueues()
+{
+    bslmt::Latch latch(d_queues.size());
+    for (QueueMap::iterator it = d_queues.begin(); it != d_queues.end();
+         ++it) {
+        it->second->close(bdlf::BindUtil::bind(&bslmt::Latch::arrive, &latch));
+    }
+
+    latch.wait();
 }
 
 // ACCESSORS

@@ -557,6 +557,15 @@ int RootQueueEngine::initializeAppId(const bsl::string& appId,
     return 0;
 }
 
+void RootQueueEngine::close()
+{
+    if (d_flowControlEventHandle) {
+        d_scheduler_p->cancelEventAndWait(&d_flowControlEventHandle);
+    }
+
+    d_consumptionMonitor.reset();
+}
+
 void RootQueueEngine::resetState(bool isShuttingDown)
 {
     // executed by the *QUEUE DISPATCHER* thread
@@ -564,16 +573,12 @@ void RootQueueEngine::resetState(bool isShuttingDown)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
-    if (d_flowControlEventHandle) {
-        d_scheduler_p->cancelEventAndWait(&d_flowControlEventHandle);
-    }
+    close();
 
     for (Apps::iterator it = d_apps.begin(); it != d_apps.end(); ++it) {
         it->second->undoRouting();
         it->second->routing()->reset();
     }
-
-    d_consumptionMonitor.reset();
 
     if (!isShuttingDown) {
         d_apps.clear();
