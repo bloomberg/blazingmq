@@ -24,46 +24,13 @@
 /// components (implementing the @bbref{mqbi::Cluster} interface).  It is in
 /// charge of loading the clusters' definition and creating the cluster object
 /// this broker is part of.  Clusters are reused when queried, and lazily
-/// constructed if not yet created.  @bbref{mqbblp::ClusterCatalogIterator}
-/// provides thread safe iteration through all the cluster of a cluster
-/// catalog.  The order of the iteration is implementation defined.  Thread
-/// safe iteration is provided by locking the catalog during the iterator's
-/// construction and unlocking it at the iterator's destruction.  This
-/// guarantees that during the life time of an iterator, the catalog can't be
-/// modified.
+/// constructed if not yet created.
 ///
 /// Thread-safety                               {#mqbblp_clustercatalog_thread}
 /// =============
 ///
 /// This object is *thread* *enabled*, meaning that two threads can safely call
 /// any methods on the *same* *instance* without external synchronization.
-///
-/// Usage                                        {#mqbblp_clustercatalog_usage}
-/// =====
-///
-/// Iterator Usage                            {#mqbblp_clustercatalog_iterator}
-/// --------------
-///
-/// The following code fragment shows how to use
-/// @bbref{mqbblp::ClusterCatalogIterator} to iterate through all cluster
-/// objects of `catalog`.
-///
-/// ```
-/// for (ClusterCatalogIterator it(&catalog); it; ++it) {
-///     mqbi::Cluster *c = it.cluster();
-///
-///     use(c);                               // the function `use` uses the
-///                                           // cluster in some way
-/// }
-/// // `it` is now destroyed out of the scope, releasing the lock.
-/// ```
-///
-/// Note that the associated catalog is locked when the iterator is constructed
-/// and is unlocked only when the iterator is destroyed.  This means that until
-/// the iterator is destroyed, all the threads trying to modify the catalog
-/// will remain blocked.  So clients must make sure to destroy their iterators
-/// after they are done using them.  One easy way is to use the
-/// `for(ClusterCatalogIterator it(catalog); ...` as above.
 
 // MQB
 #include <mqbcfg_messages.h>
@@ -124,9 +91,6 @@ class StatContext;
 
 namespace mqbblp {
 
-// FORWARD DECLARATION
-class ClusterCatalogIterator;
-
 // ====================
 // class ClusterCatalog
 // ====================
@@ -136,9 +100,6 @@ class ClusterCatalog {
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBBLP.CLUSTERCATALOG");
-
-    // FRIENDS
-    friend class ClusterCatalogIterator;
 
   public:
     // TYPES
@@ -387,66 +348,13 @@ class ClusterCatalog {
     /// and `false` otherwise.  If `clusterName` is empty, return true if
     /// this node is member of *any* cluster.
     bool isMemberOf(const bsl::string& clusterName) const;
+
+    /// Load into the specified `out` a snapshot of all clusters currently in
+    /// the catalog.
+    void getClusters(bsl::vector<bsl::shared_ptr<mqbi::Cluster> >* out) const;
 };
 
 // ============================
-// class ClusterCatalogIterator
-// ============================
-
-/// Provide thread safe iteration through all the clusters of the cluster
-/// catalog.  The order of the iteration is implementation defined.  An
-/// iterator is *valid* if it is associated with a cluster in the catalog,
-/// otherwise it is *invalid*.  Thread-safe iteration is provided by locking
-/// the catalog during the iterator's construction and unlocking it at the
-/// iterator's destruction.  This guarantees that during the life time of an
-/// iterator, the catalog can't be modified.
-class ClusterCatalogIterator {
-  private:
-    // PRIVATE TYPES
-    typedef ClusterCatalog::ClustersMapConstIter ClustersMapConstIter;
-
-  private:
-    // DATA
-    const ClusterCatalog* d_catalog_p;
-
-    ClustersMapConstIter d_iterator;
-
-  private:
-    // NOT IMPLEMENTED
-    ClusterCatalogIterator(const ClusterCatalogIterator&);
-    ClusterCatalogIterator& operator=(const ClusterCatalogIterator&);
-
-  public:
-    // CREATORS
-
-    /// Create an iterator for the specified `catalog` and associated it
-    /// with the first cluster of the `catalog`.  If the `catalog` is empty
-    /// then the iterator is initialized to be invalid.  The `catalog` is
-    /// locked for the duration of iterator's life time.  The behavior is
-    /// undefined unless `catalog` is not null.
-    explicit ClusterCatalogIterator(const ClusterCatalog* catalog);
-
-    /// Destroy this iterator and unlock the catalog associated with it.
-    ~ClusterCatalogIterator();
-
-    // MANIPULATORS
-
-    /// Advance this iterator to refer to the next cluster of the associated
-    /// catalog; if there is no next cluster in the associated catalog, then
-    /// this iterator becomes *invalid*.  The behavior is undefined unless
-    /// this iterator is valid.  Note that the order of the iteration is
-    /// not specified.
-    void operator++();
-
-    // ACCESSORS
-
-    /// Return non-zero if the iterator is *valid*, and 0 otherwise.
-    operator const void*() const;
-
-    /// Return a pointer to the cluster associated with this iterator.  The
-    /// behavior is undefined unless the iterator is *valid*.
-    mqbi::Cluster* cluster() const;
-};
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -477,50 +385,6 @@ inline void ClusterCatalog::processStopResponse(
     const bmqp_ctrlmsg::ControlMessage& message)
 {
     d_requestManager.processResponse(message);
-}
-
-// ----------------------------
-// class ClusterCatalogIterator
-// ----------------------------
-
-// CREATORS
-inline ClusterCatalogIterator::ClusterCatalogIterator(
-    const ClusterCatalog* catalog)
-: d_catalog_p(catalog)
-, d_iterator()
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_catalog_p);
-
-    d_catalog_p->d_mutex.lock();
-    d_iterator = d_catalog_p->d_clusters.begin();
-}
-
-inline ClusterCatalogIterator::~ClusterCatalogIterator()
-{
-    d_catalog_p->d_mutex.unlock();
-}
-
-// MANIPULATORS
-inline void ClusterCatalogIterator::operator++()
-{
-    ++d_iterator;
-}
-
-// ACCESSORS
-inline ClusterCatalogIterator::operator const void*() const
-{
-    return (d_iterator == d_catalog_p->d_clusters.end())
-               ? 0
-               : const_cast<ClusterCatalogIterator*>(this);
-}
-
-inline mqbi::Cluster* ClusterCatalogIterator::cluster() const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(*this);
-
-    return d_iterator->second.d_cluster_sp.get();
 }
 
 inline void ClusterCatalog::setAdminCommandEnqueueCallback(

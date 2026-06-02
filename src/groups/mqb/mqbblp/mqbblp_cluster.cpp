@@ -2223,25 +2223,11 @@ void Cluster::initiateShutdown(const VoidFunctor& callback)
 {
     // executed by *ANY* thread
 
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!inDispatcherThread());
-    // Deadlock detection (because of the 'synchronize' call below, we
-    // can't execute from any of the cluster's dispatcher thread).
-
     dispatcher()->execute(
         bdlf::BindUtil::bind(&Cluster::initiateShutdownDispatched,
                              this,
                              callback),
         this);
-
-    // Wait for above event to complete.  This is needed because
-    // 'initiateShutdownDispatched()' notifies its peers that this node is now
-    // stopping.  'initiateShutdown()' is immediately followed by a call to
-    // Cluster::close(), which closes local storage, drops connections with
-    // peers, etc.  We want to ensure that events in
-    // 'initiateShutdownDispatched()' are completed before those in
-    // Cluster::stop().
-    dispatcher()->synchronize(this);
 }
 
 void Cluster::stop()
