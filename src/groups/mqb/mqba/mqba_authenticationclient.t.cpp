@@ -75,25 +75,18 @@ struct TestClock {
 };
 
 struct SuccessCredentialCb {
-    const char* d_mechanism;
-    const char* d_payload;
-
-    SuccessCredentialCb(const char* mechanism, const char* payload)
-    : d_mechanism(mechanism)
-    , d_payload(payload)
-    {
-    }
+    static const char* mechanism() { return "BASIC"; }
+    static const char* payload() { return "user:pass"; }
 
     bsl::optional<mqbplug::AuthnCredential> operator()(bsl::ostream&) const
     {
         bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
-        bsl::vector<char> data(d_payload,
-                               d_payload + bsl::strlen(d_payload),
-                               alloc);
+        bslstl::StringRef p(payload());
+        bsl::vector<char> data(p.begin(), p.end(), alloc);
         bsl::optional<mqbplug::AuthnCredential> result(
             bsl::allocator_arg,
             alloc,
-            mqbplug::AuthnCredential(d_mechanism, data, alloc));
+            mqbplug::AuthnCredential(mechanism(), data, alloc));
         return result;
     }
 };
@@ -122,7 +115,7 @@ makeSuccessResponse(const bdlb::NullableValue<bsls::Types::Int64>& lifetimeMs =
 }
 
 bmqp_ctrlmsg::AuthenticationMessage
-makeFailureResponse(const bsl::string& message, int code)
+makeFailureResponse(bslstl::StringRef message, int code)
 {
     bmqp_ctrlmsg::AuthenticationMessage   msg;
     bmqp_ctrlmsg::AuthenticationResponse& resp =
@@ -234,7 +227,7 @@ static void test1_authenticateSuccess()
 
     // 1)
     bslma::ManagedPtr<mqba::AuthenticationClient> client = tb.createClient(
-        SuccessCredentialCb("BASIC", "user:pass"));
+        SuccessCredentialCb());
 
     // 2)
     bmqu::MemOutStream errStream(alloc);
@@ -283,7 +276,7 @@ static void test2_authenticateChannelGone()
 
     // 1)
     bslma::ManagedPtr<mqba::AuthenticationClient> client = tb.createClient(
-        SuccessCredentialCb("BASIC", "user:pass"));
+        SuccessCredentialCb());
 
     // 2)
     tb.d_channel.reset();
@@ -292,9 +285,7 @@ static void test2_authenticateChannelGone()
     bmqu::MemOutStream errStream(alloc);
     int                rc = client->authenticate(errStream);
     BMQTST_ASSERT_EQ(rc, -1);
-    BMQTST_ASSERT(bsl::string(errStream.str(), alloc)
-                      .find("Channel is no longer available") !=
-                  bsl::string::npos);
+    BMQTST_ASSERT_EQ(errStream.str(), "Channel is no longer available");
 
     client->stop();
 }
@@ -327,9 +318,9 @@ static void test3_authenticateCredentialFailure()
     bmqu::MemOutStream errStream(alloc);
     int                rc = client->authenticate(errStream);
     BMQTST_ASSERT_EQ(rc, -2);
-    BMQTST_ASSERT(bsl::string(errStream.str(), alloc)
-                      .find("Failed to obtain credentials") !=
-                  bsl::string::npos);
+    BMQTST_ASSERT_EQ(errStream.str(),
+                     "Failed to obtain credentials: "
+                     "credential provider callback failure");
     BMQTST_ASSERT_EQ(tb.d_channel->numWriteCalls(), 0u);
 
     client->stop();
@@ -356,7 +347,7 @@ static void test4_authenticateWriteFails()
 
     // 1)
     bslma::ManagedPtr<mqba::AuthenticationClient> client = tb.createClient(
-        SuccessCredentialCb("BASIC", "user:pass"));
+        SuccessCredentialCb());
 
     // 2)
     tb.d_channel->setWriteStatus(
@@ -366,8 +357,7 @@ static void test4_authenticateWriteFails()
     bmqu::MemOutStream errStream(alloc);
     int                rc = client->authenticate(errStream);
     BMQTST_ASSERT_EQ(rc, -4);
-    BMQTST_ASSERT(bsl::string(errStream.str(), alloc).find("Failed sending") !=
-                  bsl::string::npos);
+    BMQTST_ASSERT(errStream.str().starts_with("Failed sending"));
 
     client->stop();
 }
@@ -392,7 +382,7 @@ static void test5_handleResponseSuccessNoLifetime()
     TestBench         tb(alloc);
 
     bslma::ManagedPtr<mqba::AuthenticationClient> client = tb.createClient(
-        SuccessCredentialCb("BASIC", "user:pass"));
+        SuccessCredentialCb());
 
     // 1)
     bmqu::MemOutStream errStream(alloc);
@@ -438,7 +428,7 @@ static void test6_handleResponseSuccessWithLifetime()
     TestBench         tb(alloc);
 
     bslma::ManagedPtr<mqba::AuthenticationClient> client = tb.createClient(
-        SuccessCredentialCb("BASIC", "user:pass"));
+        SuccessCredentialCb());
 
     // 1)
     bmqu::MemOutStream errStream(alloc);
@@ -497,7 +487,7 @@ static void test7_handleResponseAuthenticationFailure()
 
     // 1)
     bslma::ManagedPtr<mqba::AuthenticationClient> client = tb.createClient(
-        SuccessCredentialCb("BASIC", "user:pass"));
+        SuccessCredentialCb());
 
     // 2)
     bmqp_ctrlmsg::AuthenticationMessage response =
@@ -506,9 +496,8 @@ static void test7_handleResponseAuthenticationFailure()
     bmqu::MemOutStream errStream(alloc);
     int                rc = client->handleResponse(errStream, response);
     BMQTST_ASSERT_NE(rc, 0);
-    BMQTST_ASSERT(
-        bsl::string(errStream.str(), alloc).find("Authentication failed") !=
-        bsl::string::npos);
+    BMQTST_ASSERT_EQ(errStream.str(),
+                     "Authentication failed: access denied [code: 403]");
 
     client->stop();
 }
@@ -534,19 +523,18 @@ static void test8_handleResponseInvalidMessage()
 
     // 1)
     bslma::ManagedPtr<mqba::AuthenticationClient> client = tb.createClient(
-        SuccessCredentialCb("BASIC", "user:pass"));
+        SuccessCredentialCb());
 
     // 2)
     bmqp_ctrlmsg::AuthenticationMessage badMsg;
     badMsg.makeAuthenticationRequest();
-    badMsg.authenticationRequest().mechanism() = "BASIC";
+    badMsg.authenticationRequest().mechanism() = "BAD_INPUT";
 
     bmqu::MemOutStream errStream(alloc);
     int                rc = client->handleResponse(errStream, badMsg);
     BMQTST_ASSERT_NE(rc, 0);
-    BMQTST_ASSERT(bsl::string(errStream.str(), alloc)
-                      .find("Expected AuthenticationResponse") !=
-                  bsl::string::npos);
+    BMQTST_ASSERT(
+        errStream.str().starts_with("Expected AuthenticationResponse"));
 
     client->stop();
 }
@@ -573,7 +561,7 @@ static void test9_stopCancelsReauthTimer()
     TestBench         tb(alloc);
 
     bslma::ManagedPtr<mqba::AuthenticationClient> client = tb.createClient(
-        SuccessCredentialCb("BASIC", "user:pass"));
+        SuccessCredentialCb());
 
     // 1)
     bmqu::MemOutStream errStream(alloc);
@@ -621,7 +609,7 @@ static void test10_stopThenAuthenticate()
 
     // 1)
     bslma::ManagedPtr<mqba::AuthenticationClient> client = tb.createClient(
-        SuccessCredentialCb("BASIC", "user:pass"));
+        SuccessCredentialCb());
 
     // 2)
     client->stop();
@@ -630,9 +618,7 @@ static void test10_stopThenAuthenticate()
     bmqu::MemOutStream errStream(alloc);
     int                rc = client->authenticate(errStream);
     BMQTST_ASSERT_NE(rc, 0);
-    BMQTST_ASSERT(bsl::string(errStream.str(), alloc)
-                      .find("Channel is no longer available") !=
-                  bsl::string::npos);
+    BMQTST_ASSERT_EQ(errStream.str(), "Channel is no longer available");
 }
 
 static void test11_reauthChannelGoneAtTimerFire()
@@ -659,7 +645,7 @@ static void test11_reauthChannelGoneAtTimerFire()
     TestBench         tb(alloc);
 
     bslma::ManagedPtr<mqba::AuthenticationClient> client = tb.createClient(
-        SuccessCredentialCb("BASIC", "user:pass"));
+        SuccessCredentialCb());
 
     // 1)
     bmqu::MemOutStream errStream(alloc);

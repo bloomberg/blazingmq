@@ -74,7 +74,6 @@ AuthenticationClient::AuthenticationClient(
     BSLS_ASSERT_SAFE(channel);
     BSLS_ASSERT_SAFE(d_blobSpPool_p);
     BSLS_ASSERT_SAFE(d_scheduler_p);
-    BSLS_ASSERT_SAFE(d_allocator_p);
 }
 
 AuthenticationClient::~AuthenticationClient()
@@ -196,11 +195,11 @@ int AuthenticationClient::handleResponse(
     }
 
     BALL_LOG_INFO << "Authentication successful [peer: " << channel.get()
-                  << "], [lifetimeMs: "
+                  << "], lifetimeMs: "
                   << (authnResponse.lifetimeMs().isNull()
                           ? "N/A"
-                          : bsl::to_string(authnResponse.lifetimeMs().value()))
-                  << "]";
+                          : bsl::to_string(
+                                authnResponse.lifetimeMs().value()));
 
     // If a lifetime is provided, schedule a reauthentication request to be
     // sent at 80% of the lifetime before the connection expires.
