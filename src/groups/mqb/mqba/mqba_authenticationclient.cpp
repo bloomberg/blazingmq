@@ -74,11 +74,17 @@ AuthenticationClient::AuthenticationClient(
     BSLS_ASSERT_SAFE(channel);
     BSLS_ASSERT_SAFE(d_blobSpPool_p);
     BSLS_ASSERT_SAFE(d_scheduler_p);
+
+    d_gateKeeper.open();
 }
 
 AuthenticationClient::~AuthenticationClient()
 {
-    stop();
+    d_gateKeeper.close();
+    d_scheduler_p->cancelEventAndWait(&d_reauthHandle);
+
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
+    d_channel_wp.reset();
 }
 
 // MANIPULATORS
@@ -165,6 +171,13 @@ int AuthenticationClient::handleResponse(
         rc_AUTHENTICATION_FAILURE = -2
     };
 
+    // Prevent scheduling reauthentication if destructor has been called.
+    // The destructor will wait for this function to return.
+    bmqu::GateKeeper::Status gateStatus(d_gateKeeper);
+    if (!gateStatus.isOpen()) {
+        return rc_SUCCESS;  // RETURN
+    }
+
     if (!response.isAuthenticationResponseValue()) {
         errorDescription << "Expected AuthenticationResponse but received: "
                          << response;
@@ -228,17 +241,6 @@ int AuthenticationClient::handleResponse(
     }
 
     return rc_SUCCESS;
-}
-
-void AuthenticationClient::stop()
-{
-    // executed by *ANY* thread (during channel teardown)
-
-    // Cancel future events, synchronize with any currently executing callback
-    d_scheduler_p->cancelEventAndWait(&d_reauthHandle);
-
-    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
-    d_channel_wp.reset();
 }
 
 }  // close package namespace

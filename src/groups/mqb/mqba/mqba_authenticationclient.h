@@ -30,6 +30,9 @@
 #include <mqbnet_authenticationclient.h>
 #include <mqbplug_credentialprovider.h>
 
+// BMQ
+#include <bmqu_atomicgate.h>
+
 // BDE
 #include <ball_log.h>
 #include <bdlbb_blob.h>
@@ -83,6 +86,9 @@ class AuthenticationClient : public mqbnet::AuthenticationClient {
 
     /// Scheduler for reauthentication timers.  Held, not owned.
     bdlmt::EventScheduler* d_scheduler_p;
+
+    /// Gate to drain in-flight handleResponse before destruction.
+    bmqu::GateKeeper d_gateKeeper;
 
     /// Mutex to protect access to EventHandle and channel.
     mutable bslmt::Mutex d_mutex;
@@ -143,10 +149,6 @@ class AuthenticationClient : public mqbnet::AuthenticationClient {
     int handleResponse(bsl::ostream& errorDescription,
                        const bmqp_ctrlmsg::AuthenticationMessage& response)
         BSLS_KEYWORD_OVERRIDE;
-
-    /// Stop the authentication client, cancelling any pending
-    /// reauthentication timers.
-    void stop() BSLS_KEYWORD_OVERRIDE;
 };
 
 }  // close package namespace

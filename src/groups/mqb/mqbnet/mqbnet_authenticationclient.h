@@ -63,10 +63,6 @@ class AuthenticationClient {
     virtual int
     handleResponse(bsl::ostream&                              errorDescription,
                    const bmqp_ctrlmsg::AuthenticationMessage& response) = 0;
-
-    /// Stop the authentication client, cancelling any pending
-    /// reauthentication timers.
-    virtual void stop() = 0;
 };
 
 }  // close package namespace

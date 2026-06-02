@@ -251,8 +251,6 @@ static void test1_authenticateSuccess()
                         req.data().value().end(),
                         alloc);
     BMQTST_ASSERT_EQ(dataStr, "user:pass");
-
-    client->stop();
 }
 
 static void test2_authenticateChannelGone()
@@ -286,8 +284,6 @@ static void test2_authenticateChannelGone()
     int                rc = client->authenticate(errStream);
     BMQTST_ASSERT_EQ(rc, -1);
     BMQTST_ASSERT_EQ(errStream.str(), "Channel is no longer available");
-
-    client->stop();
 }
 
 static void test3_authenticateCredentialFailure()
@@ -322,8 +318,6 @@ static void test3_authenticateCredentialFailure()
                      "Failed to obtain credentials: "
                      "credential provider callback failure");
     BMQTST_ASSERT_EQ(tb.d_channel->numWriteCalls(), 0u);
-
-    client->stop();
 }
 
 static void test4_authenticateWriteFails()
@@ -358,8 +352,6 @@ static void test4_authenticateWriteFails()
     int                rc = client->authenticate(errStream);
     BMQTST_ASSERT_EQ(rc, -4);
     BMQTST_ASSERT(errStream.str().starts_with("Failed sending"));
-
-    client->stop();
 }
 
 static void test5_handleResponseSuccessNoLifetime()
@@ -401,8 +393,6 @@ static void test5_handleResponseSuccessNoLifetime()
     // 3)
     tb.d_testClock.d_timeSource.advanceTime(bsls::TimeInterval(60));
     BMQTST_ASSERT_EQ(tb.d_channel->numWriteCalls(), writeCountAfterAuth);
-
-    client->stop();
 }
 
 static void test6_handleResponseSuccessWithLifetime()
@@ -460,8 +450,6 @@ static void test6_handleResponseSuccessWithLifetime()
     rc = decodeAuthenticationEvent(&decoded, wc.d_blob, alloc);
     BMQTST_ASSERT_EQ(rc, 0);
     BMQTST_ASSERT(decoded.isAuthenticationRequestValue());
-
-    client->stop();
 }
 
 static void test7_handleResponseAuthenticationFailure()
@@ -498,8 +486,6 @@ static void test7_handleResponseAuthenticationFailure()
     BMQTST_ASSERT_NE(rc, 0);
     BMQTST_ASSERT_EQ(errStream.str(),
                      "Authentication failed: access denied [code: 403]");
-
-    client->stop();
 }
 
 static void test8_handleResponseInvalidMessage()
@@ -535,93 +521,60 @@ static void test8_handleResponseInvalidMessage()
     BMQTST_ASSERT_NE(rc, 0);
     BMQTST_ASSERT(
         errStream.str().starts_with("Expected AuthenticationResponse"));
-
-    client->stop();
 }
 
-static void test9_stopCancelsReauthTimer()
+static void test9_destructorCancelsReauthTimer()
 // ------------------------------------------------------------------------
-// STOP CANCELS REAUTH TIMER
+// DESTRUCTOR CANCELS REAUTH TIMER
 //
 // Concerns:
-//   - Calling 'stop()' cancels a pending reauthentication timer.
-//   - No reauthentication write occurs after stop, even when time
+//   - Destroying the client cancels a pending reauthentication timer.
+//   - No reauthentication write occurs after destruction, even when time
 //     advances past the scheduled point.
 //
 // Plan:
 //   1) Authenticate and handle a response with a lifetime to schedule
 //      reauthentication.
-//   2) Call 'stop()'.
+//   2) Destroy the client.
 //   3) Advance time past the reauthn lifetime, verify no additional writes.
 // ------------------------------------------------------------------------
 {
-    bmqtst::TestHelper::printTestName("STOP CANCELS REAUTH TIMER");
+    bmqtst::TestHelper::printTestName("DESTRUCTOR CANCELS REAUTH TIMER");
 
     bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
     TestBench         tb(alloc);
 
-    bslma::ManagedPtr<mqba::AuthenticationClient> client = tb.createClient(
-        SuccessCredentialCb());
+    size_t writeCountAfterAuth;
 
-    // 1)
-    bmqu::MemOutStream errStream(alloc);
-    int                rc = client->authenticate(errStream);
-    BMQTST_ASSERT_EQ(rc, 0);
+    {
+        bslma::ManagedPtr<mqba::AuthenticationClient> client = tb.createClient(
+            SuccessCredentialCb());
 
-    size_t writeCountAfterAuth = tb.d_channel->numWriteCalls();
+        // 1)
+        bmqu::MemOutStream errStream(alloc);
+        int                rc = client->authenticate(errStream);
+        BMQTST_ASSERT_EQ(rc, 0);
 
-    const bsls::Types::Int64            lifetimeMs = 10000;
-    bmqp_ctrlmsg::AuthenticationMessage response   = makeSuccessResponse(
-        bdlb::NullableValue<bsls::Types::Int64>(lifetimeMs));
+        writeCountAfterAuth = tb.d_channel->numWriteCalls();
 
-    errStream.reset();
-    rc = client->handleResponse(errStream, response);
-    BMQTST_ASSERT_EQ(rc, 0);
+        const bsls::Types::Int64            lifetimeMs = 10000;
+        bmqp_ctrlmsg::AuthenticationMessage response   = makeSuccessResponse(
+            bdlb::NullableValue<bsls::Types::Int64>(lifetimeMs));
 
-    // 2)
-    client->stop();
+        errStream.reset();
+        rc = client->handleResponse(errStream, response);
+        BMQTST_ASSERT_EQ(rc, 0);
+
+        // 2) client destroyed here
+    }
 
     // 3)
     tb.d_testClock.d_timeSource.advanceTime(
-        bsls::TimeInterval().addMilliseconds(10 * lifetimeMs));
+        bsls::TimeInterval().addMilliseconds(100000));
     BMQTST_ASSERT_EQ(tb.d_channel->numWriteCalls(), writeCountAfterAuth);
 }
 
-static void test10_stopThenAuthenticate()
-// ------------------------------------------------------------------------
-// STOP THEN AUTHENTICATE
-//
-// Concerns:
-//   - 'authenticate()' returns rc_CHANNEL_GONE after 'stop()' has been
-//     called, because 'stop()' resets the weak_ptr to the channel.
-//
-// Plan:
-//   1) Construct a client.
-//   2) Call 'stop()' on the client.
-//   3) Call 'authenticate()' and verify it fails with the channel-gone
-//      error.
-// ------------------------------------------------------------------------
-{
-    bmqtst::TestHelper::printTestName("STOP THEN AUTHENTICATE");
-
-    bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
-    TestBench         tb(alloc);
-
-    // 1)
-    bslma::ManagedPtr<mqba::AuthenticationClient> client = tb.createClient(
-        SuccessCredentialCb());
-
-    // 2)
-    client->stop();
-
-    // 3)
-    bmqu::MemOutStream errStream(alloc);
-    int                rc = client->authenticate(errStream);
-    BMQTST_ASSERT_NE(rc, 0);
-    BMQTST_ASSERT_EQ(errStream.str(), "Channel is no longer available");
-}
-
-static void test11_reauthChannelGoneAtTimerFire()
+static void test10_reauthChannelGoneAtTimerFire()
 // ------------------------------------------------------------------------
 // REAUTH CHANNEL GONE AT TIMER FIRE
 //
@@ -674,8 +627,6 @@ static void test11_reauthChannelGoneAtTimerFire()
         logObserver.records()[0],
         ".*Reauthentication failed.*",
         alloc));
-
-    client->stop();
 }
 
 // ============================================================================
@@ -691,9 +642,8 @@ int main(int argc, char* argv[])
 
         switch (_testCase) {
         case 0:
-        case 11: test11_reauthChannelGoneAtTimerFire(); break;
-        case 10: test10_stopThenAuthenticate(); break;
-        case 9: test9_stopCancelsReauthTimer(); break;
+        case 10: test10_reauthChannelGoneAtTimerFire(); break;
+        case 9: test9_destructorCancelsReauthTimer(); break;
         case 8: test8_handleResponseInvalidMessage(); break;
         case 7: test7_handleResponseAuthenticationFailure(); break;
         case 6: test6_handleResponseSuccessWithLifetime(); break;
