@@ -2014,13 +2014,14 @@ void ClusterQueueHelper::onReopenQueueRetryDispatched(
 
     SubQueueContext& subQueueContext = sqit->value();
 
-    BSLS_ASSERT_SAFE(subQueueContext.d_state == SubQueueContext::k_CLOSED);
-
-    sendReopenQueueRequest(queueContext.get(),
-                           &subQueueContext,
-                           activeNode,
-                           cycle,
-                           numAttempts + 1);
+    if (subQueueContext.d_state == SubQueueContext::k_CLOSED) {
+        sendReopenQueueRequest(queueContext.get(),
+                               &subQueueContext,
+                               activeNode,
+                               cycle,
+                               numAttempts + 1);
+    }
+    // else, this retry must be cancelled
 }
 
 void ClusterQueueHelper::onOpenQueueConfirmationCookieReleased(
@@ -4639,16 +4640,21 @@ void ClusterQueueHelper::onUpstreamNodeChange(mqbnet::ClusterNode* node,
 void ClusterQueueHelper::setStreamState(SubQueueContext*      subQueueContext,
                                         SubQueueContext::Enum state)
 {
-    if (state != SubQueueContext::k_REOPENING) {
-        d_clusterData_p->scheduler().cancelEvent(
-            &subQueueContext->d_reopenRetryHandle);
-    }
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(subQueueContext);
+
+    d_clusterData_p->scheduler().cancelEventAndWait(
+        &subQueueContext->d_reopenRetryHandle);
+
     subQueueContext->d_state = state;
 }
 
 void ClusterQueueHelper::setStreamState(const QueueContextSp& queueContextSp,
                                         SubQueueContext::Enum state)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(queueContextSp);
+
     QueueLiveState& queueInfo = queueContextSp->d_liveQInfo;
 
     for (StreamsMap::iterator iter = queueInfo.d_subQueueIds.begin();
