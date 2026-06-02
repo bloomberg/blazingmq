@@ -1327,7 +1327,7 @@ void StorageManager::processPrimaryStateResponseDispatched(
 
     if (context->result() != bmqt::GenericResult::e_SUCCESS) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << ": received FAIL_PrmryStateRspn event "
+                      << ": Received failure PrimaryStateResponse event "
                       << context->response() << " from primary "
                       << responder->nodeDescription();
 
