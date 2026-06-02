@@ -759,5 +759,20 @@ bool ClusterCatalog::isClusterVirtual(const bslstl::StringRef& name) const
     return d_myVirtualClusters.find(name) != d_myVirtualClusters.end();
 }
 
+void ClusterCatalog::getClusters(
+    bsl::vector<bsl::shared_ptr<mqbi::Cluster> >* out) const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(out);
+
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // d_mutex LOCK
+
+    out->reserve(d_clusters.size());
+    for (ClustersMapConstIter it = d_clusters.begin(); it != d_clusters.end();
+         ++it) {
+        out->push_back(it->second.d_cluster_sp);
+    }
+}
+
 }  // close package namespace
 }  // close enterprise namespace

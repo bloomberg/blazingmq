@@ -489,18 +489,23 @@ void Application::stop()
     BALL_LOG_INFO << ": Executing GRACEFUL_SHUTDOWN_V2";
 
     // For each cluster in cluster catalog, inform peers about this shutdown.
-    int          count = d_clusterCatalog_mp->count();
-    bslmt::Latch latch(count);
+    {
+        bsl::vector<bsl::shared_ptr<mqbi::Cluster> > clusters(d_allocator_p);
+        d_clusterCatalog_mp->getClusters(&clusters);
 
-    BALL_LOG_INFO << "Initiating " << count << " cluster(s) shutdown...";
+        bslmt::Latch latch(clusters.size());
 
-    for (mqbblp::ClusterCatalogIterator clusterIt(d_clusterCatalog_mp.get());
-         count > 0;
-         ++clusterIt, --count) {
-        clusterIt.cluster()->initiateShutdown(
-            bdlf::BindUtil::bind(&bslmt::Latch::arrive, &latch));
+        BALL_LOG_INFO << "Initiating " << clusters.size()
+                      << " cluster(s) shutdown...";
+
+        for (size_t i = 0; i < clusters.size(); ++i) {
+            clusters[i]->initiateShutdown(
+                bdlf::BindUtil::bind(&bslmt::Latch::arrive, &latch));
+        }
+        latch.wait();
+
+        // release references to clusters.
     }
-    latch.wait();
 
     // Close each SDK and proxy session in transport manager.
     BALL_LOG_INFO << "Closing client and proxy sessions...";
