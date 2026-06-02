@@ -572,8 +572,8 @@ void Cluster::initiateShutdownDispatched(const VoidFunctor& callback)
     BSLS_ASSERT_SAFE(inDispatcherThread());
 
     if (d_isStopping) {
-        BALL_LOG_INFO << "Cluster: [name: '" << name()
-                      << "'] shutdown already in progress, skipping";
+        BALL_LOG_INFO << "Cluster [" << name()
+                      << "] shutdown already in progress, skipping";
 
         // Append a no-op link so 'callback' fires when the in-progress
         // shutdown chain completes.  If the chain has already finished,
