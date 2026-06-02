@@ -559,9 +559,7 @@ int RootQueueEngine::initializeAppId(const bsl::string& appId,
 
 void RootQueueEngine::close()
 {
-    if (d_flowControlEventHandle) {
-        d_scheduler_p->cancelEventAndWait(&d_flowControlEventHandle);
-    }
+    d_scheduler_p->cancelEventAndWait(&d_flowControlEventHandle);
 
     d_consumptionMonitor.reset();
 }

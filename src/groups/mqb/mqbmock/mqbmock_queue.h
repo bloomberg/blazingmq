@@ -231,7 +231,7 @@ class Queue : public mqbi::Queue {
                     bool doDeconfigure = true) BSLS_KEYWORD_OVERRIDE;
 
     /// Close this queue.  Call the specified `callback` when the queue does
-    /// not have any outstanding events.
+    /// not have any outstanding events and can destruct.
     ///
     /// THREAD: this method can be called from any thread.
     void

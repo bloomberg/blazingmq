@@ -386,8 +386,7 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     int configure(bsl::ostream& errorDescription,
                   bool          isReconfigure) BSLS_KEYWORD_OVERRIDE;
 
-    /// Prepare this engine for destruction by cancelling any scheduled
-    /// events.
+    /// Prepare this engine for destruction by canceling all scheduled events.
     void close() BSLS_KEYWORD_OVERRIDE;
 
     /// Reset the internal state of this engine.  If the optionally specified

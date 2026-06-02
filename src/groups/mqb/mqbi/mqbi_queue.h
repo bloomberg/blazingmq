@@ -870,7 +870,7 @@ class Queue : public DispatcherClient {
                             bool         doDeconfigure = true) = 0;
 
     /// Close this queue.  Call the specified `callback` when the queue does
-    /// not have any outstanding events.
+    /// not have any outstanding events and can destruct.
     ///
     /// THREAD: this method can be called from any thread.
     virtual void close(const bsl::function<void(void)>& callback) = 0;
