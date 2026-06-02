@@ -21,7 +21,6 @@ bmqu_sharedresource
 bmqu_singletonallocator
 bmqu_stringutil
 bmqu_tempdirectory
-bmqu_tempfile
 bmqu_temputil
 bmqu_throttledaction
 bmqu_time

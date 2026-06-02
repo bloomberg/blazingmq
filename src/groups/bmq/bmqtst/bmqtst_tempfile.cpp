@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <bmqu_tempfile.h>
+#include <bmqtst_tempfile.h>
 
 #include <bmqscm_version.h>
 
@@ -24,7 +24,7 @@
 #include <bsls_assert.h>
 
 namespace BloombergLP {
-namespace bmqu {
+namespace bmqtst {
 
 // --------------
 // class TempFile

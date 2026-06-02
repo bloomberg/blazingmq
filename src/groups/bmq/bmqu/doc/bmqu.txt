@@ -9,7 +9,7 @@ reused through various applications.
 
 /Hierarchical Synopsis
 /---------------------
-The 'bmqu' package currently has 21 components having 2 level of physical
+The 'bmqu' package currently has 20 components having 2 level of physical
 dependency.  The list below shows the hierarchal ordering of the components.
 ..
   2. bmqu_blobiterator
@@ -29,7 +29,6 @@ dependency.  The list below shows the hierarchal ordering of the components.
      bmqu_samethreadchecker
      bmqu_singletonallocator
      bmqu_stringutil
-     bmqu_tempfile
      bmqu_temputil
      bmqu_throttledaction
      bmqu_time
@@ -85,9 +84,6 @@ dependency.  The list below shows the hierarchal ordering of the components.
 :
 : 'bmqu_tempdirectory':
 :      Provide a guard for creating a temporary directory.
-:
-: 'bmqu_tempfile':
-:      Provide a guard for creating a temporary file.
 :
 : 'bmqu_temputil':
 :      Provide an utility for resolving the effective temporary directory.

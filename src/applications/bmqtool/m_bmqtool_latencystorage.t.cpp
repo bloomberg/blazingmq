@@ -17,8 +17,8 @@
 #include <m_bmqtool_latencystorage.h>
 
 // BDE
+#include <bmqtst_tempfile.h>
 #include <bmqtst_testhelper.h>
-#include <bmqu_tempfile.h>
 #include <bsl_cstdlib.h>
 #include <bsl_fstream.h>
 #include <bsl_iostream.h>
@@ -199,7 +199,7 @@ static void test6_saveAndLoadTest()
 {
     bmqtst::TestHelper::printTestName("SAVE AND LOAD TEST");
 
-    bmqu::TempFile tempFile;
+    bmqtst::TempFile tempFile;
     {
         LatencyStorage storage("test", 2, bmqtst::TestHelperUtil::allocator());
 
