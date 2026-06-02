@@ -1277,7 +1277,7 @@ bmqt::GenericResult::Enum ClusterQueueHelper::sendReopenQueueRequest(
         BMQ_LOGTHROTTLE_INFO << "Sent ReopenQueue request "
                              << request->request() << " generationCount "
                              << generationCount;
-        subQueueContext->d_state = SubQueueContext::k_REOPENING;
+        setStreamState(subQueueContext, SubQueueContext::k_REOPENING);
         subQueueContext->d_generationCount = generationCount;
 
         ++queueContext->d_liveQInfo.d_numReopenQueueRequests;
@@ -1612,7 +1612,7 @@ void ClusterQueueHelper::onReopenQueueResponse(
             BSLS_ASSERT_SAFE(sqit != qinfo.d_subQueueIds.end());
             BSLS_ASSERT_SAFE(sqit->appId() == appId);
 
-            subQueueContext.d_state = SubQueueContext::k_FAILED;
+            setStreamState(&subQueueContext, SubQueueContext::k_FAILED);
 
             notifyQueue(queueContext,
                         upstreamSubQueueId,
@@ -1691,7 +1691,7 @@ void ClusterQueueHelper::onReopenQueueResponse(
         return;  // RETURN
     }
 
-    subQueueContext.d_state = SubQueueContext::k_OPEN;
+    setStreamState(&subQueueContext, SubQueueContext::k_OPEN);
 
     BMQ_LOGTHROTTLE_INFO
         << d_cluster_p->description() << ": queue successfully reopened ["
