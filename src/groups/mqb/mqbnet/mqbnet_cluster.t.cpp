@@ -68,7 +68,8 @@ struct ClusterNodeTestImp : bsls::ProtocolTestImp<mqbnet::ClusterNode> {
 
     bool enableRead() BSLS_KEYWORD_OVERRIDE { return markDone(); }
 
-    mqbnet::ClusterNode* resetChannel() BSLS_KEYWORD_OVERRIDE
+    mqbnet::ClusterNode*
+    resetChannel(const bsl::shared_ptr<bmqio::Channel>&) BSLS_KEYWORD_OVERRIDE
     {
         return markDone();
     }
@@ -311,7 +312,8 @@ static void test2_ClusterNode()
                                             identity,
                                             bmqio::Channel::ReadCallback()));
         BSLS_PROTOCOLTEST_ASSERT(testObj, enableRead());
-        BSLS_PROTOCOLTEST_ASSERT(testObj, resetChannel());
+        BSLS_PROTOCOLTEST_ASSERT(testObj,
+                                 resetChannel(dummyWeakChannel.lock()));
         BSLS_PROTOCOLTEST_ASSERT(testObj,
                                  write(dummyBlob_sp,
                                        bmqp::EventType::e_CONTROL));

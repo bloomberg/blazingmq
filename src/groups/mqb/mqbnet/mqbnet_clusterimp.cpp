@@ -120,9 +120,14 @@ bool ClusterNodeImp::enableRead()
     return true;
 }
 
-ClusterNode* ClusterNodeImp::resetChannel()
+ClusterNode* ClusterNodeImp::resetChannel(
+    const bsl::shared_ptr<bmqio::Channel>& closedChannel)
 {
-    d_channel.resetChannel();
+    if (!d_channel.resetChannel(closedChannel)) {
+        // The channel was not reset (stale close), skip cleanup.
+        return this;  // RETURN
+    }
+
     d_isReading = false;
     d_identity.reset();
     d_readCb = bmqio::Channel::ReadCallback();

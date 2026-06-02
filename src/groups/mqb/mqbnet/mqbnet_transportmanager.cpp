@@ -152,13 +152,10 @@ bool TransportManager::processSession(
 
         // Add self as observer of the channel (so that we can monitor when it
         // goes down, and eventually initiate a reconnection).
-        bmqu::MemOutStream channelDescription;
-        channelDescription << session->channel().get();
-
         session->channel()->onClose(
             bdlf::BindUtil::bind(&TransportManager::onClose,
                                  this,
-                                 bsl::string(channelDescription.str()),
+                                 session->channel(),
                                  state));
 
         return true;  // RETURN
@@ -272,8 +269,9 @@ int TransportManager::connectLocked(ConnectionState* state)
         true);  // shouldAutoReconnect
 }
 
-void TransportManager::onClose(const bsl::string& channelDescription,
-                               ConnectionState*   state)
+void TransportManager::onClose(
+    const bsl::shared_ptr<bmqio::Channel>& closedChannel,
+    ConnectionState*                       state)
 {
     // executed by one of the *IO* threads
     // PRECONDITIONS
@@ -284,18 +282,18 @@ void TransportManager::onClose(const bsl::string& channelDescription,
     if (!state->d_node_p) {
         // The cluster was destroyed, we can just remove that ConnectionState
         // entry from the map
-        BALL_LOG_INFO << "Channel onClose [channel: '" << channelDescription
+        BALL_LOG_INFO << "Channel onClose [channel: '" << closedChannel.get()
                       << "']";
         d_connectionsState.erase(state);
         return;  // RETURN
     }
 
-    BALL_LOG_INFO << "Channel onClose [channel: '" << channelDescription
+    BALL_LOG_INFO << "Channel onClose [channel: '" << closedChannel.get()
                   << "', cluster: '" << state->d_node_p->cluster()->name()
                   << "']";
 
     // Notify node of lost of connectivity
-    state->d_node_p->resetChannel();
+    state->d_node_p->resetChannel(closedChannel);
 }
 
 int TransportManager::selfNodeIdLocked(

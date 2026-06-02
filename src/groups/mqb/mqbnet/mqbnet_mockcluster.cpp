@@ -103,9 +103,12 @@ bool MockClusterNode::enableRead()
     return true;
 }
 
-ClusterNode* MockClusterNode::resetChannel()
+ClusterNode* MockClusterNode::resetChannel(
+    const bsl::shared_ptr<bmqio::Channel>& closedChannel)
 {
-    d_channel.resetChannel();
+    if (!d_channel.resetChannel(closedChannel)) {
+        return this;  // RETURN
+    }
 
     // Notify the cluster of changes to this node
     d_cluster_p->notifyObserversOfNodeStateChange(this, false);
