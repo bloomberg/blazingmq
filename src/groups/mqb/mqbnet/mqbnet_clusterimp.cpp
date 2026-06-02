@@ -123,10 +123,7 @@ bool ClusterNodeImp::enableRead()
 ClusterNode* ClusterNodeImp::resetChannel(
     const bsl::shared_ptr<bmqio::Channel>& closedChannel)
 {
-    d_channel.resetChannel(closedChannel);
-
-    bsl::shared_ptr<bmqio::Channel> currentSp = d_channel.channel();
-    if (currentSp) {
+    if (!d_channel.resetChannel(closedChannel)) {
         // The channel was not reset (stale close), skip cleanup.
         return this;  // RETURN
     }

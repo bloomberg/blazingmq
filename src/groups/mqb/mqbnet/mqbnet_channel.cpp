@@ -259,7 +259,7 @@ Channel::writeBlob(const bsl::shared_ptr<bdlbb::Blob>&       data,
     return enqueue(item);
 }
 
-void Channel::resetChannel(
+bool Channel::resetChannel(
     const bsl::shared_ptr<bmqio::Channel>& closedChannel)
 {
     {
@@ -270,7 +270,7 @@ void Channel::resetChannel(
         if (currentSp && currentSp != closedChannel) {
             BALL_LOG_INFO << "Ignoring stale resetChannel for "
                           << d_description;
-            return;  // RETURN
+            return false;  // RETURN
         }
 
         BALL_LOG_INFO << "Disconnected " << d_description;
@@ -285,6 +285,8 @@ void Channel::resetChannel(
 
     // `threadFn` might be blocked by `popFront`, wake it up
     wakeUp();
+
+    return true;
 }
 
 void Channel::requestToStop()

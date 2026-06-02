@@ -518,10 +518,10 @@ class Channel {
     void setChannel(const bsl::weak_ptr<bmqio::Channel>& value);
 
     /// Reset the channel associated to this node.  The specified
-    /// `closedChannel` identifies the channel being closed; if the node
-    /// already has a different (newer) channel, this reset is stale and
-    /// will be ignored.
-    void resetChannel(const bsl::shared_ptr<bmqio::Channel>& closedChannel);
+    /// `closedChannel` identifies the channel being closed.  Return `false` if
+    /// the node already has a different (newer) channel and ignore the reset.
+    /// Return `true` otherwise.
+    bool resetChannel(const bsl::shared_ptr<bmqio::Channel>& closedChannel);
 
     /// Start draining the channel associated to this node, if any.
     void requestToStop();
