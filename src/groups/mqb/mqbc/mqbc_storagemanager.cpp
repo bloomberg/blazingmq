@@ -444,18 +444,18 @@ void StorageManager::enqueuePartitionFSMEventDispatched(
             if (isLeaseIdOutdated || isPrimaryMismatch) {
                 BALL_LOG_WARN
                     << d_clusterData_p->identity().description()
-                    << " Partition [" << partitionId
-                    << "]: dropping stale event: source "
+                    << " Partition [" << partitionId << "]: dropping stale "
+                    << event << " event: source "
                     << evt.source()->nodeDescription()
                     << ", event primaryLeaseId [" << evt.primaryLeaseId()
                     << "], current primaryLeaseId [" << pinfo.primaryLeaseId()
-                    << "], event primary ["
+                    << "], event primary: "
                     << (evt.primary() ? evt.primary()->nodeDescription()
-                                      : "null")
-                    << "], current primary ["
+                                      : "** NULL **")
+                    << ", current primary: "
                     << (pinfo.primary() ? pinfo.primary()->nodeDescription()
-                                        : "null")
-                    << "]";
+                                        : "** NULL **")
+                    << ".";
 
                 if (0 <= evt.requestId()) {
                     bmqp_ctrlmsg::ControlMessage controlMsg;
@@ -490,13 +490,13 @@ void StorageManager::enqueuePartitionFSMEventDispatched(
                  event == PartitionFSM::Event::e_DETECT_SELF_REPLICA);
 
             if (isIdentical && isDetectEvent) {
-                BALL_LOG_INFO << d_clusterData_p->identity().description()
-                              << " Partition [" << partitionId
-                              << "]: dropping redundant DETECT event with"
-                              << " identical primary ["
-                              << evt.primary()->nodeDescription()
-                              << "] and leaseId [" << evt.primaryLeaseId()
-                              << "]";
+                BALL_LOG_INFO
+                    << d_clusterData_p->identity().description()
+                    << " Partition [" << partitionId
+                    << "]: dropping redundant " << event << " event with"
+                    << " identical primary: "
+                    << evt.primary()->nodeDescription()
+                    << " and leaseId: " << evt.primaryLeaseId() << ".";
                 return;
             }
         }
