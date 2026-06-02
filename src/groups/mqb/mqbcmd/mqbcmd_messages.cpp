@@ -1,4 +1,4 @@
-// Copyright 2019-2025 Bloomberg Finance L.P.
+// Copyright 2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -1042,9 +1042,9 @@ ConsumerInfo::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 const char ConsumerStatus::CLASS_NAME[] = "ConsumerStatus";
 
 const bdlat_EnumeratorInfo ConsumerStatus::ENUMERATOR_INFO_ARRAY[] = {
-    {ConsumerStatus::ALIVE, "alive", sizeof("alive") - 1, ""},
-    {ConsumerStatus::REGISTERED, "registered", sizeof("registered") - 1, ""},
-    {ConsumerStatus::UNAUTHORIZED,
+    {ConsumerStatus::e_ALIVE, "alive", sizeof("alive") - 1, ""},
+    {ConsumerStatus::e_REGISTERED, "registered", sizeof("registered") - 1, ""},
+    {ConsumerStatus::e_UNAUTHORIZED,
      "unauthorized",
      sizeof("unauthorized") - 1,
      ""}};
@@ -1054,9 +1054,9 @@ const bdlat_EnumeratorInfo ConsumerStatus::ENUMERATOR_INFO_ARRAY[] = {
 int ConsumerStatus::fromInt(ConsumerStatus::Value* result, int number)
 {
     switch (number) {
-    case ConsumerStatus::ALIVE:
-    case ConsumerStatus::REGISTERED:
-    case ConsumerStatus::UNAUTHORIZED:
+    case ConsumerStatus::e_ALIVE:
+    case ConsumerStatus::e_REGISTERED:
+    case ConsumerStatus::e_UNAUTHORIZED:
         *result = static_cast<ConsumerStatus::Value>(number);
         return 0;
     default: return -1;
@@ -1085,13 +1085,13 @@ int ConsumerStatus::fromString(ConsumerStatus::Value* result,
 const char* ConsumerStatus::toString(ConsumerStatus::Value value)
 {
     switch (value) {
-    case ALIVE: {
+    case e_ALIVE: {
         return "alive";
     }
-    case REGISTERED: {
+    case e_REGISTERED: {
         return "registered";
     }
-    case UNAUTHORIZED: {
+    case e_UNAUTHORIZED: {
         return "unauthorized";
     }
     }
@@ -1590,20 +1590,20 @@ DomainRemove::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 const char ElectorState::CLASS_NAME[] = "ElectorState";
 
 const bdlat_EnumeratorInfo ElectorState::ENUMERATOR_INFO_ARRAY[] = {
-    {ElectorState::DORMANT, "DORMANT", sizeof("DORMANT") - 1, ""},
-    {ElectorState::FOLLOWER, "FOLLOWER", sizeof("FOLLOWER") - 1, ""},
-    {ElectorState::CANDIDATE, "CANDIDATE", sizeof("CANDIDATE") - 1, ""},
-    {ElectorState::LEADER, "LEADER", sizeof("LEADER") - 1, ""}};
+    {ElectorState::e_DORMANT, "DORMANT", sizeof("DORMANT") - 1, ""},
+    {ElectorState::e_FOLLOWER, "FOLLOWER", sizeof("FOLLOWER") - 1, ""},
+    {ElectorState::e_CANDIDATE, "CANDIDATE", sizeof("CANDIDATE") - 1, ""},
+    {ElectorState::e_LEADER, "LEADER", sizeof("LEADER") - 1, ""}};
 
 // CLASS METHODS
 
 int ElectorState::fromInt(ElectorState::Value* result, int number)
 {
     switch (number) {
-    case ElectorState::DORMANT:
-    case ElectorState::FOLLOWER:
-    case ElectorState::CANDIDATE:
-    case ElectorState::LEADER:
+    case ElectorState::e_DORMANT:
+    case ElectorState::e_FOLLOWER:
+    case ElectorState::e_CANDIDATE:
+    case ElectorState::e_LEADER:
         *result = static_cast<ElectorState::Value>(number);
         return 0;
     default: return -1;
@@ -1631,16 +1631,16 @@ int ElectorState::fromString(ElectorState::Value* result,
 const char* ElectorState::toString(ElectorState::Value value)
 {
     switch (value) {
-    case DORMANT: {
+    case e_DORMANT: {
         return "DORMANT";
     }
-    case FOLLOWER: {
+    case e_FOLLOWER: {
         return "FOLLOWER";
     }
-    case CANDIDATE: {
+    case e_CANDIDATE: {
         return "CANDIDATE";
     }
-    case LEADER: {
+    case e_LEADER: {
         return "LEADER";
     }
     }
@@ -1658,12 +1658,12 @@ const char* ElectorState::toString(ElectorState::Value value)
 const char EncodingFormat::CLASS_NAME[] = "EncodingFormat";
 
 const bdlat_EnumeratorInfo EncodingFormat::ENUMERATOR_INFO_ARRAY[] = {
-    {EncodingFormat::TEXT, "TEXT", sizeof("TEXT") - 1, ""},
-    {EncodingFormat::JSON_COMPACT,
+    {EncodingFormat::e_TEXT, "TEXT", sizeof("TEXT") - 1, ""},
+    {EncodingFormat::e_JSON_COMPACT,
      "JSON_COMPACT",
      sizeof("JSON_COMPACT") - 1,
      ""},
-    {EncodingFormat::JSON_PRETTY,
+    {EncodingFormat::e_JSON_PRETTY,
      "JSON_PRETTY",
      sizeof("JSON_PRETTY") - 1,
      ""}};
@@ -1673,9 +1673,9 @@ const bdlat_EnumeratorInfo EncodingFormat::ENUMERATOR_INFO_ARRAY[] = {
 int EncodingFormat::fromInt(EncodingFormat::Value* result, int number)
 {
     switch (number) {
-    case EncodingFormat::TEXT:
-    case EncodingFormat::JSON_COMPACT:
-    case EncodingFormat::JSON_PRETTY:
+    case EncodingFormat::e_TEXT:
+    case EncodingFormat::e_JSON_COMPACT:
+    case EncodingFormat::e_JSON_PRETTY:
         *result = static_cast<EncodingFormat::Value>(number);
         return 0;
     default: return -1;
@@ -1704,13 +1704,13 @@ int EncodingFormat::fromString(EncodingFormat::Value* result,
 const char* EncodingFormat::toString(EncodingFormat::Value value)
 {
     switch (value) {
-    case TEXT: {
+    case e_TEXT: {
         return "TEXT";
     }
-    case JSON_COMPACT: {
+    case e_JSON_COMPACT: {
         return "JSON_COMPACT";
     }
-    case JSON_PRETTY: {
+    case e_JSON_PRETTY: {
         return "JSON_PRETTY";
     }
     }
@@ -2055,18 +2055,18 @@ FileSet::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 const char FileStoreState::CLASS_NAME[] = "FileStoreState";
 
 const bdlat_EnumeratorInfo FileStoreState::ENUMERATOR_INFO_ARRAY[] = {
-    {FileStoreState::OPEN, "open", sizeof("open") - 1, ""},
-    {FileStoreState::CLOSED, "closed", sizeof("closed") - 1, ""},
-    {FileStoreState::STOPPING, "stopping", sizeof("stopping") - 1, ""}};
+    {FileStoreState::e_OPEN, "open", sizeof("open") - 1, ""},
+    {FileStoreState::e_CLOSED, "closed", sizeof("closed") - 1, ""},
+    {FileStoreState::e_STOPPING, "stopping", sizeof("stopping") - 1, ""}};
 
 // CLASS METHODS
 
 int FileStoreState::fromInt(FileStoreState::Value* result, int number)
 {
     switch (number) {
-    case FileStoreState::OPEN:
-    case FileStoreState::CLOSED:
-    case FileStoreState::STOPPING:
+    case FileStoreState::e_OPEN:
+    case FileStoreState::e_CLOSED:
+    case FileStoreState::e_STOPPING:
         *result = static_cast<FileStoreState::Value>(number);
         return 0;
     default: return -1;
@@ -2095,13 +2095,13 @@ int FileStoreState::fromString(FileStoreState::Value* result,
 const char* FileStoreState::toString(FileStoreState::Value value)
 {
     switch (value) {
-    case OPEN: {
+    case e_OPEN: {
         return "open";
     }
-    case CLOSED: {
+    case e_CLOSED: {
         return "closed";
     }
-    case STOPPING: {
+    case e_STOPPING: {
         return "stopping";
     }
     }
@@ -2268,18 +2268,18 @@ bsl::ostream& LeaderMessageSequence::print(bsl::ostream& stream,
 const char LeaderStatus::CLASS_NAME[] = "LeaderStatus";
 
 const bdlat_EnumeratorInfo LeaderStatus::ENUMERATOR_INFO_ARRAY[] = {
-    {LeaderStatus::UNDEFINED, "UNDEFINED", sizeof("UNDEFINED") - 1, ""},
-    {LeaderStatus::PASSIVE, "PASSIVE", sizeof("PASSIVE") - 1, ""},
-    {LeaderStatus::ACTIVE, "ACTIVE", sizeof("ACTIVE") - 1, ""}};
+    {LeaderStatus::e_UNDEFINED, "UNDEFINED", sizeof("UNDEFINED") - 1, ""},
+    {LeaderStatus::e_PASSIVE, "PASSIVE", sizeof("PASSIVE") - 1, ""},
+    {LeaderStatus::e_ACTIVE, "ACTIVE", sizeof("ACTIVE") - 1, ""}};
 
 // CLASS METHODS
 
 int LeaderStatus::fromInt(LeaderStatus::Value* result, int number)
 {
     switch (number) {
-    case LeaderStatus::UNDEFINED:
-    case LeaderStatus::PASSIVE:
-    case LeaderStatus::ACTIVE:
+    case LeaderStatus::e_UNDEFINED:
+    case LeaderStatus::e_PASSIVE:
+    case LeaderStatus::e_ACTIVE:
         *result = static_cast<LeaderStatus::Value>(number);
         return 0;
     default: return -1;
@@ -2307,13 +2307,13 @@ int LeaderStatus::fromString(LeaderStatus::Value* result,
 const char* LeaderStatus::toString(LeaderStatus::Value value)
 {
     switch (value) {
-    case UNDEFINED: {
+    case e_UNDEFINED: {
         return "UNDEFINED";
     }
-    case PASSIVE: {
+    case e_PASSIVE: {
         return "PASSIVE";
     }
-    case ACTIVE: {
+    case e_ACTIVE: {
         return "ACTIVE";
     }
     }
@@ -2627,18 +2627,18 @@ ListMessages::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 const char Locality::CLASS_NAME[] = "Locality";
 
 const bdlat_EnumeratorInfo Locality::ENUMERATOR_INFO_ARRAY[] = {
-    {Locality::REMOTE, "remote", sizeof("remote") - 1, ""},
-    {Locality::LOCAL, "local", sizeof("local") - 1, ""},
-    {Locality::MEMBER, "member", sizeof("member") - 1, ""}};
+    {Locality::e_REMOTE, "remote", sizeof("remote") - 1, ""},
+    {Locality::e_LOCAL, "local", sizeof("local") - 1, ""},
+    {Locality::e_MEMBER, "member", sizeof("member") - 1, ""}};
 
 // CLASS METHODS
 
 int Locality::fromInt(Locality::Value* result, int number)
 {
     switch (number) {
-    case Locality::REMOTE:
-    case Locality::LOCAL:
-    case Locality::MEMBER:
+    case Locality::e_REMOTE:
+    case Locality::e_LOCAL:
+    case Locality::e_MEMBER:
         *result = static_cast<Locality::Value>(number);
         return 0;
     default: return -1;
@@ -2666,13 +2666,13 @@ int Locality::fromString(Locality::Value* result,
 const char* Locality::toString(Locality::Value value)
 {
     switch (value) {
-    case REMOTE: {
+    case e_REMOTE: {
         return "remote";
     }
-    case LOCAL: {
+    case e_LOCAL: {
         return "local";
     }
-    case MEMBER: {
+    case e_MEMBER: {
         return "member";
     }
     }
@@ -2830,11 +2830,11 @@ Message::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 const char NodeStatus::CLASS_NAME[] = "NodeStatus";
 
 const bdlat_EnumeratorInfo NodeStatus::ENUMERATOR_INFO_ARRAY[] = {
-    {NodeStatus::E_UNKNOWN, "E_UNKNOWN", sizeof("E_UNKNOWN") - 1, ""},
-    {NodeStatus::E_STARTING, "E_STARTING", sizeof("E_STARTING") - 1, ""},
-    {NodeStatus::E_AVAILABLE, "E_AVAILABLE", sizeof("E_AVAILABLE") - 1, ""},
-    {NodeStatus::E_STOPPING, "E_STOPPING", sizeof("E_STOPPING") - 1, ""},
-    {NodeStatus::E_UNAVAILABLE,
+    {NodeStatus::e_E_UNKNOWN, "E_UNKNOWN", sizeof("E_UNKNOWN") - 1, ""},
+    {NodeStatus::e_E_STARTING, "E_STARTING", sizeof("E_STARTING") - 1, ""},
+    {NodeStatus::e_E_AVAILABLE, "E_AVAILABLE", sizeof("E_AVAILABLE") - 1, ""},
+    {NodeStatus::e_E_STOPPING, "E_STOPPING", sizeof("E_STOPPING") - 1, ""},
+    {NodeStatus::e_E_UNAVAILABLE,
      "E_UNAVAILABLE",
      sizeof("E_UNAVAILABLE") - 1,
      ""}};
@@ -2844,11 +2844,11 @@ const bdlat_EnumeratorInfo NodeStatus::ENUMERATOR_INFO_ARRAY[] = {
 int NodeStatus::fromInt(NodeStatus::Value* result, int number)
 {
     switch (number) {
-    case NodeStatus::E_UNKNOWN:
-    case NodeStatus::E_STARTING:
-    case NodeStatus::E_AVAILABLE:
-    case NodeStatus::E_STOPPING:
-    case NodeStatus::E_UNAVAILABLE:
+    case NodeStatus::e_E_UNKNOWN:
+    case NodeStatus::e_E_STARTING:
+    case NodeStatus::e_E_AVAILABLE:
+    case NodeStatus::e_E_STOPPING:
+    case NodeStatus::e_E_UNAVAILABLE:
         *result = static_cast<NodeStatus::Value>(number);
         return 0;
     default: return -1;
@@ -2876,19 +2876,19 @@ int NodeStatus::fromString(NodeStatus::Value* result,
 const char* NodeStatus::toString(NodeStatus::Value value)
 {
     switch (value) {
-    case E_UNKNOWN: {
+    case e_E_UNKNOWN: {
         return "E_UNKNOWN";
     }
-    case E_STARTING: {
+    case e_E_STARTING: {
         return "E_STARTING";
     }
-    case E_AVAILABLE: {
+    case e_E_AVAILABLE: {
         return "E_AVAILABLE";
     }
-    case E_STOPPING: {
+    case e_E_STOPPING: {
         return "E_STOPPING";
     }
-    case E_UNAVAILABLE: {
+    case e_E_UNAVAILABLE: {
         return "E_UNAVAILABLE";
     }
     }
@@ -2906,18 +2906,18 @@ const char* NodeStatus::toString(NodeStatus::Value value)
 const char PrimaryStatus::CLASS_NAME[] = "PrimaryStatus";
 
 const bdlat_EnumeratorInfo PrimaryStatus::ENUMERATOR_INFO_ARRAY[] = {
-    {PrimaryStatus::UNDEFINED, "UNDEFINED", sizeof("UNDEFINED") - 1, ""},
-    {PrimaryStatus::PASSIVE, "PASSIVE", sizeof("PASSIVE") - 1, ""},
-    {PrimaryStatus::ACTIVE, "ACTIVE", sizeof("ACTIVE") - 1, ""}};
+    {PrimaryStatus::e_UNDEFINED, "UNDEFINED", sizeof("UNDEFINED") - 1, ""},
+    {PrimaryStatus::e_PASSIVE, "PASSIVE", sizeof("PASSIVE") - 1, ""},
+    {PrimaryStatus::e_ACTIVE, "ACTIVE", sizeof("ACTIVE") - 1, ""}};
 
 // CLASS METHODS
 
 int PrimaryStatus::fromInt(PrimaryStatus::Value* result, int number)
 {
     switch (number) {
-    case PrimaryStatus::UNDEFINED:
-    case PrimaryStatus::PASSIVE:
-    case PrimaryStatus::ACTIVE:
+    case PrimaryStatus::e_UNDEFINED:
+    case PrimaryStatus::e_PASSIVE:
+    case PrimaryStatus::e_ACTIVE:
         *result = static_cast<PrimaryStatus::Value>(number);
         return 0;
     default: return -1;
@@ -2946,13 +2946,13 @@ int PrimaryStatus::fromString(PrimaryStatus::Value* result,
 const char* PrimaryStatus::toString(PrimaryStatus::Value value)
 {
     switch (value) {
-    case UNDEFINED: {
+    case e_UNDEFINED: {
         return "UNDEFINED";
     }
-    case PASSIVE: {
+    case e_PASSIVE: {
         return "PASSIVE";
     }
-    case ACTIVE: {
+    case e_ACTIVE: {
         return "ACTIVE";
     }
     }
@@ -3438,15 +3438,15 @@ const char ResourceUsageMonitorState::CLASS_NAME[] =
     "ResourceUsageMonitorState";
 
 const bdlat_EnumeratorInfo ResourceUsageMonitorState::ENUMERATOR_INFO_ARRAY[] =
-    {{ResourceUsageMonitorState::STATE_NORMAL,
+    {{ResourceUsageMonitorState::e_STATE_NORMAL,
       "STATE_NORMAL",
       sizeof("STATE_NORMAL") - 1,
       ""},
-     {ResourceUsageMonitorState::STATE_HIGH_WATERMARK,
+     {ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK,
       "STATE_HIGH_WATERMARK",
       sizeof("STATE_HIGH_WATERMARK") - 1,
       ""},
-     {ResourceUsageMonitorState::STATE_FULL,
+     {ResourceUsageMonitorState::e_STATE_FULL,
       "STATE_FULL",
       sizeof("STATE_FULL") - 1,
       ""}};
@@ -3458,9 +3458,9 @@ int ResourceUsageMonitorState::fromInt(
     int                               number)
 {
     switch (number) {
-    case ResourceUsageMonitorState::STATE_NORMAL:
-    case ResourceUsageMonitorState::STATE_HIGH_WATERMARK:
-    case ResourceUsageMonitorState::STATE_FULL:
+    case ResourceUsageMonitorState::e_STATE_NORMAL:
+    case ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK:
+    case ResourceUsageMonitorState::e_STATE_FULL:
         *result = static_cast<ResourceUsageMonitorState::Value>(number);
         return 0;
     default: return -1;
@@ -3491,13 +3491,13 @@ const char*
 ResourceUsageMonitorState::toString(ResourceUsageMonitorState::Value value)
 {
     switch (value) {
-    case STATE_NORMAL: {
+    case e_STATE_NORMAL: {
         return "STATE_NORMAL";
     }
-    case STATE_HIGH_WATERMARK: {
+    case e_STATE_HIGH_WATERMARK: {
         return "STATE_HIGH_WATERMARK";
     }
-    case STATE_FULL: {
+    case e_STATE_FULL: {
         return "STATE_FULL";
     }
     }
@@ -5676,299 +5676,6 @@ ClusterQueue::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     printer.printAttribute("contexts", this->contexts());
     printer.end();
     return stream;
-}
-
-// -------------------
-// class DangerCommand
-// -------------------
-
-// CONSTANTS
-
-const char DangerCommand::CLASS_NAME[] = "DangerCommand";
-
-const bdlat_SelectionInfo DangerCommand::SELECTION_INFO_ARRAY[] = {
-    {SELECTION_ID_SHUTDOWN,
-     "shutdown",
-     sizeof("shutdown") - 1,
-     "",
-     bdlat_FormattingMode::e_DEFAULT},
-    {SELECTION_ID_TERMINATE,
-     "terminate",
-     sizeof("terminate") - 1,
-     "",
-     bdlat_FormattingMode::e_DEFAULT}};
-
-// CLASS METHODS
-
-const bdlat_SelectionInfo* DangerCommand::lookupSelectionInfo(const char* name,
-                                                              int nameLength)
-{
-    for (int i = 0; i < 2; ++i) {
-        const bdlat_SelectionInfo& selectionInfo =
-            DangerCommand::SELECTION_INFO_ARRAY[i];
-
-        if (nameLength == selectionInfo.d_nameLength &&
-            0 == bsl::memcmp(selectionInfo.d_name_p, name, nameLength)) {
-            return &selectionInfo;
-        }
-    }
-
-    return 0;
-}
-
-const bdlat_SelectionInfo* DangerCommand::lookupSelectionInfo(int id)
-{
-    switch (id) {
-    case SELECTION_ID_SHUTDOWN:
-        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_SHUTDOWN];
-    case SELECTION_ID_TERMINATE:
-        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_TERMINATE];
-    default: return 0;
-    }
-}
-
-// CREATORS
-
-DangerCommand::DangerCommand(const DangerCommand& original)
-: d_selectionId(original.d_selectionId)
-{
-    switch (d_selectionId) {
-    case SELECTION_ID_SHUTDOWN: {
-        new (d_shutdown.buffer()) Void(original.d_shutdown.object());
-    } break;
-    case SELECTION_ID_TERMINATE: {
-        new (d_terminate.buffer()) Void(original.d_terminate.object());
-    } break;
-    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
-    }
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-DangerCommand::DangerCommand(DangerCommand&& original) noexcept
-: d_selectionId(original.d_selectionId)
-{
-    switch (d_selectionId) {
-    case SELECTION_ID_SHUTDOWN: {
-        new (d_shutdown.buffer())
-            Void(bsl::move(original.d_shutdown.object()));
-    } break;
-    case SELECTION_ID_TERMINATE: {
-        new (d_terminate.buffer())
-            Void(bsl::move(original.d_terminate.object()));
-    } break;
-    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
-    }
-}
-#endif
-
-// MANIPULATORS
-
-DangerCommand& DangerCommand::operator=(const DangerCommand& rhs)
-{
-    if (this != &rhs) {
-        switch (rhs.d_selectionId) {
-        case SELECTION_ID_SHUTDOWN: {
-            makeShutdown(rhs.d_shutdown.object());
-        } break;
-        case SELECTION_ID_TERMINATE: {
-            makeTerminate(rhs.d_terminate.object());
-        } break;
-        default:
-            BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
-            reset();
-        }
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-DangerCommand& DangerCommand::operator=(DangerCommand&& rhs)
-{
-    if (this != &rhs) {
-        switch (rhs.d_selectionId) {
-        case SELECTION_ID_SHUTDOWN: {
-            makeShutdown(bsl::move(rhs.d_shutdown.object()));
-        } break;
-        case SELECTION_ID_TERMINATE: {
-            makeTerminate(bsl::move(rhs.d_terminate.object()));
-        } break;
-        default:
-            BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
-            reset();
-        }
-    }
-
-    return *this;
-}
-#endif
-
-void DangerCommand::reset()
-{
-    switch (d_selectionId) {
-    case SELECTION_ID_SHUTDOWN: {
-        d_shutdown.object().~Void();
-    } break;
-    case SELECTION_ID_TERMINATE: {
-        d_terminate.object().~Void();
-    } break;
-    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
-    }
-
-    d_selectionId = SELECTION_ID_UNDEFINED;
-}
-
-int DangerCommand::makeSelection(int selectionId)
-{
-    switch (selectionId) {
-    case SELECTION_ID_SHUTDOWN: {
-        makeShutdown();
-    } break;
-    case SELECTION_ID_TERMINATE: {
-        makeTerminate();
-    } break;
-    case SELECTION_ID_UNDEFINED: {
-        reset();
-    } break;
-    default: return -1;
-    }
-    return 0;
-}
-
-int DangerCommand::makeSelection(const char* name, int nameLength)
-{
-    const bdlat_SelectionInfo* selectionInfo = lookupSelectionInfo(name,
-                                                                   nameLength);
-    if (0 == selectionInfo) {
-        return -1;
-    }
-
-    return makeSelection(selectionInfo->d_id);
-}
-
-Void& DangerCommand::makeShutdown()
-{
-    if (SELECTION_ID_SHUTDOWN == d_selectionId) {
-        bdlat_ValueTypeFunctions::reset(&d_shutdown.object());
-    }
-    else {
-        reset();
-        new (d_shutdown.buffer()) Void();
-        d_selectionId = SELECTION_ID_SHUTDOWN;
-    }
-
-    return d_shutdown.object();
-}
-
-Void& DangerCommand::makeShutdown(const Void& value)
-{
-    if (SELECTION_ID_SHUTDOWN == d_selectionId) {
-        d_shutdown.object() = value;
-    }
-    else {
-        reset();
-        new (d_shutdown.buffer()) Void(value);
-        d_selectionId = SELECTION_ID_SHUTDOWN;
-    }
-
-    return d_shutdown.object();
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Void& DangerCommand::makeShutdown(Void&& value)
-{
-    if (SELECTION_ID_SHUTDOWN == d_selectionId) {
-        d_shutdown.object() = bsl::move(value);
-    }
-    else {
-        reset();
-        new (d_shutdown.buffer()) Void(bsl::move(value));
-        d_selectionId = SELECTION_ID_SHUTDOWN;
-    }
-
-    return d_shutdown.object();
-}
-#endif
-
-Void& DangerCommand::makeTerminate()
-{
-    if (SELECTION_ID_TERMINATE == d_selectionId) {
-        bdlat_ValueTypeFunctions::reset(&d_terminate.object());
-    }
-    else {
-        reset();
-        new (d_terminate.buffer()) Void();
-        d_selectionId = SELECTION_ID_TERMINATE;
-    }
-
-    return d_terminate.object();
-}
-
-Void& DangerCommand::makeTerminate(const Void& value)
-{
-    if (SELECTION_ID_TERMINATE == d_selectionId) {
-        d_terminate.object() = value;
-    }
-    else {
-        reset();
-        new (d_terminate.buffer()) Void(value);
-        d_selectionId = SELECTION_ID_TERMINATE;
-    }
-
-    return d_terminate.object();
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Void& DangerCommand::makeTerminate(Void&& value)
-{
-    if (SELECTION_ID_TERMINATE == d_selectionId) {
-        d_terminate.object() = bsl::move(value);
-    }
-    else {
-        reset();
-        new (d_terminate.buffer()) Void(bsl::move(value));
-        d_selectionId = SELECTION_ID_TERMINATE;
-    }
-
-    return d_terminate.object();
-}
-#endif
-
-// ACCESSORS
-
-bsl::ostream&
-DangerCommand::print(bsl::ostream& stream, int level, int spacesPerLevel) const
-{
-    bslim::Printer printer(&stream, level, spacesPerLevel);
-    printer.start();
-    switch (d_selectionId) {
-    case SELECTION_ID_SHUTDOWN: {
-        printer.printAttribute("shutdown", d_shutdown.object());
-    } break;
-    case SELECTION_ID_TERMINATE: {
-        printer.printAttribute("terminate", d_terminate.object());
-    } break;
-    default: stream << "SELECTION UNDEFINED\n";
-    }
-    printer.end();
-    return stream;
-}
-
-const char* DangerCommand::selectionName() const
-{
-    switch (d_selectionId) {
-    case SELECTION_ID_SHUTDOWN:
-        return SELECTION_INFO_ARRAY[SELECTION_INDEX_SHUTDOWN].name();
-    case SELECTION_ID_TERMINATE:
-        return SELECTION_INFO_ARRAY[SELECTION_INDEX_TERMINATE].name();
-    default:
-        BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
-        return "(* UNDEFINED *)";
-    }
 }
 
 // -----------------
@@ -23274,11 +22981,6 @@ const bdlat_SelectionInfo CommandChoice::SELECTION_INFO_ARRAY[] = {
      sizeof("clusters") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT},
-    {SELECTION_ID_DANGER,
-     "danger",
-     sizeof("danger") - 1,
-     "",
-     bdlat_FormattingMode::e_DEFAULT},
     {SELECTION_ID_BROKER_CONFIG,
      "brokerConfig",
      sizeof("brokerConfig") - 1,
@@ -23290,7 +22992,7 @@ const bdlat_SelectionInfo CommandChoice::SELECTION_INFO_ARRAY[] = {
 const bdlat_SelectionInfo* CommandChoice::lookupSelectionInfo(const char* name,
                                                               int nameLength)
 {
-    for (int i = 0; i < 7; ++i) {
+    for (int i = 0; i < 6; ++i) {
         const bdlat_SelectionInfo& selectionInfo =
             CommandChoice::SELECTION_INFO_ARRAY[i];
 
@@ -23314,8 +23016,6 @@ const bdlat_SelectionInfo* CommandChoice::lookupSelectionInfo(int id)
     case SELECTION_ID_STAT: return &SELECTION_INFO_ARRAY[SELECTION_INDEX_STAT];
     case SELECTION_ID_CLUSTERS:
         return &SELECTION_INFO_ARRAY[SELECTION_INDEX_CLUSTERS];
-    case SELECTION_ID_DANGER:
-        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_DANGER];
     case SELECTION_ID_BROKER_CONFIG:
         return &SELECTION_INFO_ARRAY[SELECTION_INDEX_BROKER_CONFIG];
     default: return 0;
@@ -23349,9 +23049,6 @@ CommandChoice::CommandChoice(const CommandChoice& original,
     case SELECTION_ID_CLUSTERS: {
         new (d_clusters.buffer())
             ClustersCommand(original.d_clusters.object(), d_allocator_p);
-    } break;
-    case SELECTION_ID_DANGER: {
-        new (d_danger.buffer()) DangerCommand(original.d_danger.object());
     } break;
     case SELECTION_ID_BROKER_CONFIG: {
         new (d_brokerConfig.buffer())
@@ -23390,10 +23087,6 @@ CommandChoice::CommandChoice(CommandChoice&& original) noexcept
             ClustersCommand(bsl::move(original.d_clusters.object()),
                             d_allocator_p);
     } break;
-    case SELECTION_ID_DANGER: {
-        new (d_danger.buffer())
-            DangerCommand(bsl::move(original.d_danger.object()));
-    } break;
     case SELECTION_ID_BROKER_CONFIG: {
         new (d_brokerConfig.buffer())
             BrokerConfigCommand(bsl::move(original.d_brokerConfig.object()));
@@ -23430,10 +23123,6 @@ CommandChoice::CommandChoice(CommandChoice&&   original,
             ClustersCommand(bsl::move(original.d_clusters.object()),
                             d_allocator_p);
     } break;
-    case SELECTION_ID_DANGER: {
-        new (d_danger.buffer())
-            DangerCommand(bsl::move(original.d_danger.object()));
-    } break;
     case SELECTION_ID_BROKER_CONFIG: {
         new (d_brokerConfig.buffer())
             BrokerConfigCommand(bsl::move(original.d_brokerConfig.object()));
@@ -23463,9 +23152,6 @@ CommandChoice& CommandChoice::operator=(const CommandChoice& rhs)
         } break;
         case SELECTION_ID_CLUSTERS: {
             makeClusters(rhs.d_clusters.object());
-        } break;
-        case SELECTION_ID_DANGER: {
-            makeDanger(rhs.d_danger.object());
         } break;
         case SELECTION_ID_BROKER_CONFIG: {
             makeBrokerConfig(rhs.d_brokerConfig.object());
@@ -23500,9 +23186,6 @@ CommandChoice& CommandChoice::operator=(CommandChoice&& rhs)
         case SELECTION_ID_CLUSTERS: {
             makeClusters(bsl::move(rhs.d_clusters.object()));
         } break;
-        case SELECTION_ID_DANGER: {
-            makeDanger(bsl::move(rhs.d_danger.object()));
-        } break;
         case SELECTION_ID_BROKER_CONFIG: {
             makeBrokerConfig(bsl::move(rhs.d_brokerConfig.object()));
         } break;
@@ -23534,9 +23217,6 @@ void CommandChoice::reset()
     case SELECTION_ID_CLUSTERS: {
         d_clusters.object().~ClustersCommand();
     } break;
-    case SELECTION_ID_DANGER: {
-        d_danger.object().~DangerCommand();
-    } break;
     case SELECTION_ID_BROKER_CONFIG: {
         d_brokerConfig.object().~BrokerConfigCommand();
     } break;
@@ -23563,9 +23243,6 @@ int CommandChoice::makeSelection(int selectionId)
     } break;
     case SELECTION_ID_CLUSTERS: {
         makeClusters();
-    } break;
-    case SELECTION_ID_DANGER: {
-        makeDanger();
     } break;
     case SELECTION_ID_BROKER_CONFIG: {
         makeBrokerConfig();
@@ -23820,51 +23497,6 @@ ClustersCommand& CommandChoice::makeClusters(ClustersCommand&& value)
 }
 #endif
 
-DangerCommand& CommandChoice::makeDanger()
-{
-    if (SELECTION_ID_DANGER == d_selectionId) {
-        bdlat_ValueTypeFunctions::reset(&d_danger.object());
-    }
-    else {
-        reset();
-        new (d_danger.buffer()) DangerCommand();
-        d_selectionId = SELECTION_ID_DANGER;
-    }
-
-    return d_danger.object();
-}
-
-DangerCommand& CommandChoice::makeDanger(const DangerCommand& value)
-{
-    if (SELECTION_ID_DANGER == d_selectionId) {
-        d_danger.object() = value;
-    }
-    else {
-        reset();
-        new (d_danger.buffer()) DangerCommand(value);
-        d_selectionId = SELECTION_ID_DANGER;
-    }
-
-    return d_danger.object();
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-DangerCommand& CommandChoice::makeDanger(DangerCommand&& value)
-{
-    if (SELECTION_ID_DANGER == d_selectionId) {
-        d_danger.object() = bsl::move(value);
-    }
-    else {
-        reset();
-        new (d_danger.buffer()) DangerCommand(bsl::move(value));
-        d_selectionId = SELECTION_ID_DANGER;
-    }
-
-    return d_danger.object();
-}
-#endif
-
 BrokerConfigCommand& CommandChoice::makeBrokerConfig()
 {
     if (SELECTION_ID_BROKER_CONFIG == d_selectionId) {
@@ -23935,9 +23567,6 @@ CommandChoice::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     case SELECTION_ID_CLUSTERS: {
         printer.printAttribute("clusters", d_clusters.object());
     } break;
-    case SELECTION_ID_DANGER: {
-        printer.printAttribute("danger", d_danger.object());
-    } break;
     case SELECTION_ID_BROKER_CONFIG: {
         printer.printAttribute("brokerConfig", d_brokerConfig.object());
     } break;
@@ -23960,8 +23589,6 @@ const char* CommandChoice::selectionName() const
         return SELECTION_INFO_ARRAY[SELECTION_INDEX_STAT].name();
     case SELECTION_ID_CLUSTERS:
         return SELECTION_INFO_ARRAY[SELECTION_INDEX_CLUSTERS].name();
-    case SELECTION_ID_DANGER:
-        return SELECTION_INFO_ARRAY[SELECTION_INDEX_DANGER].name();
     case SELECTION_ID_BROKER_CONFIG:
         return SELECTION_INFO_ARRAY[SELECTION_INDEX_BROKER_CONFIG].name();
     default:
@@ -24173,10 +23800,6 @@ const bdlat_AttributeInfo* Command::lookupAttributeInfo(const char* name,
     }
 
     if (bdlb::String::areEqualCaseless("clusters", name, nameLength)) {
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
-    }
-
-    if (bdlb::String::areEqualCaseless("danger", name, nameLength)) {
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
     }
 
@@ -30595,6 +30218,6 @@ const char* InternalResult::selectionName() const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY BLP_BAS_CODEGEN_2025.11.13
+// GENERATED BY BLP_BAS_CODEGEN_2026.04.30
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcmd --msgComponent messages mqbcmd.xsd

@@ -269,9 +269,9 @@ class Application {
                                       const mqbcmd::Command& command) const;
 
     /// Executes the logic of the given `command` and outputs the result in
-    /// `cmdResult`. Returns 0 on success and -1 on early exit
-    int executeCommand(const mqbcmd::Command&  command,
-                       mqbcmd::InternalResult* cmdResult);
+    /// `cmdResult`.
+    void executeCommand(const mqbcmd::Command&  command,
+                        mqbcmd::InternalResult* cmdResult);
 };
 
 }  // close package namespace
