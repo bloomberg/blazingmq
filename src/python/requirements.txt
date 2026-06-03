@@ -1,6 +1,5 @@
 boofuzz
 crc32c
-docker
 psutil
 pytest
 pytest-cov
@@ -8,6 +7,5 @@ pytest-order
 pytest-repeat
 pytest-rerunfailures==14.0
 pytest-xdist
-pyyaml
 termcolor
 xsdata
