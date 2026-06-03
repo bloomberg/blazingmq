@@ -20,8 +20,8 @@
 #include <bmqa_messageproperties.h>
 
 // BMQ
+#include <bmqtst_tempfile.h>
 #include <bmqu_memoutstream.h>
-#include <bmqu_tempfile.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -274,7 +274,7 @@ static void test2_loadMessageFromFileTest()
         const Test& test = k_DATA[idx];
 
         // Create temp file and write content
-        bmqu::TempFile    tempFile(bmqtst::TestHelperUtil::allocator());
+        bmqtst::TempFile  tempFile(bmqtst::TestHelperUtil::allocator());
         const bsl::string filePath = tempFile.path();
         {
             bsl::ofstream ofs(filePath.c_str());
@@ -333,5 +333,5 @@ int main(int argc, char* argv[])
 
     // Check for default allocator is explicitly disabled as
     // 'bmqa::MessageProperties' or one of its data members may allocate
-    // temporaries with default allocator. The same for 'bmqu::TempFile'.
+    // temporaries with default allocator. The same for 'bmqtst::TempFile'.
 }

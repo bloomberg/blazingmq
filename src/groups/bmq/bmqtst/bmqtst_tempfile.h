@@ -13,23 +13,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef INCLUDED_BMQU_TEMPFILE
-#define INCLUDED_BMQU_TEMPFILE
+#ifndef INCLUDED_BMQTST_TEMPFILE
+#define INCLUDED_BMQTST_TEMPFILE
 
 //@PURPOSE: Provide a guard for creating a temporary file.
 //
 //@CLASSES:
-//  bmqu::TempFile: Guard for a temporary file
+//  bmqtst::TempFile: Guard for a temporary file
 //
 //@SEE_ALSO: bmqu_temputil
 //
-//@DESCRIPTION: This component provides a guard, 'bmqu::TempFile', that creates
-// a file in the effective temporary directory for the current process whose
-// name is randomly assigned to guarantee no collisions with other directories
-// or files in the effective temporary directory. The guarded file is
-// automatically removed when the 'bmqu::TempFile' object is destroyed.  For
-// the definition of the effective temporary directory for the current process,
-// see the bmqu_temputil component documentation.
+//@DESCRIPTION: This component provides a guard, 'bmqtst::TempFile', that
+// creates a file in the effective temporary directory for the current process
+// whose name is randomly assigned to guarantee no collisions with other
+// directories or files in the effective temporary directory. The guarded file
+// is automatically removed when the 'bmqtst::TempFile' object is destroyed.
+// For the definition of the effective temporary directory for the current
+// process, see the bmqu_temputil component documentation.
 //
 /// Thread Safety
 ///-------------
@@ -42,11 +42,11 @@
 /// Usage Example 1: Creating a Temporary File
 ///- - - - - - - - - - - - - - - - - - - - -
 // This example shows how to create a temporary file which is automatically
-// deleted by a 'bmqu::TemporaryFile' guard.
+// deleted by a 'bmqtst::TempFile' guard.
 //..
 //     bsl::string filePath;
 //     {
-//         bmqu::TempFile tempFile;
+//         bmqtst::TempFile tempFile;
 //         filePath = tempFile.path();
 //
 //         bsl::ofstream ofs(filePath.c_str());
@@ -64,7 +64,7 @@
 #include <bslmf_nestedtraitdeclaration.h>
 
 namespace BloombergLP {
-namespace bmqu {
+namespace bmqtst {
 
 // ==============
 // class TempFile
