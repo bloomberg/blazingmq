@@ -702,6 +702,7 @@
         sequence numbers as part of this request.
 
         partitionId:    partition id for corresponding partition.
+        primaryLeaseId: lease id of the current primary
         latestSequenceNumber: Primary's latest sequence number for corresponding partition.
         firstSyncPointAfterRolloverSequenceNumber: Sequence number of primary's first sync point
                                                    after rollover for corresponding partition.
@@ -709,6 +710,7 @@
     </annotation>
     <sequence>
       <element name='partitionId'    type='int'/>
+      <element name='primaryLeaseId' type='unsignedInt'/>
       <element name='latestSequenceNumber' type='tns:PartitionSequenceNumber'/>
       <element name='firstSyncPointAfterRolloverSequenceNumber' type='tns:PartitionSequenceNumber'/>
     </sequence>
@@ -721,6 +723,7 @@
         with its sequence numbers.
 
         partitionId:    partition id for corresponding partition.
+        primaryLeaseId: lease id of the current primary
         latestSequenceNumber: Replica's latest sequence number for corresponding partition.
         firstSyncPointAfterRolloverSequenceNumber: Sequence number of replica's first sync point
                                                    after rollover for corresponding partition.
@@ -728,6 +731,7 @@
     </annotation>
     <sequence>
       <element name='partitionId'    type='int'/>
+      <element name='primaryLeaseId' type='unsignedInt'/>
       <element name='latestSequenceNumber' type='tns:PartitionSequenceNumber'/>
       <element name='firstSyncPointAfterRolloverSequenceNumber' type='tns:PartitionSequenceNumber'/>
     </sequence>
@@ -741,13 +745,15 @@
         sequence numbers as part of this request.
 
         partitionId:    partition id for corresponding partition.
+        primaryLeaseId: lease id of the current primary
         latestSequenceNumber: Replica's latest sequence number for corresponding partition.
-        firstSyncPointAfterRolloverSequenceNumber: Sequence number of replica's first sync point 
+        firstSyncPointAfterRolloverSequenceNumber: Sequence number of replica's first sync point
                                                    after rollover for corresponding partition.
       </documentation>
     </annotation>
     <sequence>
       <element name='partitionId'    type='int'/>
+      <element name='primaryLeaseId' type='unsignedInt'/>
       <element name='latestSequenceNumber' type='tns:PartitionSequenceNumber'/>
       <element name='firstSyncPointAfterRolloverSequenceNumber' type='tns:PartitionSequenceNumber'/>
     </sequence>
@@ -760,6 +766,7 @@
         with its sequence numbers.
 
         partitionId:    partition id for corresponding partition.
+        primaryLeaseId: lease id of the current primary
         latestSequenceNumber: Primary's latest sequence number for corresponding partition.
         firstSyncPointAfterRolloverSequenceNumber: Sequence number of primary's first sync point
                                                    after rollover for corresponding partition.
@@ -767,6 +774,7 @@
     </annotation>
     <sequence>
       <element name='partitionId'    type='int'/>
+      <element name='primaryLeaseId' type='unsignedInt'/>
       <element name='latestSequenceNumber' type='tns:PartitionSequenceNumber'/>
       <element name='firstSyncPointAfterRolloverSequenceNumber' type='tns:PartitionSequenceNumber'/>
     </sequence>
