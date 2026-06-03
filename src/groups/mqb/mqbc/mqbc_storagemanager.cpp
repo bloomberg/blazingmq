@@ -1327,12 +1327,28 @@ void StorageManager::processPrimaryStateResponseDispatched(
 
     if (context->result() != bmqt::GenericResult::e_SUCCESS) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << ": Received failure PrimaryStateResponse event "
+                      << " Partition [" << partitionId << "]: "
+                      << "Received failure PrimaryStateResponse event "
                       << context->response() << " from primary "
                       << responder->nodeDescription();
 
+        BSLS_ASSERT_SAFE(context->response().choice().isStatusValue());
+        const bmqp_ctrlmsg::Status& status =
+            context->response().choice().status();
+        if (status.category() == bmqp_ctrlmsg::StatusCategory::E_CANCELED) {
+            BALL_LOG_WARN << d_clusterData_p->identity().description()
+                          << " Partition [" << partitionId << "]: "
+                          << "Request was canceled, skip processing of "
+                          << "PrimaryStateResponse.";
+            return;  // RETURN
+        }
+
         EventData eventDataVec;
-        eventDataVec.emplace_back(responder, responseId, partitionId, 1);
+        eventDataVec.emplace_back(responder,
+                                  responseId,
+                                  partitionId,
+                                  1,
+                                  responder);
 
         enqueuePartitionFSMEvent(
             PartitionFSM::Event::e_FAIL_PRIMARY_STATE_RSPN,
@@ -1365,7 +1381,8 @@ void StorageManager::processPrimaryStateResponseDispatched(
     BSLS_ASSERT_SAFE(response.partitionId() == partitionId);
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << ": received PrimaryStateResponse " << context->response()
+                  << " Partition [" << partitionId << "]: "
+                  << "Received PrimaryStateResponse " << context->response()
                   << " from " << responder->nodeDescription();
 
     EventData eventDataVec;
@@ -1374,6 +1391,8 @@ void StorageManager::processPrimaryStateResponseDispatched(
         responseId,
         partitionId,
         1,
+        responder,
+        response.primaryLeaseId(),
         response.latestSequenceNumber(),
         response.firstSyncPointAfterRolloverSequenceNumber());
 
@@ -1447,13 +1466,24 @@ void StorageManager::processReplicaStateResponseDispatched(
                           << " Partition [" << requestPartitionId
                           << "]: " << "Received failed ReplicaStateResponse "
                           << cit->second.choice().status() << " from "
-                          << cit->first->nodeDescription()
-                          << ". Skipping this node's response.";
+                          << cit->first->nodeDescription() << ".";
+
+            const bmqp_ctrlmsg::Status& status = cit->second.choice().status();
+            if (status.category() ==
+                bmqp_ctrlmsg::StatusCategory::E_CANCELED) {
+                BALL_LOG_WARN << d_clusterData_p->identity().description()
+                              << " Partition [" << requestPartitionId << "]: "
+                              << "Request was canceled, skip processing of "
+                              << "ReplicaStateResponse.";
+                return;  // RETURN
+            }
+
             failedEventDataVec.emplace_back(
                 cit->first,
                 cit->second.rId().isNull() ? -1 : cit->second.rId().value(),
                 requestPartitionId,
-                1);
+                1,
+                d_clusterData_p->membership().selfNode());
             continue;  // CONTINUE
         }
 
@@ -2080,6 +2110,8 @@ void StorageManager::do_replicaStateRequest(const EventWithData& event)
             .makeReplicaStateRequest();
 
     replicaStateRequest.partitionId() = partitionId;
+    replicaStateRequest.primaryLeaseId() =
+        d_partitionInfoVec.at(partitionId).primaryLeaseId();
 
     mqbnet::ClusterNode* selfNode = d_clusterData_p->membership().selfNode();
     BSLS_ASSERT_SAFE(d_nodeToPSNCtxMapVec[partitionId].find(selfNode) !=
@@ -2133,6 +2165,8 @@ void StorageManager::do_replicaStateResponse(const EventWithData& event)
         partitionMessage.choice().makeReplicaStateResponse();
 
     response.partitionId() = partitionId;
+    response.primaryLeaseId() =
+        d_partitionInfoVec.at(partitionId).primaryLeaseId();
     response.latestSequenceNumber() =
         d_nodeToPSNCtxMapVec[partitionId]
                             [d_clusterData_p->membership().selfNode()]
@@ -2344,6 +2378,8 @@ void StorageManager::do_primaryStateRequest(const EventWithData& event)
             .makePrimaryStateRequest();
 
     primaryStateRequest.partitionId() = partitionId;
+    primaryStateRequest.primaryLeaseId() =
+        d_partitionInfoVec.at(partitionId).primaryLeaseId();
     primaryStateRequest.latestSequenceNumber() =
         d_nodeToPSNCtxMapVec[partitionId]
                             [d_clusterData_p->membership().selfNode()]
@@ -2402,6 +2438,8 @@ void StorageManager::do_primaryStateResponse(const EventWithData& event)
         partitionMessage.choice().makePrimaryStateResponse();
 
     response.partitionId() = partitionId;
+    response.primaryLeaseId() =
+        d_partitionInfoVec.at(partitionId).primaryLeaseId();
     response.latestSequenceNumber() =
         d_nodeToPSNCtxMapVec[partitionId]
                             [d_clusterData_p->membership().selfNode()]
@@ -4468,7 +4506,7 @@ void StorageManager::processPrimaryStateRequest(
             .choice()
             .primaryStateRequest();
 
-    int partitionId = primaryStateRequest.partitionId();
+    const int partitionId = primaryStateRequest.partitionId();
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
 
@@ -4491,6 +4529,8 @@ void StorageManager::processPrimaryStateRequest(
         message.rId().isNull() ? -1 : message.rId().value(),
         partitionId,
         1,
+        d_clusterData_p->membership().selfNode(),  // primary
+        primaryStateRequest.primaryLeaseId(),
         primaryStateRequest.latestSequenceNumber(),
         primaryStateRequest.firstSyncPointAfterRolloverSequenceNumber());
 
@@ -4524,7 +4564,7 @@ void StorageManager::processReplicaStateRequest(
             .choice()
             .replicaStateRequest();
 
-    int partitionId = replicaStateRequest.partitionId();
+    const int partitionId = replicaStateRequest.partitionId();
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
 
@@ -4548,7 +4588,7 @@ void StorageManager::processReplicaStateRequest(
         partitionId,
         1,
         source,
-        replicaStateRequest.latestSequenceNumber().primaryLeaseId(),
+        replicaStateRequest.primaryLeaseId(),
         replicaStateRequest.latestSequenceNumber(),
         replicaStateRequest.firstSyncPointAfterRolloverSequenceNumber());
 
