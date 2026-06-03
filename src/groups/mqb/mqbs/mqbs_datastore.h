@@ -705,9 +705,6 @@ class DataStore : public mqbi::DispatcherClient {
     /// Replication related
     /// -------------------
 
-    /// Request the data store to issue a SyncPt.
-    virtual int issueSyncPoint() = 0;
-
     /// Set the specified `primaryNode` with the specified `primaryLeaseId`
     /// as the active primary for this data store partition.  Note that
     /// `primaryNode` could refer to the node which owns this data store.

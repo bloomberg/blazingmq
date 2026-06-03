@@ -472,8 +472,6 @@ class MockDataStore : public mqbs::DataStore {
     {
     }
 
-    int issueSyncPoint() BSLS_KEYWORD_OVERRIDE { return 0; }
-
     void setActivePrimary(mqbnet::ClusterNode*,
                           unsigned int) BSLS_KEYWORD_OVERRIDE
     {
