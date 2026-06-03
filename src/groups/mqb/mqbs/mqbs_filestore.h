@@ -592,9 +592,14 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// THREAD: This method executes in the partition dispatcher thread.
     void issueSyncPointDispatched(int partitionId);
 
+    /// Issue a regular sync point if a new record has been published since
+    /// the last one.
+    void issueSyncPointIfNeeded();
+
+    /// Write the specified `syncPoint` of the specified `type` to the
+    /// journal, replicate it to followers, and record it in `d_syncPoints`.
     int issueSyncPointInternal(SyncPointType::Enum            type,
-                               bool                           immediateFlush,
-                               const bmqp_ctrlmsg::SyncPoint* syncPoint = 0);
+                               const bmqp_ctrlmsg::SyncPoint& syncPoint);
 
     int writeMessageRecord(const bmqp::StorageHeader&          header,
                            const mqbs::RecordHeader&           recHeader,

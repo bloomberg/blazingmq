@@ -1042,9 +1042,7 @@ int FileStore::openInRecoveryMode(bsl::ostream&    errorDescription,
                 ? fileSetSp->d_qlistFilePosition / bmqp::Protocol::k_WORD_SIZE
                 : 0;
 
-        rc = issueSyncPointInternal(SyncPointType::e_REGULAR,
-                                    true,
-                                    &syncPoint);
+        rc = issueSyncPointInternal(SyncPointType::e_REGULAR, syncPoint);
         if (0 != rc) {
             BALL_LOG_ERROR << partitionDesc() << "Failed to issue above sync "
                            << "point, rc: " << rc;
@@ -3320,7 +3318,7 @@ int FileStore::rollover()
                                               bmqp::Protocol::k_WORD_SIZE
                                         : 0;
 
-    rc = issueSyncPointInternal(SyncPointType::e_ROLLOVER, true, &syncPt);
+    rc = issueSyncPointInternal(SyncPointType::e_ROLLOVER, syncPt);
     if (0 != rc) {
         return 10 * rc + rc_SYNC_POINT_FAILURE;  // RETURN
     }
@@ -4069,63 +4067,64 @@ void FileStore::issueSyncPointDispatched(BSLA_MAYBE_UNUSED int partitionId)
     // attempts to issue a SyncPt if applicable (see 'issueSyncPointCb'), which
     // means that there must be space for at least 2 journal records.
 
-    issueSyncPointInternal(SyncPointType::e_REGULAR,
-                           true);  // ImmediateFlush flag
+    issueSyncPointIfNeeded();
 }
 
-int FileStore::issueSyncPointInternal(SyncPointType::Enum type,
-                                      bool                immediateFlush,
-                                      const bmqp_ctrlmsg::SyncPoint* syncPoint)
+void FileStore::issueSyncPointIfNeeded()
 {
-    enum { rc_SUCCESS = 0, rc_WRITE_FAILURE = -1 };
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
-    bmqp_ctrlmsg::SyncPoint        sp;
-    const bmqp_ctrlmsg::SyncPoint* spptr = syncPoint;
-    const FileSet*                 fs    = d_fileSets[0].get();
-
-    if (!syncPoint) {
-        // No SyncPt has been explicitly specified.  Check if we need to issue
-        // one.
-
-        if (!d_syncPoints.empty()) {
-            const bmqp_ctrlmsg::SyncPoint& syncPt =
-                d_syncPoints.back().syncPoint();
-            if (syncPt.primaryLeaseId() == d_primaryLeaseId) {
-                if (syncPt.sequenceNum() == sequenceNumber()) {
-                    // No new message has been published.
-                    return rc_SUCCESS;  // RETURN
-                }
-
-                BSLS_ASSERT_SAFE(syncPt.sequenceNum() < sequenceNumber());
+    if (!d_syncPoints.empty()) {
+        const bmqp_ctrlmsg::SyncPoint& syncPt =
+            d_syncPoints.back().syncPoint();
+        if (syncPt.primaryLeaseId() == d_primaryLeaseId) {
+            if (syncPt.sequenceNum() == sequenceNumber()) {
+                // No new message has been published.
+                return;  // RETURN
             }
-            else {
-                BSLS_ASSERT_SAFE(syncPt.primaryLeaseId() < d_primaryLeaseId);
 
-                if (0 == sequenceNumber()) {
-                    // New primary and no force issue requested.  Currently,
-                    // this check is redundant because we always force issue a
-                    // sync point when a primary is chosen (see
-                    // 'setActivePrimary()'), which always bumps up
-                    // the sequence number to 1.
+            BSLS_ASSERT_SAFE(syncPt.sequenceNum() < sequenceNumber());
+        }
+        else {
+            BSLS_ASSERT_SAFE(syncPt.primaryLeaseId() < d_primaryLeaseId);
 
-                    return rc_SUCCESS;  // RETURN
-                }
+            if (0 == sequenceNumber()) {
+                // New primary and no force issue requested.  Currently,
+                // this check is redundant because we always force issue a
+                // sync point when a primary is chosen (see
+                // 'setActivePrimary()'), which always bumps up
+                // the sequence number to 1.
+
+                return;  // RETURN
             }
         }
-
-        sp.primaryLeaseId()       = d_primaryLeaseId;
-        sp.sequenceNum()          = ++currentSeqNumRef();
-        sp.dataFileOffsetDwords() = fs->d_dataFilePosition /
-                                    bmqp::Protocol::k_DWORD_SIZE;
-        if (d_qListAware) {
-            sp.qlistFileOffsetWords() = fs->d_qlistFilePosition /
-                                        bmqp::Protocol::k_WORD_SIZE;
-        }
-
-        spptr = &sp;
     }
 
-    BSLS_ASSERT_SAFE(spptr);
+    const FileSet* fs = d_fileSets[0].get();
+
+    bmqp_ctrlmsg::SyncPoint sp;
+    sp.primaryLeaseId()       = d_primaryLeaseId;
+    sp.sequenceNum()          = ++currentSeqNumRef();
+    sp.dataFileOffsetDwords() = fs->d_dataFilePosition /
+                                bmqp::Protocol::k_DWORD_SIZE;
+    if (d_qListAware) {
+        sp.qlistFileOffsetWords() = fs->d_qlistFilePosition /
+                                    bmqp::Protocol::k_WORD_SIZE;
+    }
+
+    issueSyncPointInternal(SyncPointType::e_REGULAR, sp);
+}
+
+int FileStore::issueSyncPointInternal(SyncPointType::Enum            type,
+                                      const bmqp_ctrlmsg::SyncPoint& syncPoint)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(inDispatcherThread());
+
+    enum { rc_SUCCESS = 0, rc_WRITE_FAILURE = -1 };
+
+    const FileSet* fs = d_fileSets[0].get();
 
     if (SyncPointType::e_REGULAR == type) {
         // Since the caller has requested a 'regular' SyncPt, journal must have
@@ -4138,17 +4137,17 @@ int FileStore::issueSyncPointInternal(SyncPointType::Enum type,
     }
 
     // Write to self.
-    int rc = writeSyncPointRecord(*spptr, type);
+    int rc = writeSyncPointRecord(syncPoint, type);
     if (0 != rc) {
         BMQTSK_ALARMLOG_ALARM("FILE_IO")
-            << partitionDesc() << "Failed to write sync point: " << *spptr
+            << partitionDesc() << "Failed to write sync point: " << syncPoint
             << ", rc: " << rc << BMQTSK_ALARMLOG_END;
 
         // Don't broadcast sync point because we failed to apply it to self
         return 10 * rc + rc_WRITE_FAILURE;  // RETURN
     }
 
-    BALL_LOG_INFO << partitionDesc() << "Issued a sync point: " << *spptr;
+    BALL_LOG_INFO << partitionDesc() << "Issued a sync point: " << syncPoint;
 
     // Retrieve sync point's offset.
     bsls::Types::Uint64 syncPointJournalOffset =
@@ -4157,7 +4156,7 @@ int FileStore::issueSyncPointInternal(SyncPointType::Enum type,
 
     // Keep track of this sync point.
     bmqp_ctrlmsg::SyncPointOffsetPair spoPair;
-    spoPair.syncPoint() = *spptr;
+    spoPair.syncPoint() = syncPoint;
     spoPair.offset()    = syncPointJournalOffset;
 
     d_syncPoints.push_back(spoPair);
@@ -4165,7 +4164,7 @@ int FileStore::issueSyncPointInternal(SyncPointType::Enum type,
     // Let replicas know about it.
     replicateRecord(bmqp::StorageMessageType::e_JOURNAL_OP,
                     syncPointJournalOffset,
-                    immediateFlush);
+                    true /* immediateFlush */);
 
     // Report cluster's partition stats
     d_partitionStats_sp->setPartitionBytes(fs->d_outstandingBytesData,
@@ -6866,9 +6865,7 @@ int FileStore::issueSyncPoint()
                                                  bmqp::Protocol::k_WORD_SIZE
                                            : 0;
 
-    int rc = issueSyncPointInternal(SyncPointType::e_REGULAR,
-                                    true,  // ImmediateFlush
-                                    &syncPoint);
+    int rc = issueSyncPointInternal(SyncPointType::e_REGULAR, syncPoint);
     if (0 != rc) {
         return 10 * rc + rc_MISC_FAILURE;  // RETURN
     }
@@ -7084,9 +7081,7 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
 
         ++currentSeqNumRef();
 
-        int rc = issueSyncPointInternal(SyncPointType::e_REGULAR,
-                                        true,  // ImmediateFlush
-                                        &syncPoint);
+        int rc = issueSyncPointInternal(SyncPointType::e_REGULAR, syncPoint);
         if (0 != rc) {
             BMQTSK_ALARMLOG_ALARM("REPLICATION")
                 << partitionDesc()
