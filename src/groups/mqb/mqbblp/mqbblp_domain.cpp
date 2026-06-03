@@ -265,7 +265,7 @@ Domain::Domain(const bsl::string&                     name,
 , d_teardownCb()
 , d_teardownRemoveCb()
 , d_mutex()
-, d_numQueues(0)
+, d_numQueues(1)
 {
     if (d_cluster_sp->isRemote()) {
         // In a remote domain, we don't care about monitoring, so disable it
@@ -409,8 +409,6 @@ void Domain::teardown(const mqbi::Domain::TeardownCb& teardownCb)
         BALL_LOG_INFO << "Stopping domain '" << d_name << "' having "
                       << d_queues.size() << " registered queues.";
 
-        d_numQueues.add(1);
-
         d_teardownCb = teardownCb;
         d_state      = e_STOPPING;
 
@@ -434,8 +432,6 @@ void Domain::teardownRemove(const TeardownCb& teardownCb)
 
         BALL_LOG_INFO << "Removing domain '" << d_name << "' having "
                       << d_queues.size() << " registered queues.";
-
-        d_numQueues.add(1);
 
         d_teardownRemoveCb = teardownCb;
 
