@@ -58,17 +58,6 @@ execute_process(
       -r "${CMAKE_CURRENT_SOURCE_DIR}/../python/requirements.txt"
 )
 
-# Use pytest-cmake from pypi to integrate pytest integration tests as CTest
-# targets.
-message(STATUS "Install pytest-cmake into virtual environment")
-execute_process(
-  COMMAND
-    "${Python3_EXECUTABLE}"
-    -m pip
-    install
-    --quiet
-    pytest-cmake
-)
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_BINARY_DIR}/venv/share/Pytest/cmake")
 set(Pytest_ROOT "${CMAKE_CURRENT_BINARY_DIR}/venv/bin")
 find_package(Pytest)

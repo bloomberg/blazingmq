@@ -2,6 +2,7 @@ boofuzz
 crc32c
 psutil
 pytest
+pytest-cmake
 pytest-cov
 pytest-order
 pytest-repeat
