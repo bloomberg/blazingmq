@@ -103,8 +103,9 @@ struct ErrorType {
         e_NAME             = -1,
         e_TYPE             = -2,
         e_BINARY           = -3,
-        e_UNDEFINED        = -4,
-        e_EVALUATION_LAST  = -4
+        e_ARITHMETIC       = -4,
+        e_UNDEFINED        = -5,
+        e_EVALUATION_LAST  = -5
     };
 
     /// Return the non-modifiable string error description corresponding to
@@ -776,6 +777,9 @@ inline const char* ErrorType::toString(ErrorType::Enum value)
     case bmqeval::ErrorType::e_BINARY: {
         return "binary properties are not supported";  // RETURN
     }
+    case bmqeval::ErrorType::e_ARITHMETIC: {
+        return "arithmetic error in expression";  // RETURN
+    }
     case bmqeval::ErrorType::e_UNDEFINED: {
         return "undefined error";  // RETURN
     }
@@ -957,6 +961,13 @@ bdld::Datum SimpleEvaluator::NumBinaryOperation<Op>::evaluate(
     }
     else {
         context.setError(ErrorType::e_TYPE);
+        return bdld::Datum::createNull();  // RETURN
+    }
+
+    if ((bsl::is_same<Op<int>, bsl::divides<int> >::value ||
+         bsl::is_same<Op<int>, bsl::modulus<int> >::value) &&
+        b == 0) {
+        context.setError(ErrorType::e_ARITHMETIC);
         return bdld::Datum::createNull();  // RETURN
     }
 
