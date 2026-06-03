@@ -490,13 +490,13 @@ void StorageManager::enqueuePartitionFSMEventDispatched(
                  event == PartitionFSM::Event::e_DETECT_SELF_REPLICA);
 
             if (isIdentical && isDetectEvent) {
-                BALL_LOG_INFO
-                    << d_clusterData_p->identity().description()
-                    << " Partition [" << partitionId
-                    << "]: dropping redundant " << event << " event with"
-                    << " identical primary: "
-                    << evt.primary()->nodeDescription()
-                    << " and leaseId: " << evt.primaryLeaseId() << ".";
+                BALL_LOG_INFO << d_clusterData_p->identity().description()
+                              << " Partition [" << partitionId
+                              << "]: dropping redundant " << event
+                              << " event with" << " identical primary: "
+                              << evt.primary()->nodeDescription()
+                              << " and leaseId: " << evt.primaryLeaseId()
+                              << ".";
                 return;
             }
         }
@@ -1381,9 +1381,10 @@ void StorageManager::processPrimaryStateResponseDispatched(
     BSLS_ASSERT_SAFE(response.partitionId() == partitionId);
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
-                  << "Received PrimaryStateResponse " << context->response()
-                  << " from " << responder->nodeDescription();
+                  << " Partition [" << partitionId
+                  << "]: " << "Received PrimaryStateResponse "
+                  << context->response() << " from "
+                  << responder->nodeDescription();
 
     EventData eventDataVec;
     eventDataVec.emplace_back(
@@ -1471,10 +1472,11 @@ void StorageManager::processReplicaStateResponseDispatched(
             const bmqp_ctrlmsg::Status& status = cit->second.choice().status();
             if (status.category() ==
                 bmqp_ctrlmsg::StatusCategory::E_CANCELED) {
-                BALL_LOG_WARN << d_clusterData_p->identity().description()
-                              << " Partition [" << requestPartitionId << "]: "
-                              << "Request was canceled, skip processing of "
-                              << "ReplicaStateResponse.";
+                BALL_LOG_WARN
+                    << d_clusterData_p->identity().description()
+                    << " Partition [" << requestPartitionId
+                    << "]: " << "Request was canceled, skip processing of "
+                    << "ReplicaStateResponse.";
                 return;  // RETURN
             }
 
