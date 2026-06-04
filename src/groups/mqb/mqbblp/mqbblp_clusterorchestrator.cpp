@@ -500,7 +500,6 @@ void ClusterOrchestrator::onNodeUnavailable(mqbnet::ClusterNode* node)
     // by the leader, and followers should update the info only upon being
     // notified from the leader?
     d_stateManager_mp->markOrphan(ns->primaryPartitions(), node);
-    ns->removeAllPartitions();
 
     if (mqbnet::ElectorState::e_LEADER !=
             d_clusterData_p->electorInfo().electorState() ||

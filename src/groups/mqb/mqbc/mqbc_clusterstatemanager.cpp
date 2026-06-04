@@ -1653,6 +1653,11 @@ void ClusterStateManager::markOrphan(
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
     BSLS_ASSERT_SAFE(primary);
 
+    // Copy `partitions` to metadata before calling
+    // `d_state_p->setPartitionPrimary` below, because that code path can
+    // modify the `partitions` vector.
+    ClusterFSMEventMetadata metadata(partitions, d_allocator_p);
+
     for (int i = static_cast<int>(partitions.size()) - 1; 0 <= i; --i) {
         const mqbc::ClusterStatePartitionInfo& pinfo = d_state_p->partition(
             partitions[i]);
@@ -1663,8 +1668,7 @@ void ClusterStateManager::markOrphan(
 
     // Go through Cluster FSM to inform Partiton FSMs about the orphaned
     // partitions
-    applyFSMEvent(ClusterFSM::Event::e_RST_PRIMARY,
-                  ClusterFSMEventMetadata(partitions, d_allocator_p));
+    applyFSMEvent(ClusterFSM::Event::e_RST_PRIMARY, metadata);
 }
 
 void ClusterStateManager::assignPartitions(
