@@ -917,8 +917,8 @@ void ClusterQueueHelper::finishReopening(
     const bsls::Types::Uint64 generationCount = cycle->generationCount();
 
     if (isValid && state == SubQueueContext::k_OPEN) {
-        // Remain valid after all pending close
-        // Did not erase subQueueContext.
+        // Remains valid if subQueueContext was not erased
+        // after processing all pending close requests.
 
         QueueLiveState& qinfo = queueContext->d_liveQInfo;
 
@@ -1783,10 +1783,10 @@ void ClusterQueueHelper::onReopenQueueResponse(
 
     setStreamState(&subQueueContext, SubQueueContext::k_OPEN);
 
-    BMQ_LOGTHROTTLE_INFO
-        << d_cluster_p->description() << ": queue successfully reopened ["
-        << requestContext->request()
-        << "]. Attempting to send a configure-queue request now.";
+    BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                         << ": queue successfully reopened ["
+                         << requestContext->request()
+                         << "].";
 }
 
 void ClusterQueueHelper::onConfigureQueueResponse(
