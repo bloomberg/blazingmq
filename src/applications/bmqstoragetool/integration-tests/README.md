@@ -6,6 +6,6 @@ To run the tests:
     * `python3 -m venv /path/to/venv`
     * `source /path/to/venv/bin/activate`
 * install required modules
-    * `pip3 install -r src/python/requirements.txt`
+    * `pip3 install -r src/python/requirements-test.txt`
 * run the tests
     * `./run-tests [extra pytest options]`

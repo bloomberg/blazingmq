@@ -106,7 +106,7 @@ python3 -m venv venv
 if [ -f "venv/bin/activate" ]; then
     # shellcheck disable=SC1091
     source venv/bin/activate
-    pip install -r "${DIR_SRC_BMQ}/src/python/requirements.txt"
+    pip install -r "${DIR_SRC_BMQ}/src/python/requirements-test.txt"
 else
     echo "Virtual environment not found."
     exit 1

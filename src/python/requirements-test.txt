@@ -1,0 +1,10 @@
+-r requirements.txt
+boofuzz
+crc32c
+pytest
+pytest-cmake
+pytest-cov
+pytest-order
+pytest-repeat
+pytest-rerunfailures==14.0
+pytest-xdist

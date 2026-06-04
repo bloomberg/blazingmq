@@ -22,7 +22,7 @@ export BLAZINGMQ_REPO=`pwd`
 ```shell
 python3 -m venv ${BLAZINGMQ_REPO}/venv
 source ${BLAZINGMQ_REPO}/venv/bin/activate
-pip3 install -r "${BLAZINGMQ_REPO}/src/python/requirements-dev.txt"
+pip3 install -r "${BLAZINGMQ_REPO}/src/python/requirements-test.txt"
 ```
 
 - Launch fuzz testing:
