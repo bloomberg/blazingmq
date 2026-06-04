@@ -81,14 +81,6 @@ int StorageManager::updateQueuePrimary(
     return 0;
 }
 
-void StorageManager::resetQueue(
-    BSLA_MAYBE_UNUSED const bmqt::Uri& uri,
-    BSLA_MAYBE_UNUSED int              partitionId,
-    BSLA_MAYBE_UNUSED const bsl::shared_ptr<mqbi::Queue>& queue_sp)
-{
-    // NOTHING
-}
-
 void StorageManager::setPrimaryForPartition(
     BSLA_MAYBE_UNUSED int partitionId,
     BSLA_MAYBE_UNUSED mqbnet::ClusterNode* primaryNode,

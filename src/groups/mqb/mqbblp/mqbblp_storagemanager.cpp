@@ -1191,33 +1191,6 @@ int StorageManager::updateQueuePrimary(const bmqt::Uri& uri,
         removedIdKeyPairs);
 }
 
-void StorageManager::resetQueue(const bmqt::Uri& uri,
-                                int              partitionId,
-                                const bsl::shared_ptr<mqbi::Queue>& queue_sp)
-{
-    // executed by the *CLUSTER DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-    BSLS_ASSERT_SAFE(uri.isValid());
-
-    // Note that 'queue' can be null, which is a valid scenario.
-
-    mqbs::FileStore* fs = d_fileStores[partitionId].get();
-
-    bsl::shared_ptr<mqbevt::DispatcherEvent> event_sp =
-        d_cluster_p->getEvent<mqbevt::DispatcherEvent>();
-    (*event_sp).callback().set(
-        bdlf::BindUtil::bind(&mqbc::StorageUtil::resetQueueDispatched,
-                             &d_storages[partitionId],
-                             d_storageLockVec[partitionId].get(),
-                             bsl::string(fs->description(), d_allocator_p),
-                             uri,
-                             queue_sp));
-
-    fs->dispatchEvent(bslmf::MovableRefUtil::move(event_sp));
-}
-
 int StorageManager::start(bsl::ostream& errorDescription)
 {
     // executed by the *CLUSTER DISPATCHER* thread

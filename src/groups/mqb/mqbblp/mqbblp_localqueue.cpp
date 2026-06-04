@@ -227,7 +227,10 @@ void LocalQueue::close()
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
-    BSLS_ASSERT_SAFE(d_state_p->storage());
+
+    if (d_state_p->storage() == 0) {
+        return;  // RETURN
+    }
 
     mqbi::Storage* storage = d_state_p->storage();
     BALL_LOG_INFO << "Closing queue "

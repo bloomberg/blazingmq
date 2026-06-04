@@ -267,14 +267,6 @@ class StorageManager {
                                    const AppInfos&  addedIdKeyPairs,
                                    const AppInfos&  removedIdKeyPairs) = 0;
 
-    /// Reset the queue instance associated with the file-backed storage for
-    /// the specified `uri` mapped to the specified `partitionId` to the
-    /// specified `queue` value.  The specified `queue_sp` keeps the queue
-    /// until the reset is complete.
-    virtual void resetQueue(const bmqt::Uri&                    uri,
-                            int                                 partitionId,
-                            const bsl::shared_ptr<mqbi::Queue>& queue_sp) = 0;
-
     /// Behavior is undefined unless the specified 'partitionId' is in range
     /// and the specified 'primaryNode' is not null.
     ///
