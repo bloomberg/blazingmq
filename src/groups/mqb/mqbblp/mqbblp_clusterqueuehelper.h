@@ -911,9 +911,11 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         const bmqp_ctrlmsg::OpenQueueResponse&     openQueueResponse,
         const mqbi::OpenQueueConfirmationCookieSp& confirmationCookie);
 
-    void setAsClosed(const QueueContextSp& queueContextSp);
+    void setStreamState(const QueueContextSp& queueContextSp,
+                        SubQueueContext::Enum state);
 
-    void setAsClosed(SubQueueContext* subQueueContext);
+    void setStreamState(SubQueueContext*      subQueueContext,
+                        SubQueueContext::Enum state);
 
     // PRIVATE MANIPULATORS
     //   (virtual: mqbc::ClusterMembershipObserver)

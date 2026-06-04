@@ -17,6 +17,8 @@
 Integration tests for queue re-open scenarios.
 """
 
+import re
+
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (
     Cluster,
@@ -80,3 +82,80 @@ def test_reopen_substream(multi_node: Cluster, domain_urls: tc.DomainUrls):
 
     consumer2.close(du.uri_fanout_foo, succeed=True)
     consumer2.open(du.uri_fanout_foo, flags=["read"], succeed=True)
+
+
+def test_open_queue_after_close_and_failover(
+    multi_node: Cluster, domain_urls: tc.DomainUrls
+):
+    """
+    If a queue has 0 handles (previous client closed) and a new client sends
+    an open-queue request that gets E_CANCELED due to primary failover, the
+    pending open must still complete after the new primary is elected.
+
+    Reproduces a bug where restoreStateCluster skips reopening queues with 0
+    handles, leaving SubQueueContext::d_state stuck at k_CLOSED, which blocks
+    sendOpenQueueRequest from ever sending the upstream request.
+
+    The bug only triggers when the node stays a REPLICA after failover (not
+    when it becomes the new primary via convertToLocal).
+    """
+    uri_priority = domain_urls.uri_priority
+    proxies = multi_node.proxy_cycle()
+    # pick proxy in datacenter opposite to the primary's (connects to replica)
+    next(proxies)
+    replica_proxy = next(proxies)
+
+    # Step 1: Open queue via proxy -> creates RemoteQueue on the replica
+    producer1 = replica_proxy.create_client("producer1")
+    producer1.open(uri_priority, flags=["write,ack"], succeed=True)
+
+    # Identify the replica (where proxy connects) and the leader
+    active_node = multi_node.process(replica_proxy.get_active_node())
+    leader = multi_node.last_known_leader
+
+    # Step 2: Close the queue -> handle count goes to 0, RemoteQueue persists
+    producer1.close(uri_priority, succeed=True)
+
+    # Pick a different node (not the replica, not the leader) to become new
+    # primary.  The replica must stay a replica to trigger the bug.
+    next_leader = None
+    for node in multi_node.nodes():
+        if node not in (leader, active_node):
+            next_leader = node
+            break
+    assert next_leader is not None
+
+    # Force next_leader to become the new primary; prevent everyone else
+    next_leader.set_quorum(1)
+    for node in multi_node.nodes():
+        if node not in (next_leader, leader):
+            node.set_quorum(99)
+
+    # Step 3: Suspend the primary so it stops processing but stays "alive"
+    leader.suspend()
+
+    # Step 4: Send open-queue request (non-blocking) - replica forwards
+    # upstream to the frozen primary, which will never respond
+    producer2 = replica_proxy.create_client("producer2")
+    producer2.open(uri_priority, flags=["write,ack"], block=False)
+
+    # Step 5: Kill the primary - triggers E_CANCELED for the inflight request
+    leader.check_exit_code = False
+    leader.kill()
+    leader.wait()
+
+    # Step 6: Wait for new leader (a different node, NOT the replica)
+    multi_node.wait_leader()
+    assert multi_node.last_known_leader == next_leader
+
+    # Step 7: The open-queue should complete (with the bug, it times out)
+    assert producer2.capture(
+        r"<--.*openQueue.*uri = " + re.escape(uri_priority) + r".*\(0\)",
+        timeout=15,
+    )
+
+    # Step 8: Verify end-to-end: post should succeed
+    assert (
+        producer2.post(uri_priority, ["msg1"], wait_ack=True, succeed=True)
+        == Client.e_SUCCESS
+    )
