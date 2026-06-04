@@ -576,6 +576,13 @@ void QueueSessionManager::processOpenQueue(
         return;  // RETURN
     }
 
+    if (handleParams.adminCount() != 0) {
+        errorCallback(bmqp_ctrlmsg::StatusCategory::E_INVALID_ARGUMENT,
+                      "adminCount must be 0",
+                      0);
+        return;  // RETURN
+    }
+
     const bool isExpectingReader = handleParams.readCount() > 0;
     if (bmqt::QueueFlagsUtil::isReader(handleParams.flags()) !=
         isExpectingReader) {
