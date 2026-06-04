@@ -4337,9 +4337,8 @@ void ClusterQueueHelper::onQueueAssigned(
         BSLS_ASSERT_SAFE(insertRc.second);
 
         // Create the queueContext.
-        queueContext.reset(new (*d_allocator_p)
-                               QueueContext(info->uri(), d_allocator_p),
-                           d_allocator_p);
+        queueContext = bsl::allocate_shared<QueueContext>(d_allocator_p,
+                                                          info->uri());
 
         d_queues[info->uri()] = queueContext;
     }

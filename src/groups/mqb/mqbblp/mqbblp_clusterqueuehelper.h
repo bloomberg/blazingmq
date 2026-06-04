@@ -1261,9 +1261,10 @@ ClusterQueueHelper::startPartitionReopen(int                 partitionId,
     }
 
     // Start new restore cycle
-    cycle.reset(new (*d_allocator_p)
-                    PartitionReopenCycle(this, generationCount, partitionId),
-                d_allocator_p);
+    cycle = bsl::allocate_shared<PartitionReopenCycle>(d_allocator_p,
+                                                       this,
+                                                       generationCount,
+                                                       partitionId);
     d_reopenCycles[partitionId] = cycle;
 
     return cycle;

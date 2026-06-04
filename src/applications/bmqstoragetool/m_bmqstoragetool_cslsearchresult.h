@@ -51,6 +51,8 @@
 
 // BDE
 #include <bsla_annotations.h>
+#include <bslma_usesbslmaallocator.h>
+#include <bslmf_nestedtraitdeclaration.h>
 
 namespace BloombergLP {
 namespace m_bmqstoragetool {
@@ -105,6 +107,10 @@ class CslSearchShortResult : public CslSearchResult {
   public:
     // CREATORS
 
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(CslSearchShortResult,
+                                   bslma::UsesBslmaAllocator);
+
     /// Constructor using the specified `printer`, `processCslRecordTypes`
     /// and `allocator`.
     explicit CslSearchShortResult(
@@ -150,6 +156,10 @@ class CslSearchDetailResult : public CslSearchResult {
 
   public:
     // CREATORS
+
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(CslSearchDetailResult,
+                                   bslma::UsesBslmaAllocator);
 
     /// Constructor using the specified `printer`, `processCslRecordTypes`
     /// and `allocator`.
@@ -231,6 +241,10 @@ class CslSearchSequenceNumberDecorator : public CslSearchResultDecorator {
   public:
     // CREATORS
 
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(CslSearchSequenceNumberDecorator,
+                                   bslma::UsesBslmaAllocator);
+
     /// Constructor using the specified `component`, `seqNums`, `ostream` and
     /// `allocator`.
     CslSearchSequenceNumberDecorator(
@@ -267,6 +281,10 @@ class CslSearchOffsetDecorator : public CslSearchResultDecorator {
 
   public:
     // CREATORS
+
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(CslSearchOffsetDecorator,
+                                   bslma::UsesBslmaAllocator);
 
     /// Constructor using the specified `component`, `seqNums`, `ostream` and
     /// `allocator`.
@@ -315,6 +333,10 @@ class CslSummaryResult : public CslSearchResult {
 
   public:
     // CREATORS
+
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(CslSummaryResult,
+                                   bslma::UsesBslmaAllocator);
 
     /// Constructor using the specified `ostream`, `processCslRecordTypes` and
     /// `allocator`.

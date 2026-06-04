@@ -38,6 +38,8 @@
 #include <bsl_cstddef.h>
 #include <bsl_functional.h>
 #include <bslma_allocator.h>
+#include <bslma_usesbslmaallocator.h>
+#include <bslmf_nestedtraitdeclaration.h>
 #include <bsls_keyword.h>
 
 namespace BloombergLP {
@@ -63,6 +65,10 @@ class ManualHostHealthMonitor : public bmqpi::HostHealthMonitor {
 
   public:
     // CREATORS
+
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(ManualHostHealthMonitor,
+                                   bslma::UsesBslmaAllocator);
 
     /// Constructs a `ManualHostHealthMonitor` with the given initial state.
     /// Optionally specify an `allocator` to supply memory. If `allocator`

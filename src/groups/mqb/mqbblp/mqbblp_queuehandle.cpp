@@ -1234,9 +1234,8 @@ int QueueHandle::transferUnconfirmedMessageGUID(
     }
 
     // Reset unconfirmed messages and associated state
-    data.reset(new (*d_allocator_p)
-                   mqbi::QueueHandle::UnconfirmedMessageInfoMap(d_allocator_p),
-               d_allocator_p);
+    data = bsl::allocate_shared<mqbi::QueueHandle::UnconfirmedMessageInfoMap>(
+        d_allocator_p);
 
     // Reset unconfirmed messages and associated state
 
