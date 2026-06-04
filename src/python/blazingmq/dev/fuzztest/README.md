@@ -1,34 +1,44 @@
-# Description #
+# Fuzz Testing
 
-**fuzztest** is a module for performing fuzz testing of BlazingMQ broker.
+**fuzztest** is a module for fuzz testing the BlazingMQ broker using the
+[boofuzz](https://github.com/jtpereyda/boofuzz) library. Messages are mutated
+and sent to the broker to verify it handles malformed input gracefully without
+crashing.
 
-Fuzz testing is based on the [boofuzz](https://github.com/jtpereyda/boofuzz) library.
-During fuzz testing messages are being modified and possibly malformed, then
-sent to broker to check if any crash will happen.  We expect that the broker will
-handle all messages gracefully, even if message is malformed.
+The protocol definitions and fuzzing logic live in this package
+(`blazingmq.dev.fuzztest`). The test runner lives in `src/fuzz-tests/`.
 
-# Launching #
+## Running
 
-- Build the BlazingMQ broker (the build dir might be `build/blazingmq/src/applications/bmqbrkr`)
-
-- Set up the repo dir for convenience
+Build the broker, install test dependencies, and run with pytest:
 
 ```shell
-export BLAZINGMQ_REPO=`pwd`
+cmake --preset default
+cmake --build --preset default
+
+pip install -r src/python/requirements-test.txt
+
+# Run all fuzz tests
+BLAZINGMQ_BUILD_DIR=build/blazingmq pytest src/fuzz-tests/
+
+# Run a single request type
+BLAZINGMQ_BUILD_DIR=build/blazingmq pytest src/fuzz-tests/ -k put
 ```
 
-- Install virtual env and requirements:
+If the build used `cmake --preset default`, `BLAZINGMQ_BUILD_DIR` defaults to
+`build/blazingmq` and can be omitted.
+
+## Running via ctest
+
+After configuring with cmake, fuzz tests are registered as ctests:
 
 ```shell
-python3 -m venv ${BLAZINGMQ_REPO}/venv
-source ${BLAZINGMQ_REPO}/venv/bin/activate
-pip3 install -r "${BLAZINGMQ_REPO}/src/python/requirements-test.txt"
-```
+# List fuzz tests
+ctest --test-dir build/blazingmq -L fuzztest -N
 
-- Launch fuzz testing:
+# Run all fuzz tests
+ctest --test-dir build/blazingmq -L fuzztest
 
-```shell
-source ${BLAZINGMQ_REPO}/venv/bin/activate
-cd ${BLAZINGMQ_REPO}/src/python
-python3 -m blazingmq.dev.fuzztest --broker-dir "${BLAZINGMQ_REPO}/build/blazingmq/src/applications/bmqbrkr"
+# Run a single request type
+ctest --test-dir build/blazingmq -L fuzztest -R put
 ```
