@@ -82,6 +82,27 @@ if(Pytest_FOUND)
     PROPERTIES
       LABELS "integration;all"
   )
+
+  message(STATUS "Adding fuzz tests to CTest")
+
+  file(GLOB_RECURSE fuzz_test_files
+    "${CMAKE_SOURCE_DIR}/src/fuzz-tests/*.py")
+  pytest_discover_tests(
+    all.fuzz
+    WORKING_DIRECTORY
+      "${CMAKE_SOURCE_DIR}/src/fuzz-tests"
+    ENVIRONMENT
+      "BLAZINGMQ_BUILD_DIR=${CMAKE_BINARY_DIR}"
+    PYTHON_PATH_PREPEND
+      "${CMAKE_SOURCE_DIR}/src/python/"
+    STRIP_PARAM_BRACKETS
+    TRIM_FROM_NAME
+      "^test_"
+    DEPENDS
+      bmqbrkr ${fuzz_test_files}
+    PROPERTIES
+      LABELS "fuzztest;all"
+  )
 endif()
 
 list(POP_BACK CMAKE_MESSAGE_INDENT)
