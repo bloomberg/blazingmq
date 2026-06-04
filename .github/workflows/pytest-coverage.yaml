@@ -27,7 +27,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}/src/python
         run: |
-          pip install -r ${{ github.workspace }}/src/python/requirements.txt
+          pip install -r ${{ github.workspace }}/src/python/requirements-test.txt
           cd ${{ github.workspace }}/src/python
           pytest --cov blazingmq \
             --cov-report term \

@@ -119,7 +119,7 @@ jobs:
           # Store all info about cluster in cluster.json
           BLAZINGMQ_CLUSTER_CONFIG_COMPATIBILITY_MODE: "true"
         run: |
-          pip install -r ./src/python/requirements.txt
+          pip install -r ./src/python/requirements-test.txt
 
           ./src/integration-tests/run-tests \
             "${{ matrix.mode }} and ${{ matrix.cluster }} and ${{ matrix.consistency }}" \
@@ -219,7 +219,7 @@ jobs:
           export GOPATH=$HOME/go
           export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
 
-          pip install -r ./src/python/requirements.txt
+          pip install -r ./src/python/requirements-test.txt
 
           ./src/integration-tests/run-tests \
             "${{ matrix.mode }} and ${{ matrix.cluster }} and ${{ matrix.consistency }}" \

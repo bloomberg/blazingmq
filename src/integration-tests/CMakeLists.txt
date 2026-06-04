@@ -55,7 +55,7 @@ execute_process(
       -m pip
       install
       --quiet
-      -r "${CMAKE_CURRENT_SOURCE_DIR}/../python/requirements.txt"
+      -r "${CMAKE_CURRENT_SOURCE_DIR}/../python/requirements-test.txt"
 )
 
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_BINARY_DIR}/venv/share/Pytest/cmake")

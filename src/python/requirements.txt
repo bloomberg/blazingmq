@@ -1,12 +1,3 @@
-boofuzz
-crc32c
 psutil
-pytest
-pytest-cmake
-pytest-cov
-pytest-order
-pytest-repeat
-pytest-rerunfailures==14.0
-pytest-xdist
 termcolor
 xsdata

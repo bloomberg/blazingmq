@@ -72,7 +72,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}/src/python
         run: |
-          pip install -r ${{ github.workspace }}/src/python/requirements.txt
+          pip install -r ${{ github.workspace }}/src/python/requirements-test.txt
           pip install "xsdata[cli]==25.7"
           cd ${{ github.workspace }}
           src/python/bin/schemagen
@@ -136,7 +136,7 @@ jobs:
           export GOPATH=$HOME/go
           export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
 
-          pip install -r ${{ github.workspace }}/src/python/requirements.txt
+          pip install -r ${{ github.workspace }}/src/python/requirements-test.txt
 
           ${{ github.workspace }}/src/integration-tests/run-tests \
             "${{ matrix.mode }} and ${{ matrix.cluster }} and ${{ matrix.consistency }}" \
@@ -217,7 +217,7 @@ jobs:
 
       - name: Run Fuzz Test
         run: |
-          pip install -r ${{ github.workspace }}/src/python/requirements.txt
+          pip install -r ${{ github.workspace }}/src/python/requirements-test.txt
           cd src/python
           python3 -m blazingmq.dev.fuzztest --broker-dir ${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr --request ${{ matrix.request }} > ${{ matrix.request}}_fuzz.log
 
@@ -270,7 +270,7 @@ jobs:
 
       - name: Run Storage Tool integration tests
         run: |
-          pip install -r ${{ github.workspace }}/src/python/requirements.txt
+          pip install -r ${{ github.workspace }}/src/python/requirements-test.txt
           cd ${{ github.workspace }}/src/applications/bmqstoragetool/integration-tests
           ./run-tests
 
