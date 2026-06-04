@@ -68,6 +68,9 @@ class StatsFileLogger {
     /// Mechanism to clean up old stat logs.
     bmqtsk::LogCleaner d_statLogCleaner;
 
+    /// Allocator.
+    bslma::Allocator* d_allocator_p;
+
     // NOT IMPLEMENTED
     StatsFileLogger(const StatsFileLogger& other) BSLS_KEYWORD_DELETED;
     StatsFileLogger&
