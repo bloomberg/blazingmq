@@ -85,6 +85,11 @@ class TestStrongConsistency:
         leader = cluster.last_known_leader
         active_node = cluster.process(self.replica_proxy.get_active_node())
 
+        # Prevent the leader from losing its election when nodes go down;
+        # otherwise a new leader sends a CSL snapshot with different primaries
+        # and this scenario is currently not supported.
+        leader.set_quorum(1)
+
         # pylint: disable=cell-var-from-loop; passing lambda to 'wait_until' is safe
         with contextlib.ExitStack() as stack:
             # break non-active replica nodes
