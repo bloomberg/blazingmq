@@ -121,12 +121,14 @@ void Domain::unregisterQueue(mqbi::Queue* queue)
     BSLS_ASSERT_SAFE(lookupQueue(0, queue->uri()) == 0 &&
                      "'queue' was not registered with the domain");
 
-    QueueMap::const_iterator it = d_queues.find(queue->uri().queue());
+    QueueMap::iterator it = d_queues.find(queue->uri().queue());
     if (it == d_queues.end()) {
         return;  // RETURN
     }
 
+    bsl::shared_ptr<mqbi::Queue> queueSp(it->second);
     d_queues.erase(it);
+    queueSp->close(bsl::function<void(void)>());
 }
 
 void Domain::unregisterAppId(BSLA_MAYBE_UNUSED const bsl::string& appId)

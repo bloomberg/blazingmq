@@ -758,7 +758,7 @@ int DomainManager::processCommand(mqbcmd::DomainsResult*        result,
                 clusterResult.storageResult().purgedQueues().queues();
             result->makeDomainResult(domainResult);
 
-            // 3. Mark DOMAIN REMOVED to accecpt the second pass
+            // 3. Mark DOMAIN REMOVED to accept the second pass
             bmqu::SharedResource<DomainManager> self(this);
             bslmt::Latch latch(1, bsls::SystemClockType::e_MONOTONIC);
 

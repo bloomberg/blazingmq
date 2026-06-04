@@ -55,20 +55,9 @@ namespace BloombergLP {
 namespace mqbblp {
 
 namespace {
-const char k_LOG_CATEGORY[] = "MQBBLP.DOMAIN";
 
 const char k_NODE_IS_STOPPING[]              = "Node is stopping";
 const char k_DOMAIN_IS_REMOVING_OR_REMOVED[] = "Domain is removing or removed";
-
-/// This method does nothing.. it's just used so that we can control the
-/// destruction of the specified `queue` to happen once we guarantee the
-/// associated Dispatcher's queue has been drained and flushed.
-void queueHolderDummy(const bsl::shared_ptr<mqbi::Queue>& queue)
-{
-    BALL_LOG_SET_CATEGORY(k_LOG_CATEGORY);
-
-    BALL_LOG_INFO << "Deleted queue '" << queue->uri().canonical() << "'";
-}
 
 /// Validates an application subscription.
 bool validateSubscriptionExpression(bsl::ostream& errorDescription,
@@ -276,6 +265,7 @@ Domain::Domain(const bsl::string&                     name,
 , d_teardownCb()
 , d_teardownRemoveCb()
 , d_mutex()
+, d_numQueues(1)
 {
     if (d_cluster_sp->isRemote()) {
         // In a remote domain, we don't care about monitoring, so disable it
@@ -412,25 +402,22 @@ void Domain::teardown(const mqbi::Domain::TeardownCb& teardownCb)
     // is atomic.  Otherwise, there is a chance due to race that 'teardownCb'
     // can be executed more than once.
 
-    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // d_mutex LOCKED
+    QueueMap queues(d_allocator_p);
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // d_mutex LOCKED
 
-    BALL_LOG_INFO << "Stopping domain '" << d_name << "' having "
-                  << d_queues.size() << " registered queues.";
+        BALL_LOG_INFO << "Stopping domain '" << d_name << "' having "
+                      << d_queues.size() << " registered queues.";
 
-    d_teardownCb = teardownCb;
-    d_state      = e_STOPPING;
+        d_teardownCb = teardownCb;
+        d_state      = e_STOPPING;
 
-    if (d_queues.empty()) {
-        d_teardownCb(d_name);
-        d_teardownCb = bsl::nullptr_t();
-        d_state      = e_STOPPED;
-        return;  // RETURN
+        queues.swap(d_queues);
     }
 
-    for (QueueMap::iterator it = d_queues.begin(); it != d_queues.end();
-         ++it) {
-        it->second->close();
-    }
+    closeAllQueues(queues);
+
+    subtractQueueCount();
 }
 
 void Domain::teardownRemove(const TeardownCb& teardownCb)
@@ -439,24 +426,21 @@ void Domain::teardownRemove(const TeardownCb& teardownCb)
     BSLS_ASSERT_SAFE(!d_teardownRemoveCb);
     BSLS_ASSERT_SAFE(teardownCb);
 
-    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // d_mutex LOCKED
+    QueueMap queues(d_allocator_p);
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // d_mutex LOCKED
 
-    BALL_LOG_INFO << "Removing domain '" << d_name << "' having "
-                  << d_queues.size() << " registered queues.";
+        BALL_LOG_INFO << "Removing domain '" << d_name << "' having "
+                      << d_queues.size() << " registered queues.";
 
-    d_teardownRemoveCb = teardownCb;
+        d_teardownRemoveCb = teardownCb;
 
-    if (d_queues.empty()) {
-        d_teardownRemoveCb(d_name);
-        d_teardownRemoveCb = bsl::nullptr_t();
-        d_state            = e_STOPPED;
-        return;  // RETURN
+        queues.swap(d_queues);
     }
 
-    for (QueueMap::iterator it = d_queues.begin(); it != d_queues.end();
-         ++it) {
-        it->second->close();
-    }
+    closeAllQueues(queues);
+
+    subtractQueueCount();
 }
 
 void Domain::openQueue(
@@ -555,6 +539,8 @@ int Domain::registerQueue(const bsl::shared_ptr<mqbi::Queue>& queueSp)
         // (assuming Queue.configure() will succeed).
 
         d_queues[queueSp->uri().queue()] = queueSp;
+
+        d_numQueues.add(1);
     }
 
     BALL_LOG_INFO << "Registered queue to domain '" << d_name << "' "
@@ -573,60 +559,38 @@ void Domain::unregisterQueue(mqbi::Queue* queue)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_sp->inDispatcherThread());
 
-    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+    bsl::shared_ptr<mqbi::Queue> queueSp;
+    size_t                       count = 0;
 
-    QueueMap::const_iterator it = d_queues.find(queue->uri().queue());
-    BSLS_ASSERT_SAFE(it != d_queues.end() &&
-                     "Queue was not registered with domain");
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
-    if (it == d_queues.end()) {
-        BALL_LOG_ERROR << "#DOMAIN_QUEUE_REGISTRATION_FAILURE "
-                       << "Unable to unregister queue '"
-                       << queue->uri().queue() << "' "
-                       << "from domain '" << d_name
-                       << "' [reason: queue was not "
-                       << "registered]";
-        return;  // RETURN
+        QueueMap::const_iterator it = d_queues.find(queue->uri().queue());
+
+        if (it == d_queues.end()) {
+            // Can be a result of concurrent 'tearDown'.
+            BALL_LOG_WARN << "Domain '" << d_name
+                          << "' skips unregistering unknown queue '"
+                          << queue->uri().queue() << "'.";
+            return;  // RETURN
+        }
+
+        queueSp = bslmf::MovableRefUtil::move(it->second);
+        d_queues.erase(it);
+
+        count = d_queues.size();
+        // unlock
     }
 
-    bsl::shared_ptr<mqbi::Queue> queueSp(it->second);
-    d_queues.erase(it);
+    BSLS_ASSERT_SAFE(queueSp);
 
-    // Close the queue before we schedule Dummy event so that we can clear
-    // any pending messages before the destruction of the queue
-    queueSp->close();
-
-    // We need to make sure the 'queue' is not in its associated dispatcher's
-    // thread (flush list or 'expirePendingMessagesDispatched': for that
-    // purpose, enqueue an 'e_DISPATCHER' type event with the shared_ptr to the
-    // queue; once it gets processed, we have guarantees that the dispatcher's
-    // work is done and therefore can then safely delete the queue.
-    //
-    // This code relies on queue being in an 'empty' state meaning it will NOT
-    // schedule any new dispatcher work.
-    d_dispatcher_p->execute(bdlf::BindUtil::bind(&queueHolderDummy, queueSp),
-                            queueSp.get(),
-                            mqbi::DispatcherEventType::e_DISPATCHER);
+    queueSp->close(
+        bdlf::BindUtil::bind(&Domain::onQueueClosed, this, queueSp));
 
     BALL_LOG_INFO << "Unregistered queue from domain '" << d_name
                   << "' [canonicalURI: " << queueSp->uri().canonical() << "]. "
                   << "Total number of registered queues in the domain: "
-                  << d_queues.size();
-
-    // Refer to note in 'teardown' routine to see why 'd_state' is updated
-    // while 'd_mutex' is acquired.
-    if (d_queues.empty()) {
-        if (d_teardownCb) {
-            d_teardownCb(d_name);
-            d_teardownCb = bsl::nullptr_t();
-            d_state      = e_STOPPED;
-        }
-        if (d_teardownRemoveCb) {
-            d_teardownRemoveCb(d_name);
-            d_teardownRemoveCb = bsl::nullptr_t();
-            d_state            = e_STOPPED;
-        }
-    }
+                  << count;
 }
 
 int Domain::processCommand(mqbcmd::DomainResult*        result,
@@ -804,6 +768,54 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
     os << "Unknown command '" << command << "'";
     result->makeError().message() = os.str();
     return -1;
+}
+
+void Domain::closeAllQueues(const QueueMap& queues)
+{
+    for (QueueMap::const_iterator cit = queues.begin(); cit != queues.end();
+         ++cit) {
+        const bsl::shared_ptr<mqbi::Queue>& queueSp = cit->second;
+        queueSp->close(
+            bdlf::BindUtil::bind(&Domain::onQueueClosed, this, queueSp));
+    }
+}
+
+void Domain::onQueueClosed(const bsl::shared_ptr<mqbi::Queue>& closedQueue)
+{
+    BSLS_ASSERT_SAFE(closedQueue);
+
+    BALL_LOG_INFO << "Deleted queue '" << closedQueue->uri().canonical()
+                  << "'";
+
+    subtractQueueCount();
+}
+
+void Domain::subtractQueueCount()
+{
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // d_mutex LOCKED
+
+    --d_numQueues;
+
+    if (d_numQueues == 0) {
+        // Refer to note in 'teardown' routine to see why 'd_state' is updated
+        // while 'd_mutex' is acquired.
+
+        if (d_teardownCb) {
+            d_teardownCb(d_name);
+            d_teardownCb = bsl::nullptr_t();
+            d_state      = e_STOPPED;
+
+            BALL_LOG_INFO << "Torn down domain '" << d_name << "'.";
+        }
+        if (d_teardownRemoveCb) {
+            d_teardownRemoveCb(d_name);
+            d_teardownRemoveCb = bsl::nullptr_t();
+            d_state            = e_STOPPED;
+
+            BALL_LOG_INFO << "Torn down domain '" << d_name
+                          << "' for removal.";
+        }
+    }
 }
 
 // ACCESSORS

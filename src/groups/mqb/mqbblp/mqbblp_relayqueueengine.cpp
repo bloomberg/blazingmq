@@ -1057,6 +1057,11 @@ int RelayQueueEngine::configure(
     return 0;
 }
 
+void RelayQueueEngine::close()
+{
+    // NOTHING
+}
+
 void RelayQueueEngine::resetState(bool isShuttingDown)
 {
     for (AppsMap::iterator it = d_apps.begin(); it != d_apps.end(); ++it) {

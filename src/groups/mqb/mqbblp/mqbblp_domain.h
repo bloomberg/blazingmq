@@ -179,6 +179,8 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain {
     /// Mutex for protecting the queues map.
     mutable bslmt::Mutex d_mutex;
 
+    bsls::AtomicInt d_numQueues;
+
   private:
     // PRIVATE MANIPULATORS
 
@@ -206,6 +208,18 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain {
     /// Copy constructor and assignment operator are not implemented.
     Domain(const Domain&);             // = delete;
     Domain& operator=(const Domain&);  // = delete;
+
+    /// Call close for all `queues`.
+    void closeAllQueues(const QueueMap& queues);
+
+    /// This method runs when the 'closedQueue' is done closing.  The domain
+    /// can be waiting for 'teardownCb' and/or 'teardownRemoveCb' to complete
+    /// shutdown/removal.
+    void onQueueClosed(const bsl::shared_ptr<mqbi::Queue>& closedQueue);
+
+    /// Decrement `d_numQueues` and call `d_teardownCb`/`d_teardownRemoveCb` if
+    /// it drops to `0`.
+    void subtractQueueCount();
 
   public:
     // TRAITS

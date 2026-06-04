@@ -45,6 +45,11 @@ int QueueEngine::configure(BSLA_MAYBE_UNUSED bsl::ostream& errorDescription,
     return 0;
 }
 
+void QueueEngine::close()
+{
+    // NOTHING
+}
+
 void QueueEngine::resetState(BSLA_MAYBE_UNUSED bool keepConfirming)
 {
     // NOTHING

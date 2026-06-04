@@ -412,7 +412,14 @@ QueueEngineTester::~QueueEngineTester()
     BSLS_ASSERT_OPT(d_clientContexts.empty());
 
     d_deletedHandles.clear();
-    d_mockDomain_mp->unregisterQueue(d_mockQueue_sp.get());
+
+    // Release the extra reference so that the Domain holds the sole
+    // reference, mimicking the production 'deleteQueue' path where
+    // 'unregisterQueue' is responsible for the queue's lifetime.
+    mqbi::Queue* queue = d_mockQueue_sp.get();
+    d_mockQueue_sp.reset();
+    d_mockDomain_mp->unregisterQueue(queue);
+
     d_mockCluster_mp->stop();
     oneTimeShutdown();
 }
