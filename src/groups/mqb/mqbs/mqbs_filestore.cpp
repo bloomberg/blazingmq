@@ -1034,7 +1034,7 @@ int FileStore::openInRecoveryMode(bsl::ostream&    errorDescription,
 
         bmqp_ctrlmsg::SyncPoint syncPoint;
         syncPoint.primaryLeaseId()       = d_primaryLeaseId;
-        syncPoint.sequenceNum()          = ++currentSeqNumRef();
+        syncPoint.sequenceNum()          = currentSeqNumRef() + 1;
         syncPoint.dataFileOffsetDwords() = fileSetSp->d_dataFilePosition /
                                            bmqp::Protocol::k_DWORD_SIZE;
         syncPoint.qlistFileOffsetWords() =
@@ -3310,7 +3310,7 @@ int FileStore::rollover()
 
     bmqp_ctrlmsg::SyncPoint syncPt;
     syncPt.primaryLeaseId()       = d_primaryLeaseId;
-    syncPt.sequenceNum()          = ++currentSeqNumRef();
+    syncPt.sequenceNum()          = currentSeqNumRef() + 1;
     syncPt.dataFileOffsetDwords() = activeFileSet->d_dataFilePosition /
                                     bmqp::Protocol::k_DWORD_SIZE;
     syncPt.qlistFileOffsetWords() = d_qListAware
@@ -4105,7 +4105,7 @@ void FileStore::issueSyncPointIfNeeded()
 
     bmqp_ctrlmsg::SyncPoint sp;
     sp.primaryLeaseId()       = d_primaryLeaseId;
-    sp.sequenceNum()          = ++currentSeqNumRef();
+    sp.sequenceNum()          = currentSeqNumRef() + 1;
     sp.dataFileOffsetDwords() = fs->d_dataFilePosition /
                                 bmqp::Protocol::k_DWORD_SIZE;
     if (d_qListAware) {
@@ -6274,6 +6274,9 @@ int FileStore::writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint& syncPoint,
         return rc_UNAVAILABLE;  // RETURN
     }
 
+    // Update the PSN only when record writing is guaranteed.
+    ++currentSeqNumRef();
+
     // Local refs for convenience.
 
     MappedFileDescriptor& journal    = activeFileSet->d_journalFile;
@@ -6857,7 +6860,7 @@ int FileStore::issueSyncPoint()
 
     bmqp_ctrlmsg::SyncPoint syncPoint;
     syncPoint.primaryLeaseId()       = d_primaryLeaseId;
-    syncPoint.sequenceNum()          = ++currentSeqNumRef();
+    syncPoint.sequenceNum()          = currentSeqNumRef() + 1;
     syncPoint.dataFileOffsetDwords() = fs->d_dataFilePosition /
                                        bmqp::Protocol::k_DWORD_SIZE;
     syncPoint.qlistFileOffsetWords() = d_qListAware
@@ -7074,12 +7077,6 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
             d_qListAware
                 ? fs->d_qlistFilePosition / bmqp::Protocol::k_WORD_SIZE
                 : 0;
-
-        // Explicitly update the PSN, since we are passing the
-        // SyncPt ourselves, and 'issueSyncPointInternal' won't increment
-        // the sequence number in that case.
-
-        ++currentSeqNumRef();
 
         int rc = issueSyncPointInternal(SyncPointType::e_REGULAR, syncPoint);
         if (0 != rc) {

@@ -917,7 +917,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// -------------------
 
     /// Request the data store to issue a SyncPt.
-    int issueSyncPoint() BSLS_KEYWORD_OVERRIDE;
+    int issueSyncPoint();
 
     /// Set the specified `primaryNode` with the specified `primaryLeaseId`
     /// as the active primary for this data store partition.  Note that
