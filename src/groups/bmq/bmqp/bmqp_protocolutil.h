@@ -570,6 +570,7 @@ int ProtocolUtil::decodeMessage(bsl::ostream&      errorDescription,
         balber::BerDecoderOptions options;
         options.setSkipUnknownElements(true);
         options.setDefaultEmptyStrings(false);
+        options.setMaxSequenceSize(1024 * 1024);
         balber::BerDecoder decoder(&options, allocator);
 
         const int rc = decoder.decode(stream, message);
