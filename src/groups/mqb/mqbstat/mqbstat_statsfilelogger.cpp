@@ -31,6 +31,7 @@
 #include <bdlt_datetime.h>
 #include <bdlt_epochutil.h>
 #include <bsl_ctime.h>
+#include <bsl_memory.h>
 #include <bsl_ostream.h>
 #include <bslma_allocator.h>
 #include <bslmt_threadutil.h>
@@ -56,6 +57,7 @@ StatsFileLogger::StatsFileLogger(bsl::string_view       filePattern,
 : d_filePattern(filePattern, allocator)
 , d_statsLogFile(allocator)
 , d_statLogCleaner(eventScheduler, allocator)
+, d_allocator_p(allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(eventScheduler);
@@ -107,8 +109,9 @@ void StatsFileLogger::logStats(const PrinterCb& printerCb)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(printerCb);
 
-    ball::Record            record;
-    ball::RecordAttributes& attributes = record.fixedFields();
+    bsl::shared_ptr<ball::Record> record_sp =
+        bsl::allocate_shared<ball::Record>(d_allocator_p);
+    ball::RecordAttributes& attributes = record_sp->fixedFields();
     bdlt::Datetime          now;
     bdlt::EpochUtil::convertFromTimeT(&now, time(0));
     attributes.setTimestamp(now);
@@ -123,9 +126,8 @@ void StatsFileLogger::logStats(const PrinterCb& printerCb)
     bsl::ostream os(&attributes.messageStreamBuf());
 
     printerCb(os);
-
     d_statsLogFile.publish(
-        record,
+        record_sp,
         ball::Context(ball::Transmission::e_MANUAL_PUBLISH, 0, 1));
 }
 
