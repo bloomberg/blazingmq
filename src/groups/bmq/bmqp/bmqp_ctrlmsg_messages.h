@@ -10110,7 +10110,7 @@ class PrimaryStateRequest {
     // for primary's sequence number.  The replica also sends it own sequence
     // numbers as part of this request.
     // partitionId:    partition id for corresponding partition.
-    // primaryLeaseId: lease id of the current primary latestSequenceNumber:
+    // primaryLeaseId: lease id of the current primary.  latestSequenceNumber:
     // Replica's latest sequence number for corresponding partition.
     // firstSyncPointAfterRolloverSequenceNumber: Sequence number of replica's
     // first sync point after rollover for corresponding partition.
@@ -10334,7 +10334,7 @@ class PrimaryStateResponse {
     // This type represents a response sent by a primary to the replica along
     // with its sequence numbers.
     // partitionId:    partition id for corresponding partition.
-    // primaryLeaseId: lease id of the current primary latestSequenceNumber:
+    // primaryLeaseId: lease id of the current primary.  latestSequenceNumber:
     // Primary's latest sequence number for corresponding partition.
     // firstSyncPointAfterRolloverSequenceNumber: Sequence number of primary's
     // first sync point after rollover for corresponding partition.
@@ -12501,7 +12501,7 @@ class ReplicaStateRequest {
     // for replica's sequence numbers.  The primary also sends its own sequence
     // numbers as part of this request.
     // partitionId:    partition id for corresponding partition.
-    // primaryLeaseId: lease id of the current primary latestSequenceNumber:
+    // primaryLeaseId: lease id of the current primary.  latestSequenceNumber:
     // Primary's latest sequence number for corresponding partition.
     // firstSyncPointAfterRolloverSequenceNumber: Sequence number of primary's
     // first sync point after rollover for corresponding partition.
@@ -12725,7 +12725,7 @@ class ReplicaStateResponse {
     // This type represents a response sent by a replica to the primary along
     // with its sequence numbers.
     // partitionId:    partition id for corresponding partition.
-    // primaryLeaseId: lease id of the current primary latestSequenceNumber:
+    // primaryLeaseId: lease id of the current primary.  latestSequenceNumber:
     // Replica's latest sequence number for corresponding partition.
     // firstSyncPointAfterRolloverSequenceNumber: Sequence number of replica's
     // first sync point after rollover for corresponding partition.
