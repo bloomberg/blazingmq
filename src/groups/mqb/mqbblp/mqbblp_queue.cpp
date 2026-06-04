@@ -355,17 +355,23 @@ void Queue::closeDispatched(const bsl::function<void(void)>& callback)
 
     updateStats();
 
-    // Enqueue the holder AFTER 'engine->close()'.  Any two-hop callbacks
-    // (scheduler -> queue dispatcher) triggered during 'cancelEventAndWait'
-    // are already on the dispatcher queue ahead of this holder, so the
-    // queue stays alive until they complete.
+    if (storage()) {
+        storage()->setQueue(0);
+    }
 
-    // We need to make sure the 'queue' is not in the dispatcher's flush list:
-    // for that purpose, enqueue an 'e_DISPATCHER' type event.
+    if (callback) {
+        // Enqueue the holder AFTER 'engine->close()'.  Any two-hop callbacks
+        // (scheduler -> queue dispatcher) triggered during
+        // 'cancelEventAndWait' are already on the dispatcher queue ahead of
+        // this holder, so the queue stays alive until they complete.
 
-    dispatcher()->execute(callback,
-                          this,
-                          mqbi::DispatcherEventType::e_DISPATCHER);
+        // We need to make sure the 'queue' is not in the dispatcher's flush
+        // list: for that purpose, enqueue an 'e_DISPATCHER' type event.
+
+        dispatcher()->execute(callback,
+                              this,
+                              mqbi::DispatcherEventType::e_DISPATCHER);
+    }
 }
 
 void Queue::convertToLocalDispatched()

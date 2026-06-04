@@ -2342,13 +2342,10 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
     /// corresponding storage.  Make sure we unset this if we exit the scope
     /// on error.
 
-    bdlb::ScopeExitAny queuePtrGuard(
-        bdlf::BindUtil::bindS(d_allocator_p,
-                              &mqbi::StorageManager::resetQueue,
-                              d_storageManager_p,
-                              queueContext->uri(),
-                              queueContext->partitionId(),
-                              queueSp));
+    bdlb::ScopeExitAny queuePtrGuard(bdlf::BindUtil::bindS(d_allocator_p,
+                                                           &mqbi::Queue::close,
+                                                           queueSp.get(),
+                                                           VoidFunctor()));
 
     if (rc != 0) {
         // Queue.configure() failed.
@@ -4091,17 +4088,6 @@ void ClusterQueueHelper::deleteQueue(QueueContext* queueContext)
     BSLS_ASSERT_SAFE(queueContext->d_liveQInfo.d_queue_sp);
 
     mqbi::Queue* queue = queueContext->d_liveQInfo.d_queue_sp.get();
-
-    // If in cluster, need to *synchronously* notify queue's storage about
-    // queue's deletion, before deleting the queue.  Note that invoking
-    // 'setQueue' in proxy is undefined as there is no StorageMgr, no valid
-    // partitionId assigned to queue, etc.
-
-    if (!d_cluster_p->isRemote()) {
-        d_storageManager_p->resetQueue(queueContext->uri(),
-                                       queueContext->partitionId(),
-                                       queueContext->d_liveQInfo.d_queue_sp);
-    }
 
     queue->domain()->unregisterQueue(queue);
     queueContext->d_liveQInfo.d_queue_sp.reset();

@@ -3136,34 +3136,6 @@ void StorageUtil::updateQueueStorageDispatched(
     }
 }
 
-void StorageUtil::resetQueueDispatched(
-    StorageSpMap*           storageMap,
-    bslmt::Mutex*           storagesLock,
-    const bsl::string&      description,
-    const bmqt::Uri&        uri,
-    BSLA_MAYBE_UNUSED const bsl::shared_ptr<mqbi::Queue>& queue_sp)
-{
-    // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(storageMap);
-
-    bslmt::LockGuard<bslmt::Mutex> guard(storagesLock);  // LOCK
-
-    StorageSpMapIter it = storageMap->find(uri);
-    if (it == storageMap->end()) {
-        BALL_LOG_ERROR << description << ": queue [" << uri
-                       << "] not found in storage manager.";
-        // While transitioning to CSL, Replica can receive both
-        // QueueUnassignmentAdvisory and Queue DELETION.  The latter can delete
-        // the storage.
-
-        return;  // RETURN
-    }
-
-    it->second->setQueue(0);
-}
-
 int StorageUtil::configureStorage(
     bsl::ostream&                      errorDescription,
     bsl::shared_ptr<mqbi::Storage>*    out,
