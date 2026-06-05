@@ -120,12 +120,12 @@ int Authenticator::onAuthenticationResponse(
 }
 
 int Authenticator::sendAuthenticationResponse(
-    bsl::ostream&                            errorDescription,
-    int                                      authnRc,
-    bsl::string_view                         errorMsg,
-    const bsl::optional<bsls::Types::Int64>& lifetimeMs,
-    const bsl::shared_ptr<bmqio::Channel>&   channel,
-    bmqp::EncodingType::Enum                 authenticationEncodingType)
+    bsl::ostream&                             errorDescription,
+    int                                       authnRc,
+    bsl::string_view                          errorMsg,
+    const bsl::optional<bsls::Types::Uint64>& lifetimeMs,
+    const bsl::shared_ptr<bmqio::Channel>&    channel,
+    bmqp::EncodingType::Enum                  authenticationEncodingType)
 {
     // executed by an *AUTHENTICATION* thread
     enum RcEnum {

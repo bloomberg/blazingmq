@@ -46,6 +46,7 @@
 
 #include <bsl_iosfwd.h>
 #include <bsl_limits.h>
+#include <bsl_type_traits.h>
 
 #include <bsl_ostream.h>
 #include <bsl_string.h>
@@ -1234,9 +1235,17 @@ struct ClientLanguage {
 
   public:
     // TYPES
-    enum Value { E_UNKNOWN = 0, E_CPP = 1, E_JAVA = 2 };
+    enum Value {
+        e_E_UNKNOWN = 0,
+        e_E_CPP     = 1,
+        e_E_JAVA    = 2,
 
-    enum { NUM_ENUMERATORS = 3 };
+        E_UNKNOWN = e_E_UNKNOWN,
+        E_CPP     = e_E_CPP,
+        E_JAVA    = e_E_JAVA
+    };
+
+    enum { k_NUM_ENUMERATORS = 3, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -1299,13 +1308,18 @@ struct ClientType {
   public:
     // TYPES
     enum Value {
-        E_UNKNOWN   = 0,
-        E_TCPCLIENT = 1,
-        E_TCPBROKER = 2,
-        E_TCPADMIN  = 3
+        e_E_UNKNOWN   = 0,
+        e_E_TCPCLIENT = 1,
+        e_E_TCPBROKER = 2,
+        e_E_TCPADMIN  = 3,
+
+        E_UNKNOWN   = e_E_UNKNOWN,
+        E_TCPCLIENT = e_E_TCPCLIENT,
+        E_TCPBROKER = e_E_TCPBROKER,
+        E_TCPADMIN  = e_E_TCPADMIN
     };
 
-    enum { NUM_ENUMERATORS = 4 };
+    enum { k_NUM_ENUMERATORS = 4, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -2201,13 +2215,18 @@ struct DumpActionType {
   public:
     // TYPES
     enum Value {
-        E_ON              = 0,
-        E_OFF             = 1,
-        E_MESSAGE_COUNT   = 2,
-        E_TIME_IN_SECONDS = 3
+        e_E_ON              = 0,
+        e_E_OFF             = 1,
+        e_E_MESSAGE_COUNT   = 2,
+        e_E_TIME_IN_SECONDS = 3,
+
+        E_ON              = e_E_ON,
+        E_OFF             = e_E_OFF,
+        E_MESSAGE_COUNT   = e_E_MESSAGE_COUNT,
+        E_TIME_IN_SECONDS = e_E_TIME_IN_SECONDS
     };
 
-    enum { NUM_ENUMERATORS = 4 };
+    enum { k_NUM_ENUMERATORS = 4, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -2267,15 +2286,22 @@ struct DumpMsgType {
   public:
     // TYPES
     enum Value {
-        E_INCOMING = 0,
-        E_OUTGOING = 1,
-        E_PUSH     = 2,
-        E_ACK      = 3,
-        E_PUT      = 4,
-        E_CONFIRM  = 5
+        e_E_INCOMING = 0,
+        e_E_OUTGOING = 1,
+        e_E_PUSH     = 2,
+        e_E_ACK      = 3,
+        e_E_PUT      = 4,
+        e_E_CONFIRM  = 5,
+
+        E_INCOMING = e_E_INCOMING,
+        E_OUTGOING = e_E_OUTGOING,
+        E_PUSH     = e_E_PUSH,
+        E_ACK      = e_E_ACK,
+        E_PUT      = e_E_PUT,
+        E_CONFIRM  = e_E_CONFIRM
     };
 
-    enum { NUM_ENUMERATORS = 6 };
+    enum { k_NUM_ENUMERATORS = 6, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -2818,9 +2844,15 @@ struct ExpressionVersion {
 
   public:
     // TYPES
-    enum Value { E_UNDEFINED = 0, E_VERSION_1 = 1 };
+    enum Value {
+        e_E_UNDEFINED = 0,
+        e_E_VERSION_1 = 1,
 
-    enum { NUM_ENUMERATORS = 2 };
+        E_UNDEFINED = e_E_UNDEFINED,
+        E_VERSION_1 = e_E_VERSION_1
+    };
+
+    enum { k_NUM_ENUMERATORS = 2, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -4533,14 +4565,20 @@ struct NodeStatus {
   public:
     // TYPES
     enum Value {
-        E_UNKNOWN     = 0,
-        E_STARTING    = 10,
-        E_AVAILABLE   = 20,
-        E_STOPPING    = 30,
-        E_UNAVAILABLE = 40
+        e_E_UNKNOWN     = 0,
+        e_E_STARTING    = 10,
+        e_E_AVAILABLE   = 20,
+        e_E_STOPPING    = 30,
+        e_E_UNAVAILABLE = 40,
+
+        E_UNKNOWN     = e_E_UNKNOWN,
+        E_STARTING    = e_E_STARTING,
+        E_AVAILABLE   = e_E_AVAILABLE,
+        E_STOPPING    = e_E_STOPPING,
+        E_UNAVAILABLE = e_E_UNAVAILABLE
     };
 
-    enum { NUM_ENUMERATORS = 5 };
+    enum { k_NUM_ENUMERATORS = 5, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -5378,9 +5416,17 @@ struct PrimaryStatus {
 
   public:
     // TYPES
-    enum Value { E_UNDEFINED = 0, E_PASSIVE = 1, E_ACTIVE = 5 };
+    enum Value {
+        e_E_UNDEFINED = 0,
+        e_E_PASSIVE   = 1,
+        e_E_ACTIVE    = 5,
 
-    enum { NUM_ENUMERATORS = 3 };
+        E_UNDEFINED = e_E_UNDEFINED,
+        E_PASSIVE   = e_E_PASSIVE,
+        E_ACTIVE    = e_E_ACTIVE
+    };
+
+    enum { k_NUM_ENUMERATORS = 3, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -6059,9 +6105,19 @@ struct ReplicaDataType {
 
   public:
     // TYPES
-    enum Value { E_UNKNOWN = 0, E_PULL = 10, E_PUSH = 20, E_DROP = 30 };
+    enum Value {
+        e_E_UNKNOWN = 0,
+        e_E_PULL    = 10,
+        e_E_PUSH    = 20,
+        e_E_DROP    = 30,
 
-    enum { NUM_ENUMERATORS = 4 };
+        E_UNKNOWN = e_E_UNKNOWN,
+        E_PULL    = e_E_PULL,
+        E_PUSH    = e_E_PUSH,
+        E_DROP    = e_E_DROP
+    };
+
+    enum { k_NUM_ENUMERATORS = 4, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -6314,13 +6370,18 @@ struct RoutingConfigurationFlags {
   public:
     // TYPES
     enum Value {
-        E_AT_MOST_ONCE              = 0,
-        E_DELIVER_CONSUMER_PRIORITY = 1,
-        E_DELIVER_ALL               = 2,
-        E_HAS_MULTIPLE_SUB_STREAMS  = 3
+        e_E_AT_MOST_ONCE              = 0,
+        e_E_DELIVER_CONSUMER_PRIORITY = 1,
+        e_E_DELIVER_ALL               = 2,
+        e_E_HAS_MULTIPLE_SUB_STREAMS  = 3,
+
+        E_AT_MOST_ONCE              = e_E_AT_MOST_ONCE,
+        E_DELIVER_CONSUMER_PRIORITY = e_E_DELIVER_CONSUMER_PRIORITY,
+        E_DELIVER_ALL               = e_E_DELIVER_ALL,
+        E_HAS_MULTIPLE_SUB_STREAMS  = e_E_HAS_MULTIPLE_SUB_STREAMS
     };
 
-    enum { NUM_ENUMERATORS = 4 };
+    enum { k_NUM_ENUMERATORS = 4, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -6718,18 +6779,28 @@ struct StatusCategory {
   public:
     // TYPES
     enum Value {
-        E_SUCCESS          = 0,
-        E_UNKNOWN          = -1,
-        E_TIMEOUT          = -2,
-        E_NOT_CONNECTED    = -3,
-        E_CANCELED         = -4,
-        E_NOT_SUPPORTED    = -5,
-        E_REFUSED          = -6,
-        E_INVALID_ARGUMENT = -7,
-        E_NOT_READY        = -8
+        e_E_SUCCESS          = 0,
+        e_E_UNKNOWN          = -1,
+        e_E_TIMEOUT          = -2,
+        e_E_NOT_CONNECTED    = -3,
+        e_E_CANCELED         = -4,
+        e_E_NOT_SUPPORTED    = -5,
+        e_E_REFUSED          = -6,
+        e_E_INVALID_ARGUMENT = -7,
+        e_E_NOT_READY        = -8,
+
+        E_SUCCESS          = e_E_SUCCESS,
+        E_UNKNOWN          = e_E_UNKNOWN,
+        E_TIMEOUT          = e_E_TIMEOUT,
+        E_NOT_CONNECTED    = e_E_NOT_CONNECTED,
+        E_CANCELED         = e_E_CANCELED,
+        E_NOT_SUPPORTED    = e_E_NOT_SUPPORTED,
+        E_REFUSED          = e_E_REFUSED,
+        E_INVALID_ARGUMENT = e_E_INVALID_ARGUMENT,
+        E_NOT_READY        = e_E_NOT_READY
     };
 
-    enum { NUM_ENUMERATORS = 9 };
+    enum { k_NUM_ENUMERATORS = 9, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -7229,14 +7300,20 @@ struct StorageSyncResponseType {
   public:
     // TYPES
     enum Value {
-        E_UNDEFINED = 0,
-        E_PATCH     = 1,
-        E_FILE      = 2,
-        E_IN_SYNC   = 3,
-        E_EMPTY     = 4
+        e_E_UNDEFINED = 0,
+        e_E_PATCH     = 1,
+        e_E_FILE      = 2,
+        e_E_IN_SYNC   = 3,
+        e_E_EMPTY     = 4,
+
+        E_UNDEFINED = e_E_UNDEFINED,
+        E_PATCH     = e_E_PATCH,
+        E_FILE      = e_E_FILE,
+        E_IN_SYNC   = e_E_IN_SYNC,
+        E_EMPTY     = e_E_EMPTY
     };
 
-    enum { NUM_ENUMERATORS = 5 };
+    enum { k_NUM_ENUMERATORS = 5, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -13811,8 +13888,8 @@ class AuthenticationResponse {
     // The session lifetime is valid indefinitely if this value is unset.
 
     // INSTANCE DATA
-    Status                   d_status;
-    bdlb::NullableValue<int> d_lifetimeMs;
+    bdlb::NullableValue<bsls::Types::Uint64> d_lifetimeMs;
+    Status                                   d_status;
 
   public:
     // TYPES
@@ -13923,7 +14000,7 @@ class AuthenticationResponse {
     // Return a reference to the modifiable "Status" attribute of this
     // object.
 
-    bdlb::NullableValue<int>& lifetimeMs();
+    bdlb::NullableValue<bsls::Types::Uint64>& lifetimeMs();
     // Return a reference to the modifiable "LifetimeMs" attribute of this
     // object.
 
@@ -13974,7 +14051,7 @@ class AuthenticationResponse {
     // Return a reference offering non-modifiable access to the "Status"
     // attribute of this object.
 
-    const bdlb::NullableValue<int>& lifetimeMs() const;
+    const bdlb::NullableValue<bsls::Types::Uint64>& lifetimeMs() const;
     // Return a reference offering non-modifiable access to the
     // "LifetimeMs" attribute of this object.
 
@@ -32485,7 +32562,8 @@ inline Status& AuthenticationResponse::status()
     return d_status;
 }
 
-inline bdlb::NullableValue<int>& AuthenticationResponse::lifetimeMs()
+inline bdlb::NullableValue<bsls::Types::Uint64>&
+AuthenticationResponse::lifetimeMs()
 {
     return d_lifetimeMs;
 }
@@ -32549,7 +32627,7 @@ inline const Status& AuthenticationResponse::status() const
     return d_status;
 }
 
-inline const bdlb::NullableValue<int>&
+inline const bdlb::NullableValue<bsls::Types::Uint64>&
 AuthenticationResponse::lifetimeMs() const
 {
     return d_lifetimeMs;
@@ -38934,6 +39012,6 @@ inline const ControlMessageChoice& ControlMessage::choice() const
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY BLP_BAS_CODEGEN_9999.99.99
+// GENERATED BY BLP_BAS_CODEGEN_2026.05.21
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package bmqp_ctrlmsg --msgComponent messages bmqp_ctrlmsg.xsd

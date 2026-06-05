@@ -52,9 +52,9 @@ const int k_AUTHN_DURATION_SECONDS = 600;
 // -------------------------------
 
 BasicAuthenticationResult::BasicAuthenticationResult(
-    bsl::string_view   principal,
-    bsls::Types::Int64 lifetimeMs,
-    bslma::Allocator*  allocator)
+    bsl::string_view    principal,
+    bsls::Types::Uint64 lifetimeMs,
+    bslma::Allocator*   allocator)
 : d_principal(principal, allocator)
 , d_lifetimeMs(lifetimeMs)
 {
@@ -69,7 +69,7 @@ bsl::string_view BasicAuthenticationResult::principal() const
     return d_principal;
 }
 
-const bsl::optional<bsls::Types::Int64>&
+const bsl::optional<bsls::Types::Uint64>&
 BasicAuthenticationResult::lifetimeMs() const
 {
     return d_lifetimeMs;

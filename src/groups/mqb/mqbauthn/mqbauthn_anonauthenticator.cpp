@@ -42,9 +42,9 @@ const char* AnonAuthenticator::k_PRINCIPAL = "anonymous";
 // ------------------------------
 
 AnonAuthenticationResult::AnonAuthenticationResult(
-    bsl::string_view                  principal,
-    bsl::optional<bsls::Types::Int64> lifetimeMs,
-    bslma::Allocator*                 allocator)
+    bsl::string_view                   principal,
+    bsl::optional<bsls::Types::Uint64> lifetimeMs,
+    bslma::Allocator*                  allocator)
 : d_principal(principal, allocator)
 , d_lifetimeMs(lifetimeMs)
 {
@@ -59,7 +59,7 @@ bsl::string_view AnonAuthenticationResult::principal() const
     return d_principal;
 }
 
-const bsl::optional<bsls::Types::Int64>&
+const bsl::optional<bsls::Types::Uint64>&
 AnonAuthenticationResult::lifetimeMs() const
 {
     return d_lifetimeMs;

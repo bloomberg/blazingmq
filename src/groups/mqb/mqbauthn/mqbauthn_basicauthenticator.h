@@ -64,8 +64,8 @@ namespace mqbauthn {
 class BasicAuthenticationResult : public mqbplug::AuthenticationResult {
   private:
     // DATA
-    bsl::string                       d_principal;
-    bsl::optional<bsls::Types::Int64> d_lifetimeMs;
+    bsl::string                        d_principal;
+    bsl::optional<bsls::Types::Uint64> d_lifetimeMs;
 
   public:
     // TRAITS
@@ -75,16 +75,16 @@ class BasicAuthenticationResult : public mqbplug::AuthenticationResult {
     // CREATORS
 
     /// Construct this object using the optionally specified `allocator`.
-    BasicAuthenticationResult(bsl::string_view   principal,
-                              bsls::Types::Int64 lifetimeMs,
-                              bslma::Allocator*  allocator);
+    BasicAuthenticationResult(bsl::string_view    principal,
+                              bsls::Types::Uint64 lifetimeMs,
+                              bslma::Allocator*   allocator);
 
     ~BasicAuthenticationResult() BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
 
     bsl::string_view principal() const BSLS_KEYWORD_OVERRIDE;
-    const bsl::optional<bsls::Types::Int64>&
+    const bsl::optional<bsls::Types::Uint64>&
     lifetimeMs() const BSLS_KEYWORD_OVERRIDE;
 };
 
