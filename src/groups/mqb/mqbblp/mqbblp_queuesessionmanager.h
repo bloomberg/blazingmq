@@ -30,8 +30,8 @@
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
-#include <bmqp_protocolutil.h>
 #include <bmqp_queueid.h>
+#include <bmqp_queueinfo.h>
 #include <bmqu_atomicvalidator.h>
 
 // BDE
@@ -107,7 +107,7 @@ class QueueSessionManager {
         // TYPES
 
         /// Map of {appId, subQueueId} -> SubQueueInfo
-        typedef bmqp::ProtocolUtil::QueueInfo<SubQueueInfo> StreamsMap;
+        typedef bmqp::QueueInfo<SubQueueInfo> StreamsMap;
 
         // PUBLIC DATA
 

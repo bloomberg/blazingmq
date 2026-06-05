@@ -13,7 +13,7 @@
 
 /Hierarchical Synopsis
 /---------------------
-The 'bmqp' package currently has 30 components having 4 level of physical
+The 'bmqp' package currently has 31 components having 4 level of physical
 dependency.  The list below shows the hierarchical ordering of the components.
 ..
   4. bmqp_requestmanager
@@ -50,6 +50,7 @@ dependency.  The list below shows the hierarchical ordering of the components.
      bmqp_messageguidgenerator
      bmqp_protocol
      bmqp_queueid
+     bmqp_queueinfo
 ..
 
 /Component Synopsis
@@ -119,6 +120,9 @@ dependency.  The list below shows the hierarchical ordering of the components.
 :
 : 'bmqp_queueid'
 :      Provide a value-semantic type for a key related to a queue.
+:
+: 'bmqp_queueinfo'
+:      Provide a template container for per-queue stream information.
 :
 : 'bmqp_recoveryeventbuilder'
 :      Provide a mechanism to build a BlazingMQ 'RECOVERY' event.
