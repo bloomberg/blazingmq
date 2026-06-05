@@ -557,11 +557,14 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     void onQueueContextAssigned(const QueueContextSp& queueContext);
 
     /// Upon Reopen response, process pending Close requests (if any) for the
-    /// specified `queueContext` and the specified `sqit`.  If there are no
-    /// more pending Reopen queue requests, process all pending Open queue
-    /// requests.
+    /// specified `queueContext` and the specified `sqit`.  Notify queue and
+    /// send Configure request if needed to the specified `activeNode` using
+    /// the specified `cycle`.  If there are no more pending Reopen queue
+    /// requests, process all pending Open queue requests.
     void finishReopening(QueueContext*        queueContext,
-                         StreamsMap::iterator sqit);
+                         StreamsMap::iterator sqit,
+                         mqbnet::ClusterNode* activeNode,
+                         const bsl::shared_ptr<PartitionReopenCycle>& cycle);
 
     /// Process pending contexts, if any, from the specified `queueContext`.
     void processPendingContexts(QueueContext* queueContext);
