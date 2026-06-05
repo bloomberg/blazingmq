@@ -67,6 +67,21 @@
 namespace BloombergLP {
 namespace mqbc {
 
+namespace {
+
+bmqp_ctrlmsg::PartitionSequenceNumber
+partitionSequenceNumber(const mqbs::RecordHeader& header)
+{
+    bmqp_ctrlmsg::PartitionSequenceNumber partitionSequenceNumber;
+
+    partitionSequenceNumber.primaryLeaseId() = header.primaryLeaseId();
+    partitionSequenceNumber.sequenceNumber() = header.sequenceNumber();
+
+    return partitionSequenceNumber;
+}
+
+}  // close unnamed namespace
+
 void RecoveryManager::ChunkDeleter::operator()(
     BSLA_MAYBE_UNUSED const void* ptr) const
 {
@@ -1028,13 +1043,13 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
 
         BALL_LOG_INFO << d_clusterData.identity().description()
                       << " Partition [" << partitionId
-                      << "]: " << "Get first sync point after rollover PSN "
-                      << mqbs::printPSN(recHeader.partitionSequenceNumber())
+                      << "]: Get first sync point after rollover PSN "
+                      << mqbs::printPSN(partitionSequenceNumber(recHeader))
                       << " from journal file ["
                       << recoveryCtx.d_recoveryFileSet.journalFile() << "].";
 
-        recoveryCtx.d_firstSyncPointAfterRolloverPSN =
-            recHeader.partitionSequenceNumber();
+        recoveryCtx.d_firstSyncPointAfterRolloverPSN = partitionSequenceNumber(
+            recHeader);
     }
 
     mqbs::FileStoreUtil::setFileHeaderOffsets(
@@ -1549,14 +1564,13 @@ int RecoveryManager::recoverPSN(bmqp_ctrlmsg::PartitionSequenceNumber* psn,
         const mqbs::RecordHeader& lastRecordHeader = jit.lastRecordHeader();
 
         BALL_LOG_INFO << d_clusterData.identity().description()
-                      << " Partition [" << partitionId
-                      << "]: " << "Recovered PSN "
+                      << " Partition [" << partitionId << "]: Recovered PSN "
                       << mqbs::printPSN(
-                             lastRecordHeader.partitionSequenceNumber())
+                             partitionSequenceNumber(lastRecordHeader))
                       << " from journal file ["
                       << recoveryCtx.d_recoveryFileSet.journalFile() << "].";
 
-        *psn = lastRecordHeader.partitionSequenceNumber();
+        *psn = partitionSequenceNumber(lastRecordHeader);
     }
     else {
         BALL_LOG_INFO << d_clusterData.identity().description()

@@ -27,16 +27,12 @@
 // BlazingMQ file store.
 
 // MQB
-
 #include <mqbcfg_messages.h>
 #include <mqbs_datastore.h>
 #include <mqbs_fileset.h>
 #include <mqbs_filestoreprotocol.h>
 #include <mqbs_filestoreset.h>
 #include <mqbs_qlistfileiterator.h>
-
-// BMQ
-#include <bmqp_ctrlmsg_messages.h>
 
 // BDE
 #include <ball_log.h>

@@ -44,7 +44,6 @@
 #include <mqbi_queue.h>
 
 // BMQ
-#include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_requestmanager.h>
 
 #include <bmqio_status.h>
@@ -63,6 +62,13 @@ namespace BloombergLP {
 // FORWARD DECLARATION
 namespace bdlmt {
 class FixedThreadPool;
+}
+namespace bmqp_ctrlmsg {
+class ControlMessage;
+class OpenQueueResponse;
+class QueueHandleParameters;
+class Status;
+class StreamParameters;
 }
 namespace bmqu {
 class AtomicState;

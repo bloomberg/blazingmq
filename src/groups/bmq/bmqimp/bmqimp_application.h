@@ -38,7 +38,6 @@
 #include <bmqimp_brokersession.h>
 #include <bmqimp_eventqueue.h>
 #include <bmqimp_negotiatedchannelfactory.h>
-#include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_heartbeatmonitor.h>
 #include <bmqt_sessionoptions.h>
 
@@ -65,11 +64,16 @@
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bsls_atomic.h>
-#include <bsls_cpp11.h>
+#include <bsls_keyword.h>
 #include <bsls_timeinterval.h>
 #include <bsls_types.h>
 
 namespace BloombergLP {
+
+// FORWARD DECLARATION
+namespace bmqp_ctrlmsg {
+class NegotiationMessage;
+}
 
 namespace bmqimp {
 
@@ -227,11 +231,11 @@ class Application {
 
   private:
     // NOT IMPLEMENTED
-    Application(const Application& other) BSLS_CPP11_DELETED;
+    Application(const Application& other) BSLS_KEYWORD_DELETED;
 
     /// Copy constructor and assignment operation are not permitted on this
     /// object.
-    Application& operator=(const Application& other) BSLS_CPP11_DELETED;
+    Application& operator=(const Application& other) BSLS_KEYWORD_DELETED;
 
   public:
     // TRAITS
