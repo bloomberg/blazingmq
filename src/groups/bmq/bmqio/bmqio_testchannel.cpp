@@ -19,6 +19,8 @@
 // BDE
 #include <bdlbb_blobutil.h>
 #include <bdlf_bind.h>
+#include <bsla_maybeunused.h>
+#include <bsla_unused.h>
 
 namespace BloombergLP {
 namespace bmqio {
@@ -164,6 +166,16 @@ bmqvt::PropertyBag& TestChannel::properties()
 const bsl::string& TestChannel::peerUri() const
 {
     return d_peerUri;
+}
+
+void TestChannel::setWriteQueueLowWatermark(BSLA_UNUSED int lowWatermark)
+{
+    // NOTHING
+}
+
+void TestChannel::setWriteQueueHighWatermark(BSLA_UNUSED int highWatermark)
+{
+    // NOTHING
 }
 
 const bmqvt::PropertyBag& TestChannel::properties() const

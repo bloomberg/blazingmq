@@ -1637,18 +1637,10 @@ bool TCPSessionFactory::setNodeWriteQueueWatermarks(const Session& session)
     BSLS_ASSERT_SAFE(d_config.nodeLowWatermark() <=
                      d_config.nodeHighWatermark());
 
-    bsl::shared_ptr<bmqio::NtcChannel> ntcChannel =
-        bsl::dynamic_pointer_cast<bmqio::NtcChannel>(session.channel());
+    bsl::shared_ptr<bmqio::Channel> channel = session.channel();
 
-    if (ntcChannel == NULL) {
-        BALL_LOG_ERROR << "TCPSessionFactory '" << d_config.name() << "' "
-                       << "failed to set watermarks for '"
-                       << session.description() << "'";
-        return false;  // RETURN
-    }
-
-    ntcChannel->setWriteQueueLowWatermark(d_config.nodeLowWatermark());
-    ntcChannel->setWriteQueueHighWatermark(d_config.nodeHighWatermark());
+    channel->setWriteQueueLowWatermark(d_config.nodeLowWatermark());
+    channel->setWriteQueueHighWatermark(d_config.nodeHighWatermark());
 
     return true;
 }

@@ -86,7 +86,9 @@ class DecoratingChannelPartialImp : public Channel {
     int  execute(const ExecuteCb& cb) BSLS_KEYWORD_OVERRIDE;
     bdlmt::SignalerConnection onClose(const CloseFn& cb) BSLS_KEYWORD_OVERRIDE;
     bdlmt::SignalerConnection
-    onWatermark(const WatermarkFn& cb) BSLS_KEYWORD_OVERRIDE;
+         onWatermark(const WatermarkFn& cb) BSLS_KEYWORD_OVERRIDE;
+    void setWriteQueueLowWatermark(int lowWatermark) BSLS_KEYWORD_OVERRIDE;
+    void setWriteQueueHighWatermark(int highWatermark) BSLS_KEYWORD_OVERRIDE;
 
     /// Forward to the underlying base `Channel`.
     bmqvt::PropertyBag& properties() BSLS_KEYWORD_OVERRIDE;
@@ -150,6 +152,18 @@ inline bdlmt::SignalerConnection
 DecoratingChannelPartialImp::onWatermark(const WatermarkFn& cb)
 {
     return d_base->onWatermark(cb);
+}
+
+inline void
+DecoratingChannelPartialImp::setWriteQueueLowWatermark(int lowWatermark)
+{
+    return d_base->setWriteQueueLowWatermark(lowWatermark);
+}
+
+inline void
+DecoratingChannelPartialImp::setWriteQueueHighWatermark(int highWatermark)
+{
+    return d_base->setWriteQueueHighWatermark(highWatermark);
 }
 
 inline bmqvt::PropertyBag& DecoratingChannelPartialImp::properties()

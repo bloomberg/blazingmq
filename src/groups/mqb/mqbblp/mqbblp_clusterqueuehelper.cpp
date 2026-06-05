@@ -1785,8 +1785,7 @@ void ClusterQueueHelper::onReopenQueueResponse(
 
     BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
                          << ": queue successfully reopened ["
-                         << requestContext->request()
-                         << "].";
+                         << requestContext->request() << "].";
 }
 
 void ClusterQueueHelper::onConfigureQueueResponse(

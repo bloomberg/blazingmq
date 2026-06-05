@@ -300,6 +300,12 @@ class TestChannel : public Channel {
     onWatermark(const WatermarkFn& cb) BSLS_KEYWORD_OVERRIDE;
     bmqvt::PropertyBag& properties() BSLS_KEYWORD_OVERRIDE;
 
+    /// Set the write queue low watermark to the specified `lowWatermark`.
+    void setWriteQueueLowWatermark(int lowWatermark) BSLS_KEYWORD_OVERRIDE;
+
+    /// Set the write queue high watermark to the specified `highWatermark`.
+    void setWriteQueueHighWatermark(int highWatermark) BSLS_KEYWORD_OVERRIDE;
+
     // ACCESSORS
     // Channel
     const bsl::string&        peerUri() const BSLS_KEYWORD_OVERRIDE;
