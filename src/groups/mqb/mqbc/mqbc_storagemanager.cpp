@@ -1475,7 +1475,7 @@ void StorageManager::processReplicaStateResponseDispatched(
                 BALL_LOG_WARN
                     << d_clusterData_p->identity().description()
                     << " Partition [" << requestPartitionId
-                    << "]: " << "Request was canceled, skip processing of "
+                    << "]: Request was canceled, skip processing of "
                     << "ReplicaStateResponse.";
                 return;  // RETURN
             }
