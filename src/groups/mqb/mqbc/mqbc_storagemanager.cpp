@@ -1760,12 +1760,6 @@ void StorageManager::processShutdownEventDispatched(int partitionId)
         &d_partitionInfoVec[partitionId],
         fs,
         partitionId);
-
-    StorageUtil::clearPrimaryForPartition(
-        fs,
-        &d_partitionInfoVec[partitionId],
-        d_clusterData_p->identity().description(),
-        partitionId);
 }
 
 void StorageManager::forceFlushFileStores()
