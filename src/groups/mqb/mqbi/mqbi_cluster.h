@@ -152,7 +152,9 @@ struct ClusterErrorCode {
         /// twice in a row, leading to duplicate work.
         e_REPLICA_WAITING = -210,
         /// Source node is not recognized as the leader
-        e_SOURCE_NOT_LEADER = -211
+        e_SOURCE_NOT_LEADER = -211,
+        /// Source node is not recognized as the primary
+        e_SOURCE_NOT_PRIMARY = -212
     };
 
     // CLASS METHODS
