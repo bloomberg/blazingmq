@@ -1382,7 +1382,7 @@ void StorageManager::processPrimaryStateResponseDispatched(
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId
-                  << "]: " << "Received PrimaryStateResponse "
+                  << "]: Received PrimaryStateResponse "
                   << context->response() << " from "
                   << responder->nodeDescription();
 
