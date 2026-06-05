@@ -663,9 +663,8 @@ inline void RelayQueueEngine::ConfigureContext::resetCallback()
 inline void RelayQueueEngine::ConfigureContext::initializeRouting(
     Routers::QueueRoutingContext& queueContext)
 {
-    d_routing_sp.reset(new (*d_allocator_p)
-                           Routers::AppContext(queueContext, d_allocator_p),
-                       d_allocator_p);
+    d_routing_sp = bsl::allocate_shared<Routers::AppContext>(d_allocator_p,
+                                                             queueContext);
 }
 
 // ----------------------

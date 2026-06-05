@@ -72,6 +72,8 @@
 #include <bsl_utility.h>
 #include <bsl_vector.h>
 #include <bsla_annotations.h>
+#include <bslma_usesbslmaallocator.h>
+#include <bslmf_nestedtraitdeclaration.h>
 #include <bsls_keyword.h>
 
 namespace BloombergLP {
@@ -198,6 +200,10 @@ class SearchShortResult : public SearchResult {
 
   public:
     // CREATORS
+
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(SearchShortResult,
+                                   bslma::UsesBslmaAllocator);
 
     /// Constructor using the specified `printer`, `processRecordTypes`,
     /// `payloadDumper`, `printImmediately`, `eraseDeleted`, `printOnDelete`
@@ -329,6 +335,10 @@ class SearchDetailResult : public SearchResult {
   public:
     // CREATORS
 
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(SearchDetailResult,
+                                   bslma::UsesBslmaAllocator);
+
     /// Constructor using the specified `printer`, `processRecordTypes`,
     /// `queueMap`, `payloadDumper`, `printImmediately`, `eraseDeleted`,
     /// `cleanUnprinted` and `allocator`.
@@ -434,6 +444,10 @@ class SearchExactMatchResult : public SearchResult {
 
   public:
     // CREATORS
+
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(SearchExactMatchResult,
+                                   bslma::UsesBslmaAllocator);
 
     /// Constructor using the specified `printer`, `processRecordTypes`,
     /// `isDetail`, `queueMap`, `payloadDumper` and `allocator`.
@@ -575,6 +589,10 @@ class SearchResultTimestampDecorator : public SearchResultDecorator {
   public:
     // CREATORS
 
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(SearchResultTimestampDecorator,
+                                   bslma::UsesBslmaAllocator);
+
     /// Constructor using the specified `component`, `timestampLt` and
     /// `allocator`.
     SearchResultTimestampDecorator(
@@ -623,6 +641,10 @@ class SearchResultOffsetDecorator : public SearchResultDecorator {
   public:
     // CREATORS
 
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(SearchResultOffsetDecorator,
+                                   bslma::UsesBslmaAllocator);
+
     /// Constructor using the specified `component`, `offsetLt` and
     /// `allocator`.
     SearchResultOffsetDecorator(const bsl::shared_ptr<SearchResult>& component,
@@ -670,6 +692,10 @@ class SearchResultSequenceNumberDecorator : public SearchResultDecorator {
   public:
     // CREATORS
 
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(SearchResultSequenceNumberDecorator,
+                                   bslma::UsesBslmaAllocator);
+
     /// Constructor using the specified `component`, `seqNumberLt` and
     /// `allocator`.
     SearchResultSequenceNumberDecorator(
@@ -708,6 +734,10 @@ class SearchAllDecorator : public SearchResultDecorator {
   public:
     // CREATORS
 
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(SearchAllDecorator,
+                                   bslma::UsesBslmaAllocator);
+
     /// Constructor using the specified `component` and `allocator`.
     SearchAllDecorator(const bsl::shared_ptr<SearchResult>& component,
                        bslma::Allocator*                    allocator);
@@ -741,6 +771,10 @@ class SearchOutstandingDecorator : public SearchResultDecorator {
 
   public:
     // CREATORS
+
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(SearchOutstandingDecorator,
+                                   bslma::UsesBslmaAllocator);
 
     /// Constructor using the specified `component`, `ostream` and `allocator`.
     SearchOutstandingDecorator(const bsl::shared_ptr<SearchResult>& component,
@@ -790,6 +824,10 @@ class SearchPartiallyConfirmedDecorator : public SearchResultDecorator {
   public:
     // CREATORS
 
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(SearchPartiallyConfirmedDecorator,
+                                   bslma::UsesBslmaAllocator);
+
     /// Constructor using the specified `component`, `ostream` and `allocator`.
     SearchPartiallyConfirmedDecorator(
         const bsl::shared_ptr<SearchResult>& component,
@@ -837,6 +875,10 @@ class SearchGuidDecorator : public SearchResultDecorator {
   public:
     // CREATORS
 
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(SearchGuidDecorator,
+                                   bslma::UsesBslmaAllocator);
+
     /// Constructor using the specified `component`, `guids`, `ostream`,
     /// `withDetails` and `allocator`.
     SearchGuidDecorator(const bsl::shared_ptr<SearchResult>& component,
@@ -877,6 +919,10 @@ class SearchOffsetDecorator : public SearchResultDecorator {
 
   public:
     // CREATORS
+
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(SearchOffsetDecorator,
+                                   bslma::UsesBslmaAllocator);
 
     /// Constructor using the specified `component`, `offsets`, `ostream`,
     /// `withDetails` and `allocator`.
@@ -938,6 +984,10 @@ class SearchSequenceNumberDecorator : public SearchResultDecorator {
 
   public:
     // CREATORS
+
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(SearchSequenceNumberDecorator,
+                                   bslma::UsesBslmaAllocator);
 
     /// Constructor using the specified `component`, `seqNums`, `ostream`,
     /// `withDetails` and `allocator`.
@@ -1042,6 +1092,10 @@ class SummaryProcessor : public SearchResult {
 
   public:
     // CREATORS
+
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(SummaryProcessor,
+                                   bslma::UsesBslmaAllocator);
 
     /// Constructor using the specified `printer`, `journalFile_p`,
     /// `dataFile_p` , `processRecordTypes`, `queueMap`, `minRecordsPerQueue`

@@ -1052,10 +1052,9 @@ void RootQueueEngine::configureHandle(
     const bsl::shared_ptr<Routers::AppContext> previous =
         affectedApp->routing();
 
-    affectedApp->routing().reset(new (*d_allocator_p) Routers::AppContext(
-                                     d_queueState_p->routingContext(),
-                                     d_allocator_p),
-                                 d_allocator_p);
+    affectedApp->routing() = bsl::allocate_shared<Routers::AppContext>(
+        d_allocator_p,
+        d_queueState_p->routingContext());
 
     d_queueState_p->handleCatalog().iterateConsumers(
         bdlf::BindUtil::bind(&RootQueueEngine::rebuildSelectedApp,

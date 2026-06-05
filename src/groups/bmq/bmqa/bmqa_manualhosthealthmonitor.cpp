@@ -33,13 +33,11 @@ namespace bmqa {
 ManualHostHealthMonitor::ManualHostHealthMonitor(
     bmqt::HostHealthState::Enum initialState,
     bslma::Allocator*           allocator)
-: d_impl_sp()
+: d_impl_sp(
+      bsl::allocate_shared<bmqimp::ManualHostHealthMonitor>(allocator,
+                                                            initialState))
 {
-    bslma::Allocator* alloc = bslma::Default::allocator(allocator);
-
-    d_impl_sp.reset(new (*alloc)
-                        bmqimp::ManualHostHealthMonitor(initialState, alloc),
-                    alloc);
+    // NOTHING
 }
 
 ManualHostHealthMonitor::~ManualHostHealthMonitor()

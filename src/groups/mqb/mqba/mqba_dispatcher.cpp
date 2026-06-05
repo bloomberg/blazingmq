@@ -182,9 +182,7 @@ int Dispatcher::startContext(bsl::ostream&                    errorDescription,
 
     DispatcherContextSp& context = d_contexts[type];
 
-    context.reset(new (*d_allocator_p)
-                      DispatcherContext(config, d_allocator_p),
-                  d_allocator_p);
+    context = bsl::allocate_shared<DispatcherContext>(d_allocator_p, config);
 
     // Create client stat context
     context->d_clientStatContext_mp =

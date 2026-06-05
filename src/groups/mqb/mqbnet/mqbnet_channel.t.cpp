@@ -450,9 +450,8 @@ inline bmqt::EventBuilderResult::Enum Tester<bmqp::PutEventBuilder>::build()
     const int                          flags      = 0;
     bsl::shared_ptr<bdlbb::Blob>       payload_sp = d_blobSpPool.getObject();
     bdlbb::BlobBuffer                  blobBuffer;
-    bsl::shared_ptr<bmqu::AtomicState> state(new (*d_allocator_p)
-                                                 bmqu::AtomicState,
-                                             d_allocator_p);
+    bsl::shared_ptr<bmqu::AtomicState> state =
+        bsl::allocate_shared<bmqu::AtomicState>(d_allocator_p);
 
     d_bufferFactory.allocate(&blobBuffer);
 
