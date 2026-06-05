@@ -1069,7 +1069,7 @@ void Cluster::onConfirmEvent(const mqbevt::ConfirmEvent& event)
     int msgNum = 0;
     int rc     = 0;
 
-    while ((rc = confIt.next() == 1)) {
+    while ((rc = confIt.next()) == 1) {
         const int          id    = confIt.message().queueId();
         const unsigned int subId = static_cast<unsigned int>(
             confIt.message().subQueueId());
@@ -1097,7 +1097,7 @@ void Cluster::onConfirmEvent(const mqbevt::ConfirmEvent& event)
         }
         else {
             BMQU_THROTTLEDACTION_THROTTLE(
-                d_throttledFailedRejectMessages,
+                d_throttledFailedConfirmMessages,
                 BMQTSK_ALARMLOG_ALARM("CLUSTER")
                     << ": CONFIRM " << ValidationResult::toAscii(result)
                     << " [queue: '"
@@ -1170,7 +1170,7 @@ void Cluster::onRejectEvent(const mqbevt::RejectEvent& event)
     int msgNum = 0;
     int rc     = 0;
 
-    while ((rc = rejectIt.next() == 1)) {
+    while ((rc = rejectIt.next()) == 1) {
         const int          id    = rejectIt.message().queueId();
         const unsigned int subId = static_cast<unsigned int>(
             rejectIt.message().subQueueId());
