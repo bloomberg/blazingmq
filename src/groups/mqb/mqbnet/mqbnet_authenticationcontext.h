@@ -207,10 +207,10 @@ class AuthenticationContext {
     /// Return 0 on success, and a non-zero value populating the specified
     /// `errorDescription` with details on failure.
     int setAuthenticatedAndScheduleReauthn(
-        bsl::ostream&                            errorDescription,
-        bdlmt::EventScheduler*                   scheduler_p,
-        const bsl::optional<bsls::Types::Int64>& lifetimeMs,
-        const bsl::shared_ptr<bmqio::Channel>&   channel);
+        bsl::ostream&                             errorDescription,
+        bdlmt::EventScheduler*                    scheduler_p,
+        const bsl::optional<bsls::Types::Uint64>& lifetimeMs,
+        const bsl::shared_ptr<bmqio::Channel>&    channel);
 
     /// Close the specified `channel` with `errorCode`, `errorName`, and
     /// `errorDescription`, indicating a reauthentication error or

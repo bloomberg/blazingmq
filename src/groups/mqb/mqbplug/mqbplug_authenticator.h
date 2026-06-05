@@ -99,7 +99,7 @@ class AuthenticationResult {
     virtual bsl::string_view principal() const = 0;
 
     /// Return the remaining lifetime of an authenticated session.
-    virtual const bsl::optional<bsls::Types::Int64>& lifetimeMs() const = 0;
+    virtual const bsl::optional<bsls::Types::Uint64>& lifetimeMs() const = 0;
 };
 
 // ===================

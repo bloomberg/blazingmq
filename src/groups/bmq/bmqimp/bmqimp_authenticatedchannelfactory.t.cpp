@@ -141,9 +141,9 @@ class TestContext {
     /// Build an authentication response blob with the specified
     /// `statusCategory`.  Optionally specify `lifetimeMs` to include a
     /// session lifetime in the response.
-    bdlbb::Blob
-    buildAuthResponse(bmqp_ctrlmsg::StatusCategory::Value statusCategory,
-                      int                                 lifetimeMs = -1);
+    bdlbb::Blob buildAuthResponse(
+        bmqp_ctrlmsg::StatusCategory::Value statusCategory,
+        bsl::optional<bsls::Types::Uint64>  lifetimeMs = bsl::nullopt);
 
     /// Pop the ReadCall from the test channel and invoke its read callback
     /// with success status and the specified `blob`.
@@ -255,7 +255,7 @@ void TestContext::emitChannelUp()
 
 bdlbb::Blob TestContext::buildAuthResponse(
     bmqp_ctrlmsg::StatusCategory::Value statusCategory,
-    int                                 lifetimeMs)
+    bsl::optional<bsls::Types::Uint64>  lifetimeMs)
 {
     bmqp_ctrlmsg::AuthenticationMessage authMessage(
         bmqtst::TestHelperUtil::allocator());
@@ -263,9 +263,7 @@ bdlbb::Blob TestContext::buildAuthResponse(
         authMessage.makeAuthenticationResponse();
     resp.status().category() = statusCategory;
 
-    if (lifetimeMs >= 0) {
-        resp.lifetimeMs().makeValue(lifetimeMs);
-    }
+    resp.lifetimeMs() = lifetimeMs;
 
     bmqp::SchemaEventBuilder builder(d_blobSpPool.get(),
                                      bmqp::EncodingType::e_BER,

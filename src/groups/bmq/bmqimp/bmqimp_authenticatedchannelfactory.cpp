@@ -42,6 +42,7 @@
 #include <bslma_default.h>
 #include <bsls_assert.h>
 #include <bsls_timeinterval.h>
+#include <bsls_types.h>
 
 namespace BloombergLP {
 namespace bmqimp {
@@ -64,10 +65,19 @@ enum RcEnum {
 };
 
 /// Minimum buffer to subtract from lifetimeMs to avoid cutting too close
-static const int k_REAUTHN_EARLY_BUFFER = 5000;
+static const bsls::Types::Uint64 k_REAUTHN_EARLY_BUFFER = 5000;
 
 /// Proportion of lifetimeMs after which to initiate reauthentication.
 const double k_REAUTHN_EARLY_RATIO = 0.9;
+
+/// Compute `a - b` which saturates on underflow.
+bsls::Types::Uint64 saturatingSub(bsls::Types::Uint64 a, bsls::Types::Uint64 b)
+{
+    if (a <= b) {
+        return 0;
+    }
+    return a - b;
+}
 
 }  // close unnamed namespace
 
@@ -213,14 +223,13 @@ void AuthenticatedChannelFactory::authenticate(
     }
 }
 
-int AuthenticatedChannelFactory::timeoutInterval(int lifetimeMs) const
+bsls::Types::Uint64 AuthenticatedChannelFactory::timeoutInterval(
+    bsls::Types::Uint64 lifetimeMs) const
 {
-    BSLS_ASSERT_SAFE(lifetimeMs >= 0);
-    const int intervalMsWithRatio  = static_cast<int>(lifetimeMs *
-                                                     k_REAUTHN_EARLY_RATIO);
-    const int intervalMsWithBuffer = bsl::max(0,
-                                              lifetimeMs -
-                                                  k_REAUTHN_EARLY_BUFFER);
+    const bsls::Types::Uint64 intervalMsWithRatio =
+        static_cast<bsls::Types::Uint64>(lifetimeMs * k_REAUTHN_EARLY_RATIO);
+    const bsls::Types::Uint64 intervalMsWithBuffer =
+        saturatingSub(lifetimeMs, k_REAUTHN_EARLY_BUFFER);
     return bsl::min(intervalMsWithRatio, intervalMsWithBuffer);
 }
 
@@ -385,7 +394,7 @@ bool AuthenticatedChannelFactory::processAuthenticationEvent(
     // Authentication SUCCEEDED.  Schedule reauthentication if lifetime is
     // specified in the response.
     if (authenticationResponse.lifetimeMs().has_value()) {
-        int intervalMs = timeoutInterval(
+        bsls::Types::Uint64 intervalMs = timeoutInterval(
             authenticationResponse.lifetimeMs().value());
 
         bdlt::Datetime reauthTime = bdlt::CurrentTime::utc();

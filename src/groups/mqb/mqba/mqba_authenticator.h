@@ -153,12 +153,12 @@ class Authenticator : public mqbnet::Authenticator {
     /// otherwise, return a non-zero error code and populate `errorDescription`
     /// with details of the failure.
     int sendAuthenticationResponse(
-        bsl::ostream&                            errorDescription,
-        int                                      authnRc,
-        bsl::string_view                         errorMsg,
-        const bsl::optional<bsls::Types::Int64>& lifetimeMs,
-        const bsl::shared_ptr<bmqio::Channel>&   channel,
-        bmqp::EncodingType::Enum                 authenticationEncodingType);
+        bsl::ostream&                             errorDescription,
+        int                                       authnRc,
+        bsl::string_view                          errorMsg,
+        const bsl::optional<bsls::Types::Uint64>& lifetimeMs,
+        const bsl::shared_ptr<bmqio::Channel>&    channel,
+        bmqp::EncodingType::Enum                  authenticationEncodingType);
 
     /// Schedule an authentication job in the thread pool using the
     /// specified `context` and `channel`.  The specified `isAnonAuthn` is set

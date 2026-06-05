@@ -62,7 +62,7 @@ class TestAuthenticationResult : public mqbplug::AuthenticationResult {
   private:
     // DATA
     bsl::string                       d_principal;
-    bsl::optional<bsls::Types::Int64> d_lifetimeMs;
+    bsl::optional<bsls::Types::Uint64> d_lifetimeMs;
 
   public:
     // TRAITS
@@ -72,16 +72,16 @@ class TestAuthenticationResult : public mqbplug::AuthenticationResult {
     // CREATORS
 
     /// Construct this object using the optionally specified `allocator`.
-    TestAuthenticationResult(bsl::string_view   principal,
-                             bsls::Types::Int64 lifetimeMs,
-                             bslma::Allocator*  allocator);
+    TestAuthenticationResult(bsl::string_view    principal,
+                             bsls::Types::Uint64 lifetimeMs,
+                             bslma::Allocator*   allocator);
 
     ~TestAuthenticationResult() BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
 
     bsl::string_view principal() const BSLS_KEYWORD_OVERRIDE;
-    const bsl::optional<bsls::Types::Int64>&
+    const bsl::optional<bsls::Types::Uint64>&
     lifetimeMs() const BSLS_KEYWORD_OVERRIDE;
 };
 

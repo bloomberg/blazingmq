@@ -154,7 +154,7 @@ void AuthenticationContext::resetAuthenticationMessage()
 int AuthenticationContext::setAuthenticatedAndScheduleReauthn(
     bsl::ostream&           errorDescription,
     bdlmt::EventScheduler*  scheduler_p,
-    BSLA_MAYBE_UNUSED const bsl::optional<bsls::Types::Int64>& lifetimeMs,
+    BSLA_MAYBE_UNUSED const bsl::optional<bsls::Types::Uint64>& lifetimeMs,
     BSLA_MAYBE_UNUSED const bsl::shared_ptr<bmqio::Channel>& channel)
 {
     // executed by an *AUTHENTICATION* thread

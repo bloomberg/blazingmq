@@ -100,9 +100,8 @@ struct FailingCredentialCb {
     }
 };
 
-bmqp_ctrlmsg::AuthenticationMessage
-makeSuccessResponse(const bdlb::NullableValue<bsls::Types::Int64>& lifetimeMs =
-                        bdlb::NullableValue<bsls::Types::Int64>())
+bmqp_ctrlmsg::AuthenticationMessage makeSuccessResponse(
+    const bdlb::NullableValue<bsls::Types::Uint64>& lifetimeMs = bsl::nullopt)
 {
     bmqp_ctrlmsg::AuthenticationMessage   msg;
     bmqp_ctrlmsg::AuthenticationResponse& resp =
@@ -427,9 +426,9 @@ static void test6_handleResponseSuccessWithLifetime()
 
     size_t writeCountAfterAuth = tb.d_channel->numWriteCalls();
 
-    const bsls::Types::Int64            lifetimeMs = 10000;  // 10 seconds
+    const bsls::Types::Uint64           lifetimeMs = 10000;  // 10 seconds
     bmqp_ctrlmsg::AuthenticationMessage response   = makeSuccessResponse(
-        bdlb::NullableValue<bsls::Types::Int64>(lifetimeMs));
+        bdlb::NullableValue<bsls::Types::Uint64>(lifetimeMs));
 
     errStream.reset();
     rc = client->handleResponse(errStream, response);
