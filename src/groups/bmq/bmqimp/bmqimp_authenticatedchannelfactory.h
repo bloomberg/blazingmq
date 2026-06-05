@@ -34,7 +34,6 @@
 #include <bmqio_listenoptions.h>
 #include <bmqio_status.h>
 #include <bmqp_blobpoolutil.h>
-#include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_event.h>
 #include <bmqt_sessionoptions.h>
 #include <bmqu_sharedresource.h>

@@ -114,13 +114,11 @@
 //..
 
 // MQB
-
 #include <ball_log.h>
 #include <iostream>
 #include <mqbu_storagekey.h>
 
 // BMQ
-#include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_protocol.h>  // for bmqp::Protocol::k_WORD_SIZE, etc.
 #include <bmqt_compressionalgorithmtype.h>
 
@@ -1098,8 +1096,6 @@ struct RecordHeader {
     bsls::Types::Uint64 sequenceNumber() const;
 
     bsls::Types::Uint64 timestamp() const;
-
-    bmqp_ctrlmsg::PartitionSequenceNumber partitionSequenceNumber() const;
 
     /// Format this object to the specified output `stream` at the (absolute
     /// value of) the optionally specified indentation `level` and return a
@@ -2639,17 +2635,6 @@ inline bsls::Types::Uint64 RecordHeader::sequenceNumber() const
 inline bsls::Types::Uint64 RecordHeader::timestamp() const
 {
     return bmqp::Protocol::combine(d_timestampUpperBits, d_timestampLowerBits);
-}
-
-inline bmqp_ctrlmsg::PartitionSequenceNumber
-RecordHeader::partitionSequenceNumber() const
-{
-    bmqp_ctrlmsg::PartitionSequenceNumber partitionSequenceNumber;
-
-    partitionSequenceNumber.primaryLeaseId() = primaryLeaseId();
-    partitionSequenceNumber.sequenceNumber() = sequenceNumber();
-
-    return partitionSequenceNumber;
 }
 
 // --------------------

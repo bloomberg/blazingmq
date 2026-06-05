@@ -30,7 +30,6 @@
 #include <mqbu_storagekey.h>
 
 // BMQ
-#include <bmqp_ctrlmsg_messages.h>
 #include <bmqt_messageguid.h>
 
 // BDE
@@ -41,6 +40,10 @@
 namespace BloombergLP {
 
 // FORWARD DECLARATION
+namespace bmqp_ctrlmsg {
+class QueueHandleParameters;
+class StreamParameters;
+}
 namespace mqbcmd {
 class QueueEngine;
 }

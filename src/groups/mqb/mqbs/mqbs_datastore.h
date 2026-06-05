@@ -40,7 +40,6 @@
 
 // BMQ
 #include <bmqc_orderedhashmap.h>
-#include <bmqp_ctrlmsg_messages.h>
 #include <bmqt_messageguid.h>
 #include <bmqt_uri.h>
 
@@ -80,6 +79,9 @@ class EventScheduler;
 }
 namespace mqbi {
 class Domain;
+}
+namespace bmqp_ctrlmsg {
+class SyncPoint;
 }
 namespace mqbnet {
 class ClusterNode;
