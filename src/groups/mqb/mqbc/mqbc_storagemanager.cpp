@@ -1382,9 +1382,8 @@ void StorageManager::processPrimaryStateResponseDispatched(
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId
-                  << "]: Received PrimaryStateResponse "
-                  << context->response() << " from "
-                  << responder->nodeDescription();
+                  << "]: Received PrimaryStateResponse " << context->response()
+                  << " from " << responder->nodeDescription();
 
     EventData eventDataVec;
     eventDataVec.emplace_back(
@@ -1472,11 +1471,10 @@ void StorageManager::processReplicaStateResponseDispatched(
             const bmqp_ctrlmsg::Status& status = cit->second.choice().status();
             if (status.category() ==
                 bmqp_ctrlmsg::StatusCategory::E_CANCELED) {
-                BALL_LOG_WARN
-                    << d_clusterData_p->identity().description()
-                    << " Partition [" << requestPartitionId
-                    << "]: Request was canceled, skip processing of "
-                    << "ReplicaStateResponse.";
+                BALL_LOG_WARN << d_clusterData_p->identity().description()
+                              << " Partition [" << requestPartitionId
+                              << "]: Request was canceled, skip processing of "
+                              << "ReplicaStateResponse.";
                 return;  // RETURN
             }
 
