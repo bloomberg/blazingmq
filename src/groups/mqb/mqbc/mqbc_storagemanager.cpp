@@ -493,7 +493,7 @@ void StorageManager::enqueuePartitionFSMEventDispatched(
                 BALL_LOG_INFO << d_clusterData_p->identity().description()
                               << " Partition [" << partitionId
                               << "]: dropping redundant " << event
-                              << " event with" << " identical primary: "
+                              << " event with identical primary: "
                               << evt.primary()->nodeDescription()
                               << " and leaseId: " << evt.primaryLeaseId()
                               << ".";
