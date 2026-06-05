@@ -867,8 +867,8 @@ QueueEngineUtil_AppState::QueueEngineUtil_AppState(
     const bsl::string&            appId,
     const mqbu::StorageKey&       appKey,
     bslma::Allocator*             allocator)
-: d_routing_sp(new(*allocator) Routers::AppContext(queueContext, allocator),
-               allocator)
+: d_routing_sp(
+      bsl::allocate_shared<Routers::AppContext>(allocator, &queueContext))
 , d_redeliveryList(allocator)
 , d_putAsideList(allocator)
 , d_priorityCount(0)
@@ -887,7 +887,7 @@ QueueEngineUtil_AppState::QueueEngineUtil_AppState(
     BSLS_ASSERT_SAFE(d_scheduler_p);
 
     d_appSubscription.d_evaluationContext_p =
-        &d_routing_sp->d_queue.d_evaluationContext;
+        &d_routing_sp->d_queue_p->d_evaluationContext;
 
     const mqbcfg::AppConfig& brkrCfg = mqbcfg::BrokerConfig::get();
     const int maxActionsPerInterval  = (brkrCfg.brokerVersion() ==

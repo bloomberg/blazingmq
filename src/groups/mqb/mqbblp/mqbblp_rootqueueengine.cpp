@@ -1054,7 +1054,7 @@ void RootQueueEngine::configureHandle(
 
     affectedApp->routing() = bsl::allocate_shared<Routers::AppContext>(
         d_allocator_p,
-        d_queueState_p->routingContext());
+        &d_queueState_p->routingContext());
 
     d_queueState_p->handleCatalog().iterateConsumers(
         bdlf::BindUtil::bind(&RootQueueEngine::rebuildSelectedApp,
@@ -1275,10 +1275,9 @@ void RootQueueEngine::releaseHandle(
                     // Create new Routing from scratch using Subscription Ids
                     // from the old routing.
                     bsl::shared_ptr<Routers::AppContext> replacement(
-                        new (*d_allocator_p) Routers::AppContext(
-                            d_queueState_p->routingContext(),
-                            d_allocator_p),
-                        d_allocator_p);
+                        bsl::allocate_shared<Routers::AppContext>(
+                            d_allocator_p,
+                            &d_queueState_p->routingContext()));
 
                     bmqu::MemOutStream errorStream(d_allocator_p);
                     app->rebuildConsumers(currSubStreamInfo.appId().c_str(),
@@ -1843,10 +1842,10 @@ RootQueueEngine::logAppSubscriptionInfo(bsl::ostream&     stream,
            << "\n\n";
 
     // Log consumer subscriptions
-    mqbblp::Routers::QueueRoutingContext& routingContext =
-        appState->routing()->d_queue;
+    mqbblp::Routers::QueueRoutingContext* routingContext_p =
+        appState->routing()->d_queue_p;
     mqbcmd::Routing routing;
-    routingContext.loadInternals(&routing);
+    routingContext_p->loadInternals(&routing);
     const bsl::vector<mqbcmd::SubscriptionGroup>& subscrGroups =
         routing.subscriptionGroups();
     if (!subscrGroups.empty()) {

@@ -297,7 +297,7 @@ static void test3_parse()
         // One consumer with one subscription
         {
             mqbblp::Routers::AppContext appContext(
-                queueContext,
+                &queueContext,
                 bmqtst::TestHelperUtil::allocator());
             bmqu::MemOutStream errorStream(
                 bmqtst::TestHelperUtil::allocator());
@@ -335,7 +335,7 @@ static void test3_parse()
         handle1.setStreamParameters(streamParams);
         {
             mqbblp::Routers::AppContext appContext(
-                queueContext,
+                &queueContext,
                 bmqtst::TestHelperUtil::allocator());
             bmqu::MemOutStream errorStream(
                 bmqtst::TestHelperUtil::allocator());
@@ -379,7 +379,7 @@ static void test3_parse()
 
         {
             mqbblp::Routers::AppContext appContext(
-                queueContext,
+                &queueContext,
                 bmqtst::TestHelperUtil::allocator());
             bmqu::MemOutStream errorStream(
                 bmqtst::TestHelperUtil::allocator());
@@ -486,7 +486,7 @@ static void test4_generate()
         bmqtst::TestHelperUtil::allocator());
     unsigned int                upstreamSubQueueId = 1;
     mqbblp::Routers::AppContext appContext(
-        queueContext,
+        &queueContext,
         bmqtst::TestHelperUtil::allocator());
     bmqu::MemOutStream errorStream(bmqtst::TestHelperUtil::allocator());
 
