@@ -329,10 +329,9 @@ void StorageManager::onPartitionRecovery(int partitionId)
         d_recoveryStartTimes[partitionId]);
     BALL_LOG_INFO << out.str();
 
-    if (++d_numPartitionsRecoveredFully !=
-        static_cast<int>(d_fileStores.size())) {
-        BSLS_ASSERT_SAFE(d_numPartitionsRecoveredFully <
-                         static_cast<int>(d_fileStores.size()));
+    const int numRecovered = ++d_numPartitionsRecoveredFully;
+    if (numRecovered != static_cast<int>(d_fileStores.size())) {
+        BSLS_ASSERT_SAFE(numRecovered < static_cast<int>(d_fileStores.size()));
         return;  // RETURN
     }
 
