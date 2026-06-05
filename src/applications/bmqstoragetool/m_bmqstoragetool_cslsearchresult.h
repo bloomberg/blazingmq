@@ -109,7 +109,7 @@ class CslSearchShortResult : public CslSearchResult {
 
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(CslSearchShortResult,
-                                   bslma::UsesBslmaAllocator);
+                                   bslma::UsesBslmaAllocator)
 
     /// Constructor using the specified `printer`, `processCslRecordTypes`
     /// and `allocator`.
@@ -159,7 +159,7 @@ class CslSearchDetailResult : public CslSearchResult {
 
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(CslSearchDetailResult,
-                                   bslma::UsesBslmaAllocator);
+                                   bslma::UsesBslmaAllocator)
 
     /// Constructor using the specified `printer`, `processCslRecordTypes`
     /// and `allocator`.
@@ -243,7 +243,7 @@ class CslSearchSequenceNumberDecorator : public CslSearchResultDecorator {
 
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(CslSearchSequenceNumberDecorator,
-                                   bslma::UsesBslmaAllocator);
+                                   bslma::UsesBslmaAllocator)
 
     /// Constructor using the specified `component`, `seqNums`, `ostream` and
     /// `allocator`.
@@ -284,7 +284,7 @@ class CslSearchOffsetDecorator : public CslSearchResultDecorator {
 
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(CslSearchOffsetDecorator,
-                                   bslma::UsesBslmaAllocator);
+                                   bslma::UsesBslmaAllocator)
 
     /// Constructor using the specified `component`, `seqNums`, `ostream` and
     /// `allocator`.
@@ -335,8 +335,7 @@ class CslSummaryResult : public CslSearchResult {
     // CREATORS
 
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(CslSummaryResult,
-                                   bslma::UsesBslmaAllocator);
+    BSLMF_NESTED_TRAIT_DECLARATION(CslSummaryResult, bslma::UsesBslmaAllocator)
 
     /// Constructor using the specified `ostream`, `processCslRecordTypes` and
     /// `allocator`.

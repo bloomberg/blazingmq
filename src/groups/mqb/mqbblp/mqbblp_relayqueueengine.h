@@ -664,7 +664,7 @@ inline void RelayQueueEngine::ConfigureContext::initializeRouting(
     Routers::QueueRoutingContext& queueContext)
 {
     d_routing_sp = bsl::allocate_shared<Routers::AppContext>(d_allocator_p,
-                                                             queueContext);
+                                                             &queueContext);
 }
 
 // ----------------------

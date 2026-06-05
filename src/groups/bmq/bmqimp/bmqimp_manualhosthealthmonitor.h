@@ -68,7 +68,7 @@ class ManualHostHealthMonitor : public bmqpi::HostHealthMonitor {
 
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(ManualHostHealthMonitor,
-                                   bslma::UsesBslmaAllocator);
+                                   bslma::UsesBslmaAllocator)
 
     /// Constructs a `ManualHostHealthMonitor` with the given initial state.
     /// Optionally specify an `allocator` to supply memory. If `allocator`

@@ -710,7 +710,7 @@ class Routers {
         Priorities d_priorities;
         Consumers  d_consumers;
 
-        QueueRoutingContext& d_queue;
+        QueueRoutingContext* d_queue_p;
 
         /// Round-robin routing policy.
         RoundRobin d_router;
@@ -721,7 +721,7 @@ class Routers {
 
         bslma::Allocator* d_allocator_p;
 
-        AppContext(QueueRoutingContext& queue, bslma::Allocator* allocator);
+        AppContext(QueueRoutingContext* queue, bslma::Allocator* allocator);
 
         ~AppContext();
 
@@ -848,19 +848,19 @@ inline Routers::Consumer::~Consumer()
 // struct Routers::AppContext
 // -----------------------------
 
-inline Routers::AppContext::AppContext(QueueRoutingContext& queue,
+inline Routers::AppContext::AppContext(QueueRoutingContext* queue,
                                        bslma::Allocator*    allocator)
 : d_groups(allocator)
 , d_priorities(allocator)
 , d_consumers(allocator)
-, d_queue(queue)
+, d_queue_p(queue)
 , d_router(d_priorities)
 , d_compilationContext(allocator)
 , d_priorityCount(0)
 , d_allocator_p(allocator)
 {
-    // NOTHING
-    BSLS_ASSERT_SAFE(allocator);
+    BSLS_ASSERT_SAFE(d_queue_p);
+    BSLS_ASSERT_SAFE(d_allocator_p);
 }
 
 inline Routers::AppContext::~AppContext()

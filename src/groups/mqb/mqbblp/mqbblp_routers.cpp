@@ -44,18 +44,18 @@ namespace {
 
 /// VST to control the scope of Resolver
 class ScopeExit {
-    mqbblp::Routers::QueueRoutingContext& d_queue;
+    mqbblp::Routers::QueueRoutingContext* d_queue_p;
 
   public:
     // CREATORS
-    ScopeExit(mqbblp::Routers::QueueRoutingContext& queue,
+    ScopeExit(mqbblp::Routers::QueueRoutingContext* queue,
               const mqbi::StorageIterator*          currentMessage)
-    : d_queue(queue)
+    : d_queue_p(queue)
     {
-        d_queue.d_preader->next(currentMessage);
+        d_queue_p->d_preader->next(currentMessage);
     }
 
-    ~ScopeExit() { d_queue.d_preader->next(0); }
+    ~ScopeExit() { d_queue_p->d_preader->next(0); }
 
   private:
     // NOT IMPLEMENTED
@@ -285,11 +285,11 @@ void Routers::AppContext::load(
         const bmqp_ctrlmsg::Expression& expr = config.expression();
 
         // Unique Expression per queue
-        Expressions::SharedItem itExpression = d_queue.d_expressions.find(
+        Expressions::SharedItem itExpression = d_queue_p->d_expressions.find(
             expr);
 
         if (!itExpression) {
-            itExpression = d_queue.d_expressions.record(expr, Expression());
+            itExpression = d_queue_p->d_expressions.record(expr, Expression());
 
             // Resolve the expression right away
 
@@ -299,7 +299,7 @@ void Routers::AppContext::load(
 
                 if (expr.text().length()) {
                     expression.d_evaluationContext_p =
-                        &d_queue.d_evaluationContext;
+                        &d_queue_p->d_evaluationContext;
 
                     int rc = expression.d_evaluator.compile(
                         expr.text(),
@@ -342,7 +342,7 @@ void Routers::AppContext::load(
                     // generated subscription id and uses subQueue id, MUST
                     // record subQueue id instead of generating new id.
 
-                    subscriptionId = d_queue.nextSubscriptionId();
+                    subscriptionId = d_queue_p->nextSubscriptionId();
                 }
                 else {
                     subscriptionId = upstreamSubQueueId;
@@ -352,9 +352,10 @@ void Routers::AppContext::load(
                 subscriptionId = itGroup->value().sId();
             }
 
-            const SubscriptionIds::SharedItem itId = d_queue.d_groupIds.record(
-                subscriptionId,
-                SubscriptionId(itExpression, upstreamSubQueueId));
+            const SubscriptionIds::SharedItem itId =
+                d_queue_p->d_groupIds.record(
+                    subscriptionId,
+                    SubscriptionId(itExpression, upstreamSubQueueId));
             // This always adds new 'SubscriptionId' since 'PriorityGroups' has
             // stronger id uniqueness than 'Queue'.
 
@@ -638,11 +639,12 @@ Routers::Result Routers::AppContext::selectConsumer(
     BSLS_ASSERT_SAFE(currentMessage);
 
     PriorityGroup* group = 0;
-    d_queue.d_evaluationContext.setPropertiesReader(d_queue.d_preader.get());
-    ScopeExit scope(d_queue, currentMessage);
+    d_queue_p->d_evaluationContext.setPropertiesReader(
+        d_queue_p->d_preader.get());
+    ScopeExit scope(d_queue_p, currentMessage);
 
     if (subscriptionId != bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID) {
-        SubscriptionIds::SharedItem itId = d_queue.d_groupIds.find(
+        SubscriptionIds::SharedItem itId = d_queue_p->d_groupIds.find(
             subscriptionId);
 
         if (itId) {
@@ -759,10 +761,11 @@ bool Routers::AppContext::iterateConsumers(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(message);
 
-    ScopeExit scope(d_queue, message);
+    ScopeExit scope(d_queue_p, message);
 
-    BSLS_ASSERT_SAFE(d_queue.d_preader.get());
-    d_queue.d_evaluationContext.setPropertiesReader(d_queue.d_preader.get());
+    BSLS_ASSERT_SAFE(d_queue_p->d_preader.get());
+    d_queue_p->d_evaluationContext.setPropertiesReader(
+        d_queue_p->d_preader.get());
 
     for (Consumers::const_iterator cit = d_consumers.begin();
          cit != d_consumers.end();
