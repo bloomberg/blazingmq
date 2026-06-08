@@ -46,6 +46,7 @@
 // BMQ
 #include <bmqio_status.h>
 #include <bmqp_ctrlmsg_messages.h>
+#include <bmqp_queueinfo.h>
 #include <bmqt_uri.h>
 
 // BDE
@@ -212,7 +213,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
     /// Map of {appId, subQueueId} combinations to their substream-specific
     /// (appId, subQueueId) context.
-    typedef bmqp::ProtocolUtil::QueueInfo<SubQueueContext> StreamsMap;
+    typedef bmqp::QueueInfo<SubQueueContext> StreamsMap;
 
     /// Publicly visible struct holding all live information related to a
     /// queue.

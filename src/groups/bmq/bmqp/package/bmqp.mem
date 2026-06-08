@@ -22,6 +22,7 @@ bmqp_puteventbuilder
 bmqp_putmessageiterator
 bmqp_puttester
 bmqp_queueid
+bmqp_queueinfo
 bmqp_queueutil
 bmqp_recoveryeventbuilder
 bmqp_recoverymessageiterator

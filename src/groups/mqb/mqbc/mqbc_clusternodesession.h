@@ -33,8 +33,8 @@
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
-#include <bmqp_protocolutil.h>
 #include <bmqp_queueid.h>
+#include <bmqp_queueinfo.h>
 #include <bmqst_statcontextuserdata.h>
 #include <bmqu_atomicgate.h>
 
@@ -89,7 +89,7 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     /// cluster node.  TBD: this type also exists in `mqba::ClientSession`.
     /// It should be moved to a new component.
     struct QueueState {
-        typedef bmqp::ProtocolUtil::QueueInfo<SubQueueInfo> StreamsMap;
+        typedef bmqp::QueueInfo<SubQueueInfo> StreamsMap;
 
         // PUBLIC DATA
 
