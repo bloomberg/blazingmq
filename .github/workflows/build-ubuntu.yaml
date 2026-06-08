@@ -54,7 +54,7 @@ jobs:
       artifact_key: ${{ steps.get_cache_key.outputs.artifact_key }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
@@ -137,7 +137,7 @@ jobs:
           echo "Please set the target to include 'all.t' to build unit tests."
           exit 1
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: inputs.save_build_as_artifacts == true # Variable type is boolean, thus no quotes
         with:
           path: |

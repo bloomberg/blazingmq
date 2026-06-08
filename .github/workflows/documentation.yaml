@@ -22,13 +22,13 @@ jobs:
 
     steps:
       - name: Checkout `main`
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Clear out `docs/` subdirectory
         run: rm -rf docs
 
       - name: Checkout `gh-pages` into `docs/`
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: docs
           ref: gh-pages
