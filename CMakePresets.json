@@ -3,6 +3,7 @@
     "include": [
         "etc/presets/vcpkg.json",
         "etc/presets/gh-ci.json",
-        "etc/presets/build-darwin.json"
+        "etc/presets/build-darwin.json",
+        "etc/presets/build-ubuntu.json"
     ]
 }

@@ -1,0 +1,58 @@
+{
+    "version": 6,
+    "include": [
+        "default.json"
+    ],
+    "configurePresets": [
+        {
+            "name": "ubuntu-base",
+            "hidden": true,
+            "description":
+                "Base configuration for building on Ubuntu with BDE dependencies",
+            "inherits": "base",
+            "generator": "Ninja",
+            "toolchainFile":
+                "$env{DIR_THIRDPARTY}/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake",
+            "cacheVariables": {
+                "CMAKE_INSTALL_LIBDIR": "lib",
+                "CMAKE_INSTALL_PREFIX": "$env{DIR_INSTALL}",
+                "CMAKE_MODULE_PATH":
+                    "$env{DIR_THIRDPARTY}/bde-tools/cmake;$env{DIR_THIRDPARTY}/bde-tools/BdeBuildSystem"
+            }
+        },
+        {
+            "name": "ubuntu-x64",
+            "description": "Ubuntu x86_64 build with apt dependencies",
+            "inherits": "ubuntu-base",
+            "binaryDir": "$env{DIR_BUILD}/blazingmq",
+            "environment": {
+                "PKG_CONFIG_PATH":
+                    "$env{DIR_INSTALL}/lib64/pkgconfig:$env{DIR_INSTALL}/lib/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig"
+            },
+            "cacheVariables": {
+                "CMAKE_PREFIX_PATH": "$env{DIR_INSTALL}",
+                "FLEX_ROOT": "/usr/lib/x86_64-linux-gnu"
+            }
+        },
+        {
+            "name": "ubuntu-x64-prometheus",
+            "description": "Ubuntu x86_64 build with Prometheus plugin",
+            "inherits": "ubuntu-x64",
+            "cacheVariables": {
+                "INSTALL_TARGETS": "prometheus"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "ubuntu-x64",
+            "description": "Build on Ubuntu x86_64",
+            "configurePreset": "ubuntu-x64"
+        },
+        {
+            "name": "ubuntu-x64-prometheus",
+            "description": "Build on Ubuntu x86_64 with Prometheus plugin",
+            "configurePreset": "ubuntu-x64-prometheus"
+        }
+    ]
+}

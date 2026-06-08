@@ -165,28 +165,16 @@ if [ "${BUILD_PROMETHEUS}" == true ]; then
 fi
 
 # :: Build the BlazingMQ repo :::::::::::::::::::::::::::::::::::::::::::::::::
-CMAKE_OPTIONS=(
-    -DBDE_BUILD_TARGET_64=1
-    -DBDE_BUILD_TARGET_CPP23=1
-    -DCMAKE_BUILD_TYPE=Debug
-    -DCMAKE_INSTALL_LIBDIR="lib"
-    -DCMAKE_INSTALL_PREFIX="${DIR_INSTALL}"
-    -DCMAKE_MODULE_PATH="${DIR_THIRDPARTY}/bde-tools/cmake;${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem"
-    -DCMAKE_PREFIX_PATH="${DIR_INSTALL}"
-    -DCMAKE_TOOLCHAIN_FILE="${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake"
-    -DCMAKE_CXX_STANDARD=23
-    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-    -DFLEX_ROOT=/usr/lib/x86_64-linux-gnu)
+export DIR_THIRDPARTY DIR_BUILD DIR_INSTALL
 
 if [ "${BUILD_PROMETHEUS}" == true ]; then
-    CMAKE_OPTIONS+=(-DINSTALL_TARGETS=prometheus)
+    PRESET="ubuntu-x64-prometheus"
 else
-    CMAKE_OPTIONS+=(-UINSTALL_TARGETS)
+    PRESET="ubuntu-x64"
 fi
 
-PKG_CONFIG_PATH="${DIR_INSTALL}/lib64/pkgconfig:${DIR_INSTALL}/lib/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
-    cmake -G Ninja -B "${DIR_BUILD}/blazingmq" -S "${DIR_ROOT}" "${CMAKE_OPTIONS[@]}"
-ninja -C "${DIR_BUILD}/blazingmq"
+cmake --preset "${PRESET}"
+cmake --build --preset "${PRESET}"
 
 echo broker is here: "${DIR_BUILD}/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
 echo to run the broker: "${DIR_BUILD}/blazingmq/src/applications/bmqbrkr/run"
