@@ -60,23 +60,28 @@ struct ClusterStateTableState {
         /// has the most up-to-date CSL.
         e_LDR_HEALING_STG1 = 2,
 
-        /// Self is leader, healing its CSL and the followers' CSLs.  It will
-        /// apply a CSL leader advisory to heal everyone.
+        /// Self is leader, and is requesting cluster state snapshot from the
+        /// most up-to-date follower.  This stage is skipped if self already
+        /// has the most up-to-date CSL.
         e_LDR_HEALING_STG2 = 3,
 
+        /// Self is leader, and has obtained the most up-to-date CSL.  It will
+        /// apply and commit a CSL leader advisory to heal everyone.
+        e_LDR_HEALING_STG3 = 4,
+
         /// Self is follower, and its CSL is healed.
-        e_FOL_HEALED = 4,
+        e_FOL_HEALED = 5,
 
         /// Self is leader, and its CSL is healed.
-        e_LDR_HEALED = 5,
+        e_LDR_HEALED = 6,
 
         /// Self is stopping.  Self could be either leader or follower, or
         /// leader might be unknown.
-        e_STOPPED = 6,
+        e_STOPPED = 7,
 
         /// **NOT A VALID STATE**.  This is an artificial enum value to
         /// represent the number of states.
-        e_NUM_STATES = 7
+        e_NUM_STATES = 8
     };
 
     // CLASS METHODS
@@ -293,6 +298,8 @@ class ClusterStateTableActions {
 
     virtual void do_applyCSLSelf(const ARGS& args) = 0;
 
+    virtual void do_sendCSLPatch(const ARGS& args) = 0;
+
     virtual void do_initializeQueueKeyInfoMap(const ARGS& args) = 0;
 
     virtual void do_stopPFSMs(const ARGS& args) = 0;
@@ -396,6 +403,8 @@ class ClusterStateTableActions {
     void do_removeFollowerLSN_checkLSNQuorum(const ARGS& args);
 
     void do_sendRegistrationResponse_applyCSLSelf(const ARGS& args);
+
+    void do_sendRegistrationResponse_sendCSLPatch(const ARGS& args);
 
     void do_logUnexpectedCSLCommit_and_abort(const ARGS& args);
 };
@@ -562,7 +571,7 @@ class ClusterStateTable
         CST_CFG(LDR_HEALING_STG1,
                 SELF_HIGHEST_LSN,
                 applyCSLSelf,
-                LDR_HEALING_STG2);
+                LDR_HEALING_STG3);
         CST_CFG(LDR_HEALING_STG1,
                 FOL_HIGHEST_LSN,
                 sendFollowerClusterStateRequest,
@@ -614,7 +623,7 @@ class ClusterStateTable
         CST_CFG(LDR_HEALING_STG2,
                 FOL_CSL_RSPN,
                 applyCSLSelf,
-                LDR_HEALING_STG2);
+                LDR_HEALING_STG3);
         CST_CFG(
             LDR_HEALING_STG2,
             FAIL_FOL_CSL_RSPN,
@@ -635,7 +644,7 @@ class ClusterStateTable
         CST_CFG(LDR_HEALING_STG2,
                 SELF_HIGHEST_LSN,
                 applyCSLSelf,
-                LDR_HEALING_STG2);
+                LDR_HEALING_STG3);
         CST_CFG(LDR_HEALING_STG2,
                 FOL_HIGHEST_LSN,
                 sendFollowerClusterStateRequest,
@@ -646,11 +655,11 @@ class ClusterStateTable
                 LDR_HEALING_STG2);
         CST_CFG(LDR_HEALING_STG2,
                 CSL_CMT_SUCCESS,
-                stopWatchdog_initializeQueueKeyInfoMap_updatePrimaryInPFSMs,
-                LDR_HEALED);
+                logUnexpectedCSLCommit_and_abort,
+                LDR_HEALING_STG2);
         CST_CFG(LDR_HEALING_STG2,
                 CSL_CMT_FAIL,
-                triggerWatchdog,
+                logUnexpectedCSLCommit_and_abort,
                 LDR_HEALING_STG2);
         CST_CFG(LDR_HEALING_STG2,
                 RST_UNKNOWN,
@@ -669,6 +678,58 @@ class ClusterStateTable
                 reapplySelectLeader,
                 LDR_HEALING_STG2);
         CST_CFG(LDR_HEALING_STG2,
+                STOP_NODE,
+                stopPFSMs_stopWatchdog_cleanupLSNs_cancelRequests,
+                STOPPED);
+        CST_CFG(LDR_HEALING_STG3,
+                SLCT_FOL,
+                stopWatchdog_cleanupLSNs_cancelRequests_reapplyEvent,
+                UNKNOWN);
+        CST_CFG(LDR_HEALING_STG3,
+                FOL_LSN_RQST,
+                sendFailureFollowerLSNResponse,
+                LDR_HEALING_STG3);
+        CST_CFG(LDR_HEALING_STG3,
+                FOL_LSN_RSPN,
+                sendCSLPatch,
+                LDR_HEALING_STG3);
+        CST_CFG(LDR_HEALING_STG3,
+                FOL_CSL_RQST,
+                sendFailureFollowerClusterStateResponse,
+                LDR_HEALING_STG3);
+        CST_CFG(LDR_HEALING_STG3,
+                FOL_CSL_RSPN,
+                logStaleFollowerClusterStateResponse,
+                LDR_HEALING_STG3);
+        CST_CFG(LDR_HEALING_STG3,
+                REGISTRATION_RQST,
+                sendRegistrationResponse_sendCSLPatch,
+                LDR_HEALING_STG3);
+        CST_CFG(LDR_HEALING_STG3,
+                CSL_CMT_SUCCESS,
+                stopWatchdog_initializeQueueKeyInfoMap_updatePrimaryInPFSMs,
+                LDR_HEALED);
+        CST_CFG(LDR_HEALING_STG3,
+                CSL_CMT_FAIL,
+                triggerWatchdog,
+                LDR_HEALING_STG3);
+        CST_CFG(LDR_HEALING_STG3,
+                RST_UNKNOWN,
+                stopWatchdog_cleanupLSNs_cancelRequests,
+                UNKNOWN);
+        CST_CFG(LDR_HEALING_STG3,
+                RST_PRIMARY,
+                updatePrimaryInPFSMs,
+                LDR_HEALING_STG3);
+        CST_CFG(LDR_HEALING_STG3,
+                REAPPLY_LDR,
+                cleanupLSNs_cancelRequests_reapplyEvent,
+                UNKNOWN);
+        CST_CFG(LDR_HEALING_STG3,
+                WATCHDOG,
+                reapplySelectLeader,
+                LDR_HEALING_STG3);
+        CST_CFG(LDR_HEALING_STG3,
                 STOP_NODE,
                 stopPFSMs_stopWatchdog_cleanupLSNs_cancelRequests,
                 STOPPED);
@@ -910,6 +971,14 @@ void ClusterStateTableActions<ARGS>::do_sendRegistrationResponse_applyCSLSelf(
 {
     do_sendRegistrationResponse(args);
     do_applyCSLSelf(args);
+}
+
+template <typename ARGS>
+void ClusterStateTableActions<ARGS>::do_sendRegistrationResponse_sendCSLPatch(
+    const ARGS& args)
+{
+    do_sendRegistrationResponse(args);
+    do_sendCSLPatch(args);
 }
 
 template <typename ARGS>

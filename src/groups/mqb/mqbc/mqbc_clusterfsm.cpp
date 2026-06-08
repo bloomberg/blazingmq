@@ -103,6 +103,7 @@ void ClusterFSM::processEvent(const EventWithMetadata& event)
         case State::e_FOL_HEALING: BSLA_FALLTHROUGH;
         case State::e_LDR_HEALING_STG1: BSLA_FALLTHROUGH;
         case State::e_LDR_HEALING_STG2: BSLA_FALLTHROUGH;
+        case State::e_LDR_HEALING_STG3: BSLA_FALLTHROUGH;
         case State::e_STOPPED: BSLA_FALLTHROUGH;
         default: {
             break;  // BREAK
