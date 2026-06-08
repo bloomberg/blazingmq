@@ -295,6 +295,18 @@ void ClusterStateManager::do_applyCSLSelf(const EventWithMetadata& event)
     d_clusterStateLedger_mp->apply(clusterStateSnapshot);
 }
 
+void ClusterStateManager::do_sendCSLPatch(const EventWithMetadata& event)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
+                     d_clusterFSM.isSelfLeader());
+
+    // TODO Impl
+}
+
 void ClusterStateManager::do_initializeQueueKeyInfoMap(
     BSLA_MAYBE_UNUSED const EventWithMetadata& event)
 {
