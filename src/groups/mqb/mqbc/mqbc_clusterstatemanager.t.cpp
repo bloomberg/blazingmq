@@ -1180,7 +1180,7 @@ static void test11_leaderHighestLeaderHealed()
 //
 // Concerns:
 //   Verify that when the leader has highest LSN, it transitions from
-//   healing stage 2 to healed upon successful CSL commit callback.
+//   healing stage 3 to healed upon successful CSL commit callback.
 //
 // Testing:
 //   Leader transition to healed upon successful CSL commit callback
@@ -1204,7 +1204,7 @@ static void test11_leaderHighestLeaderHealed()
                     mqbc::ClusterStateTableState::e_LDR_HEALING_STG1);
     tester.verifyFollowerLSNRequestsSent();
 
-    // 1. Receives follower LSN response from all followers
+    // 1. Receives follower LSN response from a quorum of followers
     bmqp_ctrlmsg::ControlMessage         followerLSNResponse;
     bmqp_ctrlmsg::LeaderMessageSequence& lms =
         followerLSNResponse.choice()
@@ -1225,18 +1225,13 @@ static void test11_leaderHighestLeaderHealed()
     lms.sequenceNumber()      = 5U;
     tester.d_cluster_mp->requestManager().processResponse(followerLSNResponse);
 
-    followerLSNResponse.rId() = 3;
-    lms.electorTerm()         = 1U;
-    lms.sequenceNumber()      = 5U;
-    tester.d_cluster_mp->requestManager().processResponse(followerLSNResponse);
-
     // Verify that all LSNs are stored
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->nodeToLSNMap().size() ==
-                    4U);
+                    3U);
 
-    // Self has transitioned to leader healing stage 2
+    // Self has transitioned to leader healing stage 3
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
-                    mqbc::ClusterStateTableState::e_LDR_HEALING_STG2);
+                    mqbc::ClusterStateTableState::e_LDR_HEALING_STG3);
 
     // Verify that a cluster state snapshot is applied to the CSL
     ClusterMessageCRefList advisories;
@@ -1271,8 +1266,9 @@ static void test12_followerHighestLeaderHealed()
 //
 // Concerns:
 //   Verify that when a follower has highest LSN, the leader transitions
-//   from healing stage 2 to healed upon follower cluster state response
-//   and successful CSL commit callback.
+//   from healing stage 2 to stage 3 upon follower cluster state response.
+//   Verify the leader then transitions to healed upon successful CSL commit
+//   callback.
 //
 // Testing:
 //   Leader transition to healed upon follower cluster state response and
@@ -1360,8 +1356,10 @@ static void test12_followerHighestLeaderHealed()
 
     tester.d_cluster_mp->requestManager().processResponse(
         followerClusterStateResponse);
+
+    // Verify that leader (self) has transitioned to leader healing stage 3
     BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
-                     mqbc::ClusterStateTableState::e_LDR_HEALING_STG2);
+                     mqbc::ClusterStateTableState::e_LDR_HEALING_STG3);
 
     // Verify that a cluster state snapshot is applied to the CSL
     ClusterMessageCRefList advisories;
@@ -1487,20 +1485,20 @@ static void test14_leaderCSLCommitFailure()
     lms.sequenceNumber()      = 5U;
     tester.d_cluster_mp->requestManager().processResponse(followerLSNResponse);
 
-    // Self has transitioned to leader healing stage 2
+    // Self has transitioned to leader healing stage 3
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
-                    mqbc::ClusterStateTableState::e_LDR_HEALING_STG2);
+                    mqbc::ClusterStateTableState::e_LDR_HEALING_STG3);
 
     // 2. Invoke failure commit callback at the CSL
     tester.d_clusterStateLedger_p->_commitAdvisories(
         mqbc::ClusterStateLedgerCommitStatus::e_CANCELED);
 
     // CSL_CMT_FAIL triggers the watchdog (reschedules to now) but stays in
-    // LDR_HEALING_STG2.  Advance time so the triggered watchdog fires.
+    // LDR_HEALING_STG3.  Advance time so the triggered watchdog fires.
     // The e_WATCHDOG transition goes to UNKNOWN, which re-applies
     // SLCT_LDR, landing in LDR_HEALING_STG1.
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
-                    mqbc::ClusterStateTableState::e_LDR_HEALING_STG2);
+                    mqbc::ClusterStateTableState::e_LDR_HEALING_STG3);
     tester.d_cluster_mp->advanceTime(1);
     tester.d_cluster_mp->waitForScheduler();
 
@@ -1565,8 +1563,8 @@ static void test16_followerClusterStateRespFailureLeaderNext()
 //
 // Concerns:
 //   Verify that after a failure follower cluster state response, when the
-//   leader has highest LSN, it transitions from healing stage 2 to healed
-//   upon successful CSL commit callback.
+//   leader has highest LSN, it transitions from healing stage 2 to healing
+//   stage 3, then to healed upon successful CSL commit callback.
 //
 // Testing:
 //   After failure follower cluster state response, leader transition to
@@ -1642,8 +1640,10 @@ static void test16_followerClusterStateRespFailureLeaderNext()
 
     tester.d_cluster_mp->requestManager().processResponse(
         failureFollowerClusterStateResponse);
+
+    // Verify that self has transitioned to leader healing stage 3
     BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
-                     mqbc::ClusterStateTableState::e_LDR_HEALING_STG2);
+                     mqbc::ClusterStateTableState::e_LDR_HEALING_STG3);
     BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->nodeToLSNMap().size(),
                      3U);
 
@@ -1684,8 +1684,8 @@ static void test17_followerClusterStateRespFailureFollowerNext()
 // Concerns:
 //   Verify that after a failure follower cluster state response, when
 //   another follower has the highest LSN, the leader transitions from
-//   healing stage 2 to healed upon follower cluster state response and
-//   successful CSL commit callback.
+//   healing stage 2 to healing stage 3 upon follower cluster state response,
+//   then to healed upon successful CSL commit callback.
 //
 // Testing:
 //   After failure follower cluster state response, leader transition to
@@ -1798,8 +1798,10 @@ static void test17_followerClusterStateRespFailureFollowerNext()
 
     tester.d_cluster_mp->requestManager().processResponse(
         followerClusterStateRespMsg);
+
+    // Verify that self has transitioned to leader healing stage 3
     BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
-                     mqbc::ClusterStateTableState::e_LDR_HEALING_STG2);
+                     mqbc::ClusterStateTableState::e_LDR_HEALING_STG3);
 
     // Verify that a cluster state snapshot is applied to the CSL
     ClusterMessageCRefList advisories;
@@ -2139,8 +2141,8 @@ static void test20_resetUnknownLeader()
         tester.d_clusterStateManager_mp->nodeToLSNMap();
     BMQTST_ASSERT(lsnMap.empty());
 
-    // 2.a.) Self transitions to Leader Healing Stage 2, after receiving
-    //       follower LSN responses from all followers
+    // 2.a.) Self transitions to Leader Healing Stage 3, after receiving
+    //       follower LSN responses from a quorum of followers
     tester.electLeader(3U);
 
     followerLSNResponse.rId() = 4;
@@ -2149,12 +2151,9 @@ static void test20_resetUnknownLeader()
     followerLSNResponse.rId() = 5;
     tester.d_cluster_mp->requestManager().processResponse(followerLSNResponse);
 
-    followerLSNResponse.rId() = 6;
-    tester.d_cluster_mp->requestManager().processResponse(followerLSNResponse);
-
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
-                    mqbc::ClusterStateTableState::e_LDR_HEALING_STG2);
-    BSLS_ASSERT_OPT(lsnMap.size() == 4U);
+                    mqbc::ClusterStateTableState::e_LDR_HEALING_STG3);
+    BSLS_ASSERT_OPT(lsnMap.size() == 3U);
 
     // 2.b.) Upon leader loss, which leads to RST_UNKNOWN event from elector,
     //       verify that self goes back to UNKNOWN state, and clears all its
@@ -2170,7 +2169,8 @@ static void test20_resetUnknownLeader()
     BMQTST_ASSERT(lsnMap.empty());
 
     // 3.a.) Self transitions to Leader Healed, after receiving follower LSN
-    //       responses from all followers and then upon CSL commit success
+    //       responses from a quorum of followers and then upon CSL commit
+    //       success
     tester.electLeader(4U);
 
     followerLSNResponse.rId() = 7;
@@ -2179,12 +2179,9 @@ static void test20_resetUnknownLeader()
     followerLSNResponse.rId() = 8;
     tester.d_cluster_mp->requestManager().processResponse(followerLSNResponse);
 
-    followerLSNResponse.rId() = 9;
-    tester.d_cluster_mp->requestManager().processResponse(followerLSNResponse);
-
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
-                    mqbc::ClusterStateTableState::e_LDR_HEALING_STG2);
-    BSLS_ASSERT_OPT(lsnMap.size() == 4U);
+                    mqbc::ClusterStateTableState::e_LDR_HEALING_STG3);
+    BSLS_ASSERT_OPT(lsnMap.size() == 3U);
 
     tester.d_clusterStateLedger_p->_commitAdvisories(
         mqbc::ClusterStateLedgerCommitStatus::e_SUCCESS);
@@ -2558,7 +2555,7 @@ static void test24_watchdogLeader()
         tester.d_clusterStateManager_mp->nodeToLSNMap();
     BMQTST_ASSERT_EQ(lsnMap.size(), 1U);
 
-    // Transition to Leader Healing Stage 2
+    // Transition to Leader Healing Stage 3
     bmqp_ctrlmsg::ControlMessage         followerLSNResponse;
     bmqp_ctrlmsg::LeaderMessageSequence& lms =
         followerLSNResponse.choice()
@@ -2579,7 +2576,7 @@ static void test24_watchdogLeader()
     tester.d_cluster_mp->requestManager().processResponse(followerLSNResponse);
 
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
-                    mqbc::ClusterStateTableState::e_LDR_HEALING_STG2);
+                    mqbc::ClusterStateTableState::e_LDR_HEALING_STG3);
 
     // Trigger watchdog via timeout
     tester.d_cluster_mp->advanceTime(k_WATCHDOG_TIMEOUT_DURATION);
