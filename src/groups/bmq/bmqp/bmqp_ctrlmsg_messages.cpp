@@ -1,4 +1,4 @@
-// Copyright 2014-2025 Bloomberg Finance L.P.
+// Copyright 2026 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -5476,6 +5476,11 @@ const bdlat_AttributeInfo PrimaryStateRequest::ATTRIBUTE_INFO_ARRAY[] = {
      sizeof("partitionId") - 1,
      "",
      bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_PRIMARY_LEASE_ID,
+     "primaryLeaseId",
+     sizeof("primaryLeaseId") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER,
      "latestSequenceNumber",
      sizeof("latestSequenceNumber") - 1,
@@ -5492,7 +5497,7 @@ const bdlat_AttributeInfo PrimaryStateRequest::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo*
 PrimaryStateRequest::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 4; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             PrimaryStateRequest::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -5510,6 +5515,8 @@ const bdlat_AttributeInfo* PrimaryStateRequest::lookupAttributeInfo(int id)
     switch (id) {
     case ATTRIBUTE_ID_PARTITION_ID:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID];
+    case ATTRIBUTE_ID_PRIMARY_LEASE_ID:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID];
     case ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER];
     case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER:
@@ -5524,6 +5531,7 @@ const bdlat_AttributeInfo* PrimaryStateRequest::lookupAttributeInfo(int id)
 PrimaryStateRequest::PrimaryStateRequest()
 : d_latestSequenceNumber()
 , d_firstSyncPointAfterRolloverSequenceNumber()
+, d_primaryLeaseId()
 , d_partitionId()
 {
 }
@@ -5533,6 +5541,7 @@ PrimaryStateRequest::PrimaryStateRequest()
 void PrimaryStateRequest::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_partitionId);
+    bdlat_ValueTypeFunctions::reset(&d_primaryLeaseId);
     bdlat_ValueTypeFunctions::reset(&d_latestSequenceNumber);
     bdlat_ValueTypeFunctions::reset(
         &d_firstSyncPointAfterRolloverSequenceNumber);
@@ -5547,6 +5556,7 @@ bsl::ostream& PrimaryStateRequest::print(bsl::ostream& stream,
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
     printer.printAttribute("partitionId", this->partitionId());
+    printer.printAttribute("primaryLeaseId", this->primaryLeaseId());
     printer.printAttribute("latestSequenceNumber",
                            this->latestSequenceNumber());
     printer.printAttribute("firstSyncPointAfterRolloverSequenceNumber",
@@ -5569,6 +5579,11 @@ const bdlat_AttributeInfo PrimaryStateResponse::ATTRIBUTE_INFO_ARRAY[] = {
      sizeof("partitionId") - 1,
      "",
      bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_PRIMARY_LEASE_ID,
+     "primaryLeaseId",
+     sizeof("primaryLeaseId") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER,
      "latestSequenceNumber",
      sizeof("latestSequenceNumber") - 1,
@@ -5585,7 +5600,7 @@ const bdlat_AttributeInfo PrimaryStateResponse::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo*
 PrimaryStateResponse::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 4; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             PrimaryStateResponse::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -5603,6 +5618,8 @@ const bdlat_AttributeInfo* PrimaryStateResponse::lookupAttributeInfo(int id)
     switch (id) {
     case ATTRIBUTE_ID_PARTITION_ID:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID];
+    case ATTRIBUTE_ID_PRIMARY_LEASE_ID:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID];
     case ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER];
     case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER:
@@ -5617,6 +5634,7 @@ const bdlat_AttributeInfo* PrimaryStateResponse::lookupAttributeInfo(int id)
 PrimaryStateResponse::PrimaryStateResponse()
 : d_latestSequenceNumber()
 , d_firstSyncPointAfterRolloverSequenceNumber()
+, d_primaryLeaseId()
 , d_partitionId()
 {
 }
@@ -5626,6 +5644,7 @@ PrimaryStateResponse::PrimaryStateResponse()
 void PrimaryStateResponse::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_partitionId);
+    bdlat_ValueTypeFunctions::reset(&d_primaryLeaseId);
     bdlat_ValueTypeFunctions::reset(&d_latestSequenceNumber);
     bdlat_ValueTypeFunctions::reset(
         &d_firstSyncPointAfterRolloverSequenceNumber);
@@ -5640,6 +5659,7 @@ bsl::ostream& PrimaryStateResponse::print(bsl::ostream& stream,
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
     printer.printAttribute("partitionId", this->partitionId());
+    printer.printAttribute("primaryLeaseId", this->primaryLeaseId());
     printer.printAttribute("latestSequenceNumber",
                            this->latestSequenceNumber());
     printer.printAttribute("firstSyncPointAfterRolloverSequenceNumber",
@@ -6784,6 +6804,11 @@ const bdlat_AttributeInfo ReplicaStateRequest::ATTRIBUTE_INFO_ARRAY[] = {
      sizeof("partitionId") - 1,
      "",
      bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_PRIMARY_LEASE_ID,
+     "primaryLeaseId",
+     sizeof("primaryLeaseId") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER,
      "latestSequenceNumber",
      sizeof("latestSequenceNumber") - 1,
@@ -6800,7 +6825,7 @@ const bdlat_AttributeInfo ReplicaStateRequest::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo*
 ReplicaStateRequest::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 4; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             ReplicaStateRequest::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -6818,6 +6843,8 @@ const bdlat_AttributeInfo* ReplicaStateRequest::lookupAttributeInfo(int id)
     switch (id) {
     case ATTRIBUTE_ID_PARTITION_ID:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID];
+    case ATTRIBUTE_ID_PRIMARY_LEASE_ID:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID];
     case ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER];
     case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER:
@@ -6832,6 +6859,7 @@ const bdlat_AttributeInfo* ReplicaStateRequest::lookupAttributeInfo(int id)
 ReplicaStateRequest::ReplicaStateRequest()
 : d_latestSequenceNumber()
 , d_firstSyncPointAfterRolloverSequenceNumber()
+, d_primaryLeaseId()
 , d_partitionId()
 {
 }
@@ -6841,6 +6869,7 @@ ReplicaStateRequest::ReplicaStateRequest()
 void ReplicaStateRequest::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_partitionId);
+    bdlat_ValueTypeFunctions::reset(&d_primaryLeaseId);
     bdlat_ValueTypeFunctions::reset(&d_latestSequenceNumber);
     bdlat_ValueTypeFunctions::reset(
         &d_firstSyncPointAfterRolloverSequenceNumber);
@@ -6855,6 +6884,7 @@ bsl::ostream& ReplicaStateRequest::print(bsl::ostream& stream,
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
     printer.printAttribute("partitionId", this->partitionId());
+    printer.printAttribute("primaryLeaseId", this->primaryLeaseId());
     printer.printAttribute("latestSequenceNumber",
                            this->latestSequenceNumber());
     printer.printAttribute("firstSyncPointAfterRolloverSequenceNumber",
@@ -6877,6 +6907,11 @@ const bdlat_AttributeInfo ReplicaStateResponse::ATTRIBUTE_INFO_ARRAY[] = {
      sizeof("partitionId") - 1,
      "",
      bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_PRIMARY_LEASE_ID,
+     "primaryLeaseId",
+     sizeof("primaryLeaseId") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER,
      "latestSequenceNumber",
      sizeof("latestSequenceNumber") - 1,
@@ -6893,7 +6928,7 @@ const bdlat_AttributeInfo ReplicaStateResponse::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo*
 ReplicaStateResponse::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 4; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             ReplicaStateResponse::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -6911,6 +6946,8 @@ const bdlat_AttributeInfo* ReplicaStateResponse::lookupAttributeInfo(int id)
     switch (id) {
     case ATTRIBUTE_ID_PARTITION_ID:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID];
+    case ATTRIBUTE_ID_PRIMARY_LEASE_ID:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID];
     case ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER];
     case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER:
@@ -6925,6 +6962,7 @@ const bdlat_AttributeInfo* ReplicaStateResponse::lookupAttributeInfo(int id)
 ReplicaStateResponse::ReplicaStateResponse()
 : d_latestSequenceNumber()
 , d_firstSyncPointAfterRolloverSequenceNumber()
+, d_primaryLeaseId()
 , d_partitionId()
 {
 }
@@ -6934,6 +6972,7 @@ ReplicaStateResponse::ReplicaStateResponse()
 void ReplicaStateResponse::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_partitionId);
+    bdlat_ValueTypeFunctions::reset(&d_primaryLeaseId);
     bdlat_ValueTypeFunctions::reset(&d_latestSequenceNumber);
     bdlat_ValueTypeFunctions::reset(
         &d_firstSyncPointAfterRolloverSequenceNumber);
@@ -6948,6 +6987,7 @@ bsl::ostream& ReplicaStateResponse::print(bsl::ostream& stream,
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
     printer.printAttribute("partitionId", this->partitionId());
+    printer.printAttribute("primaryLeaseId", this->primaryLeaseId());
     printer.printAttribute("latestSequenceNumber",
                            this->latestSequenceNumber());
     printer.printAttribute("firstSyncPointAfterRolloverSequenceNumber",
@@ -17612,6 +17652,6 @@ bsl::ostream& ControlMessage::print(bsl::ostream& stream,
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY BLP_BAS_CODEGEN_2025.11.13
+// GENERATED BY BLP_BAS_CODEGEN_9999.99.99
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package bmqp_ctrlmsg --msgComponent messages bmqp_ctrlmsg.xsd

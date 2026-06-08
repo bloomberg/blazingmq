@@ -623,8 +623,8 @@ struct TestHelper {
         bmqp_ctrlmsg::Status& failureResponse =
             failureMessage.choice().makeStatus();
         failureResponse.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
-        failureResponse.code()     = mqbi::ClusterErrorCode::e_NOT_PRIMARY;
-        failureResponse.message()  = "Not a primary";
+        failureResponse.code()     = mqbi::ClusterErrorCode::e_UNKNOWN;
+        failureResponse.message()  = "Primary mismatch";
 
         for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
              cit != d_cluster_mp->_channels().cend();
@@ -684,7 +684,8 @@ struct TestHelper {
         int                                   partitionId,
         int                                   primaryNodeId,
         bmqp_ctrlmsg::PartitionSequenceNumber PSN =
-            bmqp_ctrlmsg::PartitionSequenceNumber())
+            bmqp_ctrlmsg::PartitionSequenceNumber(),
+        unsigned int primaryLeaseId = 1U)
     {
         bmqp_ctrlmsg::ClusterMessage        expectedMessage;
         bmqp_ctrlmsg::ReplicaStateResponse& replicaStateResponse =
@@ -694,6 +695,7 @@ struct TestHelper {
                 .makeReplicaStateResponse();
 
         replicaStateResponse.partitionId()          = partitionId;
+        replicaStateResponse.primaryLeaseId()       = primaryLeaseId;
         replicaStateResponse.latestSequenceNumber() = PSN;
 
         for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
@@ -1289,6 +1291,7 @@ static void test4_primaryHealingStage1ReceivesReplicaStateRqst()
     PSN.primaryLeaseId() = 1U;
 
     replicaStateRequest.partitionId()          = k_PARTITION_ID;
+    replicaStateRequest.primaryLeaseId()       = 1U;
     replicaStateRequest.latestSequenceNumber() = PSN;
 
     mqbnet::ClusterNode* source = helper.d_cluster_mp->_clusterData()
@@ -1399,6 +1402,7 @@ static void test5_primaryHealingStage1ReceivesReplicaStateRspnQuorum()
     PSN.primaryLeaseId() = 1U;
 
     replicaStateResponse.partitionId()          = k_PARTITION_ID;
+    replicaStateResponse.primaryLeaseId()       = 1U;
     replicaStateResponse.latestSequenceNumber() = PSN;
 
     helper.d_cluster_mp->requestManager().processResponse(message);
@@ -1508,6 +1512,7 @@ static void test6_primaryHealingStage1ReceivesPrimaryStateRequestQuorum()
     PSN.primaryLeaseId() = 1U;
 
     primaryStateRequest.partitionId()          = k_PARTITION_ID;
+    primaryStateRequest.primaryLeaseId()       = 1U;
     primaryStateRequest.latestSequenceNumber() = PSN;
 
     storageManager.processPrimaryStateRequest(message, replica1);
@@ -1625,6 +1630,7 @@ static void test7_primaryHealingStage1ReceivesPrimaryStateRqst()
     PSN.primaryLeaseId() = 1U;
 
     primaryStateRequest.partitionId()          = k_PARTITION_ID;
+    primaryStateRequest.primaryLeaseId()       = 1U;
     primaryStateRequest.latestSequenceNumber() = PSN;
 
     storageManager.processPrimaryStateRequest(message, replicaNode);
@@ -1729,6 +1735,7 @@ static void test8_primaryHealingStage1ReceivesReplicaStateRspnNoQuorum()
     PSN.primaryLeaseId() = 1U;
 
     replicaStateResponse.partitionId()          = k_PARTITION_ID;
+    replicaStateResponse.primaryLeaseId()       = 1U;
     replicaStateResponse.latestSequenceNumber() = PSN;
 
     helper.d_cluster_mp->requestManager().processResponse(message);
@@ -1844,6 +1851,7 @@ static void test9_primaryHealingStage1QuorumSendsReplicaDataRequestPull()
     PSN.primaryLeaseId() = 1U;
 
     replicaStateResponse.partitionId()          = k_PARTITION_ID;
+    replicaStateResponse.primaryLeaseId()       = 1U;
     replicaStateResponse.latestSequenceNumber() = PSN;
 
     helper.d_cluster_mp->requestManager().processResponse(message);
@@ -2087,6 +2095,7 @@ static void test11_replicaWaitingReceivesReplicaStateRqst()
     PSN.primaryLeaseId() = 1U;
 
     replicaStateRequest.partitionId()          = k_PARTITION_ID;
+    replicaStateRequest.primaryLeaseId()       = 1U;
     replicaStateRequest.latestSequenceNumber() = PSN;
 
     storageManager.processReplicaStateRequest(requestMessage, primaryNode);
@@ -2193,6 +2202,7 @@ static void test12_replicaWaitingReceivesPrimaryStateRspn()
     PSN.primaryLeaseId() = 1U;
 
     primaryStateResponse.partitionId()          = k_PARTITION_ID;
+    primaryStateResponse.primaryLeaseId()       = 1U;
     primaryStateResponse.latestSequenceNumber() = PSN;
 
     helper.d_cluster_mp->requestManager().processResponse(message);
@@ -2395,6 +2405,7 @@ static void test14_replicaWaitingReceivesPrimaryStateRqst()
     PSN.primaryLeaseId() = 1U;
 
     primaryStateRequest.partitionId()          = k_PARTITION_ID;
+    primaryStateRequest.primaryLeaseId()       = 1U;
     primaryStateRequest.latestSequenceNumber() = PSN;
 
     storageManager.processPrimaryStateRequest(message, rogueNode);
@@ -2529,6 +2540,7 @@ static void test15_replicaWaitingReceivesReplicaDataRqstPull()
     k_PRIMARY_SEQ_NUM.primaryLeaseId() = 1U;
 
     replicaStateRequest.partitionId()          = k_PARTITION_ID;
+    replicaStateRequest.primaryLeaseId()       = 1U;
     replicaStateRequest.latestSequenceNumber() = k_PRIMARY_SEQ_NUM;
 
     storageManager.processReplicaStateRequest(requestMessage, primaryNode);
@@ -2676,6 +2688,7 @@ static void test16_primaryHealingStage1SelfHighestSendsDataChunks()
     k_REPLICA_SEQ_NUM_1.primaryLeaseId()        = k_PRIMARY_LEASE_ID;
     k_REPLICA_SEQ_NUM_1.sequenceNumber()        = 3U;
     replicaStateResponse.partitionId()          = k_PARTITION_ID;
+    replicaStateResponse.primaryLeaseId()       = k_PRIMARY_LEASE_ID;
     replicaStateResponse.latestSequenceNumber() = k_REPLICA_SEQ_NUM_1;
 
     helper.d_cluster_mp->requestManager().processResponse(message);
@@ -2928,6 +2941,7 @@ static void test18_primaryHealingWatchdogRetry()
     PSN.primaryLeaseId() = k_PRIMARY_LEASE_ID;
 
     replicaStateResponse.partitionId()          = k_PARTITION_ID;
+    replicaStateResponse.primaryLeaseId()       = k_PRIMARY_LEASE_ID;
     replicaStateResponse.latestSequenceNumber() = PSN;
 
     helper.d_cluster_mp->requestManager().processResponse(message);
@@ -3061,6 +3075,7 @@ static void test19_replicaWaitingWatchdogRetry()
     PSN.primaryLeaseId() = 1U;
 
     primaryStateResponse.partitionId()          = k_PARTITION_ID;
+    primaryStateResponse.primaryLeaseId()       = 1U;
     primaryStateResponse.latestSequenceNumber() = PSN;
 
     helper.d_cluster_mp->requestManager().processResponse(message);

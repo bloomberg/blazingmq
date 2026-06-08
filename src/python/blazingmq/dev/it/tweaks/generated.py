@@ -384,6 +384,16 @@ class TweakFactory:
 
                 clusters = Clusters()
 
+                class AlarmTimeoutMs(metaclass=TweakMetaclass):
+                    def __call__(self, value: int) -> Callable: ...
+
+                alarm_timeout_ms = AlarmTimeoutMs()
+
+                class WarningTimeoutMs(metaclass=TweakMetaclass):
+                    def __call__(self, value: int) -> Callable: ...
+
+                warning_timeout_ms = WarningTimeoutMs()
+
                 def __call__(
                     self,
                     value: typing.Union[
@@ -501,6 +511,14 @@ class TweakFactory:
                         def __call__(self, value: int) -> Callable: ...
 
                     rotate_days = RotateDays()
+
+                    class Encoding(metaclass=TweakMetaclass):
+                        def __call__(
+                            self,
+                            value: blazingmq.schemas.mqbcfg.StatsPrinterEncodingFormat,
+                        ) -> Callable: ...
+
+                    encoding = Encoding()
 
                     def __call__(
                         self,
@@ -852,6 +870,81 @@ class TweakFactory:
 
                 max_threads = MaxThreads()
 
+                class CredentialProvider(metaclass=TweakMetaclass):
+                    class Name(metaclass=TweakMetaclass):
+                        def __call__(
+                            self, value: typing.Union[str, NoneType]
+                        ) -> Callable: ...
+
+                    name = Name()
+
+                    class Settings(metaclass=TweakMetaclass):
+                        class Key(metaclass=TweakMetaclass):
+                            def __call__(
+                                self, value: typing.Union[str, NoneType]
+                            ) -> Callable: ...
+
+                        key = Key()
+
+                        class Value(metaclass=TweakMetaclass):
+                            class BoolVal(metaclass=TweakMetaclass):
+                                def __call__(
+                                    self, value: typing.Union[bool, NoneType]
+                                ) -> Callable: ...
+
+                            bool_val = BoolVal()
+
+                            class IntVal(metaclass=TweakMetaclass):
+                                def __call__(
+                                    self, value: typing.Union[int, NoneType]
+                                ) -> Callable: ...
+
+                            int_val = IntVal()
+
+                            class LongVal(metaclass=TweakMetaclass):
+                                def __call__(
+                                    self, value: typing.Union[int, NoneType]
+                                ) -> Callable: ...
+
+                            long_val = LongVal()
+
+                            class DoubleVal(metaclass=TweakMetaclass):
+                                def __call__(
+                                    self, value: typing.Union[float, NoneType]
+                                ) -> Callable: ...
+
+                            double_val = DoubleVal()
+
+                            class StringVal(metaclass=TweakMetaclass):
+                                def __call__(
+                                    self, value: typing.Union[str, NoneType]
+                                ) -> Callable: ...
+
+                            string_val = StringVal()
+
+                            def __call__(
+                                self,
+                                value: typing.Union[
+                                    blazingmq.schemas.mqbcfg.PluginSettingValue,
+                                    NoneType,
+                                ],
+                            ) -> Callable: ...
+
+                        value = Value()
+
+                        def __call__(self, value: None) -> Callable: ...
+
+                    settings = Settings()
+
+                    def __call__(
+                        self,
+                        value: typing.Union[
+                            blazingmq.schemas.mqbcfg.CredentialProviderConfig, NoneType
+                        ],
+                    ) -> Callable: ...
+
+                credential_provider = CredentialProvider()
+
                 def __call__(
                     self,
                     value: typing.Union[
@@ -884,9 +977,7 @@ class TweakFactory:
                 key = Key()
 
                 class Versions(metaclass=TweakMetaclass):
-                    def __call__(
-                        self, value: typing.Union[str, NoneType]
-                    ) -> Callable: ...
+                    def __call__(self, value: str) -> Callable: ...
 
                 versions = Versions()
 
