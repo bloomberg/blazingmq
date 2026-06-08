@@ -405,10 +405,10 @@ class NtcChannel : public bmqio::Channel,
     void setChannelId(int channelId);
 
     /// Set the write queue low watermark to the specified `lowWatermark`.
-    void setWriteQueueLowWatermark(int lowWatermark);
+    void setWriteQueueLowWatermark(int lowWatermark) BSLS_KEYWORD_OVERRIDE;
 
     /// Set the write queue high watermark to the specified `highWatermark`.
-    void setWriteQueueHighWatermark(int highWatermark);
+    void setWriteQueueHighWatermark(int highWatermark) BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
 

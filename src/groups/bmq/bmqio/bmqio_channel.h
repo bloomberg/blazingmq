@@ -209,6 +209,12 @@ class Channel {
     /// this Channel.
     virtual bmqvt::PropertyBag& properties() = 0;
 
+    /// Set the write queue low watermark to the specified `lowWatermark`.
+    virtual void setWriteQueueLowWatermark(int lowWatermark) = 0;
+
+    /// Set the write queue high watermark to the specified `highWatermark`.
+    virtual void setWriteQueueHighWatermark(int highWatermark) = 0;
+
     // VIRTUAL ACCESSORS
 
     /// Return the URI of the "remote" end of this channel.  It is up to the

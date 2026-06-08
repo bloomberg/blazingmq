@@ -31,6 +31,12 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "(Apple)?Clang")
                  APPEND
                  PROPERTY COMPILE_OPTIONS "-Wno-everything"
     )
+
+    # Turn off warnings in generated GMock classes.
+    set_property(SOURCE "mqbnet/mqbnet_tcpsessionfactory.g.cpp"
+                  APPEND
+                  PROPERTY COMPILE_OPTIONS "-Wno-unused-member-function"
+  )
 endif()
 
 # Extras package containing the plugin headers
