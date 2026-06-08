@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-slim
     name: License Check
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: license check
@@ -44,7 +44,7 @@ jobs:
     runs-on: ubuntu-slim
     name: PR Title Check
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: pr title check
@@ -58,7 +58,7 @@ jobs:
     name: Check .mem files sorting
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Check alphabetical order in .mem files
         run: |
@@ -94,7 +94,7 @@ jobs:
     name: C++ Formatting Check
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: clang-format style check
@@ -113,7 +113,7 @@ jobs:
           fi
       - name: Upload formatting patch
         if: failure() && steps.format-check.outcome == 'failure'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: clang-format-patch
           path: clang_format.patch
@@ -128,10 +128,10 @@ jobs:
     name: Python Formatting Check
     runs-on: ubuntu-slim
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
       - name: ruff style check
         id: format-check
         run: |
@@ -150,7 +150,7 @@ jobs:
           fi
       - name: Upload formatting patch
         if: failure() && steps.format-check.outcome == 'failure'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ruff-format-patch
           path: ruff_format.patch
@@ -159,10 +159,10 @@ jobs:
     name: Python Linter Check
     runs-on: ubuntu-slim
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12.4'
       - name: Install dependencies

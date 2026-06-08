@@ -21,7 +21,7 @@ jobs:
     name: UT coverage [python]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Generate Python Unit Tests Coverage report
         env:
@@ -35,7 +35,7 @@ jobs:
             --cov-report xml:python-coverage.xml
 
       - name: Archive code coverage results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: code-coverage-report
           path: |

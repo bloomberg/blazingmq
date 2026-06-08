@@ -68,31 +68,31 @@ jobs:
       RUN_UID: ${{ matrix.cluster }}_${{ matrix.mode }}_${{ matrix.consistency }}
     steps:
       - name: Checkout ITs repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           # The ref of the workflow that triggered this workflow
           path: repoit
           fetch-depth: 0
 
       - name: Checkout repo1
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.inputs.ref1 }}
           path: repo1
           fetch-depth: 0
 
       - name: Checkout repo2
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.inputs.ref2 }}
           path: repo2
           fetch-depth: 0
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           path: ./repo1
           name: ${{needs.build1.outputs.artifact_key }}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           path: ./repo2
           name: ${{needs.build2.outputs.artifact_key }}
@@ -136,7 +136,7 @@ jobs:
 
       - name: Upload failure-logs as artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ github.run_id }}_failure_logs_${{ env.RUN_UID }}
           path: ${{ github.workspace }}/repoit/src/integration-tests/failure-logs
@@ -158,31 +158,31 @@ jobs:
       RUN_UID: ${{ matrix.cluster }}_${{ matrix.mode }}_${{ matrix.consistency }}
     steps:
       - name: Checkout ITs repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           # The ref of the workflow that triggered this workflow
           path: repoit
           fetch-depth: 0
 
       - name: Checkout repo1
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.inputs.ref1 }}
           path: repo1
           fetch-depth: 0
 
       - name: Checkout repo2
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.inputs.ref2 }}
           path: repo2
           fetch-depth: 0
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           path: ./repo1
           name: ${{needs.build1.outputs.artifact_key }}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           path: ./repo2
           name: ${{needs.build2.outputs.artifact_key }}
@@ -236,7 +236,7 @@ jobs:
 
       - name: Upload failure-logs as artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ github.run_id }}_failure_logs_${{ env.RUN_UID }}
           path: ${{ github.workspace }}/repoit/src/integration-tests/failure-logs
