@@ -97,26 +97,6 @@ Data::Data(const Data& other, bslma::Allocator* allocator)
     // NOTHING
 }
 
-#ifdef BMQ_ENABLE_MSG_GROUPID
-void setMsgGroupId(bmqp::PutEventBuilder* peb, const size_t iteration)
-{
-    bmqu::MemOutStream oss(bmqtst::TestHelperUtil::allocator());
-    oss << "gid:" << iteration;
-    peb->setMsgGroupId(oss.str());
-}
-
-void validateGroupId(const size_t                    iteration,
-                     const bmqp::PutMessageIterator& putIter)
-{
-    BMQTST_ASSERT(putIter.hasMsgGroupId());
-    bmqp::Protocol::MsgGroupId msgGroupId;
-    BMQTST_ASSERT(putIter.extractMsgGroupId(&msgGroupId));
-    bmqu::MemOutStream oss(bmqtst::TestHelperUtil::allocator());
-    oss << "gid:" << iteration;
-    BMQTST_ASSERT_EQ(oss.str(), msgGroupId);
-}
-#endif
-
 bmqt::EventBuilderResult::Enum
 appendMessage(size_t                    iteration,
               bmqp::PutEventBuilder*    peb,
@@ -139,10 +119,6 @@ appendMessage(size_t                    iteration,
     if (0 == iteration || 0 == blobSize % 2) {
         peb->startMessage();
     }
-
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    setMsgGroupId(peb, iteration);
-#endif
 
     peb->setMessagePayload(&data.d_payload);
     peb->setMessageGUID(data.d_guid);
@@ -223,11 +199,6 @@ static void test1_breathingTest()
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    const bmqp::Protocol::MsgGroupId k_MSG_GROUP_ID(
-        "gid:0",
-        bmqtst::TestHelperUtil::allocator());
-#endif
     const int                k_PROPERTY_VAL_ENCODING = 3;
     const bsl::string        k_PROPERTY_VAL_ID       = "myCoolId";
     const unsigned int       k_CRC32                 = 123;
@@ -271,9 +242,6 @@ static void test1_breathingTest()
         obj.startMessage();
         obj.setMessagePayload(k_PAYLOAD_BIGGER, k_PAYLOAD_BIGGER_LEN);
         obj.setMessageProperties(&msgProps);
-#ifdef BMQ_ENABLE_MSG_GROUPID
-        obj.setMsgGroupId(k_MSG_GROUP_ID);
-#endif
 
         struct Test {
             int                d_line;
@@ -321,11 +289,6 @@ static void test1_breathingTest()
                 &bufferFactory,
                 bmqtst::TestHelperUtil::allocator(),
                 obj.compressionAlgorithmType());
-
-#ifdef BMQ_ENABLE_MSG_GROUPID
-            BMQTST_ASSERT_EQ(obj.msgGroupId().isNull(), false);
-            BMQTST_ASSERT_EQ(obj.msgGroupId().value(), k_MSG_GROUP_ID);
-#endif
 
             BMQTST_ASSERT_EQ(obj.unpackedMessageSize(), k_PAYLOAD_BIGGER_LEN);
 
@@ -414,15 +377,6 @@ static void test1_breathingTest()
                 BMQTST_ASSERT_EQ(prop.getPropertyAsInt64("timestamp"),
                                  test.d_timeStamp);
             }
-
-#ifdef BMQ_ENABLE_MSG_GROUPID
-            bmqp::Protocol::MsgGroupId msgGroupId(
-                bmqtst::TestHelperUtil::allocator());
-            BMQTST_ASSERT_EQ(putIter.hasMsgGroupId(), true);
-            BMQTST_ASSERT_EQ(putIter.extractMsgGroupId(&msgGroupId), true);
-            BMQTST_ASSERT_EQ(msgGroupId, k_MSG_GROUP_ID);
-            BMQTST_ASSERT_EQ(putIter.isValid(), true);
-#endif
         }
 
         BMQTST_ASSERT_EQ(true, putIter.isValid());
@@ -500,9 +454,6 @@ static void test1_breathingTest()
         obj.startMessage();
         obj.setMessagePayload(k_PAYLOAD_BIGGER, k_PAYLOAD_BIGGER_LEN);
         obj.setMessageProperties(&msgProps);
-#ifdef BMQ_ENABLE_MSG_GROUPID
-        obj.setMsgGroupId(k_MSG_GROUP_ID);
-#endif
 
         struct Test {
             int                d_line;
@@ -549,11 +500,6 @@ static void test1_breathingTest()
                 &bufferFactory,
                 bmqtst::TestHelperUtil::allocator(),
                 obj.compressionAlgorithmType());
-
-#ifdef BMQ_ENABLE_MSG_GROUPID
-            BMQTST_ASSERT_EQ(obj.msgGroupId().isNull(), false);
-            BMQTST_ASSERT_EQ(obj.msgGroupId().value(), k_MSG_GROUP_ID);
-#endif
 
             BMQTST_ASSERT_EQ(obj.unpackedMessageSize(), k_PAYLOAD_BIGGER_LEN);
 
@@ -644,14 +590,6 @@ static void test1_breathingTest()
                                  test.d_timeStamp);
             }
 
-#ifdef BMQ_ENABLE_MSG_GROUPID
-            bmqp::Protocol::MsgGroupId msgGroupId(
-                bmqtst::TestHelperUtil::allocator());
-            BMQTST_ASSERT_EQ(putIter.hasMsgGroupId(), true);
-            BMQTST_ASSERT_EQ(putIter.extractMsgGroupId(&msgGroupId), true);
-            BMQTST_ASSERT_EQ(msgGroupId, k_MSG_GROUP_ID);
-#endif
-
             BMQTST_ASSERT_EQ(putIter.isValid(), true);
         }
 
@@ -735,9 +673,6 @@ static void test1_breathingTest()
         obj.startMessage();
         obj.setMessagePayload(k_PAYLOAD_BIGGER, k_PAYLOAD_BIGGER_LEN);
         obj.setMessageProperties(&msgProps);
-#ifdef BMQ_ENABLE_MSG_GROUPID
-        obj.setMsgGroupId(k_MSG_GROUP_ID);
-#endif
 
         struct Test {
             int                d_line;
@@ -791,11 +726,6 @@ static void test1_breathingTest()
                 &bufferFactory,
                 bmqtst::TestHelperUtil::allocator(),
                 obj.compressionAlgorithmType());
-
-#ifdef BMQ_ENABLE_MSG_GROUPID
-            BMQTST_ASSERT_EQ(obj.msgGroupId().isNull(), false);
-            BMQTST_ASSERT_EQ(obj.msgGroupId().value(), k_MSG_GROUP_ID);
-#endif
 
             BMQTST_ASSERT_EQ(obj.unpackedMessageSize(), k_PAYLOAD_BIGGER_LEN);
 
@@ -893,14 +823,6 @@ static void test1_breathingTest()
                                  test.d_timeStamp);
             }
 
-#ifdef BMQ_ENABLE_MSG_GROUPID
-            bmqp::Protocol::MsgGroupId msgGroupId(
-                bmqtst::TestHelperUtil::allocator());
-            BMQTST_ASSERT_EQ(putIter.hasMsgGroupId(), true);
-            BMQTST_ASSERT_EQ(putIter.extractMsgGroupId(&msgGroupId), true);
-            BMQTST_ASSERT_EQ(msgGroupId, k_MSG_GROUP_ID);
-#endif
-
             BMQTST_ASSERT_EQ(putIter.isValid(), true);
         }
 
@@ -985,9 +907,6 @@ static void test1_breathingTest()
         obj.startMessage();
         obj.setMessagePayload(k_PAYLOAD, k_PAYLOAD_LEN);
         obj.setMessageProperties(&msgProps);
-#ifdef BMQ_ENABLE_MSG_GROUPID
-        obj.setMsgGroupId(k_MSG_GROUP_ID);
-#endif
 
         struct Test {
             int                d_line;
@@ -1041,11 +960,6 @@ static void test1_breathingTest()
                 &bufferFactory,
                 bmqtst::TestHelperUtil::allocator(),
                 bmqt::CompressionAlgorithmType::e_NONE);
-
-#ifdef BMQ_ENABLE_MSG_GROUPID
-            BMQTST_ASSERT_EQ(obj.msgGroupId().isNull(), false);
-            BMQTST_ASSERT_EQ(obj.msgGroupId().value(), k_MSG_GROUP_ID);
-#endif
 
             BMQTST_ASSERT_EQ(obj.unpackedMessageSize(), k_PAYLOAD_LEN);
 
@@ -1135,14 +1049,6 @@ static void test1_breathingTest()
                                  test.d_timeStamp);
             }
 
-#ifdef BMQ_ENABLE_MSG_GROUPID
-            bmqp::Protocol::MsgGroupId msgGroupId(
-                bmqtst::TestHelperUtil::allocator());
-            BMQTST_ASSERT_EQ(putIter.hasMsgGroupId(), true);
-            BMQTST_ASSERT_EQ(putIter.extractMsgGroupId(&msgGroupId), true);
-            BMQTST_ASSERT_EQ(msgGroupId, k_MSG_GROUP_ID);
-#endif
-
             BMQTST_ASSERT_EQ(putIter.isValid(), true);
         }
 
@@ -1222,9 +1128,6 @@ static void test1_breathingTest()
         obj.startMessage();
         obj.setMessagePayload(k_PAYLOAD_BIGGER, k_PAYLOAD_BIGGER_LEN);
         obj.setMessageProperties(&msgProps);
-#ifdef BMQ_ENABLE_MSG_GROUPID
-        obj.setMsgGroupId(k_MSG_GROUP_ID);
-#endif
 
         struct Test {
             int                d_line;
@@ -1272,11 +1175,6 @@ static void test1_breathingTest()
                 &bufferFactory,
                 bmqtst::TestHelperUtil::allocator(),
                 bmqt::CompressionAlgorithmType::e_NONE);
-
-#ifdef BMQ_ENABLE_MSG_GROUPID
-            BMQTST_ASSERT_EQ(obj.msgGroupId().isNull(), false);
-            BMQTST_ASSERT_EQ(obj.msgGroupId().value(), k_MSG_GROUP_ID);
-#endif
 
             BMQTST_ASSERT_EQ(obj.unpackedMessageSize(), k_PAYLOAD_BIGGER_LEN);
 
@@ -1366,14 +1264,6 @@ static void test1_breathingTest()
                                  test.d_timeStamp);
             }
 
-#ifdef BMQ_ENABLE_MSG_GROUPID
-            bmqp::Protocol::MsgGroupId msgGroupId(
-                bmqtst::TestHelperUtil::allocator());
-            BMQTST_ASSERT_EQ(putIter.hasMsgGroupId(), true);
-            BMQTST_ASSERT_EQ(putIter.extractMsgGroupId(&msgGroupId), true);
-            BMQTST_ASSERT_EQ(msgGroupId, k_MSG_GROUP_ID);
-#endif
-
             BMQTST_ASSERT_EQ(putIter.isValid(), true);
         }
 
@@ -1454,10 +1344,6 @@ static void test1_breathingTest()
                                     bmqtst::TestHelperUtil::allocator());
         obj.setMessagePayload(&payload);
 
-#ifdef BMQ_ENABLE_MSG_GROUPID
-        obj.setMsgGroupId(k_MSG_GROUP_ID);
-#endif
-
         struct Test {
             int                d_line;
             int                d_queueId;
@@ -1483,11 +1369,6 @@ static void test1_breathingTest()
                 .setMessageGUID(guid);
 
             BMQTST_ASSERT_EQ(obj.crc32c(), k_CRC32);
-
-#ifdef BMQ_ENABLE_MSG_GROUPID
-            BMQTST_ASSERT_EQ(obj.msgGroupId().isNull(), false);
-            BMQTST_ASSERT_EQ(obj.msgGroupId().value(), k_MSG_GROUP_ID);
-#endif
 
             BMQTST_ASSERT_EQ(obj.unpackedMessageSize(), payload.length());
 
@@ -1552,14 +1433,6 @@ static void test1_breathingTest()
             BMQTST_ASSERT_EQ(false, putIter.hasMessageProperties());
             BMQTST_ASSERT_EQ(0, putIter.loadMessageProperties(&prop));
             BMQTST_ASSERT_EQ(0, prop.numProperties());
-
-#ifdef BMQ_ENABLE_MSG_GROUPID
-            bmqp::Protocol::MsgGroupId msgGroupId(
-                bmqtst::TestHelperUtil::allocator());
-            BMQTST_ASSERT_EQ(putIter.hasMsgGroupId(), true);
-            BMQTST_ASSERT_EQ(putIter.extractMsgGroupId(&msgGroupId), true);
-            BMQTST_ASSERT_EQ(msgGroupId, k_MSG_GROUP_ID);
-#endif
 
             BMQTST_ASSERT_EQ(putIter.isValid(), true);
         }
@@ -1723,9 +1596,6 @@ static void test2_manipulators_one()
 
         BMQTST_ASSERT_EQ_D(dataIdx, obj.unpackedMessageSize(), 0);
 
-#ifdef BMQ_ENABLE_MSG_GROUPID
-        setMsgGroupId(&obj, dataIdx);
-#endif
         obj.setMessagePayload(data.d_payload, data.d_payloadLen);
 
         BMQTST_ASSERT_EQ(0,
@@ -1818,10 +1688,6 @@ static void test2_manipulators_one()
         BMQTST_ASSERT_EQ(bmqt::PropertyType::e_INT64, ptype);
         BMQTST_ASSERT_EQ(dataIndex * 10LL, p.getPropertyAsInt64("timestamp"));
 
-#ifdef BMQ_ENABLE_MSG_GROUPID
-        validateGroupId(dataIndex, putIter);
-#endif
-
         ++dataIndex;
     }
 
@@ -1852,13 +1718,8 @@ static void test3_eventTooBig()
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
-    bdlbb::Blob bigMsgPayload(&bufferFactory,
+    bdlbb::Blob       bigMsgPayload(&bufferFactory,
                               bmqtst::TestHelperUtil::allocator());
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    bmqp::Protocol::MsgGroupId k_MSG_GROUP_ID(
-        "gid:0",
-        bmqtst::TestHelperUtil::allocator());
-#endif
     const int         k_QID = 4321;
     bmqt::MessageGUID guid  = bmqp::MessageGUIDGenerator::testGUID();
 
@@ -1874,9 +1735,6 @@ static void test3_eventTooBig()
                               bmqtst::TestHelperUtil::allocator());
 
     obj.startMessage();
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    obj.setMsgGroupId(k_MSG_GROUP_ID);
-#endif
     obj.setMessageGUID(guid);
     obj.setMessagePayload(&bigMsgPayload);
 
@@ -1888,9 +1746,6 @@ static void test3_eventTooBig()
     const int   k_PAYLOAD_LEN = bsl::strlen(k_PAYLOAD);
 
     // Now append a "regular"-sized message
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    obj.setMsgGroupId(k_MSG_GROUP_ID);
-#endif
     obj.setMessageGUID(guid);
     obj.setMessagePayload(k_PAYLOAD, k_PAYLOAD_LEN);
     rc = obj.packMessage(k_QID);
@@ -1931,14 +1786,6 @@ static void test3_eventTooBig()
 
     BMQTST_ASSERT_EQ(res, 0);
     BMQTST_ASSERT_EQ(compareResult, 0);
-
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    BMQTST_ASSERT(putIter.hasMsgGroupId());
-
-    bmqp::Protocol::MsgGroupId msgGroupId(bmqtst::TestHelperUtil::allocator());
-    BMQTST_ASSERT_EQ(putIter.extractMsgGroupId(&msgGroupId), true);
-    BMQTST_ASSERT_EQ(msgGroupId, k_MSG_GROUP_ID);
-#endif
 
     BMQTST_ASSERT_EQ(0, putIter.next());  // we added only 1 msg
 }
@@ -2022,10 +1869,6 @@ static void test4_manipulators_two()
         BMQTST_ASSERT_EQ_D(dataIndex,
                            0,
                            bdlbb::BlobUtil::compare(payloadBlob, D.d_payload));
-
-#ifdef BMQ_ENABLE_MSG_GROUPID
-        validateGroupId(dataIndex, putIter);
-#endif
 
         ++dataIndex;
     }
@@ -2112,11 +1955,6 @@ static void test6_emptyBuilder()
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    bmqp::Protocol::MsgGroupId k_MSG_GROUP_ID(
-        "gid:0",
-        bmqtst::TestHelperUtil::allocator());
-#endif
 
     unsigned char zeroGuidBuf[bmqt::MessageGUID::e_SIZE_BINARY];
     bsl::memset(zeroGuidBuf, 0, bmqt::MessageGUID::e_SIZE_BINARY);
@@ -2135,9 +1973,6 @@ static void test6_emptyBuilder()
 
     BMQTST_ASSERT_EQ(obj.unpackedMessageSize(), 0);
     BMQTST_ASSERT_SAFE_FAIL(obj.setFlags(0));
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    BMQTST_ASSERT_SAFE_FAIL(obj.setMsgGroupId(k_MSG_GROUP_ID));
-#endif
     BMQTST_ASSERT_SAFE_FAIL(obj.setMessageGUID(zeroGuid));
     BMQTST_ASSERT_SAFE_FAIL(obj.setCrc32c(0));
     BMQTST_ASSERT_SAFE_FAIL(
@@ -2149,9 +1984,6 @@ static void test6_emptyBuilder()
     const int evtSize = sizeof(bmqp::EventHeader);
 
     BMQTST_ASSERT_EQ(obj.messageGUID(), zeroGuid);
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    BMQTST_ASSERT_EQ(obj.msgGroupId().isNull(), true);
-#endif
     BMQTST_ASSERT_EQ(obj.unpackedMessageSize(), 0);
     BMQTST_ASSERT_EQ(obj.eventSize(), evtSize);
     BMQTST_ASSERT_EQ(obj.flags(), 0);
@@ -2162,17 +1994,6 @@ static void test6_emptyBuilder()
     obj.setMessageGUID(onesGuid);
 
     BMQTST_ASSERT_EQ(obj.messageGUID(), onesGuid);
-
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    obj.setMsgGroupId(k_MSG_GROUP_ID);
-
-    BMQTST_ASSERT_EQ(obj.msgGroupId().isNull(), false);
-    BMQTST_ASSERT_EQ(obj.msgGroupId().value(), k_MSG_GROUP_ID);
-
-    obj.clearMsgGroupId();
-
-    BMQTST_ASSERT_EQ(obj.msgGroupId().isNull(), true);
-#endif
 
     static_cast<void>(k_PAYLOAD);  // suppress 'unused-variable' warning in
                                    // prod build
@@ -2207,11 +2028,6 @@ static void test7_multiplePackMessage()
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    const bmqp::Protocol::MsgGroupId k_MSG_GROUP_ID(
-        "gid:0",
-        bmqtst::TestHelperUtil::allocator());
-#endif
     const int                k_PROPERTY_VAL_ENCODING = 3;
     const bsl::string        k_PROPERTY_VAL_ID       = "myCoolId";
     const unsigned int       k_CRC32                 = 123;
@@ -2253,9 +2069,6 @@ static void test7_multiplePackMessage()
     obj.setMessagePayload(k_PAYLOAD_BIGGER, k_PAYLOAD_BIGGER_LEN)
         .setMessageProperties(&msgProps)
         .setMessageGUID(bmqp::MessageGUIDGenerator::testGUID())
-#ifdef BMQ_ENABLE_MSG_GROUPID
-        .setMsgGroupId(k_MSG_GROUP_ID)
-#endif
         .setCompressionAlgorithmType(bmqt::CompressionAlgorithmType::e_ZLIB);
 
     int d_q1 = 9876;
@@ -2277,11 +2090,6 @@ static void test7_multiplePackMessage()
         &bufferFactory,
         bmqtst::TestHelperUtil::allocator(),
         obj.compressionAlgorithmType());
-
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    BMQTST_ASSERT_EQ(obj.msgGroupId().isNull(), false);
-    BMQTST_ASSERT_EQ(obj.msgGroupId().value(), k_MSG_GROUP_ID);
-#endif
 
     BMQTST_ASSERT_EQ(obj.unpackedMessageSize(), k_PAYLOAD_BIGGER_LEN);
 
@@ -2365,13 +2173,6 @@ static void test7_multiplePackMessage()
         BMQTST_ASSERT_EQ(bmqt::PropertyType::e_INT64, ptype);
         BMQTST_ASSERT_EQ(prop.getPropertyAsInt64("timestamp"), k_TIME_STAMP);
 
-#ifdef BMQ_ENABLE_MSG_GROUPID
-        bmqp::Protocol::MsgGroupId msgGroupId(
-            bmqtst::TestHelperUtil::allocator());
-        BMQTST_ASSERT_EQ(putIter.hasMsgGroupId(), true);
-        BMQTST_ASSERT_EQ(putIter.extractMsgGroupId(&msgGroupId), true);
-        BMQTST_ASSERT_EQ(msgGroupId, k_MSG_GROUP_ID);
-#endif
         BMQTST_ASSERT_EQ(putIter.isValid(), true);
     }
 
@@ -2394,9 +2195,6 @@ static void test7_multiplePackMessage()
     BMQTST_ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS, rc);
     BMQTST_ASSERT_GT(obj.eventSize(), k_PAYLOAD_BIGGER_LEN);
     BMQTST_ASSERT_EQ(obj.messageCount(), 3);
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    BMQTST_ASSERT_EQ(obj.msgGroupId().isNull(), true);
-#endif
     BMQTST_ASSERT_EQ(obj.compressionAlgorithmType(),
                      bmqt::CompressionAlgorithmType::e_NONE);
     rawEvent.reset(obj.blob().get());
@@ -2424,9 +2222,6 @@ static void test7_multiplePackMessage()
     BMQTST_ASSERT_EQ(0, res);
     BMQTST_ASSERT_EQ(0, compareResult);
     BMQTST_ASSERT_EQ(false, putIter.hasMessageProperties());
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    BMQTST_ASSERT_EQ(false, putIter.hasMsgGroupId());
-#endif
     BMQTST_ASSERT_EQ(0, putIter.loadMessageProperties(&prop));
     BMQTST_ASSERT_EQ(0, prop.numProperties());
     BMQTST_ASSERT_EQ(true, putIter.isValid());

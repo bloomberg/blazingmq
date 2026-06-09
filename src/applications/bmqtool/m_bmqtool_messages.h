@@ -46,6 +46,7 @@
 
 #include <bsl_iosfwd.h>
 #include <bsl_limits.h>
+#include <bsl_type_traits.h>
 
 #include <bsl_ostream.h>
 #include <bsl_string.h>
@@ -6046,7 +6047,6 @@ class PostCommand {
     bsl::vector<bsl::string>     d_payload;
     bsl::vector<MessageProperty> d_messageProperties;
     bsl::string                  d_uri;
-    bsl::string                  d_groupid;
     bsl::string                  d_compressionAlgorithmType;
     bool                         d_async;
 
@@ -6062,28 +6062,24 @@ class PostCommand {
         ATTRIBUTE_ID_URI                        = 0,
         ATTRIBUTE_ID_PAYLOAD                    = 1,
         ATTRIBUTE_ID_ASYNC                      = 2,
-        ATTRIBUTE_ID_GROUPID                    = 3,
-        ATTRIBUTE_ID_COMPRESSION_ALGORITHM_TYPE = 4,
-        ATTRIBUTE_ID_MESSAGE_PROPERTIES         = 5
+        ATTRIBUTE_ID_COMPRESSION_ALGORITHM_TYPE = 3,
+        ATTRIBUTE_ID_MESSAGE_PROPERTIES         = 4
     };
 
-    enum { NUM_ATTRIBUTES = 6 };
+    enum { NUM_ATTRIBUTES = 5 };
 
     enum {
         ATTRIBUTE_INDEX_URI                        = 0,
         ATTRIBUTE_INDEX_PAYLOAD                    = 1,
         ATTRIBUTE_INDEX_ASYNC                      = 2,
-        ATTRIBUTE_INDEX_GROUPID                    = 3,
-        ATTRIBUTE_INDEX_COMPRESSION_ALGORITHM_TYPE = 4,
-        ATTRIBUTE_INDEX_MESSAGE_PROPERTIES         = 5
+        ATTRIBUTE_INDEX_COMPRESSION_ALGORITHM_TYPE = 3,
+        ATTRIBUTE_INDEX_MESSAGE_PROPERTIES         = 4
     };
 
     // CONSTANTS
     static const char CLASS_NAME[];
 
     static const bool DEFAULT_INITIALIZER_ASYNC;
-
-    static const char DEFAULT_INITIALIZER_GROUPID[];
 
     static const char DEFAULT_INITIALIZER_COMPRESSION_ALGORITHM_TYPE[];
 
@@ -6190,10 +6186,6 @@ class PostCommand {
     // Return a reference to the modifiable "Async" attribute of this
     // object.
 
-    bsl::string& groupid();
-    // Return a reference to the modifiable "Groupid" attribute of this
-    // object.
-
     bsl::string& compressionAlgorithmType();
     // Return a reference to the modifiable "CompressionAlgorithmType"
     // attribute of this object.
@@ -6255,10 +6247,6 @@ class PostCommand {
 
     bool async() const;
     // Return the value of the "Async" attribute of this object.
-
-    const bsl::string& groupid() const;
-    // Return a reference offering non-modifiable access to the "Groupid"
-    // attribute of this object.
 
     const bsl::string& compressionAlgorithmType() const;
     // Return a reference offering non-modifiable access to the
@@ -11779,7 +11767,6 @@ void PostCommand::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     hashAppend(hashAlgorithm, this->uri());
     hashAppend(hashAlgorithm, this->payload());
     hashAppend(hashAlgorithm, this->async());
-    hashAppend(hashAlgorithm, this->groupid());
     hashAppend(hashAlgorithm, this->compressionAlgorithmType());
     hashAppend(hashAlgorithm, this->messageProperties());
 }
@@ -11787,7 +11774,7 @@ void PostCommand::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
 inline bool PostCommand::isEqualTo(const PostCommand& rhs) const
 {
     return this->uri() == rhs.uri() && this->payload() == rhs.payload() &&
-           this->async() == rhs.async() && this->groupid() == rhs.groupid() &&
+           this->async() == rhs.async() &&
            this->compressionAlgorithmType() ==
                rhs.compressionAlgorithmType() &&
            this->messageProperties() == rhs.messageProperties();
@@ -11812,12 +11799,6 @@ int PostCommand::manipulateAttributes(t_MANIPULATOR& manipulator)
     }
 
     ret = manipulator(&d_async, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ASYNC]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_groupid,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_GROUPID]);
     if (ret) {
         return ret;
     }
@@ -11855,10 +11836,6 @@ int PostCommand::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
     case ATTRIBUTE_ID_ASYNC: {
         return manipulator(&d_async,
                            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ASYNC]);
-    }
-    case ATTRIBUTE_ID_GROUPID: {
-        return manipulator(&d_groupid,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_GROUPID]);
     }
     case ATTRIBUTE_ID_COMPRESSION_ALGORITHM_TYPE: {
         return manipulator(
@@ -11905,11 +11882,6 @@ inline bool& PostCommand::async()
     return d_async;
 }
 
-inline bsl::string& PostCommand::groupid()
-{
-    return d_groupid;
-}
-
 inline bsl::string& PostCommand::compressionAlgorithmType()
 {
     return d_compressionAlgorithmType;
@@ -11937,11 +11909,6 @@ int PostCommand::accessAttributes(t_ACCESSOR& accessor) const
     }
 
     ret = accessor(d_async, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ASYNC]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_groupid, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_GROUPID]);
     if (ret) {
         return ret;
     }
@@ -11977,10 +11944,6 @@ int PostCommand::accessAttribute(t_ACCESSOR& accessor, int id) const
     }
     case ATTRIBUTE_ID_ASYNC: {
         return accessor(d_async, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ASYNC]);
-    }
-    case ATTRIBUTE_ID_GROUPID: {
-        return accessor(d_groupid,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_GROUPID]);
     }
     case ATTRIBUTE_ID_COMPRESSION_ALGORITHM_TYPE: {
         return accessor(
@@ -12025,11 +11988,6 @@ inline const bsl::vector<bsl::string>& PostCommand::payload() const
 inline bool PostCommand::async() const
 {
     return d_async;
-}
-
-inline const bsl::string& PostCommand::groupid() const
-{
-    return d_groupid;
 }
 
 inline const bsl::string& PostCommand::compressionAlgorithmType() const
@@ -12623,6 +12581,6 @@ inline bool Command::isUndefinedValue() const
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY BLP_BAS_CODEGEN_2026.02.05
+// GENERATED BY BLP_BAS_CODEGEN_2026.04.02
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package m_bmqtool --msgComponent messages bmqtoolcmd.xsd

@@ -78,12 +78,6 @@ void printMessage(bsl::ostream& out, int index, const bmqa::Message& message)
         message.loadProperties(&properties);
         out << ", with properties: " << properties;
     }
-
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    if (message.hasGroupId()) {
-        out << ", with Group Id: " << message.groupId();
-    }
-#endif
 }
 
 }  // close unnamed namespace
@@ -493,15 +487,6 @@ void Interactive::processCommand(const PostCommand& command, bool hasMPs)
         // Set data
         msg.setDataRef(command.payload()[i].c_str(),
                        command.payload()[i].size());
-
-        if (!command.groupid().empty()) {
-#ifdef BMQ_ENABLE_MSG_GROUPID
-            msg.setGroupId(command.groupid().c_str());
-#else
-            BALL_LOG_WARN << "'MsgGroupId' field is not supported. Ignoring "
-                          << "it.";
-#endif
-        }
 
         bmqt::EventBuilderResult::Enum ebr = eventBuilder.packMessage(queueId);
         if (bmqt::EventBuilderResult::e_SUCCESS != ebr) {

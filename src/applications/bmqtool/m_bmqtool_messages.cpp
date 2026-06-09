@@ -5068,8 +5068,6 @@ const char PostCommand::CLASS_NAME[] = "PostCommand";
 
 const bool PostCommand::DEFAULT_INITIALIZER_ASYNC = false;
 
-const char PostCommand::DEFAULT_INITIALIZER_GROUPID[] = "";
-
 const char PostCommand::DEFAULT_INITIALIZER_COMPRESSION_ALGORITHM_TYPE[] =
     "none";
 
@@ -5089,11 +5087,6 @@ const bdlat_AttributeInfo PostCommand::ATTRIBUTE_INFO_ARRAY[] = {
      sizeof("async") - 1,
      "",
      bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
-    {ATTRIBUTE_ID_GROUPID,
-     "groupid",
-     sizeof("groupid") - 1,
-     "",
-     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_COMPRESSION_ALGORITHM_TYPE,
      "compressionAlgorithmType",
      sizeof("compressionAlgorithmType") - 1,
@@ -5110,7 +5103,7 @@ const bdlat_AttributeInfo PostCommand::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo* PostCommand::lookupAttributeInfo(const char* name,
                                                             int nameLength)
 {
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < 5; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             PostCommand::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -5131,8 +5124,6 @@ const bdlat_AttributeInfo* PostCommand::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PAYLOAD];
     case ATTRIBUTE_ID_ASYNC:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ASYNC];
-    case ATTRIBUTE_ID_GROUPID:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_GROUPID];
     case ATTRIBUTE_ID_COMPRESSION_ALGORITHM_TYPE:
         return &ATTRIBUTE_INFO_ARRAY
             [ATTRIBUTE_INDEX_COMPRESSION_ALGORITHM_TYPE];
@@ -5148,7 +5139,6 @@ PostCommand::PostCommand(bslma::Allocator* basicAllocator)
 : d_payload(basicAllocator)
 , d_messageProperties(basicAllocator)
 , d_uri(basicAllocator)
-, d_groupid(DEFAULT_INITIALIZER_GROUPID, basicAllocator)
 , d_compressionAlgorithmType(DEFAULT_INITIALIZER_COMPRESSION_ALGORITHM_TYPE,
                              basicAllocator)
 , d_async(DEFAULT_INITIALIZER_ASYNC)
@@ -5160,7 +5150,6 @@ PostCommand::PostCommand(const PostCommand& original,
 : d_payload(original.d_payload, basicAllocator)
 , d_messageProperties(original.d_messageProperties, basicAllocator)
 , d_uri(original.d_uri, basicAllocator)
-, d_groupid(original.d_groupid, basicAllocator)
 , d_compressionAlgorithmType(original.d_compressionAlgorithmType,
                              basicAllocator)
 , d_async(original.d_async)
@@ -5173,7 +5162,6 @@ PostCommand::PostCommand(PostCommand&& original) noexcept
 : d_payload(bsl::move(original.d_payload)),
   d_messageProperties(bsl::move(original.d_messageProperties)),
   d_uri(bsl::move(original.d_uri)),
-  d_groupid(bsl::move(original.d_groupid)),
   d_compressionAlgorithmType(bsl::move(original.d_compressionAlgorithmType)),
   d_async(bsl::move(original.d_async))
 {
@@ -5184,7 +5172,6 @@ PostCommand::PostCommand(PostCommand&&     original,
 : d_payload(bsl::move(original.d_payload), basicAllocator)
 , d_messageProperties(bsl::move(original.d_messageProperties), basicAllocator)
 , d_uri(bsl::move(original.d_uri), basicAllocator)
-, d_groupid(bsl::move(original.d_groupid), basicAllocator)
 , d_compressionAlgorithmType(bsl::move(original.d_compressionAlgorithmType),
                              basicAllocator)
 , d_async(bsl::move(original.d_async))
@@ -5204,7 +5191,6 @@ PostCommand& PostCommand::operator=(const PostCommand& rhs)
         d_uri                      = rhs.d_uri;
         d_payload                  = rhs.d_payload;
         d_async                    = rhs.d_async;
-        d_groupid                  = rhs.d_groupid;
         d_compressionAlgorithmType = rhs.d_compressionAlgorithmType;
         d_messageProperties        = rhs.d_messageProperties;
     }
@@ -5220,7 +5206,6 @@ PostCommand& PostCommand::operator=(PostCommand&& rhs)
         d_uri                      = bsl::move(rhs.d_uri);
         d_payload                  = bsl::move(rhs.d_payload);
         d_async                    = bsl::move(rhs.d_async);
-        d_groupid                  = bsl::move(rhs.d_groupid);
         d_compressionAlgorithmType = bsl::move(rhs.d_compressionAlgorithmType);
         d_messageProperties        = bsl::move(rhs.d_messageProperties);
     }
@@ -5233,8 +5218,7 @@ void PostCommand::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_uri);
     bdlat_ValueTypeFunctions::reset(&d_payload);
-    d_async   = DEFAULT_INITIALIZER_ASYNC;
-    d_groupid = DEFAULT_INITIALIZER_GROUPID;
+    d_async = DEFAULT_INITIALIZER_ASYNC;
     d_compressionAlgorithmType =
         DEFAULT_INITIALIZER_COMPRESSION_ALGORITHM_TYPE;
     bdlat_ValueTypeFunctions::reset(&d_messageProperties);
@@ -5250,7 +5234,6 @@ PostCommand::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     printer.printAttribute("uri", this->uri());
     printer.printAttribute("payload", this->payload());
     printer.printAttribute("async", this->async());
-    printer.printAttribute("groupid", this->groupid());
     printer.printAttribute("compressionAlgorithmType",
                            this->compressionAlgorithmType());
     printer.printAttribute("messageProperties", this->messageProperties());
@@ -6889,3 +6872,7 @@ const char* Command::selectionName() const
 }
 }  // close package namespace
 }  // close enterprise namespace
+
+// GENERATED BY BLP_BAS_CODEGEN_2026.04.02
+// USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
+// --noIdent --package m_bmqtool --msgComponent messages bmqtoolcmd.xsd

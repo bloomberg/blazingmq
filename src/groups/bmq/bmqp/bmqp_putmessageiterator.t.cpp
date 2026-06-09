@@ -18,7 +18,6 @@
 // BMQ
 #include <bmqp_messageguidgenerator.h>
 #include <bmqp_messageproperties.h>
-#include <bmqp_optionutil.h>
 #include <bmqp_protocol.h>
 #include <bmqp_protocolutil.h>
 #include <bmqp_puttester.h>
@@ -872,10 +871,8 @@ static void test4_invalidPutEvent()
         bdlbb::Blob options;
         eventBlob.setLength(1);
         int rc = iter.loadOptions(&options);
-        BMQTST_ASSERT_LT(rc, 0);
-
-        PVV("Error returned: " << rc);
-        iter.dumpBlob(bsl::cout);
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(options.length(), 0);
     }
 }
 
@@ -974,32 +971,10 @@ static void test5_putEventWithMultipleMessages()
                                0,
                                bdlbb::BlobUtil::compare(appData, D.d_appData));
 
-            const bool hasMsgGroupId = iter.hasMsgGroupId();
-            BMQTST_ASSERT_EQ_D(index, hasMsgGroupId, !D.d_msgGroupId.isNull());
-            if (hasMsgGroupId) {
-                bmqp::Protocol::MsgGroupId msgGroupId(
-                    bmqtst::TestHelperUtil::allocator());
-                BMQTST_ASSERT_EQ_D(index,
-                                   true,
-                                   iter.extractMsgGroupId(&msgGroupId));
-
-                BMQTST_ASSERT_EQ_D(index,
-                                   msgGroupId,
-                                   D.d_msgGroupId.valueOr(""));
-            }
-            typedef bmqp::OptionUtil::OptionMeta OptionMeta;
-            const OptionMeta                     msgGroupIdOption =
-                hasMsgGroupId ? OptionMeta::forOptionWithPadding(
-                                    bmqp::OptionType::e_MSG_GROUP_ID,
-                                    D.d_msgGroupId.value().length())
-                                                  : OptionMeta::forNullOption();
-
-            const int optionsSize = hasMsgGroupId ? msgGroupIdOption.size()
-                                                  : 0;
+            BMQTST_ASSERT_EQ_D(index, false, iter.hasMsgGroupId());
 
             BMQTST_ASSERT_EQ_D(index, 0, iter.loadOptions(&options));
-
-            BMQTST_ASSERT_EQ_D(index, optionsSize, options.length());
+            BMQTST_ASSERT_EQ_D(index, 0, options.length());
 
             ++index;
         }
@@ -1087,32 +1062,10 @@ static void test5_putEventWithMultipleMessages()
                                0,
                                bdlbb::BlobUtil::compare(appData, D.d_appData));
 
-            const bool hasMsgGroupId = iter.hasMsgGroupId();
-            BMQTST_ASSERT_EQ_D(index, hasMsgGroupId, !D.d_msgGroupId.isNull());
-            if (hasMsgGroupId) {
-                bmqp::Protocol::MsgGroupId msgGroupId(
-                    bmqtst::TestHelperUtil::allocator());
-                BMQTST_ASSERT_EQ_D(index,
-                                   true,
-                                   iter.extractMsgGroupId(&msgGroupId));
-
-                BMQTST_ASSERT_EQ_D(index,
-                                   msgGroupId,
-                                   D.d_msgGroupId.valueOr(""));
-            }
-            typedef bmqp::OptionUtil::OptionMeta OptionMeta;
-            const OptionMeta                     msgGroupIdOption =
-                hasMsgGroupId ? OptionMeta::forOptionWithPadding(
-                                    bmqp::OptionType::e_MSG_GROUP_ID,
-                                    D.d_msgGroupId.value().length())
-                                                  : OptionMeta::forNullOption();
-
-            const int optionsSize = hasMsgGroupId ? msgGroupIdOption.size()
-                                                  : 0;
+            BMQTST_ASSERT_EQ_D(index, false, iter.hasMsgGroupId());
 
             BMQTST_ASSERT_EQ_D(index, 0, iter.loadOptions(&options));
-
-            BMQTST_ASSERT_EQ_D(index, optionsSize, options.length());
+            BMQTST_ASSERT_EQ_D(index, 0, options.length());
 
             ++index;
         }
@@ -1215,18 +1168,7 @@ static void test6_putEventWithZeroLengthPutMessages()
                                0,
                                bdlbb::BlobUtil::compare(appData, D.d_appData));
 
-            const bool hasMsgGroupId = iter.hasMsgGroupId();
-            BMQTST_ASSERT_EQ_D(index, hasMsgGroupId, !D.d_msgGroupId.isNull());
-            if (hasMsgGroupId) {
-                bmqp::Protocol::MsgGroupId msgGroupId(
-                    bmqtst::TestHelperUtil::allocator());
-                BMQTST_ASSERT_EQ_D(index,
-                                   true,
-                                   iter.extractMsgGroupId(&msgGroupId));
-                BMQTST_ASSERT_EQ_D(index,
-                                   msgGroupId,
-                                   D.d_msgGroupId.valueOr(""));
-            }
+            BMQTST_ASSERT_EQ_D(index, false, iter.hasMsgGroupId());
 
             ++index;
         }

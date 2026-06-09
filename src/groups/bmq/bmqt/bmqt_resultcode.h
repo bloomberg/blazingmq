@@ -372,9 +372,7 @@ struct EventBuilderResult {
         e_PAYLOAD_TOO_BIG        = -104,
         e_PAYLOAD_EMPTY          = -105,
         e_OPTION_TOO_BIG         = -106,
-#ifdef BMQ_ENABLE_MSG_GROUPID
-        e_INVALID_MSG_GROUP_ID = -107,
-#endif
+
         e_QUEUE_SUSPENDED = -108
     };
 

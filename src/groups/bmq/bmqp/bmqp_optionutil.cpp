@@ -245,21 +245,7 @@ bool OptionUtil::loadOptionsPosition(int*                      optionsSize,
 bmqt::EventBuilderResult::Enum OptionUtil::isValidMsgGroupId(
     BSLA_MAYBE_UNUSED const Protocol::MsgGroupId& msgGroupId)
 {
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    const int length = msgGroupId.length();
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(length == 0)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return bmqt::EventBuilderResult::e_INVALID_MSG_GROUP_ID;  // RETURN
-    }
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-            length > Protocol::k_MSG_GROUP_ID_MAX_LENGTH)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return bmqt::EventBuilderResult::e_INVALID_MSG_GROUP_ID;  // RETURN
-    }
-    return bmqt::EventBuilderResult::e_SUCCESS;
-#else
     return bmqt::EventBuilderResult::e_UNKNOWN;
-#endif
 }
 
 }  // close package namespace

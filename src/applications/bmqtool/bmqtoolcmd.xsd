@@ -90,7 +90,6 @@
       <element name='uri'                      type='string'/>
       <element name='payload'                  type='string'  maxOccurs='unbounded'/>
       <element name='async'                    type='boolean' default='false'/>
-      <element name='groupid'                  type='string' default=''/>
       <element name='compressionAlgorithmType' type='string' default='none'/>
       <element name='messageProperties'        type='tns:MessageProperty' maxOccurs='unbounded'/>
     </sequence>
@@ -258,7 +257,7 @@
       <element name='value'     type='string'/>
       <element name='type'      type='tns:MessagePropertyType' default='E_STRING'/>
     </sequence>
-  </complexType>  
+  </complexType>
   <simpleType name='MessagePropertyType'>
     <annotation>
       <documentation>
@@ -269,5 +268,5 @@
       <enumeration value='E_STRING' bdem:id='0'/>
       <enumeration value='E_INT'    bdem:id='1'/>
     </restriction>
-  </simpleType>  
+  </simpleType>
 </schema>

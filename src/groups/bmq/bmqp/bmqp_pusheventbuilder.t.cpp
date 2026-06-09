@@ -57,17 +57,10 @@ using namespace bsl;
 // ----------------------------------------------------------------------------
 namespace {
 
-#ifdef BMQ_ENABLE_MSG_GROUPID
-typedef bdlb::NullableValue<bmqp::Protocol::MsgGroupId> NullableMsgGroupId;
-#endif
-
 struct Data {
     bmqt::MessageGUID                  d_guid;
     int                                d_qid;
-    bmqp::Protocol::SubQueueInfosArray d_subQueueInfos;
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    NullableMsgGroupId d_msgGroupId;
-#endif
+    bmqp::Protocol::SubQueueInfosArray   d_subQueueInfos;
     bdlbb::Blob                          d_payload;
     int                                  d_flags;
     bmqt::CompressionAlgorithmType::Enum d_compressionAlgorithmType;
@@ -85,9 +78,6 @@ Data::Data(bdlbb::BlobBufferFactory* bufferFactory,
            bslma::Allocator*         allocator)
 : d_qid(-1)
 , d_subQueueInfos(allocator)
-#ifdef BMQ_ENABLE_MSG_GROUPID
-, d_msgGroupId(allocator)
-#endif
 , d_payload(bufferFactory, allocator)
 , d_flags(0)
 , d_compressionAlgorithmType(bmqt::CompressionAlgorithmType::e_NONE)
@@ -99,9 +89,6 @@ Data::Data(const Data& other, bslma::Allocator* allocator)
 : d_guid(other.d_guid)
 , d_qid(other.d_qid)
 , d_subQueueInfos(other.d_subQueueInfos, allocator)
-#ifdef BMQ_ENABLE_MSG_GROUPID
-, d_msgGroupId(other.d_msgGroupId, allocator)
-#endif
 , d_payload(other.d_payload, allocator)
 , d_flags(other.d_flags)
 , d_compressionAlgorithmType(other.d_compressionAlgorithmType)
@@ -148,19 +135,6 @@ void generateSubQueueInfos(bmqp::Protocol::SubQueueInfosArray* subQueueInfos,
     BSLS_ASSERT_SAFE(subQueueInfos->size() ==
                      static_cast<unsigned int>(numSubQueueInfos));
 }
-
-#ifdef BMQ_ENABLE_MSG_GROUPID
-/// Populate the specified `msgGroupId` with a random Group Id.
-static void generateMsgGroupId(bmqp::Protocol::MsgGroupId* msgGroupId)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_OPT(msgGroupId);
-
-    bmqu::MemOutStream oss(bmqtst::TestHelperUtil::allocator());
-    oss << "gid:" << generateRandomInteger(0, 120);
-    *msgGroupId = oss.str();
-}
-#endif
 
 /// Append at least `atLeastLen` bytes to the specified `blob` and populate
 /// the specified `payloadLen` with the number of bytes appended.
@@ -209,18 +183,7 @@ appendMessage(size_t                    iteration,
         return rc;  // RETURN
     }
 
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    // Every 3rd iteration we don't add a Group Id.
-    if (iteration % 3) {
-        generateMsgGroupId(&data.d_msgGroupId.makeValue());
-        rc = peb->addMsgGroupIdOption(data.d_msgGroupId.value());
-        if (rc != bmqt::EventBuilderResult::e_SUCCESS) {
-            return rc;  // RETURN
-        }
-    }
-#endif
-
-    bdlbb::Blob payload(bufferFactory, allocator);
+    bdlbb::Blob       payload(bufferFactory, allocator);
     const int         blobSize = generateRandomInteger(1, 1024);
     const bsl::string str(blobSize, 'x', allocator);
     bdlbb::BlobUtil::append(&payload, str.c_str(), blobSize);
@@ -726,20 +689,6 @@ static void test4_buildEventWithMultipleMessages()
                                    retrievedSQInfos[i]);
             }
         }
-#ifdef BMQ_ENABLE_MSG_GROUPID
-        const bool hasMsgGroupId = !D.d_msgGroupId.isNull();
-        BMQTST_ASSERT_EQ(hasMsgGroupId,
-                         optionsView.find(bmqp::OptionType::e_MSG_GROUP_ID) !=
-                             optionsView.end());
-        if (hasMsgGroupId) {
-            bmqp::Protocol::MsgGroupId retrievedMsgGroupId(
-                bmqtst::TestHelperUtil::allocator());
-            BMQTST_ASSERT_EQ(
-                0,
-                optionsView.loadMsgGroupIdOption(&retrievedMsgGroupId));
-            BMQTST_ASSERT_EQ(D.d_msgGroupId.value(), retrievedMsgGroupId);
-        }
-#endif
         ++dataIndex;
     }
 
@@ -1010,28 +959,6 @@ static void test7_buildEventOptionTooBig()
         subQueueInfos);
 
     BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_OPTION_TOO_BIG);
-
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    // Add another option larger than maximum allowed
-    bmqp::Protocol::MsgGroupId msgGrIdBig1(
-        bmqp::OptionHeader::k_MAX_SIZE + 1,
-        'x',
-        bmqtst::TestHelperUtil::allocator());
-
-    rc = peb.addMsgGroupIdOption(msgGrIdBig1);
-
-    BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_OPTION_TOO_BIG);
-
-    bmqp::Protocol::MsgGroupId msgGrIdBig2(
-        bmqp::Protocol::k_MSG_GROUP_ID_MAX_LENGTH + 1,
-        'x',
-        bmqtst::TestHelperUtil::allocator());
-
-    rc = peb.addMsgGroupIdOption(msgGrIdBig2);
-
-    BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_INVALID_MSG_GROUP_ID);
-#endif
-
     BMQTST_ASSERT_EQ(sizeof(bmqp::EventHeader),
                      static_cast<size_t>(peb.eventSize()));
     BMQTST_ASSERT_EQ(sizeof(bmqp::EventHeader),

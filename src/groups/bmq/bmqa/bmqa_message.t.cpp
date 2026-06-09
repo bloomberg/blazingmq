@@ -108,18 +108,12 @@ static void test1_messageOnStackIsInvalid()
 
     BMQTST_ASSERT_SAFE_FAIL(msg.queueId());
     BMQTST_ASSERT_SAFE_FAIL(msg.correlationId());
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    BMQTST_ASSERT_SAFE_FAIL(msg.groupId());
-#endif
     BMQTST_ASSERT_SAFE_FAIL(msg.messageGUID());
     BMQTST_ASSERT_SAFE_FAIL(msg.confirmationCookie());
     BMQTST_ASSERT_SAFE_FAIL(msg.ackStatus());
     BMQTST_ASSERT_SAFE_FAIL(msg.dataSize());
     BMQTST_ASSERT_SAFE_FAIL(msg.totalSize());
     BMQTST_ASSERT_SAFE_FAIL(msg.hasProperties());
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    BMQTST_ASSERT_SAFE_FAIL(msg.hasGroupId());
-#endif
 
     PV("Cloned object - uninitialized");
 
@@ -127,18 +121,12 @@ static void test1_messageOnStackIsInvalid()
 
     BMQTST_ASSERT_SAFE_FAIL(clone.queueId());
     BMQTST_ASSERT_SAFE_FAIL(clone.correlationId());
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    BMQTST_ASSERT_SAFE_FAIL(clone.groupId());
-#endif
     BMQTST_ASSERT_SAFE_FAIL(clone.messageGUID());
     BMQTST_ASSERT_SAFE_FAIL(clone.confirmationCookie());
     BMQTST_ASSERT_SAFE_FAIL(clone.ackStatus());
     BMQTST_ASSERT_SAFE_FAIL(clone.dataSize());
     BMQTST_ASSERT_SAFE_FAIL(clone.totalSize());
     BMQTST_ASSERT_SAFE_FAIL(clone.hasProperties());
-#ifdef BMQ_ENABLE_MSG_GROUPID
-    BMQTST_ASSERT_SAFE_FAIL(clone.hasGroupId());
-#endif
 }
 
 static void test2_validPushMessagePrint()

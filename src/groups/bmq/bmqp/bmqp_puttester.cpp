@@ -18,7 +18,6 @@
 #include <bmqscm_version.h>
 // BMQ
 #include <bmqp_compression.h>
-#include <bmqp_optionutil.h>
 #include <bmqp_protocol.h>
 
 #include <bmqu_memoutstream.h>
@@ -43,7 +42,6 @@ PutTester::Data::Data(bdlbb::BlobBufferFactory* bufferFactory,
 : d_payload(bufferFactory, allocator)
 , d_properties(bufferFactory, allocator)
 , d_appData(bufferFactory, allocator)
-, d_msgGroupId(allocator)
 , d_queueId(-1)
 , d_corrId(-1)
 , d_msgLen(-1)
@@ -57,7 +55,6 @@ PutTester::Data::Data(const Data& other, bslma::Allocator* allocator)
 : d_payload(other.d_payload, allocator)
 , d_properties(other.d_properties, allocator)
 , d_appData(other.d_appData, allocator)
-, d_msgGroupId(other.d_msgGroupId, allocator)
 , d_queueId(other.d_queueId)
 , d_corrId(other.d_corrId)
 , d_msgLen(other.d_msgLen)
@@ -179,29 +176,10 @@ void PutTester::populateBlob(bdlbb::Blob*              blob,
         data.d_propLen = paddedPropsNumWords * bmqp::Protocol::k_WORD_SIZE;
         // Recall that properties' length retrieved from the iterator
         // includes padding.
-        const bool hasMsgGroupId = (i % 3);
-        if (hasMsgGroupId) {
-            // Don't add Group Id, once every 3 iterations
-            bmqu::MemOutStream oss(allocator);
-            oss << "gid:" << i;
-            data.d_msgGroupId.makeValue(oss.str());
-        }
-        const NullableMsgGroupId& msgGroupId = data.d_msgGroupId;
-
-        typedef bmqp::OptionUtil::OptionMeta OptionMeta;
-        const OptionMeta                     msgGroupIdOption =
-            hasMsgGroupId ? OptionMeta::forOptionWithPadding(
-                                bmqp::OptionType::e_MSG_GROUP_ID,
-                                msgGroupId.value().length())
-                                              : OptionMeta::forNullOption();
-
-        const int optionsWords = hasMsgGroupId ? (msgGroupIdOption.size() /
-                                                  bmqp::Protocol::k_WORD_SIZE)
-                                               : 0;
 
         // PutHeader
         bmqp::PutHeader ph;
-        ph.setOptionsWords(optionsWords);
+        ph.setOptionsWords(0);
         ph.setHeaderWords(sizeof(bmqp::PutHeader) /
                           bmqp::Protocol::k_WORD_SIZE);
         ph.setQueueId(data.d_queueId);
@@ -209,12 +187,12 @@ void PutTester::populateBlob(bdlbb::Blob*              blob,
         ph.setCompressionAlgorithmType(cat);
         if (cat != bmqt::CompressionAlgorithmType::e_NONE) {
             BSLS_ASSERT_SAFE(paddedCompressedAppDataNumWords > 0);
-            ph.setMessageWords(ph.headerWords() + optionsWords +
+            ph.setMessageWords(ph.headerWords() +
                                paddedCompressedAppDataNumWords);
         }
         else {
-            ph.setMessageWords(ph.headerWords() + optionsWords +
-                               paddedPropsNumWords + paddedPayloadNumWords);
+            ph.setMessageWords(ph.headerWords() + paddedPropsNumWords +
+                               paddedPayloadNumWords);
         }
 
         // Set the 'e_ACK_REQUESTED' and 'e_MESSAGE_PROPERTIES' flags.
@@ -234,13 +212,6 @@ void PutTester::populateBlob(bdlbb::Blob*              blob,
                                 reinterpret_cast<const char*>(&ph),
                                 ph.headerWords() *
                                     bmqp::Protocol::k_WORD_SIZE);
-
-        if (hasMsgGroupId) {
-            BSLS_ASSERT_SAFE(!msgGroupId.isNull());
-            bmqp::OptionUtil::OptionsBox options;
-            options.add(blob, msgGroupId.value().data(), msgGroupIdOption);
-            eventLength += msgGroupIdOption.size();
-        }
 
         if (cat != bmqt::CompressionAlgorithmType::e_NONE) {
             bdlbb::BlobUtil::append(blob, data.d_compressedAppData);
