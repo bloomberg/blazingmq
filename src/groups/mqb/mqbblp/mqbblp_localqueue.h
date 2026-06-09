@@ -28,7 +28,6 @@
 #include <mqbi_queue.h>
 
 // BMQ
-#include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_protocol.h>
 #include <bmqt_messageguid.h>
 #include <bmqu_throttledaction.h>
@@ -49,6 +48,10 @@
 namespace BloombergLP {
 
 // FORWARD DECLARATION
+namespace bmqp_ctrlmsg {
+class QueueHandleParameters;
+class StreamParameters;
+}
 namespace mqbcmd {
 class LocalQueue;
 }

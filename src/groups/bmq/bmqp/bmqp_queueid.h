@@ -25,8 +25,6 @@
 // which is used as a key for a queue.
 //
 
-// BMQ
-
 // BDE
 #include <bsl_iosfwd.h>
 #include <bslh_hash.h>

@@ -22,6 +22,7 @@
 #include <bmqp_ackeventbuilder.h>
 #include <bmqp_blobpoolutil.h>
 #include <bmqp_confirmeventbuilder.h>
+#include <bmqp_conversionutil.h>
 #include <bmqp_crc32c.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_event.h>
@@ -75,6 +76,23 @@ using bmqimp::ManualHostHealthMonitor;
 //                            TEST HELPERS UTILITY
 // ----------------------------------------------------------------------------
 namespace {
+
+const bmqp_ctrlmsg::ConsumerInfo&
+consumerInfo(const bmqp_ctrlmsg::StreamParameters& from)
+{
+    size_t n = from.subscriptions().size();
+
+    if (n == 0) {
+        static const bmqp_ctrlmsg::ConsumerInfo& defaultValues = *(
+            new bmqp_ctrlmsg::ConsumerInfo());
+
+        return defaultValues;
+    }
+
+    BSLS_ASSERT_SAFE(from.subscriptions()[0].consumers().size() > 0);
+
+    return from.subscriptions()[0].consumers()[0];
+}
 
 // CONSTANTS
 const char k_URI[] = "bmq://ts.trades.myapp/my.queue?id=my.app";
@@ -302,15 +320,15 @@ void getConsumerInfo(bmqp_ctrlmsg::ConsumerInfo*  out,
                      bmqp_ctrlmsg::ControlMessage request)
 {
     if (request.choice().isConfigureStreamValue()) {
-        *out = bmqp::ProtocolUtil::consumerInfo(
+        *out = consumerInfo(
             request.choice().configureStream().streamParameters());
     }
     else {
         bmqp_ctrlmsg::StreamParameters             temp;
         const bmqp_ctrlmsg::QueueStreamParameters& in =
             request.choice().configureQueueStream().streamParameters();
-        bmqp::ProtocolUtil::convert(&temp, in);
-        *out = bmqp::ProtocolUtil::consumerInfo(temp);
+        bmqp::ConversionUtil::convert(&temp, in);
+        *out = consumerInfo(temp);
     }
 }
 

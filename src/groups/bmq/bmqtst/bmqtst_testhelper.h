@@ -287,13 +287,12 @@
 #include <balst_stacktracetestallocator.h>
 #include <bdlm_metricsregistry.h>
 #include <bdlsb_memoutstreambuf.h>
-#include <bsl_cstddef.h>
 #include <bsl_cstdio.h>
 #include <bsl_cstdlib.h>
 #include <bsl_iostream.h>
 #include <bsl_map.h>
 #include <bsl_set.h>
-#include <bsl_string.h>
+#include <bsl_string_view.h>
 #include <bsl_unordered_map.h>
 #include <bsl_unordered_set.h>
 #include <bsl_utility.h>
@@ -348,11 +347,10 @@
             bdlsb::MemOutStreamBuf buffer(                                    \
                 bmqtst::TestHelperUtil::allocator());                         \
             bsl::ostream os(&buffer);                                         \
-            os << prefix << "'" << xStr << "' " << "("                        \
-               << bmqtst::printer(xResult) << ")" << " " #OP " " << "'"       \
-               << yStr << "' " << "(" << bmqtst::printer(yResult) << ")"      \
-               << bsl::ends;                                                  \
-            bslstl::StringRef str(buffer.data(), buffer.length());            \
+            os << prefix << "'" << xStr << "' (" << bmqtst::printer(xResult)  \
+               << ") " #OP " '" << yStr << "' (" << bmqtst::printer(yResult)  \
+               << ")" << bsl::ends;                                           \
+            bsl::string_view str(buffer.data(), buffer.length());             \
             BloombergLP::_assert(false, str.data(), file, line);              \
         }                                                                     \
     }
@@ -392,7 +390,7 @@
         bdlsb::MemOutStreamBuf _buf(bmqtst::TestHelperUtil::allocator());     \
         bsl::ostream           _os(&_buf);                                    \
         _os << D << '\0';                                                     \
-        bslstl::StringRef _osStr(_buf.data(), _buf.length());                 \
+        bsl::string_view _osStr(_buf.data(), _buf.length());                  \
         if (!(X)) {                                                           \
             BloombergLP::_assert(false, _osStr.data(), __FILE__, __LINE__);   \
         }                                                                     \
@@ -402,7 +400,7 @@
         bdlsb::MemOutStreamBuf _buf(bmqtst::TestHelperUtil::allocator());     \
         bsl::ostream           _os(&_buf);                                    \
         _os << D << ": ";                                                     \
-        bslstl::StringRef _osStr(_buf.data(), _buf.length());                 \
+        bsl::string_view _osStr(_buf.data(), _buf.length());                  \
         _assertCompareEquals(_osStr, X, Y, #X, #Y, __FILE__, __LINE__);       \
     }
 #define BMQTST_ASSERT_NE_D(D, X, Y)                                           \
@@ -410,7 +408,7 @@
         bdlsb::MemOutStreamBuf _buf(bmqtst::TestHelperUtil::allocator());     \
         bsl::ostream           _os(&_buf);                                    \
         _os << D << ": ";                                                     \
-        bslstl::StringRef _osStr(_buf.data(), _buf.length());                 \
+        bsl::string_view _osStr(_buf.data(), _buf.length());                  \
         _assertCompareNotEquals(_osStr, X, Y, #X, #Y, __FILE__, __LINE__);    \
     }
 #define BMQTST_ASSERT_LT_D(D, X, Y)                                           \
@@ -418,7 +416,7 @@
         bdlsb::MemOutStreamBuf _buf(bmqtst::TestHelperUtil::allocator());     \
         bsl::ostream           _os(&_buf);                                    \
         _os << D << ": ";                                                     \
-        bslstl::StringRef _osStr(_buf.data(), _buf.length());                 \
+        bsl::string_view _osStr(_buf.data(), _buf.length());                  \
         _assertCompareLess(_osStr, X, Y, #X, #Y, __FILE__, __LINE__);         \
     }
 #define BMQTST_ASSERT_LE_D(D, X, Y)                                           \
@@ -426,7 +424,7 @@
         bdlsb::MemOutStreamBuf _buf(bmqtst::TestHelperUtil::allocator());     \
         bsl::ostream           _os(&_buf);                                    \
         _os << D << ": ";                                                     \
-        bslstl::StringRef _osStr(_buf.data(), _buf.length());                 \
+        bsl::string_view _osStr(_buf.data(), _buf.length());                  \
         _assertCompareLessEquals(_osStr, X, Y, #X, #Y, __FILE__, __LINE__);   \
     }
 #define BMQTST_ASSERT_GT_D(D, X, Y)                                           \
@@ -434,7 +432,7 @@
         bdlsb::MemOutStreamBuf _buf(bmqtst::TestHelperUtil::allocator());     \
         bsl::ostream           _os(&_buf);                                    \
         _os << D << ": ";                                                     \
-        bslstl::StringRef _osStr(_buf.data(), _buf.length());                 \
+        bsl::string_view _osStr(_buf.data(), _buf.length());                  \
         _assertCompareGreater(_osStr, X, Y, #X, #Y, __FILE__, __LINE__);      \
     }
 #define BMQTST_ASSERT_GE_D(D, X, Y)                                           \
@@ -442,7 +440,7 @@
         bdlsb::MemOutStreamBuf _buf(bmqtst::TestHelperUtil::allocator());     \
         bsl::ostream           _os(&_buf);                                    \
         _os << D << ": ";                                                     \
-        bslstl::StringRef _osStr(_buf.data(), _buf.length());                 \
+        bsl::string_view _osStr(_buf.data(), _buf.length());                  \
         _assertCompareGreaterEquals(_osStr,                                   \
                                     X,                                        \
                                     Y,                                        \
@@ -939,7 +937,7 @@ struct TestHelper {
     // CLASS METHODS
 
     /// Print the banner of the name of the test, in the specified `value`.
-    static void printTestName(bslstl::StringRef value);
+    static void printTestName(bsl::string_view value);
 
     /// Return true if the specified `x` and `y` should be considered equal,
     /// with respect to floating numerics imprecision.

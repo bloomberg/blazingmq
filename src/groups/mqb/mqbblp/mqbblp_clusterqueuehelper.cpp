@@ -50,6 +50,7 @@
 
 // BMQ
 #include <bmqimp_queuemanager.h>
+#include <bmqp_conversionutil.h>
 #include <bmqp_protocol.h>
 #include <bmqp_protocolutil.h>
 #include <bmqp_queueid.h>
@@ -2538,7 +2539,7 @@ void ClusterQueueHelper::onHandleConfigured(
             qId = request.choice().configureQueueStream().qId();
             configureQueueStream.qId() = qId;
 
-            bmqp::ProtocolUtil::convert(
+            bmqp::ConversionUtil::convert(
                 &configureQueueStream.streamParameters(),
                 streamParameters,
                 request.choice()
@@ -3454,11 +3455,11 @@ bool ClusterQueueHelper::sendConfigureQueueRequest(
             request->request().choice().makeConfigureQueueStream();
         qs.qId() = queueId;
 
-        bmqp::ProtocolUtil::convert(
+        bmqp::ConversionUtil::convert(
             &qs.streamParameters(),
             streamParameters,
-            bmqp::ProtocolUtil::makeSubQueueIdInfo(streamParameters.appId(),
-                                                   subId));
+            bmqp::ConversionUtil::makeSubQueueIdInfo(streamParameters.appId(),
+                                                     subId));
     }
 
     request->setResponseCb(
@@ -5131,8 +5132,8 @@ void ClusterQueueHelper::processPeerConfigureStreamRequest(
                              << ": Received configureQueueStreamRequest from ["
                              << requester->description() << "]: " << request;
 
-        bmqp::ProtocolUtil::convert(&adaptor,
-                                    request.choice().configureQueueStream());
+        bmqp::ConversionUtil::convert(&adaptor,
+                                      request.choice().configureQueueStream());
     }
     else {
         BSLS_ASSERT_SAFE(request.choice().isConfigureStreamValue());

@@ -70,6 +70,29 @@ namespace mqbblp {
 
 namespace {
 
+bool verifyConsumerInfo(const bmqp_ctrlmsg::ConsumerInfo& ci)
+{
+    if (ci.consumerPriority() == bmqp::Protocol::k_CONSUMER_PRIORITY_INVALID) {
+        return ci.consumerPriorityCount() == 0;
+    }
+    else {
+        return ci.consumerPriorityCount() > 0;
+    }
+}
+
+bool verifyStreamParameters(const bmqp_ctrlmsg::StreamParameters& parameters)
+{
+    for (size_t i = 0; i < parameters.subscriptions().size(); ++i) {
+        const bmqp_ctrlmsg::Subscription& s = parameters.subscriptions()[i];
+        for (size_t n = 0; n < s.consumers().size(); ++n) {
+            if (!verifyConsumerInfo(s.consumers()[n])) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 const int k_MAX_INSTANT_MESSAGES = 10;
 // Maximum messages logged with throttling in a short period of time.
 
@@ -1015,7 +1038,7 @@ void RootQueueEngine::configureHandle(
     // Verify consumer priority validity
     // Note: 'consumerPriorityCount() == 0' means that handle is being
     // deconfigured, in this case priority expected to be invalid
-    if (!bmqp::ProtocolUtil::verify(streamParameters)) {
+    if (!verifyStreamParameters(streamParameters)) {
         BALL_LOG_ERROR
             << "#CLIENT_IMPROPER_BEHAVIOR "
             << "Attempting to configure stream with invalid priority. "

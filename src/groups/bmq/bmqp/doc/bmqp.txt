@@ -13,7 +13,7 @@
 
 /Hierarchical Synopsis
 /---------------------
-The 'bmqp' package currently has 31 components having 4 level of physical
+The 'bmqp' package currently has 32 components having 4 level of physical
 dependency.  The list below shows the hierarchical ordering of the components.
 ..
   4. bmqp_requestmanager
@@ -30,6 +30,7 @@ dependency.  The list below shows the hierarchical ordering of the components.
      bmqp_ackmessageiterator
      bmqp_confirmmessageiterator
      bmqp_controlmessageutil
+     bmqp_conversionutil
      bmqp_eventutil
      bmqp_messageproperties
      bmqp_optionsview
@@ -72,6 +73,10 @@ dependency.  The list below shows the hierarchical ordering of the components.
 :
 : 'bmqp_controlmessageutil':
 :      Provide utilities related to control messages.
+:
+: 'bmqp_conversionutil':
+:      Provide utilities for converting between old-style and new-style control
+:      messages.
 :
 : 'bmqp_crc32c':
 :      Provide utilities for calculating crc32c.

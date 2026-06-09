@@ -28,7 +28,6 @@
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_protocol.h>
-#include <bmqp_protocolutil.h>
 #include <bmqp_routingconfigurationutils.h>
 
 // BDE
@@ -65,6 +64,23 @@ using namespace bsl;
 //                            TEST HELPERS UTILITY
 // ----------------------------------------------------------------------------
 namespace {
+
+const bmqp_ctrlmsg::ConsumerInfo&
+consumerInfo(const bmqp_ctrlmsg::StreamParameters& from)
+{
+    size_t n = from.subscriptions().size();
+
+    if (n == 0) {
+        static const bmqp_ctrlmsg::ConsumerInfo& defaultValues = *(
+            new bmqp_ctrlmsg::ConsumerInfo());
+
+        return defaultValues;
+    }
+
+    BSLS_ASSERT_SAFE(from.subscriptions()[0].consumers().size() > 0);
+
+    return from.subscriptions()[0].consumers()[0];
+}
 
 const mqbmock::QueueHandle* k_nullMockHandle_p = 0;
 
@@ -2467,16 +2483,13 @@ static void test21_breathingTest()
         PV(L_ << ": C3@c stream parameters:" << C3->_streamParameters("c"));
 
         BMQTST_ASSERT_EQ(
-            bmqp::ProtocolUtil::consumerInfo(C1->_streamParameters("a"))
-                .maxUnconfirmedMessages(),
+            consumerInfo(C1->_streamParameters("a")).maxUnconfirmedMessages(),
             11);
         BMQTST_ASSERT_EQ(
-            bmqp::ProtocolUtil::consumerInfo(C2->_streamParameters("b"))
-                .maxUnconfirmedMessages(),
+            consumerInfo(C2->_streamParameters("b")).maxUnconfirmedMessages(),
             12);
         BMQTST_ASSERT_EQ(
-            bmqp::ProtocolUtil::consumerInfo(C3->_streamParameters("c"))
-                .maxUnconfirmedMessages(),
+            consumerInfo(C3->_streamParameters("c")).maxUnconfirmedMessages(),
             13);
 
         // 2. Post 3 messages to the queue, and invoke the engine to deliver
@@ -2873,30 +2886,24 @@ static void test27_configureHandleMultipleAppIds()
     PV(L_ << ": C1@c stream parameters:" << C1->_streamParameters("c"));
 
     BMQTST_ASSERT_EQ(
-        bmqp::ProtocolUtil::consumerInfo(C1->_streamParameters("a"))
-            .maxUnconfirmedMessages(),
+        consumerInfo(C1->_streamParameters("a")).maxUnconfirmedMessages(),
         11);
     BMQTST_ASSERT_EQ(
-        bmqp::ProtocolUtil::consumerInfo(C1->_streamParameters("a"))
-            .maxUnconfirmedBytes(),
+        consumerInfo(C1->_streamParameters("a")).maxUnconfirmedBytes(),
         111);
 
     BMQTST_ASSERT_EQ(
-        bmqp::ProtocolUtil::consumerInfo(C1->_streamParameters("b"))
-            .maxUnconfirmedMessages(),
+        consumerInfo(C1->_streamParameters("b")).maxUnconfirmedMessages(),
         22);
     BMQTST_ASSERT_EQ(
-        bmqp::ProtocolUtil::consumerInfo(C1->_streamParameters("b"))
-            .maxUnconfirmedBytes(),
+        consumerInfo(C1->_streamParameters("b")).maxUnconfirmedBytes(),
         222);
 
     BMQTST_ASSERT_EQ(
-        bmqp::ProtocolUtil::consumerInfo(C1->_streamParameters("c"))
-            .maxUnconfirmedMessages(),
+        consumerInfo(C1->_streamParameters("c")).maxUnconfirmedMessages(),
         33);
     BMQTST_ASSERT_EQ(
-        bmqp::ProtocolUtil::consumerInfo(C1->_streamParameters("c"))
-            .maxUnconfirmedBytes(),
+        consumerInfo(C1->_streamParameters("c")).maxUnconfirmedBytes(),
         333);
 }
 

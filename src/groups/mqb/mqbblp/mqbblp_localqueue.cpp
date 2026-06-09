@@ -31,6 +31,7 @@
 #include <mqbu_storagekey.h>
 
 // BMQ
+#include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_protocolutil.h>
 #include <bmqt_queueflags.h>
 #include <bmqt_resultcode.h>

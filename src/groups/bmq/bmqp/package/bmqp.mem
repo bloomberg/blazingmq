@@ -5,6 +5,7 @@ bmqp_compression
 bmqp_confirmeventbuilder
 bmqp_confirmmessageiterator
 bmqp_controlmessageutil
+bmqp_conversionutil
 bmqp_crc32c
 bmqp_ctrlmsg_messages
 bmqp_event

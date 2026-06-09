@@ -67,7 +67,7 @@ bslma::Allocator*& bmqtst::TestHelperUtil::allocator()
 // -----------------
 
 // CLASS METHODS
-void TestHelper::printTestName(bslstl::StringRef value)
+void TestHelper::printTestName(bsl::string_view value)
 {
     if (bmqtst::TestHelperUtil::verbosityLevel() < 1) {
         return;  // RETURN

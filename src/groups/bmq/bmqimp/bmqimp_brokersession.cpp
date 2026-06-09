@@ -27,7 +27,7 @@
 #include <bmqp_confirmeventbuilder.h>
 #include <bmqp_confirmmessageiterator.h>
 #include <bmqp_controlmessageutil.h>
-#include <bmqp_ctrlmsg_messages.h>
+#include <bmqp_conversionutil.h>
 #include <bmqp_event.h>
 #include <bmqp_eventutil.h>
 #include <bmqp_protocol.h>
@@ -1331,11 +1331,11 @@ BrokerSession::QueueFsm::actionReconfigureQueue(
         }
     }
     else {
-        bmqp::ProtocolUtil::convert(&ci,
-                                    response.choice()
-                                        .configureQueueStreamResponse()
-                                        .request()
-                                        .streamParameters());
+        bmqp::ConversionUtil::convert(&ci,
+                                      response.choice()
+                                          .configureQueueStreamResponse()
+                                          .request()
+                                          .streamParameters());
     }
 
     bmqt::QueueOptions options(d_session.d_allocator_p);
@@ -6316,11 +6316,11 @@ void BrokerSession::onConfigureQueueResponse(
             BSLS_ASSERT_SAFE(context->response()
                                  .choice()
                                  .isConfigureQueueStreamResponseValue());
-            bmqp::ProtocolUtil::convert(&respAdaptor,
-                                        context->response()
-                                            .choice()
-                                            .configureQueueStreamResponse()
-                                            .request());
+            bmqp::ConversionUtil::convert(&respAdaptor,
+                                          context->response()
+                                              .choice()
+                                              .configureQueueStreamResponse()
+                                              .request());
         }
         else {
             BSLS_ASSERT_SAFE(
@@ -6337,7 +6337,7 @@ void BrokerSession::onConfigureQueueResponse(
         bmqp_ctrlmsg::ConfigureStream  reqAdaptor;
         bmqp_ctrlmsg::ConfigureStream& req = reqAdaptor;
         if (context->request().choice().isConfigureQueueStreamValue()) {
-            bmqp::ProtocolUtil::convert(
+            bmqp::ConversionUtil::convert(
                 &reqAdaptor,
                 context->request().choice().configureQueueStream());
         }

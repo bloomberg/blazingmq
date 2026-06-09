@@ -28,12 +28,14 @@
 ///-------------
 // Thread safe.
 
-#include <bmqp_ctrlmsg_messages.h>
-
 // BDE
 #include <bsl_ostream.h>
 
 namespace BloombergLP {
+
+namespace bmqp_ctrlmsg {
+class NegotiationMessage;
+}
 
 namespace bmqimp {
 
@@ -62,15 +64,6 @@ inline bsl::ostream& operator<<(bsl::ostream&            stream,
 
 inline SessionId::SessionId()
 : d_sessionId(0)
-{
-    // NOTHING
-}
-
-inline SessionId::SessionId(
-    const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage)
-: d_sessionId(negotiationMessage.isClientIdentityValue()
-                  ? negotiationMessage.clientIdentity().sessionId()
-                  : 0)
 {
     // NOTHING
 }

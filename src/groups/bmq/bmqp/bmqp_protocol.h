@@ -143,7 +143,6 @@
 // BMQ
 
 #include <bmqc_array.h>
-#include <bmqp_queueid.h>
 #include <bmqt_compressionalgorithmtype.h>
 #include <bmqt_messageguid.h>
 

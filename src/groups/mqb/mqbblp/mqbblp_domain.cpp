@@ -26,6 +26,7 @@
 #include <mqbu_storagekey.h>
 
 // BMQ
+#include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_queueid.h>
 #include <bmqp_queueutil.h>
 #include <bmqp_routingconfigurationutils.h>
