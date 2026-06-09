@@ -515,6 +515,16 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
         ClusterMessageInfo info;
         info.d_clusterMessage = clusterMessage;
         info.d_ackCount       = 0;
+
+        bmqu::BlobObjectProxy<ClusterStateRecordHeader> recordHeader(
+            &record,
+            recordPosition,
+            -ClusterStateRecordHeader::k_HEADER_NUM_WORDS,
+            true,
+            false);
+        BSLS_ASSERT_SAFE(recordHeader.isSet());
+        info.d_recordTimestamp = recordHeader->timestamp();
+
         const AdvisoriesMap::iterator advIt =
             d_uncommittedAdvisories.insert(bsl::make_pair(lsn, info)).first;
 
@@ -535,7 +545,7 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
             BSLS_ASSERT_SAFE(recordOffset == 0);
 
             // Save the replication start time
-            advIt->second.d_timestampNs =
+            advIt->second.d_replicationTimestampNs =
                 bdlt::CurrentTime::now().totalNanoseconds();
 
             bsl::shared_ptr<bdlbb::Blob> advisoryEvent =
@@ -648,7 +658,7 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
         if (isSelfLeader()) {
             bsls::Types::Int64 replicationTimeNs =
                 bdlt::CurrentTime::now().totalNanoseconds() -
-                iter->second.d_timestampNs;
+                iter->second.d_replicationTimestampNs;
             d_clusterData_p->stats().setCslReplicationTime(replicationTimeNs);
 
             bsl::shared_ptr<bdlbb::Blob> commitEvent =
@@ -1533,8 +1543,99 @@ int IncoreClusterStateLedger::apply(const bdlbb::Blob&   event,
     return applyImpl(event, source);
 }
 
+int IncoreClusterStateLedger::replicateUncommitted(
+    mqbnet::ClusterNode* destination)
+{
+    // executed by the *CLUSTER DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+    BSLS_ASSERT_SAFE(isSelfLeader());
+    BSLS_ASSERT_SAFE(destination);
+
+    enum RcEnum {
+        // Value for the various RC error categories
+        /// Success
+        rc_SUCCESS = 0,
+        /// Fail to append record
+        rc_APPEND_RECORD_FAILURE = -1,
+        /// Fail to write to destination
+        rc_WRITE_FAILURE = -2
+    };
+
+    for (AdvisoriesMapCIter it = d_uncommittedAdvisories.cbegin();
+         it != d_uncommittedAdvisories.cend();
+         ++it) {
+        const bmqp_ctrlmsg::LeaderMessageSequence& lsn  = it->first;
+        const ClusterMessageInfo&                  info = it->second;
+
+        const ClusterStateRecordType::Enum recordType =
+            info.d_clusterMessage.choice().isLeaderAdvisoryValue()
+                ? ClusterStateRecordType::e_SNAPSHOT
+                : ClusterStateRecordType::e_UPDATE;
+
+        bsl::shared_ptr<bdlbb::Blob> record = d_blobSpPool_p->getObject();
+        const int                    rc = ClusterStateLedgerUtil::appendRecord(
+            record.get(),
+            info.d_clusterMessage,
+            lsn,
+            info.d_recordTimestamp,
+            recordType);
+        if (rc != 0) {
+            BALL_LOG_ERROR << description()
+                           << ": Failed to construct record for replication "
+                           << "of uncommitted advisory: "
+                           << info.d_clusterMessage
+                           << " with LSN = " << printLSN(lsn) << " to "
+                           << destination->nodeDescription() << ", rc: " << rc;
+            return rc * 10 + rc_APPEND_RECORD_FAILURE;  // RETURN
+        }
+
+        bsl::shared_ptr<bdlbb::Blob> event = d_blobSpPool_p->getObject();
+        constructEventBlob(event.get(), *record);
+
+        const bmqt::GenericResult::Enum writeRc =
+            destination->write(event, bmqp::EventType::e_CLUSTER_STATE);
+        if (writeRc != bmqt::GenericResult::e_SUCCESS) {
+            BALL_LOG_ERROR << description() << "#CLUSTER_SEND_FAILURE "
+                           << ": Failed to replicate uncommitted advisory: "
+                           << info.d_clusterMessage
+                           << " with LSN = " << printLSN(lsn) << " to "
+                           << destination->nodeDescription()
+                           << ", rc: " << writeRc;
+            return static_cast<int>(writeRc) * 10 +
+                   rc_WRITE_FAILURE;  // RETURN
+        }
+
+        BALL_LOG_INFO << description() << ": Replicated uncommitted advisory "
+                      << info.d_clusterMessage
+                      << " with LSN = " << printLSN(lsn) << " to "
+                      << destination->nodeDescription();
+    }
+
+    return rc_SUCCESS;
+}
+
 // ACCESSORS
 //   (virtual mqbc::ClusterStateLedger)
+void IncoreClusterStateLedger::uncommittedAdvisories(
+    ClusterMessageCRefList* out) const
+{
+    // executed by the *CLUSTER DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+    BSLS_ASSERT_SAFE(out);
+
+    out->clear();
+    out->reserve(d_uncommittedAdvisories.size());
+    for (AdvisoriesMapCIter it = d_uncommittedAdvisories.cbegin();
+         it != d_uncommittedAdvisories.cend();
+         ++it) {
+        out->emplace_back(bsl::cref(it->second.d_clusterMessage));
+    }
+}
+
 bslma::ManagedPtr<ClusterStateLedgerIterator>
 IncoreClusterStateLedger::getIterator() const
 {
