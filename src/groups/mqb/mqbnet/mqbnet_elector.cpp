@@ -1939,12 +1939,22 @@ void Elector::cancelSchedulerEvents()
 {
     // executed by *ANY* thread (including scheduler's dispatcher thread)
 
-    d_scheduler.cancelEvent(&d_initialWaitTimeoutHandle);
-    d_scheduler.cancelEvent(&d_randomWaitTimeoutHandle);
-    d_scheduler.cancelEvent(&d_electionResultTimeoutHandle);
-    d_scheduler.cancelEvent(&d_heartbeatSenderRecurringHandle);
-    d_scheduler.cancelEvent(&d_heartbeatCheckerRecurringHandle);
-    d_scheduler.cancelEvent(&d_scoutingResultTimeoutHandle);
+    if (d_scheduler.isInDispatcherThread()) {
+        d_scheduler.cancelEvent(&d_initialWaitTimeoutHandle);
+        d_scheduler.cancelEvent(&d_randomWaitTimeoutHandle);
+        d_scheduler.cancelEvent(&d_electionResultTimeoutHandle);
+        d_scheduler.cancelEvent(&d_heartbeatSenderRecurringHandle);
+        d_scheduler.cancelEvent(&d_heartbeatCheckerRecurringHandle);
+        d_scheduler.cancelEvent(&d_scoutingResultTimeoutHandle);
+    }
+    else {
+        d_scheduler.cancelEventAndWait(&d_initialWaitTimeoutHandle);
+        d_scheduler.cancelEventAndWait(&d_randomWaitTimeoutHandle);
+        d_scheduler.cancelEventAndWait(&d_electionResultTimeoutHandle);
+        d_scheduler.cancelEventAndWait(&d_heartbeatSenderRecurringHandle);
+        d_scheduler.cancelEventAndWait(&d_heartbeatCheckerRecurringHandle);
+        d_scheduler.cancelEventAndWait(&d_scoutingResultTimeoutHandle);
+    }
 }
 
 void Elector::scheduleTimer(ElectorTimerEventType::Enum type)

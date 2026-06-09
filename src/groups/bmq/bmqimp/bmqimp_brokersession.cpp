@@ -533,7 +533,7 @@ void BrokerSession::SessionFsm::setStopped(FsmEvent::Enum event,
                      "The request was canceled [reason: disconnected]");
 
     // Cancel pending PUTs expiration timer
-    d_session.d_scheduler_p->cancelEvent(
+    d_session.d_scheduler_p->cancelEventAndWait(
         &d_session.d_messageExpirationTimeoutHandle);
 
     // The session is fully stopped, we can now reset its state to release any
@@ -4921,7 +4921,7 @@ void BrokerSession::retransmitPendingMessages()
     BSLS_ASSERT_SAFE(d_fsmThreadChecker.inSameThread());
 
     // Cancel pending PUTs expiration timer
-    d_scheduler_p->cancelEvent(&d_messageExpirationTimeoutHandle);
+    d_scheduler_p->cancelEventAndWait(&d_messageExpirationTimeoutHandle);
 
     bmqp::PutEventBuilder putBuilder(d_blobSpPool_p, d_allocator_p);
 
