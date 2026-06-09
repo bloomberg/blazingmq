@@ -476,21 +476,21 @@ class StorageManager BSLS_KEYWORD_FINAL
     ///         thread for the specified `partitionId`.
     void onPartitionRecovery(int partitionId);
 
-    /// Enqueue the `event` with `eventDataVec` to the Partition FSM.
+    /// Enqueue the `event` with `eventData` to the Partition FSM.
     ///
     /// THREAD: This method is invoked in the cluster dispatcher thread or the
     ///         associated Queue dispatcher thread for the `partitionId` in the
-    ///         specified `eventDataVec`.
+    ///         specified `eventData`.
     void enqueuePartitionFSMEvent(PartitionFSM::Event::Enum event,
-                                  const EventData&          eventDataVec);
+                                  const PartitionFSMEventData&          eventData);
 
-    /// Verify and enqueue the `event` with `eventDataVec` to the Partition
+    /// Verify and enqueue the `event` with `eventData` to the Partition
     /// FSM.
     ///
     /// THREAD: This method is invoked in the associated Queue dispatcher
-    ///         thread for the partitionId in the specified `eventDataVec`.
+    ///         thread for the partitionId in the specified `eventData`.
     void enqueuePartitionFSMEventDispatched(PartitionFSM::Event::Enum event,
-                                            const EventData& eventDataVec);
+                                            const PartitionFSMEventData& eventData);
 
     /// Set the primary status of the specified `partitionId` to the specified
     /// `value`.

@@ -895,10 +895,7 @@ PartitionStateTableActions<ARGS>::~PartitionStateTableActions()
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::do_none(const ARGS& args)
 {
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!args.second.empty());
-
-    const int partitionId = args.second[0].partitionId();
+    const int partitionId = args.second.partitionId();
     BALL_LOG_INFO << "Partition FSM for Partition [" << partitionId
                   << "]: NO ACTION PERFORMED.";
 }
