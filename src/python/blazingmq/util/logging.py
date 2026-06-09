@@ -50,22 +50,26 @@ The module contains the following public class:
 
 """
 
+from __future__ import annotations
+
 # pylint: disable=too-few-public-methods
 
 import argparse
 import logging
 from pathlib import Path
 import re
+from typing import Any, Optional, Sequence, Union, cast
 
 
-def level_value(level, error):
+def level_value(level: str, error: str) -> int:
     if not hasattr(logging, level):
         raise ValueError(error.format(level=level))
 
-    return getattr(logging, level)
+    # Logging level constants are integers
+    return cast(int, getattr(logging, level))
 
 
-def split_category_level(category_level):
+def split_category_level(category_level: str) -> tuple[str, str]:
     match = re.fullmatch(r"(\w+(?:\.\w+)*):(\w+)", category_level)
 
     if not match:
@@ -74,11 +78,13 @@ def split_category_level(category_level):
     return match[1].lower(), match[2].upper()
 
 
-def normalize_log_levels(level_spec):
+def normalize_log_levels(
+    level_spec: Optional[str],
+) -> tuple[int, list[tuple[str, int]]]:
     top_bmq_category_level = logging.getLogger().getEffectiveLevel()
 
     if not level_spec:
-        return [top_bmq_category_level]
+        return (top_bmq_category_level, [])
 
     category_levels = level_spec.split(",")
 
@@ -87,20 +93,24 @@ def normalize_log_levels(level_spec):
             category_levels.pop(0).upper(), 'invalid default level "{level}"'
         )
 
-    return [top_bmq_category_level] + [
-        (category, level_value(level, 'invalid level "{level}"'))
-        for category, level in [
-            split_category_level(category_level) for category_level in category_levels
-        ]
-    ]
+    return (
+        top_bmq_category_level,
+        [
+            (category, level_value(level, 'invalid level "{level}"'))
+            for category, level in [
+                split_category_level(category_level)
+                for category_level in category_levels
+            ]
+        ],
+    )
 
 
-def apply_normalized_log_levels(levels):
+def apply_normalized_log_levels(levels: tuple[int, list[tuple[str, int]]]) -> None:
     """Parse 'level_spec' (a string formatted as defined at the top of the
     file) and set log levels accordingly.
     """
 
-    top_level, *category_levels = levels
+    top_level, category_levels = levels
     logging.getLogger().setLevel(top_level)
     logging.getLogger("blazingmq").setLevel(top_level)
 
@@ -109,7 +119,7 @@ def apply_normalized_log_levels(levels):
         logging.getLogger(category).setLevel(level)
 
 
-def apply_log_levels(level_spec):
+def apply_log_levels(level_spec: Optional[str]) -> None:
     """Parse 'level_spec' (a string formatted as defined at the top of the
     file) and set log levels accordingly.
     """
@@ -122,14 +132,34 @@ class Action(argparse.Action):
     value.
     """
 
-    def __call__(self, parser, namespace, level_spec, option_string=None):
-        setattr(namespace, self.dest, level_spec)
-        levels = normalize_log_levels(level_spec)
+    def __init__(
+        self,
+        option_strings: Sequence[str],
+        dest: str,
+        nargs: Optional[Union[int, str]] = None,
+        **kwargs: Any,
+    ) -> None:
+        # Only one arg value allowed, to safely cast to str
+        if nargs is not None:
+            raise ValueError("nargs not allowed")
+        super().__init__(option_strings, dest, **kwargs)
+
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,
+        values: Union[str, Sequence[Any], None],
+        option_string: Optional[str] = None,
+    ) -> None:
+        # values is always str because only one value allowed in __init__
+        assert isinstance(values, str)
+        setattr(namespace, self.dest, values)
+        levels = normalize_log_levels(values)
         logging.basicConfig(level=levels[0])
         apply_normalized_log_levels(levels)
 
 
-def make_parser(switches=None):
+def make_parser(switches: Optional[list[str]] = None) -> argparse.ArgumentParser:
     """Return a Parser object, intended to be used as a parent parser.
 
     Keyword Arguments:
@@ -164,7 +194,7 @@ class LazyStr:
     arguments, and defer rendering the data until it is actually needed.
     """
 
-    def __init__(self, data, **kwargs):
+    def __init__(self, data: Any, **kwargs: Any) -> None:
         self.data = data
         self.kwargs = kwargs
 
@@ -184,7 +214,7 @@ class lazy_json(LazyStr):
     Lazily render data to JSON.
     """
 
-    def __str__(self):
+    def __str__(self) -> str:
         import json
 
         return json.dumps(self.data, **{"indent": 2, **self.kwargs})
@@ -195,13 +225,13 @@ class lazy_pprint(LazyStr):
     Lazily render data using standard 'pprint' module.
     """
 
-    def __str__(self):
+    def __str__(self) -> str:
         import pprint
 
         return pprint.pformat(self.data, **{"indent": 2, "width": 80, **self.kwargs})
 
 
-def _jsonable(data, depth, max_depth):
+def _jsonable(data: Any, depth: int, max_depth: Optional[int]) -> Any:
     if isinstance(data, str):
         return data
 
@@ -238,7 +268,7 @@ class lazy_data(LazyStr):
     - Recursive data structures are not supported.
     """
 
-    def __str__(self):
+    def __str__(self) -> str:
         import json
 
         return json.dumps(

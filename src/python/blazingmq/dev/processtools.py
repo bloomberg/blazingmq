@@ -24,7 +24,7 @@ from typing import Optional
 import psutil
 
 
-def stop_broker(broker_dir: Path, timeout: int = None) -> Optional[int]:
+def stop_broker(broker_dir: Path, timeout: Optional[int] = None) -> Optional[int]:
     """
     Stop the broker (using bmqbrkr.pid file from the `broker_dir` directory):
     - First with `SIGTERM`

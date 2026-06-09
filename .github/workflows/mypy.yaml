@@ -1,0 +1,35 @@
+name: Python Typechecking
+
+on:
+  pull_request:
+    types:
+      - "opened"
+      - "reopened"
+      - "synchronize"
+      - "labeled"
+      - "unlabeled"
+      - "edited"
+
+  workflow_dispatch:
+
+jobs:
+  mypy:
+    name: Typecheck Python code with mypy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: pip install -r src/python/requirements.txt
+
+      - name: Add mypy annotator
+        uses: pr-annotators/mypy-pr-annotator@v1.0.0
+
+      - name: Run mypy
+        run: |
+          mypy src/python --strict

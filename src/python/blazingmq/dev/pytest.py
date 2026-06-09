@@ -19,7 +19,7 @@ Provide various pytest utilities.
 
 import functools
 import os
-from typing import Callable
+from typing import Any, Callable, cast
 
 import pytest
 
@@ -37,7 +37,7 @@ integration_test_marks = [
 ]
 
 
-def integration_test(test: Callable) -> Callable:
+def integration_test(test: Callable[..., Any]) -> Callable[..., Any]:
     """
     Mark 'test' to be skipped if 'BMQ_RUN_INTEGRATION_TESTS' is not set.
     """
@@ -45,7 +45,8 @@ def integration_test(test: Callable) -> Callable:
     @skip_if_bmq_run_integration_test_not_set
     @pytest.mark.integration_test
     @functools.wraps(test)
-    def conditional_test(*args, **kwargs):
+    def conditional_test(*args: Any, **kwargs: Any) -> Any:
         return test(*args, **kwargs)
 
-    return conditional_test
+    # Mypy can't verify wrapper has same signature as original
+    return cast(Callable[..., Any], conditional_test)
