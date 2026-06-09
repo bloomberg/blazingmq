@@ -71,14 +71,14 @@ apt-get install -qy cmake
 
 # Install LLVM
 wget https://apt.llvm.org/llvm.sh
-chmod +x llvm.sh 
+chmod +x llvm.sh
 LLVM_VERSION=18
 LLVM_TAG="llvmorg-18.1.8"
 ./llvm.sh ${LLVM_VERSION} all
 
 # Create version-agnostic pointers to required LLVM binaries.
 ln -sf /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
-ln -sf /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++ 
+ln -sf /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++
 ln -sf /usr/bin/llvm-symbolizer-${LLVM_VERSION} /usr/bin/llvm-symbolizer
 
 # Set some initial constants
@@ -179,7 +179,7 @@ if [ "${FUZZER}" == "off" ]; then
             -DCMAKE_BUILD_TYPE="Debug" \
             -DCMAKE_C_COMPILER="clang" \
             -DCMAKE_CXX_COMPILER="clang++" \
-            -DCMAKE_CXX_STANDARD=20 \
+            -DCMAKE_CXX_STANDARD=17 \
             -DCMAKE_C_FLAGS="-Wno-reserved-macro-identifier" \
             -DCMAKE_CXX_FLAGS="-Wno-reserved-macro-identifier" \
             -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" \
@@ -215,7 +215,7 @@ export PATH
 
 # Build BDE + NTF
 pushd "${DIR_SRCS_EXT}/bde"
-eval "$(bbs_build_env  -p clang -u dbg_64_safe_cpp20 -b "${DIR_BUILD_EXT}/bde")"
+eval "$(bbs_build_env  -p clang -u dbg_64_safe_cpp17 -b "${DIR_BUILD_EXT}/bde")"
 bbs_build configure --toolchain "${TOOLCHAIN_PATH}"
 bbs_build build -j"${PARALLELISM}"
 bbs_build --install=/opt/bb --prefix=/ install
@@ -240,7 +240,7 @@ sed -i 's/fcoroutines-ts/fcoroutines/g' 'repository.cmake'
             --without-zstd \
             --without-lz4 \
             --without-openssl \
-            --ufid 'dbg_64_safe_cpp20' \
+            --ufid 'dbg_64_safe_cpp17' \
             --toolchain "${TOOLCHAIN_PATH}"
 make -j"${PARALLELISM}"
 make install

@@ -28,13 +28,13 @@ export FUZZER_FLAG="fuzzer-no-link"
 # :: Clone dependencies :::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 if [ ! -d "${DIR_THIRDPARTY}/bde-tools" ]; then
-    git clone --depth 1 --branch 4.37.0.0 https://github.com/bloomberg/bde-tools "${DIR_THIRDPARTY}/bde-tools"
+    git clone --depth 1 --branch 4.38.0.0 https://github.com/bloomberg/bde-tools "${DIR_THIRDPARTY}/bde-tools"
 fi
 if [ ! -d "${DIR_THIRDPARTY}/bde" ]; then
-    git clone --depth 1 --branch 4.37.0.0 https://github.com/bloomberg/bde.git "${DIR_THIRDPARTY}/bde"
+    git clone --depth 1 --branch 4.38.0.0 https://github.com/bloomberg/bde.git "${DIR_THIRDPARTY}/bde"
 fi
 if [ ! -d "${DIR_THIRDPARTY}/ntf-core" ]; then
-    git clone --depth 1 --branch 2.6.11 https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"
+    git clone --depth 1 --branch 2.6.12 https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"
 fi
 
 # :: Install required packages ::::::::::::::::::::::::::::::::::::::::::::::::
@@ -44,7 +44,7 @@ fi
 PATH="${DIR_THIRDPARTY}/bde-tools/bin:$PATH"
 if [ ! -e "${DIR_BUILD}/bde/.complete" ]; then
     pushd "${DIR_THIRDPARTY}/bde" || exit
-    eval "$(bbs_build_env -p clang -u dbg_64_safe_cpp23 -b "${DIR_BUILD}/bde" -i "${DIR_INSTALL}")"
+    eval "$(bbs_build_env -p clang -u dbg_64_safe_cpp17 -b "${DIR_BUILD}/bde" -i "${DIR_INSTALL}")"
     bbs_build configure --prefix="${DIR_INSTALL}" \
         --toolchain "${TOOLCHAIN_PATH}"
     bbs_build build --prefix="${DIR_INSTALL}"
@@ -64,7 +64,7 @@ if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
         --with-zlib \
         --without-zstd \
         --without-lz4 \
-        --ufid "dbg_64_safe_cpp23" \
+        --ufid "dbg_64_safe_cpp17" \
         --toolchain "${TOOLCHAIN_PATH}"
     make -j 16
     make install

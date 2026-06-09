@@ -22,12 +22,12 @@
             "binaryDir": "cmake.bld",
             "cacheVariables": {
                 "DBDE_BUILD_TARGET_64": "1",
-                "DBDE_BUILD_TARGET_CPP20": "1",
+                "DBDE_BUILD_TARGET_CPP17": "1",
                 "DBDE_BUILD_TARGET_SAFE": "1",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "1",
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_INSTALL_LIBDIR": "lib64",
-                "CMAKE_CXX_STANDARD": "20",
+                "CMAKE_CXX_STANDARD": "17",
                 "INSTALL_TARGETS": "fuzztests"
             }
         },
