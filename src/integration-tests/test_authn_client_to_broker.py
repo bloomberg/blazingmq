@@ -14,10 +14,13 @@
 # limitations under the License.
 
 """
-Authentication test suite using ONLY built-in authenticators.
+Client-to-broker authentication integration tests using built-in auth.
 
-This test suite validates authentication logic without any external plugins.
-All tests use the built-in authenticators:
+This test suite validates client authentication logic without external
+plugins.
+Tests in this file cover built-in authenticators:
+
+  Authenticators (validate incoming connections):
   - BasicAuthenticator: BASIC mechanism, validates credentials from config
                         Config format: {"key": "username", "value": {"stringVal": "password"}}
   - AnonAuthenticator: ANONYMOUS mechanism, passes if "shouldPass" setting is true (default),
@@ -25,7 +28,6 @@ All tests use the built-in authenticators:
   - TestAuthenticator: TEST mechanism, sleeps for a configured duration (default 0)
                        Config format: {"key": "sleepTimeMs", "value": {"intVal": "duration"}}
 
-This approach tests all authentication scenarios without needing external plugins.
 """
 
 import threading
