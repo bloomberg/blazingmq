@@ -18,6 +18,7 @@
 #include <mqbscm_version.h>
 
 // MQB
+#include <mqbstat_clusterstats.h>
 #include <mqbstat_queuestats.h>
 
 // BDE
@@ -202,6 +203,131 @@ struct DomainQueuesVisitor {
     }
 };
 
+// ===========================
+// class ClusterStatsTraversal
+// ===========================
+
+/// Helper class for traversing cluster stat contexts within the "clusters"
+/// top-level stat context.  Calls `onClusterStatsVisited` for each cluster
+/// and each partition within that cluster.
+class ClusterStatsTraversal {
+  public:
+    // PUBLIC TYPES
+    typedef bsl::function<void(bsl::string_view          clusterName,
+                               bsl::string_view          partitionName,
+                               const bmqst::StatContext& ctx)>
+        OnClusterStatsVisited;
+
+  private:
+    // DATA
+    const bmqst::StatContext& d_ctx;
+
+  public:
+    // CREATORS
+
+    /// Create a new traversal over the specified `clustersCtx`.
+    explicit ClusterStatsTraversal(const bmqst::StatContext& clustersCtx);
+
+    // ACCESSORS
+
+    /// Iterate all clusters and partitions, calling the specified
+    /// `onClusterStatsVisited` for each stat context found.  For
+    /// cluster-level contexts, `partitionName` is empty.
+    void
+    forEachCluster(const OnClusterStatsVisited& onClusterStatsVisited) const;
+};
+
+inline ClusterStatsTraversal::ClusterStatsTraversal(
+    const bmqst::StatContext& clustersCtx)
+: d_ctx(clustersCtx)
+{
+    // NOTHING
+}
+
+inline void ClusterStatsTraversal::forEachCluster(
+    const OnClusterStatsVisited& onClusterStatsVisited) const
+{
+    for (bmqst::StatContextIterator clusterIt = d_ctx.subcontextIterator();
+         clusterIt;
+         ++clusterIt) {
+        const bsl::string_view clusterName = clusterIt->name();
+
+        onClusterStatsVisited(clusterName, bsl::string_view(), *clusterIt);
+
+        for (bmqst::StatContextIterator partIt =
+                 clusterIt->subcontextIterator();
+             partIt;
+             ++partIt) {
+            onClusterStatsVisited(clusterName, partIt->name(), *partIt);
+        }
+    }
+}
+
+// ======================
+// struct ClustersVisitor
+// ======================
+
+struct ClustersVisitor {
+    bsl::ostream&    d_os;
+    bsl::string_view d_prefix;
+
+    explicit ClustersVisitor(bsl::ostream& os, bsl::string_view prefix)
+    : d_os(os)
+    , d_prefix(prefix)
+    {
+        // NOTHING
+    }
+
+    void operator()(bsl::string_view          clusterName,
+                    bsl::string_view          partitionName,
+                    const bmqst::StatContext& ctx) const
+    {
+#define WRAP(KEY, VAL) ",\"" << (KEY) << "\":\"" << (VAL) << "\""
+
+#define METRIC(STAT)                                                          \
+    WRAP(mqbstat::ClusterStats::Stat::toString(STAT),                         \
+         mqbstat::ClusterStats::getValue(ctx, -1, (STAT)))
+
+        typedef mqbstat::ClusterStats::Stat Stat;
+
+        d_os << "{" << d_prefix;
+        if (partitionName.empty()) {
+            d_os << WRAP("type", "cluster");
+            d_os << WRAP("cluster", clusterName);
+            d_os << METRIC(Stat::e_CLUSTER_STATUS);
+            d_os << METRIC(Stat::e_ROLE);
+            d_os << METRIC(Stat::e_LEADER_STATUS);
+            d_os << METRIC(Stat::e_CSL_REPLICATION_TIME_NS_AVG);
+            d_os << METRIC(Stat::e_CSL_REPLICATION_TIME_NS_MAX);
+            d_os << METRIC(Stat::e_CSL_LOG_OFFSET_BYTES);
+            d_os << METRIC(Stat::e_CSL_WRITE_BYTES);
+            d_os << METRIC(Stat::e_CSL_CFG_BYTES);
+            d_os << METRIC(Stat::e_PARTITION_CFG_DATA_BYTES);
+            d_os << METRIC(Stat::e_PARTITION_CFG_JOURNAL_BYTES);
+        }
+        else {
+            d_os << WRAP("type", "cluster_partition");
+            d_os << WRAP("cluster", clusterName);
+            d_os << WRAP("partition", partitionName);
+            d_os << METRIC(Stat::e_PARTITION_PRIMARY_STATUS);
+            d_os << METRIC(Stat::e_PARTITION_ROLLOVER_TIME);
+            d_os << METRIC(Stat::e_PARTITION_DATA_CONTENT);
+            d_os << METRIC(Stat::e_PARTITION_JOURNAL_CONTENT);
+            d_os << METRIC(Stat::e_PARTITION_DATA_OFFSET);
+            d_os << METRIC(Stat::e_PARTITION_JOURNAL_OFFSET);
+            d_os << METRIC(Stat::e_PARTITION_DATA_UTILIZATION_MAX);
+            d_os << METRIC(Stat::e_PARTITION_JOURNAL_UTILIZATION_MAX);
+            d_os << METRIC(Stat::e_PARTITION_SEQUENCE_NUMBER);
+            d_os << METRIC(Stat::e_PARTITION_REPLICATION_TIME_NS_AVG);
+            d_os << METRIC(Stat::e_PARTITION_REPLICATION_TIME_NS_MAX);
+        }
+        d_os << "}" << bsl::endl;
+
+#undef METRIC
+#undef WRAP
+    }
+};
+
 }  // close unnamed namespace
 
 // ------------------------------------------
@@ -284,6 +410,13 @@ FlatJsonPrinter::FlatJsonPrinterImpl::printStats(bsl::ostream& stream,
     DomainQueueStatsTraversal traversal(ctx);
 
     traversal.forEachQueue(DomainQueuesVisitor(stream, commonPrefix));
+
+    // Clusters
+    const bmqst::StatContext& clustersCtx =
+        *d_contexts.find("clusters")->second;
+    ClusterStatsTraversal clusterTraversal(clustersCtx);
+
+    clusterTraversal.forEachCluster(ClustersVisitor(stream, commonPrefix));
 }
 
 // ---------------------
