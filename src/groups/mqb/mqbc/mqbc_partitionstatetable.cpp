@@ -134,6 +134,8 @@ PartitionStateTableEvent::toAscii(PartitionStateTableEvent::Enum value)
         CASE(REPLICA_HIGHEST_SEQ)
         CASE(WATCHDOG)
         CASE(STOP_NODE)
+        CASE(IRRECONCILABLE_DATA)
+        CASE(IRRECONCILABLE_REPLICA_DATA_RSPN_PULL)
         CASE(NUM_EVENTS)
     default: return "(* UNKNOWN *)";
     }

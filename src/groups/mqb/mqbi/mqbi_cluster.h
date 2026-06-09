@@ -160,7 +160,10 @@ struct ClusterErrorCode {
         /// Source node is not recognized as the leader
         e_SOURCE_NOT_LEADER = -211,
         /// Source node is not recognized as the primary
-        e_SOURCE_NOT_PRIMARY = -212
+        e_SOURCE_NOT_PRIMARY = -212,
+        /// The node's storage has irreconcilable data
+        /// with respect to a peer
+        e_IRRECONCILABLE_DATA = -213
     };
 
     // CLASS METHODS
