@@ -122,8 +122,8 @@ class StorageManager BSLS_KEYWORD_FINAL
 
     typedef bsl::function<void(int)> RecoveryStatusCb;
 
-    typedef ClusterData::RequestManagerType       RequestManagerType;
-    typedef RequestManagerType::RequestSp          RequestContextSp;
+    typedef ClusterData::RequestManagerType RequestManagerType;
+    typedef RequestManagerType::RequestSp   RequestContextSp;
 
     typedef bdlmt::EventScheduler::RecurringEventHandle RecurringEventHandle;
 
@@ -481,16 +481,17 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// THREAD: This method is invoked in the cluster dispatcher thread or the
     ///         associated Queue dispatcher thread for the `partitionId` in the
     ///         specified `eventData`.
-    void enqueuePartitionFSMEvent(PartitionFSM::Event::Enum event,
-                                  const PartitionFSMEventData&          eventData);
+    void enqueuePartitionFSMEvent(PartitionFSM::Event::Enum    event,
+                                  const PartitionFSMEventData& eventData);
 
     /// Verify and enqueue the `event` with `eventData` to the Partition
     /// FSM.
     ///
     /// THREAD: This method is invoked in the associated Queue dispatcher
     ///         thread for the partitionId in the specified `eventData`.
-    void enqueuePartitionFSMEventDispatched(PartitionFSM::Event::Enum event,
-                                            const PartitionFSMEventData& eventData);
+    void
+    enqueuePartitionFSMEventDispatched(PartitionFSM::Event::Enum    event,
+                                       const PartitionFSMEventData& eventData);
 
     /// Set the primary status of the specified `partitionId` to the specified
     /// `value`.
