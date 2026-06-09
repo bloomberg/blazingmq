@@ -1521,7 +1521,7 @@ static void test4_enumPrint()
             bmqp::StorageHeaderFlags::e_RECEIPT_REQUESTED);
 
         BSLMF_ASSERT(bmqp::StorageHeaderFlags::k_HIGHEST_STORAGE_FLAG ==
-                     bmqp::StorageHeaderFlags::e_UNUSED4);
+                     bmqp::StorageHeaderFlags::e_UNUSED5);
 
         PrintTestData k_DATA[] = {
             {L_,
@@ -1530,7 +1530,7 @@ static void test4_enumPrint()
             {L_, bmqp::StorageHeaderFlags::e_UNUSED2, "UNUSED2"},
             {L_, bmqp::StorageHeaderFlags::e_UNUSED3, "UNUSED3"},
             {L_, bmqp::StorageHeaderFlags::e_UNUSED4, "UNUSED4"},
-            {L_, -1, "(* UNKNOWN *)"}};
+            {L_, bmqp::StorageHeaderFlags::e_UNUSED5, "UNUSED5"}};
 
         printEnumHelper<bmqp::StorageHeaderFlags>(k_DATA);
     }
