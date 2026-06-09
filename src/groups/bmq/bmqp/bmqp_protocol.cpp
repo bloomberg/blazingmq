@@ -826,6 +826,7 @@ const char* StorageHeaderFlags::toAscii(StorageHeaderFlags::Enum value)
         CASE(UNUSED2)
         CASE(UNUSED3)
         CASE(UNUSED4)
+        CASE(UNUSED5)
     default: return "(* UNKNOWN *)";
     }
 
@@ -847,6 +848,7 @@ bool StorageHeaderFlags::fromAscii(StorageHeaderFlags::Enum* out,
     CHECKVALUE(UNUSED2)
     CHECKVALUE(UNUSED3)
     CHECKVALUE(UNUSED4)
+    CHECKVALUE(UNUSED5)
 
     // Invalid string
     return false;
@@ -863,7 +865,8 @@ bool StorageHeaderFlagUtil::isValid(bsl::ostream& errorDescription,
 {
     if (isSet(flags, StorageHeaderFlags::e_UNUSED2) ||
         isSet(flags, StorageHeaderFlags::e_UNUSED3) ||
-        isSet(flags, StorageHeaderFlags::e_UNUSED4)) {
+        isSet(flags, StorageHeaderFlags::e_UNUSED4) ||
+        isSet(flags, StorageHeaderFlags::e_UNUSED5)) {
         errorDescription << "UNUSED flags are invalid.";
         return false;  // RETURN
     }
@@ -887,6 +890,7 @@ bsl::ostream& StorageHeaderFlagUtil::prettyPrint(bsl::ostream& stream,
     CHECKVALUE(UNUSED2)
     CHECKVALUE(UNUSED3)
     CHECKVALUE(UNUSED4)
+    CHECKVALUE(UNUSED5)
 
     return stream;
 

@@ -156,6 +156,7 @@
 #include <bsl_string.h>  // for bslstl::StringRef
 #include <bsl_type_traits.h>
 #include <bsla_annotations.h>
+#include <bslmf_assert.h>
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bsls_assert.h>
 #include <bsls_types.h>
@@ -3012,7 +3013,8 @@ struct StorageHeaderFlags {
         e_RECEIPT_REQUESTED = (1 << 0),
         e_UNUSED2           = (1 << 1),
         e_UNUSED3           = (1 << 2),
-        e_UNUSED4           = (1 << 3)
+        e_UNUSED4           = (1 << 3),
+        e_UNUSED5           = (1 << 4)
     };
 
     // PUBLIC CONSTANTS
@@ -3030,10 +3032,12 @@ struct StorageHeaderFlags {
     /// NOTE: This value must always be equal to the highest type in the
     /// enum because it is being used as an upper bound to verify a
     /// StorageHeader's `Flags` field is a valid type.
-    static const int k_HIGHEST_STORAGE_FLAG = e_UNUSED4;
+    static const int k_HIGHEST_STORAGE_FLAG = e_UNUSED5;
 
     /// Used by test drivers
     static const int k_VALUE_COUNT = StorageHeader::k_FLAGS_NUM_BITS;
+
+    BSLMF_ASSERT(1 << (k_VALUE_COUNT - 1) == k_HIGHEST_STORAGE_FLAG);
 
     // CLASS METHODS
 
