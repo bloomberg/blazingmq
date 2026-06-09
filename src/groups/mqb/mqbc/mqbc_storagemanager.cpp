@@ -786,7 +786,6 @@ void StorageManager::sendReplicaDataRequestPush(
     // Send ReplicaDataRequestPush to destination replicas
     const bsl::vector<NodeToPSNCtxMapCIter>& destinationReplicas =
         destinations.d_dataPushDestinations;
-    EventData failedEventDataVec;
     for (bsl::vector<NodeToPSNCtxMapCIter>::const_iterator cit =
              destinationReplicas.cbegin();
          cit != destinationReplicas.cend();
@@ -831,17 +830,16 @@ void StorageManager::sendReplicaDataRequestPush(
                       << " to " << destNode->nodeDescription() << ".";
 
         if (bmqt::GenericResult::e_SUCCESS != status) {
+            EventData failedEventDataVec;
             failedEventDataVec.emplace_back(destNode,
                                             -1,  // placeholder responseId
                                             partitionId,
                                             1);
-        }
-    }
 
-    if (!failedEventDataVec.empty()) {
-        enqueuePartitionFSMEvent(
-            PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_PUSH,
-            failedEventDataVec);
+            enqueuePartitionFSMEvent(
+                PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_PUSH,
+                failedEventDataVec);
+        }
     }
 }
 
@@ -860,7 +858,6 @@ void StorageManager::sendReplicaDataRequestDrop(
     // Send ReplicaDataRequestDrop to replicas with obsolete data
     const bsl::vector<NodeToPSNCtxMapCIter>& destinationReplicas =
         destinations.d_dataDropDestinations;
-    EventData failedEventDataVec;
     for (bsl::vector<NodeToPSNCtxMapCIter>::const_iterator cit =
              destinationReplicas.cbegin();
          cit != destinationReplicas.cend();
@@ -902,17 +899,16 @@ void StorageManager::sendReplicaDataRequestDrop(
                       << " to " << destNode->nodeDescription() << ".";
 
         if (bmqt::GenericResult::e_SUCCESS != status) {
+            EventData failedEventDataVec;
             failedEventDataVec.emplace_back(destNode,
                                             -1,  // placeholder responseId
                                             partitionId,
                                             1);
-        }
-    }
 
-    if (!failedEventDataVec.empty()) {
-        enqueuePartitionFSMEvent(
-            PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_DROP,
-            failedEventDataVec);
+            enqueuePartitionFSMEvent(
+                PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_DROP,
+                failedEventDataVec);
+        }
     }
 }
 
