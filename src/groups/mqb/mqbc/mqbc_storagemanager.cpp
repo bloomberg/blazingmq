@@ -1455,19 +1455,14 @@ void StorageManager::processPrimaryStateResponse(
 }
 
 void StorageManager::processReplicaStateResponseDispatched(
-    const RequestContextSp& requestContext)
+    const RequestContextSp& requestContext,
+    mqbnet::ClusterNode*    responder)
 {
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-
-    const NodeResponsePairs& pairs = requestContext->response();
-    if (d_clusterData_p->cluster().isLocal()) {
-        BSLS_ASSERT_SAFE(pairs.empty());
-        return;  // RETURN
-    }
-    BSLS_ASSERT_SAFE(!pairs.empty());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
 
     // Fetch partitionId from request
     const int requestPartitionId = requestContext->request()
@@ -1479,27 +1474,24 @@ void StorageManager::processReplicaStateResponseDispatched(
                                        .replicaStateRequest()
                                        .partitionId();
 
+    BSLS_ASSERT_SAFE(0 <= requestPartitionId &&
+                     requestPartitionId <
+                         static_cast<int>(d_fileStores.size()));
+
     if (d_cluster_p->isStopping()) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
                       << " Partition [" << requestPartitionId << "]: "
                       << "Cluster is stopping; skipping processing of "
-                      << "ReplicaStateResponse(s).";
+                      << "ReplicaStateResponse.";
         return;  // RETURN
     }
 
-    EventData eventDataVec(d_allocator_p);
-    EventData failedEventDataVec(d_allocator_p);
-
-    for (NodeResponsePairsCIter cit = pairs.cbegin(); cit != pairs.cend();
-         ++cit) {
-        BSLS_ASSERT_SAFE(cit->first);
-
-        if (cit->second.choice().isStatusValue()) {
-            BALL_LOG_WARN << d_clusterData_p->identity().description()
-                          << " Partition [" << requestPartitionId
-                          << "]: " << "Received failed ReplicaStateResponse "
-                          << cit->second.choice().status() << " from "
-                          << cit->first->nodeDescription() << ".";
+    if (requestContext->result() != bmqt::GenericResult::e_SUCCESS) {
+        BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << " Partition [" << requestPartitionId
+                      << "]: " << "Received failed ReplicaStateResponse "
+                      << requestContext->response() << " from "
+                      << responder->nodeDescription() << ".";
 
             const bmqp_ctrlmsg::Status& status = cit->second.choice().status();
             if (status.category() ==
@@ -1511,82 +1503,78 @@ void StorageManager::processReplicaStateResponseDispatched(
                 return;  // RETURN
             }
 
-            failedEventDataVec.emplace_back(
-                cit->first,
-                cit->second.rId().isNull() ? -1 : cit->second.rId().value(),
-                requestPartitionId,
-                1,
-                d_clusterData_p->membership().selfNode());
-            continue;  // CONTINUE
-        }
+        EventData eventDataVec;
+        eventDataVec.emplace_back(responder,
+                                  -1,  // placeholder requestId
+                                  requestPartitionId,
+                                  1);
 
-        BSLS_ASSERT_SAFE(cit->second.choice().isClusterMessageValue());
-        BSLS_ASSERT_SAFE(cit->second.choice()
-                             .clusterMessage()
-                             .choice()
-                             .isPartitionMessageValue());
-        BSLS_ASSERT_SAFE(cit->second.choice()
-                             .clusterMessage()
-                             .choice()
-                             .partitionMessage()
-                             .choice()
-                             .isReplicaStateResponseValue());
-
-        const int responseId = cit->second.rId().isNull()
-                                   ? -1
-                                   : cit->second.rId().value();
-
-        const bmqp_ctrlmsg::ReplicaStateResponse& response =
-            cit->second.choice()
-                .clusterMessage()
-                .choice()
-                .partitionMessage()
-                .choice()
-                .replicaStateResponse();
-
-        BALL_LOG_INFO << d_clusterData_p->identity().description()
-                      << " Partition [" << requestPartitionId
-                      << "]: " << "Received ReplicaStateResponse "
-                      << cit->second << " from "
-                      << cit->first->nodeDescription();
-
-        BSLS_ASSERT_SAFE(d_clusterState_p->partitionsInfo()
-                             .at(response.partitionId())
-                             .primaryNodeId() ==
-                         d_clusterData_p->membership().selfNode()->nodeId());
-
-        const unsigned int primaryLeaseId = d_clusterState_p->partitionsInfo()
-                                                .at(response.partitionId())
-                                                .primaryLeaseId();
-
-        eventDataVec.emplace_back(
-            cit->first,
-            responseId,
-            response.partitionId(),
-            1,
-            d_clusterData_p->membership().selfNode(),
-            primaryLeaseId,
-            response.latestSequenceNumber(),
-            response.firstSyncPointAfterRolloverSequenceNumber());
-
-        BSLS_ASSERT_SAFE(requestPartitionId == response.partitionId());
-    }
-
-    if (eventDataVec.size() > 0) {
-        enqueuePartitionFSMEvent(PartitionFSM::Event::e_REPLICA_STATE_RSPN,
-                                 eventDataVec);
-    }
-
-    if (failedEventDataVec.size() > 0) {
         enqueuePartitionFSMEvent(
-
             PartitionFSM::Event::e_FAIL_REPLICA_STATE_RSPN,
-            failedEventDataVec);
+            eventDataVec);
+        return;  // RETURN
     }
+
+    BSLS_ASSERT_SAFE(
+        requestContext->response().choice().isClusterMessageValue());
+    BSLS_ASSERT_SAFE(requestContext->response()
+                         .choice()
+                         .clusterMessage()
+                         .choice()
+                         .isPartitionMessageValue());
+    BSLS_ASSERT_SAFE(requestContext->response()
+                         .choice()
+                         .clusterMessage()
+                         .choice()
+                         .partitionMessage()
+                         .choice()
+                         .isReplicaStateResponseValue());
+
+    const int requestId = requestContext->response().rId().value();
+
+    const bmqp_ctrlmsg::ReplicaStateResponse& response =
+        requestContext->response()
+            .choice()
+            .clusterMessage()
+            .choice()
+            .partitionMessage()
+            .choice()
+            .replicaStateResponse();
+    BSLS_ASSERT_SAFE(response.partitionId() == requestPartitionId);
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << " Partition [" << requestPartitionId
+                  << "]: " << "Received ReplicaStateResponse "
+                  << requestContext->response() << " from "
+                  << responder->nodeDescription();
+
+    BSLS_ASSERT_SAFE(d_clusterState_p->partitionsInfo()
+                         .at(response.partitionId())
+                         .primaryNodeId() ==
+                     d_clusterData_p->membership().selfNode()->nodeId());
+
+    const unsigned int primaryLeaseId = d_clusterState_p->partitionsInfo()
+                                            .at(response.partitionId())
+                                            .primaryLeaseId();
+
+    EventData eventDataVec;
+    eventDataVec.emplace_back(
+        responder,
+        requestId,
+        response.partitionId(),
+        1,
+        d_clusterData_p->membership().selfNode(),
+        primaryLeaseId,
+        response.latestSequenceNumber(),
+        response.firstSyncPointAfterRolloverSequenceNumber());
+
+    enqueuePartitionFSMEvent(PartitionFSM::Event::e_REPLICA_STATE_RSPN,
+                             eventDataVec);
 }
 
 void StorageManager::processReplicaStateResponse(
-    const RequestContextSp& requestContext)
+    const RequestContextSp& requestContext,
+    mqbnet::ClusterNode*    responder)
 {
     // executed by *any* thread
     // dispatch to the CLUSTER DISPATCHER
@@ -1594,7 +1582,8 @@ void StorageManager::processReplicaStateResponse(
         bdlf::BindUtil::bind(
             &StorageManager::processReplicaStateResponseDispatched,
             this,
-            requestContext),
+            requestContext,
+            responder),
         d_cluster_p);
 }
 
@@ -2143,42 +2132,70 @@ void StorageManager::do_replicaStateRequest(const EventWithData& event)
 
     ClusterUtil::loadPeerNodes(&replicas, *d_clusterData_p);
 
-    RequestContextSp contextSp =
-        d_clusterData_p->multiRequestManager().createRequestContext();
-    bmqp_ctrlmsg::ReplicaStateRequest& replicaStateRequest =
-        contextSp->request()
-            .choice()
-            .makeClusterMessage()
-            .choice()
-            .makePartitionMessage()
-            .choice()
-            .makeReplicaStateRequest();
-
-    replicaStateRequest.partitionId() = partitionId;
-    replicaStateRequest.primaryLeaseId() =
-        d_partitionInfoVec.at(partitionId).primaryLeaseId();
-
     mqbnet::ClusterNode* selfNode = d_clusterData_p->membership().selfNode();
     BSLS_ASSERT_SAFE(d_nodeToPSNCtxMapVec[partitionId].find(selfNode) !=
                      d_nodeToPSNCtxMapVec[partitionId].end());
 
-    replicaStateRequest.latestSequenceNumber() =
+    const bmqp_ctrlmsg::PartitionSequenceNumber& selfPSN =
         d_nodeToPSNCtxMapVec[partitionId][selfNode].d_PSN;
+    const bmqp_ctrlmsg::PartitionSequenceNumber
+        selfFirstSyncAfterRolloverPSN =
+            getSelfFirstSyncPointAfterRolloverPSN(partitionId);
 
-    // Get own first sync point after rollover PSN
-    replicaStateRequest.firstSyncPointAfterRolloverSequenceNumber() =
-        getSelfFirstSyncPointAfterRolloverPSN(partitionId);
+    for (bsl::vector<mqbnet::ClusterNode*>::const_iterator it =
+             replicas.cbegin();
+         it != replicas.cend();
+         ++it) {
+        mqbnet::ClusterNode* replica = *it;
 
-    contextSp->setDestinationNodes(replicas);
-    contextSp->setComponentId(
-        bmqp::RequestManagerComponentId::partitionFSM(partitionId));
-    contextSp->setResponseCb(
-        bdlf::BindUtil::bind(&StorageManager::processReplicaStateResponse,
-                             this,
-                             bdlf::PlaceHolders::_1));
+        RequestContextSp contextSp =
+            d_clusterData_p->requestManager().createRequest();
+        contextSp->setComponentId(
+            bmqp::RequestManagerComponentId::partitionFSM(partitionId));
 
-    d_clusterData_p->multiRequestManager().sendRequest(contextSp,
-                                                       bsls::TimeInterval(10));
+        bmqp_ctrlmsg::ReplicaStateRequest& replicaStateRequest =
+            contextSp->request()
+                .choice()
+                .makeClusterMessage()
+                .choice()
+                .makePartitionMessage()
+                .choice()
+                .makeReplicaStateRequest();
+
+        replicaStateRequest.partitionId() = partitionId;
+        replicaStateRequest.latestSequenceNumber() = selfPSN;
+    replicaStateRequest.primaryLeaseId() =
+        d_partitionInfoVec.at(partitionId).primaryLeaseId();
+
+        // Get own first sync point after rollover PSN
+        replicaStateRequest
+            .firstSyncPointAfterRolloverSequenceNumber() =
+            selfFirstSyncAfterRolloverPSN;
+
+        contextSp->setResponseCb(bdlf::BindUtil::bind(
+            &StorageManager::processReplicaStateResponse,
+            this,
+            bdlf::PlaceHolders::_1,
+            replica));
+
+        const bmqt::GenericResult::Enum status =
+            d_clusterData_p->cluster().sendRequest(
+                contextSp,
+                replica,
+                bsls::TimeInterval(10));
+
+        if (bmqt::GenericResult::e_SUCCESS != status) {
+            EventData failedEventDataVec;
+            failedEventDataVec.emplace_back(replica,
+                                            -1,  // placeholder responseId
+                                            partitionId,
+                                            1);
+
+            enqueuePartitionFSMEvent(
+                PartitionFSM::Event::e_FAIL_REPLICA_STATE_RSPN,
+                failedEventDataVec);
+        }
+    }
 }
 
 void StorageManager::do_replicaStateResponse(const EventWithData& event)

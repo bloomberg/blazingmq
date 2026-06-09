@@ -122,13 +122,8 @@ class StorageManager BSLS_KEYWORD_FINAL
 
     typedef bsl::function<void(int)> RecoveryStatusCb;
 
-    typedef ClusterData::MultiRequestManagerType       MultiRequestManagerType;
-    typedef MultiRequestManagerType::RequestContextSp  RequestContextSp;
-    typedef MultiRequestManagerType::NodeResponsePairs NodeResponsePairs;
-    typedef MultiRequestManagerType::NodeResponsePairsConstIter
-        NodeResponsePairsCIter;
-
-    typedef ClusterData::RequestManagerType RequestManagerType;
+    typedef ClusterData::RequestManagerType       RequestManagerType;
+    typedef RequestManagerType::RequestSp          RequestContextSp;
 
     typedef bdlmt::EventScheduler::RecurringEventHandle RecurringEventHandle;
 
@@ -581,14 +576,16 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
     void processReplicaStateResponseDispatched(
-        const RequestContextSp& requestContext);
+        const RequestContextSp& requestContext,
+        mqbnet::ClusterNode*    responder);
 
     /// Process the ReplicaStateResponse contained in the specified
-    /// `requestContext`.
+    /// `requestContext` from the specified `responder`.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread or scheduler thread.
-    void processReplicaStateResponse(const RequestContextSp& requestContext);
+    void processReplicaStateResponse(const RequestContextSp& requestContext,
+                                     mqbnet::ClusterNode*    responder);
 
     /// Process the ReplicaDataResponse contained in the specified
     /// `requestContext` from the specified `responder`.
