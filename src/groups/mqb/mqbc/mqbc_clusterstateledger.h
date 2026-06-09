@@ -317,6 +317,14 @@ class ClusterStateLedger {
     /// Set the commit callback to the specified `value`.
     virtual void setCommitCb(const CommitCb& value) = 0;
 
+    /// Replicate all uncommitted advisories to the specified `destination`
+    /// node.  Return 0 on success, and a non-zero value otherwise.  Note
+    /// that *only* a leader node may invoke this routine.
+    ///
+    /// THREAD: This method can be invoked only in the associated cluster's
+    ///         dispatcher thread.
+    virtual int replicateUncommitted(mqbnet::ClusterNode* destination) = 0;
+
     // ACCESSORS
 
     /// Return true if this ledger is opened, false otherwise.
@@ -324,6 +332,13 @@ class ClusterStateLedger {
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
     virtual bool isOpen() const = 0;
+
+    /// Load into the specified `out` the list of uncommitted advisories as
+    /// const references.
+    ///
+    /// THREAD: This method can be invoked only in the associated cluster's
+    ///         dispatcher thread.
+    virtual void uncommittedAdvisories(ClusterMessageCRefList* out) const = 0;
 
     /// Return an iterator to this ledger.
     ///

@@ -1236,7 +1236,7 @@ static void test11_leaderHighestLeaderHealed()
 
     // Verify that a cluster state snapshot is applied to the CSL
     ClusterMessageCRefList advisories;
-    tester.d_clusterStateLedger_p->_uncommittedAdvisories(&advisories);
+    tester.d_clusterStateLedger_p->uncommittedAdvisories(&advisories);
     BMQTST_ASSERT_EQ(advisories.size(), 1U);
     BMQTST_ASSERT(advisories.front().get().choice().isLeaderAdvisoryValue());
 
@@ -1364,7 +1364,7 @@ static void test12_followerHighestLeaderHealed()
 
     // Verify that a cluster state snapshot is applied to the CSL
     ClusterMessageCRefList advisories;
-    tester.d_clusterStateLedger_p->_uncommittedAdvisories(&advisories);
+    tester.d_clusterStateLedger_p->uncommittedAdvisories(&advisories);
     BMQTST_ASSERT_EQ(advisories.size(), 1U);
     BMQTST_ASSERT(advisories.front().get().choice().isLeaderAdvisoryValue());
 
@@ -1671,7 +1671,7 @@ static void test16_followerClusterStateRespFailureLeaderNext()
     //
     // Verify that a cluster state snapshot is applied to the CSL
     ClusterMessageCRefList advisories;
-    tester.d_clusterStateLedger_p->_uncommittedAdvisories(&advisories);
+    tester.d_clusterStateLedger_p->uncommittedAdvisories(&advisories);
     BMQTST_ASSERT_EQ(advisories.size(), 1U);
     BMQTST_ASSERT(advisories.front().get().choice().isLeaderAdvisoryValue());
 
@@ -1824,7 +1824,7 @@ static void test17_followerClusterStateRespFailureFollowerNext()
 
     // Verify that a cluster state snapshot is applied to the CSL
     ClusterMessageCRefList advisories;
-    tester.d_clusterStateLedger_p->_uncommittedAdvisories(&advisories);
+    tester.d_clusterStateLedger_p->uncommittedAdvisories(&advisories);
     BMQTST_ASSERT_EQ(advisories.size(), 1U);
     BMQTST_ASSERT(advisories.front().get().choice().isLeaderAdvisoryValue());
 
