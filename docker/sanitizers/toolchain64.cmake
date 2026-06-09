@@ -12,7 +12,7 @@ set(IS_64BIT yes CACHE BOOL "Tool chain bitness.")
 # Set the compiler flags. Use the CACHE instead of the *_INIT variants
 # which are modified in the in the compiler initialization modules.
 set(CMAKE_C_FLAGS "-march=westmere -m64 -fno-strict-aliasing" CACHE STRING "ABI C flags.")
-set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard.")
+set(CMAKE_CXX_STANDARD 17 CACHE STRING "C++ standard.")
 set(CMAKE_CXX_STANDARD_REQUIRED 1 CACHE BOOL "Standard version is required.")
 set(CMAKE_CXX_FLAGS "-D_GLIBCXX_USE_CXX11_ABI=0 -march=westmere -m64 -fno-strict-aliasing" CACHE STRING "ABI C++ flags.")
 
