@@ -172,9 +172,7 @@ void ClusterNodeSession::createQueueHandleRequesterContext()
     const bsl::shared_ptr<bmqst::StatContext> statContext =
         d_queueHandleRequesterContext_sp->statContext();
 
-    createQueueHandleRequesterContextImpl(
-        d_queueHandleRequesterContext_sp->identity(),
-        d_queueHandleRequesterContext_sp->statContext());
+    createQueueHandleRequesterContextImpl(identity, statContext);
 }
 
 void ClusterNodeSession::createQueueHandleRequesterContextImpl(
