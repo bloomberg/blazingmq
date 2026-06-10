@@ -71,7 +71,7 @@ static void test1_breathingTest()
     BMQTST_ASSERT_EQ(obj.d_outstandingBytesQlist, 0ULL);
     BMQTST_ASSERT_EQ(obj.d_journalFileAvailable, true);
     BMQTST_ASSERT_EQ(obj.d_fileSetRolloverPolicyAlarm, false);
-    BMQTST_ASSERT_EQ(obj.d_aliasedBlobBufferCount, 1LL);
+    BMQTST_ASSERT(!obj.d_aliasedChunk_sp);
 
     BMQTST_ASSERT_EQ(obj.d_allocator_p, bmqtst::TestHelperUtil::allocator());
 }

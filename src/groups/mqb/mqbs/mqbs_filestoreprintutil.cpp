@@ -67,7 +67,7 @@ void FileStorePrintUtil::loadSummary(mqbcmd::FileStoreSummary*  summary,
         summary->fileSets()[i].dataFileName() =
             (0 == rc ? leaf : fileSets[i]->d_dataFileName);
         summary->fileSets()[i].aliasedBlobBufferCount() =
-            fileSets[i]->d_aliasedBlobBufferCount;
+            fileSets[i]->numReferences();
         if (0 == i) {
             totalMappedSize += fileSets[i]->d_dataFilePosition;
             totalMappedSize += fileSets[i]->d_qlistFilePosition;

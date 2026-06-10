@@ -32,6 +32,7 @@
 #include <mqbu_storagekey.h>
 
 // BDE
+#include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
@@ -87,12 +88,18 @@ struct FileSet BSLS_CPP11_FINAL {
 
     bool d_fileSetRolloverPolicyAlarm;
 
-    bsls::AtomicInt64 d_aliasedBlobBufferCount;
-    // Number of payload blob buffers
-    // referencing to the mapped data file
-    // of this file set *PLUS* one.  See
-    // notes in ctor of this component for
-    // more details.
+    /// `true` if this FileSet is garbage-collected on rollover, `false` if
+    /// GC is expected on the last alias destruction.
+    bsls::AtomicBool d_inlineGc;
+
+    /// The shared alias used to keep track of the current number of records
+    /// that still reference this FileSet.  FileSet cannot be safely GCed
+    /// unless all references are gone.
+    bsl::shared_ptr<FileSet> d_aliasedChunk_sp;
+
+    /// A weak_ptr pointing at the aliased chunk.
+    /// Guaranteed to be never reset: safe to get `use_count`.
+    bsl::weak_ptr<FileSet> d_aliasedChunk_wp;
 
     bslma::Allocator* d_allocator_p;
 
@@ -107,6 +114,11 @@ struct FileSet BSLS_CPP11_FINAL {
 
     // CREATORS
     FileSet(FileStore* store, bslma::Allocator* allocator);
+
+    // ACCESSORS
+    /// Return the snapshot of the remaining number of references to this
+    /// FileSet.
+    long numReferences() const { return d_aliasedChunk_wp.use_count(); }
 };
 
 // ============================================================================
@@ -135,20 +147,12 @@ inline FileSet::FileSet(FileStore* store, bslma::Allocator* allocator)
 , d_outstandingBytesQlist(0)
 , d_journalFileAvailable(true)
 , d_fileSetRolloverPolicyAlarm(false)
-, d_aliasedBlobBufferCount(1)  // See note below explaining value of '1'
+, d_inlineGc(false)
+, d_aliasedChunk_sp()
+, d_aliasedChunk_wp()
 , d_allocator_p(allocator)
 {
     BSLS_ASSERT(allocator);
-
-    // The reason 'd_aliasedBlobBufferCount' is initialized with 1 instead of 0
-    // is that we don't want the gc logic to kick in for the active file set
-    // everytime its count goes to zero.  While there is a check in gc logic
-    // which does not gc the file set if its active one, its still expensive to
-    // invoke it (in the dispatcher thread) everytime count goes to 0.  In the
-    // worst case, the count can go to 0 after everytime a message is deleted
-    // from the store.  Here's how: assume that message flow is such that there
-    // is only one outstanding message at any time, which is deleted after
-    // consumer confirms it.
 }
 
 }  // close package namespace

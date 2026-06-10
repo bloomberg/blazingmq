@@ -21,7 +21,6 @@
 //@CLASSES:
 //  mqbs::FileStore:         File-backed BlazingMQ data store.
 //  mqbs::FileStoreIterator: Iterator over records in a 'mqbs::FileStore'
-//  mqbs::FileStore_AliasedBufferDeleter
 //
 //@SEE ALSO: mqbs::FileStoreProtocol
 //
@@ -108,23 +107,6 @@ class JournalFileIterator;
 class QlistFileIterator;
 class ReplicatedStorage;
 
-// =====================================
-// struct FileStore_AliasedBufferDeleter
-// =====================================
-
-struct FileStore_AliasedBufferDeleter {
-    // PUBLIC DATA
-    FileSet* d_fileSet_p;
-
-    // CREATORS
-    FileStore_AliasedBufferDeleter();
-
-    // MANIPULATORS
-    void setFileSet(FileSet* fileSet);
-
-    void reset();
-};
-
 // ===============
 // class FileStore
 // ===============
@@ -138,7 +120,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     // FRIENDS
     friend class FileStoreIterator;
-    friend struct FileStore_AliasedBufferDeleter;
 
   public:
     // TYPES
@@ -180,16 +161,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
   private:
     // PRIVATE TYPES
-    typedef FileStore_AliasedBufferDeleter        AliasedBufferDeleter;
-    typedef bsl::shared_ptr<AliasedBufferDeleter> AliasedBufferDeleterSp;
-
-    /// Pool of shared pointers to `AliasedBufferDeleter`
-    typedef bdlcc::SharedObjectPool<
-        AliasedBufferDeleter,
-        bdlcc::ObjectPoolFunctors::DefaultCreator,
-        bdlcc::ObjectPoolFunctors::Reset<AliasedBufferDeleter> >
-        AliasedBufferDeleterSpPool;
-
     typedef DataStoreConfig::Records             Records;
     typedef DataStoreConfig::RecordIterator      RecordIterator;
     typedef DataStoreConfig::RecordConstIterator RecordConstIterator;
@@ -301,8 +272,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     // use.
 
     StateSpPool* d_statePool_p;
-
-    mutable AliasedBufferDeleterSpPool d_aliasedBufferDeleterSpPool;
 
     bsls::AtomicBool d_isOpen;
     // Flag to indicate open/close status
