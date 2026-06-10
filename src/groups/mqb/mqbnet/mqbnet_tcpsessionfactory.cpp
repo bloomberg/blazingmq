@@ -719,20 +719,24 @@ void TCPSessionFactory::initialConnectionComplete(
     // Do not initiate reading from the channel.  Transport observer(s) will
     // enable the read when they are ready.
 
-    const bool result = operationContext->d_resultCb(
-        bmqio::ChannelFactoryEvent::e_CHANNEL_UP,
-        bmqio::Status(),
-        monitoredSession,
-        initialConnectionContext_sp->negotiationContext()->cluster(),
-        initialConnectionContext_sp->resultState(),
-        bdlf::BindUtil::bind(&TCPSessionFactory::readCallback,
-                             this,
-                             bdlf::PlaceHolders::_1,  // status
-                             bdlf::PlaceHolders::_2,  // numNeeded
-                             bdlf::PlaceHolders::_3,  // blob
-                             info.get()));
+    bool result = false;
 
-    if (!result || !d_isListening) {
+    if (d_isListening) {
+        result = operationContext->d_resultCb(
+            bmqio::ChannelFactoryEvent::e_CHANNEL_UP,
+            bmqio::Status(),
+            monitoredSession,
+            initialConnectionContext_sp->negotiationContext()->cluster(),
+            initialConnectionContext_sp->resultState(),
+            bdlf::BindUtil::bind(&TCPSessionFactory::readCallback,
+                                 this,
+                                 bdlf::PlaceHolders::_1,  // status
+                                 bdlf::PlaceHolders::_2,  // numNeeded
+                                 bdlf::PlaceHolders::_3,  // blob
+                                 info.get()));
+    }
+
+    if (!result) {
         // TODO: Revisit if still needed, following move to bmqio.
         //
         //       If 'stopListening' have been called, 'tearDown' may or may not
@@ -740,10 +744,10 @@ void TCPSessionFactory::initialConnectionComplete(
         //       called before or after 'stopListening'.  Invoke 'tearDown'
         //       explicitly (it supports subsequent calls).
 
-        BALL_LOG_WARN << "#TCP_UNEXPECTED_STATE "
-                      << "TCPSessionFactory '" << d_config.name()
-                      << (result ? "' has initiated shutdown "
-                                 : "' has encountered an error ")
+        BALL_LOG_WARN << "#TCP_UNEXPECTED_STATE TCPSessionFactory '"
+                      << d_config.name()
+                      << (d_isListening ? "' has encountered an error "
+                                        : "' has initiated shutdown ")
                       << "while negotiating a session [session: '"
                       << monitoredSession->description() << "', channel: '"
                       << channel.get() << "']";
@@ -1384,11 +1388,11 @@ void TCPSessionFactory::stopListening()
     }
     d_isListening = false;
 
-    cancelListeners();
-
     if (d_reconnectingChannelFactory_mp) {
         d_reconnectingChannelFactory_mp->disableReconnect();
     }
+
+    cancelListeners();
 }
 
 void TCPSessionFactory::closeClients()
