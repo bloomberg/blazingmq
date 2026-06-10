@@ -646,8 +646,6 @@
                                partition to keep
         prefaultPages........: flag to indicate whether to populate (prefault)
                                page tables for a mapping.
-        flushAtShutdown......: flag to indicate whether broker should flush
-                               storage files to disk at shutdown
         syncConfig...........: configuration for storage synchronization and
                                recovery
       </documentation>
@@ -663,7 +661,6 @@
       <element name='preallocate'         type='boolean' default='false'/>
       <element name='maxArchivedFileSets' type='int'/>
       <element name='prefaultPages'       type='boolean' default='false'/>
-      <element name='flushAtShutdown'     type='boolean' default='true'/>
       <element name='syncConfig'          type='tns:StorageSyncConfig'/>
     </sequence>
   </complexType>

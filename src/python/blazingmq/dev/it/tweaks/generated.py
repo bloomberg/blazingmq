@@ -1373,11 +1373,6 @@ class TweakFactory:
 
             prefault_pages = PrefaultPages()
 
-            class FlushAtShutdown(metaclass=TweakMetaclass):
-                def __call__(self, value: bool) -> Callable: ...
-
-            flush_at_shutdown = FlushAtShutdown()
-
             class SyncConfig(metaclass=TweakMetaclass):
                 class StartupRecoveryMaxDurationMs(metaclass=TweakMetaclass):
                     def __call__(self, value: int) -> Callable: ...

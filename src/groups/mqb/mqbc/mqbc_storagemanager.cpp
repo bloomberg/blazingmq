@@ -124,8 +124,7 @@ void StorageManager::shutdownCb(int partitionId, bslmt::Latch* latch)
     StorageUtil::shutdown(partitionId,
                           latch,
                           &d_fileStores,
-                          d_clusterData_p->identity().description(),
-                          d_clusterConfig);
+                          d_clusterData_p->identity().description());
 }
 
 void StorageManager::queueCreationCb(int                     partitionId,
@@ -3016,7 +3015,7 @@ void StorageManager::do_processBufferedLiveData(const EventWithData& event)
                 << partitionId << "]: "
                 << "Failed to apply buffered storage event, rc: " << rc
                 << ". Closing the partition." << BMQTSK_ALARMLOG_END;
-            fs->close(d_clusterConfig.partitionConfig().flushAtShutdown());
+            fs->close(true);  // flush
 
             EventData eventDataVecLocal;
             eventDataVecLocal.emplace_back(primary,

@@ -6694,9 +6694,8 @@ class PartitionConfig {
     // preallocated on disk maxArchivedFileSets..: maximum number of archived
     // file sets per partition to keep prefaultPages........: flag to indicate
     // whether to populate (prefault) page tables for a mapping.
-    // flushAtShutdown......: flag to indicate whether broker should flush
-    // storage files to disk at shutdown syncConfig...........: configuration
-    // for storage synchronization and recovery
+    // syncConfig...........: configuration for storage synchronization and
+    // recovery
 
     // INSTANCE DATA
     bsls::Types::Uint64 d_maxDataFileSize;
@@ -6710,7 +6709,6 @@ class PartitionConfig {
     int                 d_maxArchivedFileSets;
     bool                d_preallocate;
     bool                d_prefaultPages;
-    bool                d_flushAtShutdown;
 
     // PRIVATE ACCESSORS
     template <typename t_HASH_ALGORITHM>
@@ -6731,11 +6729,10 @@ class PartitionConfig {
         ATTRIBUTE_ID_PREALLOCATE            = 7,
         ATTRIBUTE_ID_MAX_ARCHIVED_FILE_SETS = 8,
         ATTRIBUTE_ID_PREFAULT_PAGES         = 9,
-        ATTRIBUTE_ID_FLUSH_AT_SHUTDOWN      = 10,
-        ATTRIBUTE_ID_SYNC_CONFIG            = 11
+        ATTRIBUTE_ID_SYNC_CONFIG            = 10
     };
 
-    enum { NUM_ATTRIBUTES = 12 };
+    enum { NUM_ATTRIBUTES = 11 };
 
     enum {
         ATTRIBUTE_INDEX_NUM_PARTITIONS         = 0,
@@ -6748,8 +6745,7 @@ class PartitionConfig {
         ATTRIBUTE_INDEX_PREALLOCATE            = 7,
         ATTRIBUTE_INDEX_MAX_ARCHIVED_FILE_SETS = 8,
         ATTRIBUTE_INDEX_PREFAULT_PAGES         = 9,
-        ATTRIBUTE_INDEX_FLUSH_AT_SHUTDOWN      = 10,
-        ATTRIBUTE_INDEX_SYNC_CONFIG            = 11
+        ATTRIBUTE_INDEX_SYNC_CONFIG            = 10
     };
 
     // CONSTANTS
@@ -6760,8 +6756,6 @@ class PartitionConfig {
     static const bool DEFAULT_INITIALIZER_PREALLOCATE;
 
     static const bool DEFAULT_INITIALIZER_PREFAULT_PAGES;
-
-    static const bool DEFAULT_INITIALIZER_FLUSH_AT_SHUTDOWN;
 
     static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
@@ -6896,10 +6890,6 @@ class PartitionConfig {
     // Return a reference to the modifiable "PrefaultPages" attribute of
     // this object.
 
-    bool& flushAtShutdown();
-    // Return a reference to the modifiable "FlushAtShutdown" attribute of
-    // this object.
-
     StorageSyncConfig& syncConfig();
     // Return a reference to the modifiable "SyncConfig" attribute of this
     // object.
@@ -6980,9 +6970,6 @@ class PartitionConfig {
 
     bool prefaultPages() const;
     // Return the value of the "PrefaultPages" attribute of this object.
-
-    bool flushAtShutdown() const;
-    // Return the value of the "FlushAtShutdown" attribute of this object.
 
     const StorageSyncConfig& syncConfig() const;
     // Return a reference offering non-modifiable access to the
@@ -17510,7 +17497,6 @@ void PartitionConfig::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     hashAppend(hashAlgorithm, this->preallocate());
     hashAppend(hashAlgorithm, this->maxArchivedFileSets());
     hashAppend(hashAlgorithm, this->prefaultPages());
-    hashAppend(hashAlgorithm, this->flushAtShutdown());
     hashAppend(hashAlgorithm, this->syncConfig());
 }
 
@@ -17526,7 +17512,6 @@ inline bool PartitionConfig::isEqualTo(const PartitionConfig& rhs) const
            this->preallocate() == rhs.preallocate() &&
            this->maxArchivedFileSets() == rhs.maxArchivedFileSets() &&
            this->prefaultPages() == rhs.prefaultPages() &&
-           this->flushAtShutdown() == rhs.flushAtShutdown() &&
            this->syncConfig() == rhs.syncConfig();
 }
 
@@ -17602,12 +17587,6 @@ int PartitionConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
-    ret = manipulator(&d_flushAtShutdown,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FLUSH_AT_SHUTDOWN]);
-    if (ret) {
-        return ret;
-    }
-
     ret = manipulator(&d_syncConfig,
                       ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SYNC_CONFIG]);
     if (ret) {
@@ -17670,11 +17649,6 @@ int PartitionConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
         return manipulator(
             &d_prefaultPages,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PREFAULT_PAGES]);
-    }
-    case ATTRIBUTE_ID_FLUSH_AT_SHUTDOWN: {
-        return manipulator(
-            &d_flushAtShutdown,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FLUSH_AT_SHUTDOWN]);
     }
     case ATTRIBUTE_ID_SYNC_CONFIG: {
         return manipulator(&d_syncConfig,
@@ -17750,11 +17724,6 @@ inline bool& PartitionConfig::prefaultPages()
     return d_prefaultPages;
 }
 
-inline bool& PartitionConfig::flushAtShutdown()
-{
-    return d_flushAtShutdown;
-}
-
 inline StorageSyncConfig& PartitionConfig::syncConfig()
 {
     return d_syncConfig;
@@ -17827,12 +17796,6 @@ int PartitionConfig::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
-    ret = accessor(d_flushAtShutdown,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FLUSH_AT_SHUTDOWN]);
-    if (ret) {
-        return ret;
-    }
-
     ret = accessor(d_syncConfig,
                    ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SYNC_CONFIG]);
     if (ret) {
@@ -17893,11 +17856,6 @@ int PartitionConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
     case ATTRIBUTE_ID_PREFAULT_PAGES: {
         return accessor(d_prefaultPages,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PREFAULT_PAGES]);
-    }
-    case ATTRIBUTE_ID_FLUSH_AT_SHUTDOWN: {
-        return accessor(
-            d_flushAtShutdown,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FLUSH_AT_SHUTDOWN]);
     }
     case ATTRIBUTE_ID_SYNC_CONFIG: {
         return accessor(d_syncConfig,
@@ -17971,11 +17929,6 @@ inline int PartitionConfig::maxArchivedFileSets() const
 inline bool PartitionConfig::prefaultPages() const
 {
     return d_prefaultPages;
-}
-
-inline bool PartitionConfig::flushAtShutdown() const
-{
-    return d_flushAtShutdown;
 }
 
 inline const StorageSyncConfig& PartitionConfig::syncConfig() const
@@ -22551,6 +22504,6 @@ inline const AppConfig& Configuration::appConfig() const
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY BLP_BAS_CODEGEN_2026.05.07
+// GENERATED BY BLP_BAS_CODEGEN_2026.05.21
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd

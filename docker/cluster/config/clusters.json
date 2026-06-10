@@ -50,7 +50,6 @@
             ],
             "partitionConfig": {
                 "name": "local",
-                "flushAtShutdown": true,
                 "location": "/var/local/bmq/storage",
                 "maxArchivedFileSets": 0,
                 "maxDataFileSize": 268435456,

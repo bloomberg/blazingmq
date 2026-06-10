@@ -894,7 +894,7 @@ static void test1_breathingTest()
 
     BMQTST_ASSERT_EQ(true, success);
     if (!success) {
-        fs.close();
+        fs.close(true);
         return;  // RETURN
     }
 
@@ -915,7 +915,7 @@ static void test1_breathingTest()
         // TBD: verify
     }
 
-    fs.close();
+    fs.close(true);
 
     BMQTST_ASSERT_EQ(false, fs.isOpen());
 
@@ -1016,7 +1016,7 @@ static void test2_printTest()
     stream << fsIt;
     BMQTST_ASSERT_EQ(stream.str(), "INVALID");
 
-    fs.close();
+    fs.close(true);
 }
 
 static void test3_partitionFullAlarm()

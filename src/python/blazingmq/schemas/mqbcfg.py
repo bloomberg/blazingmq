@@ -1425,8 +1425,6 @@ class PartitionConfig:
     partition to keep
     prefaultPages........: flag to indicate whether to populate (prefault)
     page tables for a mapping.
-    flushAtShutdown......: flag to indicate whether broker should flush
-    storage files to disk at shutdown
     syncConfig...........: configuration for storage synchronization and
     recovery
     """
@@ -1514,15 +1512,6 @@ class PartitionConfig:
         default=False,
         metadata={
             "name": "prefaultPages",
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "required": True,
-        },
-    )
-    flush_at_shutdown: bool = field(
-        default=True,
-        metadata={
-            "name": "flushAtShutdown",
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
