@@ -105,9 +105,7 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     typedef MultiRequestManagerType::NodeResponsePairsConstIter
         NodeResponsePairsCIter;
 
-    typedef ClusterFSMEventMetadata::InputMessage       InputMessage;
-    typedef ClusterFSMEventMetadata::InputMessages      InputMessages;
-    typedef ClusterFSMEventMetadata::InputMessagesCIter InputMessagesCIter;
+    typedef ClusterFSMEventMetadata::InputMessage InputMessage;
 
     typedef ClusterFSM::EventWithMetadata EventWithMetadata;
 

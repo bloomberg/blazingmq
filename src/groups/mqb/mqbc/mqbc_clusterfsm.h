@@ -94,11 +94,6 @@ class ClusterFSMObserver {
 class ClusterFSMEventMetadata {
   public:
     // TYPES
-    struct InputMessage;
-
-    typedef bsl::vector<InputMessage>     InputMessages;
-    typedef InputMessages::iterator       InputMessagesIter;
-    typedef InputMessages::const_iterator InputMessagesCIter;
 
     /// This struct defines an input cluster message which triggers the
     /// Cluster FSM event.
@@ -145,8 +140,8 @@ class ClusterFSMEventMetadata {
   private:
     // DATA
 
-    /// Input cluster messages which triggers this Cluster FSM event.
-    InputMessages d_messages;
+    /// Input cluster message which triggers this Cluster FSM event.
+    InputMessage d_message;
 
     /// Node with the highest LSN.
     mqbnet::ClusterNode* d_highestLSNNode;
@@ -172,10 +167,10 @@ class ClusterFSMEventMetadata {
     explicit ClusterFSMEventMetadata(bslma::Allocator* allocator = 0);
 
     /// Create a new instance of @bbref{mqbc::ClusterFSMEventMetadata} with the
-    /// specified `inputMessages`, and optionally specified `highestLSNNode`,
+    /// specified `inputMessage`, and optionally specified `highestLSNNode`,
     /// `crashedFollowerNode`, `clusterStateSnapshot`, and `allocator`.
     explicit ClusterFSMEventMetadata(
-        const InputMessages&                inputMessages,
+        const InputMessage&                 inputMessage,
         mqbnet::ClusterNode*                highestLSNNode      = 0,
         mqbnet::ClusterNode*                crashedFollowerNode = 0,
         const bmqp_ctrlmsg::LeaderAdvisory& clusterStateSnapshot =
@@ -205,7 +200,7 @@ class ClusterFSMEventMetadata {
                             bslma::Allocator*              allocator = 0);
 
     // ACCESSORS
-    const InputMessages&                inputMessages() const;
+    const InputMessage&                 inputMessage() const;
     mqbnet::ClusterNode*                highestLSNNode() const;
     mqbnet::ClusterNode*                crashedFollowerNode() const;
     const bmqp_ctrlmsg::LeaderAdvisory& clusterStateSnapshot() const;
@@ -377,7 +372,7 @@ ClusterFSMEventMetadata::InputMessage::leaderSequenceNumber() const
 // CREATORS
 inline ClusterFSMEventMetadata::ClusterFSMEventMetadata(
     bslma::Allocator* allocator)
-: d_messages(allocator)
+: d_message()
 , d_highestLSNNode(0)
 , d_crashedFollowerNode(0)
 , d_clusterStateSnapshot()
@@ -387,12 +382,12 @@ inline ClusterFSMEventMetadata::ClusterFSMEventMetadata(
 }
 
 inline ClusterFSMEventMetadata::ClusterFSMEventMetadata(
-    const InputMessages&                inputMessages,
+    const InputMessage&                 inputMessage,
     mqbnet::ClusterNode*                highestLSNNode,
     mqbnet::ClusterNode*                crashedFollowerNode,
     const bmqp_ctrlmsg::LeaderAdvisory& clusterStateSnapshot,
     bslma::Allocator*                   allocator)
-: d_messages(inputMessages)
+: d_message(inputMessage)
 , d_highestLSNNode(highestLSNNode)
 , d_crashedFollowerNode(crashedFollowerNode)
 , d_clusterStateSnapshot(clusterStateSnapshot)
@@ -406,7 +401,7 @@ inline ClusterFSMEventMetadata::ClusterFSMEventMetadata(
     mqbnet::ClusterNode*                crashedFollowerNode,
     const bmqp_ctrlmsg::LeaderAdvisory& clusterStateSnapshot,
     bslma::Allocator*                   allocator)
-: d_messages(allocator)
+: d_message()
 , d_highestLSNNode(highestLSNNode)
 , d_crashedFollowerNode(crashedFollowerNode)
 , d_clusterStateSnapshot(clusterStateSnapshot)
@@ -418,7 +413,7 @@ inline ClusterFSMEventMetadata::ClusterFSMEventMetadata(
 inline ClusterFSMEventMetadata::ClusterFSMEventMetadata(
     const bsl::vector<int>& modifiedPartitions,
     bslma::Allocator*       allocator)
-: d_messages(allocator)
+: d_message()
 , d_highestLSNNode(0)
 , d_crashedFollowerNode(0)
 , d_clusterStateSnapshot()
@@ -430,7 +425,7 @@ inline ClusterFSMEventMetadata::ClusterFSMEventMetadata(
 inline ClusterFSMEventMetadata::ClusterFSMEventMetadata(
     const ClusterFSMEventMetadata& rhs,
     bslma::Allocator*              allocator)
-: d_messages(rhs.inputMessages(), allocator)
+: d_message(rhs.inputMessage())
 , d_highestLSNNode(rhs.highestLSNNode())
 , d_crashedFollowerNode(rhs.crashedFollowerNode())
 , d_clusterStateSnapshot(rhs.clusterStateSnapshot())
@@ -440,10 +435,10 @@ inline ClusterFSMEventMetadata::ClusterFSMEventMetadata(
 }
 
 // ACCESSORS
-inline const ClusterFSMEventMetadata::InputMessages&
-ClusterFSMEventMetadata::inputMessages() const
+inline const ClusterFSMEventMetadata::InputMessage&
+ClusterFSMEventMetadata::inputMessage() const
 {
-    return d_messages;
+    return d_message;
 }
 
 inline mqbnet::ClusterNode* ClusterFSMEventMetadata::highestLSNNode() const

@@ -410,9 +410,8 @@ void ClusterStateManager::do_sendFollowerLSNResponse(
     BSLS_ASSERT_SAFE(!d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfFollower());
 
-    const ClusterFSMEventMetadata& metadata = event.second;
-    BSLS_ASSERT_SAFE(metadata.inputMessages().size() == 1);
-    const InputMessage& inputMessage = metadata.inputMessages().at(0);
+    const ClusterFSMEventMetadata& metadata      = event.second;
+    const InputMessage&            inputMessage  = metadata.inputMessage();
 
     bmqp_ctrlmsg::ControlMessage controlMsg;
     controlMsg.rId() = inputMessage.requestId();
@@ -472,9 +471,8 @@ void ClusterStateManager::do_sendFailureFollowerLSNResponse(
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
     BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
 
-    const ClusterFSMEventMetadata& metadata = event.second;
-    BSLS_ASSERT_SAFE(metadata.inputMessages().size() == 1);
-    const InputMessage& inputMessage = metadata.inputMessages().at(0);
+    const ClusterFSMEventMetadata& metadata      = event.second;
+    const InputMessage&            inputMessage  = metadata.inputMessage();
 
     bmqp_ctrlmsg::ControlMessage controlMsg;
     controlMsg.rId() = inputMessage.requestId();
@@ -565,12 +563,11 @@ void ClusterStateManager::do_sendFollowerClusterStateRequest(
         bsls::TimeInterval(10));
 
     if (rc != bmqt::GenericResult::e_SUCCESS) {
-        InputMessages inputMessages(1, d_allocator_p);
-        inputMessages.at(0).setSource(
-            d_clusterData_p->membership().selfNode());
+        InputMessage inputMessage;
+        inputMessage.setSource(d_clusterData_p->membership().selfNode());
 
         applyFSMEvent(ClusterFSM::Event::e_FAIL_FOL_CSL_RSPN,
-                      ClusterFSMEventMetadata(inputMessages,
+                      ClusterFSMEventMetadata(inputMessage,
                                               metadata.highestLSNNode()));
     }
 }
@@ -586,9 +583,8 @@ void ClusterStateManager::do_sendFollowerClusterStateResponse(
     BSLS_ASSERT_SAFE(!d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfFollower());
 
-    const ClusterFSMEventMetadata& metadata = event.second;
-    BSLS_ASSERT_SAFE(metadata.inputMessages().size() == 1);
-    const InputMessage& inputMessage = metadata.inputMessages().at(0);
+    const ClusterFSMEventMetadata& metadata      = event.second;
+    const InputMessage&            inputMessage  = metadata.inputMessage();
 
     bmqp_ctrlmsg::ControlMessage controlMsg;
     controlMsg.rId() = inputMessage.requestId();
@@ -659,9 +655,8 @@ void ClusterStateManager::do_sendFailureFollowerClusterStateResponse(
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
     BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
 
-    const ClusterFSMEventMetadata& metadata = event.second;
-    BSLS_ASSERT_SAFE(metadata.inputMessages().size() == 1);
-    const InputMessage& inputMessage = metadata.inputMessages().at(0);
+    const ClusterFSMEventMetadata& metadata      = event.second;
+    const InputMessage&            inputMessage  = metadata.inputMessage();
 
     bmqp_ctrlmsg::ControlMessage controlMsg;
     controlMsg.rId() = inputMessage.requestId();
@@ -689,9 +684,8 @@ void ClusterStateManager::do_storeSelfLSN(const EventWithMetadata& event)
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfLeader());
 
-    const ClusterFSMEventMetadata& metadata = event.second;
-    BSLS_ASSERT_SAFE(metadata.inputMessages().size() == 1);
-    const InputMessage& inputMessage = metadata.inputMessages().at(0);
+    const ClusterFSMEventMetadata& metadata      = event.second;
+    const InputMessage&            inputMessage  = metadata.inputMessage();
     BSLS_ASSERT_SAFE(inputMessage.source()->nodeId() ==
                      d_clusterData_p->membership().selfNode()->nodeId());
 
@@ -714,18 +708,16 @@ void ClusterStateManager::do_storeFollowerLSNs(const EventWithMetadata& event)
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfLeader());
 
-    const ClusterFSMEventMetadata& metadata = event.second;
+    const ClusterFSMEventMetadata& metadata      = event.second;
+    const InputMessage&            inputMessage  = metadata.inputMessage();
 
-    for (InputMessagesCIter cit = metadata.inputMessages().cbegin();
-         cit != metadata.inputMessages().cend();
-         ++cit) {
-        d_nodeToLedgerLSNMap[cit->source()] = cit->leaderSequenceNumber();
+    d_nodeToLedgerLSNMap[inputMessage.source()] =
+        inputMessage.leaderSequenceNumber();
 
-        BALL_LOG_INFO << d_clusterData_p->identity().description()
-                      << ": In the Cluster FSM, storing the LSN of "
-                      << cit->source()->nodeDescription() << " as "
-                      << printLSN(cit->leaderSequenceNumber());
-    }
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << ": In the Cluster FSM, storing the LSN of "
+                  << inputMessage.source()->nodeDescription() << " as "
+                  << printLSN(inputMessage.leaderSequenceNumber());
 }
 
 void ClusterStateManager::do_removeFollowerLSN(const EventWithMetadata& event)
@@ -828,13 +820,12 @@ void ClusterStateManager::do_sendRegistrationRequest(
         d_cluster_p->sendRequest(request, destNode, bsls::TimeInterval(10));
 
     if (rc != bmqt::GenericResult::e_SUCCESS) {
-        InputMessages inputMessages(1, d_allocator_p);
-        inputMessages.at(0)
-            .setSource(d_clusterData_p->membership().selfNode())
+        InputMessage inputMessage;
+        inputMessage.setSource(d_clusterData_p->membership().selfNode())
             .setLeaderSequenceNumber(registrationRequest.sequenceNumber());
 
         applyFSMEvent(ClusterFSM::Event::e_FAIL_REGISTRATION_RSPN,
-                      ClusterFSMEventMetadata(inputMessages));
+                      ClusterFSMEventMetadata(inputMessage));
     }
 }
 
@@ -849,9 +840,8 @@ void ClusterStateManager::do_sendRegistrationResponse(
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfLeader());
 
-    const ClusterFSMEventMetadata& metadata = event.second;
-    BSLS_ASSERT_SAFE(metadata.inputMessages().size() == 1);
-    const InputMessage& inputMessage = metadata.inputMessages().at(0);
+    const ClusterFSMEventMetadata& metadata      = event.second;
+    const InputMessage&            inputMessage  = metadata.inputMessage();
 
     bmqp_ctrlmsg::ControlMessage controlMsg;
     controlMsg.rId() = inputMessage.requestId();
@@ -880,9 +870,8 @@ void ClusterStateManager::do_sendFailureRegistrationResponse(
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
     BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
 
-    const ClusterFSMEventMetadata& metadata = event.second;
-    BSLS_ASSERT_SAFE(metadata.inputMessages().size() == 1);
-    const InputMessage& inputMessage = metadata.inputMessages().at(0);
+    const ClusterFSMEventMetadata& metadata      = event.second;
+    const InputMessage&            inputMessage  = metadata.inputMessage();
 
     bmqp_ctrlmsg::ControlMessage controlMsg;
     controlMsg.rId() = inputMessage.requestId();
@@ -930,18 +919,16 @@ void ClusterStateManager::do_logStaleFollowerLSNResponse(
                      !d_clusterFSM.isSelfLeader());
     // Response is not stale if self is leader
 
-    const ClusterFSMEventMetadata& metadata = event.second;
+    const ClusterFSMEventMetadata& metadata      = event.second;
+    const InputMessage&            inputMessage  = metadata.inputMessage();
 
-    for (InputMessagesCIter cit = metadata.inputMessages().cbegin();
-         cit != metadata.inputMessages().cend();
-         ++cit) {
-        BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << ": Follower LSN response from "
-                      << cit->source()->nodeDescription()
-                      << " with rId = " << cit->requestId() << " and a LSN of "
-                      << printLSN(cit->leaderSequenceNumber())
-                      << " is stale.  Self is no longer leader.";
-    }
+    BALL_LOG_WARN << d_clusterData_p->identity().description()
+                  << ": Follower LSN response from "
+                  << inputMessage.source()->nodeDescription()
+                  << " with rId = " << inputMessage.requestId()
+                  << " and a LSN of "
+                  << printLSN(inputMessage.leaderSequenceNumber())
+                  << " is stale.  Self is no longer leader.";
 }
 
 void ClusterStateManager::do_logStaleFollowerClusterStateResponse(
@@ -955,9 +942,8 @@ void ClusterStateManager::do_logStaleFollowerClusterStateResponse(
     BSLS_ASSERT_SAFE(d_clusterFSM.state() !=
                      ClusterFSM::State::e_LDR_HEALING_STG2);
 
-    const ClusterFSMEventMetadata& metadata = event.second;
-    BSLS_ASSERT_SAFE(metadata.inputMessages().size() == 1);
-    const InputMessage& inputMessage = metadata.inputMessages().at(0);
+    const ClusterFSMEventMetadata& metadata      = event.second;
+    const InputMessage&            inputMessage  = metadata.inputMessage();
 
     BALL_LOG_WARN << d_clusterData_p->identity().description()
                   << ": Follower cluster state response from "
@@ -978,16 +964,13 @@ void ClusterStateManager::do_logFailFollowerLSNResponses(
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfLeader());
 
-    const ClusterFSMEventMetadata& metadata = event.second;
-    for (InputMessagesCIter cit = metadata.inputMessages().cbegin();
-         cit != metadata.inputMessages().cend();
-         ++cit) {
-        BSLS_ASSERT_SAFE(cit->source());
+    const ClusterFSMEventMetadata& metadata      = event.second;
+    const InputMessage&            inputMessage  = metadata.inputMessage();
+    BSLS_ASSERT_SAFE(inputMessage.source());
 
-        BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << ": Received failure follower LSN response from "
-                      << cit->source()->nodeDescription();
-    }
+    BALL_LOG_WARN << d_clusterData_p->identity().description()
+                  << ": Received failure follower LSN response from "
+                  << inputMessage.source()->nodeDescription();
 }
 
 void ClusterStateManager::do_logFailFollowerClusterStateResponse(
@@ -1001,10 +984,8 @@ void ClusterStateManager::do_logFailFollowerClusterStateResponse(
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfLeader());
 
-    const ClusterFSMEventMetadata& metadata = event.second;
-    BSLS_ASSERT_SAFE(metadata.inputMessages().size() == 1);
-
-    const InputMessage& inputMessage = metadata.inputMessages().at(0);
+    const ClusterFSMEventMetadata& metadata      = event.second;
+    const InputMessage&            inputMessage  = metadata.inputMessage();
 
     BSLS_ASSERT_SAFE(inputMessage.source());
     if (inputMessage.source()->nodeId() ==
@@ -1035,10 +1016,8 @@ void ClusterStateManager::do_logFailRegistrationResponse(
     BSLS_ASSERT_SAFE(!d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfFollower());
 
-    const ClusterFSMEventMetadata& metadata = event.second;
-    BSLS_ASSERT_SAFE(metadata.inputMessages().size() == 1);
-
-    const InputMessage& inputMessage = metadata.inputMessages().at(0);
+    const ClusterFSMEventMetadata& metadata      = event.second;
+    const InputMessage&            inputMessage  = metadata.inputMessage();
 
     BSLS_ASSERT_SAFE(inputMessage.source());
     if (inputMessage.source()->nodeId() ==
@@ -1086,11 +1065,11 @@ void ClusterStateManager::do_reapplySelectLeader(
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << ": Re-apply transition to leader in the Cluster FSM.";
 
-    InputMessages inputMessages(1, d_allocator_p);
-    inputMessages.at(0).setSource(d_clusterData_p->membership().selfNode());
+    InputMessage inputMessage;
+    inputMessage.setSource(d_clusterData_p->membership().selfNode());
 
     applyFSMEvent(ClusterFSM::Event::e_REAPPLY_LDR,
-                  ClusterFSMEventMetadata(inputMessages));
+                  ClusterFSMEventMetadata(inputMessage));
 }
 
 void ClusterStateManager::do_reapplySelectFollower(
@@ -1106,11 +1085,11 @@ void ClusterStateManager::do_reapplySelectFollower(
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << ": Re-apply transition to follower in the Cluster FSM.";
 
-    InputMessages inputMessages(1, d_allocator_p);
-    inputMessages.at(0).setSource(d_clusterData_p->electorInfo().leaderNode());
+    InputMessage inputMessage;
+    inputMessage.setSource(d_clusterData_p->electorInfo().leaderNode());
 
     applyFSMEvent(ClusterFSM::Event::e_REAPPLY_FOL,
-                  ClusterFSMEventMetadata(inputMessages));
+                  ClusterFSMEventMetadata(inputMessage));
 }
 
 void ClusterStateManager::do_cleanupLSNs(
@@ -1352,8 +1331,6 @@ void ClusterStateManager::onFollowerLSNResponse(
     const NodeResponsePairs& pairs = requestContext->response();
     BSLS_ASSERT_SAFE(!pairs.empty());
 
-    InputMessages failureResponses(d_allocator_p);
-    InputMessages successResponses(d_allocator_p);
     for (NodeResponsePairsCIter cit = pairs.cbegin(); cit != pairs.cend();
          ++cit) {
         BSLS_ASSERT_SAFE(cit->first);
@@ -1368,7 +1345,8 @@ void ClusterStateManager::onFollowerLSNResponse(
             InputMessage inputMessage;
             inputMessage.setSource(cit->first);
 
-            failureResponses.emplace_back(inputMessage);
+            applyFSMEvent(ClusterFSM::Event::e_FAIL_FOL_LSN_RSPN,
+                          ClusterFSMEventMetadata(inputMessage));
 
             continue;  // CONTINUE
         }
@@ -1401,22 +1379,12 @@ void ClusterStateManager::onFollowerLSNResponse(
         inputMessage.setSource(cit->first)
             .setLeaderSequenceNumber(resp.sequenceNumber());
 
-        successResponses.emplace_back(inputMessage);
-    }
-
-    if (!failureResponses.empty()) {
-        applyFSMEvent(ClusterFSM::Event::e_FAIL_FOL_LSN_RSPN,
-                      ClusterFSMEventMetadata(failureResponses));
-    }
-
-    if (!successResponses.empty()) {
         mqbnet::ClusterNode* highestLSNNode =
             (d_clusterFSM.isSelfLeader() && d_clusterFSM.isSelfHealed())
                 ? d_clusterData_p->membership().selfNode()
                 : 0;
         applyFSMEvent(ClusterFSM::Event::e_FOL_LSN_RSPN,
-                      ClusterFSMEventMetadata(successResponses,
-                                              highestLSNNode));
+                      ClusterFSMEventMetadata(inputMessage, highestLSNNode));
     }
 }
 
@@ -1435,11 +1403,11 @@ void ClusterStateManager::onRegistrationResponse(
                      (d_clusterFSM.state() == ClusterFSM::State::e_UNKNOWN));
     BSLS_ASSERT_SAFE(source);
 
-    InputMessages inputMessages(1, d_allocator_p);
-    inputMessages.at(0).setSource(source).setRequestId(
+    InputMessage inputMessage;
+    inputMessage.setSource(source).setRequestId(
         requestContext->request().rId().value());
 
-    ClusterFSMEventMetadata metadata(inputMessages);
+    ClusterFSMEventMetadata metadata(inputMessage);
 
     if (requestContext->result() != bmqt::GenericResult::e_SUCCESS) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
@@ -1508,12 +1476,12 @@ void ClusterStateManager::onFollowerClusterStateResponse(
                       << requestContext->request().rId().value()
                       << ", rc = " << requestContext->result();
 
-        InputMessages inputMessages(1, d_allocator_p);
-        inputMessages.at(0).setSource(source).setRequestId(
+        InputMessage inputMessage;
+        inputMessage.setSource(source).setRequestId(
             requestContext->request().rId().value());
 
         applyFSMEvent(ClusterFSM::Event::e_FAIL_FOL_CSL_RSPN,
-                      ClusterFSMEventMetadata(inputMessages, source, source));
+                      ClusterFSMEventMetadata(inputMessage, source, source));
 
         return;  // RETURN
     }
@@ -1548,12 +1516,12 @@ void ClusterStateManager::onFollowerClusterStateResponse(
                   << " for request with rId = "
                   << requestContext->request().rId().value();
 
-    InputMessages inputMessages(1, d_allocator_p);
-    inputMessages.at(0).setSource(source).setRequestId(
+    InputMessage inputMessage;
+    inputMessage.setSource(source).setRequestId(
         requestContext->request().rId().value());
 
     applyFSMEvent(ClusterFSM::Event::e_FOL_CSL_RSPN,
-                  ClusterFSMEventMetadata(inputMessages,
+                  ClusterFSMEventMetadata(inputMessage,
                                           source,
                                           0,  // crashedFollowerNode
                                           resp.clusterStateSnapshot()));
@@ -1837,11 +1805,11 @@ void ClusterStateManager::processFollowerLSNRequest(
                   << ": Received Follower LSN Request: " << message << " from "
                   << source->nodeDescription();
 
-    InputMessages inputMessages(1, d_allocator_p);
-    inputMessages.at(0).setSource(source).setRequestId(message.rId().value());
+    InputMessage inputMessage;
+    inputMessage.setSource(source).setRequestId(message.rId().value());
 
     applyFSMEvent(ClusterFSM::Event::e_FOL_LSN_RQST,
-                  ClusterFSMEventMetadata(inputMessages));
+                  ClusterFSMEventMetadata(inputMessage));
 }
 
 void ClusterStateManager::processFollowerClusterStateRequest(
@@ -1868,11 +1836,11 @@ void ClusterStateManager::processFollowerClusterStateRequest(
                   << ": Received follower cluster state request: " << message
                   << " from " << source->nodeDescription();
 
-    InputMessages inputMessages(1, d_allocator_p);
-    inputMessages.at(0).setSource(source).setRequestId(message.rId().value());
+    InputMessage inputMessage;
+    inputMessage.setSource(source).setRequestId(message.rId().value());
 
     applyFSMEvent(ClusterFSM::Event::e_FOL_CSL_RQST,
-                  ClusterFSMEventMetadata(inputMessages));
+                  ClusterFSMEventMetadata(inputMessage));
 }
 
 void ClusterStateManager::processRegistrationRequest(
@@ -1899,9 +1867,8 @@ void ClusterStateManager::processRegistrationRequest(
                   << ": Received Registration Request: " << message << " from "
                   << source->nodeDescription();
 
-    InputMessages inputMessages(1, d_allocator_p);
-    inputMessages.at(0)
-        .setSource(source)
+    InputMessage inputMessage;
+    inputMessage.setSource(source)
         .setRequestId(message.rId().value())
         .setLeaderSequenceNumber(message.choice()
                                      .clusterMessage()
@@ -1916,7 +1883,7 @@ void ClusterStateManager::processRegistrationRequest(
             ? d_clusterData_p->membership().selfNode()
             : 0;
     applyFSMEvent(ClusterFSM::Event::e_REGISTRATION_RQST,
-                  ClusterFSMEventMetadata(inputMessages, highestLSNNode));
+                  ClusterFSMEventMetadata(inputMessage, highestLSNNode));
 }
 
 void ClusterStateManager::processClusterStateEvent(
@@ -2014,22 +1981,22 @@ void ClusterStateManager::onClusterLeader(
     }
 
     // IMPORTANT: This is the main entry point to start running the Cluster FSM
-    InputMessages inputMessages(1, d_allocator_p);
-    inputMessages.at(0).setSource(node);  // leader node
+    InputMessage inputMessage;
+    inputMessage.setSource(node);  // leader node
 
     if (d_clusterData_p->membership().selfNode()->nodeId() == node->nodeId()) {
         BALL_LOG_INFO << d_clusterData_p->identity().description()
                       << ": Transitioning to leader in the Cluster FSM.";
 
         applyFSMEvent(ClusterFSM::Event::e_SLCT_LDR,
-                      ClusterFSMEventMetadata(inputMessages));
+                      ClusterFSMEventMetadata(inputMessage));
     }
     else {
         BALL_LOG_INFO << d_clusterData_p->identity().description()
                       << ": Transitioning to follower in the Cluster FSM.";
 
         applyFSMEvent(ClusterFSM::Event::e_SLCT_FOL,
-                      ClusterFSMEventMetadata(inputMessages));
+                      ClusterFSMEventMetadata(inputMessage));
     }
 }
 
