@@ -447,13 +447,13 @@ struct Tester {
         }
     }
 
-    void verifyRegistrationResponseSent(
-        const mqbnet::ClusterNode& destination) const
+    void verifyRegistrationResponseSent(const mqbnet::ClusterNode& destination,
+                                        int rId = 1) const
     {
-        // Verify that a registration response is replied to the specified
-        // 'destination'.
+        // Verify that a registration response with the specified 'rId' is
+        // replied to the specified 'destination'.
         bmqp_ctrlmsg::ControlMessage expectedMessage;
-        expectedMessage.rId() = 1;
+        expectedMessage.rId() = rId;
         expectedMessage.choice()
             .makeClusterMessage()
             .choice()
@@ -1429,7 +1429,123 @@ static void test13_followerHealed()
                      mqbc::ClusterStateTableState::e_FOL_HEALED);
 }
 
-static void test14_leaderCSLCommitFailure()
+static void test14_registrationRequestInLdrHealingStg3()
+// ------------------------------------------------------------------------
+// REGISTRATION REQUEST IN LDR HEALING STG3
+//
+// Concerns:
+//   Verify that a leader in LDR_HEALING_STG3 (has applied the
+//   LeaderAdvisory, waiting for commit) handles a late-joining follower's
+//   registration request by sending a registration response and
+//   replicating the uncommitted advisory to that follower.
+//
+// Testing:
+//   LDR_HEALING_STG3 + REGISTRATION_RQST -> sendRegistrationResponse +
+//   sendCSLPatch, stays in LDR_HEALING_STG3
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
+                                      "REGISTRATION REQUEST IN "
+                                      "LDR HEALING STG3");
+
+    Tester tester(true);  // isLeader
+    BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
+                    mqbc::ClusterStateTableState::e_UNKNOWN);
+
+    // Set self LSN higher than all followers
+    bmqp_ctrlmsg::LeaderMessageSequence selfLSN;
+    selfLSN.electorTerm()    = 1U;
+    selfLSN.sequenceNumber() = 8U;
+    tester.setSelfLedgerLSN(selfLSN);
+
+    tester.electLeader(2U);
+    BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
+                    mqbc::ClusterStateTableState::e_LDR_HEALING_STG1);
+    tester.verifyFollowerLSNRequestsSent();
+
+    // 1. Receive follower LSN responses to reach quorum.
+    bmqp_ctrlmsg::ControlMessage         followerLSNResponse;
+    bmqp_ctrlmsg::LeaderMessageSequence& lms =
+        followerLSNResponse.choice()
+            .makeClusterMessage()
+            .choice()
+            .makeClusterStateFSMMessage()
+            .choice()
+            .makeFollowerLSNResponse()
+            .sequenceNumber();
+    lms.electorTerm()    = 1U;
+    lms.sequenceNumber() = 2U;
+
+    followerLSNResponse.rId() = 1;
+    tester.d_cluster_mp->requestManager().processResponse(followerLSNResponse);
+
+    followerLSNResponse.rId() = 2;
+    tester.d_cluster_mp->requestManager().processResponse(followerLSNResponse);
+
+    // Failure response from late follower
+    bmqp_ctrlmsg::ControlMessage failureFollowerLSNResponse;
+    failureFollowerLSNResponse.rId() = 3;
+    bmqp_ctrlmsg::Status& status =
+        failureFollowerLSNResponse.choice().makeStatus();
+    status.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+    status.code()     = mqbi::ClusterErrorCode::e_NOT_FOLLOWER;
+    status.message()  = k_REFUSAL_MESSAGE;
+    tester.d_cluster_mp->requestManager().processResponse(
+        failureFollowerLSNResponse);
+
+    // Verify leader is now in STG3 with one uncommitted LeaderAdvisory
+    BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
+                     mqbc::ClusterStateTableState::e_LDR_HEALING_STG3);
+
+    ClusterMessageCRefList advisories;
+    tester.d_clusterStateLedger_p->uncommittedAdvisories(&advisories);
+    BMQTST_ASSERT_EQ(advisories.size(), 1U);
+    BMQTST_ASSERT(advisories.front().get().choice().isLeaderAdvisoryValue());
+
+    // 2. While in STG3, a late-joining follower sends RegistrationRequest.
+    tester.clearChannels();
+
+    bmqp_ctrlmsg::ControlMessage regRequest;
+    regRequest.rId() = 10;
+    bmqp_ctrlmsg::LeaderMessageSequence& regLms =
+        regRequest.choice()
+            .makeClusterMessage()
+            .choice()
+            .makeClusterStateFSMMessage()
+            .choice()
+            .makeRegistrationRequest()
+            .sequenceNumber();
+    regLms.electorTerm()    = 1U;
+    regLms.sequenceNumber() = 1U;
+
+    mqbnet::ClusterNode* lateFollower =
+        tester.d_cluster_mp->netCluster().lookupNode(
+            mqbmock::Cluster::k_LEADER_NODE_ID + 3);
+    tester.d_clusterStateManager_mp->processRegistrationRequest(regRequest,
+                                                                lateFollower);
+
+    // 3. Verify: still in STG3 (no state change)
+    BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
+                     mqbc::ClusterStateTableState::e_LDR_HEALING_STG3);
+
+    // 4. Verify: registration response was sent to the late follower
+    tester.verifyRegistrationResponseSent(*lateFollower, 10);
+
+    // 5. Verify: replicateUncommitted was called with the late follower
+    const bsl::vector<mqbnet::ClusterNode*>& replicateCalls =
+        tester.d_clusterStateLedger_p->_replicateUncommittedCalls();
+    BMQTST_ASSERT_EQ(replicateCalls.size(), 1U);
+    BMQTST_ASSERT_EQ(replicateCalls[0], lateFollower);
+
+    // 6. Commit the advisory → leader transitions to LDR_HEALED
+    tester.d_clusterStateLedger_p->_commitAdvisories(
+        mqbc::ClusterStateLedgerCommitStatus::e_SUCCESS);
+
+    BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
+                     mqbc::ClusterStateTableState::e_LDR_HEALED);
+}
+
+static void test15_leaderCSLCommitFailure()
 // ------------------------------------------------------------------------
 // LEADER CSL COMMIT FAILURE
 //
@@ -1517,7 +1633,7 @@ static void test14_leaderCSLCommitFailure()
                      mqbc::ClusterStateTableState::e_LDR_HEALING_STG1);
 }
 
-static void test15_followerCSLCommitFailure()
+static void test16_followerCSLCommitFailure()
 // FOLLOWER CSL COMMIT FAILURE
 //
 // Concerns:
@@ -1576,7 +1692,7 @@ static void test15_followerCSLCommitFailure()
                      mqbc::ClusterStateTableState::e_FOL_HEALING);
 }
 
-static void test16_followerClusterStateRespFailureLeaderNext()
+static void test17_followerClusterStateRespFailureLeaderNext()
 // ------------------------------------------------------------------------
 // FOLLOWER CLUSTER STATE RESP FAILURE LEADER NEXT
 //
@@ -1696,7 +1812,7 @@ static void test16_followerClusterStateRespFailureLeaderNext()
     BMQTST_ASSERT_EQ(latestLSN.sequenceNumber(), 2U);
 }
 
-static void test17_followerClusterStateRespFailureFollowerNext()
+static void test18_followerClusterStateRespFailureFollowerNext()
 // ------------------------------------------------------------------------
 // FOLLOWER CLUSTER STATE RESP FAILURE FOLLOWER NEXT
 //
@@ -1849,7 +1965,7 @@ static void test17_followerClusterStateRespFailureFollowerNext()
     BMQTST_ASSERT_EQ(latestLSN.sequenceNumber(), 2U);
 }
 
-static void test18_followerClusterStateRespFailureLostQuorum()
+static void test19_followerClusterStateRespFailureLostQuorum()
 // ------------------------------------------------------------------------
 // FOLLOWER CLUSTER STATE RESP FAILURE LOST QUORUM
 //
@@ -1951,7 +2067,7 @@ static void test18_followerClusterStateRespFailureLostQuorum()
     tester.verifyFollowerLSNRequestsSent();
 }
 
-static void test19_stopNode()
+static void test20_stopNode()
 // ------------------------------------------------------------------------
 // STOP NODE
 //
@@ -2098,7 +2214,7 @@ static void test19_stopNode()
                      mqbc::ClusterStateTableState::e_STOPPED);
 }
 
-static void test20_resetUnknownLeader()
+static void test21_resetUnknownLeader()
 // ------------------------------------------------------------------------
 // RESET UNKNOWN LEADER
 //
@@ -2222,7 +2338,7 @@ static void test20_resetUnknownLeader()
     BMQTST_ASSERT(lsnMap.empty());
 }
 
-static void test21_resetUnknownFollower()
+static void test22_resetUnknownFollower()
 // ------------------------------------------------------------------------
 // RESET UNKNOWN FOLLOWER
 //
@@ -2281,7 +2397,7 @@ static void test21_resetUnknownFollower()
                      mqbc::ClusterStateTableState::e_UNKNOWN);
 }
 
-static void test22_selectFollowerFromLeader()
+static void test23_selectFollowerFromLeader()
 // ------------------------------------------------------------------------
 // SELECT FOLLOWER FROM LEADER
 //
@@ -2420,7 +2536,7 @@ static void test22_selectFollowerFromLeader()
     tester3.verifyRegistrationRequestSent(currentSelfLSN);
 }
 
-static void test23_selectLeaderFromFollower()
+static void test24_selectLeaderFromFollower()
 // ------------------------------------------------------------------------
 // SELECT LEADER FROM FOLLOWER
 //
@@ -2494,7 +2610,7 @@ static void test23_selectLeaderFromFollower()
     tester.verifyFollowerLSNRequestsSent();
 }
 
-static void test24_watchdogLeader()
+static void test25_watchdogLeader()
 // ------------------------------------------------------------------------
 // WATCHDOG LEADER
 //
@@ -2648,7 +2764,7 @@ static void test24_watchdogLeader()
                      mqbc::ClusterStateTableState::e_LDR_HEALED);
 }
 
-static void test25_watchdogFollower()
+static void test26_watchdogFollower()
 // ------------------------------------------------------------------------
 // WATCHDOG FOLLOWER
 //
@@ -2747,7 +2863,7 @@ static void test25_watchdogFollower()
                      mqbc::ClusterStateTableState::e_FOL_HEALED);
 }
 
-static void test26_watchdogStopResetsState()
+static void test27_watchdogStopResetsState()
 // ------------------------------------------------------------------------
 // WATCHDOG STOP RESETS STATE
 //
@@ -2806,7 +2922,7 @@ static void test26_watchdogStopResetsState()
                      false);
 }
 
-static void test27_watchdogFollowerRetryExhaustion()
+static void test28_watchdogFollowerRetryExhaustion()
 // ------------------------------------------------------------------------
 // WATCHDOG FOLLOWER RETRY EXHAUSTION
 //
@@ -2877,7 +2993,7 @@ static void test27_watchdogFollowerRetryExhaustion()
     sigaction(SIGINT, &oldSa, NULL);
 }
 
-static void test28_watchdogLeaderRetryExhaustion()
+static void test29_watchdogLeaderRetryExhaustion()
 // ------------------------------------------------------------------------
 // WATCHDOG LEADER RETRY EXHAUSTION
 //
@@ -2958,21 +3074,22 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
-    case 28: test28_watchdogLeaderRetryExhaustion(); break;
-    case 27: test27_watchdogFollowerRetryExhaustion(); break;
-    case 26: test26_watchdogStopResetsState(); break;
-    case 25: test25_watchdogFollower(); break;
-    case 24: test24_watchdogLeader(); break;
-    case 23: test23_selectLeaderFromFollower(); break;
-    case 22: test22_selectFollowerFromLeader(); break;
-    case 21: test21_resetUnknownFollower(); break;
-    case 20: test20_resetUnknownLeader(); break;
-    case 19: test19_stopNode(); break;
-    case 18: test18_followerClusterStateRespFailureLostQuorum(); break;
-    case 17: test17_followerClusterStateRespFailureFollowerNext(); break;
-    case 16: test16_followerClusterStateRespFailureLeaderNext(); break;
-    case 15: test15_followerCSLCommitFailure(); break;
-    case 14: test14_leaderCSLCommitFailure(); break;
+    case 29: test29_watchdogLeaderRetryExhaustion(); break;
+    case 28: test28_watchdogFollowerRetryExhaustion(); break;
+    case 27: test27_watchdogStopResetsState(); break;
+    case 26: test26_watchdogFollower(); break;
+    case 25: test25_watchdogLeader(); break;
+    case 24: test24_selectLeaderFromFollower(); break;
+    case 23: test23_selectFollowerFromLeader(); break;
+    case 22: test22_resetUnknownFollower(); break;
+    case 21: test21_resetUnknownLeader(); break;
+    case 20: test20_stopNode(); break;
+    case 19: test19_followerClusterStateRespFailureLostQuorum(); break;
+    case 18: test18_followerClusterStateRespFailureFollowerNext(); break;
+    case 17: test17_followerClusterStateRespFailureLeaderNext(); break;
+    case 16: test16_followerCSLCommitFailure(); break;
+    case 15: test15_leaderCSLCommitFailure(); break;
+    case 14: test14_registrationRequestInLdrHealingStg3(); break;
     case 13: test13_followerHealed(); break;
     case 12: test12_followerHighestLeaderHealed(); break;
     case 11: test11_leaderHighestLeaderHealed(); break;
