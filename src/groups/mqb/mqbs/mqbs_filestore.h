@@ -494,14 +494,13 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     /// If the specified `file` of specified `fileType` having specified
     /// `currentSize` and `fileName` cannot accommodate additional
-    /// `requestedSpace`, roll over the `file`.  Return zero on success,
-    /// non-zero value otherwise.  Note that in case roll over is not
-    /// needed, zero is returned.
-    int rolloverIfNeeded(FileType::Enum              fileType,
-                         const MappedFileDescriptor& file,
-                         const bsl::string&          fileName,
-                         bsls::Types::Uint64         currentSize,
-                         bsls::Types::Uint64         requestedSpace);
+    /// If the specified `fileInfo` cannot accommodate the specified
+    /// `requestedSpace`, roll over.  Return zero on success, non-zero value
+    /// otherwise.  Note that in case roll over is not needed, zero is
+    /// returned.
+    int rolloverIfNeeded(FileType::Enum           fileType,
+                         const FileSet::FileInfo& fileInfo,
+                         bsls::Types::Uint64      requestedSpace);
 
     /// Write a QUEUE_OP record to the journal with the specified
     /// `queueKey`, optional `appKey`, `timestamp`, `opValue` and `subValue`

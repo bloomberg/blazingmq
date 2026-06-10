@@ -63,42 +63,42 @@ void FileStorePrintUtil::loadSummary(mqbcmd::FileStoreSummary*  summary,
     bsls::Types::Uint64 totalMappedSize = 0;
     for (unsigned int i = 0; i < fileSets.size(); ++i) {
         bsl::string leaf;
-        int rc = bdls::PathUtil::getLeaf(&leaf, fileSets[i]->d_dataFileName);
+        int         rc = bdls::PathUtil::getLeaf(&leaf,
+                                         fileSets[i]->d_data.d_fileName);
         summary->fileSets()[i].dataFileName() =
-            (0 == rc ? leaf : fileSets[i]->d_dataFileName);
+            (0 == rc ? leaf : fileSets[i]->d_data.d_fileName);
         summary->fileSets()[i].aliasedBlobBufferCount() =
             fileSets[i]->numReferences();
         if (0 == i) {
-            totalMappedSize += fileSets[i]->d_dataFilePosition;
-            totalMappedSize += fileSets[i]->d_qlistFilePosition;
-            totalMappedSize += fileSets[i]->d_journalFilePosition;
+            totalMappedSize += fileSets[i]->d_data.d_filePosition;
+            totalMappedSize += fileSets[i]->d_qlist.d_filePosition;
+            totalMappedSize += fileSets[i]->d_journal.d_filePosition;
         }
         else {
-            totalMappedSize += fileSets[i]->d_dataFilePosition;
+            totalMappedSize += fileSets[i]->d_data.d_filePosition;
         }
     }
 
+    // Populate per-file-type stats into the command result.
+    struct Local {
+        static void loadFileInfo(mqbcmd::FileInfo*        result,
+                                 const FileSet::FileInfo& info)
+        {
+            BSLS_ASSERT_SAFE(result);
+
+            result->positionBytes()    = info.d_filePosition;
+            result->sizeBytes()        = info.d_file.fileSize();
+            result->outstandingBytes() = info.d_outstandingBytes;
+        }
+    };
+
     mqbcmd::ActiveFileSet& activeFileSetResult = summary->activeFileSet();
-    activeFileSetResult.dataFile().positionBytes() =
-        activeFileSet->d_dataFilePosition;
-    activeFileSetResult.dataFile().sizeBytes() =
-        activeFileSet->d_dataFile.fileSize();
-    activeFileSetResult.dataFile().outstandingBytes() =
-        activeFileSet->d_outstandingBytesData;
-
-    activeFileSetResult.journalFile().positionBytes() =
-        activeFileSet->d_journalFilePosition;
-    activeFileSetResult.journalFile().sizeBytes() =
-        activeFileSet->d_journalFile.fileSize();
-    activeFileSetResult.journalFile().outstandingBytes() =
-        activeFileSet->d_outstandingBytesJournal;
-
-    activeFileSetResult.qlistFile().positionBytes() =
-        activeFileSet->d_qlistFilePosition;
-    activeFileSetResult.qlistFile().sizeBytes() =
-        activeFileSet->d_qlistFile.fileSize();
-    activeFileSetResult.qlistFile().outstandingBytes() =
-        activeFileSet->d_outstandingBytesQlist;
+    Local::loadFileInfo(&activeFileSetResult.dataFile(),
+                        activeFileSet->d_data);
+    Local::loadFileInfo(&activeFileSetResult.journalFile(),
+                        activeFileSet->d_journal);
+    Local::loadFileInfo(&activeFileSetResult.qlistFile(),
+                        activeFileSet->d_qlist);
 
     summary->totalMappedBytes()       = totalMappedSize;
     summary->numOutstandingRecords()  = numOutstandingRecords;
