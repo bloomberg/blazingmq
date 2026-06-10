@@ -147,13 +147,13 @@ struct DomainQueuesVisitor {
 
         d_os << "{" << d_prefix;
         if (appId.empty()) {
-            d_os << WRAP("type", "queue");
+            d_os << WRAP("stat", "queue");
             d_os << WRAP("domain", domainName);
             d_os << WRAP("queue", queueName);
             // no `app`
         }
         else {
-            d_os << WRAP("type", "queue_app");
+            d_os << WRAP("stat", "queue_app");
             d_os << WRAP("domain", domainName);
             d_os << WRAP("queue", queueName);
             d_os << WRAP("app", appId);
@@ -292,7 +292,7 @@ struct ClustersVisitor {
 
         d_os << "{" << d_prefix;
         if (partitionName.empty()) {
-            d_os << WRAP("type", "cluster");
+            d_os << WRAP("stat", "cluster");
             d_os << WRAP("cluster", clusterName);
             d_os << METRIC(Stat::e_CLUSTER_STATUS);
             d_os << METRIC(Stat::e_ROLE);
@@ -306,7 +306,7 @@ struct ClustersVisitor {
             d_os << METRIC(Stat::e_PARTITION_CFG_JOURNAL_BYTES);
         }
         else {
-            d_os << WRAP("type", "cluster_partition");
+            d_os << WRAP("stat", "cluster_partition");
             d_os << WRAP("cluster", clusterName);
             d_os << WRAP("partition", partitionName);
             d_os << METRIC(Stat::e_PARTITION_PRIMARY_STATUS);
