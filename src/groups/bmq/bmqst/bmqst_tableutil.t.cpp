@@ -18,15 +18,11 @@
 #include <bmqst_testutil.h>
 
 #include <bmqst_tableinfoprovider.h>
-#include <bmqst_testtableinfoprovider.h>
 #include <bmqu_memoutstream.h>
 #include <bslma_testallocator.h>
 #include <bsls_assert.h>
 
-#include <bsl_cstring.h>
-#include <bsl_ios.h>
 #include <bsl_iostream.h>
-#include <bsl_set.h>
 #include <bsl_sstream.h>
 
 using namespace BloombergLP;
@@ -59,102 +55,131 @@ static int testStatus = 0;
 //                      GLOBAL HELPER FUNCTIONS FOR TESTING
 //-----------------------------------------------------------------------------
 
-// ========================
-// class SimpleInfoProvider
-// ========================
+namespace {
 
-class SimpleInfoProvider : public bmqst::TableInfoProvider {
-    // ACCESSORS
-    int  numRows() const BSLS_KEYWORD_OVERRIDE;
-    int  numColumns(int level) const BSLS_KEYWORD_OVERRIDE;
-    bool hasTitle() const BSLS_KEYWORD_OVERRIDE;
-    int  numHeaderLevels() const BSLS_KEYWORD_OVERRIDE;
-    int  getValueSize(int row, int column) const BSLS_KEYWORD_OVERRIDE;
+// ===========================
+// class TestTableInfoProvider
+// ===========================
+
+class TestTableInfoProvider : public bmqst::TableInfoProvider {
+  private:
+    typedef bsl::vector<bsl::string> Row;
+    typedef bsl::vector<Row>         Table;
+
+    Table d_headers;
+    Table d_table;
+
+    TestTableInfoProvider(const TestTableInfoProvider&);
+    TestTableInfoProvider& operator=(const TestTableInfoProvider&);
+
+  public:
+    explicit TestTableInfoProvider(bslma::Allocator* basicAllocator = 0)
+    : d_headers(basicAllocator)
+    , d_table(basicAllocator)
+    {
+    }
+
+    ~TestTableInfoProvider() BSLS_KEYWORD_OVERRIDE {}
+
+    void reset()
+    {
+        d_headers.clear();
+        d_table.clear();
+    }
+
+    void addRow(const Row& row) { d_table.push_back(row); }
+
+    void addHeaderLevel(const Row& row) { d_headers.push_back(row); }
+
+    int numRows() const BSLS_KEYWORD_OVERRIDE
+    {
+        return static_cast<int>(d_table.size());
+    }
+
+    int numColumns(int) const BSLS_KEYWORD_OVERRIDE
+    {
+        BSLS_ASSERT(d_headers.size() > 0);
+        return static_cast<int>(d_headers[0].size());
+    }
+
+    bool hasTitle() const BSLS_KEYWORD_OVERRIDE { return false; }
+
+    int numHeaderLevels() const BSLS_KEYWORD_OVERRIDE
+    {
+        return static_cast<int>(d_headers.size());
+    }
+
+    int getValueSize(int row, int column) const BSLS_KEYWORD_OVERRIDE
+    {
+        return static_cast<int>(d_table[row][column].length());
+    }
+
     bsl::ostream& printValue(bsl::ostream& stream,
                              int           row,
                              int           column,
-                             int           width) const BSLS_KEYWORD_OVERRIDE;
-    int getHeaderSize(int level, int column) const BSLS_KEYWORD_OVERRIDE;
-    int getParentHeader(int level, int column) const BSLS_KEYWORD_OVERRIDE;
-    bsl::ostream& printTitle(bsl::ostream& stream) const BSLS_KEYWORD_OVERRIDE;
+                             int) const BSLS_KEYWORD_OVERRIDE
+    {
+        return stream << d_table[row][column];
+    }
+
+    int getHeaderSize(int level, int column) const BSLS_KEYWORD_OVERRIDE
+    {
+        const Row& row = d_headers[level];
+        for (size_t i = 0; i < row.size(); ++i) {
+            if (row[i] == "-") {
+                continue;
+            }
+            if (column == 0) {
+                return static_cast<int>(row[i].length());
+            }
+            --column;
+        }
+        BSLS_ASSERT(false);
+        return -1;
+    }
+
+    int getParentHeader(int level, int column) const BSLS_KEYWORD_OVERRIDE
+    {
+        const Row& row = d_headers[level + 1];
+        while (row[column] != "-") {
+            --column;
+        }
+        BSLS_ASSERT(column >= 0);
+        int index = -1;
+        for (; column >= 0; --column) {
+            if (row[column] != "-") {
+                index++;
+            }
+        }
+        return index;
+    }
+
+    bsl::ostream& printTitle(bsl::ostream& stream) const BSLS_KEYWORD_OVERRIDE
+    {
+        return stream;
+    }
+
     bsl::ostream& printHeader(bsl::ostream& stream,
                               int           level,
                               int           column,
-                              int           width) const BSLS_KEYWORD_OVERRIDE;
+                              int) const BSLS_KEYWORD_OVERRIDE
+    {
+        const Row& row = d_headers[level];
+        for (size_t i = 0; i < row.size(); ++i) {
+            if (row[i] == "-") {
+                continue;
+            }
+            if (column == 0) {
+                return stream << row[i];
+            }
+            --column;
+        }
+        BSLS_ASSERT(false);
+        return stream;
+    }
 };
 
-int SimpleInfoProvider::numRows() const
-{
-    return 5;
-}
-
-int SimpleInfoProvider::numColumns(int /*level*/) const
-{
-    return 6;
-}
-
-bool SimpleInfoProvider::hasTitle() const
-{
-    return false;
-}
-
-int SimpleInfoProvider::numHeaderLevels() const
-{
-    return 1;
-}
-
-int SimpleInfoProvider::getValueSize(int /*row*/, int column) const
-{
-    if (column == 0) {
-        return 1;
-    }
-    else {
-        return bsl::strlen("(#x#)");
-    }
-}
-
-bsl::ostream& SimpleInfoProvider::printValue(bsl::ostream& stream,
-                                             int           row,
-                                             int           column,
-                                             int /*width*/) const
-{
-    if (column == 0) {
-        return stream << bsl::right << row;
-    }
-    else {
-        bsl::ostringstream ss;
-        ss << '(' << row << 'x' << column - 1 << ')';
-        return stream << bsl::right << ss.str();
-    }
-}
-
-int SimpleInfoProvider::getHeaderSize(int /*level*/, int column) const
-{
-    return column == 0 ? 0 : 1;
-}
-
-int SimpleInfoProvider::getParentHeader(int /*level*/, int /*column*/) const
-{
-    return -1;
-}
-
-bsl::ostream& SimpleInfoProvider::printTitle(bsl::ostream& stream) const
-{
-    return stream;
-}
-
-bsl::ostream& SimpleInfoProvider::printHeader(bsl::ostream& stream,
-                                              int /*level*/,
-                                              int column,
-                                              int /*width*/) const
-{
-    if (column == 0) {
-        return stream << "";
-    }
-    else {
-        return stream << bsl::right << column - 1;
-    }
-}
+}  // close unnamed namespace
 
 //=============================================================================
 //                                MAIN PROGRAM
@@ -207,7 +232,7 @@ int main(int argc, char* argv[])
 
             P(LINE);
 
-            bmqst::TestTableInfoProvider tip;
+            TestTableInfoProvider tip;
 
             tip.addHeaderLevel(bmqst::TestUtil::stringVector(data.d_header));
 
@@ -240,8 +265,11 @@ int main(int argc, char* argv[])
         if (verbose)
             cout << endl << "USAGE EXAMPLE" << endl << "=============" << endl;
 
-        SimpleInfoProvider provider;
-        bmqst::TableUtil::printTable(bsl::cout, provider);
+        TestTableInfoProvider tip;
+        tip.addHeaderLevel(bmqst::TestUtil::stringVector("a b c"));
+        tip.addRow(bmqst::TestUtil::stringVector("1 2 3"));
+        tip.addRow(bmqst::TestUtil::stringVector("4 5 6"));
+        bmqst::TableUtil::printTable(bsl::cout, tip);
     } break;
         /* TODO fix this test once bmqst::TestTable is written
 case 3: {
@@ -329,7 +357,7 @@ case 3: {
 
             P(LINE);
 
-            bmqst::TestTableInfoProvider tip;
+            TestTableInfoProvider tip;
 
             bsl::vector<bsl::vector<bsl::string> > expected;
             expected.push_back(bmqst::TestUtil::stringVector(data.d_header));
