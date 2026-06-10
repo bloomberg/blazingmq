@@ -49,7 +49,6 @@
 #include <bmqio_channel.h>
 #include <bmqma_countingallocatorstore.h>
 #include <bmqp_ctrlmsg_messages.h>
-#include <bmqst_statcontextuserdata.h>
 #include <bmqt_uri.h>
 #include <bmqu_operationchain.h>
 #include <bmqu_throttledaction.h>

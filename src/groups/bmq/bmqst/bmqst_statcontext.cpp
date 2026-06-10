@@ -650,10 +650,14 @@ void StatContext::clearValues()
     }
 
     struct Local {
-        static void clearVec(bmqst::StatContext::ValueVecPtr vec) {
+        static void clearVec(bmqst::StatContext::ValueVecPtr& vec)
+        {
             if (vec) {
-                for (size_t i = 0; i < vec->size(); ++i) {
-                    (*vec)[i].clear(0);
+                for (bmqst::StatContext::ValueVec::iterator iter =
+                         vec->begin();
+                     iter != vec->end();
+                     ++iter) {
+                    iter->clear(0);
                 }
             }
         }

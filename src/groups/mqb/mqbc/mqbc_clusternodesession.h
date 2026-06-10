@@ -35,7 +35,6 @@
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_queueid.h>
 #include <bmqp_queueinfo.h>
-#include <bmqst_statcontextuserdata.h>
 #include <bmqu_atomicgate.h>
 
 // BDE

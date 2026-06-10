@@ -81,12 +81,6 @@ class TestTableInfoProvider : public bmqst::TableInfoProvider {
 
     ~TestTableInfoProvider() BSLS_KEYWORD_OVERRIDE {}
 
-    void reset()
-    {
-        d_headers.clear();
-        d_table.clear();
-    }
-
     void addRow(const Row& row) { d_table.push_back(row); }
 
     void addHeaderLevel(const Row& row) { d_headers.push_back(row); }
