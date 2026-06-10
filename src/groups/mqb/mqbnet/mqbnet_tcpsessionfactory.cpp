@@ -1117,10 +1117,9 @@ void TCPSessionFactory::reauthnOnAuthenticationEvent(
         errStream << "#AUTHENTICATION_FAILED " << description
                   << ": Authentication failed [reason: '" << errorStream.str()
                   << "', rc: " << rc << "]";
-        context->onReauthenticateErrorOrTimeout(rc,
-                                                "reauthenticationError",
-                                                errStream.str(),
-                                                channelInfo->d_channel_sp);
+        context->onReauthenticationError(channelInfo->d_channel_sp,
+                                         rc,
+                                         errStream.str());
         return;  // RETURN
     }
 }
