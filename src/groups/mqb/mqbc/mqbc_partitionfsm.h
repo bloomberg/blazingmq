@@ -214,8 +214,7 @@ class PartitionFSM {
 
   public:
     // TYPES
-    typedef bsl::pair<PartitionStateTableEvent::Enum,
-                      bsl::vector<PartitionFSMEventData> >
+    typedef bsl::pair<PartitionStateTableEvent::Enum, PartitionFSMEventData>
         EventWithData;
 
     typedef PartitionStateTable<EventWithData> StateTable;

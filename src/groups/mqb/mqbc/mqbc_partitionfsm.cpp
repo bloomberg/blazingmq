@@ -51,10 +51,7 @@ void PartitionFSM::processEvent(const EventWithData& event)
 {
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
 
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!event.second.empty());
-
-    const int partitionId = event.second[0].partitionId();
+    const int partitionId = event.second.partitionId();
 
     State::Enum oldState   = d_state;
     Transition  transition = d_stateTable.transition(oldState, event.first);
@@ -165,9 +162,6 @@ PartitionFSM& PartitionFSM::unregisterObserver(PartitionFSMObserver* observer)
 void PartitionFSM::enqueueEvent(const EventWithData& event)
 {
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!event.second.empty());
 
     d_eventsQueue.push(event);
     if (d_eventsQueue.size() > 1) {

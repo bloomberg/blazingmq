@@ -288,15 +288,14 @@ void StorageManager::onWatchdogDispatched(int partitionId, int generation)
         << d_watchdogNumRetries << BMQTSK_ALARMLOG_END;
 
     if (retriesRemaining > 0) {
-        EventData eventDataVec;
-        eventDataVec.emplace_back(d_clusterData_p->membership().selfNode(),
-                                  -1,  // placeholder requestId
-                                  partitionId,
-                                  1);
-        eventDataVec.back().setWatchdogGeneration(generation);
+        PartitionFSMEventData eventData(
+            d_clusterData_p->membership().selfNode(),
+            -1,  // placeholder requestId
+            partitionId,
+            1);
+        eventData.setWatchdogGeneration(generation);
 
-        enqueuePartitionFSMEvent(PartitionFSM::Event::e_WATCHDOG,
-                                 eventDataVec);
+        enqueuePartitionFSMEvent(PartitionFSM::Event::e_WATCHDOG, eventData);
     }
     else {
         // Retries exhausted, terminate the broker
@@ -361,21 +360,15 @@ void StorageManager::onPartitionRecovery(int partitionId)
     }
 }
 
-void StorageManager::enqueuePartitionFSMEvent(PartitionFSM::Event::Enum event,
-                                              const EventData& eventDataVec)
+void StorageManager::enqueuePartitionFSMEvent(
+    PartitionFSM::Event::Enum    event,
+    const PartitionFSMEventData& eventData)
 {
     // executed by the cluster *DISPATCHER* or *QUEUE_DISPATCHER* thread
 
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(eventDataVec.size() >= 1);
-
-    const int partitionId = eventDataVec[0].partitionId();
+    const int partitionId = eventData.partitionId();
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
-    // Verify other events with 0-indexed event's partitionId
-    for (size_t i = 1; i < eventDataVec.size(); ++i) {
-        BSLS_ASSERT_SAFE(partitionId == eventDataVec[i].partitionId());
-    }
 
     if (d_cluster_p->isStopping()) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
@@ -388,29 +381,28 @@ void StorageManager::enqueuePartitionFSMEvent(PartitionFSM::Event::Enum event,
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
     BSLS_ASSERT_SAFE(fs);
     if (fs->inDispatcherThread()) {
-        enqueuePartitionFSMEventDispatched(event, eventDataVec);
+        enqueuePartitionFSMEventDispatched(event, eventData);
     }
     else {
         fs->execute(bdlf::BindUtil::bind(
             &StorageManager::enqueuePartitionFSMEventDispatched,
             this,
             event,
-            eventDataVec));
+            eventData));
     }
 }
 
 void StorageManager::enqueuePartitionFSMEventDispatched(
-    PartitionFSM::Event::Enum event,
-    const EventData&          eventDataVec)
+    PartitionFSM::Event::Enum    event,
+    const PartitionFSMEventData& eventData)
 {
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
 
-    const int partitionId = eventDataVec[0].partitionId();
+    const int partitionId = eventData.partitionId();
 
     // For WATCHDOG events, check generation count to ignore stale events
     if (event == PartitionFSM::Event::e_WATCHDOG) {
-        const bsl::optional<int> generation =
-            eventDataVec[0].watchdogGeneration();
+        const bsl::optional<int> generation = eventData.watchdogGeneration();
         if (generation.has_value() &&
             generation.value() !=
                 d_watchdogContexts[partitionId].d_generation) {
@@ -424,85 +416,83 @@ void StorageManager::enqueuePartitionFSMEventDispatched(
         }
     }
 
-    if (eventDataVec.size() == 1) {
-        const PartitionFSMEventData& evt = eventDataVec[0];
+    // Do not perform extra checks if primaryLeaseId is unspecified.
+    if (PartitionFSMEventData::k_INVALID_LEASE_ID !=
+        eventData.primaryLeaseId()) {
+        const PartitionInfo& pinfo = d_partitionInfoVec[partitionId];
 
-        // Do not perform extra checks if primaryLeaseId is unspecified.
-        if (PartitionFSMEventData::k_INVALID_LEASE_ID !=
-            evt.primaryLeaseId()) {
-            const PartitionInfo& pinfo = d_partitionInfoVec[partitionId];
+        const bool isLeaseIdOutdated = eventData.primaryLeaseId() <
+                                       pinfo.primaryLeaseId();
+        const bool isPrimaryMismatch = eventData.primaryLeaseId() ==
+                                           pinfo.primaryLeaseId() &&
+                                       eventData.primary() &&
+                                       pinfo.primary() &&
+                                       eventData.primary()->nodeId() !=
+                                           pinfo.primary()->nodeId();
 
-            const bool isLeaseIdOutdated = evt.primaryLeaseId() <
-                                           pinfo.primaryLeaseId();
-            const bool isPrimaryMismatch = evt.primaryLeaseId() ==
-                                               pinfo.primaryLeaseId() &&
-                                           evt.primary() && pinfo.primary() &&
-                                           evt.primary()->nodeId() !=
-                                               pinfo.primary()->nodeId();
+        if (isLeaseIdOutdated || isPrimaryMismatch) {
+            BALL_LOG_WARN << d_clusterData_p->identity().description()
+                          << " Partition [" << partitionId
+                          << "]: dropping stale " << event << " event: source "
+                          << eventData.source()->nodeDescription()
+                          << ", event primaryLeaseId ["
+                          << eventData.primaryLeaseId()
+                          << "], current primaryLeaseId ["
+                          << pinfo.primaryLeaseId() << "], event primary: "
+                          << (eventData.primary()
+                                  ? eventData.primary()->nodeDescription()
+                                  : "** NULL **")
+                          << ", current primary: "
+                          << (pinfo.primary()
+                                  ? pinfo.primary()->nodeDescription()
+                                  : "** NULL **")
+                          << ".";
 
-            if (isLeaseIdOutdated || isPrimaryMismatch) {
-                BALL_LOG_WARN
-                    << d_clusterData_p->identity().description()
-                    << " Partition [" << partitionId << "]: dropping stale "
-                    << event << " event: source "
-                    << evt.source()->nodeDescription()
-                    << ", event primaryLeaseId [" << evt.primaryLeaseId()
-                    << "], current primaryLeaseId [" << pinfo.primaryLeaseId()
-                    << "], event primary: "
-                    << (evt.primary() ? evt.primary()->nodeDescription()
-                                      : "** NULL **")
-                    << ", current primary: "
-                    << (pinfo.primary() ? pinfo.primary()->nodeDescription()
-                                        : "** NULL **")
-                    << ".";
+            if (0 <= eventData.requestId()) {
+                bmqp_ctrlmsg::ControlMessage controlMsg;
+                controlMsg.rId() = eventData.requestId();
+                bmqp_ctrlmsg::Status& response =
+                    controlMsg.choice().makeStatus();
 
-                if (0 <= evt.requestId()) {
-                    bmqp_ctrlmsg::ControlMessage controlMsg;
-                    controlMsg.rId() = evt.requestId();
-                    bmqp_ctrlmsg::Status& response =
-                        controlMsg.choice().makeStatus();
+                response.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+                response.code()     = mqbi::ClusterErrorCode::e_UNKNOWN;
+                response.message()  = "Primary mismatch";
 
-                    response.category() =
-                        bmqp_ctrlmsg::StatusCategory::E_REFUSED;
-                    response.code()    = mqbi::ClusterErrorCode::e_UNKNOWN;
-                    response.message() = "Primary mismatch";
-
-                    d_clusterData_p->messageTransmitter().sendMessageSafe(
-                        controlMsg,
-                        evt.source());
-                }
-                return;
+                d_clusterData_p->messageTransmitter().sendMessageSafe(
+                    controlMsg,
+                    eventData.source());
             }
+            return;
+        }
 
-            // Drop redundant CSL-originated DETECT events where
-            // primary + leaseId is identical to current state.  REAPPLY
-            // events must not be dropped here -- they carry the same
-            // primary + leaseId intentionally (retry after watchdog
-            // timeout or error recovery).
-            const bool isIdentical = evt.primaryLeaseId() ==
-                                         pinfo.primaryLeaseId() &&
-                                     evt.primary() && pinfo.primary() &&
-                                     evt.primary()->nodeId() ==
-                                         pinfo.primary()->nodeId();
-            const bool isDetectEvent =
-                (event == PartitionFSM::Event::e_DETECT_SELF_PRIMARY ||
-                 event == PartitionFSM::Event::e_DETECT_SELF_REPLICA);
+        // Drop redundant CSL-originated DETECT events where
+        // primary + leaseId is identical to current state.  REAPPLY
+        // events must not be dropped here -- they carry the same
+        // primary + leaseId intentionally (retry after watchdog
+        // timeout or error recovery).
+        const bool isIdentical = eventData.primaryLeaseId() ==
+                                     pinfo.primaryLeaseId() &&
+                                 eventData.primary() && pinfo.primary() &&
+                                 eventData.primary()->nodeId() ==
+                                     pinfo.primary()->nodeId();
+        const bool isDetectEvent =
+            (event == PartitionFSM::Event::e_DETECT_SELF_PRIMARY ||
+             event == PartitionFSM::Event::e_DETECT_SELF_REPLICA);
 
-            if (isIdentical && isDetectEvent) {
-                BALL_LOG_INFO << d_clusterData_p->identity().description()
-                              << " Partition [" << partitionId
-                              << "]: dropping redundant " << event
-                              << " event with identical primary: "
-                              << evt.primary()->nodeDescription()
-                              << " and leaseId: " << evt.primaryLeaseId()
-                              << ".";
-                return;
-            }
+        if (isIdentical && isDetectEvent) {
+            BALL_LOG_INFO << d_clusterData_p->identity().description()
+                          << " Partition [" << partitionId
+                          << "]: dropping redundant " << event
+                          << " event with identical primary: "
+                          << eventData.primary()->nodeDescription()
+                          << " and leaseId: " << eventData.primaryLeaseId()
+                          << ".";
+            return;
         }
     }
 
     d_partitionFSMVec[partitionId]->enqueueEvent(
-        PartitionFSM::EventWithData(event, eventDataVec));
+        PartitionFSM::EventWithData(event, eventData));
 }
 
 void StorageManager::setPrimaryStatusForPartitionDispatched(
@@ -605,12 +595,10 @@ void StorageManager::determineDataDestinations(DataDestinations* destinations,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(destinations);
 
-    const PartitionFSM::Event::Enum eventType    = event.first;
-    const EventData&                eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() >= 1);
+    const PartitionFSM::Event::Enum eventType = event.first;
+    const PartitionFSMEventData&    eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
+    const int partitionId = eventData.partitionId();
 
     bsl::vector<NodeToPSNCtxMapCIter>& dataPushDestinations =
         destinations->d_dataPushDestinations;
@@ -633,27 +621,21 @@ void StorageManager::determineDataDestinations(DataDestinations* destinations,
     bsl::vector<NodeToPSNCtxMapCIter> nodesToCheck;
     if (eventType == PartitionFSM::Event::e_REPLICA_STATE_RSPN ||
         eventType == PartitionFSM::Event::e_PRIMARY_STATE_RQST) {
-        // Such events can contain a vector of responses.  Only check
-        // replicas that sent us a ReplicaStateResponse or
+        // Only check the replica that sent us a ReplicaStateResponse or
         // PrimaryStateRequest.
-        for (EventDataCIter eit = eventDataVec.cbegin();
-             eit != eventDataVec.cend();
-             eit++) {
-            mqbnet::ClusterNode* const source = eit->source();
-            BSLS_ASSERT_SAFE(source);
-            BSLS_ASSERT_SAFE(source->nodeId() != selfNode->nodeId());
+        mqbnet::ClusterNode* const source = eventData.source();
+        BSLS_ASSERT_SAFE(source);
+        BSLS_ASSERT_SAFE(source->nodeId() != selfNode->nodeId());
 
-            NodeToPSNCtxMapCIter cit = nodeToPSNCtxMap.find(source);
-            if (cit == nodeToPSNCtxMap.end()) {
-                BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                               << " Partition [" << partitionId
-                               << "]: " << "Replica "
-                               << source->nodeDescription()
-                               << " not found in nodeToPSNCtxMap, skipping.";
-                continue;  // CONTINUE
-            }
-
+        NodeToPSNCtxMapCIter cit = nodeToPSNCtxMap.find(source);
+        if (cit != nodeToPSNCtxMap.end()) {
             nodesToCheck.push_back(cit);
+        }
+        else {
+            BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                           << " Partition [" << partitionId
+                           << "]: " << "Replica " << source->nodeDescription()
+                           << " not found in nodeToPSNCtxMap, skipping.";
         }
     }
     else {
@@ -786,7 +768,6 @@ void StorageManager::sendReplicaDataRequestPush(
     // Send ReplicaDataRequestPush to destination replicas
     const bsl::vector<NodeToPSNCtxMapCIter>& destinationReplicas =
         destinations.d_dataPushDestinations;
-    EventData failedEventDataVec;
     for (bsl::vector<NodeToPSNCtxMapCIter>::const_iterator cit =
              destinationReplicas.cbegin();
          cit != destinationReplicas.cend();
@@ -831,17 +812,16 @@ void StorageManager::sendReplicaDataRequestPush(
                       << " to " << destNode->nodeDescription() << ".";
 
         if (bmqt::GenericResult::e_SUCCESS != status) {
-            failedEventDataVec.emplace_back(destNode,
-                                            -1,  // placeholder responseId
-                                            partitionId,
-                                            1);
-        }
-    }
+            PartitionFSMEventData failedPartitionFSMEventData(
+                destNode,
+                -1,  // placeholder responseId
+                partitionId,
+                1);
 
-    if (!failedEventDataVec.empty()) {
-        enqueuePartitionFSMEvent(
-            PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_PUSH,
-            failedEventDataVec);
+            enqueuePartitionFSMEvent(
+                PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_PUSH,
+                failedPartitionFSMEventData);
+        }
     }
 }
 
@@ -860,7 +840,6 @@ void StorageManager::sendReplicaDataRequestDrop(
     // Send ReplicaDataRequestDrop to replicas with obsolete data
     const bsl::vector<NodeToPSNCtxMapCIter>& destinationReplicas =
         destinations.d_dataDropDestinations;
-    EventData failedEventDataVec;
     for (bsl::vector<NodeToPSNCtxMapCIter>::const_iterator cit =
              destinationReplicas.cbegin();
          cit != destinationReplicas.cend();
@@ -902,17 +881,16 @@ void StorageManager::sendReplicaDataRequestDrop(
                       << " to " << destNode->nodeDescription() << ".";
 
         if (bmqt::GenericResult::e_SUCCESS != status) {
-            failedEventDataVec.emplace_back(destNode,
-                                            -1,  // placeholder responseId
-                                            partitionId,
-                                            1);
-        }
-    }
+            PartitionFSMEventData failedPartitionFSMEventData(
+                destNode,
+                -1,  // placeholder responseId
+                partitionId,
+                1);
 
-    if (!failedEventDataVec.empty()) {
-        enqueuePartitionFSMEvent(
-            PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_DROP,
-            failedEventDataVec);
+            enqueuePartitionFSMEvent(
+                PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_DROP,
+                failedPartitionFSMEventData);
+        }
     }
 }
 
@@ -993,12 +971,11 @@ void StorageManager::startSendDataChunksAsPrimary(
             endPSN,
             fileStore(partitionId));
 
-        EventData sendEventDataVec;
-        sendEventDataVec.emplace_back(destNode,
-                                      requestId,
-                                      partitionId,
-                                      1,
-                                      dataRange);
+        PartitionFSMEventData sendPartitionFSMEventData(destNode,
+                                                        requestId,
+                                                        partitionId,
+                                                        1,
+                                                        dataRange);
 
         if (status != 0) {
             BALL_LOG_ERROR << d_clusterData_p->identity().description()
@@ -1010,7 +987,7 @@ void StorageManager::startSendDataChunksAsPrimary(
 
             enqueuePartitionFSMEvent(
                 PartitionFSM::Event::e_ERROR_SENDING_DATA_CHUNKS,
-                sendEventDataVec);
+                sendPartitionFSMEventData);
         }
         else {
             BALL_LOG_INFO << d_clusterData_p->identity().description()
@@ -1022,7 +999,7 @@ void StorageManager::startSendDataChunksAsPrimary(
 
             enqueuePartitionFSMEvent(
                 PartitionFSM::Event::e_DONE_SENDING_DATA_CHUNKS,
-                sendEventDataVec);
+                sendPartitionFSMEventData);
         }
     }
 }
@@ -1114,8 +1091,7 @@ void StorageManager::processReplicaDataRequestPull(
         return;  // RETURN
     }
 
-    EventData eventDataVec;
-    eventDataVec.emplace_back(
+    PartitionFSMEventData eventData(
         source,
         message.rId().isNull() ? -1 : message.rId().value(),
         partitionId,
@@ -1124,7 +1100,7 @@ void StorageManager::processReplicaDataRequestPull(
                                  replicaDataRequest.endSequenceNumber()));
 
     enqueuePartitionFSMEvent(PartitionFSM::Event::e_REPLICA_DATA_RQST_PULL,
-                             eventDataVec);
+                             eventData);
 }
 
 void StorageManager::processReplicaDataRequestPush(
@@ -1187,8 +1163,7 @@ void StorageManager::processReplicaDataRequestPush(
         return;  // RETURN
     }
 
-    EventData eventDataVec;
-    eventDataVec.emplace_back(
+    PartitionFSMEventData eventData(
         source,
         message.rId().isNull() ? -1 : message.rId().value(),
         partitionId,
@@ -1202,7 +1177,7 @@ void StorageManager::processReplicaDataRequestPush(
                                  replicaDataRequest.endSequenceNumber()));
 
     enqueuePartitionFSMEvent(PartitionFSM::Event::e_REPLICA_DATA_RQST_PUSH,
-                             eventDataVec);
+                             eventData);
 }
 
 void StorageManager::processReplicaDataRequestDrop(
@@ -1305,15 +1280,14 @@ void StorageManager::processReplicaDataRequestDrop(
         return;  // RETURN
     }
 
-    EventData eventDataVec;
-    eventDataVec.emplace_back(source,
-                              message.rId().isNull() ? -1
-                                                     : message.rId().value(),
-                              partitionId,
-                              1);
+    PartitionFSMEventData eventData(
+        source,
+        message.rId().isNull() ? -1 : message.rId().value(),
+        partitionId,
+        1);
 
     enqueuePartitionFSMEvent(PartitionFSM::Event::e_REPLICA_DATA_RQST_DROP,
-                             eventDataVec);
+                             eventData);
 }
 
 void StorageManager::processPrimaryStateResponseDispatched(
@@ -1376,16 +1350,11 @@ void StorageManager::processPrimaryStateResponseDispatched(
             return;  // RETURN
         }
 
-        EventData eventDataVec;
-        eventDataVec.emplace_back(responder,
-                                  responseId,
-                                  partitionId,
-                                  1,
-                                  responder);
+        PartitionFSMEventData eventData(responder, responseId, partitionId, 1);
 
         enqueuePartitionFSMEvent(
             PartitionFSM::Event::e_FAIL_PRIMARY_STATE_RSPN,
-            eventDataVec);
+            eventData);
         return;  // RETURN
     }
 
@@ -1418,8 +1387,7 @@ void StorageManager::processPrimaryStateResponseDispatched(
                   << "]: Received PrimaryStateResponse " << context->response()
                   << " from " << responder->nodeDescription();
 
-    EventData eventDataVec;
-    eventDataVec.emplace_back(
+    PartitionFSMEventData eventData(
         responder,
         responseId,
         partitionId,
@@ -1430,7 +1398,7 @@ void StorageManager::processPrimaryStateResponseDispatched(
         response.firstSyncPointAfterRolloverSequenceNumber());
 
     enqueuePartitionFSMEvent(PartitionFSM::Event::e_PRIMARY_STATE_RSPN,
-                             eventDataVec);
+                             eventData);
 }
 
 void StorageManager::processPrimaryStateResponse(
@@ -1455,19 +1423,14 @@ void StorageManager::processPrimaryStateResponse(
 }
 
 void StorageManager::processReplicaStateResponseDispatched(
-    const RequestContextSp& requestContext)
+    const RequestContextSp& requestContext,
+    mqbnet::ClusterNode*    responder)
 {
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-
-    const NodeResponsePairs& pairs = requestContext->response();
-    if (d_clusterData_p->cluster().isLocal()) {
-        BSLS_ASSERT_SAFE(pairs.empty());
-        return;  // RETURN
-    }
-    BSLS_ASSERT_SAFE(!pairs.empty());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
 
     // Fetch partitionId from request
     const int requestPartitionId = requestContext->request()
@@ -1479,114 +1442,107 @@ void StorageManager::processReplicaStateResponseDispatched(
                                        .replicaStateRequest()
                                        .partitionId();
 
+    BSLS_ASSERT_SAFE(0 <= requestPartitionId &&
+                     requestPartitionId <
+                         static_cast<int>(d_fileStores.size()));
+
     if (d_cluster_p->isStopping()) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
                       << " Partition [" << requestPartitionId << "]: "
                       << "Cluster is stopping; skipping processing of "
-                      << "ReplicaStateResponse(s).";
+                      << "ReplicaStateResponse.";
         return;  // RETURN
     }
 
-    EventData eventDataVec(d_allocator_p);
-    EventData failedEventDataVec(d_allocator_p);
+    if (requestContext->result() != bmqt::GenericResult::e_SUCCESS) {
+        BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << " Partition [" << requestPartitionId
+                      << "]: " << "Received failed ReplicaStateResponse "
+                      << requestContext->response() << " from "
+                      << responder->nodeDescription() << ".";
 
-    for (NodeResponsePairsCIter cit = pairs.cbegin(); cit != pairs.cend();
-         ++cit) {
-        BSLS_ASSERT_SAFE(cit->first);
-
-        if (cit->second.choice().isStatusValue()) {
+        const bmqp_ctrlmsg::Status& status =
+            requestContext->response().choice().status();
+        if (status.category() == bmqp_ctrlmsg::StatusCategory::E_CANCELED) {
             BALL_LOG_WARN << d_clusterData_p->identity().description()
                           << " Partition [" << requestPartitionId
-                          << "]: " << "Received failed ReplicaStateResponse "
-                          << cit->second.choice().status() << " from "
-                          << cit->first->nodeDescription() << ".";
-
-            const bmqp_ctrlmsg::Status& status = cit->second.choice().status();
-            if (status.category() ==
-                bmqp_ctrlmsg::StatusCategory::E_CANCELED) {
-                BALL_LOG_WARN << d_clusterData_p->identity().description()
-                              << " Partition [" << requestPartitionId
-                              << "]: Request was canceled, skip processing of "
-                              << "ReplicaStateResponse.";
-                return;  // RETURN
-            }
-
-            failedEventDataVec.emplace_back(
-                cit->first,
-                cit->second.rId().isNull() ? -1 : cit->second.rId().value(),
-                requestPartitionId,
-                1,
-                d_clusterData_p->membership().selfNode());
-            continue;  // CONTINUE
+                          << "]: Request was canceled, skip processing of "
+                          << "ReplicaStateResponse.";
+            return;  // RETURN
         }
 
-        BSLS_ASSERT_SAFE(cit->second.choice().isClusterMessageValue());
-        BSLS_ASSERT_SAFE(cit->second.choice()
-                             .clusterMessage()
-                             .choice()
-                             .isPartitionMessageValue());
-        BSLS_ASSERT_SAFE(cit->second.choice()
-                             .clusterMessage()
-                             .choice()
-                             .partitionMessage()
-                             .choice()
-                             .isReplicaStateResponseValue());
-
-        const int responseId = cit->second.rId().isNull()
-                                   ? -1
-                                   : cit->second.rId().value();
-
-        const bmqp_ctrlmsg::ReplicaStateResponse& response =
-            cit->second.choice()
-                .clusterMessage()
-                .choice()
-                .partitionMessage()
-                .choice()
-                .replicaStateResponse();
-
-        BALL_LOG_INFO << d_clusterData_p->identity().description()
-                      << " Partition [" << requestPartitionId
-                      << "]: " << "Received ReplicaStateResponse "
-                      << cit->second << " from "
-                      << cit->first->nodeDescription();
-
-        BSLS_ASSERT_SAFE(d_clusterState_p->partitionsInfo()
-                             .at(response.partitionId())
-                             .primaryNodeId() ==
-                         d_clusterData_p->membership().selfNode()->nodeId());
-
-        const unsigned int primaryLeaseId = d_clusterState_p->partitionsInfo()
-                                                .at(response.partitionId())
-                                                .primaryLeaseId();
-
-        eventDataVec.emplace_back(
-            cit->first,
-            responseId,
-            response.partitionId(),
+        PartitionFSMEventData eventData(
+            responder,
+            -1,  // placeholder requestId
+            requestPartitionId,
             1,
-            d_clusterData_p->membership().selfNode(),
-            primaryLeaseId,
-            response.latestSequenceNumber(),
-            response.firstSyncPointAfterRolloverSequenceNumber());
+            d_clusterData_p->membership().selfNode());
 
-        BSLS_ASSERT_SAFE(requestPartitionId == response.partitionId());
-    }
-
-    if (eventDataVec.size() > 0) {
-        enqueuePartitionFSMEvent(PartitionFSM::Event::e_REPLICA_STATE_RSPN,
-                                 eventDataVec);
-    }
-
-    if (failedEventDataVec.size() > 0) {
         enqueuePartitionFSMEvent(
-
             PartitionFSM::Event::e_FAIL_REPLICA_STATE_RSPN,
-            failedEventDataVec);
+            eventData);
+        return;  // RETURN
     }
+
+    BSLS_ASSERT_SAFE(
+        requestContext->response().choice().isClusterMessageValue());
+    BSLS_ASSERT_SAFE(requestContext->response()
+                         .choice()
+                         .clusterMessage()
+                         .choice()
+                         .isPartitionMessageValue());
+    BSLS_ASSERT_SAFE(requestContext->response()
+                         .choice()
+                         .clusterMessage()
+                         .choice()
+                         .partitionMessage()
+                         .choice()
+                         .isReplicaStateResponseValue());
+
+    const int requestId = requestContext->response().rId().value();
+
+    const bmqp_ctrlmsg::ReplicaStateResponse& response =
+        requestContext->response()
+            .choice()
+            .clusterMessage()
+            .choice()
+            .partitionMessage()
+            .choice()
+            .replicaStateResponse();
+    BSLS_ASSERT_SAFE(response.partitionId() == requestPartitionId);
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << " Partition [" << requestPartitionId
+                  << "]: " << "Received ReplicaStateResponse "
+                  << requestContext->response() << " from "
+                  << responder->nodeDescription();
+
+    BSLS_ASSERT_SAFE(d_clusterState_p->partitionsInfo()
+                         .at(response.partitionId())
+                         .primaryNodeId() ==
+                     d_clusterData_p->membership().selfNode()->nodeId());
+
+    const unsigned int primaryLeaseId = d_clusterState_p->partitionsInfo()
+                                            .at(response.partitionId())
+                                            .primaryLeaseId();
+
+    PartitionFSMEventData eventData(
+        responder,
+        requestId,
+        response.partitionId(),
+        1,
+        d_clusterData_p->membership().selfNode(),
+        primaryLeaseId,
+        response.latestSequenceNumber(),
+        response.firstSyncPointAfterRolloverSequenceNumber());
+
+    enqueuePartitionFSMEvent(PartitionFSM::Event::e_REPLICA_STATE_RSPN,
+                             eventData);
 }
 
 void StorageManager::processReplicaStateResponse(
-    const RequestContextSp& requestContext)
+    const RequestContextSp& requestContext,
+    mqbnet::ClusterNode*    responder)
 {
     // executed by *any* thread
     // dispatch to the CLUSTER DISPATCHER
@@ -1594,7 +1550,8 @@ void StorageManager::processReplicaStateResponse(
         bdlf::BindUtil::bind(
             &StorageManager::processReplicaStateResponseDispatched,
             this,
-            requestContext),
+            requestContext,
+            responder),
         d_cluster_p);
 }
 
@@ -1646,8 +1603,7 @@ void StorageManager::processReplicaDataResponseDispatched(
             if (context->response().choice().isStatusValue() &&
                 context->response().choice().status().code() ==
                     mqbi::ClusterErrorCode::e_IRRECONCILABLE_DATA) {
-                EventData eventDataVec;
-                eventDataVec.emplace_back(
+                PartitionFSMEventData eventData(
                     responder,
                     responseId,
                     partitionId,
@@ -1660,32 +1616,36 @@ void StorageManager::processReplicaDataResponseDispatched(
                 enqueuePartitionFSMEvent(
                     PartitionFSM::Event::
                         e_IRRECONCILABLE_REPLICA_DATA_RSPN_PULL,
-                    eventDataVec);
+                    eventData);
             }
             else {
-                EventData eventDataVec;
-                eventDataVec.emplace_back(responder,
-                                          responseId,
-                                          partitionId,
-                                          1);
+                PartitionFSMEventData eventData(responder,
+                                                responseId,
+                                                partitionId,
+                                                1);
+
                 enqueuePartitionFSMEvent(
                     PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_PULL,
-                    eventDataVec);
+                    eventData);
             }
         } break;
         case bmqp_ctrlmsg::ReplicaDataType::E_PUSH: {
-            EventData eventDataVec;
-            eventDataVec.emplace_back(responder, responseId, partitionId, 1);
+            PartitionFSMEventData eventData(responder,
+                                            responseId,
+                                            partitionId,
+                                            1);
             enqueuePartitionFSMEvent(
                 PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_PUSH,
-                eventDataVec);
+                eventData);
         } break;
         case bmqp_ctrlmsg::ReplicaDataType::E_DROP: {
-            EventData eventDataVec;
-            eventDataVec.emplace_back(responder, responseId, partitionId, 1);
+            PartitionFSMEventData eventData(responder,
+                                            responseId,
+                                            partitionId,
+                                            1);
             enqueuePartitionFSMEvent(
                 PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_DROP,
-                eventDataVec);
+                eventData);
         } break;
         case bmqp_ctrlmsg::ReplicaDataType::E_UNKNOWN:
         default: {
@@ -1734,8 +1694,7 @@ void StorageManager::processReplicaDataResponseDispatched(
         incrementCount = 1;
     }
 
-    EventData eventDataVec;
-    eventDataVec.emplace_back(
+    PartitionFSMEventData eventData(
         responder,
         responseId,
         partitionId,
@@ -1752,15 +1711,15 @@ void StorageManager::processReplicaDataResponseDispatched(
     switch (dataType) {
     case bmqp_ctrlmsg::ReplicaDataType::E_PULL: {
         enqueuePartitionFSMEvent(PartitionFSM::Event::e_REPLICA_DATA_RSPN_PULL,
-                                 eventDataVec);
+                                 eventData);
     } break;
     case bmqp_ctrlmsg::ReplicaDataType::E_PUSH: {
         enqueuePartitionFSMEvent(PartitionFSM::Event::e_REPLICA_DATA_RSPN_PUSH,
-                                 eventDataVec);
+                                 eventData);
     } break;
     case bmqp_ctrlmsg::ReplicaDataType::E_DROP: {
         enqueuePartitionFSMEvent(PartitionFSM::Event::e_REPLICA_DATA_RSPN_DROP,
-                                 eventDataVec);
+                                 eventData);
     } break;
     case bmqp_ctrlmsg::ReplicaDataType::E_UNKNOWN:
     default: {
@@ -1823,9 +1782,8 @@ void StorageManager::do_startWatchdog(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
-    const int partitionId = eventDataVec[0].partitionId();
+    const PartitionFSMEventData& eventData   = event.second;
+    const int                    partitionId = eventData.partitionId();
 
     WatchdogContext& ctx = d_watchdogContexts[partitionId];
 
@@ -1856,9 +1814,8 @@ void StorageManager::do_stopWatchdog(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
-    const int partitionId = eventDataVec[0].partitionId();
+    const PartitionFSMEventData& eventData   = event.second;
+    const int                    partitionId = eventData.partitionId();
 
     WatchdogContext& ctx = d_watchdogContexts[partitionId];
 
@@ -1882,9 +1839,8 @@ void StorageManager::do_openRecoveryFileSet(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
-    const int partitionId = eventDataVec[0].partitionId();
+    const PartitionFSMEventData& eventData   = event.second;
+    const int                    partitionId = eventData.partitionId();
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
     BSLS_ASSERT_SAFE(fs);
@@ -1937,9 +1893,8 @@ void StorageManager::do_closeRecoveryFileSet(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
-    const int partitionId = eventDataVec[0].partitionId();
+    const PartitionFSMEventData& eventData   = event.second;
+    const int                    partitionId = eventData.partitionId();
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
     BSLS_ASSERT_SAFE(fs);
@@ -1971,11 +1926,9 @@ void StorageManager::do_storeSelfSeq(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() >= 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
+    const int partitionId = eventData.partitionId();
 
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
@@ -2021,11 +1974,9 @@ void StorageManager::do_storePrimarySeq(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    int                          partitionId = eventData.partitionId();
+    int partitionId = eventData.partitionId();
     const bmqp_ctrlmsg::PartitionSequenceNumber& PSN =
         eventData.partitionSequenceNumber();
 
@@ -2074,54 +2025,49 @@ void StorageManager::do_storeReplicaSeq(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() >= 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    for (EventDataCIter cit = eventDataVec.cbegin();
-         cit != eventDataVec.cend();
-         cit++) {
-        int partitionId = cit->partitionId();
-        const bmqp_ctrlmsg::PartitionSequenceNumber& PSN =
-            cit->partitionSequenceNumber();
+    const int partitionId = eventData.partitionId();
+    const bmqp_ctrlmsg::PartitionSequenceNumber& PSN =
+        eventData.partitionSequenceNumber();
 
-        BSLS_ASSERT_SAFE(0 <= partitionId &&
-                         partitionId < static_cast<int>(d_fileStores.size()));
-        BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfPrimary());
-        BSLS_ASSERT_SAFE(d_partitionInfoVec[partitionId].primary());
-        BSLS_ASSERT_SAFE(d_partitionInfoVec[partitionId].primary()->nodeId() ==
-                         d_clusterData_p->membership().selfNode()->nodeId());
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfPrimary());
+    BSLS_ASSERT_SAFE(d_partitionInfoVec[partitionId].primary());
+    BSLS_ASSERT_SAFE(d_partitionInfoVec[partitionId].primary()->nodeId() ==
+                     d_clusterData_p->membership().selfNode()->nodeId());
 
-        // Information from 'PrimaryStateRequest' or 'ReplicaStateResponse'
-        // could be stale; ignore if so.
-        bool                hasNew = false;
-        NodeToPSNCtxMapIter it     = d_nodeToPSNCtxMapVec[partitionId].find(
-            cit->source());
-        if (it == d_nodeToPSNCtxMapVec[partitionId].end()) {
-            NodePSNContext nodePSNContext(
-                PSN,
-                cit->firstSyncPointAfterRolloverPSN());
-            d_nodeToPSNCtxMapVec[partitionId].insert(
-                bsl::make_pair(cit->source(), nodePSNContext));
-            hasNew = true;
-        }
-        else if (PSN > it->second.d_PSN ||
-                 event.first == PartitionFSM::Event::e_PRIMARY_STATE_RQST) {
-            it->second.d_PSN = PSN;
-            it->second.d_firstSyncPointAfterRolloverPSN =
-                cit->firstSyncPointAfterRolloverPSN();
-            hasNew = true;
-        }
+    // Information from 'PrimaryStateRequest' or 'ReplicaStateResponse'
+    // could be stale; ignore if so.
+    bool                hasNew = false;
+    NodeToPSNCtxMapIter it     = d_nodeToPSNCtxMapVec[partitionId].find(
+        eventData.source());
+    if (it == d_nodeToPSNCtxMapVec[partitionId].end()) {
+        NodePSNContext nodePSNContext(
+            PSN,
+            eventData.firstSyncPointAfterRolloverPSN());
+        d_nodeToPSNCtxMapVec[partitionId].insert(
+            bsl::make_pair(eventData.source(), nodePSNContext));
+        hasNew = true;
+    }
+    else if (PSN > it->second.d_PSN ||
+             event.first == PartitionFSM::Event::e_PRIMARY_STATE_RQST) {
+        it->second.d_PSN = PSN;
+        it->second.d_firstSyncPointAfterRolloverPSN =
+            eventData.firstSyncPointAfterRolloverPSN();
+        hasNew = true;
+    }
 
-        if (hasNew) {
-            BALL_LOG_INFO << d_clusterData_p->identity().description()
-                          << ": In Partition [" << partitionId << "]'s FSM, "
-                          << "storing the PSN of "
-                          << cit->source()->nodeDescription() << " as "
-                          << mqbs::printPSN(PSN)
-                          << ", first sync point after rollover PSN: "
-                          << mqbs::printPSN(
-                                 cit->firstSyncPointAfterRolloverPSN());
-        }
+    if (hasNew) {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << ": In Partition [" << partitionId << "]'s FSM, "
+                      << "storing the PSN of "
+                      << eventData.source()->nodeDescription() << " as "
+                      << mqbs::printPSN(PSN)
+                      << ", first sync point after rollover PSN: "
+                      << mqbs::printPSN(
+                             eventData.firstSyncPointAfterRolloverPSN());
     }
 }
 
@@ -2130,11 +2076,9 @@ void StorageManager::do_replicaStateRequest(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
+    const int partitionId = eventData.partitionId();
 
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
@@ -2143,42 +2087,67 @@ void StorageManager::do_replicaStateRequest(const EventWithData& event)
 
     ClusterUtil::loadPeerNodes(&replicas, *d_clusterData_p);
 
-    RequestContextSp contextSp =
-        d_clusterData_p->multiRequestManager().createRequestContext();
-    bmqp_ctrlmsg::ReplicaStateRequest& replicaStateRequest =
-        contextSp->request()
-            .choice()
-            .makeClusterMessage()
-            .choice()
-            .makePartitionMessage()
-            .choice()
-            .makeReplicaStateRequest();
-
-    replicaStateRequest.partitionId() = partitionId;
-    replicaStateRequest.primaryLeaseId() =
-        d_partitionInfoVec.at(partitionId).primaryLeaseId();
-
     mqbnet::ClusterNode* selfNode = d_clusterData_p->membership().selfNode();
     BSLS_ASSERT_SAFE(d_nodeToPSNCtxMapVec[partitionId].find(selfNode) !=
                      d_nodeToPSNCtxMapVec[partitionId].end());
 
-    replicaStateRequest.latestSequenceNumber() =
+    const bmqp_ctrlmsg::PartitionSequenceNumber& selfPSN =
         d_nodeToPSNCtxMapVec[partitionId][selfNode].d_PSN;
-
-    // Get own first sync point after rollover PSN
-    replicaStateRequest.firstSyncPointAfterRolloverSequenceNumber() =
+    const bmqp_ctrlmsg::PartitionSequenceNumber selfFirstSyncAfterRolloverPSN =
         getSelfFirstSyncPointAfterRolloverPSN(partitionId);
 
-    contextSp->setDestinationNodes(replicas);
-    contextSp->setComponentId(
-        bmqp::RequestManagerComponentId::partitionFSM(partitionId));
-    contextSp->setResponseCb(
-        bdlf::BindUtil::bind(&StorageManager::processReplicaStateResponse,
-                             this,
-                             bdlf::PlaceHolders::_1));
+    for (bsl::vector<mqbnet::ClusterNode*>::const_iterator it =
+             replicas.cbegin();
+         it != replicas.cend();
+         ++it) {
+        mqbnet::ClusterNode* replica = *it;
 
-    d_clusterData_p->multiRequestManager().sendRequest(contextSp,
-                                                       bsls::TimeInterval(10));
+        RequestContextSp contextSp =
+            d_clusterData_p->requestManager().createRequest();
+        contextSp->setComponentId(
+            bmqp::RequestManagerComponentId::partitionFSM(partitionId));
+
+        bmqp_ctrlmsg::ReplicaStateRequest& replicaStateRequest =
+            contextSp->request()
+                .choice()
+                .makeClusterMessage()
+                .choice()
+                .makePartitionMessage()
+                .choice()
+                .makeReplicaStateRequest();
+
+        replicaStateRequest.partitionId()          = partitionId;
+        replicaStateRequest.latestSequenceNumber() = selfPSN;
+        replicaStateRequest.primaryLeaseId() =
+            d_partitionInfoVec.at(partitionId).primaryLeaseId();
+
+        // Get own first sync point after rollover PSN
+        replicaStateRequest.firstSyncPointAfterRolloverSequenceNumber() =
+            selfFirstSyncAfterRolloverPSN;
+
+        contextSp->setResponseCb(
+            bdlf::BindUtil::bind(&StorageManager::processReplicaStateResponse,
+                                 this,
+                                 bdlf::PlaceHolders::_1,
+                                 replica));
+
+        const bmqt::GenericResult::Enum status =
+            d_clusterData_p->cluster().sendRequest(contextSp,
+                                                   replica,
+                                                   bsls::TimeInterval(10));
+
+        if (bmqt::GenericResult::e_SUCCESS != status) {
+            PartitionFSMEventData failedPartitionFSMEventData(
+                replica,
+                -1,  // placeholder responseId
+                partitionId,
+                1);
+
+            enqueuePartitionFSMEvent(
+                PartitionFSM::Event::e_FAIL_REPLICA_STATE_RSPN,
+                failedPartitionFSMEventData);
+        }
+    }
 }
 
 void StorageManager::do_replicaStateResponse(const EventWithData& event)
@@ -2186,11 +2155,9 @@ void StorageManager::do_replicaStateResponse(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
+    const int partitionId = eventData.partitionId();
 
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
@@ -2234,11 +2201,9 @@ void StorageManager::do_failureReplicaStateResponse(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
+    const int partitionId = eventData.partitionId();
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(eventData.source());
@@ -2290,23 +2255,18 @@ void StorageManager::do_logFailureReplicaStateResponse(
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() >= 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    for (EventDataCIter cit = eventDataVec.cbegin();
-         cit != eventDataVec.cend();
-         cit++) {
-        int                        partitionId = cit->partitionId();
-        const mqbnet::ClusterNode* sourceNode  = cit->source();
+    int                        partitionId = eventData.partitionId();
+    const mqbnet::ClusterNode* sourceNode  = eventData.source();
 
-        BSLS_ASSERT_SAFE(0 <= partitionId &&
-                         partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
 
-        BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << " Partition [" << partitionId << "]: "
-                      << "Received failure ReplicaStateResponse from node "
-                      << sourceNode->nodeDescription() << ".";
-    }
+    BALL_LOG_WARN << d_clusterData_p->identity().description()
+                  << " Partition [" << partitionId << "]: "
+                  << "Received failure ReplicaStateResponse from node "
+                  << sourceNode->nodeDescription() << ".";
 }
 
 void StorageManager::do_logFailurePrimaryStateResponse(
@@ -2315,11 +2275,10 @@ void StorageManager::do_logFailurePrimaryStateResponse(
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    int                        partitionId = eventDataVec[0].partitionId();
-    const mqbnet::ClusterNode* sourceNode  = eventDataVec[0].source();
+    int                        partitionId = eventData.partitionId();
+    const mqbnet::ClusterNode* sourceNode  = eventData.source();
 
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
@@ -2338,11 +2297,10 @@ void StorageManager::do_logUnexpectedPrimaryStateResponse(
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    int                        partitionId = eventDataVec[0].partitionId();
-    const mqbnet::ClusterNode* sourceNode  = eventDataVec[0].source();
+    int                        partitionId = eventData.partitionId();
+    const mqbnet::ClusterNode* sourceNode  = eventData.source();
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
 
@@ -2366,11 +2324,10 @@ void StorageManager::do_logUnexpectedFailurePrimaryStateResponse(
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    int                        partitionId = eventDataVec[0].partitionId();
-    const mqbnet::ClusterNode* sourceNode  = eventDataVec[0].source();
+    int                        partitionId = eventData.partitionId();
+    const mqbnet::ClusterNode* sourceNode  = eventData.source();
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
 
@@ -2392,12 +2349,10 @@ void StorageManager::do_primaryStateRequest(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
-    mqbnet::ClusterNode*         primary     = eventData.primary();
+    const int            partitionId = eventData.partitionId();
+    mqbnet::ClusterNode* primary     = eventData.primary();
 
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
@@ -2446,15 +2401,15 @@ void StorageManager::do_primaryStateRequest(const EventWithData& event)
         bsls::TimeInterval(10));
 
     if (bmqt::GenericResult::e_SUCCESS != status) {
-        EventData failedEventDataVec;
-        failedEventDataVec.emplace_back(primary,
-                                        -1,  // placeholder responseId
-                                        partitionId,
-                                        1);
+        PartitionFSMEventData failedPartitionFSMEventData(
+            primary,
+            -1,  // placeholder responseId
+            partitionId,
+            1);
 
         enqueuePartitionFSMEvent(
             PartitionFSM::Event::e_FAIL_PRIMARY_STATE_RSPN,
-            failedEventDataVec);
+            failedPartitionFSMEventData);
     }
 }
 
@@ -2463,11 +2418,9 @@ void StorageManager::do_primaryStateResponse(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
+    const int partitionId = eventData.partitionId();
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(eventData.source());
@@ -2507,11 +2460,9 @@ void StorageManager::do_failurePrimaryStateResponse(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
+    const int partitionId = eventData.partitionId();
     BSLS_ASSERT_SAFE(eventData.source());
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
@@ -2544,12 +2495,10 @@ void StorageManager::do_replicaDataResponsePush(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
-    mqbnet::ClusterNode*         destNode    = eventData.source();
+    const int            partitionId = eventData.partitionId();
+    mqbnet::ClusterNode* destNode    = eventData.source();
 
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
@@ -2602,11 +2551,9 @@ void StorageManager::do_replicaDataRequestPull(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
+    const int partitionId = eventData.partitionId();
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
 
@@ -2650,15 +2597,15 @@ void StorageManager::do_replicaDataRequestPull(const EventWithData& event)
                                                bsls::TimeInterval(10));
 
     if (bmqt::GenericResult::e_SUCCESS != status) {
-        EventData failedEventDataVec;
-        failedEventDataVec.emplace_back(destNode,
-                                        -1,  // placeholder responseId
-                                        partitionId,
-                                        1);
+        PartitionFSMEventData failedPartitionFSMEventData(
+            destNode,
+            -1,  // placeholder responseId
+            partitionId,
+            1);
 
         enqueuePartitionFSMEvent(
             PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_PULL,
-            failedEventDataVec);
+            failedPartitionFSMEventData);
     }
 }
 
@@ -2667,11 +2614,9 @@ void StorageManager::do_replicaDataResponsePull(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
+    const int partitionId = eventData.partitionId();
 
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
@@ -2714,11 +2659,9 @@ void StorageManager::do_failureReplicaDataResponsePull(
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
+    const int partitionId = eventData.partitionId();
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
 
@@ -2762,11 +2705,9 @@ void StorageManager::do_sendDataToReplicas(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() >= 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
+    const int partitionId = eventData.partitionId();
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(d_partitionFSMVec.at(partitionId)->isSelfPrimary());
@@ -2805,12 +2746,10 @@ void StorageManager::do_sendDataToPrimary(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const PartitionFSM::Event::Enum eventType    = event.first;
-    const EventData&                eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() >= 1);
+    const PartitionFSM::Event::Enum eventType = event.first;
+    const PartitionFSMEventData&    eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
+    const int partitionId = eventData.partitionId();
 
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
@@ -2840,12 +2779,12 @@ void StorageManager::do_sendDataToPrimary(const EventWithData& event)
     BSLS_ASSERT_SAFE(endSeqNum ==
                      d_nodeToPSNCtxMapVec[partitionId][selfNode].d_PSN);
 
-    EventData sendEventDataVec;
-    sendEventDataVec.emplace_back(destNode,
-                                  eventData.requestId(),
-                                  partitionId,
-                                  1,
-                                  eventData.partitionSeqNumDataRange());
+    PartitionFSMEventData sendPartitionFSMEventData(
+        destNode,
+        eventData.requestId(),
+        partitionId,
+        1,
+        eventData.partitionSeqNumDataRange());
 
     // NOTE: In case the primary has missed rollover, it has already checked
     // during `do_primaryRemoveStorageIfNeeded` and has removed its own
@@ -2870,7 +2809,7 @@ void StorageManager::do_sendDataToPrimary(const EventWithData& event)
                       << "ReplicaDataResponsePull.";
 
         enqueuePartitionFSMEvent(PartitionFSM::Event::e_IRRECONCILABLE_DATA,
-                                 sendEventDataVec);
+                                 sendPartitionFSMEventData);
         return;  // RETURN
     }
 
@@ -2887,7 +2826,7 @@ void StorageManager::do_sendDataToPrimary(const EventWithData& event)
                       << "failure ReplicaDataResponsePull.";
 
         enqueuePartitionFSMEvent(PartitionFSM::Event::e_IRRECONCILABLE_DATA,
-                                 sendEventDataVec);
+                                 sendPartitionFSMEventData);
         return;  // RETURN
     }
 
@@ -2907,7 +2846,7 @@ void StorageManager::do_sendDataToPrimary(const EventWithData& event)
 
         enqueuePartitionFSMEvent(
             PartitionFSM::Event::e_ERROR_SENDING_DATA_CHUNKS,
-            sendEventDataVec);
+            sendPartitionFSMEventData);
     }
     else {
         BALL_LOG_INFO << d_clusterData_p->identity().description()
@@ -2919,7 +2858,7 @@ void StorageManager::do_sendDataToPrimary(const EventWithData& event)
 
         enqueuePartitionFSMEvent(
             PartitionFSM::Event::e_DONE_SENDING_DATA_CHUNKS,
-            sendEventDataVec);
+            sendPartitionFSMEventData);
     }
 }
 
@@ -2928,12 +2867,10 @@ void StorageManager::do_bufferLiveData(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
-    mqbnet::ClusterNode*         source      = eventData.source();
+    const int            partitionId = eventData.partitionId();
+    mqbnet::ClusterNode* source      = eventData.source();
 
     bmqp::Event rawEvent(eventData.storageEvent(), d_allocator_p);
     BSLS_ASSERT_SAFE(rawEvent.isStorageEvent());
@@ -2964,11 +2901,9 @@ void StorageManager::do_processBufferedLiveData(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
+    const int            partitionId = eventData.partitionId();
     mqbnet::ClusterNode* primary = d_partitionInfoVec[partitionId].primary();
 
     if (d_cluster_p->isStopping()) {
@@ -3018,14 +2953,13 @@ void StorageManager::do_processBufferedLiveData(const EventWithData& event)
                 << ". Closing the partition." << BMQTSK_ALARMLOG_END;
             fs->close(d_clusterConfig.partitionConfig().flushAtShutdown());
 
-            EventData eventDataVecLocal;
-            eventDataVecLocal.emplace_back(primary,
-                                           -1,  // placeholder requestId
-                                           partitionId,
-                                           1);
+            PartitionFSMEventData eventDataLocal(primary,
+                                                 -1,  // placeholder requestId
+                                                 partitionId,
+                                                 1);
 
             enqueuePartitionFSMEvent(PartitionFSM::Event::e_ISSUE_LIVESTREAM,
-                                     eventDataVecLocal);
+                                     eventDataLocal);
             break;  // BREAK
         }
     }
@@ -3036,11 +2970,9 @@ void StorageManager::do_clearBufferedLiveData(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
+    const int partitionId = eventData.partitionId();
 
     // NOTE: As a healing replica, upon e_REPLICA_DATA_RQST_PUSH FSM event, we
     // *must* clear buffered live data because it is possible that the buffered
@@ -3056,11 +2988,9 @@ void StorageManager::do_processBufferedPrimaryStatusAdvisories(
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
+    const int partitionId = eventData.partitionId();
 
     if (d_cluster_p->isStopping()) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
@@ -3093,12 +3023,10 @@ void StorageManager::do_processLiveData(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
-    mqbnet::ClusterNode*         source      = eventData.source();
+    const int            partitionId = eventData.partitionId();
+    mqbnet::ClusterNode* source      = eventData.source();
 
     // Do process events while Stopping, otherwise can miss sync point.
 
@@ -3134,13 +3062,11 @@ void StorageManager::do_setPrimary(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
-    mqbnet::ClusterNode*         primary     = eventData.primary();
-    const unsigned int           leaseId     = eventData.primaryLeaseId();
+    const int            partitionId = eventData.partitionId();
+    mqbnet::ClusterNode* primary     = eventData.primary();
+    const unsigned int   leaseId     = eventData.primaryLeaseId();
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 <= partitionId &&
@@ -3164,11 +3090,9 @@ void StorageManager::do_cleanupMetadata(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
+    const int partitionId = eventData.partitionId();
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 <= partitionId &&
@@ -3189,11 +3113,9 @@ void StorageManager::do_clearPrimary(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
+    const int partitionId = eventData.partitionId();
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 <= partitionId &&
@@ -3212,10 +3134,9 @@ void StorageManager::do_cancelRequests(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const int partitionId = eventDataVec[0].partitionId();
+    const int partitionId = eventData.partitionId();
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
 
@@ -3235,12 +3156,10 @@ void StorageManager::do_setExpectedDataChunkRange(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
-    mqbnet::ClusterNode* highestSeqNumNode   = eventData.highestSeqNumNode();
+    const int            partitionId       = eventData.partitionId();
+    mqbnet::ClusterNode* highestSeqNumNode = eventData.highestSeqNumNode();
 
     const mqbs::FileStore& fs = fileStore(partitionId);
 
@@ -3269,15 +3188,15 @@ void StorageManager::do_setExpectedDataChunkRange(const EventWithData& event)
             // Self Replica is up-to-date with the primary, thus not expecting
             // data chunks.
 
-            EventData eventDataVecOut;
-            eventDataVecOut.emplace_back(highestSeqNumNode,
-                                         eventData.requestId(),
-                                         partitionId,
-                                         1,  // incrementCount
-                                         eventData.partitionSeqNumDataRange());
+            PartitionFSMEventData eventDataOut(
+                highestSeqNumNode,
+                eventData.requestId(),
+                partitionId,
+                1,  // incrementCount
+                eventData.partitionSeqNumDataRange());
             enqueuePartitionFSMEvent(
                 PartitionFSM::Event::e_DONE_RECEIVING_DATA_CHUNKS,
-                eventDataVecOut);
+                eventDataOut);
 
             return;  // RETURN
         }
@@ -3305,10 +3224,9 @@ void StorageManager::do_resetReceiveDataCtx(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    d_recoveryManager_mp->resetReceiveDataCtx(eventDataVec[0].partitionId());
+    d_recoveryManager_mp->resetReceiveDataCtx(eventData.partitionId());
 }
 
 void StorageManager::do_attemptOpenStorage(const EventWithData& event)
@@ -3316,11 +3234,9 @@ void StorageManager::do_attemptOpenStorage(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
+    const int partitionId = eventData.partitionId();
     BSLS_ASSERT_SAFE(!d_recoveryManager_mp->expectedDataChunks(partitionId));
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
@@ -3351,12 +3267,10 @@ void StorageManager::do_updateStorage(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
-    mqbnet::ClusterNode*         source      = eventData.source();
+    const int            partitionId = eventData.partitionId();
+    mqbnet::ClusterNode* source      = eventData.source();
     BSLS_ASSERT_SAFE(source);
 
     bmqp::Event rawEvent(eventData.storageEvent(), d_allocator_p);
@@ -3427,23 +3341,22 @@ void StorageManager::do_updateStorage(const EventWithData& event)
                   << "]: " << "Received status " << rc
                   << " for receiving data chunks from Recovery Manager.";
 
-    EventData eventDataVecOut;
-    eventDataVecOut.emplace_back(source,
-                                 -1,  // placeholder requestId
-                                 partitionId,
-                                 1);
+    PartitionFSMEventData eventDataOut(source,
+                                       -1,  // placeholder requestId
+                                       partitionId,
+                                       1);
 
     // As replica, we will send either success or failure
     // ReplicaDataResponsePush/Drop depending on 'rc'.
     if (rc == 1) {
         enqueuePartitionFSMEvent(
             PartitionFSM::Event::e_DONE_RECEIVING_DATA_CHUNKS,
-            eventDataVecOut);
+            eventDataOut);
     }
     else if (rc != 0) {
         enqueuePartitionFSMEvent(
             PartitionFSM::Event::e_ERROR_RECEIVING_DATA_CHUNKS,
-            eventDataVecOut);
+            eventDataOut);
     }
     // Note: 'rc == 0' means that we have received some data chunks, but
     // more is coming, and there is no need to trigger FSM event.
@@ -3455,16 +3368,14 @@ void StorageManager::do_primaryRemoveStorageIfNeeded(
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
     // Self Primary is expecting data from highest seq num replica.
     BSLS_ASSERT_SAFE(event.first ==
                      PartitionFSM::Event::e_REPLICA_HIGHEST_SEQ);
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
-    mqbnet::ClusterNode* highestSeqNumNode   = eventData.highestSeqNumNode();
+    const int            partitionId       = eventData.partitionId();
+    mqbnet::ClusterNode* highestSeqNumNode = eventData.highestSeqNumNode();
     BSLS_ASSERT_SAFE(highestSeqNumNode);
 
     // Check if self primary missed rollover
@@ -3492,10 +3403,7 @@ void StorageManager::do_primaryRemoveStorage(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
-
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
+    const PartitionFSMEventData& eventData   = event.second;
     const int                    partitionId = eventData.partitionId();
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
@@ -3519,11 +3427,9 @@ void StorageManager::do_removeStorageAndSendReplicaDataDropResponse(
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
+    const int partitionId = eventData.partitionId();
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfReplica());
@@ -3596,12 +3502,10 @@ void StorageManager::do_incrementNumRplcaDataRspn(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const PartitionFSMEventData& eventData      = eventDataVec[0];
-    const int                    partitionId    = eventData.partitionId();
-    const int                    incrementCount = eventData.incrementCount();
+    const int partitionId    = eventData.partitionId();
+    const int incrementCount = eventData.incrementCount();
 
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
@@ -3627,11 +3531,9 @@ void StorageManager::do_checkQuorumRplcaDataRspn(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
+    const int partitionId = eventData.partitionId();
 
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
@@ -3648,7 +3550,7 @@ void StorageManager::do_checkQuorumRplcaDataRspn(const EventWithData& event)
 
         enqueuePartitionFSMEvent(
             PartitionFSM::Event::e_QUORUM_REPLICA_DATA_RSPN,
-            eventDataVec);
+            eventData);
     }
 }
 
@@ -3657,10 +3559,9 @@ void StorageManager::do_reapplyEvent(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const int partitionId = eventDataVec[0].partitionId();
+    const int partitionId = eventData.partitionId();
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId
@@ -3675,11 +3576,9 @@ void StorageManager::do_checkQuorumSeq(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() >= 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
+    const int partitionId = eventData.partitionId();
 
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
@@ -3704,11 +3603,9 @@ void StorageManager::do_findHighestSeq(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() >= 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
+    const int partitionId = eventData.partitionId();
 
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
@@ -3746,8 +3643,7 @@ void StorageManager::do_findHighestSeq(const EventWithData& event)
     const bool selfHighestPSN = highestPSNNode ==
                                 d_clusterData_p->membership().selfNode();
 
-    EventData newEventDataVec;
-    newEventDataVec.emplace_back(
+    PartitionFSMEventData newPartitionFSMEventData(
         d_clusterData_p->membership().selfNode(),
         -1,  // placeholder requestId
         partitionId,
@@ -3760,11 +3656,11 @@ void StorageManager::do_findHighestSeq(const EventWithData& event)
 
     if (selfHighestPSN) {
         enqueuePartitionFSMEvent(PartitionFSM::Event::e_SELF_HIGHEST_SEQ,
-                                 newEventDataVec);
+                                 newPartitionFSMEventData);
     }
     else {
         enqueuePartitionFSMEvent(PartitionFSM::Event::e_REPLICA_HIGHEST_SEQ,
-                                 newEventDataVec);
+                                 newPartitionFSMEventData);
     }
 }
 
@@ -3773,11 +3669,9 @@ void StorageManager::do_flagFailedReplicaSeq(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const PartitionFSMEventData& eventData = event.second;
 
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
+    const int partitionId = eventData.partitionId();
 
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
@@ -3795,9 +3689,8 @@ void StorageManager::do_transitionToActivePrimary(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
-    const int partitionId = eventDataVec[0].partitionId();
+    const PartitionFSMEventData& eventData   = event.second;
+    const int                    partitionId = eventData.partitionId();
 
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
@@ -3817,9 +3710,8 @@ void StorageManager::do_reapplyDetectSelfPrimary(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
-    const int partitionId = eventDataVec[0].partitionId();
+    const PartitionFSMEventData& eventData   = event.second;
+    const int                    partitionId = eventData.partitionId();
 
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
@@ -3829,8 +3721,7 @@ void StorageManager::do_reapplyDetectSelfPrimary(const EventWithData& event)
                   << " Partition [" << partitionId << "]: "
                   << "Re-apply transition to primary in the Partition FSM.";
 
-    EventData eventDataVecOut;
-    eventDataVecOut.emplace_back(
+    PartitionFSMEventData eventDataOut(
         d_clusterData_p->membership().selfNode(),
         -1,  // placeholder responseId
         partitionId,
@@ -3838,7 +3729,7 @@ void StorageManager::do_reapplyDetectSelfPrimary(const EventWithData& event)
         d_partitionInfoVec[partitionId].primary(),
         d_partitionInfoVec[partitionId].primaryLeaseId());
     enqueuePartitionFSMEvent(PartitionFSM::Event::e_REAPPLY_SELF_PRIMARY,
-                             eventDataVecOut);
+                             eventDataOut);
 }
 
 void StorageManager::do_reapplyDetectSelfReplica(const EventWithData& event)
@@ -3846,9 +3737,8 @@ void StorageManager::do_reapplyDetectSelfReplica(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
-    const int partitionId = eventDataVec[0].partitionId();
+    const PartitionFSMEventData& eventData   = event.second;
+    const int                    partitionId = eventData.partitionId();
 
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
@@ -3858,8 +3748,7 @@ void StorageManager::do_reapplyDetectSelfReplica(const EventWithData& event)
                   << " Partition [" << partitionId << "]: "
                   << "Re-apply transition to replica in the Partition FSM.";
 
-    EventData eventDataVecOut;
-    eventDataVecOut.emplace_back(
+    PartitionFSMEventData eventDataOut(
         d_clusterData_p->membership().selfNode(),
         -1,  // placeholder responseId
         partitionId,
@@ -3867,7 +3756,7 @@ void StorageManager::do_reapplyDetectSelfReplica(const EventWithData& event)
         d_partitionInfoVec[partitionId].primary(),
         d_partitionInfoVec[partitionId].primaryLeaseId());
     enqueuePartitionFSMEvent(PartitionFSM::Event::e_REAPPLY_SELF_REPLICA,
-                             eventDataVecOut);
+                             eventDataOut);
 }
 
 void StorageManager::do_unsupportedPrimaryDowngrade(const EventWithData& event)
@@ -3875,9 +3764,8 @@ void StorageManager::do_unsupportedPrimaryDowngrade(const EventWithData& event)
     // executed by the *QUEUE DISPATCHER* thread associated with the
     // paritionId contained in 'event'
 
-    const EventData& eventDataVec = event.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
-    const int partitionId = eventDataVec[0].partitionId();
+    const PartitionFSMEventData& eventData   = event.second;
+    const int                    partitionId = eventData.partitionId();
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
 
@@ -4462,13 +4350,12 @@ void StorageManager::stopPFSMs()
     BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
 
     for (size_t pid = 0; pid < d_fileStores.size(); pid++) {
-        EventData eventDataVec;
-        eventDataVec.emplace_back(d_clusterData_p->membership().selfNode(),
-                                  -1,  // placeholder requestId
-                                  pid,
-                                  1);
-        enqueuePartitionFSMEvent(PartitionFSM::Event::e_STOP_NODE,
-                                 eventDataVec);
+        PartitionFSMEventData eventData(
+            d_clusterData_p->membership().selfNode(),
+            -1,  // placeholder requestId
+            pid,
+            1);
+        enqueuePartitionFSMEvent(PartitionFSM::Event::e_STOP_NODE, eventData);
     }
 }
 
@@ -4486,8 +4373,7 @@ void StorageManager::detectPrimaryLossInPFSM(int partitionId)
                   << " Partition [" << partitionId << "]: "
                   << "Self Transition back to Unknown in the Partition FSM.";
 
-    EventData eventDataVec;
-    eventDataVec.emplace_back(
+    PartitionFSMEventData eventData(
         d_clusterData_p->membership().selfNode(),
         -1,  // placeholder requestId
         partitionId,
@@ -4495,7 +4381,7 @@ void StorageManager::detectPrimaryLossInPFSM(int partitionId)
         d_clusterState_p->partitionsInfo().at(partitionId).primaryNode(),
         d_clusterState_p->partitionsInfo().at(partitionId).primaryLeaseId());
 
-    enqueuePartitionFSMEvent(PartitionFSM::Event::e_RST_UNKNOWN, eventDataVec);
+    enqueuePartitionFSMEvent(PartitionFSM::Event::e_RST_UNKNOWN, eventData);
 }
 
 void StorageManager::detectSelfPrimaryInPFSM(int                  partitionId,
@@ -4516,16 +4402,15 @@ void StorageManager::detectSelfPrimaryInPFSM(int                  partitionId,
                   << " Partition [" << partitionId << "]: "
                   << "Self Transition to Primary in the Partition FSM.";
 
-    EventData eventDataVec;
-    eventDataVec.emplace_back(d_clusterData_p->membership().selfNode(),
-                              -1,  // placeholder requestId
-                              partitionId,
-                              1,
-                              primaryNode,
-                              primaryLeaseId);
+    PartitionFSMEventData eventData(d_clusterData_p->membership().selfNode(),
+                                    -1,  // placeholder requestId
+                                    partitionId,
+                                    1,
+                                    primaryNode,
+                                    primaryLeaseId);
 
     enqueuePartitionFSMEvent(PartitionFSM::Event::e_DETECT_SELF_PRIMARY,
-                             eventDataVec);
+                             eventData);
 }
 
 void StorageManager::detectSelfReplicaInPFSM(int                  partitionId,
@@ -4546,16 +4431,15 @@ void StorageManager::detectSelfReplicaInPFSM(int                  partitionId,
                   << " Partition [" << partitionId << "]: "
                   << "Self Transition to Replica in the Partition FSM.";
 
-    EventData eventDataVec;
-    eventDataVec.emplace_back(d_clusterData_p->membership().selfNode(),
-                              -1,  // placeholder requestId
-                              partitionId,
-                              1,
-                              primaryNode,
-                              primaryLeaseId);
+    PartitionFSMEventData eventData(d_clusterData_p->membership().selfNode(),
+                                    -1,  // placeholder requestId
+                                    partitionId,
+                                    1,
+                                    primaryNode,
+                                    primaryLeaseId);
 
     enqueuePartitionFSMEvent(PartitionFSM::Event::e_DETECT_SELF_REPLICA,
-                             eventDataVec);
+                             eventData);
 }
 
 // MANIPULATORS
@@ -4602,8 +4486,7 @@ void StorageManager::processPrimaryStateRequest(
         return;  // RETURN
     }
 
-    EventData eventDataVec;
-    eventDataVec.emplace_back(
+    PartitionFSMEventData eventData(
         source,
         message.rId().isNull() ? -1 : message.rId().value(),
         partitionId,
@@ -4614,7 +4497,7 @@ void StorageManager::processPrimaryStateRequest(
         primaryStateRequest.firstSyncPointAfterRolloverSequenceNumber());
 
     enqueuePartitionFSMEvent(PartitionFSM::Event::e_PRIMARY_STATE_RQST,
-                             eventDataVec);
+                             eventData);
 }
 
 void StorageManager::processReplicaStateRequest(
@@ -4660,8 +4543,7 @@ void StorageManager::processReplicaStateRequest(
         return;  // RETURN
     }
 
-    EventData eventDataVec;
-    eventDataVec.emplace_back(
+    PartitionFSMEventData eventData(
         source,
         message.rId().isNull() ? -1 : message.rId().value(),
         partitionId,
@@ -4672,7 +4554,7 @@ void StorageManager::processReplicaStateRequest(
         replicaStateRequest.firstSyncPointAfterRolloverSequenceNumber());
 
     enqueuePartitionFSMEvent(PartitionFSM::Event::e_REPLICA_STATE_RQST,
-                             eventDataVec);
+                             eventData);
 }
 
 void StorageManager::processReplicaDataRequest(
@@ -4793,16 +4675,14 @@ void StorageManager::processStorageEvent(const mqbevt::StorageEvent& event)
     }
     BSLS_ASSERT_SAFE(d_fileStores.size() > pid);
 
-    EventData eventDataVec;
-    eventDataVec.emplace_back(event.clusterNode(), pid, 1, event.blob());
+    PartitionFSMEventData eventData(event.clusterNode(), pid, 1, event.blob());
 
     if (rawEvent.isStorageEvent()) {
-        enqueuePartitionFSMEvent(PartitionFSM::Event::e_LIVE_DATA,
-                                 eventDataVec);
+        enqueuePartitionFSMEvent(PartitionFSM::Event::e_LIVE_DATA, eventData);
     }
     else {
         enqueuePartitionFSMEvent(PartitionFSM::Event::e_RECOVERY_DATA,
-                                 eventDataVec);
+                                 eventData);
     }
 }
 
