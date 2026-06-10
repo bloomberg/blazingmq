@@ -99,12 +99,6 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     typedef ClusterData::RequestManagerType RequestManagerType;
     typedef RequestManagerType::RequestSp   RequestContextSp;
 
-    typedef ClusterData::MultiRequestManagerType       MultiRequestManagerType;
-    typedef MultiRequestManagerType::RequestContextSp  MultiRequestContextSp;
-    typedef MultiRequestManagerType::NodeResponsePairs NodeResponsePairs;
-    typedef MultiRequestManagerType::NodeResponsePairsConstIter
-        NodeResponsePairsCIter;
-
     typedef ClusterFSMEventMetadata::InputMessage InputMessage;
 
     typedef ClusterFSM::EventWithMetadata EventWithMetadata;
@@ -336,11 +330,12 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     void onWatchdogDispatched(int generation);
 
     /// Process the follower LSN response contained in the specified
-    /// `requestContext`.
+    /// `requestContext`, sent by the specified `source`.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    void onFollowerLSNResponse(const MultiRequestContextSp& requestContext);
+    void onFollowerLSNResponse(mqbnet::ClusterNode*    source,
+                               const RequestContextSp& requestContext);
 
     /// Process the registration response contained in the specified
     /// `requestContext`, sent by the specified `source`.
