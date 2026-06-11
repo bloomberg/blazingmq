@@ -150,16 +150,22 @@ struct ProtocolUtil {
                              EncodingType::Enum encodingType,
                              bslma::Allocator*  allocator = 0);
 
-    /// Load into the template specified `message`, the decoded message
-    /// contained in the specified `stream` using the specified
-    /// `encodingType`.  Return 0 on success, or a non-zero value on error
-    /// and fill in the specified `errorDescription` stream with the
-    /// description of the error.  Use the specified `allocator` for memory
-    /// allocations.
+    /// Decode a message from the specified @p stream into the specified
+    /// @p message using the specified @p encodingType.
+    ///
+    /// @p length indicates the total size of the encoded data in
+    ///     @p stream and is used to cap the maximum sequence size accepted
+    ///     by the BER decoder.  If non-positive, a default cap of 1 MB is
+    ///     used.
+    /// @p errorDescription is filled with a description on failure.
+    /// @p allocator is used for memory allocations.
+    ///
+    /// @return 0 on success, or a non-zero value on error.
     template <class TYPE>
     static int decodeMessage(bsl::ostream&      errorDescription,
                              TYPE*              message,
                              bsl::streambuf*    stream,
+                             int                length,
                              EncodingType::Enum encodingType,
                              bslma::Allocator*  allocator = 0);
 
@@ -404,17 +410,20 @@ template <class TYPE>
 int ProtocolUtil::decodeMessage(bsl::ostream&      errorDescription,
                                 TYPE*              message,
                                 bsl::streambuf*    stream,
+                                int                length,
                                 EncodingType::Enum encodingType,
                                 bslma::Allocator*  allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(message);
+    BSLS_ASSERT_SAFE(stream);
 
     switch (encodingType) {
     case EncodingType::e_BER: {
         balber::BerDecoderOptions options;
         options.setSkipUnknownElements(true);
         options.setDefaultEmptyStrings(false);
+        options.setMaxSequenceSize((length > 0) ? length : (1024 * 1024));
         balber::BerDecoder decoder(&options, allocator);
 
         const int rc = decoder.decode(stream, message);
@@ -438,7 +447,7 @@ int ProtocolUtil::decodeMessage(bsl::ostream&      errorDescription,
         const int rc = decoder.decode(stream, message, options);
 
         // Debug print message if any
-        bsl::string logStr = decoder.loggedMessages();
+        bsl::string logStr(decoder.loggedMessages(), allocator);
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!logStr.empty())) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
             errorDescription << "JSON decoder returned the following "
@@ -469,6 +478,7 @@ int ProtocolUtil::decodeMessage(bsl::ostream&      errorDescription,
     return decodeMessage(errorDescription,
                          message,
                          &isb,
+                         blob.length() - offset,
                          encodingType,
                          allocator);
 }
@@ -486,6 +496,7 @@ int ProtocolUtil::decodeMessage(bsl::ostream&      errorDescription,
     return decodeMessage(errorDescription,
                          message,
                          &isb,
+                         length,
                          encodingType,
                          allocator);
 }
