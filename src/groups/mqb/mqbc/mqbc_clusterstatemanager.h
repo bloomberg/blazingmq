@@ -31,7 +31,7 @@
 /// unless explicitly documented in a method's contract.
 
 // MQB
-#include <mqbc_clusterdata.h>
+#include "mqbc_clusterdata.h"
 #include <mqbc_clusterfsm.h>
 #include <mqbc_clusterstate.h>
 #include <mqbc_clusterstateledger.h>

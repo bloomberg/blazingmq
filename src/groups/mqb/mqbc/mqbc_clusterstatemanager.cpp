@@ -13,8 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <bsla_unused.h>
-#include <mqbc_clusterstatemanager.h>
+#include "mqbc_clusterstatemanager.h"
 
 #include <mqbscm_version.h>
 // MQB
@@ -39,6 +38,7 @@
 #include <bsl_ostream.h>
 #include <bsl_vector.h>
 #include <bsla_annotations.h>
+#include <bsla_maybeunused.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {
@@ -402,7 +402,7 @@ void ClusterStateManager::do_sendFollowerLSNRequests(
                                  follower,
                                  bdlf::PlaceHolders::_1));
 
-        bmqt::GenericResult::Enum rc = d_cluster_p->sendRequest(
+        const bmqt::GenericResult::Enum rc = d_cluster_p->sendRequest(
             request,
             follower,
             bsls::TimeInterval(10));

@@ -29,7 +29,7 @@
 /// The @bbref{mqbc::ClusterFSM} object is not thread safe.
 
 // MQB
-#include <mqbc_clusterstatetable.h>
+#include "mqbc_clusterstatetable.h"
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
