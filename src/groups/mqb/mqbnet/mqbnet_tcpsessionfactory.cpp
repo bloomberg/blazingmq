@@ -818,7 +818,17 @@ void TCPSessionFactory::channelStateCallback(
         BSLS_ASSERT_SAFE(status);  // got a channel up, it must be success
         BSLS_ASSERT_SAFE(channel);
 
-        if (channel->peerUri().empty()) {
+        if (!d_isListening) {
+            BALL_LOG_INFO << "#SESSION_NEGOTIATION TCPSessionFactory '"
+                          << d_config.name()
+                          << "' has stopped listening and rejecting '"
+                          << channel.get() << "'";
+
+            bmqio::Status closeStatus(bmqio::StatusCategory::e_GENERIC_ERROR,
+                                      d_allocator_p);
+            channel->close(closeStatus);
+        }
+        else if (channel->peerUri().empty()) {
             BALL_LOG_ERROR << "#SESSION_NEGOTIATION "
                            << "TCPSessionFactory '" << d_config.name() << "' "
                            << "rejecting empty peer URI: '" << channel.get()
