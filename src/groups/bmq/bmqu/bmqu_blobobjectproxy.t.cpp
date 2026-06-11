@@ -42,6 +42,7 @@ namespace {
 // =================
 
 /// Binary protocol header structure used in tests
+// NOLINTBEGIN(*-avoid-c-arrays)
 struct TestHeader {
     // DATA
     unsigned char         d_length;
@@ -52,6 +53,7 @@ struct TestHeader {
     // MANIPULATORS
     void reset(int length, int member1, int member2);
 };
+// NOLINTEND(*-avoid-c-arrays)
 
 // -----------------
 // struct TestHeader
@@ -59,12 +61,14 @@ struct TestHeader {
 
 // MANIPULATORS
 void TestHeader::reset(int length, int member1, int member2)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     d_length = length;
     bsl::memset(d_reserved, 0, sizeof(d_reserved));
     d_member1 = member1;
     d_member2 = member2;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 }  // close anonymous namespace
 
@@ -100,17 +104,21 @@ static void test1_breathingTest()
 //
 // Testing:
 //    everything
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-type-member-init,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("Breathing Test");
 
     bdlbb::PooledBlobBufferFactory smallFactory(
         2,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bigFactory(
         128,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
-    TestHeader        hdr;
+    TestHeader hdr;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     const char* const ptr = reinterpret_cast<const char*>(&hdr);
 
     {
@@ -135,6 +143,7 @@ static void test1_breathingTest()
         hdr.reset(9, 1, 2);
         bdlbb::BlobUtil::append(&blob, ptr, sizeof(hdr));
 
+        // NOLINTNEXTLINE(*-magic-numbers)
         bmqu::BlobObjectProxy<TestHeader> pxy(&blob, 9);
         BMQTST_ASSERT(!pxy.isInBlob());
         BMQTST_ASSERT_EQ(pxy->d_member1, 1u);
@@ -172,6 +181,7 @@ static void test1_breathingTest()
         bdlbb::BlobUtil::append(&blob, ptr, sizeof(hdr));
 
         // Modify without 'write' mode
+        // NOLINTNEXTLINE(*-magic-numbers)
         bmqu::BlobObjectProxy<TestHeader> pxy(&blob, 8);
         BMQTST_ASSERT(!pxy.isInBlob());
         BMQTST_ASSERT(pxy.hasMember(&TestHeader::d_member1));
@@ -281,6 +291,7 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(pos, bmqu::BlobPosition(1, 0));
     }
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-type-member-init,performance-avoid-endl)
 
 static void test2_usageExample1()
 // ------------------------------------------------------------------------
@@ -295,6 +306,7 @@ static void test2_usageExample1()
 // Testing:
 //  Usage Example 1
 //
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-type-member-init)
 {
     bmqtst::TestHelper::printTestName("Usage Example 1 Test");
 
@@ -306,9 +318,11 @@ static void test2_usageExample1()
     // First, we initialize our blob by writing a single 'TestHeader' object to
     // it with some test values.
     //..
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory factory(
         0xFF,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob blob(&factory, bmqtst::TestHelperUtil::allocator());
 
     TestHeader hdr;
@@ -317,6 +331,7 @@ static void test2_usageExample1()
     hdr.d_member1 = 1;
     hdr.d_member2 = 2;
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     const char* const ptr = reinterpret_cast<const char*>(&hdr);
     bdlbb::BlobUtil::append(&blob, ptr, sizeof(hdr));
     //..
@@ -383,6 +398,7 @@ static void test2_usageExample1()
     // using a 'BlobObjectProxy' before its length is set correctly will result
     // in *undefined behavior*.
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-type-member-init)
 
 static void test3_usageExample2()
 // --------------------------------------------------------------------
@@ -397,6 +413,7 @@ static void test3_usageExample2()
 // Testing:
 //  Usage Example 2
 // --------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-type-member-init)
 {
     bmqtst::TestHelper::printTestName("Usage Example 2 Test");
 
@@ -406,12 +423,15 @@ static void test3_usageExample2()
     // efficiently.  To do this, we need to create our blob with enough room to
     // store an instance of our 'TestHeader'.
     //..
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory factory(
         0xFF,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob blob(&factory, bmqtst::TestHelperUtil::allocator());
 
-    TestHeader        hdr;
+    TestHeader hdr;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     const char* const ptr = reinterpret_cast<const char*>(&hdr);
     bdlbb::BlobUtil::append(&blob, ptr, sizeof(hdr));
     //..
@@ -447,12 +467,14 @@ static void test3_usageExample2()
     BMQTST_ASSERT(!bdlbb::BlobUtil::compare(blob, expectedBlob));
     //..
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-type-member-init)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -469,3 +491,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

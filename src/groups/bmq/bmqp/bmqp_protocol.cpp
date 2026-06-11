@@ -112,24 +112,36 @@ RdaInfo::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 // -------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 SubQueueInfo::SubQueueInfo()
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bsl::memset(d_reserved, 0, sizeof(d_reserved));
     setId(bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 SubQueueInfo::SubQueueInfo(unsigned int id)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bsl::memset(d_reserved, 0, sizeof(d_reserved));
     setId(id);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 SubQueueInfo::SubQueueInfo(unsigned int id, const RdaInfo& rdaInfo)
 : d_rdaInfo(rdaInfo)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bsl::memset(d_reserved, 0, sizeof(d_reserved));
     setId(id);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 bsl::ostream&
 SubQueueInfo::print(bsl::ostream& stream, int level, int spacesPerLevel) const
@@ -151,6 +163,7 @@ SubQueueInfo::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 // struct Protocol
 // ---------------
 
+// NOLINTNEXTLINE(cppcoreguidelines-interfaces-global-init)
 const int Protocol::k_MAX_OPTIONS_SIZE = PutHeader::k_MAX_OPTIONS_SIZE;
 
 BSLMF_ASSERT(PutHeader::k_MAX_OPTIONS_SIZE == PushHeader::k_MAX_OPTIONS_SIZE);
@@ -251,31 +264,46 @@ const char* EncodingType::toAscii(EncodingType::Enum value)
 // struct EncodingFeature
 // ----------------------
 
-const char EncodingFeature::k_FIELD_NAME[]    = "PROTOCOL_ENCODING";
-const char EncodingFeature::k_ENCODING_BER[]  = "BER";
+// NOLINTNEXTLINE(*-avoid-c-arrays)
+const char EncodingFeature::k_FIELD_NAME[] = "PROTOCOL_ENCODING";
+// NOLINTNEXTLINE(*-avoid-c-arrays)
+const char EncodingFeature::k_ENCODING_BER[] = "BER";
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char EncodingFeature::k_ENCODING_JSON[] = "JSON";
 
 // -------------------------------
 // struct HighAvailabilityFeatures
 // -------------------------------
 
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char HighAvailabilityFeatures::k_FIELD_NAME[] = "HA";
+// NOLINTBEGIN(*-avoid-c-arrays)
 const char HighAvailabilityFeatures::k_BROADCAST_TO_PROXIES[] =
     "BROADCAST_TO_PROXIES";
+// NOLINTEND(*-avoid-c-arrays)
+// NOLINTBEGIN(*-avoid-c-arrays)
 const char HighAvailabilityFeatures::k_GRACEFUL_SHUTDOWN[] =
     "GRACEFUL_SHUTDOWN";
+// NOLINTEND(*-avoid-c-arrays)
+// NOLINTBEGIN(*-avoid-c-arrays)
 const char HighAvailabilityFeatures::k_GRACEFUL_SHUTDOWN_V2[] =
     "GRACEFUL_SHUTDOWN_V2";
+// NOLINTEND(*-avoid-c-arrays)
 
 // --------------------------------
 // struct MessagePropertiesFeatures
 // --------------------------------
 
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char MessagePropertiesFeatures::k_FIELD_NAME[] = "MPS";
+// NOLINTBEGIN(*-avoid-c-arrays)
 const char MessagePropertiesFeatures::k_MESSAGE_PROPERTIES_EX[] =
     "MESSAGE_PROPERTIES_EX";
+// NOLINTEND(*-avoid-c-arrays)
 
-const char SubscriptionsFeatures::k_FIELD_NAME[]       = "SUBSCRIPTIONS";
+// NOLINTNEXTLINE(*-avoid-c-arrays)
+const char SubscriptionsFeatures::k_FIELD_NAME[] = "SUBSCRIPTIONS";
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char SubscriptionsFeatures::k_CONFIGURE_STREAM[] = "CONFIGURE_STREAM";
 
 // -----------------
@@ -317,107 +345,164 @@ const char* OptionType::toAscii(OptionType::Enum value)
 // struct EventHeader
 // ------------------
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int EventHeader::k_FRAGMENT_MASK = bdlb::BitMaskUtil::one(
     EventHeader::k_FRAGMENT_START_IDX,
     EventHeader::k_FRAGMENT_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int EventHeader::k_LENGTH_MASK = bdlb::BitMaskUtil::one(
     EventHeader::k_LENGTH_START_IDX,
     EventHeader::k_LENGTH_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int EventHeader::k_PROTOCOL_VERSION_MASK = bdlb::BitMaskUtil::one(
     EventHeader::k_PROTOCOL_VERSION_START_IDX,
     EventHeader::k_PROTOCOL_VERSION_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int EventHeader::k_TYPE_MASK = bdlb::BitMaskUtil::one(
     EventHeader::k_TYPE_START_IDX,
     EventHeader::k_TYPE_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
 // ----------------------
 // struct EventHeaderUtil
 // ----------------------
 
+// NOLINTBEGIN(cppcoreguidelines-interfaces-global-init)
+// NOLINTBEGIN(cert-err58-cpp)
 const int EventHeaderUtil::k_CONTROL_EVENT_ENCODING_MASK =
+    // NOLINTBEGIN(*-narrowing-conversions)
+    // NOLINTBEGIN(*-narrowing-conversions)
     bdlb::BitMaskUtil::one(EventHeaderUtil::k_CONTROL_EVENT_ENCODING_START_IDX,
                            EventHeaderUtil::k_CONTROL_EVENT_ENCODING_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions)
+// NOLINTEND(*-narrowing-conversions)
+// NOLINTEND(cppcoreguidelines-interfaces-global-init)
+// NOLINTEND(cert-err58-cpp)
 
 // -------------------
 // struct OptionHeader
 // -------------------
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int OptionHeader::k_TYPE_MASK = bdlb::BitMaskUtil::one(
     OptionHeader::k_TYPE_START_IDX,
     OptionHeader::k_TYPE_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int OptionHeader::k_PACKED_MASK = bdlb::BitMaskUtil::one(
     OptionHeader::k_PACKED_START_IDX,
     OptionHeader::k_PACKED_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int OptionHeader::k_TYPE_SPECIFIC_MASK = bdlb::BitMaskUtil::one(
     OptionHeader::k_TYPE_SPECIFIC_START_IDX,
     OptionHeader::k_TYPE_SPECIFIC_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int OptionHeader::k_WORDS_MASK = bdlb::BitMaskUtil::one(
     OptionHeader::k_WORDS_START_IDX,
     OptionHeader::k_WORDS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
 // ------------------------------
 // struct MessagePropertiesHeader
 // ------------------------------
 
+// NOLINTBEGIN(cppcoreguidelines-interfaces-global-init)
+// NOLINTBEGIN(cert-err58-cpp)
 const int MessagePropertiesHeader::k_HEADER_SIZE_2X_MASK =
+    // NOLINTBEGIN(*-narrowing-conversions)
+    // NOLINTBEGIN(*-narrowing-conversions)
     bdlb::BitMaskUtil::one(MessagePropertiesHeader::k_HEADER_SIZE_2X_START_IDX,
                            MessagePropertiesHeader::k_HEADER_SIZE_2X_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions)
+// NOLINTEND(*-narrowing-conversions)
+// NOLINTEND(cppcoreguidelines-interfaces-global-init)
+// NOLINTEND(cert-err58-cpp)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int MessagePropertiesHeader::k_MPH_SIZE_2X_MASK = bdlb::BitMaskUtil::one(
     MessagePropertiesHeader::k_MPH_SIZE_2X_START_IDX,
     MessagePropertiesHeader::k_MPH_SIZE_2X_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
 // ----------------------------
 // struct MessagePropertyHeader
 // ----------------------------
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int MessagePropertyHeader::k_PROP_TYPE_MASK = bdlb::BitMaskUtil::one(
     MessagePropertyHeader::k_PROP_TYPE_START_IDX,
     MessagePropertyHeader::k_PROP_TYPE_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(cppcoreguidelines-interfaces-global-init)
+// NOLINTBEGIN(cert-err58-cpp)
 const int MessagePropertyHeader::k_PROP_VALUE_LEN_UPPER_MASK =
+    // NOLINTBEGIN(*-narrowing-conversions)
+    // NOLINTBEGIN(*-narrowing-conversions)
     bdlb::BitMaskUtil::one(
         MessagePropertyHeader::k_PROP_VALUE_LEN_UPPER_START_IDX,
         MessagePropertyHeader::k_PROP_VALUE_LEN_UPPER_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions)
+// NOLINTEND(*-narrowing-conversions)
+// NOLINTEND(cppcoreguidelines-interfaces-global-init)
+// NOLINTEND(cert-err58-cpp)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int MessagePropertyHeader::k_PROP_NAME_LEN_MASK = bdlb::BitMaskUtil::one(
     MessagePropertyHeader::k_PROP_NAME_LEN_START_IDX,
     MessagePropertyHeader::k_PROP_NAME_LEN_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
 // ----------------
 // struct PutHeader
 // ----------------
 
+// NOLINTNEXTLINE(cppcoreguidelines-interfaces-global-init)
 const int PutHeader::k_MAX_OPTIONS_SIZE;
 const int PutHeader::k_MAX_PAYLOAD_SIZE_SOFT;
 const int PutHeader::k_MAX_SIZE_SOFT;
 // Force variable/symbol definition so that it can be used in other files
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int PutHeader::k_FLAGS_MASK = bdlb::BitMaskUtil::one(
     PutHeader::k_FLAGS_START_IDX,
     PutHeader::k_FLAGS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int PutHeader::k_MSG_WORDS_MASK = bdlb::BitMaskUtil::one(
     PutHeader::k_MSG_WORDS_START_IDX,
     PutHeader::k_MSG_WORDS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int PutHeader::k_OPTIONS_WORDS_MASK = bdlb::BitMaskUtil::one(
     PutHeader::k_OPTIONS_WORDS_START_IDX,
     PutHeader::k_OPTIONS_WORDS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int PutHeader::k_CAT_MASK = bdlb::BitMaskUtil::one(
     PutHeader::k_CAT_START_IDX,
     PutHeader::k_CAT_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int PutHeader::k_HEADER_WORDS_MASK = bdlb::BitMaskUtil::one(
     PutHeader::k_HEADER_WORDS_START_IDX,
     PutHeader::k_HEADER_WORDS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
 // ---------------------
 // struct PutHeaderFlags
@@ -520,6 +605,7 @@ int PutHeaderFlagUtil::fromString(bsl::ostream&      errorDescription,
     *out   = 0;
 
     bdlb::Tokenizer tokenizer(str, ",");
+    // NOLINTBEGIN(cppcoreguidelines-init-variables)
     for (bdlb::TokenizerIterator it = tokenizer.begin(); it != tokenizer.end();
          ++it) {
         PutHeaderFlags::Enum value;
@@ -536,6 +622,7 @@ int PutHeaderFlagUtil::fromString(bsl::ostream&      errorDescription,
             *out |= value;
         }
     }
+    // NOLINTEND(cppcoreguidelines-init-variables)
 
     return rc;
 }
@@ -544,13 +631,17 @@ int PutHeaderFlagUtil::fromString(bsl::ostream&      errorDescription,
 // struct AckHeader
 // ----------------
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int AckHeader::k_HEADER_WORDS_MASK = bdlb::BitMaskUtil::one(
     AckHeader::k_HEADER_WORDS_START_IDX,
     AckHeader::k_HEADER_WORDS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int AckHeader::k_PER_MSG_WORDS_MASK = bdlb::BitMaskUtil::one(
     AckHeader::k_PER_MSG_WORDS_START_IDX,
     AckHeader::k_PER_MSG_WORDS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
 // -----------------
 // struct AckMessage
@@ -558,40 +649,55 @@ const int AckHeader::k_PER_MSG_WORDS_MASK = bdlb::BitMaskUtil::one(
 
 const int AckMessage::k_NULL_CORRELATION_ID;
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int AckMessage::k_STATUS_MASK = bdlb::BitMaskUtil::one(
     AckMessage::k_STATUS_START_IDX,
     AckMessage::k_STATUS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int AckMessage::k_CORRID_MASK = bdlb::BitMaskUtil::one(
     AckMessage::k_CORRID_START_IDX,
     AckMessage::k_CORRID_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
 // -----------------
 // struct PushHeader
 // -----------------
 
+// NOLINTNEXTLINE(cppcoreguidelines-interfaces-global-init)
 const int PushHeader::k_MAX_OPTIONS_SIZE;
 // Force variable/symbol definition so that it can be used in other files
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int PushHeader::k_FLAGS_MASK = bdlb::BitMaskUtil::one(
     PushHeader::k_FLAGS_START_IDX,
     PushHeader::k_FLAGS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int PushHeader::k_MSG_WORDS_MASK = bdlb::BitMaskUtil::one(
     PushHeader::k_MSG_WORDS_START_IDX,
     PushHeader::k_MSG_WORDS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int PushHeader::k_OPTIONS_WORDS_MASK = bdlb::BitMaskUtil::one(
     PushHeader::k_OPTIONS_WORDS_START_IDX,
     PushHeader::k_OPTIONS_WORDS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int PushHeader::k_CAT_MASK = bdlb::BitMaskUtil::one(
     PushHeader::k_CAT_START_IDX,
     PushHeader::k_CAT_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int PushHeader::k_HEADER_WORDS_MASK = bdlb::BitMaskUtil::one(
     PushHeader::k_HEADER_WORDS_START_IDX,
     PushHeader::k_HEADER_WORDS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
 // ----------------------
 // struct PushHeaderFlags
@@ -693,6 +799,7 @@ int PushHeaderFlagUtil::fromString(bsl::ostream&      errorDescription,
     *out   = 0;
 
     bdlb::Tokenizer tokenizer(str, ",");
+    // NOLINTBEGIN(cppcoreguidelines-init-variables)
     for (bdlb::TokenizerIterator it = tokenizer.begin(); it != tokenizer.end();
          ++it) {
         PushHeaderFlags::Enum value;
@@ -709,6 +816,7 @@ int PushHeaderFlagUtil::fromString(bsl::ostream&      errorDescription,
             *out |= value;
         }
     }
+    // NOLINTEND(cppcoreguidelines-init-variables)
 
     return rc;
 }
@@ -717,25 +825,33 @@ int PushHeaderFlagUtil::fromString(bsl::ostream&      errorDescription,
 // struct ConfirmHeader
 // --------------------
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int ConfirmHeader::k_HEADER_WORDS_MASK = bdlb::BitMaskUtil::one(
     ConfirmHeader::k_HEADER_WORDS_START_IDX,
     ConfirmHeader::k_HEADER_WORDS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int ConfirmHeader::k_PER_MSG_WORDS_MASK = bdlb::BitMaskUtil::one(
     ConfirmHeader::k_PER_MSG_WORDS_START_IDX,
     ConfirmHeader::k_PER_MSG_WORDS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
 // -------------------
 // struct RejectHeader
 // -------------------
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int RejectHeader::k_HEADER_WORDS_MASK = bdlb::BitMaskUtil::one(
     RejectHeader::k_HEADER_WORDS_START_IDX,
     RejectHeader::k_HEADER_WORDS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int RejectHeader::k_PER_MSG_WORDS_MASK = bdlb::BitMaskUtil::one(
     RejectHeader::k_PER_MSG_WORDS_START_IDX,
     RejectHeader::k_PER_MSG_WORDS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
 // --------------------
 // struct StorageHeader
@@ -743,21 +859,29 @@ const int RejectHeader::k_PER_MSG_WORDS_MASK = bdlb::BitMaskUtil::one(
 
 const unsigned int StorageHeader::k_MAX_PAYLOAD_SIZE_SOFT;
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int StorageHeader::k_FLAGS_MASK = bdlb::BitMaskUtil::one(
     StorageHeader::k_FLAGS_START_IDX,
     StorageHeader::k_FLAGS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int StorageHeader::k_MSG_WORDS_MASK = bdlb::BitMaskUtil::one(
     StorageHeader::k_MSG_WORDS_START_IDX,
     StorageHeader::k_MSG_WORDS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int StorageHeader::k_SPV_MASK = bdlb::BitMaskUtil::one(
     StorageHeader::k_SPV_START_IDX,
     StorageHeader::k_SPV_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int StorageHeader::k_HEADER_WORDS_MASK = bdlb::BitMaskUtil::one(
     StorageHeader::k_HEADER_WORDS_START_IDX,
     StorageHeader::k_HEADER_WORDS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
 // -------------------------
 // struct StorageMessageType
@@ -905,6 +1029,7 @@ int StorageHeaderFlagUtil::fromString(bsl::ostream&      errorDescription,
     *out   = 0;
 
     bdlb::Tokenizer tokenizer(str, ",");
+    // NOLINTBEGIN(cppcoreguidelines-init-variables)
     for (bdlb::TokenizerIterator it = tokenizer.begin(); it != tokenizer.end();
          ++it) {
         StorageHeaderFlags::Enum value;
@@ -921,6 +1046,7 @@ int StorageHeaderFlagUtil::fromString(bsl::ostream&      errorDescription,
             *out |= static_cast<unsigned char>(value);
         }
     }
+    // NOLINTEND(cppcoreguidelines-init-variables)
 
     return rc;
 }
@@ -964,21 +1090,29 @@ const char* RecoveryFileChunkType::toAscii(RecoveryFileChunkType::Enum value)
 // struct RecoveryHeader
 // ---------------------
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int RecoveryHeader::k_FCB_MASK = bdlb::BitMaskUtil::one(
     RecoveryHeader::k_FCB_START_IDX,
     RecoveryHeader::k_FCB_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int RecoveryHeader::k_MSG_WORDS_MASK = bdlb::BitMaskUtil::one(
     RecoveryHeader::k_MSG_WORDS_START_IDX,
     RecoveryHeader::k_MSG_WORDS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int RecoveryHeader::k_HEADER_WORDS_MASK = bdlb::BitMaskUtil::one(
     RecoveryHeader::k_HEADER_WORDS_START_IDX,
     RecoveryHeader::k_HEADER_WORDS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int RecoveryHeader::k_FILE_CHUNK_TYPE_MASK = bdlb::BitMaskUtil::one(
     RecoveryHeader::k_FILE_CHUNK_TYPE_START_IDX,
     RecoveryHeader::k_FILE_CHUNK_TYPE_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
 }  // close package namespace
 }  // close enterprise namespace

@@ -50,9 +50,11 @@ size_t Channel::ControlArgs::eventSize() const
 
 void Channel::Stats::reset()
 {
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     for (int i = 0; i < k_MAX_ITEM_TYPE; ++i) {
         d_numItems[i] = 0;
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
     d_numItemsTotal = 0;
     d_numBytes      = 0;
@@ -62,6 +64,7 @@ void Channel::Stats::reset()
 // class Channel
 // -------------
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 Channel::Channel(bdlbb::BlobBufferFactory* blobBufferFactory,
                  const bsl::string&        name,
                  bslma::Allocator*         allocator)
@@ -78,6 +81,7 @@ Channel::Channel(bdlbb::BlobBufferFactory* blobBufferFactory,
 , d_itemPool(sizeof(Item),
              bsls::BlockGrowth::BSLS_CONSTANT,
              d_allocators.get("ItemPool"))
+// NOLINTNEXTLINE(*-magic-numbers)
 , d_buffer(1024, allocator)
 , d_isStopped(false)
 , d_state(e_RESET)
@@ -85,6 +89,9 @@ Channel::Channel(bdlbb::BlobBufferFactory* blobBufferFactory,
 , d_name(name, d_allocator_p)
 , d_stats()
 , d_isStopping(false)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
 {
     bslmt::ThreadAttributes attr;
     bsl::string             threadName("bmqNet-");
@@ -99,7 +106,12 @@ Channel::Channel(bdlbb::BlobBufferFactory* blobBufferFactory,
         d_allocator_p);
     BSLS_ASSERT_OPT(rc == 0 && "Failed to create channel thread");
 }
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
+// NOLINTBEGIN(bugprone-exception-escape)
 Channel::~Channel()
 {
     if (!d_isStopping.load()) {
@@ -109,6 +121,7 @@ Channel::~Channel()
     }
     BSLS_ASSERT_SAFE(d_isStopped.load());
 }
+// NOLINTEND(bugprone-exception-escape)
 
 void Channel::stop()
 {
@@ -343,6 +356,7 @@ void Channel::setChannel(const bsl::weak_ptr<bmqio::Channel>& value)
 }
 
 void Channel::reset()
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // executed by the internal thread
     // PRECONDITIONS
@@ -364,6 +378,7 @@ void Channel::reset()
     d_pushBuilder.reset();
     d_ackBuilder.reset();
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void Channel::wakeUp()
 {
@@ -378,6 +393,7 @@ void Channel::wakeUp()
 }
 
 void Channel::onWatermark(bmqio::ChannelWatermarkType::Enum type)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
@@ -408,6 +424,7 @@ void Channel::onWatermark(bmqio::ChannelWatermarkType::Enum type)
     }
     }
 }
+// NOLINTEND(*-narrowing-conversions)
 
 // PRIVATE MANIPULATORS
 
@@ -628,6 +645,7 @@ bmqt::EventBuilderResult::Enum Channel::pack(ControlArgs& builder,
 
 bmqio::StatusCategory::Enum
 Channel::flushAll(const bsl::shared_ptr<bmqio::Channel>& channel)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // executed by the internal thread
     // PRECONDITIONS
@@ -668,6 +686,7 @@ Channel::flushAll(const bsl::shared_ptr<bmqio::Channel>& channel)
 
     return bmqio::StatusCategory::e_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 template <typename Builder, typename Args>
 bmqt::GenericResult::Enum
@@ -693,6 +712,7 @@ Channel::writeImmediate(bool*                                     isConsumed,
     *isConsumed                  = true;
 
     // This can take 2 iterations in the case when 'e_EVENT_TOO_BIG'.
+    // NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
     do {
         bmqt::EventBuilderResult::Enum buildRc = pack(builder, args);
         bool                           doFlush = false;
@@ -757,6 +777,7 @@ Channel::writeImmediate(bool*                                     isConsumed,
         }
 
     } while (rc == bmqt::GenericResult::e_SUCCESS && !*isConsumed);
+    // NOLINTEND(cppcoreguidelines-avoid-do-while)
 
     return rc;
 }
@@ -770,13 +791,15 @@ void Channel::threadFn()
     bslma::ManagedPtr<Item>         item;
     bsl::shared_ptr<bmqio::Channel> channel;
     bsl::string                     description;
-    int                             mode = e_BLOCK;
+    int                             mode   = e_BLOCK;
     bool                            doStop = false;
 
     BSLS_ASSERT(d_state == e_RESET);
 
+    // NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-init-variables)
     while (!doStop) {
         bmqc::MonitoredQueueState::Enum queueState;
+        // NOLINTBEGIN(*-narrowing-conversions)
         while (d_queueStates.tryPopFront(&queueState) == 0) {
             switch (queueState) {
             case bmqc::MonitoredQueueState::e_NORMAL: {
@@ -814,6 +837,7 @@ void Channel::threadFn()
             }
             }
         }
+        // NOLINTEND(*-narrowing-conversions)
         if (d_state != e_READY) {
             bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
@@ -939,6 +963,7 @@ void Channel::threadFn()
             // else keep the item
         }
     }
+    // NOLINTEND(*-narrowing-conversions,cppcoreguidelines-init-variables)
     reset();
     d_isStopped.store(true);
 }

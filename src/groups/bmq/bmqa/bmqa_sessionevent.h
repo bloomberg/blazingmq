@@ -73,6 +73,7 @@ namespace bmqa {
 // ==================
 
 /// An event related to the operation of a `Session`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class SessionEvent {
   private:
     // FRIENDS
@@ -136,6 +137,7 @@ class SessionEvent {
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 

@@ -119,6 +119,7 @@ namespace mqbstat {
 /// Provide a mechanism to record and report a snapshot of wall time,
 /// average cpu utilization percentage (%) for user, system, and their sum,
 /// and voluntary context switches.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class StatMonitorSnapshotRecorder {
   private:
     // CLASS-SCOPE CATEGORY
@@ -176,6 +177,7 @@ class StatMonitorSnapshotRecorder {
     /// this object.
     bsls::Types::Int64 totalElapsed() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

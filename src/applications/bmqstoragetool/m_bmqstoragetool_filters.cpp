@@ -32,6 +32,7 @@ bool isQueueKeyMatch(const QueueInfos&                           queuesInfo,
                      const bsl::unordered_set<mqbu::StorageKey>& queueKeys)
 {
     QueueInfos::const_iterator it = queuesInfo.cbegin();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; it != queuesInfo.cend(); ++it) {
         mqbu::StorageKey key(mqbu::StorageKey::BinaryRepresentation(),
                              it->key().data());
@@ -40,6 +41,7 @@ bool isQueueKeyMatch(const QueueInfos&                           queuesInfo,
             return true;  // RETURN
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     return false;
 }
@@ -111,14 +113,17 @@ Filters::Filters(const bsl::vector<bsl::string>& queueKeys,
     // Fill internal structures
     if (!queueKeys.empty()) {
         bsl::vector<bsl::string>::const_iterator keyIt = queueKeys.cbegin();
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,modernize-use-emplace)
         for (; keyIt != queueKeys.cend(); ++keyIt) {
             d_queueKeys.emplace(
                 mqbu::StorageKey(mqbu::StorageKey::HexRepresentation(),
                                  keyIt->c_str()));
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,modernize-use-emplace)
     }
     if (!queueUris.empty()) {
         bsl::vector<bsl::string>::const_iterator uriIt = queueUris.cbegin();
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (; uriIt != queueUris.cend(); ++uriIt) {
             bsl::optional<mqbu::StorageKey> key = queueMap.findKeyByUri(
                 *uriIt);
@@ -126,6 +131,7 @@ Filters::Filters(const bsl::vector<bsl::string>& queueKeys,
                 d_queueKeys.insert(key.value());
             }
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 }
 

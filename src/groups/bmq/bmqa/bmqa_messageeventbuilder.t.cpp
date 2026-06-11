@@ -104,6 +104,7 @@ static void test2_testMessageEventSizeCount()
                               bmqtst::TestHelperUtil::allocator());
 
     // Pack some messages
+    // NOLINTBEGIN(*-magic-numbers)
     for (int i = 1; i <= 5; i++) {
         const int messageEventSizeBefore = builder.messageEventSize();
         const int messageCountBefore     = builder.messageCount();
@@ -125,6 +126,7 @@ static void test2_testMessageEventSizeCount()
         BMQTST_ASSERT_LT(messageCountBefore, builder.messageCount());
         BMQTST_ASSERT_EQ(i, builder.messageCount());
     }
+    // NOLINTEND(*-magic-numbers)
 
     // Stage 3: start a new message but do not pack
     const int messageEventSizeFinal = builder.messageEventSize();
@@ -165,6 +167,7 @@ static void test2_testMessageEventSizeCount()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -180,3 +183,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

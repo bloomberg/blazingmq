@@ -55,6 +55,7 @@ namespace bmqa {
 // =============
 
 /// Value-semantic efficient identifier for a queue
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class QueueId {
     // FRIENDS
     friend bool operator==(const QueueId& lhs, const QueueId& rhs);
@@ -146,6 +147,7 @@ class QueueId {
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 

@@ -90,7 +90,8 @@ inline void DomainQueueStatsTraversal::forEachQueue(
              queueIt;
              ++queueIt) {
             const bsl::string_view uri = queueIt->name();
-            const size_t           pos = uri.find_last_of("/");
+            // NOLINTNEXTLINE(performance-faster-string-find)
+            const size_t pos = uri.find_last_of("/");
 
             // fallback to full uri if there is a problem with queue name
             const bsl::string_view queueName = (pos != bsl::string::npos &&
@@ -135,9 +136,12 @@ struct DomainQueuesVisitor {
                     bsl::string_view          queueName,
                     bsl::string_view          appId,
                     const bmqst::StatContext& ctx) const
+    // NOLINTBEGIN(performance-avoid-endl)
     {
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define WRAP(KEY, VAL) ",\"" << (KEY) << "\":\"" << (VAL) << "\""
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define METRIC(STAT)                                                          \
     WRAP(mqbstat::QueueStatsDomain::Stat::toString(STAT),                     \
          mqbstat::QueueStatsDomain::getValue(ctx, -1, (STAT)))
@@ -200,6 +204,7 @@ struct DomainQueuesVisitor {
 #undef METRIC
 #undef WRAP
     }
+    // NOLINTEND(performance-avoid-endl)
 };
 
 }  // close unnamed namespace
@@ -214,6 +219,7 @@ struct DomainQueuesVisitor {
 /// - Don't want to expose `bdljsn` names and symbols to the outer scope.
 /// - Member fields and functions defined for this implementation are used only
 ///   locally, so there is no reason to make it visible.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class FlatJsonPrinter::FlatJsonPrinterImpl {
   private:
     // CLASS-SCOPE CATEGORY
@@ -257,6 +263,7 @@ class FlatJsonPrinter::FlatJsonPrinterImpl {
     /// THREAD: This method is called in the `snapshot` thread.
     void printStats(bsl::ostream& stream, int statId);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 inline FlatJsonPrinter::FlatJsonPrinterImpl::FlatJsonPrinterImpl(
     const StatContextsMap& statContextsMap,

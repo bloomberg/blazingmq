@@ -149,6 +149,7 @@ struct OrderedHashMap_ImpDetails {
 /// Each node is part of two lists, the sequential list (which provides
 /// insertion order iteration feature), and the bucket list (which provides
 /// open hashing feature in case of collision).
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class OrderedHashMap_Link {
   private:
     // DATA
@@ -185,6 +186,7 @@ class OrderedHashMap_Link {
     /// Return the corresponding link.
     OrderedHashMap_Link* nextInBucket() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =========================
 // class OrderedHashMap_Node
@@ -193,6 +195,7 @@ class OrderedHashMap_Link {
 /// PRIVATE CLASS TEMPLATE. For use only by `bmqc::OrderedHashMap`
 /// implementation.
 template <class VALUE>
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class OrderedHashMap_Node : public OrderedHashMap_Link {
   private:
     // DATA
@@ -218,12 +221,14 @@ class OrderedHashMap_Node : public OrderedHashMap_Link {
     /// held by this object.
     const VALUE& value() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =============
 // struct OrderedHashMap_Bucket
 // =============
 
 /// PRIVATE CLASS. For use only by `bmqc::OrderedHashMap` implementation.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct OrderedHashMap_Bucket {
     typedef OrderedHashMap_Link Link;
 
@@ -242,6 +247,7 @@ struct OrderedHashMap_Bucket {
     /// Destroy this instance.
     ~OrderedHashMap_Bucket();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =======================================
 // class OrderedHashMap_SequentialIterator
@@ -480,6 +486,7 @@ template <class KEY,
           class VALUE,
           class HASH       = bsl::hash<KEY>,
           class VALUE_TYPE = bsl::pair<const KEY, VALUE> >
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class OrderedHashMap {
   private:
     // PRIVATE TYPES
@@ -490,12 +497,14 @@ class OrderedHashMap {
     typedef OrderedHashMap_Node<ValueType> Node;
     typedef OrderedHashMap_Bucket          Bucket;
 
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum {
         /// For NodePool
         e_NODE_SIZE = sizeof(Node),
         /// Must be prime
         e_INITIAL_NUM_BUCKET = 13
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
   public:
     // TYPES
@@ -577,6 +586,7 @@ class OrderedHashMap {
         return value.first;
     }
 
+    // NOLINTNEXTLINE(bugprone-return-const-ref-from-parameter)
     static const key_type& get_key(const KEY& value) { return value; }
 
   public:
@@ -782,6 +792,7 @@ class OrderedHashMap {
     /// Return the allocator associated with this object.
     allocator_type get_allocator() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -894,6 +905,7 @@ inline OrderedHashMap_SequentialIterator<
 
 // MANIPULATORS
 
+// NOLINTBEGIN(bugprone-unhandled-self-assignment,cert-oop54-cpp)
 template <class VALUE>
 inline OrderedHashMap_SequentialIterator<VALUE>&
 OrderedHashMap_SequentialIterator<VALUE>::operator=(const NcIter& rhs)
@@ -901,6 +913,7 @@ OrderedHashMap_SequentialIterator<VALUE>::operator=(const NcIter& rhs)
     d_link_p = rhs.d_link_p;
     return *this;
 }
+// NOLINTEND(bugprone-unhandled-self-assignment,cert-oop54-cpp)
 
 template <class VALUE>
 inline OrderedHashMap_SequentialIterator<VALUE>&
@@ -1066,9 +1079,11 @@ template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
 inline OrderedHashMap_Bucket*
 OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::getBucketForKey(
     const key_type& key) const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     return d_bucketArray_p + bucket(key);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
 inline OrderedHashMap_Link*
@@ -1217,6 +1232,7 @@ bool OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::rehashIfNeeded()
         // Destroy & deallocate old bucket array.
 
         for (size_t i = 0; i < oldBucketArraySize; ++i) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             Bucket* bucket = static_cast<Bucket*>(d_bucketArray_p + i);
             bucket->~Bucket();
         }
@@ -1272,6 +1288,7 @@ inline OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::OrderedHashMap(
 , d_sentinel_p(0)
 , d_bucketArraySize(0)
 , d_numElements(0)
+// NOLINTBEGIN(cppcoreguidelines-prefer-member-initializer)
 {
     d_bucketArraySize = ImpDetails::nextPrime(initialNumBuckets);
 
@@ -1281,6 +1298,7 @@ inline OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::OrderedHashMap(
 
     initialize();
 }
+// NOLINTEND(cppcoreguidelines-prefer-member-initializer)
 
 template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
 inline OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::OrderedHashMap(
@@ -1348,18 +1366,22 @@ OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::end()
 template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
 inline typename OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::local_iterator
 OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::begin(size_t index)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     BSLS_ASSERT_SAFE(index < bucket_count());
     return local_iterator(d_bucketArray_p + index);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
 inline typename OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::local_iterator
 OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::end(size_t index)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     BSLS_ASSERT_SAFE(index < bucket_count());
     return local_iterator(d_bucketArray_p + index, 0);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
 inline void OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::clear()
@@ -1484,6 +1506,7 @@ inline bsl::pair<
     typename OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::iterator,
     bool>
 OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::insert(const VALUE_TYPE& value)
+// NOLINTBEGIN(bugprone-assignment-in-if-condition)
 {
     Bucket* bucket    = getBucketForKey(get_key(value));
     Link*   foundLink = 0;
@@ -1509,12 +1532,14 @@ OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::insert(const VALUE_TYPE& value)
     ++d_numElements;
     return bsl::make_pair(iterator(d_sentinel_p->prevInList()), true);
 }
+// NOLINTEND(bugprone-assignment-in-if-condition)
 
 template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
 inline bsl::pair<
     typename OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::iterator,
     bool>
 OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::rinsert(const VALUE_TYPE& value)
+// NOLINTBEGIN(bugprone-assignment-in-if-condition)
 {
     Bucket* bucket    = getBucketForKey(get_key(value));
     Link*   foundLink = 0;
@@ -1536,6 +1561,7 @@ OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::rinsert(const VALUE_TYPE& value)
     ++d_numElements;
     return bsl::make_pair(iterator(d_sentinel_p->nextInList()), true);
 }
+// NOLINTEND(bugprone-assignment-in-if-condition)
 
 // ACCESSORS
 template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
@@ -1570,37 +1596,45 @@ template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
 inline
     typename OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::const_local_iterator
     OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::begin(size_t index) const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     BSLS_ASSERT_SAFE(index < d_bucketArraySize);
     return const_local_iterator(d_bucketArray_p + index);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
 inline
     typename OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::const_local_iterator
     OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::cbegin(size_t index) const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     BSLS_ASSERT_SAFE(index < d_bucketArraySize);
     return const_local_iterator(d_bucketArray_p + index);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
 inline
     typename OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::const_local_iterator
     OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::end(size_t index) const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     BSLS_ASSERT_SAFE(index < d_bucketArraySize);
     return const_local_iterator(d_bucketArray_p + index, 0);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
 inline
     typename OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::const_local_iterator
     OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::cend(size_t index) const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     BSLS_ASSERT_SAFE(index < d_bucketArraySize);
     return const_local_iterator(d_bucketArray_p + index, 0);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
 inline size_t

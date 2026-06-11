@@ -40,6 +40,7 @@ namespace bmqpi {
 // ==============
 
 /// A pure interface for creators of `DTSpan` objects.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class DTTracer {
   public:
     // PUBLIC CREATORS
@@ -56,6 +57,7 @@ class DTTracer {
         const bsl::string_view&        operation,
         const DTSpan::Baggage&         baggage = DTSpan::Baggage()) const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

@@ -49,6 +49,7 @@ namespace mqbstat {
 // =================
 
 /// Mechanism to keep track of individual overall statistics of a broker
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class BrokerStats {
   public:
     // TYPES
@@ -57,18 +58,21 @@ class BrokerStats {
     /// are monitored.
     struct EventType {
         // TYPES
+        // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
         enum Enum {
             e_CLIENT_CREATED,
             e_CLIENT_DESTROYED,
             e_QUEUE_CREATED,
             e_QUEUE_DESTROYED
         };
+        // NOLINTEND(cppcoreguidelines-use-enum-class)
     };
 
     /// Enum representing the various type of stats that can be obtained
     /// from this object.
     struct Stat {
         // TYPES
+        // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
         enum Enum { e_CLIENT_COUNT, e_QUEUE_COUNT };
     };
 
@@ -86,6 +90,7 @@ class BrokerStats {
     /// Namespace for the constants of stat values that applies to the queues
     /// from the clients
     struct BrokerStatsIndex {
+        // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
         enum Enum { e_STAT_CLIENT_COUNT, e_STAT_QUEUE_COUNT };
     };
 
@@ -135,6 +140,7 @@ class BrokerStats {
     /// Return a pointer to the statcontext.
     bmqst::StatContext* statContext();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ======================
 // struct BrokerStatsUtil

@@ -35,6 +35,7 @@ using namespace bsl;
 // ----------------------------------------------------------------------------
 
 static void test1_breathingTest()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -53,8 +54,10 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(str, sessionOptions.brokerUri());
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test2_printTest()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     const char* const sampleSessionOptionsLayout =
         "[ brokerUri = \"tcp://localhost:30114\" processNameOverride = \"\" "
@@ -80,8 +83,10 @@ static void test2_printTest()
     stream << sessionOptions;
     BMQTST_ASSERT_EQ(stream.str(), "NO LAYOUT");
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test3_setterGetterAndCopyTest()
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("SETTER GETTER");
     PVV("Setter getter test");
@@ -107,6 +112,7 @@ static void test3_setterGetterAndCopyTest()
     BMQTST_ASSERT_EQ(obj.blobBufferSize(), blobBufferSize);
 
     PVV("Checking setter and getter for channelHighWatermark");
+    // NOLINTNEXTLINE(bugprone-implicit-widening-of-multiplication-result)
     const bsls::Types::Int64 channelHighWatermark = 256 * 1024 * 1024;
     BMQTST_ASSERT_NE(obj.channelHighWatermark(), channelHighWatermark);
     obj.setChannelHighWatermark(channelHighWatermark);
@@ -186,11 +192,13 @@ static void test3_setterGetterAndCopyTest()
                      eventQueueHighWatermark);
     BMQTST_ASSERT_EQ(objCopy.userAgentPrefix(), userAgentPrefix);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -207,3 +215,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

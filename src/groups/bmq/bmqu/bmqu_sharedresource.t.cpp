@@ -45,6 +45,7 @@ using namespace BloombergLP;
 // ===============
 
 /// Provides a usage example.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class MyService {
   private:
     // PRIVATE DATA
@@ -77,6 +78,7 @@ class MyService {
     /// Initiate an async operation that does something.
     void asyncDoStuff();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ---------------
 // class MyService
@@ -158,6 +160,7 @@ static void test1_resource_creators()
 //   bmqu::SharedResource's resource constructor
 //   bmqu::SharedResource's destructor
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bslma::TestAllocator alloc;
 
@@ -233,6 +236,7 @@ static void test1_resource_creators()
         bslma::TestAllocator resourceFactory;
 
         // allocate a resource
+        // NOLINTNEXTLINE(*-magic-numbers)
         int* resource = new (resourceFactory) int(42);
         BMQTST_ASSERT(resourceFactory.numBytesInUse() != 0);
 
@@ -255,6 +259,7 @@ static void test1_resource_creators()
         BMQTST_ASSERT(resourceFactory.numBytesInUse() == 0);
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test2_resource_acquire()
 // ------------------------------------------------------------------------
@@ -277,6 +282,7 @@ static void test2_resource_acquire()
 //   bmqu::SharedResource::acquire
 //   bmqu::SharedResource::acquireWeak
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bslma::TestAllocator alloc;
     int                  resource = 42;
@@ -334,6 +340,7 @@ static void test2_resource_acquire()
         BMQTST_ASSERT(!sharedResource.acquireWeak().lock());
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test3_resource_invalidate()
 // ------------------------------------------------------------------------
@@ -352,6 +359,7 @@ static void test3_resource_invalidate()
 // Testing:
 //   bmqu::SharedResource::invalidate
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bslma::TestAllocator alloc;
 
@@ -412,6 +420,7 @@ static void test3_resource_invalidate()
         BMQTST_ASSERT(resourceFactory.numBytesInUse() == 0);
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test4_resource_reset()
 // ------------------------------------------------------------------------
@@ -443,6 +452,7 @@ static void test4_resource_reset()
 // Testing:
 //   bmqu::SharedResource::reset
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bslma::TestAllocator alloc;
 
@@ -521,7 +531,9 @@ static void test4_resource_reset()
         bslma::TestAllocator resourceFactory2;
 
         // allocate resources
+        // NOLINTNEXTLINE(*-magic-numbers)
         int* resource1 = new (resourceFactory1) int(42);
+        // NOLINTNEXTLINE(*-magic-numbers)
         int* resource2 = new (resourceFactory2) int(42);
         BMQTST_ASSERT(resourceFactory1.numBytesInUse() != 0);
         BMQTST_ASSERT(resourceFactory2.numBytesInUse() != 0);
@@ -552,6 +564,7 @@ static void test4_resource_reset()
         BMQTST_ASSERT(!sharedResource.isValid());
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test5_factoryDeleter()
 // ------------------------------------------------------------------------
@@ -571,7 +584,8 @@ static void test5_factoryDeleter()
 {
     // create factory and allocate resource
     bslma::TestAllocator factory;
-    int*                 resource = new (factory) int(42);
+    // NOLINTNEXTLINE(*-magic-numbers)
+    int* resource = new (factory) int(42);
 
     // memory allocated
     BMQTST_ASSERT(factory.numBytesInUse() != 0);
@@ -590,6 +604,7 @@ static void test5_factoryDeleter()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -612,3 +627,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

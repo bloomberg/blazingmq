@@ -38,9 +38,13 @@ namespace bmqst {
 namespace {
 
 // CONSTANTS
-const bslstl::StringRef  DIRECT_NAME("*direct*");
-const bslstl::StringRef  EXPIRED_NAME("*expired*");
-const bslstl::StringRef  UNKNOWN_NAME("!UNKNOWN!");
+// NOLINTNEXTLINE(cert-err58-cpp)
+const bslstl::StringRef DIRECT_NAME("*direct*");
+// NOLINTNEXTLINE(cert-err58-cpp)
+const bslstl::StringRef EXPIRED_NAME("*expired*");
+// NOLINTNEXTLINE(cert-err58-cpp)
+const bslstl::StringRef UNKNOWN_NAME("!UNKNOWN!");
+// NOLINTNEXTLINE(cert-err58-cpp)
 const bslstl::StringRef  NA_STRING("N/A");
 const bsls::Types::Int64 MAX_INT =
     bsl::numeric_limits<bsls::Types::Int64>::max();
@@ -53,6 +57,7 @@ const bsls::Types::Int64 MIN_INT =
 
 /// A CustomColumn printing the context ids at an appropriate indentation
 /// level
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class DefaultIdColumn : public StatContextTableInfoProviderCustomColumn {
   private:
     // DATA
@@ -112,6 +117,7 @@ class DefaultIdColumn : public StatContextTableInfoProviderCustomColumn {
                int                    level,
                const StatContext&     context,
                StatContext::ValueType valueType) const BSLS_KEYWORD_OVERRIDE
+    // NOLINTBEGIN(*-avoid-c-arrays,bugprone-implicit-widening-of-multiplication-result,cert-err33-c,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-vararg,cppcoreguidelines-use-enum-class)
     {
         bslstl::StringRef name;
         if (valueType == StatContext::e_TOTAL_VALUE) {
@@ -158,7 +164,9 @@ class DefaultIdColumn : public StatContextTableInfoProviderCustomColumn {
         stream.flags(flags);
         return stream;
     }
+    // NOLINTEND(*-avoid-c-arrays,bugprone-implicit-widening-of-multiplication-result,cert-err33-c,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-vararg,cppcoreguidelines-use-enum-class)
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // TYPES
 
@@ -199,6 +207,7 @@ StatContextTableInfoProviderCustomColumn::
 void StatContextTableInfoProvider::addContext(const StatContext* context,
                                               int                level,
                                               bool               isFilteredOut)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 {
     RowInfo info;
 
@@ -212,6 +221,7 @@ void StatContextTableInfoProvider::addContext(const StatContext* context,
         return;
     }
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<5 * 1024> seqAlloc;
 
     // First filter anything we don't need
@@ -267,6 +277,7 @@ void StatContextTableInfoProvider::addContext(const StatContext* context,
                    contexts[i].d_filteredOut);
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // PRIVATE ACCESSORS
 const StatValue&
@@ -315,9 +326,11 @@ void StatContextTableInfoProvider::setTitle(const bslstl::StringRef& title)
 
 void StatContextTableInfoProvider::setColumnGroup(
     const bslstl::StringRef& name)
+// NOLINTBEGIN(modernize-use-emplace)
 {
     d_columnGroups.push_back(name);
 }
+// NOLINTEND(modernize-use-emplace)
 
 void StatContextTableInfoProvider::addDefaultIdColumn(
     const bslstl::StringRef& name,
@@ -334,16 +347,19 @@ void StatContextTableInfoProvider::addDefaultIdColumn(
 
 void StatContextTableInfoProvider::addColumn(const bslstl::StringRef& name,
                                              const CustomColumn*      column)
+// NOLINTBEGIN(modernize-use-emplace)
 {
     BSLS_ASSERT(!d_columnGroups.empty());
     d_columns.push_back(
         ColumnInfo(static_cast<int>(d_columnGroups.size()) - 1, name, column));
 }
+// NOLINTEND(modernize-use-emplace)
 
 void StatContextTableInfoProvider::addColumn(const bslstl::StringRef& name,
                                              int       statValueIndex,
                                              PrintType printType,
                                              const IntValueFunctor& func)
+// NOLINTBEGIN(modernize-use-emplace)
 {
     BSLS_ASSERT(!d_columnGroups.empty());
     d_columns.push_back(ColumnInfo(static_cast<int>(d_columnGroups.size()) - 1,
@@ -352,11 +368,13 @@ void StatContextTableInfoProvider::addColumn(const bslstl::StringRef& name,
                                    printType,
                                    func));
 }
+// NOLINTEND(modernize-use-emplace)
 
 void StatContextTableInfoProvider::addColumn(const bslstl::StringRef& name,
                                              int       statValueIndex,
                                              PrintType printType,
                                              const DoubleValueFunctor& func)
+// NOLINTBEGIN(modernize-use-emplace)
 {
     BSLS_ASSERT(!d_columnGroups.empty());
     d_columns.push_back(ColumnInfo(static_cast<int>(d_columnGroups.size()) - 1,
@@ -365,6 +383,7 @@ void StatContextTableInfoProvider::addColumn(const bslstl::StringRef& name,
                                    printType,
                                    func));
 }
+// NOLINTEND(modernize-use-emplace)
 
 void StatContextTableInfoProvider::addColumn(const bslstl::StringRef& name,
                                              int         statValueIndex,
@@ -462,6 +481,7 @@ int StatContextTableInfoProvider::numHeaderLevels() const
 }
 
 int StatContextTableInfoProvider::getValueSize(int row, int column) const
+// NOLINTBEGIN(*-magic-numbers)
 {
     const RowInfo&    rowInfo = d_rows[row];
     const ColumnInfo& colInfo = d_columns[column];
@@ -503,6 +523,7 @@ int StatContextTableInfoProvider::getValueSize(int row, int column) const
 
     return 100;
 }
+// NOLINTEND(*-magic-numbers)
 
 bsl::ostream& StatContextTableInfoProvider::printValue(bsl::ostream& stream,
                                                        int           row,

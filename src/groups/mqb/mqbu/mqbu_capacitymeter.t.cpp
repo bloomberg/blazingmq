@@ -94,6 +94,7 @@ static void test2_logStateChange()
 // Testing:
 //   logging
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-init-variables,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("LOG STATE CHANGE");
 
@@ -101,14 +102,18 @@ static void test2_logStateChange()
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
-    const bsls::Types::Int64 k_MSGS_LIMIT                = 10;
-    const double             k_MSGS_THRESHOLD            = 0.5;
+    const bsls::Types::Int64 k_MSGS_LIMIT     = 10;
+    const double             k_MSGS_THRESHOLD = 0.5;
+    // NOLINTBEGIN(*-narrowing-conversions)
     const bsls::Types::Int64 k_MSGS_HIGH_WATERMARK_VALUE = k_MSGS_LIMIT *
                                                            k_MSGS_THRESHOLD;
-    const bsls::Types::Int64 k_BYTES_LIMIT                = 1024;
-    const double             k_BYTES_THRESHOLD            = 0.8;
+    // NOLINTEND(*-narrowing-conversions)
+    const bsls::Types::Int64 k_BYTES_LIMIT     = 1024;
+    const double             k_BYTES_THRESHOLD = 0.8;
+    // NOLINTBEGIN(*-narrowing-conversions)
     const bsls::Types::Int64 k_BYTES_HIGH_WATERMARK_VALUE = k_BYTES_LIMIT *
                                                             k_BYTES_THRESHOLD;
+    // NOLINTEND(*-narrowing-conversions)
 
     // Set resource to below the high watermark, should not log anything
     {
@@ -253,6 +258,7 @@ static void test2_logStateChange()
             bmqtst::TestHelperUtil::allocator()));
     }
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-init-variables,performance-avoid-endl)
 
 static void test3_enhancedLog()
 // ------------------------------------------------------------------------
@@ -269,6 +275,7 @@ static void test3_enhancedLog()
 // Testing:
 //   logging
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-init-variables,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("ENHANCED ALARM LOG");
 
@@ -279,12 +286,14 @@ static void test3_enhancedLog()
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
-    const bsls::Types::Int64 k_MSGS_LIMIT                = 10;
-    const double             k_MSGS_THRESHOLD            = 0.5;
+    const bsls::Types::Int64 k_MSGS_LIMIT     = 10;
+    const double             k_MSGS_THRESHOLD = 0.5;
+    // NOLINTBEGIN(*-narrowing-conversions)
     const bsls::Types::Int64 k_MSGS_HIGH_WATERMARK_VALUE = k_MSGS_LIMIT *
                                                            k_MSGS_THRESHOLD;
-    const bsls::Types::Int64 k_BYTES_LIMIT                = 1024;
-    const double             k_BYTES_THRESHOLD            = 0.8;
+    // NOLINTEND(*-narrowing-conversions)
+    const bsls::Types::Int64 k_BYTES_LIMIT     = 1024;
+    const double             k_BYTES_THRESHOLD = 0.8;
 
     bmqtst::ScopedLogObserver observer(ball::Severity::e_WARN,
                                        bmqtst::TestHelperUtil::allocator());
@@ -325,12 +334,14 @@ static void test3_enhancedLog()
         "Test enhanced storage Info",
         bmqtst::TestHelperUtil::allocator()));
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-init-variables,performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -347,3 +358,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

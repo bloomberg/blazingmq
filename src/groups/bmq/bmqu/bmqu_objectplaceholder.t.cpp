@@ -47,6 +47,7 @@ struct TestException {};
 
 /// A object for to be held by the placeholder.
 template <size_t PADDING>
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-special-member-functions)
 class TestObject {
   private:
     // PRIVATE DATA
@@ -61,6 +62,7 @@ class TestObject {
 
   public:
     // CREATORS
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
     explicit TestObject(bool* initializationFlag,
                         bool  throwOnConstruction = false)
     : d_initializationFlag_p(initializationFlag)
@@ -74,9 +76,11 @@ class TestObject {
 
         *initializationFlag = true;
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
     ~TestObject() { *d_initializationFlag_p = false; }
 };
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-special-member-functions)
 
 }  // close unnamed namespace
 
@@ -231,7 +235,13 @@ static void test1_createDeleteObject()
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
+// NOLINTBEGIN(bugprone-exception-escape)
 int main(int argc, char* argv[])
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTBEGIN(cert-err34-c)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -247,3 +257,9 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTEND(cert-err34-c)
+// NOLINTEND(bugprone-exception-escape)

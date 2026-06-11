@@ -26,8 +26,10 @@ namespace bmqu {
 namespace {
 
 // CONSTANTS
+// NOLINTBEGIN(cert-err58-cpp)
 const bsls::Types::Uint64 k_INVALID_THREAD_ID = bslmt::ThreadUtil::idAsUint64(
     bslmt::ThreadUtil::handleToId(bslmt::ThreadUtil::invalidHandle()));
+// NOLINTEND(cert-err58-cpp)
 
 }  // close unnamed namespace
 

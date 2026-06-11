@@ -75,6 +75,7 @@ namespace bmqp {
 // ===================
 
 /// Utilities for BlazingMQ protocol builders and iterators
+// NOLINTBEGIN(*-avoid-c-arrays)
 struct ProtocolUtil {
     // CLASS DATA
 
@@ -293,6 +294,7 @@ struct ProtocolUtil {
                      bdlbb::BlobBufferFactory*            blobBufferFactory,
                      bslma::Allocator*                    allocator);
 };
+// NOLINTEND(*-avoid-c-arrays)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -482,6 +484,7 @@ int ProtocolUtil::decodeMessage(bsl::ostream&      errorDescription,
                                 EncodingType::Enum encodingType,
                                 bslma::Allocator*  allocator)
 {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     bdlsb::FixedMemInStreamBuf isb(entry + offset, length);
     return decodeMessage(errorDescription,
                          message,
@@ -529,6 +532,7 @@ inline void ProtocolUtil::buildReceipt(bdlbb::Blob*        blob,
                                        int                 partitionId,
                                        unsigned int        primaryLeaseId,
                                        bsls::Types::Uint64 sequenceNumber)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 == blob->length());
@@ -539,14 +543,17 @@ inline void ProtocolUtil::buildReceipt(bdlbb::Blob*        blob,
     new (buffer) EventHeader(EventType::e_REPLICATION_RECEIPT);
     reinterpret_cast<EventHeader*>(buffer)->setLength(blob->length());
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
     ReplicationReceipt* receipt = reinterpret_cast<ReplicationReceipt*>(
         buffer + sizeof(EventHeader));
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
 
     (*receipt)
         .setPartitionId(partitionId)
         .setPrimaryLeaseId(primaryLeaseId)
         .setSequenceNum(sequenceNumber);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 }  // close package namespace
 }  // close enterprise namespace

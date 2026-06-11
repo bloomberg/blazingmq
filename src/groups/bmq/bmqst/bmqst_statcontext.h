@@ -519,9 +519,11 @@ class StatContextIterator;
 // =================
 
 /// A hierarchical container of statistics.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class StatContext {
   public:
     // PUBLIC TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum ValueType {
         // Types of values that can be returned by 'get(Int64|Double)Value'
 
@@ -540,12 +542,14 @@ class StatContext {
         /// configured to store them.
         e_EXPIRED_VALUE = 3
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     /// Callback to be invoked during a snapshot;
     typedef bsl::function<void(const StatContext&)> SnapshotCallback;
 
   private:
     // PRIVATE TYPES
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct ValueDefinition {
         bsl::string      d_name;
         bsl::vector<int> d_sizes;
@@ -571,6 +575,7 @@ class StatContext {
         {
         }
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     typedef bdlb::Variant2<bsl::string, bsls::Types::Int64> Id;
     typedef bsl::unordered_multimap<Id, StatContext*, size_t (*)(const Id&)>
@@ -840,8 +845,10 @@ class StatContext {
     /// loaded into `update`.  If `valueFieldMask` is not specified, all
     /// attributes are saved.  The behavior is undefined if `snapshot` is
     /// called from another thread while this function is executing.
+    // NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions)
     void loadFullUpdate(bmqstm::StatContextUpdate* update,
                         int valueFieldMask = 0xFFFFFFFF) const;
+    // NOLINTEND(*-magic-numbers,*-narrowing-conversions)
 
     /// Format this object to the specified output `stream` at the (absolute
     /// value of) the optionally specified indentation `level` and return a
@@ -855,6 +862,7 @@ class StatContext {
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 bsl::ostream& operator<<(bsl::ostream& stream, const StatContext& context);
@@ -864,6 +872,7 @@ bsl::ostream& operator<<(bsl::ostream& stream, const StatContext& context);
 // ==============================
 
 /// Configuration for a StatContext
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class StatContextConfiguration {
   private:
     // DATA
@@ -993,16 +1002,20 @@ class StatContextConfiguration {
     /// if this configuration is used to create a subcontext of a
     /// `StatContext` that already is collecting updates, this option is
     /// ignored.
+    // NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions)
     StatContextConfiguration&
     enableUpdateCollection(bmqstm::StatContextUpdate* update,
                            int valueFieldMask = 0xFFFFFFFF);
+    // NOLINTEND(*-magic-numbers,*-narrowing-conversions)
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =========================
 // class StatContextIterator
 // =========================
 
 /// Iterator over the active and deleted subcontexts of a StatContext.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class StatContextIterator {
   private:
     // PRIVATE TYPES
@@ -1035,9 +1048,10 @@ class StatContextIterator {
     // ACCESSORS
     const StatContext* operator->() const;
     const StatContext& operator*() const;
-    operator const StatContext*() const;
-    operator bool() const;
+                       operator const StatContext*() const;
+                       operator bool() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -1391,6 +1405,7 @@ inline StatContextIterator::StatContextIterator(
 }
 
 // MANIPULATORS
+// NOLINTBEGIN(cert-oop54-cpp)
 inline StatContextIterator&
 StatContextIterator::operator=(const StatContextIterator& rhs)
 {
@@ -1401,8 +1416,10 @@ StatContextIterator::operator=(const StatContextIterator& rhs)
 
     return *this;
 }
+// NOLINTEND(cert-oop54-cpp)
 
 inline bool StatContextIterator::operator++()
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     if (d_mapIter != d_mapEnd) {
         ++d_mapIter;
@@ -1416,6 +1433,7 @@ inline bool StatContextIterator::operator++()
 
     return *this;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 // ACCESSORS
 inline const StatContext* StatContextIterator::operator->() const

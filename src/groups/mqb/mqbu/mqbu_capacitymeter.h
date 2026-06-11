@@ -171,6 +171,7 @@ namespace mqbu {
 // ===================
 
 /// Mechanism to meter capacity usage of a storage
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class CapacityMeter {
   private:
     // CLASS-SCOPE CATEGORY
@@ -178,6 +179,7 @@ class CapacityMeter {
 
   public:
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum CommitResult {
         // Enum representing the possible result value of the
         // 'commitUnreserved' operation.
@@ -189,6 +191,7 @@ class CapacityMeter {
         /// bytes limit was hit
         e_LIMIT_BYTES = 2
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // Callback function to log enhanced storage info into the
     // specified `stream`.
@@ -388,6 +391,7 @@ class CapacityMeter {
     /// to the specified output `stream`.
     bsl::ostream& printShortSummary(bsl::ostream& stream) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ========================
 // struct CapacityMeterUtil

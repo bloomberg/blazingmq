@@ -104,6 +104,7 @@ MessageDetails::MessageDetails(
 void MessageDetails::addConfirmRecord(const mqbs::ConfirmRecord& record,
                                       bsls::Types::Uint64        recordIndex,
                                       bsls::Types::Uint64        recordOffset)
+// NOLINTBEGIN(modernize-use-emplace)
 {
     d_confirmRecords.push_back(
         RecordDetails<mqbs::ConfirmRecord>(record,
@@ -121,6 +122,7 @@ void MessageDetails::addConfirmRecord(const mqbs::ConfirmRecord& record,
         }
     }
 }
+// NOLINTEND(modernize-use-emplace)
 
 void MessageDetails::addDeleteRecord(const mqbs::DeletionRecord& record,
                                      bsls::Types::Uint64         recordIndex,

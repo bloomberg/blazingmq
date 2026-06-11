@@ -171,6 +171,7 @@ template <typename PRINTER_TYPE>
 template <typename RECORD_TYPE>
 void RecordDetailsPrinter<PRINTER_TYPE>::printRecordDetails(
     const RecordDetails<RECORD_TYPE>& details)
+// NOLINTBEGIN(*-magic-numbers)
 {
     d_fields.clear();
     d_fields.reserve(14);  // max number of fields
@@ -195,6 +196,7 @@ void RecordDetailsPrinter<PRINTER_TYPE>::printRecordDetails(
 
     bsls::Types::Uint64 epochValue = details.d_record.header().timestamp();
     bdlt::Datetime      datetime;
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     const int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime, epochValue);
     if (0 != rc) {
         *d_printer_mp << 0;
@@ -207,6 +209,7 @@ void RecordDetailsPrinter<PRINTER_TYPE>::printRecordDetails(
     printRecord(details);
     d_printer_mp.reset();
 }
+// NOLINTEND(*-magic-numbers)
 
 template <typename PRINTER_TYPE>
 void RecordDetailsPrinter<PRINTER_TYPE>::printRecord(

@@ -143,15 +143,18 @@ class ArraySpan {
 // ===========
 
 template <class TYPE, size_t STATIC_LEN>
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Array {
   private:
     // PRIVATE TYPES
     typedef ArraySpan<TYPE>                              Span;
     typedef bsl::allocator_traits<bsl::allocator<TYPE> > AllocTraits;
 
+    // NOLINTBEGIN(*-avoid-c-arrays)
     struct SmallRepr {
         bsls::ObjectBuffer<TYPE> d_staticArray[STATIC_LEN];
     };
+    // NOLINTEND(*-avoid-c-arrays)
 
     struct LargeRepr {
         size_t d_cap;
@@ -254,6 +257,7 @@ class Array {
 
     const_iterator end() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -291,11 +295,13 @@ inline ArraySpan<VALUE>::ArraySpan(VALUE* b, VALUE* e)
 // MANIPULATORS
 template <class VALUE>
 inline VALUE& ArraySpan<VALUE>::operator[](size_t index)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     BSLS_ASSERT_SAFE(d_begin_p < d_end_p);
     BSLS_ASSERT_SAFE(index < size());
     return d_begin_p[index];
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 template <class VALUE>
 inline VALUE& ArraySpan<VALUE>::front()
@@ -306,10 +312,12 @@ inline VALUE& ArraySpan<VALUE>::front()
 
 template <class VALUE>
 inline VALUE& ArraySpan<VALUE>::back()
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     BSLS_ASSERT_SAFE(d_begin_p < d_end_p);
     return *(d_end_p - 1);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 template <class VALUE>
 inline typename ArraySpan<VALUE>::iterator ArraySpan<VALUE>::begin()
@@ -334,11 +342,13 @@ inline void ArraySpan<VALUE>::reset(VALUE* begin, VALUE* end)
 // ACCESSORS
 template <class VALUE>
 inline const VALUE& ArraySpan<VALUE>::operator[](size_t index) const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     BSLS_ASSERT_SAFE(d_begin_p < d_end_p);
     BSLS_ASSERT_SAFE(index < size());
     return d_begin_p[index];
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 template <class VALUE>
 inline bool ArraySpan<VALUE>::empty() const
@@ -361,10 +371,12 @@ inline const VALUE& ArraySpan<VALUE>::front() const
 
 template <class VALUE>
 inline const VALUE& ArraySpan<VALUE>::back() const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     BSLS_ASSERT_SAFE(d_begin_p < d_end_p);
     return *(d_end_p - 1);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 template <class VALUE>
 inline typename ArraySpan<VALUE>::const_iterator
@@ -386,16 +398,20 @@ inline typename ArraySpan<VALUE>::const_iterator ArraySpan<VALUE>::end() const
 // PRIVATE MANIPULATORS
 template <class TYPE, size_t STATIC_LEN>
 inline bool Array<TYPE, STATIC_LEN>::isSmall() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 {
     return d_span.begin() == &d_smallRepr.object().d_staticArray[0].object();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
 
 // CREATORS
 template <class TYPE, size_t STATIC_LEN>
 inline Array<TYPE, STATIC_LEN>::Array(const allocator_type& basicAllocator)
 : d_smallRepr()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 , d_span(&d_smallRepr.object().d_staticArray[0].object(),
          &d_smallRepr.object().d_staticArray[0].object())
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
 , d_allocator(basicAllocator)
 {
 }
@@ -405,8 +421,10 @@ inline Array<TYPE, STATIC_LEN>::Array(size_t                count,
                                       const TYPE&           val,
                                       const allocator_type& basicAllocator)
 : d_smallRepr()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 , d_span(&d_smallRepr.object().d_staticArray[0].object(),
          &d_smallRepr.object().d_staticArray[0].object())
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
 , d_allocator(basicAllocator)
 {
     resize(count, val);
@@ -418,8 +436,10 @@ inline Array<TYPE, STATIC_LEN>::Array(INPUT_ITER            first,
                                       INPUT_ITER            last,
                                       const allocator_type& basicAllocator)
 : d_smallRepr()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 , d_span(&d_smallRepr.object().d_staticArray[0].object(),
          &d_smallRepr.object().d_staticArray[0].object())
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
 , d_allocator(basicAllocator)
 {
     BSLS_ASSERT_SAFE(first < last);
@@ -430,8 +450,10 @@ template <class TYPE, size_t STATIC_LEN>
 inline Array<TYPE, STATIC_LEN>::Array(const Array&          other,
                                       const allocator_type& basicAllocator)
 : d_smallRepr()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 , d_span(&d_smallRepr.object().d_staticArray[0].object(),
          &d_smallRepr.object().d_staticArray[0].object())
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
 , d_allocator(basicAllocator)
 {
     assign(other.begin(), other.end());
@@ -442,8 +464,10 @@ template <size_t LEN>
 inline Array<TYPE, STATIC_LEN>::Array(const Array<TYPE, LEN>& other,
                                       const allocator_type&   basicAllocator)
 : d_smallRepr()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 , d_span(&d_smallRepr.object().d_staticArray[0].object(),
          &d_smallRepr.object().d_staticArray[0].object())
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
 , d_allocator(basicAllocator)
 {
     assign(other.begin(), other.end());
@@ -491,6 +515,7 @@ inline void Array<TYPE, STATIC_LEN>::clear()
 
 template <class TYPE, size_t STATIC_LEN>
 inline void Array<TYPE, STATIC_LEN>::resize(size_t sz, const TYPE& val)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     const size_t currSize = d_span.size();
 
@@ -504,20 +529,27 @@ inline void Array<TYPE, STATIC_LEN>::resize(size_t sz, const TYPE& val)
 
     reserve(sz);
 
-    iterator       begIt = d_span.begin() + d_span.size();
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    iterator begIt = d_span.begin() + d_span.size();
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     const iterator endIt = d_span.begin() + sz;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     while (begIt != endIt) {
         AllocTraits::construct(d_allocator, begIt++, val);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     d_span.setEnd(endIt);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 template <class TYPE, size_t STATIC_LEN>
 inline void Array<TYPE, STATIC_LEN>::reserve(size_t n)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-union-access)
 {
-    const bool   small = isSmall();
-    const size_t cap   = small ? STATIC_LEN : d_largeRepr.object().d_cap;
+    const bool small = isSmall();
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
+    const size_t cap = small ? STATIC_LEN : d_largeRepr.object().d_cap;
     if (n <= cap) {
         return;  // RETURN
     }
@@ -540,6 +572,7 @@ inline void Array<TYPE, STATIC_LEN>::reserve(size_t n)
     d_span.reset(arr, arr + sz);
     d_largeRepr.object().d_cap = n;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-union-access)
 
 template <class TYPE, size_t STATIC_LEN>
 template <class INPUT_ITER>
@@ -550,19 +583,23 @@ inline void Array<TYPE, STATIC_LEN>::assign(INPUT_ITER first, INPUT_ITER last)
     reserve(sz);
 
     iterator arrEnd = d_span.begin();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     while (first != last) {
         AllocTraits::construct(d_allocator, arrEnd++, *(first++));
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     d_span.setEnd(arrEnd);
 }
 
 template <class TYPE, size_t STATIC_LEN>
 inline void Array<TYPE, STATIC_LEN>::push_back(const TYPE& value)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-union-access)
 {
-    const bool   small = isSmall();
-    const size_t cap   = small ? STATIC_LEN : d_largeRepr.object().d_cap;
-    const size_t sz    = d_span.size();
+    const bool small = isSmall();
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
+    const size_t cap = small ? STATIC_LEN : d_largeRepr.object().d_cap;
+    const size_t sz  = d_span.size();
 
     BSLS_ASSERT_SAFE(sz <= cap);
 
@@ -593,6 +630,7 @@ inline void Array<TYPE, STATIC_LEN>::push_back(const TYPE& value)
         d_span.setEnd(d_span.end() + 1);
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-union-access)
 
 template <class TYPE, size_t STATIC_LEN>
 inline TYPE& Array<TYPE, STATIC_LEN>::operator[](size_t index)
@@ -636,9 +674,11 @@ Array<TYPE, STATIC_LEN>::get_allocator() const
 
 template <class TYPE, size_t STATIC_LEN>
 inline size_t Array<TYPE, STATIC_LEN>::capacity() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 {
     return isSmall() ? STATIC_LEN : d_largeRepr.object().d_cap;
 }
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
 
 template <class TYPE, size_t STATIC_LEN>
 inline const TYPE& Array<TYPE, STATIC_LEN>::operator[](size_t index) const

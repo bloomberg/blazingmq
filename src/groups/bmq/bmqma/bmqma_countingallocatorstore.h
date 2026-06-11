@@ -257,6 +257,7 @@ class CountingAllocator;
 
 /// Factory and container for `bmqma::CountingAllocator` objects created
 /// from a common allocator.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class CountingAllocatorStore BSLS_KEYWORD_FINAL {
   private:
     // PRIVATE TYPES
@@ -313,6 +314,7 @@ class CountingAllocatorStore BSLS_KEYWORD_FINAL {
     /// Delete all contained counting allocators.
     void clear();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

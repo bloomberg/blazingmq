@@ -379,6 +379,7 @@ void VirtualStorageCatalog::removeAll(const mqbu::StorageKey& appKey,
     VirtualStorage* vs = itVs->value().get();
 
     DataStreamIterator itData;
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     bsls::Types::Int64 total = d_dataStream.size();
     if (seek(&itData, vs) < total) {
         purgeImpl(vs, itData, numVirtualStorages(), asPrimary);
@@ -432,6 +433,7 @@ VirtualStorageCatalog::purge(const mqbu::StorageKey& appKey,
 
     VirtualStorage*    vs = it->value().get();
     DataStreamIterator itData;
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     bsls::Types::Int64 total = d_dataStream.size();
 
     if (seek(&itData, vs) < total) {
@@ -463,6 +465,7 @@ VirtualStorageCatalog::purgeImpl(VirtualStorage*     vs,
 {
     BSLS_ASSERT_SAFE(!d_ordinals.empty());
 
+    // NOLINTBEGIN(bugprone-branch-clone)
     while (itData != d_dataStream.end()) {
         const bmqt::MessageGUID& msgGUID           = itData->first;
         mqbi::DataStreamMessage* dataStreamMessage = itData->second.get();
@@ -514,6 +517,7 @@ VirtualStorageCatalog::purgeImpl(VirtualStorage*     vs,
             ++itData;
         }
     }
+    // NOLINTEND(bugprone-branch-clone)
 
     d_queueStats_sp->onEvent(mqbstat::QueueStatsDomain::EventType::e_PURGE,
                              0,
@@ -525,6 +529,7 @@ VirtualStorageCatalog::purgeImpl(VirtualStorage*     vs,
 int VirtualStorageCatalog::addVirtualStorage(bsl::ostream& errorDescription,
                                              const bsl::string&      appId,
                                              const mqbu::StorageKey& appKey)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!appId.empty());
@@ -577,12 +582,14 @@ int VirtualStorageCatalog::addVirtualStorage(bsl::ostream& errorDescription,
 
     return 0;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 mqbi::StorageResult::Enum
 VirtualStorageCatalog::removeVirtualStorage(const mqbu::StorageKey& appKey,
                                             bool                    asPrimary,
                                             const PurgeCallback&    onPurge,
                                             const RemoveCallback&   onRemove)
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     BSLS_ASSERT_SAFE(!appKey.isNull());
 
@@ -615,6 +622,7 @@ VirtualStorageCatalog::removeVirtualStorage(const mqbu::StorageKey& appKey,
     // Replace [vs->ordinal()] with [maxVirtualStorageSpOrdinal]
 
     DataStreamIterator itData;
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     bsls::Types::Int64 total = d_dataStream.size();
 
     bsls::Types::Int64 numMessages = seek(&itData, removing);
@@ -668,6 +676,7 @@ VirtualStorageCatalog::removeVirtualStorage(const mqbu::StorageKey& appKey,
 
     return mqbi::StorageResult::e_SUCCESS;
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 VirtualStorage*
 VirtualStorageCatalog::virtualStorage(const mqbu::StorageKey& appKey)

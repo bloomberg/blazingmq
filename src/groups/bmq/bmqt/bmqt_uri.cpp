@@ -37,17 +37,19 @@ const bsl::string_view k_SCHEME_SEPARATED = "bmq://";
 const bsl::string_view k_QUERY_ID         = "id";
 const bsl::string_view k_TIER_PREFIX      = ".~";
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQT_RETURN_WITH_ERROR(ERROR_RC, ERROR_VAR, ERROR_DESC)               \
     do {                                                                      \
         if (ERROR_VAR) {                                                      \
             bdlma::LocalSequentialAllocator<256> local;                       \
             bmqu::MemOutStream                   os(&local);                  \
-            os << ERROR_DESC;                                                 \
+            os << ERROR_DESC; /* NOLINT(bugprone-macro-parentheses) */        \
             (ERROR_VAR)->assign(os.str().data(), os.str().length());          \
         }                                                                     \
         return ERROR_RC;                                                      \
     } while (0)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQT_VALIDATE_AND_RETURN(LENGTH, ERROR_RC, ERROR_VAR, ERROR_DESC)     \
     do {                                                                      \
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(0 == (LENGTH))) {           \
@@ -63,6 +65,7 @@ struct UriParsingContext {
     bool                    d_hasQuery;
 
     struct QueryType {
+        // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
         enum Enum { e_ID = 0 };
     };
 
@@ -92,6 +95,7 @@ struct UriParsingContext {
     /// @param errorDescription optional output for error description.
     /// @return 0 on success, non-zero on failure.
     inline int validateScheme(bsl::string* errorDescription) const
+    // NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
     {
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
                 !d_uri.starts_with(k_SCHEME_SEPARATED))) {
@@ -105,6 +109,7 @@ struct UriParsingContext {
         }
         return UriParser::UriParseResult::e_SUCCESS;
     }
+    // NOLINTEND(cppcoreguidelines-avoid-do-while)
 
     /// @brief Parse the domain part of the stored uri.
     /// @param errorDescription optional output for error description.
@@ -115,11 +120,13 @@ struct UriParsingContext {
     ///       flag if we encounter it for later parsing.
     inline int
     parseDomain(bsl::string* errorDescription, size_t* length, size_t start)
+    // NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
     {
         // bmq://my-domain.~dv/queue?id=foo
         //       ^        ^
         //       start    (start + (*length))
         // Allowed characters: [-a-zA-Z0-9\\._]
+        // NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
         for (size_t pos = start; pos < d_uri.length(); ++pos) {
             if (isalnum_fast(d_uri[pos])) {
                 continue;
@@ -160,6 +167,7 @@ struct UriParsingContext {
             }
             }
         }
+        // NOLINTEND(cppcoreguidelines-avoid-do-while)
 
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_uri.length() <= start)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -177,6 +185,7 @@ struct UriParsingContext {
                                errorDescription,
                                "Missing queue");  // RETURN
     }
+    // NOLINTEND(cppcoreguidelines-avoid-do-while)
 
     /// @brief Parse the tier part of the stored uri.
     /// @param errorDescription optional output for error description.
@@ -185,11 +194,13 @@ struct UriParsingContext {
     /// @return 0 on success, non-zero on failure.
     inline int
     parseTier(bsl::string* errorDescription, size_t* length, size_t start)
+    // NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
     {
         // bmq://my-domain.~development/queue?id=foo
         //                  ^          ^
         //                  start      (start + (*length))
         // Allowed characters: [-a-zA-Z0-9]
+        // NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
         for (size_t pos = start; pos < d_uri.length(); ++pos) {
             if (isalnum_fast(d_uri[pos])) {
                 continue;
@@ -217,6 +228,7 @@ struct UriParsingContext {
             }
             }
         }
+        // NOLINTEND(cppcoreguidelines-avoid-do-while)
 
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_uri.length() <= start)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -234,6 +246,7 @@ struct UriParsingContext {
                                errorDescription,
                                "Missing queue");  // RETURN
     }
+    // NOLINTEND(cppcoreguidelines-avoid-do-while)
 
     /// @brief Parse the path part of the stored uri.
     /// @param errorDescription optional output for error description.
@@ -244,11 +257,13 @@ struct UriParsingContext {
     ///       flag if we encounter it for later parsing.
     inline int
     parsePath(bsl::string* errorDescription, size_t* length, size_t start)
+    // NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
     {
         // bmq://my-domain.~dv/queue_abcdef?id=foo
         //                     ^           ^
         //                     start       (start + (*length))
         // Allowed characters: [-a-zA-Z0-9_\\.]
+        // NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
         for (size_t pos = start; pos < d_uri.length(); ++pos) {
             if (isalnum_fast(d_uri[pos])) {
                 continue;
@@ -279,6 +294,7 @@ struct UriParsingContext {
             }
             }
         }
+        // NOLINTEND(cppcoreguidelines-avoid-do-while)
 
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_uri.length() <= start)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -294,6 +310,7 @@ struct UriParsingContext {
         *length = d_uri.length() - start;
         return UriParser::UriParseResult::e_SUCCESS;
     }
+    // NOLINTEND(cppcoreguidelines-avoid-do-while)
 
     /// @brief Parse the query part of the stored uri.
     /// @param errorDescription optional output for error description.
@@ -312,6 +329,7 @@ struct UriParsingContext {
                           size_t*          value_start,
                           size_t*          value_length,
                           size_t           start)
+    // NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
     {
         // bmq://my-domain.~dv/queue_abcdef?id=foo
         //                                  ^     ^
@@ -356,6 +374,7 @@ struct UriParsingContext {
                                        << query << "\"");  // RETURN
         }
 
+        // NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
         for (size_t pos = separatorPos + 1; pos < d_uri.length(); ++pos) {
             if (isalnum_fast(d_uri[pos])) {
                 continue;
@@ -378,6 +397,7 @@ struct UriParsingContext {
             }
             }
         }
+        // NOLINTEND(cppcoreguidelines-avoid-do-while)
 
         // If we are here, `d_uri` already ended.
         // This is the only supported scenario now for a single query.
@@ -386,9 +406,11 @@ struct UriParsingContext {
         *value_length = d_uri.length() - (*value_start);
         return UriParser::UriParseResult::e_SUCCESS;
     }
+    // NOLINTEND(cppcoreguidelines-avoid-do-while)
 
     inline int validateResult(bsl::string*     errorDescription,
                               const bmqt::Uri& result)
+    // NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
     {
         if (result.domain().isEmpty() || result.authority().isEmpty()) {
             BMQT_RETURN_WITH_ERROR(UriParser::UriParseResult::e_MISSING_DOMAIN,
@@ -418,6 +440,7 @@ struct UriParsingContext {
 
         return UriParser::UriParseResult::e_SUCCESS;
     }
+    // NOLINTEND(cppcoreguidelines-avoid-do-while)
 };
 
 #undef BMQT_VALIDATE_AND_RETURN
@@ -477,6 +500,7 @@ void Uri::reset()
 }
 
 void Uri::copyImpl(const Uri& src)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     reset();
 
@@ -486,10 +510,14 @@ void Uri::copyImpl(const Uri& src)
 
     // Adjust all stringRef: keep their offset in the src.d_uri, but adjust it
     // to the address of this.d_uri
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQT_FIX_STRINGREF(FIELD)                                             \
     if (!src.FIELD.isEmpty()) {                                               \
-        FIELD.assign(d_uri.data() + (src.FIELD.data() - src.d_uri.data()),    \
-                     src.FIELD.length());                                     \
+        FIELD.assign(                                                         \
+            d_uri.data() +                                                    \
+                (src.FIELD.data() -                                           \
+                 src.d_uri.data()), /* NOLINT(bugprone-macro-parentheses) */  \
+            src.FIELD.length());                                              \
     }
 
     BMQT_FIX_STRINGREF(d_authority)
@@ -500,6 +528,7 @@ void Uri::copyImpl(const Uri& src)
 
 #undef BMQT_FIX_STRINGREF
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 bsl::ostream&
 Uri::print(bsl::ostream& stream, int level, int spacesPerLevel) const
@@ -525,10 +554,12 @@ Uri::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 int UriParser::parse(Uri*                     result,
                      bsl::string*             errorDescription,
                      const bslstl::StringRef& uriString)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(result);
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQT_RETURN_ON_BAD_RC(RC, RES)                                        \
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(                                \
             UriParser::UriParseResult::e_SUCCESS != (RC))) {                  \
@@ -603,6 +634,7 @@ int UriParser::parse(Uri*                     result,
     //                                 [id]     - query key
     //                                    [foo] - query value
     size_t pos = pathStart + pathLength + 1;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     while (ctx.hasQuery()) {
         UriParsingContext::QueryType::Enum qtype =
             UriParsingContext::QueryType::e_ID;
@@ -634,6 +666,7 @@ int UriParser::parse(Uri*                     result,
         // The following check might be removed if we support multiple.
         BSLS_ASSERT_SAFE(uriString.length() <= pos);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     // Step 7: validate mandatory fields
     rc = ctx.validateResult(errorDescription, *result);
@@ -643,6 +676,7 @@ int UriParser::parse(Uri*                     result,
 
     return bmqt::UriParser::UriParseResult::e_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 // ----------------
 // class UriBuilder
@@ -686,6 +720,7 @@ void UriBuilder::reset()
 }
 
 int UriBuilder::uri(Uri* result, bsl::string* errorDescription) const
+// NOLINTBEGIN(*-magic-numbers)
 {
     bdlma::LocalSequentialAllocator<1024> localAllocator;
 
@@ -703,6 +738,7 @@ int UriBuilder::uri(Uri* result, bsl::string* errorDescription) const
     // Parse and populate the result
     return UriParser::parse(result, errorDescription, os.str());
 }
+// NOLINTEND(*-magic-numbers)
 
 }  // close package namespace
 }  // close enterprise namespace

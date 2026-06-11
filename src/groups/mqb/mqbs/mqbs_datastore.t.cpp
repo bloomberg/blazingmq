@@ -63,6 +63,7 @@ static void test1_breathingTest()
 // Testing:
 //   Basic functionality
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -126,6 +127,7 @@ static void test1_breathingTest()
                          false);
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test2_defaultHashUniqueness()
 // ------------------------------------------------------------------------
@@ -143,6 +145,7 @@ static void test2_defaultHashUniqueness()
 //   Hash uniqueness of the generated DataStoreRecordKeys using default
 //   hash.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Because there is no emplace on unordered_map, the temporary list
@@ -215,6 +218,7 @@ static void test2_defaultHashUniqueness()
         }
     }
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions,performance-avoid-endl)
 
 static void test3_customHashUniqueness()
 // ------------------------------------------------------------------------
@@ -232,6 +236,7 @@ static void test3_customHashUniqueness()
 //   Hash uniqueness of the generated DataStoreRecordKeys using the
 //   custom hash.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Because there is no emplace on unordered_map, the temporary list
@@ -302,6 +307,7 @@ static void test3_customHashUniqueness()
         }
     }
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions,performance-avoid-endl)
 BSLA_MAYBE_UNUSED
 static void testN1_defaultHashBenchmark()
 // ------------------------------------------------------------------------
@@ -315,6 +321,7 @@ static void testN1_defaultHashBenchmark()
 //   - Generate hash of a DataStoreRecordKey in a timed loop.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("DEFAULT HASH BENCHMARK");
 
@@ -323,9 +330,11 @@ static void testN1_defaultHashBenchmark()
     // same as: bslh::Hash<> hasher;
 
     bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 0; i < k_NUM_ITERATIONS; ++i) {
         hasher(mqbs::DataStoreRecordKey(i, 7));
     }
+    // NOLINTEND(*-magic-numbers)
     bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
 
     cout << "Calculated " << k_NUM_ITERATIONS << " default hashes of the Key"
@@ -337,6 +346,7 @@ static void testN1_defaultHashBenchmark()
                 (k_NUM_ITERATIONS * 1000000000) / (end - begin)))
          << " hashes per second.\n";
 }
+// NOLINTEND(*-magic-numbers)
 BSLA_MAYBE_UNUSED
 static void testN2_customHashBenchmark()
 // ------------------------------------------------------------------------
@@ -349,6 +359,7 @@ static void testN2_customHashBenchmark()
 //   - Generate hash of a Key in a timed loop.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("CUSTOM HASH BENCHMARK");
 
@@ -356,9 +367,11 @@ static void testN2_customHashBenchmark()
     mqbs::DataStoreRecordKeyHashAlgo hasher;
 
     bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 0; i < k_NUM_ITERATIONS; ++i) {
         hasher(mqbs::DataStoreRecordKey(i, 7));
     }
+    // NOLINTEND(*-magic-numbers)
     bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
 
     cout << "Calculated " << k_NUM_ITERATIONS << " custom hashes of the Key"
@@ -370,6 +383,7 @@ static void testN2_customHashBenchmark()
                 (k_NUM_ITERATIONS * 1000000000) / (end - begin)))
          << " hashes per second.\n";
 }
+// NOLINTEND(*-magic-numbers)
 BSLA_MAYBE_UNUSED
 static void testN3_orderedMapWithDefaultHashBenchmark()
 // ------------------------------------------------------------------------
@@ -380,6 +394,7 @@ static void testN3_orderedMapWithDefaultHashBenchmark()
 //   default hash function.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("ORDERED MAP DEFAULT HASH BENCHMARK");
 
@@ -390,16 +405,20 @@ static void testN3_orderedMapWithDefaultHashBenchmark()
         k_NUM_ELEMS,
         bmqtst::TestHelperUtil::allocator());
     // Warmup
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 1; i <= 1000; ++i) {
         ht.insert(bsl::make_pair(mqbs::DataStoreRecordKey(i, 7), i));
     }
+    // NOLINTEND(*-magic-numbers)
 
     ht.clear();
 
     bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 1; i <= k_NUM_ELEMS; ++i) {
         ht.insert(bsl::make_pair(mqbs::DataStoreRecordKey(i, 7), i));
     }
+    // NOLINTEND(*-magic-numbers)
     bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
 
     cout << "Inserted " << k_NUM_ELEMS << " elements in ordered map using "
@@ -412,6 +431,7 @@ static void testN3_orderedMapWithDefaultHashBenchmark()
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
          << " insertions per second." << endl;
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 BSLA_MAYBE_UNUSED
 static void testN4_orderedMapWithCustomHashBenchmark()
 // ------------------------------------------------------------------------
@@ -422,6 +442,7 @@ static void testN4_orderedMapWithCustomHashBenchmark()
 //   with custom hash function.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("ORDERED MAP CUSTOM HASH BENCHMARK");
 
@@ -434,16 +455,20 @@ static void testN4_orderedMapWithCustomHashBenchmark()
         ht(k_NUM_ELEMS, bmqtst::TestHelperUtil::allocator());
 
     // Warmup
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 1; i <= 1000; ++i) {
         ht.insert(bsl::make_pair(mqbs::DataStoreRecordKey(i, 7), i));
     }
+    // NOLINTEND(*-magic-numbers)
 
     ht.clear();
 
     bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 1; i <= k_NUM_ELEMS; ++i) {
         ht.insert(bsl::make_pair(mqbs::DataStoreRecordKey(i, 7), i));
     }
+    // NOLINTEND(*-magic-numbers)
     bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
 
     cout << "Inserted " << k_NUM_ELEMS << " elements in ordered map using "
@@ -456,6 +481,7 @@ static void testN4_orderedMapWithCustomHashBenchmark()
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
          << " insertions per second.\n";
 }
+// NOLINTEND(*-magic-numbers)
 
 #ifdef BMQTST_BENCHMARK_ENABLED
 static void
@@ -471,6 +497,7 @@ testN1_defaultHashBenchmark_GoogleBenchmark(benchmark::State& state)
 //   - Generate hash of a DataStoreRecordKey in a timed loop.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelper::printTestName(
         "GOOGLE BENCHMARK DEFAULT HASH BENCHMARK");
@@ -478,11 +505,14 @@ testN1_defaultHashBenchmark_GoogleBenchmark(benchmark::State& state)
     bsl::hash<mqbs::DataStoreRecordKey> hasher;
     // same as: bslh::Hash<> hasher;
     for (auto _ : state) {
+        // NOLINTBEGIN(*-magic-numbers)
         for (int i = 0; i < state.range(); ++i) {
             hasher(mqbs::DataStoreRecordKey(i, 7));
         }
+        // NOLINTEND(*-magic-numbers)
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void testN2_customHashBenchmark_GoogleBenchmark(benchmark::State& state)
 // ------------------------------------------------------------------------
@@ -495,6 +525,7 @@ static void testN2_customHashBenchmark_GoogleBenchmark(benchmark::State& state)
 //   - Generate hash of a Key in a timed loop.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelper::printTestName(
         "GOOGLE BENCHMARK CUSTOM HASH BENCHMARK");
@@ -502,11 +533,14 @@ static void testN2_customHashBenchmark_GoogleBenchmark(benchmark::State& state)
     mqbs::DataStoreRecordKeyHashAlgo hasher;
 
     for (auto _ : state) {
+        // NOLINTBEGIN(*-magic-numbers)
         for (int i = 0; i < state.range(0); ++i) {
             hasher(mqbs::DataStoreRecordKey(i, 7));
         }
+        // NOLINTEND(*-magic-numbers)
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void testN3_orderedMapWithDefaultHashBenchmark_GoogleBenchmark(
     benchmark::State& state)
@@ -518,28 +552,36 @@ static void testN3_orderedMapWithDefaultHashBenchmark_GoogleBenchmark(
 //   default hash function.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK ORDERED"
                                       "MAP DEFAULT HASH BENCHMARK");
 
     mqbs::DataStoreRecordKey key;
 
+    // NOLINTBEGIN(*-narrowing-conversions)
     bmqc::OrderedHashMap<mqbs::DataStoreRecordKey, size_t> ht(
         state.range(0),
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-narrowing-conversions)
     // Warmup
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 1; i <= 1000; ++i) {
         ht.insert(bsl::make_pair(mqbs::DataStoreRecordKey(i, 7), i));
     }
+    // NOLINTEND(*-magic-numbers)
 
     ht.clear();
 
     for (auto _ : state) {
+        // NOLINTBEGIN(*-magic-numbers)
         for (int i = 1; i <= state.range(0); ++i) {
             ht.insert(bsl::make_pair(mqbs::DataStoreRecordKey(i, 7), i));
         }
+        // NOLINTEND(*-magic-numbers)
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void testN4_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
     benchmark::State& state)
@@ -551,6 +593,7 @@ static void testN4_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
 //   with custom hash function.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK ORDERED MAP"
                                       "CUSTOM HASH BENCHMARK");
@@ -560,20 +603,26 @@ static void testN4_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
     bmqc::OrderedHashMap<mqbs::DataStoreRecordKey,
                          size_t,
                          mqbs::DataStoreRecordKeyHashAlgo>
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         ht(state.range(0), bmqtst::TestHelperUtil::allocator());
 
     // Warmup
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 1; i <= 1000; ++i) {
         ht.insert(bsl::make_pair(mqbs::DataStoreRecordKey(i, 7), i));
     }
+    // NOLINTEND(*-magic-numbers)
 
     ht.clear();
     for (auto _ : state) {
+        // NOLINTBEGIN(*-magic-numbers)
         for (int i = 1; i <= state.range(0); ++i) {
             ht.insert(bsl::make_pair(mqbs::DataStoreRecordKey(i, 7), i));
         }
+        // NOLINTEND(*-magic-numbers)
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 #endif  // BMQTST_BENCHMARK_ENABLED
 
 // ============================================================================
@@ -581,6 +630,7 @@ static void testN4_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -627,3 +677,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

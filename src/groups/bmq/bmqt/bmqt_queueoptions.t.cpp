@@ -30,6 +30,7 @@ using namespace bsl;
 // ----------------------------------------------------------------------------
 
 static void test1_breathingTest()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -109,6 +110,7 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(out.str(), "");
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test2_defaultsTest()
 // --------------------------------------------------------------------
@@ -127,6 +129,7 @@ static void test2_defaultsTest()
 // Testing:
 //   Basic functionality
 // --------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("DEFAULTS TEST");
 
@@ -157,6 +160,7 @@ static void test2_defaultsTest()
     BMQTST_ASSERT(options.hasMaxUnconfirmedBytes());
     BMQTST_ASSERT_EQ(options.maxUnconfirmedBytes(), 9876);
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 static void test3_mergeTest()
 // --------------------------------------------------------------------
@@ -173,6 +177,7 @@ static void test3_mergeTest()
 // Testing:
 //   - bmqt::QueueOptions::merge
 // --------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("MERGE TEST");
 
@@ -202,6 +207,7 @@ static void test3_mergeTest()
         options.suspendsOnBadHostHealth(),
         bmqt::QueueOptions::k_DEFAULT_SUSPENDS_ON_BAD_HOST_HEALTH);
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 static void test4_subscriptionsTest()
 {
@@ -260,6 +266,7 @@ static void test4_subscriptionsTest()
         bmqtst::TestHelperUtil::allocator());
     obj.loadSubscriptions(&snapshot);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bmqt::QueueOptions::SubscriptionsSnapshot::const_iterator citOut =
              snapshot.begin();
          citOut != snapshot.end();
@@ -276,6 +283,7 @@ static void test4_subscriptionsTest()
         BMQTST_ASSERT_EQ(bytes, citOut->second.maxUnconfirmedBytes());
         BMQTST_ASSERT_EQ(priority, citOut->second.consumerPriority());
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     BMQTST_ASSERT_EQ(handles.size(), snapshot.size());
 }
 
@@ -284,6 +292,7 @@ static void test4_subscriptionsTest()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -301,3 +310,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

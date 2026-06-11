@@ -52,9 +52,11 @@ static void test1_breathingTest()
 // Testing:
 //   Verifies the parameterized constructor of 'mqbs::OffsetPtr'.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     bmqtst::TestHelper::printTestName("Breathing Test");
 
+    // NOLINTNEXTLINE(*-avoid-c-arrays,*-magic-numbers)
     char                    base[5] = {0};
     bsl::size_t             offset  = 3;
     const mqbs::MemoryBlock memoryBlockObj(&base[0], sizeof(base));
@@ -63,6 +65,7 @@ static void test1_breathingTest()
     // Verify the correctness of offset.
     BMQTST_ASSERT_EQ(offsetPtrObj.get(), memoryBlockObj.base() + offset);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 static void test2_operations()
 // ------------------------------------------------------------------------
@@ -71,12 +74,14 @@ static void test2_operations()
 // Testing:
 //   Verifies the accessors of 'mqbs::OffsetPtr'
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 {
     bmqtst::TestHelper::printTestName("Operations Test");
 
     bsl::size_t offset       = 0;
     const int   value        = 3;
     const int   objAlignment = bsls::AlignmentFromType<TestObj>::VALUE;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
     bsls::AlignedBuffer<sizeof(TestObj), objAlignment> alignedBuffer;
     char* baseBuffer = alignedBuffer.buffer();
 
@@ -90,6 +95,7 @@ static void test2_operations()
     *offsetPtrObj = testObj;
     BMQTST_ASSERT_EQ(offsetPtrObj->d_dummy, value);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 static void test3_reset()
 // ------------------------------------------------------------------------
@@ -98,9 +104,11 @@ static void test3_reset()
 // Testing:
 //   Verifies the manipulator 'reset()' of a 'mqbs::OffsetPtr'.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     bmqtst::TestHelper::printTestName("Reset Test");
 
+    // NOLINTNEXTLINE(*-avoid-c-arrays,*-magic-numbers)
     char                    base[64]  = {0};
     bsl::size_t             offset    = 3;
     bsl::size_t             newOffset = 13;
@@ -113,12 +121,14 @@ static void test3_reset()
     offsetPtrObj.reset(memoryBlockObj, newOffset);
     BMQTST_ASSERT_EQ(offsetPtrObj.get(), memoryBlockObj.base() + newOffset);
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -135,3 +145,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

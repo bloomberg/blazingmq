@@ -64,6 +64,7 @@ ReconnectingChannelFactoryConfig::ReconnectingChannelFactoryConfig(
     bslma::Allocator*      basicAllocator)
 : d_base_p(base)
 , d_scheduler_p(scheduler)
+// NOLINTBEGIN(*-magic-numbers)
 , d_reconnectIntervalFn(
       bsl::allocator_arg,
       basicAllocator,
@@ -74,6 +75,7 @@ ReconnectingChannelFactoryConfig::ReconnectingChannelFactoryConfig(
           bdlf::PlaceHolders::_3,
           bsls::TimeInterval(120.0),
           bsls::TimeInterval(60.0)))
+// NOLINTEND(*-magic-numbers)
 , d_endpointResolveFn(
       bsl::allocator_arg,
       basicAllocator,
@@ -184,6 +186,7 @@ ReconnectingChannelFactory_ConnectHandle::properties() const
 // PRIVATE MANIPULATORS
 void ReconnectingChannelFactory::scheduleConnect(
     const ConnectHandlePtr& handle)
+// NOLINTBEGIN(*-magic-numbers)
 {
     if (!d_isReconnectEnabled) {
         return;  // RETURN
@@ -244,9 +247,11 @@ void ReconnectingChannelFactory::scheduleConnect(
                              this,
                              handle));
 }
+// NOLINTEND(*-magic-numbers)
 
 void ReconnectingChannelFactory::doConnect(Status*                 status,
                                            const ConnectHandlePtr& handle)
+// NOLINTBEGIN(*-magic-numbers)
 {
     handle->d_lastConnectAttemptTime = bmqu::Time::highResolutionTimer();
 
@@ -330,8 +335,10 @@ void ReconnectingChannelFactory::doConnect(Status*                 status,
                              bdlf::PlaceHolders::_2,
                              bdlf::PlaceHolders::_3));
 }
+// NOLINTEND(*-magic-numbers)
 
 void ReconnectingChannelFactory::connectTimerCb(const ConnectHandlePtr& handle)
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqu::AtomicValidatorGuard guard(&handle->d_validator);
     if (!guard.isValid()) {
@@ -353,6 +360,7 @@ void ReconnectingChannelFactory::connectTimerCb(const ConnectHandlePtr& handle)
                         bsl::shared_ptr<Channel>());
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 void ReconnectingChannelFactory::connectResultCb(
     const ConnectHandlePtr&         handle,
@@ -548,6 +556,7 @@ void ReconnectingChannelFactory::connect(Status*                      status,
                                          bslma::ManagedPtr<OpHandle>* handle,
                                          const ConnectOptions&        options,
                                          const ResultCallback&        cb)
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqu::AtomicValidatorGuard valGuard(&d_validator);
     if (!valGuard.isValid()) {
@@ -591,6 +600,7 @@ void ReconnectingChannelFactory::connect(Status*                      status,
         }
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 // -------------------------------------
 // struct ReconnectingChannelFactoryUtil
@@ -600,6 +610,7 @@ void ReconnectingChannelFactoryUtil::resolveEndpointFn(
     bsl::vector<bsl::string>* out,
     const ConnectOptions&     options,
     char                      separator)
+// NOLINTBEGIN(*-magic-numbers)
 {
     const char k_HOSTPORT_SEPARATOR = ':';
 
@@ -634,6 +645,7 @@ void ReconnectingChannelFactoryUtil::resolveEndpointFn(
             continue;  // CONTINUE
         }
 
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,modernize-use-emplace)
         for (bsl::vector<ntsa::IpAddress>::const_iterator it =
                  addresses.begin();
              it != addresses.end();
@@ -652,6 +664,7 @@ void ReconnectingChannelFactoryUtil::resolveEndpointFn(
             os << hostname << ":" << port;
             out->push_back(os.str());
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,modernize-use-emplace)
     }
 
     if (out->empty()) {
@@ -672,6 +685,7 @@ void ReconnectingChannelFactoryUtil::resolveEndpointFn(
     // vector of hosts, in order to help getting a better load distribution
     // from all the clients using the same list of hosts.
 }
+// NOLINTEND(*-magic-numbers)
 
 void ReconnectingChannelFactoryUtil::defaultConnectIntervalFn(
     bsls::TimeInterval*       interval,
@@ -679,6 +693,7 @@ void ReconnectingChannelFactoryUtil::defaultConnectIntervalFn(
     const bsls::TimeInterval& timeSinceLastAttempt,
     const bsls::TimeInterval& resetReconnectTime,
     const bsls::TimeInterval& maxInterval)
+// NOLINTBEGIN(cert-msc30-c,cert-msc50-cpp)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(maxInterval < resetReconnectTime);
@@ -710,6 +725,7 @@ void ReconnectingChannelFactoryUtil::defaultConnectIntervalFn(
         *interval = maxInterval;
     }
 }
+// NOLINTEND(cert-msc30-c,cert-msc50-cpp)
 
 }  // close package namespace
 }  // close enterprise namespace

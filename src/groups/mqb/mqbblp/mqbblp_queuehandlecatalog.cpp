@@ -51,6 +51,7 @@ namespace {
 
 /// Provide an implementation of the `mqbi::QueueHandleFactory` creating
 /// `mqbblp::QueueHandle` objects.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class DefaultHandleFactory : public mqbi::QueueHandleFactory {
   public:
     // CREATOR
@@ -71,6 +72,7 @@ class DefaultHandleFactory : public mqbi::QueueHandleFactory {
     // the specified 'parameters', and associated wit the specified
     // 'stats'.
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // --------------------------
 // class DefaultHandleFactory
@@ -122,7 +124,7 @@ void QueueHandleCatalog::queueHandleDeleter(mqbi::QueueHandle* handle)
 QueueHandleCatalog::QueueHandleCatalog(mqbi::Queue*      queue,
                                        bslma::Allocator* allocator)
 : d_queue_p(queue)
-, d_handleFactory_mp(new(*allocator) DefaultHandleFactory(), allocator)
+, d_handleFactory_mp(new (*allocator) DefaultHandleFactory(), allocator)
 , d_handles(allocator)
 , d_allocator_p(allocator)
 {
@@ -269,11 +271,14 @@ int QueueHandleCatalog::releaseHandleHelper(
 }
 
 int QueueHandleCatalog::handlesCount() const
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     return d_handles.size();
 }
+// NOLINTEND(*-narrowing-conversions)
 
 bool QueueHandleCatalog::hasHandle(const mqbi::QueueHandle* handle) const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
 {
     // executed by the *QUEUE* dispatcher thread
 
@@ -283,6 +288,7 @@ bool QueueHandleCatalog::hasHandle(const mqbi::QueueHandle* handle) const
     return d_handles.findByKey1(const_cast<mqbi::QueueHandle*>(handle)) !=
            d_handles.end();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-const-cast)
 
 mqbi::QueueHandle* QueueHandleCatalog::getHandleByRequester(
     const mqbi::QueueHandleRequesterContext& context,

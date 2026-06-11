@@ -64,6 +64,7 @@ using namespace mqbs::FileStoreProtocolPrinter;
 /// true on success and false on error.
 template <typename CMD>
 bool parseCommand(CMD* command, const bsl::string& jsonInput)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bsl::istringstream     is(jsonInput);
     baljsn::DecoderOptions options;
@@ -78,6 +79,7 @@ bool parseCommand(CMD* command, const bsl::string& jsonInput)
 
     return true;
 }
+// NOLINTEND(performance-avoid-endl)
 
 template <typename ITER>
 bool resetIterator(mqbs::MappedFileDescriptor* mfd,
@@ -135,6 +137,7 @@ void iterateNextPosition(CHOICE&                     choice,
                          mqbs::MappedFileDescriptor* mfd,
                          ITER*                       iter,
                          const char*                 filename)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bsls::Types::Uint64 skip    = 0;
     bool                reverse = false;
@@ -228,6 +231,7 @@ void iterateNextPosition(CHOICE&                     choice,
     }
 
     bmqu::MemOutStream oss;
+    // NOLINTBEGIN(performance-avoid-endl)
     while (skip > 0) {
         if (iter->hasRecordSizeRemaining() == false) {
             if (verbose) {
@@ -250,6 +254,7 @@ void iterateNextPosition(CHOICE&                     choice,
         }
         skip--;
     }
+    // NOLINTEND(performance-avoid-endl)
 
     if (iter->firstRecordPosition() > iter->recordOffset()) {
         BALL_LOG_ERROR << "Cannot print record as it is a header.";
@@ -264,6 +269,7 @@ void iterateNextPosition(CHOICE&                     choice,
         printIterator(*iter);
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 }  // close unnamed namespace
 
@@ -272,6 +278,7 @@ void iterateNextPosition(CHOICE&                     choice,
 // ----------------------
 
 void StorageInspector::printHelp() const
+// NOLINTBEGIN(performance-avoid-endl)
 {
     BALL_LOG_INFO << bsl::endl
                   << "Commands:" << bsl::endl
@@ -303,6 +310,7 @@ void StorageInspector::printHelp() const
                   << " \"qop\", \"jop\"}" << bsl::endl
                   << "  j dump=\"payload\"" << bsl::endl;
 }
+// NOLINTEND(performance-avoid-endl)
 
 void StorageInspector::processCommand(const OpenStorageCommand& command)
 {
@@ -427,6 +435,7 @@ void StorageInspector::processCommand(
 
 void StorageInspector::processCommand(
     BSLA_MAYBE_UNUSED const MetadataCommand& command)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     bool x;
 
@@ -494,8 +503,10 @@ void StorageInspector::processCommand(
                 printer << recHeader->type();
                 bdlt::Datetime      datetime;
                 bsls::Types::Uint64 epochValue = recHeader->timestamp();
+                // NOLINTBEGIN(*-narrowing-conversions)
                 int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime,
                                                              epochValue);
+                // NOLINTEND(*-narrowing-conversions)
                 if (0 != rc) {
                     printer << 0;
                 }
@@ -527,8 +538,10 @@ void StorageInspector::processCommand(
 
                 bsls::Types::Uint64 epochValue = syncPt.header().timestamp();
                 bdlt::Datetime      datetime;
+                // NOLINTBEGIN(*-narrowing-conversions)
                 int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime,
                                                              epochValue);
+                // NOLINTEND(*-narrowing-conversions)
                 if (0 != rc) {
                     printer << 0;
                 }
@@ -545,6 +558,7 @@ void StorageInspector::processCommand(
         }
     }
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 void StorageInspector::processCommand(
     BSLA_MAYBE_UNUSED const ListQueuesCommand& command)
@@ -704,6 +718,7 @@ void StorageInspector::processCommand(const DumpQueueCommand& command)
                     BALL_LOG_OUTPUT_STREAM << "MessageRecord: \n";
                     printRecord(BALL_LOG_OUTPUT_STREAM, r);
                 }
+                // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
                 while (
                     d_dataFileIter.recordOffset() !=
                     (r.messageOffsetDwords() * bmqp::Protocol::k_DWORD_SIZE)) {
@@ -716,6 +731,7 @@ void StorageInspector::processCommand(const DumpQueueCommand& command)
                         break;  // BREAK
                     }
                 }
+                // NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
                 if (!failure) {
                     printIterator(d_dataFileIter);
@@ -787,6 +803,7 @@ void StorageInspector::processCommand(const QlistCommand& command)
 }
 
 void StorageInspector::processCommand(JournalCommand& command)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     if (!d_journalFd.isValid()) {
         BALL_LOG_ERROR << "You must open a journal file to use that command.";
@@ -887,8 +904,10 @@ void StorageInspector::processCommand(JournalCommand& command)
 
     iterateNextPosition(choice, &d_journalFd, iter, d_journalFile.c_str());
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 void StorageInspector::readQueuesIfNeeded()
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // Shorter ref for convenience
     mqbs::QlistFileIterator& it = d_qlistFileIter;
@@ -1014,10 +1033,12 @@ void StorageInspector::readQueuesIfNeeded()
                     // AppId/AppKey dedup check complete.  Add newly retrieved
                     // AppId/AppKey pairs to this queue's record.
 
+                    // NOLINTBEGIN(modernize-use-emplace)
                     for (size_t n = 0; n < newAppIds.size(); ++n) {
                         appIdsRec.push_back(
                             AppIdRecord(newAppIds[n], newAppKeys[n]));
                     }
+                    // NOLINTEND(modernize-use-emplace)
 
                     break;  // BREAK
                 }
@@ -1050,6 +1071,7 @@ void StorageInspector::readQueuesIfNeeded()
         d_qlistFileRead = true;
     }
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 // CREATORS
 StorageInspector::StorageInspector(bslma::Allocator* allocator)

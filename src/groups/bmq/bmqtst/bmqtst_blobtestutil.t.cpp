@@ -44,6 +44,7 @@ static void test1_fromString()
 // Testing:
 //   fromString
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("FROM STRING");
 
@@ -112,6 +113,7 @@ static void test1_fromString()
         BMQTST_ASSERT_EQ(buf, "a");
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test2_toString()
 // ------------------------------------------------------------------------
@@ -123,6 +125,7 @@ static void test2_toString()
 // Testing:
 //   toString
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("TO STRING");
 
@@ -187,12 +190,14 @@ static void test2_toString()
                          bmqtst::BlobTestUtil::toString(&out, blob));
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -208,3 +213,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

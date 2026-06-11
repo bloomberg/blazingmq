@@ -113,19 +113,23 @@ class StatExecutor {
 
     /// Perform `++statistics()->d_postCallCount` followed by `f()`.
     template <class FUNCTION>
+    // NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
     void post(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) f) const
     {
         ++d_statistics_p->d_postCallCount;
         bslmf::MovableRefUtil::access(f)();
     }
+    // NOLINTEND(cppcoreguidelines-missing-std-forward)
 
     /// Perform `++statistics()->d_dispatchCallCount` followed by `f()`.
     template <class FUNCTION>
+    // NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
     void dispatch(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) f) const
     {
         ++d_statistics_p->d_dispatchCallCount;
         bslmf::MovableRefUtil::access(f)();
     }
+    // NOLINTEND(cppcoreguidelines-missing-std-forward)
 
   public:
     // ACCESSORS
@@ -203,6 +207,7 @@ class SelfUnequalExecutor {
 /// won't fit in the small on-stack buffer used by `bmqex::Executor` for
 /// optimization.
 template <class EXECUTOR>
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers)
 class ExecutorElarger {
   private:
     // PRIVATA DATA
@@ -212,35 +217,43 @@ class ExecutorElarger {
 
   public:
     // CREATORS
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
     ExecutorElarger()
     : d_executor()
     {
         // NOTHING
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
     ExecutorElarger(EXECUTOR executor)  // IMPLICIT
     : d_executor(bslmf::MovableRefUtil::move(executor))
     {
         // NOTHING
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
   public:
     // MANIPULATORS
     template <class F>
+    // NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
     void post(BSLS_COMPILERFEATURES_FORWARD_REF(F) f) const
     {
         bmqex::ExecutorTraits<EXECUTOR>::post(
             d_executor,
             BSLS_COMPILERFEATURES_FORWARD(F, f));
     }
+    // NOLINTEND(cppcoreguidelines-missing-std-forward)
 
     template <class F>
+    // NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
     void dispatch(BSLS_COMPILERFEATURES_FORWARD_REF(F) f) const
     {
         bmqex::ExecutorTraits<EXECUTOR>::dispatch(
             d_executor,
             BSLS_COMPILERFEATURES_FORWARD(F, f));
     }
+    // NOLINTEND(cppcoreguidelines-missing-std-forward)
 
   public:
     // ACCESSORS
@@ -249,6 +262,7 @@ class ExecutorElarger {
         return d_executor == rhs.d_executor;
     }
 };
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers)
 
 }  // close unnamed namespace
 
@@ -331,6 +345,7 @@ static void test1_creators()
         bmqex::Executor ex3(largeEx, &alloc);  // contains large target
 
         // copy an empty executor
+        // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
         bmqex::Executor ex1Copy(ex1);
 
         // check postconditions
@@ -872,6 +887,7 @@ static void test9_equalityComparison()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -895,3 +911,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

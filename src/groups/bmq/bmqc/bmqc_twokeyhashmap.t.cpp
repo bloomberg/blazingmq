@@ -84,6 +84,7 @@ class TestHasher {
 
 /// An "Integer" that may throw on copy, or equality comparison.  A
 /// specialization of `bsl::hash` is defined for this type.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ThrowingInteger {
   public:
     // TYPES
@@ -121,6 +122,7 @@ class ThrowingInteger {
         }
     }
 
+    // NOLINTBEGIN(cert-oop54-cpp)
     ThrowingInteger& operator=(const ThrowingInteger& original)
     {
         if (original.d_throwOnCopy) {
@@ -133,6 +135,7 @@ class ThrowingInteger {
 
         return *this;
     }
+    // NOLINTEND(cert-oop54-cpp)
 
   public:
     // MANIPULATORS
@@ -152,6 +155,7 @@ class ThrowingInteger {
         return lhs.d_value == rhs.d_value;
     }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close anonymous namespace
 
@@ -186,6 +190,7 @@ static void test0_usageExample()
 // Testing:
 //   Usage example
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bslma::TestAllocator alloc;
 
@@ -226,10 +231,12 @@ static void test0_usageExample()
     }
 
     // iterating 1
+    // NOLINTBEGIN(performance-avoid-endl)
     for (TestMap::iterator iter = map.begin(); iter != map.end(); ++iter) {
         bsl::cout << iter->key1() << " : " << iter->key2() << " => "
                   << iter->value() << bsl::endl;
     }
+    // NOLINTEND(performance-avoid-endl)
 
     // iterating 2
     for (TestMap::iterator iter = map.begin(TestMap::e_SECOND_KEY);
@@ -254,6 +261,7 @@ static void test0_usageExample()
         BMQTST_ASSERT(map.begin() == map.end());
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test1_basicCreators()
 // ------------------------------------------------------------------------
@@ -360,6 +368,7 @@ static void test2_copyAndMove()
 //   Copy assignment operator
 //   Move assignment operator
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     typedef bmqc::TwoKeyHashMap<int, bsl::string, bsl::string> Map;
 
@@ -517,6 +526,7 @@ static void test2_copyAndMove()
                          true);
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test3_insert()
 // ------------------------------------------------------------------------
@@ -795,6 +805,7 @@ static void test4_erase()
 // Testing:
 //   erase()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     typedef bmqc::TwoKeyHashMap<int, bsl::string, bsl::string> Map;
 
@@ -815,6 +826,7 @@ static void test4_erase()
 
         // make a list of elements ordered according to the first key
         it = map.begin(Map::e_FIRST_KEY);
+        // NOLINTNEXTLINE(*-magic-numbers)
         bsl::vector<const Map::value_type*> elementsByKey1(5, &alloc);
         elementsByKey1[0] = &*it++;
         elementsByKey1[1] = &*it++;
@@ -824,6 +836,7 @@ static void test4_erase()
 
         // make a list of elements ordered according to the second key
         it = map.begin(Map::e_SECOND_KEY);
+        // NOLINTNEXTLINE(*-magic-numbers)
         bsl::vector<const Map::value_type*> elementsByKey2(5, &alloc);
         elementsByKey2[0] = &*it++;
         elementsByKey2[1] = &*it++;
@@ -906,6 +919,7 @@ static void test4_erase()
 
         // make a list of elements ordered according to the first key
         it = map.begin(Map::e_FIRST_KEY);
+        // NOLINTNEXTLINE(*-magic-numbers)
         bsl::vector<const Map::value_type*> elementsByKey1(5, &alloc);
         elementsByKey1[0] = &*it++;
         elementsByKey1[1] = &*it++;
@@ -915,6 +929,7 @@ static void test4_erase()
 
         // make a list of elements ordered according to the second key
         it = map.begin(Map::e_SECOND_KEY);
+        // NOLINTNEXTLINE(*-magic-numbers)
         bsl::vector<const Map::value_type*> elementsByKey2(5, &alloc);
         elementsByKey2[0] = &*it++;
         elementsByKey2[1] = &*it++;
@@ -1033,6 +1048,7 @@ static void test4_erase()
         }
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test5_eraseByKey1()
 // ------------------------------------------------------------------------
@@ -1061,6 +1077,7 @@ static void test5_eraseByKey1()
 // Testing:
 //   eraseByKey1()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bslma::TestAllocator alloc;
 
@@ -1081,6 +1098,7 @@ static void test5_eraseByKey1()
 
         // make a list of elements ordered according to the first key
         it = map.begin(Map::e_FIRST_KEY);
+        // NOLINTNEXTLINE(*-magic-numbers)
         bsl::vector<const Map::value_type*> elementsByKey1(5, &alloc);
         elementsByKey1[0] = &*it++;
         elementsByKey1[1] = &*it++;
@@ -1090,6 +1108,7 @@ static void test5_eraseByKey1()
 
         // make a list of elements ordered according to the second key
         it = map.begin(Map::e_SECOND_KEY);
+        // NOLINTNEXTLINE(*-magic-numbers)
         bsl::vector<const Map::value_type*> elementsByKey2(5, &alloc);
         elementsByKey2[0] = &*it++;
         elementsByKey2[1] = &*it++;
@@ -1213,6 +1232,7 @@ static void test5_eraseByKey1()
         BMQTST_ASSERT_EQ(map.begin()->value(), "value1");
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test6_eraseByKey2()
 // ------------------------------------------------------------------------
@@ -1241,6 +1261,7 @@ static void test6_eraseByKey2()
 // Testing:
 //   eraseByKey2()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bslma::TestAllocator alloc;
 
@@ -1261,6 +1282,7 @@ static void test6_eraseByKey2()
 
         // make a list of elements ordered according to the first key
         it = map.begin(Map::e_FIRST_KEY);
+        // NOLINTNEXTLINE(*-magic-numbers)
         bsl::vector<const Map::value_type*> elementsByKey1(5, &alloc);
         elementsByKey1[0] = &*it++;
         elementsByKey1[1] = &*it++;
@@ -1270,6 +1292,7 @@ static void test6_eraseByKey2()
 
         // make a list of elements ordered according to the second key
         it = map.begin(Map::e_SECOND_KEY);
+        // NOLINTNEXTLINE(*-magic-numbers)
         bsl::vector<const Map::value_type*> elementsByKey2(5, &alloc);
         elementsByKey2[0] = &*it++;
         elementsByKey2[1] = &*it++;
@@ -1393,6 +1416,7 @@ static void test6_eraseByKey2()
         BMQTST_ASSERT_EQ(map.begin()->value(), "value1");
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test7_clear()
 // ------------------------------------------------------------------------
@@ -1946,7 +1970,22 @@ static void test13_equality()
 //                              MAIN PROGRAM
 //-----------------------------------------------------------------------------
 
+// NOLINTBEGIN(bugprone-exception-escape)
 int main(int argc, char** argv)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTBEGIN(cert-err34-c)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -1974,3 +2013,18 @@ int main(int argc, char** argv)
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTEND(cert-err34-c)
+// NOLINTEND(bugprone-exception-escape)

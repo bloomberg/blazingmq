@@ -310,6 +310,7 @@ PropertyBag::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 // ----------------------
 
 void PropertyBagUtil::update(PropertyBag* dest, const PropertyBag& src)
+// NOLINTBEGIN(*-magic-numbers)
 {
     bdlma::LocalSequentialAllocator<1024>             arena;
     bsl::vector<bslma::ManagedPtr<PropertyBagValue> > values(&arena);
@@ -317,6 +318,7 @@ void PropertyBagUtil::update(PropertyBag* dest, const PropertyBag& src)
     src.loadAll(&values);
     dest->import(values);
 }
+// NOLINTEND(*-magic-numbers)
 
 }  // close package namespace
 }  // close enterprise namespace

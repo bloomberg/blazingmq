@@ -63,13 +63,17 @@ MessageIterator MessageEvent::messageIterator() const
 
     // Initialize the 'MessageIterator' to point to the iterator over the blob
     // this message event is linked to.
-    MessageIterator      mi;
+    MessageIterator mi;
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     MessageIteratorImpl& msgItImplRef = reinterpret_cast<MessageIteratorImpl&>(
         mi);
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     msgItImplRef.d_event_p = d_impl_sp.get();
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     MessageImpl& msgImplRef = reinterpret_cast<MessageImpl&>(
         msgItImplRef.d_message);
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     msgImplRef.d_event_p = d_impl_sp.get();
 
     return mi;

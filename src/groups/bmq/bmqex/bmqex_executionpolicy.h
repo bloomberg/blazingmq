@@ -116,6 +116,7 @@ namespace bmqex {
 /// Note that instances of this class should not be created explicitly,
 /// instead use the `ExecutionPolicyUtil` factory methods.
 template <class EXECUTOR = SystemExecutor>
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ExecutionPolicy {
   public:
     // TYPES
@@ -201,6 +202,7 @@ class ExecutionPolicy {
     /// Return the associated allocator.
     bslma::Allocator* allocator() const BSLS_KEYWORD_NOEXCEPT;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ==========================
 // struct ExecutionPolicyUtil

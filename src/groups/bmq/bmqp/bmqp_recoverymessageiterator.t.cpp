@@ -36,6 +36,7 @@ using namespace bsl;
 // ----------------------------------------------------------------------------
 namespace {
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 struct Data {
     // DATA
     bool d_isFinalChunk;
@@ -48,6 +49,7 @@ struct Data {
 
     bsl::string d_chunk;
 };
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 /// Populate specified `blob` with a RECOVERY event which has specified
 /// `numMsgs` recovery messages, update specified `eh` with corresponding
@@ -56,6 +58,7 @@ void populateBlob(bdlbb::Blob*       blob,
                   bmqp::EventHeader* eh,
                   bsl::vector<Data>* vec,
                   size_t             numMsgs)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     int eventLength = 0;
 
@@ -67,6 +70,7 @@ void populateBlob(bdlbb::Blob*       blob,
                             sizeof(bmqp::EventHeader));
     eventLength += sizeof(bmqp::EventHeader);
 
+    // NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-type-reinterpret-cast)
     for (size_t i = 0; i < numMsgs; ++i) {
         int  msgSize = 0;
         Data data;
@@ -106,12 +110,16 @@ void populateBlob(bdlbb::Blob*       blob,
 
         vec->push_back(data);
     }
+    // NOLINTEND(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-type-reinterpret-cast)
 
     // Set EventHeader length
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     bmqp::EventHeader* e = reinterpret_cast<bmqp::EventHeader*>(
         blob->buffer(0).data());
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     e->setLength(eventLength);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 void appendMessage(bdlbb::Blob*                      blob,
                    bmqp::EventHeader*                eh,
@@ -119,6 +127,7 @@ void appendMessage(bdlbb::Blob*                      blob,
                    bmqp::RecoveryFileChunkType::Enum chunkFileType,
                    unsigned int                      chunkSeqNum,
                    bool                              isFinal)
+// NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     int eventLength = 0;
 
@@ -154,10 +163,13 @@ void appendMessage(bdlbb::Blob*                      blob,
     eventLength += (rh.messageWords() * bmqp::Protocol::k_WORD_SIZE);
 
     // set EventHeader length
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     bmqp::EventHeader* e = reinterpret_cast<bmqp::EventHeader*>(
         blob->buffer(0).data());
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     e->setLength(eventLength);
 }
+// NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-type-reinterpret-cast)
 
 }  // close unnamed namespace
 
@@ -180,9 +192,11 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     {
         // Create invalid iter
@@ -193,6 +207,7 @@ static void test1_breathingTest()
     {
         // Create invalid iter from another invalid iter
         bmqp::RecoveryMessageIterator iter1;
+        // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
         bmqp::RecoveryMessageIterator iter2(iter1);
 
         BMQTST_ASSERT_EQ(false, iter1.isValid());
@@ -304,9 +319,11 @@ static void test2_multipleMessages()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     bsl::vector<Data> data(bmqtst::TestHelperUtil::allocator());
@@ -369,10 +386,13 @@ static void test3_corruptHeader()
 // Testing:
 //   Basic functionality
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-type-reinterpret-cast)
 {
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     const char*  p    = "abcdefgh";
@@ -434,6 +454,7 @@ static void test3_corruptHeader()
                                        // keep returning invalid
     BMQTST_ASSERT_EQ(false, iter.isValid());
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-type-reinterpret-cast)
 
 static void test4_corruptPayload()
 // ------------------------------------------------------------------------
@@ -446,10 +467,13 @@ static void test4_corruptPayload()
 // Testing:
 //   Basic functionality
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-type-reinterpret-cast)
 {
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     const int chunkLen = 1024 * 1024;  // valid, under max limit.
@@ -519,6 +543,7 @@ static void test4_corruptPayload()
                                        // keep returning invalid
     BMQTST_ASSERT_EQ(iter.isValid(), false);
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-type-reinterpret-cast)
 
 static void test5_emptyPayload()
 // ------------------------------------------------------------------------
@@ -531,10 +556,13 @@ static void test5_emptyPayload()
 // Testing:
 //   Basic functionality
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-type-reinterpret-cast)
 {
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     bmqp::EventHeader eh;
@@ -559,8 +587,10 @@ static void test5_emptyPayload()
                             rhdr.headerWords() * bmqp::Protocol::k_WORD_SIZE);
 
     // Set EventHeader length
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     bmqp::EventHeader* e = reinterpret_cast<bmqp::EventHeader*>(
         eventBlob.buffer(0).data());
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     e->setLength(sizeof(bmqp::EventHeader) +
                  (rhdr.messageWords() * bmqp::Protocol::k_WORD_SIZE));
 
@@ -585,8 +615,10 @@ static void test5_emptyPayload()
     BMQTST_ASSERT_EQ(iter.next(), 0);
     BMQTST_ASSERT_EQ(iter.isValid(), false);
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-type-reinterpret-cast)
 
 static void test6_nextMethod()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     // --------------------------------------------------------------------
     // NEXT
@@ -630,9 +662,11 @@ static void test6_nextMethod()
         PVV("ITERATOR INVALID STATE");
 
         // Create buffer factory and blob
+        // NOLINTBEGIN(*-magic-numbers)
         bdlbb::PooledBlobBufferFactory bufferFactory(
             1024,
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
@@ -657,9 +691,11 @@ static void test6_nextMethod()
                                   sizeof(bmqp::EventHeader);
 
         // Create buffer factory and blob
+        // NOLINTBEGIN(*-magic-numbers)
         bdlbb::PooledBlobBufferFactory bufferFactory(
             1024,
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
@@ -682,9 +718,11 @@ static void test6_nextMethod()
                                   sizeof(bmqp::EventHeader);
 
         // Create buffer factory and blob
+        // NOLINTBEGIN(*-magic-numbers)
         bdlbb::PooledBlobBufferFactory bufferFactory(
             1024,
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
@@ -710,9 +748,11 @@ static void test6_nextMethod()
                                   4;  // 4 is payload size due to populateBlob
 
         // Create buffer factory and blob
+        // NOLINTBEGIN(*-magic-numbers)
         bdlbb::PooledBlobBufferFactory bufferFactory(
             1024,
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
@@ -728,8 +768,10 @@ static void test6_nextMethod()
         BMQTST_ASSERT(!iter.isValid());
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test7_resetMethod()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     // --------------------------------------------------------------------
     // RESET
@@ -758,9 +800,11 @@ static void test7_resetMethod()
         PVV("INVALID EVENT HEADER");
         // Min buf size not to reproduce given rc
         const size_t enoughSize = sizeof(bmqp::EventHeader) + 1;
+        // NOLINTBEGIN(*-magic-numbers)
         bdlbb::PooledBlobBufferFactory bufferFactory(
             1024,
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
 
         // Create buffer factory and blob
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
@@ -779,6 +823,7 @@ static void test7_resetMethod()
         BMQTST_ASSERT(!iter.isValid());
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test8_dumpBlob()
 {
@@ -803,12 +848,14 @@ static void test8_dumpBlob()
     bmqtst::TestHelper::printTestName("DUMP BLOB");
 
     // Test iterator dump contains expected value
-    bmqp::EventHeader              eventHeader;
-    bsl::vector<Data>              data(bmqtst::TestHelperUtil::allocator());
-    bmqu::MemOutStream             stream(bmqtst::TestHelperUtil::allocator());
+    bmqp::EventHeader  eventHeader;
+    bsl::vector<Data>  data(bmqtst::TestHelperUtil::allocator());
+    bmqu::MemOutStream stream(bmqtst::TestHelperUtil::allocator());
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     // Populate blob
@@ -853,6 +900,7 @@ static void test8_dumpBlob()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -874,3 +922,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

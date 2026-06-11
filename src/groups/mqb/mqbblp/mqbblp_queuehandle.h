@@ -62,6 +62,7 @@ namespace mqbblp {
 // =================
 
 /// @todo Class documentation.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class QueueHandle : public mqbi::QueueHandle {
   private:
     // CLASS-SCOPE CATEGORY
@@ -87,6 +88,7 @@ class QueueHandle : public mqbi::QueueHandle {
     };
 
     /// Struct holding information associated to a substream of the queue
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct Subscription {
         // PUBLIC DATA
 
@@ -121,6 +123,7 @@ class QueueHandle : public mqbi::QueueHandle {
 
         const StatsSp& stats() const;
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     typedef bsl::shared_ptr<Subscription> SubscriptionSp;
     typedef bmqc::Array<bsl::shared_ptr<Downstream>,
@@ -129,6 +132,7 @@ class QueueHandle : public mqbi::QueueHandle {
 
     /// The purpose is to avoid memory allocation by bdlf::BindUtil::bind
     /// when dispatching CONFIRM from Cluster to Queue.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     class ConfirmFunctor : public bmqu::ManagedCallback::CallbackFunctor {
       private:
         // PRIVATE DATA
@@ -146,6 +150,7 @@ class QueueHandle : public mqbi::QueueHandle {
 
         void operator()() const BSLS_KEYWORD_OVERRIDE;
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
   public:
     // PUBLIC TYPES
@@ -541,6 +546,7 @@ class QueueHandle : public mqbi::QueueHandle {
     bmqp::SchemaLearner::Context&
     schemaLearnerContext() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -659,7 +665,7 @@ inline QueueHandle::Downstream::Downstream(const bsl::string& appId,
                                            bslma::Allocator* allocator_p)
 : d_appId(appId)
 , d_upstreamSubQueueId(upstreamSubQueueId)
-, d_data(new(*allocator_p)
+, d_data(new (*allocator_p)
              mqbi::QueueHandle::UnconfirmedMessageInfoMap(allocator_p),
          allocator_p)
 , d_stats_sp(stats)
@@ -667,6 +673,7 @@ inline QueueHandle::Downstream::Downstream(const bsl::string& appId,
     // NOTHING
 }
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 inline QueueHandle::ConfirmFunctor::ConfirmFunctor(
     QueueHandle*      owner,
     bmqt::MessageGUID guid,
@@ -677,6 +684,7 @@ inline QueueHandle::ConfirmFunctor::ConfirmFunctor(
 {
     // NOTHING
 }
+// NOLINTEND(performance-unnecessary-value-param)
 
 inline void QueueHandle::ConfirmFunctor::operator()() const
 {

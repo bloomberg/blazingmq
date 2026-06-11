@@ -57,6 +57,7 @@ namespace mqba {
 // ====================
 
 /// Mechanism to retrieve configuration information
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ConfigProvider {
   private:
     // CLASS-SCOPE CATEGORY
@@ -76,6 +77,7 @@ class ConfigProvider {
     // PRIVATE TYPES
 
     /// Struct to represent a configuration response entry in the cache.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct CacheEntry {
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(CacheEntry, bslma::UsesBslmaAllocator)
@@ -99,6 +101,7 @@ class ConfigProvider {
         /// Time after which this entry is no longer valid.
         bsls::TimeInterval d_expireTime;
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     typedef bsl::unordered_map<bsl::string,
                                CacheEntry,
@@ -180,6 +183,7 @@ class ConfigProvider {
     int processCommand(const mqbcmd::ConfigProviderCommand& command,
                        mqbcmd::Error*                       error);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

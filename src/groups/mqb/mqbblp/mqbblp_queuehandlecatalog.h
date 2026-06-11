@@ -58,8 +58,10 @@ class QueueHandle;
 namespace mqbblp {
 
 // FORWARD DECLARATION
+// NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
 class QueueState;
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct QueueHandleCatalog_SubStreamContext {
     bsl::string  d_appId;
     unsigned int d_subQueueId;
@@ -84,6 +86,7 @@ struct QueueHandleCatalog_SubStreamContext {
     {
     }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ========================
 // class QueueHandleCatalog
@@ -91,6 +94,7 @@ struct QueueHandleCatalog_SubStreamContext {
 
 /// Mechanism to hold and manipulate QueueHandle objects associated to a
 /// Queue.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class QueueHandleCatalog {
   private:
     // CLASS-SCOPE CATEGORY
@@ -240,6 +244,7 @@ class QueueHandleCatalog {
 
     bsls::Types::Int64 countUnconfirmed() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                            INLINE DEFINITIONS

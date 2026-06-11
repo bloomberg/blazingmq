@@ -52,6 +52,7 @@ PostingContext::PostingContext(
 , d_session_p(session)
 , d_fileLogger(fileLogger)
 , d_statContext_p(statContext)
+// NOLINTNEXTLINE(*-narrowing-conversions)
 , d_remainingEvents(d_parameters.eventsCount())
 , d_numMessagesPosted(0)
 , d_blob(bufferFactory, d_allocator_p)
@@ -85,6 +86,7 @@ PostingContext::PostingContext(
         // Initialize a buffer of the right published size, with
         // alphabet's letters
         for (int i = 0; i < msgPayloadSize; ++i) {
+            // NOLINTNEXTLINE(*-magic-numbers)
             char c = static_cast<char>('A' + i % 26);
             bdlbb::BlobUtil::append(&d_blob, &c, 1);
         }
@@ -116,6 +118,7 @@ void PostingContext::postNext()
         }
 
         eventBuilder.reset();
+        // NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-vararg)
         for (bsl::uint64_t msgId = 0; msgId < d_parameters.eventSize();
              ++msgId, ++d_numMessagesPosted) {
             bmqa::Message& msg    = eventBuilder.startMessage();
@@ -199,6 +202,7 @@ void PostingContext::postNext()
             }
             d_statContext_p->adjustValue(k_STAT_MSG, length);
         }
+        // NOLINTEND(*-avoid-c-arrays,*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-vararg)
 
         // Now publish the event
         const bmqa::MessageEvent& messageEvent = eventBuilder.messageEvent();
@@ -221,8 +225,10 @@ void PostingContext::postNext()
         }
 
         const bsl::shared_ptr<bmqimp::Event>& eventImpl =
+            // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
             reinterpret_cast<const bsl::shared_ptr<bmqimp::Event>&>(
                 messageEvent);
+        // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
         d_statContext_p->adjustValue(k_STAT_EVT,
                                      eventImpl->rawEvent().blob()->length());
 
@@ -236,6 +242,7 @@ Poster::Poster(FileLogger*         fileLogger,
                bmqst::StatContext* statContext,
                bslma::Allocator*   allocator)
 : d_allocator_p(bslma::Default::allocator(allocator))
+// NOLINTNEXTLINE(*-magic-numbers)
 , d_bufferFactory(4096, d_allocator_p)
 , d_timeBufferFactory(sizeof(bdlb::BigEndianInt64), d_allocator_p)
 , d_statContext(statContext)

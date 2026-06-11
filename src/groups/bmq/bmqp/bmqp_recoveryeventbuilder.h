@@ -84,6 +84,7 @@ namespace bmqp {
 // ==========================
 
 /// Mechanism to build a BlazingMQ RECOVERY event
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class RecoveryEventBuilder BSLS_CPP11_FINAL {
   public:
     // TYPES
@@ -159,6 +160,7 @@ class RecoveryEventBuilder BSLS_CPP11_FINAL {
     /// passed and kept in another thread while this builder object is used.
     const bsl::shared_ptr<bdlbb::Blob>& blob() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                            INLINE DEFINITIONS

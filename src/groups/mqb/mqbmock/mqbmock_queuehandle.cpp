@@ -50,18 +50,23 @@ void QueueHandle::assertConsistentSubStreamInfo(const bsl::string& appId,
                                                 unsigned int subQueueId) const
 {
     // Consistency
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const bool isDefaultSubStream = appId ==
                                         bmqp::ProtocolUtil::k_DEFAULT_APP_ID &&
                                     subQueueId ==
                                         bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID;
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const bool isFanoutConsumerSubStream =
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         appId != bmqp::ProtocolUtil::k_DEFAULT_APP_ID &&
         subQueueId != bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID;
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     BSLS_ASSERT_OPT(isDefaultSubStream || isFanoutConsumerSubStream);
 }
 
 unsigned int
 QueueHandle::subscription2downstreamSubQueueId(unsigned int sId) const
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     Subscriptions::const_iterator cit = d_subscriptions.find(sId);
     unsigned int                  downstreamSubQueueId;
@@ -69,8 +74,10 @@ QueueHandle::subscription2downstreamSubQueueId(unsigned int sId) const
     if (cit == d_subscriptions.end()) {
         // To assist those tests which do not bother to configureQueue after
         // OpenQueue, assume this is about bmqp::ProtocolUtil::k_DEFAULT_APP_ID
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         SubStreams::const_iterator citInfo = d_subStreamInfos.find(
             bmqp::ProtocolUtil::k_DEFAULT_APP_ID);
+        // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         BSLS_ASSERT_OPT(citInfo != d_subStreamInfos.end());
 
         downstreamSubQueueId = citInfo->second.d_downstreamSubQueueId;
@@ -81,6 +88,7 @@ QueueHandle::subscription2downstreamSubQueueId(unsigned int sId) const
 
     return downstreamSubQueueId;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 // CREATORS
 QueueHandle::QueueHandle(
@@ -100,12 +108,14 @@ QueueHandle::QueueHandle(
 , d_schemaLearnerContext(
       d_queue_sp ? d_queue_sp->schemaLearner().createContext() : 0)
 , d_allocator_p(allocator)
+// NOLINTBEGIN(clang-analyzer-optin.cplusplus.VirtualCall)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(d_queue_sp && "'queue' must not be 0");
 
     setHandleParameters(handleParameters);
 }
+// NOLINTEND(clang-analyzer-optin.cplusplus.VirtualCall)
 
 QueueHandle::~QueueHandle()
 {
@@ -401,8 +411,9 @@ int QueueHandle::transferUnconfirmedMessageGUID(
     Downstreams::iterator mapIter = d_downstreams.find(subQueueId);
     BSLS_ASSERT_OPT(mapIter != d_downstreams.end());
 
-    GUIDMap& guids  = mapIter->second.d_unconfirmedMessages;
-    int      result = guids.size();
+    GUIDMap& guids = mapIter->second.d_unconfirmedMessages;
+    // NOLINTNEXTLINE(*-narrowing-conversions)
+    int result = guids.size();
 
     if (out) {
         for (GUIDMap::const_iterator msgIter = guids.begin();
@@ -443,12 +454,14 @@ mqbi::QueueHandle* QueueHandle::setStreamParameters(
 // MANIPULATORS
 //   (specific to mqbmock::QueueHandle)
 QueueHandle& QueueHandle::_setCanDeliver(bool value)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(d_queue_sp && "Queue has not been set");
 
     return _setCanDeliver(bmqp::ProtocolUtil::k_DEFAULT_APP_ID, value);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 QueueHandle& QueueHandle::_setCanDeliver(const bsl::string& appId, bool value)
 {
@@ -569,12 +582,14 @@ bsls::Types::Int64 QueueHandle::countUnconfirmed() const
 {
     bsls::Types::Int64 result = 0;
 
+    // NOLINTBEGIN(*-narrowing-conversions)
     for (Downstreams::const_iterator itStream = d_downstreams.begin();
          itStream != d_downstreams.end();
          ++itStream) {
         const Downstream& downstream = itStream->second;
         result += downstream.d_unconfirmedMessages.size();
     }
+    // NOLINTEND(*-narrowing-conversions)
     return result;
 }
 
@@ -656,6 +671,7 @@ bsl::string QueueHandle::_messages(const bsl::string& appId) const
 }
 
 int QueueHandle::_numMessages(const bsl::string& appId) const
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     SubStreams::const_iterator citInfo = d_subStreamInfos.find(appId);
 
@@ -672,6 +688,7 @@ int QueueHandle::_numMessages(const bsl::string& appId) const
 
     return cit->second.d_unconfirmedMessages.size();
 }
+// NOLINTEND(*-narrowing-conversions)
 
 size_t QueueHandle::_numActiveSubstreams() const
 {
@@ -691,6 +708,7 @@ const bsl::string QueueHandle::_appIds() const
 
     bsl::sort(appIds.begin(), appIds.end());
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     for (size_t i = 0; i < appIds.size(); ++i) {
         if (i != 0) {
             out << ",";
@@ -704,6 +722,7 @@ const bsl::string QueueHandle::_appIds() const
             out << appIds[i];
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     return out.str();
 }

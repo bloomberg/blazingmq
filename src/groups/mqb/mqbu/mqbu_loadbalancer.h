@@ -82,6 +82,7 @@ namespace mqbu {
 
 /// Load-balance objects of type `TYPE` across processors.
 template <class TYPE>
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class LoadBalancer {
   private:
     // PRIVATE TYPES
@@ -162,6 +163,7 @@ class LoadBalancer {
     /// processorsCount()'.
     int clientsCountForProcessor(int processorId) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

@@ -62,6 +62,7 @@ namespace mqbmock {
 // ================
 
 /// Mock dispatcher implementation of the `mqbi::Dispatcher` protocol.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
   private:
     // TYPES
@@ -258,12 +259,14 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
     /// Execute all queued functors in the calling thread.
     void processQueue();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ======================
 // class DispatcherClient
 // ======================
 
 /// Interface for a client of the Dispatcher.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class DispatcherClient : public mqbi::DispatcherClient {
     // DATA
     mqbi::DispatcherClientData d_dispatcherClientData;
@@ -317,6 +320,7 @@ class DispatcherClient : public mqbi::DispatcherClient {
     /// Return a printable description of the client (e.g., for logging).
     bsl::string_view description() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

@@ -53,6 +53,7 @@ namespace mqbmock {
 // =================================
 
 /// Mock implementation of `mqbc::ClusterStateLedgerIterator` interface.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ClusterStateLedgerIterator BSLS_KEYWORD_FINAL
 : public mqbc::ClusterStateLedgerIterator {
   public:
@@ -156,6 +157,7 @@ class ClusterStateLedgerIterator BSLS_KEYWORD_FINAL
                         int           level = 0,
                         int spacesPerLevel  = 4) const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 
@@ -183,6 +185,7 @@ inline ClusterStateLedgerIterator::ClusterStateLedgerIterator(
     // NOTHING
 }
 
+// NOLINTBEGIN(cert-oop54-cpp)
 inline ClusterStateLedgerIterator&
 ClusterStateLedgerIterator::operator=(const ClusterStateLedgerIterator& rhs)
 {
@@ -193,6 +196,7 @@ ClusterStateLedgerIterator::operator=(const ClusterStateLedgerIterator& rhs)
 
     return *this;
 }
+// NOLINTEND(cert-oop54-cpp)
 
 // MANIPULATORS
 //   (virtual mqbc::ClusterStateLedgerIterator)

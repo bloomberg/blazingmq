@@ -34,6 +34,7 @@ using namespace bsl;
 // ----------------------------------------------------------------------------
 
 static void test1_toAscii()
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("TO ASCII");
 
@@ -41,6 +42,7 @@ static void test1_toAscii()
         int         d_line;
         int         d_value;
         const char* d_expected;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {{L_, 1, "RAW"},
                   {L_, 2, "BER"},
                   {L_, 3, "BDEX"},
@@ -48,10 +50,13 @@ static void test1_toAscii()
                   {L_, 5, "JSON"},
                   {L_, 6, "TEXT"},
                   {L_, 7, "MULTIPARTS"}};
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         bsl::string ascii(bmqtst::TestHelperUtil::allocator());
@@ -60,8 +65,10 @@ static void test1_toAscii()
         BMQTST_ASSERT_EQ_D(test.d_line, ascii, test.d_expected);
     }
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test2_fromAscii()
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("FROM ASCII");
 
@@ -70,6 +77,7 @@ static void test2_fromAscii()
         const char* d_input;
         bool        d_isValid;
         int         d_expected;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {{L_, "RAW", true, 1},
                   {L_, "BER", true, 2},
                   {L_, "BDEX", true, 3},
@@ -78,12 +86,16 @@ static void test2_fromAscii()
                   {L_, "TEXT", true, 6},
                   {L_, "MULTIPARTS", true, 7},
                   {L_, "invalid", false, -1}};
+    // NOLINTEND(*-magic-numbers)
     // NOTE: Using the 'integer' value instead of the enum to ensure the
     //       numeric values are *never* changed.
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(cppcoreguidelines-init-variables)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         bmqu::MemOutStream errorDescription(
@@ -100,9 +112,12 @@ static void test2_fromAscii()
             BMQTST_ASSERT_EQ_D(test.d_line, obj, test.d_expected);
         }
     }
+    // NOLINTEND(cppcoreguidelines-init-variables)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test3_isomorphism()
+// NOLINTBEGIN(cppcoreguidelines-init-variables,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("ISOMORPHISM");
 
@@ -123,8 +138,10 @@ static void test3_isomorphism()
     str = bmqt::EncodingType::toAscii(obj);
     BMQTST_ASSERT_EQ(str, "MULTIPARTS");
 }
+// NOLINTEND(cppcoreguidelines-init-variables,performance-avoid-endl)
 
 static void test4_printTest()
+// NOLINTBEGIN(*-avoid-c-arrays,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("PRINT");
 
@@ -148,9 +165,11 @@ static void test4_printTest()
                   {bmqt::EncodingType::e_TEXT, "TEXT"},
                   {bmqt::EncodingType::e_MULTIPARTS, "MULTIPARTS"}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
@@ -174,12 +193,14 @@ static void test4_printTest()
         BMQTST_ASSERT_EQ(out.str(), expected.str());
     }
 }
+// NOLINTEND(*-avoid-c-arrays,performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -197,3 +218,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

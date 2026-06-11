@@ -44,6 +44,7 @@ PayloadDumper::PayloadDumper(bsl::ostream&           ostream,
 }
 
 void PayloadDumper::outputPayload(bsls::Types::Uint64 messageOffsetDwords)
+// NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     const bsls::Types::Uint64 recordOffset = messageOffsetDwords *
                                              bmqp::Protocol::k_DWORD_SIZE;
@@ -55,6 +56,7 @@ void PayloadDumper::outputPayload(bsls::Types::Uint64 messageOffsetDwords)
         it->flipDirection();
     }
     // Search record in data file
+    // NOLINTBEGIN(performance-avoid-endl)
     while (it->recordOffset() != recordOffset) {
         const int rc = it->nextRecord();
 
@@ -64,6 +66,7 @@ void PayloadDumper::outputPayload(bsls::Types::Uint64 messageOffsetDwords)
             return;  // RETURN
         }
     }
+    // NOLINTEND(performance-avoid-endl)
 
     bmqu::MemOutStream dataHeaderOsstr(d_allocator_p);
     bmqu::MemOutStream optionsOsstr(d_allocator_p);
@@ -128,6 +131,7 @@ void PayloadDumper::outputPayload(bsls::Types::Uint64 messageOffsetDwords)
 
     d_ostream << "\nPayload: " << '\n' << payloadOsstr.str() << '\n';
 }
+// NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 
 }  // close package namespace
 }  // close enterprise namespace

@@ -97,6 +97,7 @@ int QueueFlagsUtil::fromString(bsl::ostream&        errorDescription,
     *out   = 0;
 
     bdlb::Tokenizer tokenizer(str, ",");
+    // NOLINTBEGIN(cppcoreguidelines-init-variables)
     for (bdlb::TokenizerIterator it = tokenizer.begin(); it != tokenizer.end();
          ++it) {
         QueueFlags::Enum value;
@@ -113,6 +114,7 @@ int QueueFlagsUtil::fromString(bsl::ostream&        errorDescription,
             *out |= value;
         }
     }
+    // NOLINTEND(cppcoreguidelines-init-variables)
 
     return rc;
 }

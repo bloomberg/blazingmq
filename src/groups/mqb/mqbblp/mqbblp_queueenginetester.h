@@ -161,6 +161,7 @@ namespace mqbblp {
 /// payloads (message GUIDs are abstracted away from users of this class).
 /// Hence, message payloads are unique across the lifetime of an object of
 /// this class.
+// NOLINTBEGIN(cppcoreguidelines-non-private-member-variables-in-classes,cppcoreguidelines-special-member-functions)
 class QueueEngineTester {
   private:
     // CLASS-SCOPE CATEGORY
@@ -501,6 +502,7 @@ class QueueEngineTester {
     /// `messages`.
     bsl::string getMessages(bsl::string messages, bsl::string indices) const;
 };
+// NOLINTEND(cppcoreguidelines-non-private-member-variables-in-classes,cppcoreguidelines-special-member-functions)
 
 // ============================
 // class QueueEngineTesterGuard
@@ -512,6 +514,7 @@ class QueueEngineTester {
 /// release, and necessary cleanup (e.g. invoking `dropHandles()` upon
 /// destruction) for the QueueEngineTester under management.
 template <class QUEUE_ENGINE_TYPE>
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class QueueEngineTesterGuard {
   private:
     // DATA
@@ -555,6 +558,7 @@ class QueueEngineTesterGuard {
     /// managed.
     QUEUE_ENGINE_TYPE* engine() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ================
 // struct TestClock

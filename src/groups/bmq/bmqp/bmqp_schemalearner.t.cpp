@@ -76,15 +76,18 @@ static void test1_multiplexingTest()
 }
 
 static void test2_readingTest()
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // Simulate ClientSession receiving, translating, and reading MPs
     // in Broker's context.
     // The resulting schema must be the same until recycling is indicated.
     //
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         128,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner::Context queueEngine(theLearner.createContext());
     bmqp::SchemaLearner::Context clientSession(theLearner.createContext());
@@ -123,6 +126,7 @@ static void test2_readingTest()
                      out.makeSchema(bmqtst::TestHelperUtil::allocator()));
     // subsequent call returns the same Schema
 
+    // NOLINTNEXTLINE(cert-msc30-c,cert-msc50-cpp)
     int start = bsl::rand() % num;
 
     for (int i = 0; i < num; ++i) {
@@ -167,15 +171,18 @@ static void test2_readingTest()
 
     BMQTST_ASSERT(!schema2->loadIndex(&index, "a"));
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 static void test3_observingTest()
 {
     // While reading the same MPs in the same context, the result must be the
     // same until observing recycling indication.
     //
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         128,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner::Context server(theLearner.createContext());
 
@@ -222,9 +229,11 @@ static void test4_demultiplexingTest()
     // Demultiplexing (PUSH) indicates recycling first, then no recycling until
     // multiplexing (PUT) indicates recycling.
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         128,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner::Context queueHandle(theLearner.createContext());
 
@@ -254,9 +263,11 @@ static void test5_emptyMPs()
 
     bmqtst::TestHelper::printTestName("'empty MPs' TEST");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         128,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner::Context context(theLearner.createContext());
 
@@ -277,12 +288,15 @@ static void test5_emptyMPs()
 }
 
 static void test6_partialRead()
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     // Read known schema partially.  Change one property and then continue
     // reading.
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         128,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner::Context context(theLearner.createContext());
 
@@ -358,27 +372,34 @@ static void test6_partialRead()
         BMQTST_ASSERT_EQ(out4.getPropertyAsString("z"), z);
     }
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 static void test7_removeBeforeRead()
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     // Read known schema partially.  Remove one property and then continue
     // reading.
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         128,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner::Context context(theLearner.createContext());
 
     bmqp::MessageProperties     in(bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo input(true, 1, false);
 
-    const int   numProps       = 3;
+    const int numProps = 3;
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     const char* name[numProps] = {"x", "y", "z"};
     const char  mod[]          = "mod";
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     for (int iProperty = 0; iProperty < numProps; ++iProperty) {
         in.setPropertyAsString(name[iProperty], name[iProperty]);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
     const bdlbb::Blob       blob = in.streamOut(&bufferFactory, input);
     bmqp::MessageProperties out1(bmqtst::TestHelperUtil::allocator());
@@ -386,7 +407,9 @@ static void test7_removeBeforeRead()
     BMQTST_ASSERT_EQ(0, theLearner.read(context, &out1, input, blob));
 
     for (int iProperty = 0; iProperty < numProps; ++iProperty) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const char* current = name[iProperty];
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index,performance-avoid-endl)
         for (int iScenario = 0; iScenario < 3; ++iScenario) {
             bmqp::MessageProperties out2(bmqtst::TestHelperUtil::allocator());
 
@@ -417,6 +440,7 @@ static void test7_removeBeforeRead()
 
             BMQTST_ASSERT(!out2.hasProperty(current));
 
+            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
             for (int i = 0; i < numProps; ++i) {
                 if (i == iProperty) {
                     BMQTST_ASSERT(!out2.hasProperty(name[i]));
@@ -426,6 +450,7 @@ static void test7_removeBeforeRead()
                                      name[i]);
                 }
             }
+            // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
             bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
             out2.print(os, 0, -1);
@@ -448,6 +473,7 @@ static void test7_removeBeforeRead()
                                  static_cast<int>(bsl::strlen(current)),
                              out2.totalSize());
 
+            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
             for (int i = 0; i < numProps; ++i) {
                 if (i == iProperty) {
                     BMQTST_ASSERT_EQ(out2.getPropertyAsString(name[i]), mod);
@@ -457,6 +483,7 @@ static void test7_removeBeforeRead()
                                      name[i]);
                 }
             }
+            // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
             {
                 bmqp::MessagePropertiesIterator it(&out2);
@@ -467,14 +494,17 @@ static void test7_removeBeforeRead()
                 BMQTST_ASSERT(!it.hasNext());
             }
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index,performance-avoid-endl)
     }
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -495,3 +525,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

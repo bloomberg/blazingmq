@@ -55,6 +55,7 @@ static void test1_hasBmqHeader()
 // Testing:
 //   static int hasBmqHeader(const MemoryBlock& block);
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("HAS BlazingMQ HEADER");
 
@@ -105,9 +106,12 @@ static void test1_hasBmqHeader()
 
     {
         // All good
+        // NOLINTBEGIN(*-magic-numbers)
         char* p = static_cast<char*>(
             bmqtst::TestHelperUtil::allocator()->allocate(sizeof(FileHeader) +
                                                           100));
+        // NOLINTEND(*-magic-numbers)
+        // NOLINTNEXTLINE(*-magic-numbers)
         MemoryBlock          block(p, sizeof(FileHeader) + 100);
         MappedFileDescriptor mfd;
         mfd.setBlock(block);
@@ -120,12 +124,14 @@ static void test1_hasBmqHeader()
         bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test2_lastJournalRecord()
 // ------------------------------------------------------------------------
 // Testing:
 //   lastJournalRecord()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,clang-analyzer-deadcode.DeadStores)
 {
     using namespace mqbs;
 
@@ -135,8 +141,10 @@ static void test2_lastJournalRecord()
 
         const unsigned int  numRecords = 10;
         bsls::Types::Uint64 blockSize =
+            // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
             sizeof(FileHeader) + sizeof(JournalFileHeader) +
             (numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+        // NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
         char* p = static_cast<char*>(
             bmqtst::TestHelperUtil::allocator()->allocate(blockSize));
@@ -155,6 +163,7 @@ static void test2_lastJournalRecord()
         new (jfh.get()) JournalFileHeader();
         currPos += sizeof(JournalFileHeader);
 
+        // NOLINTBEGIN(*-magic-numbers)
         for (unsigned int i = 0; i < numRecords; ++i) {
             OffsetPtr<DeletionRecord> rec(block, currPos);
             new (rec.get()) DeletionRecord();
@@ -168,8 +177,10 @@ static void test2_lastJournalRecord()
             }
             currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
         }
+        // NOLINTEND(*-magic-numbers)
 
         bsls::Types::Uint64 lastRecordPos =
+            // NOLINTNEXTLINE(bugprone-implicit-widening-of-multiplication-result)
             currPos - (2 * FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
 
         BMQTST_ASSERT_EQ(lastRecordPos,
@@ -187,8 +198,10 @@ static void test2_lastJournalRecord()
         bsls::Types::Uint64 lastJournalSyncPoint = 1000;
 
         bsls::Types::Uint64 blockSize =
+            // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
             lastJournalSyncPoint +
             (2 * FileStoreProtocol::k_JOURNAL_RECORD_SIZE) - 1;
+        // NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
         char* p = static_cast<char*>(
             bmqtst::TestHelperUtil::allocator()->allocate(blockSize));
@@ -215,8 +228,10 @@ static void test2_lastJournalRecord()
         unsigned int        numRecords           = 50;
 
         bsls::Types::Uint64 blockSize =
+            // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
             lastJournalSyncPoint +
             (numRecords + 1) * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+        // NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
         bsls::Types::Uint64 currPos = lastJournalSyncPoint +
                                       FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
@@ -284,12 +299,14 @@ static void test2_lastJournalRecord()
         bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
 }
+// NOLINTEND(*-magic-numbers,clang-analyzer-deadcode.DeadStores)
 
 static void test3_lastJournalSyncPoint()
 // ------------------------------------------------------------------------
 // Testing:
 //   lastJournalSyncPoint()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     using namespace mqbs;
 
@@ -299,8 +316,10 @@ static void test3_lastJournalSyncPoint()
 
         const unsigned int  numRecords = 10;
         bsls::Types::Uint64 blockSize =
+            // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
             sizeof(FileHeader) + sizeof(JournalFileHeader) +
             numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+        // NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
         char* p = static_cast<char*>(
             bmqtst::TestHelperUtil::allocator()->allocate(blockSize));
@@ -336,8 +355,10 @@ static void test3_lastJournalSyncPoint()
 
         const unsigned int  numRecords = 0;
         bsls::Types::Uint64 blockSize =
+            // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
             sizeof(FileHeader) + sizeof(JournalFileHeader) +
             numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+        // NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
         char* p = static_cast<char*>(
             bmqtst::TestHelperUtil::allocator()->allocate(blockSize));
@@ -368,8 +389,10 @@ static void test3_lastJournalSyncPoint()
 
         const unsigned int  numRecords = 10;
         bsls::Types::Uint64 blockSize =
+            // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
             sizeof(FileHeader) + sizeof(JournalFileHeader) +
             numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+        // NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
         char* p = static_cast<char*>(
             bmqtst::TestHelperUtil::allocator()->allocate(blockSize));
@@ -390,6 +413,7 @@ static void test3_lastJournalSyncPoint()
 
         bsls::Types::Uint64 syncPointPos = 0;
 
+        // NOLINTBEGIN(*-magic-numbers)
         for (unsigned int i = 0; i < numRecords; ++i) {
             if (6 == i) {
                 // 7th record is sync point
@@ -417,6 +441,7 @@ static void test3_lastJournalSyncPoint()
             }
             currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
         }
+        // NOLINTEND(*-magic-numbers)
 
         BMQTST_ASSERT_EQ(
             syncPointPos,
@@ -430,8 +455,10 @@ static void test3_lastJournalSyncPoint()
 
         const unsigned int  numRecords = 1;
         bsls::Types::Uint64 blockSize =
+            // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
             sizeof(FileHeader) + sizeof(JournalFileHeader) +
             numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+        // NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
         char* p = static_cast<char*>(
             bmqtst::TestHelperUtil::allocator()->allocate(blockSize));
@@ -470,8 +497,10 @@ static void test3_lastJournalSyncPoint()
 
         const unsigned int  numRecords = 1;
         bsls::Types::Uint64 blockSize =
+            // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
             sizeof(FileHeader) + sizeof(JournalFileHeader) +
             numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+        // NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
         char* p = static_cast<char*>(
             bmqtst::TestHelperUtil::allocator()->allocate(blockSize));
@@ -491,6 +520,7 @@ static void test3_lastJournalSyncPoint()
         currPos += sizeof(JournalFileHeader);
 
         bsls::Types::Uint64 syncPointPos = 0;
+        // NOLINTBEGIN(*-magic-numbers)
         for (unsigned int i = 0; i < numRecords; ++i) {
             // Must be sync point record
             OffsetPtr<JournalOpRecord> rec(block, currPos);
@@ -508,6 +538,7 @@ static void test3_lastJournalSyncPoint()
             syncPointPos = currPos;
             currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
         }
+        // NOLINTEND(*-magic-numbers)
 
         BMQTST_ASSERT_EQ(
             syncPointPos,
@@ -515,12 +546,14 @@ static void test3_lastJournalSyncPoint()
         bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void test4_loadAppInfos()
 // ------------------------------------------------------------------------
 // Testing:
 //   loadAppInfos()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     typedef mqbi::Storage::AppInfos AppInfos;
 
@@ -574,6 +607,7 @@ static void test4_loadAppInfos()
         mqbu::StorageKey appKey(mqbu::StorageKey::BinaryRepresentation(),
                                 "abcde");
 
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         char appHash[mqbs::FileStoreProtocol::k_HASH_LENGTH] = {0};
         bsl::memcpy(appHash,
                     appKey.data(),
@@ -608,14 +642,17 @@ static void test4_loadAppInfos()
         bsl::vector<size_t> numPaddingBytesVec(alloc);
 
         for (int n = 0; n < numAppIds; ++n) {
+            // NOLINTNEXTLINE(*-magic-numbers)
             size_t appIdLen = (n + 1) * 9 + 3;
             appIdLenVec.push_back(appIdLen);  // "random" value
 
-            int    numPaddingBytes = 0;
-            size_t paddedAppIdLen  = 4 *
+            int numPaddingBytes = 0;
+            // NOLINTBEGIN(*-narrowing-conversions,bugprone-implicit-widening-of-multiplication-result)
+            size_t paddedAppIdLen = 4 *
                                     bmqp::ProtocolUtil::calcNumWordsAndPadding(
                                         &numPaddingBytes,
                                         appIdLen);
+            // NOLINTEND(*-narrowing-conversions,bugprone-implicit-widening-of-multiplication-result)
             paddedAppIdLenVec.push_back(paddedAppIdLen);
             numPaddingBytesVec.push_back(numPaddingBytes);
 
@@ -627,9 +664,11 @@ static void test4_loadAppInfos()
         size_t   offset = 0;
         AppInfos expectedAppInfos(alloc);
 
+        // NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (int n = 0; n < numAppIds; ++n) {
             // Append AppIdHeader.
 
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             mqbs::MemoryBlock block(p + offset, sizeof(mqbs::AppIdHeader));
             mqbs::OffsetPtr<mqbs::AppIdHeader> headerPtr(block, 0);
 
@@ -650,12 +689,16 @@ static void test4_loadAppInfos()
             offset += numPaddingBytesVec[n];
 
             // Append AppKey (app hash to be precise).
+            // NOLINTNEXTLINE(*-avoid-c-arrays)
             char appKeyBuf[mqbu::StorageKey::e_KEY_LENGTH_BINARY] = {
                 static_cast<char>(n + 1)};
 
+            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
             mqbu::StorageKey appKey(mqbu::StorageKey::BinaryRepresentation(),
                                     appKeyBuf);
+            // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
+            // NOLINTNEXTLINE(*-avoid-c-arrays)
             char appHash[mqbs::FileStoreProtocol::k_HASH_LENGTH] = {0};
             bsl::memcpy(appHash,
                         appKey.data(),
@@ -671,6 +714,7 @@ static void test4_loadAppInfos()
             expectedAppInfos.insert(appInfo);
             offset += mqbs::FileStoreProtocol::k_HASH_LENGTH;
         }
+        // NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
         // Test.
         mqbs::MemoryBlock mb(p, totalSize);
         AppInfos          appIdKeyPairs(alloc);
@@ -690,6 +734,7 @@ static void test4_loadAppInfos()
         alloc->deallocate(p);
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
 
 namespace {
 
@@ -709,11 +754,14 @@ static void bytesFromHex(bsl::string* destination, const bsl::string& source)
     destination->clear();
     destination->reserve(source.size() / 2);
     bsl::string::const_iterator src = source.begin();
+    // NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     while (src != source.end() && (src + 1) != source.end()) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         bslstl::StringRef sub(src, src + 2);
         destination->push_back(static_cast<char>(bsl::stoi(sub, 0, 16)));
         src += 2;
     }
+    // NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 static void jobForThreadPool(const Results* testData, bslmt::Barrier* barrier)
@@ -723,13 +771,17 @@ static void jobForThreadPool(const Results* testData, bslmt::Barrier* barrier)
 // used to start all the jobs simultaneously in the different threads.
 // ------------------------------------------------------------------------
 {
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory factory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqu::BlobPosition startPos;
 
     barrier->wait();
+    // NOLINTBEGIN(*-magic-numbers)
     for (int i = 0; i < 1000; ++i) {
+        // NOLINTBEGIN(*-narrowing-conversions)
         for (ResultsIt r = testData->begin(); r != testData->end(); ++r) {
             const bsl::string& source = r->first;
             const bsl::string& hex    = r->second;
@@ -757,7 +809,9 @@ static void jobForThreadPool(const Results* testData, bslmt::Barrier* barrier)
                                bmqtst::TestHelperUtil::allocator());
             BMQTST_ASSERT_EQ(result, expected);
         }
+        // NOLINTEND(*-narrowing-conversions)
     }
+    // NOLINTEND(*-magic-numbers)
 }
 
 }  // close unnamed namespace
@@ -767,6 +821,7 @@ static void test5_calculateMd5Digest()
 // Testing:
 //   calculateMd5Digest()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     bmqtst::TestHelper::printTestName("CALCULATE MD5 DIGEST");
 
@@ -777,10 +832,12 @@ static void test5_calculateMd5Digest()
     bsl::string md5b(bmqtst::TestHelperUtil::allocator());
     bytesFromHex(&md5b, md5);
 
-    bmqu::BlobPosition             startPos;
+    bmqu::BlobPosition startPos;
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory myFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob blob(&myFactory, bmqtst::TestHelperUtil::allocator());
     blob.setLength(data.size());
     bsl::memcpy(blob.buffer(0).data(), data.c_str(), data.size());
@@ -864,26 +921,31 @@ static void test5_calculateMd5Digest()
 
     {
         // Correct MD5 in few buffers
-        const bsl::size_t bufferSize   = data.size() / 3;
-        int               expected_num = data.size() / bufferSize;
+        const bsl::size_t bufferSize = data.size() / 3;
+        // NOLINTNEXTLINE(*-narrowing-conversions)
+        int expected_num = data.size() / bufferSize;
         if (data.size() % bufferSize > 0) {
             ++expected_num;
         }
+        // NOLINTBEGIN(*-narrowing-conversions)
         bdlbb::PooledBlobBufferFactory myLittleFactory(
             bufferSize,
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-narrowing-conversions)
         bdlbb::Blob chunkedBlob(&myLittleFactory,
                                 bmqtst::TestHelperUtil::allocator());
         chunkedBlob.setLength(data.size());
         const int num = chunkedBlob.numBuffers();
 
         BMQTST_ASSERT_EQ(expected_num, num);
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (int index = 0; index < num; ++index) {
             bsl::memcpy(chunkedBlob.buffer(index).data(),
                         data.c_str() + index * bufferSize,
                         bsl::min(bufferSize,
                                  data.size() - index * bufferSize));
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
         bdlde::Md5::Md5Digest buffer;
 
@@ -924,7 +986,8 @@ static void test5_calculateMd5Digest()
         const bsl::size_t numThreads = correctMd5s.size();
 
         bslmt::ThreadGroup threadGroup(bmqtst::TestHelperUtil::allocator());
-        bslmt::Barrier     barrier(numThreads + 1);
+        // NOLINTNEXTLINE(*-narrowing-conversions)
+        bslmt::Barrier barrier(numThreads + 1);
 
         for (bsl::size_t i = 0; i < numThreads; ++i) {
             int rc = threadGroup.addThread(
@@ -938,12 +1001,20 @@ static void test5_calculateMd5Digest()
         threadGroup.joinAll();
     }
 }
+// NOLINTEND(*-narrowing-conversions)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
+// NOLINTBEGIN(bugprone-exception-escape)
 int main(int argc, char* argv[])
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTBEGIN(cert-err34-c)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -965,3 +1036,10 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_ALLOC);
 }
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTEND(cert-err34-c)
+// NOLINTEND(bugprone-exception-escape)

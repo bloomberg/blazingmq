@@ -101,6 +101,7 @@ static void test1_breathingTest()
 // Testing:
 //   Basic functionality
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -108,6 +109,7 @@ static void test1_breathingTest()
 
     const char k_URI[] = "bmq://ts.trades.myapp/my.queue?id=my.app";
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bmqt::Uri                 uri(k_URI, bmqtst::TestHelperUtil::allocator());
     const bmqt::CorrelationId k_CORID;
     const bmqp::QueueId       k_QUEUE_ID(0, 0);
@@ -124,6 +126,7 @@ static void test1_breathingTest()
     BMQTST_ASSERT_SAFE_FAIL(obj.subStreamCount(
         bsl::string(uri.canonical(), bmqtst::TestHelperUtil::allocator())));
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test2_generateQueueIdTest()
 // ------------------------------------------------------------------------
@@ -156,11 +159,13 @@ static void test2_generateQueueIdTest()
 //                                            bsls::Types::Uint64  flags)
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("GENERATE QUEUE ID TEST");
 
     const char k_URI[] = "bmq://ts.trades.myapp/my.queue?id=my.app";
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bmqt::Uri            uri(k_URI, bmqtst::TestHelperUtil::allocator());
     bmqimp::QueueManager obj(bmqtst::TestHelperUtil::allocator());
 
@@ -285,6 +290,7 @@ static void test2_generateQueueIdTest()
         BMQTST_ASSERT_EQ(queueId.subId(), 2U);
     }
 }
+// NOLINTEND(*-avoid-c-arrays,performance-avoid-endl)
 
 static void test3_insertQueueTest()
 // ------------------------------------------------------------------------
@@ -303,6 +309,7 @@ static void test3_insertQueueTest()
 //   bmqimp::QueueManager::insertQueue(
 //                              const bmqimp::QueueManager::QueueSp& queue)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("INSERT QUEUE TEST");
 
@@ -310,6 +317,7 @@ static void test3_insertQueueTest()
 
     const char k_URI[] = "bmq://ts.trades.myapp/my.queue?id=my.app";
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bmqt::Uri                 uri(k_URI, bmqtst::TestHelperUtil::allocator());
     const bmqt::CorrelationId k_CORID = bmqt::CorrelationId::autoValue();
     bmqimp::QueueManager::QueueSp queueSp;
@@ -369,6 +377,7 @@ static void test3_insertQueueTest()
     // ID.
     BMQTST_ASSERT_SAFE_FAIL(obj.insertQueue(queueSp));
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers)
 
 static void test4_lookupQueueByUri()
 // ------------------------------------------------------------------------
@@ -390,6 +399,7 @@ static void test4_lookupQueueByUri()
 // Testing:
 //   bmqimp::QueueManager::lookupQueue(const bmqt::Uri uri);
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("LOOKUP QUEUE");
 
@@ -398,7 +408,9 @@ static void test4_lookupQueueByUri()
     const char k_URI1[] = "bmq://ts.trades.myapp/my.queue?id=foo";
     const char k_URI2[] = "bmq://ts.trades.myapp/my.queue?id=bar";
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bmqt::Uri uri1(k_URI1, bmqtst::TestHelperUtil::allocator());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bmqt::Uri uri2(k_URI2, bmqtst::TestHelperUtil::allocator());
     bmqimp::QueueManager::QueueSp queueSp;
     bmqp::QueueId                 queueId(bmqimp::Queue::k_INVALID_QUEUE_ID);
@@ -422,6 +434,7 @@ static void test4_lookupQueueByUri()
     BMQTST_ASSERT(obj.lookupQueue(uri1) == queueSp);
     BMQTST_ASSERT(obj.lookupQueue(uri2) == bmqimp::QueueManager::QueueSp());
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test6_removeQueueTest()
 // ------------------------------------------------------------------------
@@ -443,6 +456,7 @@ static void test6_removeQueueTest()
 //   bmqimp::QueueManagerQueueManager::removeQueue(
 //                                              const bmqimp::Queue *queue)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("REMOVE QUEUE TEST");
 
@@ -450,6 +464,7 @@ static void test6_removeQueueTest()
 
     const char k_URI[] = "bmq://ts.trades.myapp/my.queue?id=my.app";
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bmqt::Uri                 uri(k_URI, bmqtst::TestHelperUtil::allocator());
     const bmqt::CorrelationId k_CORID = bmqt::CorrelationId::autoValue();
     bmqimp::QueueManager::QueueSp queueSp;
@@ -480,6 +495,7 @@ static void test6_removeQueueTest()
     // Cannot remove the same queue object twice
     BMQTST_ASSERT((!(obj.removeQueue(queueSp.get()))));
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test8_substreamCountTest()
 // ------------------------------------------------------------------------
@@ -501,6 +517,7 @@ static void test8_substreamCountTest()
 //   void
 //   QueueManager::resetSubStreamCount(const bsl::string& canonicalUri)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("RESET STATE TEST");
 
@@ -508,6 +525,7 @@ static void test8_substreamCountTest()
 
     const char k_URI[] = "bmq://ts.trades.myapp/my.queue?id=my.app";
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bmqt::Uri uri(k_URI, bmqtst::TestHelperUtil::allocator());
     bmqimp::QueueManager::QueueSp queueSp;
     bmqp::QueueId                 queueId(bmqimp::Queue::k_INVALID_QUEUE_ID);
@@ -562,6 +580,7 @@ static void test8_substreamCountTest()
     BMQTST_ASSERT_SAFE_FAIL(obj.resetSubStreamCount(uriCanonical));
     BMQTST_ASSERT_SAFE_FAIL(obj.subStreamCount(uriCanonical));
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test9_pushStatsTest()
 // --------------------------------------------------------------------
@@ -582,6 +601,7 @@ static void test9_pushStatsTest()
 // Testing:
 //   bmqimp::QueueManager::updateStatsOnPushEvent
 // --------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,*-narrowing-conversions)
 {
     bmqtst::TestHelper::printTestName("BASIC PUSH EVENT STATISTICS");
 
@@ -591,9 +611,11 @@ static void test9_pushStatsTest()
     const bmqt::CorrelationId k_CORID = bmqt::CorrelationId::autoValue();
     const bmqt::MessageGUID   k_GUID;
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -601,7 +623,8 @@ static void test9_pushStatsTest()
     bmqp::PushEventBuilder peb(blobSpPool.get(),
                                bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob payload(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-    bmqt::Uri   uri(k_URI, bmqtst::TestHelperUtil::allocator());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+    bmqt::Uri uri(k_URI, bmqtst::TestHelperUtil::allocator());
     bmqimp::QueueManager::QueueSp queueSp;
     bmqp::QueueId                 queueId(bmqimp::Queue::k_INVALID_QUEUE_ID);
     bmqp::PushMessageIterator     msgIterator(&bufferFactory,
@@ -625,11 +648,13 @@ static void test9_pushStatsTest()
     obj.generateQueueAndSubQueueId(&queueId, uri, flags);
     bdlbb::BlobUtil::append(&payload, buffer, bsl::strlen(buffer));
 
+    // NOLINTBEGIN(*-narrowing-conversions)
     int rc = peb.packMessage(payload,
                              queueId.id(),
                              k_GUID,
                              flags,
                              bmqt::CompressionAlgorithmType::e_NONE);
+    // NOLINTEND(*-narrowing-conversions)
 
     BSLS_ASSERT_SAFE(rc == bmqt::EventBuilderResult::e_SUCCESS);
 
@@ -678,6 +703,7 @@ static void test9_pushStatsTest()
     BMQTST_ASSERT_EQ(eventMessageCount, 1);
     BMQTST_ASSERT_EQ(hasMessageWithMultipleSubQueueIds, false);
 }
+// NOLINTEND(*-avoid-c-arrays,*-narrowing-conversions)
 
 static void test10_putStatsTest()
 // --------------------------------------------------------------------
@@ -698,27 +724,32 @@ static void test10_putStatsTest()
 // Testing:
 //   bmqimp::QueueManager::updateStatsOnPutEvent
 // --------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("BASIC PUT EVENT STATISTICS");
 
     const char  k_URI[]   = "bmq://ts.trades.myapp/my.queue?id=my.app";
     const char* k_PAYLOAD = "abcdefghijklmnopqrstuvwxyz";
 
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     const int k_PAYLOAD_LEN = bsl::strlen(k_PAYLOAD);
 
     const bmqt::CorrelationId k_CORID = bmqt::CorrelationId::autoValue();
     const bmqt::MessageGUID   k_GUID;
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
     bmqp::PutEventBuilder peb(blobSpPool.get(),
                               bmqtst::TestHelperUtil::allocator());
-    bmqt::Uri             uri(k_URI, bmqtst::TestHelperUtil::allocator());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+    bmqt::Uri uri(k_URI, bmqtst::TestHelperUtil::allocator());
     bmqimp::QueueManager::QueueSp queueSp;
     bmqp::QueueId                 queueId(bmqimp::Queue::k_INVALID_QUEUE_ID);
     bmqp::PutMessageIterator      msgIterator(&bufferFactory,
@@ -775,6 +806,7 @@ static void test10_putStatsTest()
     BMQTST_ASSERT_EQ(rc, 0);
     BMQTST_ASSERT_EQ(eventMessageCount, 1);
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 }  // close unnamed namespace
 
@@ -783,6 +815,7 @@ static void test10_putStatsTest()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -808,3 +841,4 @@ int main(int argc, char* argv[])
     // 'bmqimp::QueueManager::insertQueue' may allocate
     // temporaries with default allocator.
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

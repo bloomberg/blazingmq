@@ -116,6 +116,7 @@ struct NotificationEvaluator : public mqbc::ClusterStateObserver {
     }
 };
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct TestHelper {
     // Provide helper methods to abstract away the code needed to modify the
     // cluster state.
@@ -133,6 +134,7 @@ struct TestHelper {
     : d_cluster_mp(0)
     , d_nodes(bmqtst::TestHelperUtil::allocator())
     , d_tempDir(bmqtst::TestHelperUtil::allocator())
+    // NOLINTBEGIN(*-magic-numbers)
     {
         mqbmock::Cluster::ClusterNodeDefs clusterNodeDefs(
             bmqtst::TestHelperUtil::allocator());
@@ -205,6 +207,7 @@ struct TestHelper {
             d_nodes.push_back(dynamic_cast<mqbnet::MockClusterNode*>(*iter));
         }
     }
+    // NOLINTEND(*-magic-numbers)
 
     ~TestHelper() { bmqu::Time::shutdown(); }
 
@@ -267,6 +270,7 @@ struct TestHelper {
             ->second->setNodeStatus(status, status);
     }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close unnamed namespace
 
@@ -731,6 +735,7 @@ static void test3_alwaysInvalidStateTest()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -739,9 +744,11 @@ int main(int argc, char* argv[])
         mqbcfg::BrokerConfig::set(brokerConfig);
 
         bsl::shared_ptr<bmqst::StatContext> statContext =
+            // NOLINTBEGIN(*-magic-numbers)
             mqbstat::BrokerStatsUtil::initializeStatContext(
                 30,
                 bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
 
         switch (_testCase) {
         case 0:
@@ -764,3 +771,4 @@ int main(int argc, char* argv[])
     // 'mqbnet_multirequestmanager' constructor uses the default allocator to
     // allocate memory
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

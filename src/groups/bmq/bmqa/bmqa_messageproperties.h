@@ -91,6 +91,7 @@ namespace bmqa {
 // =======================
 
 /// Provide a VST representing message properties.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class MessageProperties {
     friend class MessagePropertiesIterator;
 
@@ -369,6 +370,7 @@ class MessageProperties {
 
     ///@}
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 
@@ -386,6 +388,7 @@ bsl::ostream& operator<<(bsl::ostream& stream, const MessageProperties& rhs);
 /// property; otherwise it is *invalid*.  Behavior is undefined if the
 /// underlying instance of `bmqa::MessageProperties` is modified during the
 /// lifetime of this iterator.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class MessagePropertiesIterator {
   private:
     /// @name Private Constants
@@ -511,6 +514,7 @@ class MessagePropertiesIterator {
 
     ///@}
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 

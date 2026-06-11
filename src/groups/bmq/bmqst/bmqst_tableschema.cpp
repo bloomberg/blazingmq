@@ -32,8 +32,11 @@ typedef bsl::function<bsls::Types::Int64(const StatValue& value)> IntFunc;
 typedef bsl::function<double(const StatValue& value)>             DoubleFunc;
 
 // CONSTANTS
-const char DIRECT_NAME[]  = "*direct*";
+// NOLINTNEXTLINE(*-avoid-c-arrays)
+const char DIRECT_NAME[] = "*direct*";
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char EXPIRED_NAME[] = "*expired*";
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char UNKNOWN_NAME[] = "*unknown*";
 
 // FUNCTIONS
@@ -61,6 +64,7 @@ void defaultIdColumn(Value*                 value,
                      const StatContext&     context,
                      int                    level,
                      StatContext::ValueType type)
+// NOLINTBEGIN(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bdlma::LocalSequentialAllocator<128> seqAlloc;
 
@@ -105,6 +109,7 @@ void defaultIdColumn(Value*                 value,
     value->set(storage);
     value->ownValue();
 }
+// NOLINTEND(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 }  // close anonymous namespace
 

@@ -173,16 +173,20 @@ class QlistFileIterator {
 // -----------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline QlistFileIterator::QlistFileIterator()
 {
     clear();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline QlistFileIterator::QlistFileIterator(const MappedFileDescriptor* mfd,
                                             const FileHeader& fileHeader)
 {
     reset(mfd, fileHeader);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline void QlistFileIterator::clear()

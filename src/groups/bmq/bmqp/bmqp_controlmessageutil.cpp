@@ -45,6 +45,7 @@ void ControlMessageUtil::makeStatus(
 
 int ControlMessageUtil::validate(
     const bmqp_ctrlmsg::ControlMessage& controlMessage)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -76,6 +77,7 @@ int ControlMessageUtil::validate(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 }  // close package namespace
 }  // close enterprise namespace

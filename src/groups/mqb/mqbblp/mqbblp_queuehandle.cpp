@@ -69,8 +69,10 @@ const double k_WATERMARK_RATIO = 0.8;
 const int k_MAX_INSTANT_MESSAGES = 10;
 // Maximum messages logged with throttling in a short period of time.
 
+// NOLINTBEGIN(cppcoreguidelines-interfaces-global-init)
 const bsls::Types::Int64 k_NS_PER_MESSAGE =
     bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND;
+// NOLINTEND(cppcoreguidelines-interfaces-global-init)
 // Time interval between messages logged with throttling.
 
 #define BMQ_LOGTHROTTLE_INFO                                                  \
@@ -84,6 +86,7 @@ const bsls::Types::Int64 k_NS_PER_MESSAGE =
 #define BMQ_LOGTHROTTLE_INFO_BLOCK                                            \
     BALL_LOGTHROTTLE_INFO_BLOCK(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct DeconfigureContext {
     mqbi::QueueHandle::VoidFunctor d_completionCb;
 
@@ -94,13 +97,16 @@ struct DeconfigureContext {
         // NOTHING
     }
 
+    // NOLINTBEGIN(bugprone-exception-escape)
     ~DeconfigureContext()
     {
         if (d_completionCb) {
             d_completionCb();
         }
     }
+    // NOLINTEND(bugprone-exception-escape)
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 void onHandleDeconfigured(const bmqp_ctrlmsg::Status&,
                           const bmqp_ctrlmsg::StreamParameters&,
@@ -425,11 +431,14 @@ QueueHandle::updateMonitor(const bsl::shared_ptr<Downstream>& subStream,
     return resourceUsageStateChange;
 }
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 mqbu::ResourceUsageMonitorStateTransition::Enum QueueHandle::updateMonitor(
     mqbi::QueueHandle::UnconfirmedMessageInfoMap::iterator it,
     Subscription*                                          subscription,
     bmqp::EventType::Enum                                  type,
     const bsl::string&                                     appId)
+// NOLINTEND(performance-unnecessary-value-param)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     const unsigned int msgSize = it->second.d_size;
     // NOTE: if we don't convert msgSize to Int64 and instead below just
@@ -480,6 +489,7 @@ mqbu::ResourceUsageMonitorStateTransition::Enum QueueHandle::updateMonitor(
 
     return resourceUsageStateChange;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 void QueueHandle::clearClientDispatched(bool hasLostClient)
 {
@@ -495,6 +505,7 @@ void QueueHandle::clearClientDispatched(bool hasLostClient)
     }
 
     // Iterate all unconfirmed messages and issue Reject for not-unlimited ones
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (Downstreams::iterator itContext = d_downstreams.begin();
          itContext != d_downstreams.end();
          ++itContext) {
@@ -533,6 +544,7 @@ void QueueHandle::clearClientDispatched(bool hasLostClient)
             }
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 void QueueHandle::deliverMessageImpl(
@@ -541,6 +553,7 @@ void QueueHandle::deliverMessageImpl(
     const mqbi::StorageMessageAttributes&     attributes,
     const bmqp::Protocol::SubQueueInfosArray& subscriptions,
     bool                                      isOutOfOrder)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // executed by the *QUEUE_DISPATCHER* thread
 
@@ -586,6 +599,7 @@ void QueueHandle::deliverMessageImpl(
     }
 
     mqbi::InlineResult::Enum result =
+        // NOLINTBEGIN(*-narrowing-conversions)
         d_clientContext_sp->inlineClient()->sendPush(
             msgGUID,
             id(),
@@ -596,6 +610,7 @@ void QueueHandle::deliverMessageImpl(
                 attributes.messagePropertiesInfo()),
             subscriptions,
             isOutOfOrder);
+    // NOLINTEND(*-narrowing-conversions)
 
     if (result == mqbi::InlineResult::e_SUCCESS) {
         for (bmqp::Protocol::SubQueueInfosArray::size_type i = 0;
@@ -632,7 +647,9 @@ void QueueHandle::deliverMessageImpl(
                       << " with error: " << result;
     }
 }
+// NOLINTEND(*-narrowing-conversions)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 QueueHandle::QueueHandle(
     const bsl::shared_ptr<mqbi::Queue>&                       queueSp,
     const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>& clientContext,
@@ -655,6 +672,9 @@ QueueHandle::QueueHandle(
 , d_producerStats()
 , d_haveClient(true)
 , d_allocator_p(allocator)
+// NOLINTBEGIN(clang-analyzer-optin.cplusplus.VirtualCall)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queue_sp);
@@ -671,6 +691,10 @@ QueueHandle::QueueHandle(
 
     setHandleParameters(handleParameters);
 }
+// NOLINTEND(clang-analyzer-optin.cplusplus.VirtualCall)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 QueueHandle::~QueueHandle()
 {
@@ -789,16 +813,20 @@ void QueueHandle::registerSubscription(unsigned int downstreamSubId,
     // Ceil the limits values, so that if max redeliveries is 1, it will
     // compute ok
     const bsls::Types::Int64 lowWatermarkBytes =
+        // NOLINTBEGIN(*-narrowing-conversions)
         static_cast<bsls::Types::Int64>(
             bsl::ceil(ci.maxUnconfirmedBytes() * k_WATERMARK_RATIO));
+    // NOLINTEND(*-narrowing-conversions)
 
     // We only care about whether we are at or above the `capacity`
     // bytes or at or below the `lowWatermark` bytes.
     const bsls::Types::Int64 highWatermarkBytes = lowWatermarkBytes;
 
-    const bsls::Types::Int64 capacityBytes        = ci.maxUnconfirmedBytes();
+    const bsls::Types::Int64 capacityBytes = ci.maxUnconfirmedBytes();
+    // NOLINTBEGIN(*-narrowing-conversions)
     const bsls::Types::Int64 lowWatermarkMessages = bsl::ceil(
         ci.maxUnconfirmedMessages() * k_WATERMARK_RATIO);
+    // NOLINTEND(*-narrowing-conversions)
 
     // We only care about whether we are at or above the `capacity`
     // messages or at or below the `lowWatermark` redeliveries.
@@ -1222,6 +1250,7 @@ int QueueHandle::transferUnconfirmedMessageGUID(
     mqbi::QueueHandle::RedeliverySp&   data      = subStream->d_data;
 
     BSLS_ASSERT_SAFE(data);
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     int result = data->size();
 
     if (out) {
@@ -1290,6 +1319,7 @@ mqbi::QueueHandle* QueueHandle::setStreamParameters(
 }
 
 void QueueHandle::onAckMessage(const bmqp::AckMessage& ackMessage)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // executed by the *QUEUE_DISPATCHER* thread
 
@@ -1334,8 +1364,10 @@ void QueueHandle::onAckMessage(const bmqp::AckMessage& ackMessage)
         (*event_sp).setSource(d_queue_sp.get()).setAckMessage(ackMessage);
 
         // Override with correct downstream queueId
+        // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
         bmqp::AckMessage& ackMsg = const_cast<bmqp::AckMessage&>(
             event_sp->ackMessage());
+        // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
         ackMsg.setQueueId(id());
 
         client->dispatcher()->dispatchEvent(
@@ -1366,6 +1398,7 @@ void QueueHandle::onAckMessage(const bmqp::AckMessage& ackMessage)
                    << ", GUID: " << ackMessage.messageGUID() << ", node '"
                    << d_clientContext_sp->description() << "']";
 
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     mqbi::InlineResult::Enum result = inlineClient->sendAck(id(), ackMessage);
     // Override with correct downstream queueId
 
@@ -1391,6 +1424,7 @@ void QueueHandle::onAckMessage(const bmqp::AckMessage& ackMessage)
         }
     }
 }
+// NOLINTEND(*-narrowing-conversions)
 
 bool QueueHandle::canDeliver(unsigned int downstreamSubscriptionId) const
 {
@@ -1435,6 +1469,7 @@ bsls::Types::Int64 QueueHandle::countUnconfirmed() const
 
     bsls::Types::Int64 result = 0;
 
+    // NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (Downstreams::const_iterator itStream = d_downstreams.begin();
          itStream != d_downstreams.end();
          ++itStream) {
@@ -1445,6 +1480,7 @@ bsls::Types::Int64 QueueHandle::countUnconfirmed() const
             }
         }
     }
+    // NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     return result;
 }
 
@@ -1493,6 +1529,7 @@ void QueueHandle::loadInternals(mqbcmd::QueueHandle* out) const
         bsl::vector<mqbcmd::ResourceUsageMonitor>& monitors =
             subStream.unconfirmedMonitors();
 
+        // NOLINTBEGIN(*-narrowing-conversions)
         for (Subscriptions::const_iterator citSubscription =
                  d_subscriptions.begin();
              citSubscription != d_subscriptions.end();
@@ -1534,6 +1571,7 @@ void QueueHandle::loadInternals(mqbcmd::QueueHandle* out) const
             unconfirmedMonitorResult.bytesCapacity() =
                 unconfirmedMonitor.byteCapacity();
         }
+        // NOLINTEND(*-narrowing-conversions)
     }
 }
 

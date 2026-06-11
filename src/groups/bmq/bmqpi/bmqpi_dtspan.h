@@ -43,6 +43,7 @@ namespace bmqpi {
 // ============
 
 /// A pure interface for representing a span of a distributed trace.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class DTSpan {
   public:
     // PUBLIC CREATORS
@@ -110,6 +111,7 @@ class DTSpan {
         bool erase(const bsl::string& key);
     };
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

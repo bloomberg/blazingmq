@@ -94,6 +94,7 @@ static void test1_breathingTest()
     bmqt::Version ab(1, 2);
     bmqt::Version ad(1, 4);
     bmqt::Version bb(2, 2);
+    // NOLINTNEXTLINE(*-magic-numbers)
     bmqt::Version be(2, 5);
 
     BMQTST_ASSERT_EQ(ab < ab, false);
@@ -146,6 +147,7 @@ static void test1_breathingTest()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -160,3 +162,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

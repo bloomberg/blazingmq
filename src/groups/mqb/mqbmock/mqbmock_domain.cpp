@@ -42,8 +42,10 @@ Domain::Domain(mqbi::Cluster* cluster, bslma::Allocator* allocator)
 , d_name("mock-domain", allocator)
 , d_cluster_p(cluster)
 , d_domainsStatContext(
+      // NOLINTNEXTLINE(*-magic-numbers)
       mqbstat::DomainStatsUtil::initializeStatContext(5, allocator))
 , d_statContext(
+      // NOLINTNEXTLINE(*-magic-numbers)
       mqbstat::QueueStatsUtil::initializeStatContextDomains(5, allocator))
 // NOTE: Some test drivers require a few snapshot, hence the 'arbitrary' 5
 //       used here

@@ -58,6 +58,7 @@ namespace {
 
 template <typename EVENT_TYPE>
 void benchmarkEventType(bmqtst::Table* results, const char* eventName)
+// NOLINTBEGIN(*-magic-numbers)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(results);
@@ -66,8 +67,10 @@ void benchmarkEventType(bmqtst::Table* results, const char* eventName)
     results->column("sizeof").insertValue(bsl::to_string(sizeof(EVENT_TYPE)));
 
     // Construction time
+    // NOLINTBEGIN(*-magic-numbers)
     bdlma::LocalSequentialAllocator<1024> lsa(
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bsls::Stopwatch stopwatch;
     stopwatch.reset();
     stopwatch.start();
@@ -94,6 +97,7 @@ void benchmarkEventType(bmqtst::Table* results, const char* eventName)
         .insertValue(bsl::to_string(stopwatch.elapsedTime() /
                                     k_BENCHMARK_ITERATIONS * 1e9));
 }
+// NOLINTEND(*-magic-numbers)
 
 }  // close unnamed namespace
 
@@ -244,6 +248,7 @@ static void testN1_dispatcherEventBenchmark()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -259,3 +264,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

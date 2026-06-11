@@ -51,6 +51,7 @@ using namespace bsl;
 // ----------------------------------------------------------------------------
 namespace {
 
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-avoid-non-const-global-variables)
 static const char* k_COLS1[] = {""  // Leftmost column is empty
                                 ,
                                 "Bytes Allocated",
@@ -60,9 +61,11 @@ static const char* k_COLS1[] = {""  // Leftmost column is empty
                                 "-delta-",
                                 "Deallocations",
                                 "-delta-"};
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-avoid-non-const-global-variables)
 
 const static size_t k_NUM_COLS1 = sizeof(k_COLS1) / sizeof(k_COLS1[0]);
 
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-avoid-non-const-global-variables)
 static const char* k_COLS2[] = {"id",
                                 "numAllocated",
                                 "numAllocatedDelta",
@@ -71,6 +74,7 @@ static const char* k_COLS2[] = {"id",
                                 "numAllocationsDelta",
                                 "numDeallocations",
                                 "numDeallocationsDelta"};
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-avoid-non-const-global-variables)
 
 const static size_t k_NUM_COLS2 = sizeof(k_COLS2) / sizeof(k_COLS2[0]);
 
@@ -95,6 +99,7 @@ static void test1_breathingTest()
 //                     bmqst::StatContext       *parentStatContext,
 //                     bslma::Allocator         *allocator = 0);
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -129,6 +134,7 @@ static void test1_breathingTest()
                          parentStatContext.getSubcontext("Test"));
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test2_allocate()
 // ------------------------------------------------------------------------
@@ -146,6 +152,7 @@ static void test2_allocate()
 // Testing:
 //   allocate
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("ALLOCATE");
 
@@ -165,12 +172,15 @@ static void test2_allocate()
     BMQTST_ASSERT(buf != 0);
 
     bsl::fill_n(buf, k_SIZE_ALLOC, 33);
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsls::Types::size_type i = 0; i < k_SIZE_ALLOC; ++i) {
         BMQTST_ASSERT_EQ_D(i, buf[i], 33);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     BMQTST_ASSERT_SAFE_PASS(obj.deallocate(buf));
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test3_deallocate()
 // ------------------------------------------------------------------------
@@ -190,6 +200,7 @@ static void test3_deallocate()
 // Testing:
 //   allocate
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator and
@@ -255,12 +266,14 @@ static void test3_deallocate()
     BMQTST_ASSERT_SAFE_FAIL(obj.deallocate(buf));
     BMQTST_ASSERT_EQ(logObserver.records().size(), 1U);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test4_allocationLimit()
 // ------------------------------------------------------------------------
 // Verify that the 'allocationLimitCb' is invoked when crossing the
 // allocation limit; and that it only gets invoked once.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("allocationLimit");
 
@@ -278,6 +291,7 @@ static void test4_allocationLimit()
         obj.setAllocationLimit(10,
                                bdlf::BindUtil::bind(local::incrementInteger,
                                                     &cbInvocationCount));
+        // NOLINTNEXTLINE(*-magic-numbers)
         void* alloc = obj.allocate(20);
         BMQTST_ASSERT_EQ(cbInvocationCount, 0);
         obj.deallocate(alloc);
@@ -308,13 +322,16 @@ static void test4_allocationLimit()
 
         BMQTST_ASSERT_EQ(cbInvocationCount, 0);
 
+        // NOLINTNEXTLINE(*-magic-numbers)
         void* alloc1 = obj.allocate(128);
         BMQTST_ASSERT_EQ(cbInvocationCount, 0);
 
+        // NOLINTNEXTLINE(*-magic-numbers)
         void* alloc2 = obj.allocate(256);
         BMQTST_ASSERT_EQ(cbInvocationCount, 0);
 
         // Allocate to go beyond limit, callback should now fire
+        // NOLINTNEXTLINE(*-magic-numbers)
         void* alloc3 = obj.allocate(2048);
         BMQTST_ASSERT_EQ(cbInvocationCount, 1);
 
@@ -349,10 +366,13 @@ static void test4_allocationLimit()
                 bdlf::BindUtil::bind(local::incrementInteger,
                                      &cbInvocationCount));
 
+            // NOLINTNEXTLINE(*-magic-numbers)
             void* alloc1 = obj.allocate(400);
+            // NOLINTNEXTLINE(*-magic-numbers)
             void* alloc2 = obj.allocate(400);
             BMQTST_ASSERT_EQ(cbInvocationCount, 0);
 
+            // NOLINTNEXTLINE(*-magic-numbers)
             void* alloc3 = obj.allocate(400);
             BMQTST_ASSERT_EQ(cbInvocationCount, 1);
 
@@ -379,14 +399,18 @@ static void test4_allocationLimit()
                 bdlf::BindUtil::bind(local::incrementInteger,
                                      &cbInvocationCount));
 
+            // NOLINTNEXTLINE(*-magic-numbers)
             void* alloc1 = obj.allocate(400);
+            // NOLINTNEXTLINE(*-magic-numbers)
             void* alloc2 = obj.allocate(400);
 
             obj.deallocate(alloc2);
 
+            // NOLINTNEXTLINE(*-magic-numbers)
             void* alloc3 = obj.allocate(400);
             BMQTST_ASSERT_EQ(cbInvocationCount, 0);
 
+            // NOLINTNEXTLINE(*-magic-numbers)
             void* alloc4 = obj.allocate(400);
             BMQTST_ASSERT_EQ(cbInvocationCount, 1);
 
@@ -396,12 +420,14 @@ static void test4_allocationLimit()
         }
     }
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 static void test5_allocationLimitHierarchical()
 // ------------------------------------------------------------------------
 // Verify that allocations from a 'downstream' allocator are propagated to
 // the 'upstream' one, eventually invoking its allocation limit.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("allocationLimitHierarchical");
 
@@ -437,15 +463,20 @@ static void test5_allocationLimitHierarchical()
 
     BMQTST_ASSERT_EQ(cbInvocationCount, 0);
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     void* alloc1 = bottomAlloc1.allocate(800);
     BMQTST_ASSERT_EQ(cbInvocationCount, 0);
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     void* alloc2 = bottomAlloc2.allocate(800);
     BMQTST_ASSERT_EQ(cbInvocationCount, 1);
 
     // Allocate more from each allocators, and verify callback is not invoked
+    // NOLINTNEXTLINE(*-magic-numbers)
     void* alloc3 = bottomAlloc1.allocate(100);
+    // NOLINTNEXTLINE(*-magic-numbers)
     void* alloc4 = bottomAlloc2.allocate(100);
+    // NOLINTNEXTLINE(*-magic-numbers)
     void* alloc5 = topAlloc.allocate(100);
 
     BMQTST_ASSERT_EQ(cbInvocationCount, 1);
@@ -457,6 +488,7 @@ static void test5_allocationLimitHierarchical()
     bottomAlloc2.deallocate(alloc2);
     bottomAlloc1.deallocate(alloc1);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test6_configureStatContextTableInfoProvider_part1()
 // ------------------------------------------------------------------------
@@ -488,6 +520,7 @@ static void test6_configureStatContextTableInfoProvider_part1()
     BMQTST_ASSERT_EQ(static_cast<size_t>(tableInfoProvider.numColumns(0)),
                      k_NUM_COLS1);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index,performance-avoid-endl)
     for (int i = 0; i < tableInfoProvider.numColumns(0); ++i) {
         bsl::ostringstream out(bmqtst::TestHelperUtil::allocator());
         tableInfoProvider.printHeader(out, 0, i, 0);
@@ -497,6 +530,7 @@ static void test6_configureStatContextTableInfoProvider_part1()
         PV(i << ": " << col);
         BMQTST_ASSERT_EQ_D(i, col, k_COLS1[i]);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index,performance-avoid-endl)
 }
 
 static void test7_configureStatContextTableInfoProvider_part2()
@@ -547,10 +581,12 @@ static void test7_configureStatContextTableInfoProvider_part2()
 
     BMQTST_ASSERT_EQ(table.numRows(), 0);
     BMQTST_ASSERT_EQ(static_cast<size_t>(table.numColumns()), k_NUM_COLS2);
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index,performance-avoid-endl)
     for (int i = 0; i < table.numColumns() - 1; ++i) {
         PV(i << ": " << table.columnName(i));
         BMQTST_ASSERT_EQ_D(i, table.columnName(i), k_COLS2[i]);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index,performance-avoid-endl)
 }
 
 BSLA_MAYBE_UNUSED
@@ -570,6 +606,7 @@ static void testN1_performance_allocation()
 // Testing:
 //   Compare allocation performance of bmqma::CountingAllocator vs
 //   bslma::Default::defaultAllocator.
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // We're microbenching against the default allocator.
@@ -660,6 +697,7 @@ static void testN1_performance_allocation()
                   static_cast<double>(timeDefaultAlloc))
               << '\n';
 }
+// NOLINTEND(performance-avoid-endl)
 
 #ifdef BMQTST_BENCHMARK_ENABLED
 static void
@@ -678,6 +716,7 @@ testN1_bslmaperformance_allocation_GoogleBenchmark(benchmark::State& state)
 //
 // Testing:
 //   Allocation performance of bmqma::CountingAllocator
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // We're microbenching against the default allocator.
@@ -713,6 +752,7 @@ testN1_bslmaperformance_allocation_GoogleBenchmark(benchmark::State& state)
         }
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores,performance-avoid-endl)
 
 static void
 testN1_defaultperformance_allocation_GoogleBenchmark(benchmark::State& state)
@@ -730,6 +770,7 @@ testN1_defaultperformance_allocation_GoogleBenchmark(benchmark::State& state)
 //
 // Testing:
 //   Allocation performance of bslma::Default::defaultAllocator.
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // We're microbenching against the default allocator.
@@ -777,12 +818,14 @@ testN1_defaultperformance_allocation_GoogleBenchmark(benchmark::State& state)
         }
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores,performance-avoid-endl)
 #endif
 //=============================================================================
 //                              MAIN PROGRAM
 //-----------------------------------------------------------------------------
 
 int main(int argc, char** argv)
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -815,3 +858,4 @@ int main(int argc, char** argv)
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

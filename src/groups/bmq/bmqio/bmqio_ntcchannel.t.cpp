@@ -39,13 +39,16 @@ using namespace bmqio;
 
 namespace {
 
-const size_t k_WRITE_QUEUE_LOW_WM  = 512 * 1024;
+// NOLINTNEXTLINE(bugprone-implicit-widening-of-multiplication-result)
+const size_t k_WRITE_QUEUE_LOW_WM = 512 * 1024;
+// NOLINTNEXTLINE(bugprone-implicit-widening-of-multiplication-result)
 const size_t k_WRITE_QUEUE_HIGH_WM = 512 * 1024;
 
 /// Create the ntca::InterfaceConfig to use given the specified
 /// `sessionOptions`.  Use the specified `allocator` for any memory
 /// allocation.
 ntca::InterfaceConfig ntcCreateInterfaceConfig(bslma::Allocator* allocator)
+// NOLINTBEGIN(*-magic-numbers)
 {
     ntca::InterfaceConfig config(allocator);
 
@@ -71,6 +74,7 @@ ntca::InterfaceConfig ntcCreateInterfaceConfig(bslma::Allocator* allocator)
 
     return config;
 }
+// NOLINTEND(*-magic-numbers)
 
 void doFail()
 {
@@ -114,6 +118,7 @@ void executeOnClosedChannelFunc(bmqio::NtcChannel*              channel,
 /// Many of the functions take a `int line` argument, which is always
 /// passed `L_` and is used in assertion messages to find where an error
 /// occurred.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Tester {
     // DATA
     bslma::Allocator*                               d_allocator_p;
@@ -159,6 +164,7 @@ class Tester {
 
     bsl::shared_ptr<bmqio::NtcChannel> connect();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ------------
 // class Tester
@@ -240,6 +246,7 @@ void Tester::onChannelResult(bslmt::Semaphore* semaphore_p,
 }
 
 void Tester::init()
+// NOLINTBEGIN(*-magic-numbers)
 {
     // 0. Cleanup
     destroy();
@@ -287,6 +294,7 @@ void Tester::init()
     BMQTST_ASSERT(endpoint.isIp());
     BMQTST_ASSERT(endpoint.ip().host().isV4());
 }
+// NOLINTEND(*-magic-numbers)
 
 bsl::shared_ptr<bmqio::NtcChannel> Tester::connect()
 {
@@ -357,9 +365,11 @@ static void test1_breathingTest()
     tester.init();
 
     bsl::shared_ptr<bmqio::NtcChannel> channel = tester.connect();
-    bdlbb::PooledBlobBufferFactory     blobFactory(
+    // NOLINTBEGIN(*-magic-numbers)
+    bdlbb::PooledBlobBufferFactory blobFactory(
         4096,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob blob(&blobFactory, bmqtst::TestHelperUtil::allocator());
 
     bsl::string           message("test", bmqtst::TestHelperUtil::allocator());
@@ -367,6 +377,7 @@ static void test1_breathingTest()
     messagePtr.reset(message.data(),
                      bslstl::SharedPtrNilDeleter(),
                      bmqtst::TestHelperUtil::allocator());
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     bdlbb::BlobBuffer buffer(messagePtr, message.size());
 
     blob.appendDataBuffer(buffer);
@@ -389,6 +400,7 @@ static void test1_breathingTest()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -405,3 +417,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(0);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

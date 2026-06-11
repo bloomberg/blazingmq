@@ -70,6 +70,7 @@ namespace bmqvt {
 
 /// Type (variant-like) representing an item in a `PropertyBag`, composed of
 /// a name (its key in the PropertyBag) and associated value.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class PropertyBagValue {
   private:
     // PRIVATE TYPES
@@ -148,6 +149,7 @@ class PropertyBagValue {
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 bsl::ostream& operator<<(bsl::ostream& stream, const PropertyBagValue& value);
@@ -157,6 +159,7 @@ bsl::ostream& operator<<(bsl::ostream& stream, const PropertyBagValue& value);
 // =================
 
 /// Collection of named properties with thread-safe accessors.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class PropertyBag {
   public:
     // TYPES
@@ -289,6 +292,7 @@ class PropertyBag {
     /// Return the allocator this object was created with.
     bslma::Allocator* allocator() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 bsl::ostream& operator<<(bsl::ostream& stream, const PropertyBag& value);

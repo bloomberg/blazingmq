@@ -41,6 +41,7 @@ namespace BloombergLP {
 
 namespace mqbu {
 
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-special-member-functions)
 class FlowController {
     // Mechanism to apply 'leaky bucket' logic to incoming traffic.
 
@@ -48,12 +49,14 @@ class FlowController {
     // PUBLIC DATA
 
     struct Policy {
+        // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
         enum Enum {
             /// Just calculate the moving (5 min) average
             e_NONE = 0,
             /// Enforce rate limit
             e_LIMIT = 1
         };
+        // NOLINTEND(cppcoreguidelines-use-enum-class)
     };
 
     class Config {
@@ -89,6 +92,7 @@ class FlowController {
     };
 
     struct Watermark {
+        // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
         enum Enum {
             /// No data
             e_ZERO = 0,
@@ -99,6 +103,7 @@ class FlowController {
             /// Drop the data
             e_STRICT = 3
         };
+        // NOLINTEND(cppcoreguidelines-use-enum-class)
     };
 
   private:
@@ -200,6 +205,7 @@ class FlowController {
     bsl::ostream&
     print(bsl::ostream& stream, int level, int spacesPerLevel) const;
 };
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

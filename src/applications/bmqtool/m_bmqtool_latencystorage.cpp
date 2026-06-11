@@ -40,9 +40,11 @@ LatencyStorage::LatencyStorage(bsl::string_view  origin,
 {
     BSLS_ASSERT_SAFE(1 <= latencyDigits && latencyDigits <= 9);
 
+    // NOLINTBEGIN(*-magic-numbers)
     for (int i = 0; i < latencyDigits; ++i) {
         d_digitsLimit *= 10;
     }
+    // NOLINTEND(*-magic-numbers)
 }
 
 void LatencyStorage::insert(bsls::Types::Int64 latency)
@@ -50,9 +52,11 @@ void LatencyStorage::insert(bsls::Types::Int64 latency)
     BSLS_ASSERT_SAFE(0 <= latency);
 
     bsls::Types::Int64 divisor = 1;
+    // NOLINTBEGIN(*-magic-numbers)
     while (divisor * d_digitsLimit < latency) {
         divisor *= 10;
     }
+    // NOLINTEND(*-magic-numbers)
 
     bsls::Types::Int64 rounded = (latency / divisor) * divisor;
 
@@ -68,8 +72,10 @@ bsls::Types::Int64 LatencyStorage::computePercentile(double percentile) const
         return 0;  // RETURN
     }
 
+    // NOLINTBEGIN(*-narrowing-conversions)
     bsls::Types::Int64 targetCount = static_cast<bsls::Types::Int64>(
         bsl::ceil(percentile * d_totalCount / 100.0));
+    // NOLINTEND(*-narrowing-conversions)
 
     bsls::Types::Int64 accumulated = 0;
     for (LatencyMap::const_iterator it = d_latencies.begin();
@@ -118,6 +124,7 @@ bsls::Types::Int64 LatencyStorage::avgLatency() const
 }
 
 int LatencyStorage::save(const bsl::string& filename) const
+// NOLINTBEGIN(*-magic-numbers)
 {
     bsl::ofstream file(filename.c_str());
     if (!file) {
@@ -159,9 +166,11 @@ int LatencyStorage::save(const bsl::string& filename) const
 
     return 0;
 }
+// NOLINTEND(*-magic-numbers)
 
 void LatencyStorage::printSummary(bsl::ostream& stream) const
 {
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQTOOL_LSTAT(DESC, TIMESTAMP)                                        \
     stream << "    " << (DESC) << ": "                                        \
            << bmqu::PrintUtil::prettyTimeInterval(TIMESTAMP) << "\n";

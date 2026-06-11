@@ -57,6 +57,7 @@ namespace bmqimp {
 // ====================================
 
 /// Configuration for a `NegotiatedChannelFactory`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class NegotiatedChannelFactoryConfig {
   public:
     // TYPES
@@ -90,6 +91,7 @@ class NegotiatedChannelFactoryConfig {
         const NegotiatedChannelFactoryConfig& original,
         bslma::Allocator*                     basicAllocator = 0);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ==============================
 // class NegotiatedChannelFactory
@@ -97,6 +99,7 @@ class NegotiatedChannelFactoryConfig {
 
 /// `ChannelFactory` implementation that performs negotiation with the peer
 /// upon connection.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class NegotiatedChannelFactory : public bmqio::ChannelFactory {
   public:
     // TYPES
@@ -186,6 +189,7 @@ class NegotiatedChannelFactory : public bmqio::ChannelFactory {
     /// `start()` and is not one of the I/O threads used by this object.
     void stop() BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

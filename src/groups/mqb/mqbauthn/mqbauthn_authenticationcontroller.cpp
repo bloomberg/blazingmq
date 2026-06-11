@@ -113,6 +113,7 @@ int AuthenticationController::setAnonymousCredential(
 
 int AuthenticationController::initializeAuthenticators(
     bsl::ostream& errorDescription)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         rc_SUCCESS                      = 0,
@@ -168,6 +169,7 @@ int AuthenticationController::initializeAuthenticators(
     }
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int AuthenticationController::collectAvailablePluginFactories(
     mqbplug::PluginType::Enum type,
@@ -182,11 +184,13 @@ int AuthenticationController::collectAvailablePluginFactories(
     // Add built-in plugin factories
     bsl::vector<mqbplug::PluginInfo>::const_iterator it =
         d_builtInPluginLibrary->plugins().cbegin();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; it != d_builtInPluginLibrary->plugins().cend(); ++it) {
         if (it->type() == type) {
             pluginFactories->insert(it->factory().get());
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     return 0;
 }
@@ -195,6 +199,7 @@ int AuthenticationController::createConfiguredAuthenticators(
     bsl::ostream&                      errorDescription,
     const PluginFactories&             pluginFactories,
     const mqbcfg::AuthenticatorConfig& authenticatorConfig)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         rc_SUCCESS             = 0,
@@ -219,6 +224,7 @@ int AuthenticationController::createConfiguredAuthenticators(
 
     bsl::vector<mqbcfg::AuthenticatorPluginConfig>::const_iterator configIt =
         authenticators.cbegin();
+    // NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; configIt != authenticators.cend(); ++configIt) {
         const bsl::string& pluginName = configIt->name();
         BALL_LOG_INFO << "Attempting to create authenticator plugin '"
@@ -280,9 +286,11 @@ int AuthenticationController::createConfiguredAuthenticators(
         d_authenticators.emplace(normMech,
                                  bslmf::MovableRefUtil::move(authenticator));
     }
+    // NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 int AuthenticationController::createDefaultAnonAuthenticator()
 {
@@ -314,6 +322,7 @@ int AuthenticationController::createDefaultAnonAuthenticator()
 int AuthenticationController::validateAnonymousCredential(
     bsl::ostream&                      errorDescription,
     const mqbcfg::AuthenticatorConfig& authenticatorConfig)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         rc_SUCCESS                        = 0,
@@ -354,6 +363,7 @@ int AuthenticationController::validateAnonymousCredential(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 int AuthenticationController::ensureDefaultAuthenticator(
     bsl::ostream& errorDescription)
@@ -392,6 +402,7 @@ int AuthenticationController::ensureDefaultAuthenticator(
 
 int AuthenticationController::initializeCredentialProvider(
     bsl::ostream& errorDescription)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         rc_SUCCESS          = 0,
@@ -455,6 +466,7 @@ int AuthenticationController::initializeCredentialProvider(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 // CREATORS
 AuthenticationController::AuthenticationController(
@@ -472,6 +484,7 @@ AuthenticationController::AuthenticationController(
 }
 
 int AuthenticationController::start(bsl::ostream& errorDescription)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Enum for the various RC error categories
@@ -507,6 +520,7 @@ int AuthenticationController::start(bsl::ostream& errorDescription)
     d_isStarted = true;
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 void AuthenticationController::stop()
 {
@@ -541,6 +555,7 @@ int AuthenticationController::authenticate(
     bsl::string_view                                mechanism,
     const mqbplug::AuthenticationData&              input,
     bslma::Allocator*                               allocator)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // executed by an *AUTHENTICATION* thread
 
@@ -581,6 +596,7 @@ int AuthenticationController::authenticate(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 const bsl::optional<mqbcfg::Credential>&
 AuthenticationController::anonymousCredential()

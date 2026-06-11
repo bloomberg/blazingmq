@@ -65,6 +65,7 @@ StatChannelFactoryConfig::StatChannelFactoryConfig(
 // class StatChannelFactoryHandle
 // ------------------------------
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 StatChannelFactoryHandle::StatChannelFactoryHandle(
     bslma::Allocator* basicAllocator)
 : d_factory_p(0)
@@ -74,6 +75,7 @@ StatChannelFactoryHandle::StatChannelFactoryHandle(
 {
     // NOTHING
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 StatChannelFactoryHandle::~StatChannelFactoryHandle()
 {
@@ -358,11 +360,13 @@ StatChannelFactoryUtil::getValue(const bmqst::StatContext& context,
     const bmqst::StatValue::SnapshotLocation latestSnapshot(0, 0);
     const bmqst::StatValue::SnapshotLocation oldestSnapshot(0, snapshotId);
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define STAT_SINGLE(OPERATION, STAT)                                          \
     bmqst::StatUtil::OPERATION(                                               \
         context.value(bmqst::StatContext::e_TOTAL_VALUE, STAT),               \
         latestSnapshot)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define STAT_RANGE(OPERATION, STAT)                                           \
     bmqst::StatUtil::OPERATION(                                               \
         context.value(bmqst::StatContext::e_TOTAL_VALUE, STAT),               \

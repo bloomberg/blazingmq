@@ -56,6 +56,7 @@ namespace {
 /// Print to stdout the specified `message` prefixed by the specified
 /// `prefix`.
 void printMessage(bsl::ostream& out, int index, const bmqa::Message& message)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     const int k_MAX_DUMPED_BYTES = 32;
 
@@ -79,6 +80,7 @@ void printMessage(bsl::ostream& out, int index, const bmqa::Message& message)
         out << ", with properties: " << properties;
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 }  // close unnamed namespace
 
@@ -88,6 +90,7 @@ void printMessage(bsl::ostream& out, int index, const bmqa::Message& message)
 
 // PRIVATE MANIPULATORS
 void Interactive::printHelp()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     BALL_LOG_INFO
         << bsl::endl
@@ -163,8 +166,10 @@ void Interactive::printHelp()
         << bsl::endl
         << bsl::endl;
 }
+// NOLINTEND(performance-avoid-endl)
 
 void Interactive::processCommand(const StartCommand& command)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-init-variables)
 {
     BALL_LOG_INFO << "--> Starting session: " << command;
     int rc;
@@ -183,6 +188,7 @@ void Interactive::processCommand(const StartCommand& command)
 
     if (d_parameters.noSessionEventHandler()) {
         BALL_LOG_INFO << "Creating processing threads";
+        // NOLINTBEGIN(cppcoreguidelines-init-variables)
         for (int i = 0; i < d_parameters.numProcessingThreads(); ++i) {
             bslmt::ThreadUtil::Handle threadHandle;
             rc = bslmt::ThreadUtil::create(
@@ -192,8 +198,10 @@ void Interactive::processCommand(const StartCommand& command)
             BSLS_ASSERT_SAFE(rc == 0);
             d_eventHandlerThreads.push_back(threadHandle);
         }
+        // NOLINTEND(cppcoreguidelines-init-variables)
     }
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-init-variables)
 
 void Interactive::processCommand(const StopCommand& command)
 {
@@ -428,6 +436,7 @@ void Interactive::processCommand(const CloseQueueCommand& command)
 }
 
 void Interactive::processCommand(const PostCommand& command, bool hasMPs)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // Validate command parameters
     if (command.uri().empty()) {
@@ -448,6 +457,7 @@ void Interactive::processCommand(const PostCommand& command, bool hasMPs)
     // Build the messageEvent
     bmqa::MessageEventBuilder eventBuilder;
     d_session_p->loadMessageEventBuilder(&eventBuilder);
+    // NOLINTBEGIN(cppcoreguidelines-init-variables)
     for (size_t i = 0; i < command.payload().size(); ++i) {
         bmqa::Message& msg = eventBuilder.startMessage();
 
@@ -494,6 +504,7 @@ void Interactive::processCommand(const PostCommand& command, bool hasMPs)
             return;  // RETURN
         }
     }
+    // NOLINTEND(cppcoreguidelines-init-variables)
 
     // Post
     rc = d_session_p->post(eventBuilder.messageEvent());
@@ -504,8 +515,10 @@ void Interactive::processCommand(const PostCommand& command, bool hasMPs)
         << "<-- session.post() => " << bmqt::GenericResult::Enum(rc) << " ("
         << rc << ")";
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 void Interactive::processCommand(const ConfirmCommand& command)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // MUTEX LOCKED
 
@@ -573,6 +586,7 @@ void Interactive::processCommand(const ConfirmCommand& command)
         else {
             // Newest guids
             value *= -1;
+            // NOLINTNEXTLINE(*-narrowing-conversions)
             int toSkip                     = messages.size() - value;
             toSkip                         = (toSkip < 0 ? 0 : toSkip);
             MessagesMap::const_iterator it = messages.begin();
@@ -610,6 +624,7 @@ void Interactive::processCommand(const ConfirmCommand& command)
     }
 
     // Retrieve the message from the map
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsl::vector<bmqt::MessageGUID>::const_iterator itGUID = guids.begin();
          itGUID != guids.end();
          ++itGUID) {
@@ -631,7 +646,9 @@ void Interactive::processCommand(const ConfirmCommand& command)
         // Remove from the map
         messages.erase(*itGUID);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 void Interactive::processCommand(const ListCommand& command)
 {
@@ -700,6 +717,7 @@ void Interactive::processCommand(const ListCommand& command)
 }
 
 void Interactive::processCommand(const BatchPostCommand& command)
+// NOLINTBEGIN(*-magic-numbers)
 {
     Parameters parameters(d_allocator_p);
     parameters.setEventsCount(command.eventsCount());
@@ -717,6 +735,7 @@ void Interactive::processCommand(const BatchPostCommand& command)
     }
     parameters.setQueueFlags(queueId.flags());
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bslmt::Turnstile turnstile(1000.0);
     if (parameters.postInterval() != 0) {
         turnstile.reset(1000.0 / parameters.postInterval());
@@ -734,6 +753,7 @@ void Interactive::processCommand(const BatchPostCommand& command)
 
     BALL_LOG_INFO << "All messages have been posted";
 }
+// NOLINTEND(*-magic-numbers)
 
 void Interactive::processCommand(const LoadPostCommand& command)
 {
@@ -786,8 +806,9 @@ void Interactive::processCommand(const LoadPostCommand& command)
     }
 
     // Set message properties
-    const bsl::string              properties = propertiesStream.str();
-    bmqa::MessageProperties        messageProperties(d_allocator_p);
+    const bsl::string       properties = propertiesStream.str();
+    bmqa::MessageProperties messageProperties(d_allocator_p);
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, d_allocator_p);
     if (!properties.empty()) {
         // Convert string to blob
@@ -918,6 +939,7 @@ int Interactive::mainLoop()
 {
     bool started = false;
 
+    // NOLINTBEGIN(performance-avoid-endl)
     while (true) {
         bsl::string input;
 
@@ -1022,6 +1044,7 @@ int Interactive::mainLoop()
             }
         }
     }
+    // NOLINTEND(performance-avoid-endl)
 
     if (started) {
         d_session_p->stop();

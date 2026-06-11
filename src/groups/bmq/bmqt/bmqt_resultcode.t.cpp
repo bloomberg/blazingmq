@@ -53,6 +53,7 @@ struct PrintTestData {
 // ----------------------------------------------------------------------------
 
 static void test1_breathingTest()
+// NOLINTBEGIN(cppcoreguidelines-init-variables,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -85,8 +86,10 @@ static void test1_breathingTest()
     str = bmqt::GenericResult::toAscii(obj);
     BMQTST_ASSERT_EQ(bsl::strncmp(str, "CANCELED", k_MAX_ENUM_NAME_LENGTH), 0);
 }
+// NOLINTEND(cppcoreguidelines-init-variables,performance-avoid-endl)
 
 static void test2_schemaConsistency()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("SCHEMA CONSISTENCY");
 
@@ -126,10 +129,13 @@ static void test2_schemaConsistency()
         static_cast<int>(bmqt::GenericResult::e_NOT_READY),
         static_cast<int>(bmqp_ctrlmsg::StatusCategory::E_NOT_READY));
 }
+// NOLINTEND(performance-avoid-endl)
 
 template <typename ENUM_TYPE, typename ARRAY, int SIZE>
+// NOLINTBEGIN(*-avoid-c-arrays)
 static void printEnumHelper(ARRAY (&data)[SIZE])
 {
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < SIZE; ++idx) {
         const PrintTestData& test = data[idx];
 
@@ -159,14 +165,18 @@ static void printEnumHelper(ARRAY (&data)[SIZE])
 
         BMQTST_ASSERT_EQ(out.str(), expected.str());
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test3_printTest()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("PRINT");
 
     PV("Testing bmqt::GenericResult print");
     {
+        // NOLINTBEGIN(*-avoid-c-arrays)
         PrintTestData k_DATA[] = {
             {L_, bmqt::GenericResult::e_SUCCESS, "SUCCESS"},
             {L_, bmqt::GenericResult::e_UNKNOWN, "UNKNOWN"},
@@ -178,12 +188,14 @@ static void test3_printTest()
             {L_, bmqt::GenericResult::e_INVALID_ARGUMENT, "INVALID_ARGUMENT"},
             {L_, bmqt::GenericResult::e_NOT_READY, "NOT_READY"},
             {L_, bmqt::GenericResult::e_LAST, "NOT_READY"}};
+        // NOLINTEND(*-avoid-c-arrays)
 
         printEnumHelper<bmqt::GenericResult>(k_DATA);
     }
 
     PV("Testing bmqt::OpenQueueResult print");
     {
+        // NOLINTBEGIN(*-avoid-c-arrays)
         PrintTestData k_DATA[] = {
             {L_, bmqt::OpenQueueResult::e_SUCCESS, "SUCCESS"},
             {L_, bmqt::OpenQueueResult::e_UNKNOWN, "UNKNOWN"},
@@ -205,12 +217,14 @@ static void test3_printTest()
             {L_,
              bmqt::OpenQueueResult::e_CORRELATIONID_NOT_UNIQUE,
              "CORRELATIONID_NOT_UNIQUE"}};
+        // NOLINTEND(*-avoid-c-arrays)
 
         printEnumHelper<bmqt::OpenQueueResult>(k_DATA);
     }
 
     PV("Testing bmqt::ConfigureQueueResult print");
     {
+        // NOLINTBEGIN(*-avoid-c-arrays)
         PrintTestData k_DATA[] = {
             {L_, bmqt::ConfigureQueueResult::e_SUCCESS, "SUCCESS"},
             {L_, bmqt::ConfigureQueueResult::e_UNKNOWN, "UNKNOWN"},
@@ -229,12 +243,14 @@ static void test3_printTest()
             {L_,
              bmqt::ConfigureQueueResult::e_INVALID_QUEUE,
              "INVALID_QUEUE"}};
+        // NOLINTEND(*-avoid-c-arrays)
 
         printEnumHelper<bmqt::ConfigureQueueResult>(k_DATA);
     }
 
     PV("Testing bmqt::CloseQueueResult print");
     {
+        // NOLINTBEGIN(*-avoid-c-arrays)
         PrintTestData k_DATA[] = {
             {L_, bmqt::CloseQueueResult::e_SUCCESS, "SUCCESS"},
             {L_, bmqt::CloseQueueResult::e_UNKNOWN, "UNKNOWN"},
@@ -253,12 +269,14 @@ static void test3_printTest()
              "ALREADY_IN_PROGRESS"},
             {L_, bmqt::CloseQueueResult::e_UNKNOWN_QUEUE, "UNKNOWN_QUEUE"},
             {L_, bmqt::CloseQueueResult::e_INVALID_QUEUE, "INVALID_QUEUE"}};
+        // NOLINTEND(*-avoid-c-arrays)
 
         printEnumHelper<bmqt::CloseQueueResult>(k_DATA);
     }
 
     PV("Testing bmqt::EventBuilderResult print");
     {
+        // NOLINTBEGIN(*-avoid-c-arrays)
         PrintTestData k_DATA[] = {
             {L_, bmqt::EventBuilderResult::e_SUCCESS, "SUCCESS"},
             {L_, bmqt::EventBuilderResult::e_UNKNOWN, "UNKNOWN"},
@@ -275,12 +293,14 @@ static void test3_printTest()
             {L_,
              bmqt::EventBuilderResult::e_OPTION_TOO_BIG,
              "OPTION_TOO_BIG"}};
+        // NOLINTEND(*-avoid-c-arrays)
 
         printEnumHelper<bmqt::EventBuilderResult>(k_DATA);
     }
 
     PV("Testing bmqt::AckResult print");
     {
+        // NOLINTBEGIN(*-avoid-c-arrays)
         PrintTestData k_DATA[] = {
             {L_, bmqt::AckResult::e_SUCCESS, "SUCCESS"},
             {L_, bmqt::AckResult::e_UNKNOWN, "UNKNOWN"},
@@ -300,12 +320,14 @@ static void test3_printTest()
              "LIMIT_QUEUE_MESSAGES"},
             {L_, bmqt::AckResult::e_LIMIT_QUEUE_BYTES, "LIMIT_QUEUE_BYTES"},
             {L_, bmqt::AckResult::e_STORAGE_FAILURE, "STORAGE_FAILURE"}};
+        // NOLINTEND(*-avoid-c-arrays)
 
         printEnumHelper<bmqt::AckResult>(k_DATA);
     }
 
     PV("Testing bmqt::PostResult print");
     {
+        // NOLINTBEGIN(*-avoid-c-arrays)
         PrintTestData k_DATA[] = {
             {L_, bmqt::PostResult::e_SUCCESS, "SUCCESS"},
             {L_, bmqt::PostResult::e_UNKNOWN, "UNKNOWN"},
@@ -317,14 +339,17 @@ static void test3_printTest()
             {L_, bmqt::PostResult::e_INVALID_ARGUMENT, "INVALID_ARGUMENT"},
             {L_, bmqt::PostResult::e_NOT_READY, "NOT_READY"},
             {L_, bmqt::PostResult::e_BW_LIMIT, "BW_LIMIT"}};
+        // NOLINTEND(*-avoid-c-arrays)
 
         printEnumHelper<bmqt::PostResult>(k_DATA);
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 template <typename RESULT_TYPE>
 static void idempotenceHelper(typename RESULT_TYPE::Enum enumVal,
                               const bslstl::StringRef&   enumValName)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     typename RESULT_TYPE::Enum obj;
     const char*                str;
@@ -335,8 +360,10 @@ static void idempotenceHelper(typename RESULT_TYPE::Enum enumVal,
     str = RESULT_TYPE::toAscii(obj);
     BMQTST_ASSERT_EQ(str, enumValName);
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 static void test4_idempotence()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("IDEMPOTENCE");
 #define TEST_IDEMPOTENCE(ENUM_TYPE, ENUM_VAL)                                 \
@@ -347,6 +374,7 @@ static void test4_idempotence()
         idempotenceHelper<T>(T::e_##ENUM_VAL, #ENUM_VAL);                     \
     }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TEST_IDEMPOTENCE_GENERIC_STATES(ENUM_TYPE)                            \
     TEST_IDEMPOTENCE(ENUM_TYPE, SUCCESS)                                      \
     TEST_IDEMPOTENCE(ENUM_TYPE, UNKNOWN)                                      \
@@ -407,9 +435,11 @@ static void test4_idempotence()
 #undef TEST_IDEMPOTENCE_GENERIC_STATES
 #undef TEST_IDEMPOTENCE
 }
+// NOLINTEND(performance-avoid-endl)
 
 template <typename RESULT_TYPE>
 static void invalidValueFromAsciiHelper()
+// NOLINTBEGIN(cppcoreguidelines-init-variables,performance-avoid-endl)
 {
     typename RESULT_TYPE::Enum obj;
     bool                       res;
@@ -417,6 +447,7 @@ static void invalidValueFromAsciiHelper()
     res = RESULT_TYPE::fromAscii(&obj, "IMPOSSIBLE_RETURN_CODE");
     BMQTST_ASSERT_EQ(res, false);
 }
+// NOLINTEND(cppcoreguidelines-init-variables,performance-avoid-endl)
 
 static void test5_invalidValueFromAscii()
 {
@@ -434,6 +465,7 @@ static void test5_invalidValueFromAscii()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -452,3 +484,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

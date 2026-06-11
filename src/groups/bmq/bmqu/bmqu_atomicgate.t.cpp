@@ -141,6 +141,7 @@ static void test2_atomicGate_openCloseSequence()
 }
 
 static void test3_atomicGate_closeAndDrain()
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // ------------------------------------------------------------------------
     //
@@ -182,6 +183,7 @@ static void test3_atomicGate_closeAndDrain()
     // Join thread
     bslmt::ThreadUtil::join(threadHandle);
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 static void test4_gateKeeper_breathingTest()
 {
@@ -248,6 +250,7 @@ static void test5_gateKeeper_multipleOpen()
 }
 
 static void test6_gateKeeper_threadSafety()
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // ------------------------------------------------------------------------
     //
@@ -284,12 +287,14 @@ static void test6_gateKeeper_threadSafety()
 
     bslmt::ThreadUtil::join(threadHandle);
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 
@@ -309,3 +314,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

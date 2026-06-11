@@ -184,6 +184,7 @@ template <typename KEY,
           typename VALUE,
           typename HASH       = bsl::hash<KEY>,
           typename VALUE_TYPE = bsl::pair<const KEY, VALUE> >
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class OrderedHashMapWithHistory {
   public:
     // PUBLIC TYPES
@@ -259,6 +260,7 @@ class OrderedHashMapWithHistory {
         return value.first;
     }
 
+    // NOLINTNEXTLINE(bugprone-return-const-ref-from-parameter)
     static const KEY& get_key(const KEY& value) { return value; }
 
   public:
@@ -285,6 +287,7 @@ class OrderedHashMapWithHistory {
     /// Remove the specified `it` from the list of `live` un-TTL-expired
     /// items accessed by `live` iterators while still keeping the item in
     /// the `d_impl` as a historical record.
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     void unlink(iterator it);
 
   public:
@@ -330,7 +333,9 @@ class OrderedHashMapWithHistory {
     /// exceeds its `timePoint` plus `d_timeout`.
     /// The behavior is undefined unless `position` refers to a `value_type`
     /// object in this container.
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     void erase(iterator position);
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     void erase(iterator position, TimeType now);
 
     /// Return an iterator providing modifiable access to the `value_type`
@@ -396,6 +401,7 @@ class OrderedHashMapWithHistory {
     /// Return the number of elements in this container's history.
     size_t historySize() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -429,6 +435,7 @@ inline OrderedHashMapWithHistory_Iterator<
 
 // MANIPULATORS
 
+// NOLINTBEGIN(cert-oop54-cpp)
 template <class VALUE>
 inline OrderedHashMapWithHistory_Iterator<VALUE>&
 OrderedHashMapWithHistory_Iterator<VALUE>::operator=(const NcIter& rhs)
@@ -436,6 +443,7 @@ OrderedHashMapWithHistory_Iterator<VALUE>::operator=(const NcIter& rhs)
     d_baseIterator = rhs.d_baseIterator;
     return *this;
 }
+// NOLINTEND(cert-oop54-cpp)
 
 template <class VALUE>
 inline OrderedHashMapWithHistory_Iterator<VALUE>&

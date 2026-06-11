@@ -44,6 +44,7 @@ namespace bmqio {
 // ===================
 
 /// Listen options used when calling `bmqio::ChannelFactory::listen`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ListenOptions {
   private:
     // DATA
@@ -100,6 +101,7 @@ class ListenOptions {
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 

@@ -59,6 +59,7 @@ namespace bmqimp {
 // =======================================
 
 /// Configuration for a `AuthenticatedChannelFactory`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class AuthenticatedChannelFactoryConfig {
   public:
     // TYPES
@@ -99,6 +100,7 @@ class AuthenticatedChannelFactoryConfig {
         const AuthenticatedChannelFactoryConfig& original,
         bslma::Allocator*                        basicAllocator = 0);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =================================
 // class AuthenticatedChannelFactory
@@ -106,6 +108,7 @@ class AuthenticatedChannelFactoryConfig {
 
 /// `ChannelFactory` implementation that performs initial connection
 /// (authentication and negotiation) with peer upon channel connection.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class AuthenticatedChannelFactory : public bmqio::ChannelFactory {
   public:
     // TYPES
@@ -215,6 +218,7 @@ class AuthenticatedChannelFactory : public bmqio::ChannelFactory {
     /// `start()` and is not one of the I/O threads used by this object.
     void stop() BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

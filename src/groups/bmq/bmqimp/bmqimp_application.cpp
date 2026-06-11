@@ -77,8 +77,9 @@ namespace bmqimp {
 namespace {
 
 // CONSTANTS
-const double             k_RECONNECT_INTERVAL_MS = 500;
-const int                k_RECONNECT_COUNT = bsl::numeric_limits<int>::max();
+const double k_RECONNECT_INTERVAL_MS = 500;
+const int    k_RECONNECT_COUNT       = bsl::numeric_limits<int>::max();
+// NOLINTNEXTLINE(bugprone-implicit-widening-of-multiplication-result)
 const bsls::Types::Int64 k_CHANNEL_LOW_WATERMARK         = 512 * 1024;
 const int                k_DEFAULT_MAX_MISSED_HEARTBEATS = 10;
 const int                k_DEFAULT_HEARTBEAT_INTERVAL_MS = 1000;
@@ -88,6 +89,7 @@ const int                k_DEFAULT_HEARTBEAT_INTERVAL_MS = 1000;
 bmqst::StatContextConfiguration
 statContextConfiguration(const bmqt::SessionOptions& options,
                          bslma::Allocator*           allocator)
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqst::StatContextConfiguration config("stats", allocator);
     if (options.statsDumpInterval() != bsls::TimeInterval()) {
@@ -110,6 +112,7 @@ statContextConfiguration(const bmqt::SessionOptions& options,
 
     return config;
 }
+// NOLINTEND(*-magic-numbers)
 
 /// Create the ntca::InterfaceConfig to use given the specified
 /// `sessionOptions`.  Use the specified `allocator` for any memory
@@ -117,6 +120,7 @@ statContextConfiguration(const bmqt::SessionOptions& options,
 ntca::InterfaceConfig
 ntcCreateInterfaceConfig(const bmqt::SessionOptions& sessionOptions,
                          bslma::Allocator*           allocator)
+// NOLINTBEGIN(*-magic-numbers)
 {
     ntca::InterfaceConfig config(allocator);
 
@@ -143,6 +147,7 @@ ntcCreateInterfaceConfig(const bmqt::SessionOptions& sessionOptions,
 
     return config;
 }
+// NOLINTEND(*-magic-numbers)
 
 bslma::ManagedPtr<bmqio::ChannelFactoryPipeline> makeChannelFactoryPipeline(
     bslma::Allocator*                           allocator,
@@ -496,6 +501,7 @@ void Application::brokerSessionStopped(
 }
 
 bmqt::GenericResult::Enum Application::startChannel()
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // executed by the FSM thread
 
@@ -510,6 +516,7 @@ bmqt::GenericResult::Enum Application::startChannel()
         return bmqt::GenericResult::e_INVALID_ARGUMENT;  // RETURN
     }
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<32> localAllocator(&d_allocator);
     bmqu::MemOutStream                  out(&localAllocator);
     out << endpoint.host() << ":" << endpoint.port();
@@ -575,6 +582,7 @@ bmqt::GenericResult::Enum Application::startChannel()
 
     return bmqt::GenericResult::e_SUCCESS;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void Application::onStartTimeout()
 {
@@ -584,6 +592,7 @@ void Application::onStartTimeout()
 }
 
 void Application::snapshotStats()
+// NOLINTBEGIN(bugprone-inc-dec-in-conditions)
 {
     //         executed by the *SCHEDULER* thread
     // (and by the *MAIN* thread (in destructor))
@@ -596,6 +605,7 @@ void Application::snapshotStats()
         printStats(false);
     }
 }
+// NOLINTEND(bugprone-inc-dec-in-conditions)
 
 void Application::printStats(bool isFinal)
 {
@@ -751,6 +761,7 @@ Application::Application(
 , d_nextStatDump(-1)
 , d_lastAllocatorSnapshot(0)
 , d_heartbeatSchedulerHandle()
+// NOLINTBEGIN(*-magic-numbers,cert-msc32-c,cert-msc51-cpp)
 {
     // NOTE:
     //   o The persistent session pool must live longer than the brokerSession
@@ -823,6 +834,7 @@ Application::Application(
         start,
         end);
 }
+// NOLINTEND(*-magic-numbers,cert-msc32-c,cert-msc51-cpp)
 
 Application::~Application()
 {

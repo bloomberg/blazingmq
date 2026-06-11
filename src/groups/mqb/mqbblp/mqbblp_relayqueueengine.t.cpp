@@ -48,6 +48,7 @@ using namespace bsl;
 // ----------------------------------------------------------------------------
 namespace {
 
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 const mqbi::QueueHandle* k_nullHandle_p = 0;
 
 /// Return a fanout domain.
@@ -87,6 +88,7 @@ static void test1_breathingTest()
 // Testing:
 //   Basic functionality
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -128,6 +130,7 @@ static void test1_breathingTest()
     tester.confirm("C2", tester.getMessages(C2->_messages(), "0"));
     tester.confirm("C3", tester.getMessages(C3->_messages(), "0"));
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test2_aggregateDownstream()
 // ------------------------------------------------------------------------
@@ -155,6 +158,7 @@ static void test2_aggregateDownstream()
 //   'afterNewMessage()' with client having multiple highest priority
 //   consumers
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("AGGREGATE DOWNSTREAM");
 
@@ -262,6 +266,7 @@ static void test2_aggregateDownstream()
     tester.confirm("C1", tester.getMessages(C1->_messages(), "0,1"));
     tester.confirm("C3", tester.getMessages(C3->_messages(), "0,1,2,3"));
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test3_reconfigure()
 // ------------------------------------------------------------------------
@@ -291,6 +296,7 @@ static void test3_reconfigure()
 //   Queue Engine delivery across handle reconfigure.
 //     - 'configureHandle()'
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("RECONFIGURE");
 
@@ -379,6 +385,7 @@ static void test3_reconfigure()
     tester.confirm("C2", tester.getMessages(C2->_messages(), "0,1"));
     tester.confirm("C3", tester.getMessages(C3->_messages(), "0,1"));
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test4_cannotDeliver()
 // ------------------------------------------------------------------------
@@ -501,6 +508,7 @@ static void test5_localRedelivery()
 //   Queue Engine redelivery of messages that were sent but not confirmed
 //   when other consumers are available and able to receive messages.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("REDELIVERY TO OTHER CONSUMERS");
 
@@ -546,6 +554,7 @@ static void test5_localRedelivery()
 
     tester.confirm("C2", tester.getMessages(C2->_messages(), "0,1,2"));
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test6_clearDeliveryStateWhenLostReaders()
 // ------------------------------------------------------------------------
@@ -721,6 +730,7 @@ static void test8_priority_beforeMessageRemoved_garbageCollection()
 //   receiving notification prior to a message being removed.
 //   - 'beforeMessageRemoved()'
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BEFORE MESSAGE REMOVED - GARBAGE "
                                       "COLLECTION");
@@ -760,6 +770,7 @@ static void test8_priority_beforeMessageRemoved_garbageCollection()
     BMQTST_ASSERT_EQ(C1->_numMessages(), 2);
     BMQTST_ASSERT_EQ(C1->_messages(), "3,4");
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test9_releaseHandle_isDeletedFlag()
 // ------------------------------------------------------------------------
@@ -850,6 +861,7 @@ static void test10_configureFanoutAppIds()
 //                  const bmqp_ctrlmsg::QueueStreamParameters&,
 //                  const mqbi::QueueHandle::HandleConfiguredCallback&);
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName(
         "CONFIGURING DIFFERENT APPIDs FOR UPSTREAM");
@@ -915,6 +927,7 @@ static void test10_configureFanoutAppIds()
     // Release the handle and verify it succeeds
     // BMQTST_ASSERT_EQ(tester.releaseHandle("C1@a readCount=1"), 0);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test11_roundRobinAndRedelivery()
 // ------------------------------------------------------------------------
@@ -934,6 +947,7 @@ static void test11_roundRobinAndRedelivery()
 // Testing:
 //   'getHandle' and 'configureHandle' for multiple distinct appIds.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(modernize-use-emplace,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("ROUND-ROBIN AND REDELIVERY");
 
@@ -943,7 +957,7 @@ static void test11_roundRobinAndRedelivery()
     appIDs.push_back("b");
     appIDs.push_back("c");
 
-    mqbblp::QueueEngineTester tester(config,
+    mqbblp::QueueEngineTester                                tester(config,
                                      false,  // start scheduler
                                      bmqtst::TestHelperUtil::allocator());
     mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);
@@ -1010,6 +1024,7 @@ static void test11_roundRobinAndRedelivery()
     BMQTST_ASSERT_EQ(C2->_numMessages("c"), 3);
     BMQTST_ASSERT_EQ(C2->_messages("c"), "1,2,3");
 }
+// NOLINTEND(modernize-use-emplace,performance-avoid-endl)
 
 static void test12_redeliverAfterGc()
 // ------------------------------------------------------------------------
@@ -1034,6 +1049,7 @@ static void test12_redeliverAfterGc()
 //   Queue Engine redelivery of unconfirmed messages after removing some of
 //   them.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("REDELIVERY AFTER GC");
 
@@ -1078,6 +1094,7 @@ static void test12_redeliverAfterGc()
 
     tester.confirm("C2", "2,3,4");
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test13_deconfigureWhenOpen()
 // ------------------------------------------------------------------------
@@ -1152,6 +1169,7 @@ static void test14_throttleRedeliveryPriority()
 //   Queue Engine throttled redelivery of unconfirmed messages after the
 //   rda reaches 2.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("THROTTLED REDELIVERY PRIORITY");
 
@@ -1215,6 +1233,7 @@ static void test14_throttleRedeliveryPriority()
     PVV(L_ << ": C2 Messages: " << C2->_messages());
     BMQTST_ASSERT_EQ(C2->_numMessages(), 4);
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 static void test15_throttleRedeliveryFanout()
 // ------------------------------------------------------------------------
@@ -1244,6 +1263,7 @@ static void test15_throttleRedeliveryFanout()
 //   Queue Engine throttled redelivery of unconfirmed messages after the
 //   rda reaches 2.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,modernize-use-emplace,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("THROTTLED REDELIVERY FANOUT");
 
@@ -1358,6 +1378,7 @@ static void test15_throttleRedeliveryFanout()
     PVV(L_ << ": C4 Messages: " << C4->_messages("c"));
     BMQTST_ASSERT_EQ(C4->_numMessages("c"), 4);
 }
+// NOLINTEND(*-magic-numbers,modernize-use-emplace,performance-avoid-endl)
 
 static void test16_throttleRedeliveryCancelledDelay()
 // ------------------------------------------------------------------------
@@ -1385,6 +1406,7 @@ static void test16_throttleRedeliveryCancelledDelay()
 // Testing:
 //   mqbblp::QueueEngine cancelThrottle on a delayed message.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("THROTTLED REDELIVERY CANCELLED DELAY");
 
@@ -1455,6 +1477,7 @@ static void test16_throttleRedeliveryCancelledDelay()
     PVV(L_ << ": C2 Messages: " << C2->_messages());
     BMQTST_ASSERT_EQ(C2->_numMessages(), 1);
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 static void test17_throttleRedeliveryNewHandle()
 // ------------------------------------------------------------------------
@@ -1475,6 +1498,7 @@ static void test17_throttleRedeliveryNewHandle()
 //   mqbblp::QueueEngine a newly configured handle should end the delay for
 //   for the current message.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("THROTTLED REDELIVERY NEW HANDLE");
 
@@ -1509,6 +1533,7 @@ static void test17_throttleRedeliveryNewHandle()
     tester.configureHandle("C1 consumerPriority=2 consumerPriorityCount=1");
     BMQTST_ASSERT_EQ(C1->_numMessages(), 1);
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 static void test18_throttleRedeliveryNoMoreHandles()
 // ------------------------------------------------------------------------
@@ -1534,6 +1559,7 @@ static void test18_throttleRedeliveryNoMoreHandles()
 //   mqbblp::QueueEngine the last handle disappering for a particular app
 //   should end the delay for the current message.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("THROTTLED REDELIVERY NO MORE HANDLES");
 
@@ -1592,6 +1618,7 @@ static void test18_throttleRedeliveryNoMoreHandles()
     PVV(L_ << ": C3 Messages: " << C3->_messages());
     BMQTST_ASSERT_EQ(C3->_numMessages(), 0);
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 static void test19_redeliveryAndResume()
 // ------------------------------------------------------------------------
@@ -1616,6 +1643,7 @@ static void test19_redeliveryAndResume()
 // Testing:
 //   'processAppRedelivery'.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(modernize-use-emplace,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("ROUND-ROBIN AND REDELIVERY");
 
@@ -1624,7 +1652,7 @@ static void test19_redeliveryAndResume()
     appIDs.push_back("a");
     appIDs.push_back("b");
 
-    mqbblp::QueueEngineTester tester(config,
+    mqbblp::QueueEngineTester                                tester(config,
                                      false,  // start scheduler
                                      bmqtst::TestHelperUtil::allocator());
     mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);
@@ -1712,6 +1740,7 @@ static void test19_redeliveryAndResume()
 
     BMQTST_ASSERT_EQ(C3->_numMessages("a"), 5);
 }
+// NOLINTEND(modernize-use-emplace,performance-avoid-endl)
 
 static void test20_handleParametersLimits()
 // ------------------------------------------------------------------------
@@ -1824,6 +1853,7 @@ static void test21_deliverOutOfOrder()
 // Testing:
 //   'isOutOfOrder'.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(modernize-use-emplace,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("DETECTING OUT-OF-ORDER");
 
@@ -1832,7 +1862,7 @@ static void test21_deliverOutOfOrder()
     appIDs.push_back("a");
     appIDs.push_back("b");
 
-    mqbblp::QueueEngineTester tester(config,
+    mqbblp::QueueEngineTester                                tester(config,
                                      false,  // start scheduler
                                      bmqtst::TestHelperUtil::allocator());
     mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);
@@ -1904,6 +1934,7 @@ static void test21_deliverOutOfOrder()
     BMQTST_ASSERT_EQ(C1->_numMessages("a"), 3);
     BMQTST_ASSERT_EQ(C1->_numMessages("b"), 3);
 }
+// NOLINTEND(modernize-use-emplace,performance-avoid-endl)
 
 static void test22_resumeAfterTTL()
 // ------------------------------------------------------------------------
@@ -1930,6 +1961,7 @@ static void test22_resumeAfterTTL()
 // Testing:
 //   'processAppRedelivery'.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(modernize-use-emplace,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("RESUME AFTER TTL");
 
@@ -2023,12 +2055,14 @@ static void test22_resumeAfterTTL()
     BMQTST_ASSERT_EQ(C1->_numMessages("a"), 2);
     BMQTST_ASSERT_EQ(C1->_numMessages("b"), 6);
 }
+// NOLINTEND(modernize-use-emplace,performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -2037,9 +2071,11 @@ int main(int argc, char* argv[])
         mqbcfg::BrokerConfig::set(brokerConfig);
 
         bsl::shared_ptr<bmqst::StatContext> statContext =
+            // NOLINTBEGIN(*-magic-numbers)
             mqbstat::BrokerStatsUtil::initializeStatContext(
                 30,
                 bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
 
         switch (_testCase) {
         case 0:
@@ -2077,3 +2113,4 @@ int main(int argc, char* argv[])
     // that allocates using default allocator.
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

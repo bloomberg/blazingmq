@@ -43,6 +43,7 @@ bool MessageIterator::nextMessage()
     // We need to reset the 'queueId' and 'correlationId' of message, because
     // those are lazily fetched, and must be invalidated when moving to the
     // next message.
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     MessageImpl& msgImpl = reinterpret_cast<MessageImpl&>(d_impl.d_message);
     msgImpl.d_queueId    = bmqa::QueueId();
     msgImpl.d_correlationId.makeUnset();

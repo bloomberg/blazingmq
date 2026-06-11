@@ -56,6 +56,7 @@ BSLMF_ASSERT(k_ALL_FLAGS_SETTED < 1 << 10);
 // ----------------------------------------------------------------------------
 
 static void test1_breathingTest()
+// NOLINTBEGIN(cppcoreguidelines-init-variables,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -108,8 +109,10 @@ static void test1_breathingTest()
     BMQTST_ASSERT_NE(rc, 0);
     BMQTST_ASSERT_EQ(errorOs.str(), "Invalid flag(s) 'INVALID','INVALID2'");
 }
+// NOLINTEND(cppcoreguidelines-init-variables,performance-avoid-endl)
 
 static void test2_additionsRemovals()
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("ADDITIONS / REMOVALS");
 
@@ -142,9 +145,12 @@ static void test2_additionsRemovals()
         {L_, false, 0, k_ADMIN | k_WRITE, 0},
         {L_, false, k_ADMIN | k_WRITE, 0, k_ADMIN | k_WRITE},
     };
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const int k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (int idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const TestData& test = k_DATA[idx];
 
         bsls::Types::Uint64 diffFlags = 0;
@@ -161,9 +167,12 @@ static void test2_additionsRemovals()
                      << ", Expected: " << test.d_expected);
         BMQTST_ASSERT_EQ(diffFlags, test.d_expected);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test3_printTest()
+// NOLINTBEGIN(*-avoid-c-arrays,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("PRINT");
 
@@ -183,9 +192,11 @@ static void test3_printTest()
                   {bmqt::QueueFlags::e_WRITE, "WRITE"},
                   {bmqt::QueueFlags::e_ACK, "ACK"}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
@@ -209,8 +220,10 @@ static void test3_printTest()
         BMQTST_ASSERT_EQ(out.str(), expected.str());
     }
 }
+// NOLINTEND(*-avoid-c-arrays,performance-avoid-endl)
 
 static void test4_empty()
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("EMPTY");
 
@@ -226,8 +239,10 @@ static void test4_empty()
     flags = 0xffffffff;
     BMQTST_ASSERT_EQ(bmqt::QueueFlagsUtil::isEmpty(flags), false);
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 static void test5_setFlag()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("SET FLAG");
 
@@ -262,8 +277,10 @@ static void test5_setFlag()
                            flags0)
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test6_unsetFlag()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("UNSET FLAG");
 
@@ -298,8 +315,10 @@ static void test6_unsetFlag()
                            flags0)
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test7_getFlag()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("GET FLAG");
 
@@ -332,12 +351,14 @@ static void test7_getFlag()
             static_cast<bool>(flags & bmqt::QueueFlags::e_ADMIN))
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -358,3 +379,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

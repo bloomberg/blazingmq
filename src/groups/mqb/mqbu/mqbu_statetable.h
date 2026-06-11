@@ -42,6 +42,7 @@ namespace mqbu {
 
 /// This class is a state table for FSM use.
 template <size_t NUM_STATES, size_t NUM_EVENTS, typename ACTION>
+// NOLINTBEGIN(*-avoid-c-arrays)
 class StateTable {
   public:
     // TYPES
@@ -74,6 +75,7 @@ class StateTable {
     /// specified input `event`.
     Transition transition(int state, int event) const;
 };
+// NOLINTEND(*-avoid-c-arrays)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -94,9 +96,11 @@ inline StateTable<NUM_STATES, NUM_EVENTS, ACTION>::StateTable(ACTION action)
         BSLS_ASSERT_SAFE(sizeof(d_transitions[0]) >=
                          static_cast<int>(NUM_EVENTS));
 
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
         for (size_t j = 0; j < NUM_EVENTS; j++) {
             d_transitions[i][j] = Transition(i, action);
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
     }
 }
 
@@ -106,6 +110,7 @@ inline void
 StateTable<NUM_STATES, NUM_EVENTS, ACTION>::configure(int        state,
                                                       int        event,
                                                       Transition transition)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 <= state && state < static_cast<int>(NUM_STATES));
@@ -113,12 +118,14 @@ StateTable<NUM_STATES, NUM_EVENTS, ACTION>::configure(int        state,
 
     d_transitions[state][event] = transition;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
 // ACCESSORS
 template <size_t NUM_STATES, size_t NUM_EVENTS, typename ACTION>
 inline typename StateTable<NUM_STATES, NUM_EVENTS, ACTION>::Transition
 StateTable<NUM_STATES, NUM_EVENTS, ACTION>::transition(int state,
                                                        int event) const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 <= state && state < static_cast<int>(NUM_STATES));
@@ -126,6 +133,7 @@ StateTable<NUM_STATES, NUM_EVENTS, ACTION>::transition(int state,
 
     return d_transitions[state][event];
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
 }  // close package namespace
 }  // close enterprise namespace

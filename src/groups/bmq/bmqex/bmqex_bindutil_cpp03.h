@@ -36,7 +36,7 @@
 // regions of C++11 code, then this header contains no code and is not
 // '#include'd in the original header.
 //
-// Generated on Wed Jun 18 14:44:15 2025
+// Generated on Thu Jun 11 19:52:31 2026
 // Command line: sim_cpp11_features.pl bmqex_bindutil.h
 
 #ifdef COMPILING_BMQEX_BINDUTIL_H
@@ -337,6 +337,7 @@ struct BindUtil_DummyNullaryFunction {
 /// `FUNCTION` must meet the requirements of Destructible as specified in
 /// the C++ standard.
 template <class POLICY, class FUNCTION>
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class BindUtil_BindWrapper {
   private:
     // PRIVATE DATA
@@ -431,10 +432,10 @@ class BindUtil_BindWrapper {
                                       typename bsl::decay<ARG1>::type,
                                       typename bsl::decay<ARGS_1>::type,
                                       typename bsl::decay<ARGS_2>::type> >::
-        Type
-        operator()(BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2) const;
+        Type operator()(BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2)
+                            args_2) const;
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_B >= 2
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_B >= 3
@@ -446,11 +447,11 @@ class BindUtil_BindWrapper {
                                       typename bsl::decay<ARGS_1>::type,
                                       typename bsl::decay<ARGS_2>::type,
                                       typename bsl::decay<ARGS_3>::type> >::
-        Type
-        operator()(BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3) const;
+        Type operator()(BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3)
+                            args_3) const;
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_B >= 3
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_B >= 4
@@ -467,12 +468,12 @@ class BindUtil_BindWrapper {
                                       typename bsl::decay<ARGS_2>::type,
                                       typename bsl::decay<ARGS_3>::type,
                                       typename bsl::decay<ARGS_4>::type> >::
-        Type
-        operator()(BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4) const;
+        Type operator()(BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4)
+                            args_4) const;
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_B >= 4
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_B >= 5
@@ -491,13 +492,13 @@ class BindUtil_BindWrapper {
                                       typename bsl::decay<ARGS_3>::type,
                                       typename bsl::decay<ARGS_4>::type,
                                       typename bsl::decay<ARGS_5>::type> >::
-        Type
-        operator()(BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5) const;
+        Type operator()(BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5)
+                            args_5) const;
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_B >= 5
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_B >= 6
@@ -518,14 +519,14 @@ class BindUtil_BindWrapper {
                                       typename bsl::decay<ARGS_4>::type,
                                       typename bsl::decay<ARGS_5>::type,
                                       typename bsl::decay<ARGS_6>::type> >::
-        Type
-        operator()(BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6) const;
+        Type operator()(BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6)
+                            args_6) const;
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_B >= 6
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_B >= 7
@@ -548,15 +549,15 @@ class BindUtil_BindWrapper {
                                       typename bsl::decay<ARGS_5>::type,
                                       typename bsl::decay<ARGS_6>::type,
                                       typename bsl::decay<ARGS_7>::type> >::
-        Type
-        operator()(BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7) const;
+        Type operator()(BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7)
+                            args_7) const;
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_B >= 7
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_B >= 8
@@ -581,16 +582,16 @@ class BindUtil_BindWrapper {
                                       typename bsl::decay<ARGS_6>::type,
                                       typename bsl::decay<ARGS_7>::type,
                                       typename bsl::decay<ARGS_8>::type> >::
-        Type
-        operator()(BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7,
-                   BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_8) args_8) const;
+        Type operator()(BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7,
+                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_8)
+                            args_8) const;
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_B >= 8
 
 #else
@@ -614,6 +615,7 @@ class BindUtil_BindWrapper {
     BSLMF_NESTED_TRAIT_DECLARATION(BindUtil_BindWrapper,
                                    bslma::UsesBslmaAllocator)
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ===============
 // struct BindUtil
@@ -661,6 +663,7 @@ struct BindUtil {
 // --------------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 template <class POLICY, class FUNCTION>
 template <class POLICY_PARAM, class FUNCTION_PARAM>
 inline BindUtil_BindWrapper<POLICY, FUNCTION>::BindUtil_BindWrapper(
@@ -673,6 +676,7 @@ inline BindUtil_BindWrapper<POLICY, FUNCTION>::BindUtil_BindWrapper(
 {
     // NOTHING
 }
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 
 template <class POLICY, class FUNCTION>
 inline BindUtil_BindWrapper<POLICY, FUNCTION>::BindUtil_BindWrapper(
@@ -1127,10 +1131,12 @@ BindUtil_BindWrapper<POLICY, FUNCTION>::operator()(
 
 // CLASS METHODS
 template <class POLICY, class FUNCTION>
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 inline BindUtil_BindWrapper<typename bsl::decay<POLICY>::type,
                             typename bsl::decay<FUNCTION>::type>
 BindUtil::bindExecute(BSLS_COMPILERFEATURES_FORWARD_REF(POLICY) policy,
                       BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) function)
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 {
     return BindUtil_BindWrapper<typename bsl::decay<POLICY>::type,
                                 typename bsl::decay<FUNCTION>::type>(

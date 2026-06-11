@@ -35,6 +35,7 @@ namespace {
 /// `observerAddress`, and load the name into the specified `observerName`.
 void generateUniqueObserverName(bsl::string* observerName,
                                 void*        observerAddress)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // PRECONDITIONS
     BSLS_ASSERT(observerName);
@@ -49,6 +50,7 @@ void generateUniqueObserverName(bsl::string* observerName,
             16)  // base
         - observerName->data());
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
 
 }  // close unnamed namespace
 
@@ -133,6 +135,7 @@ const bsl::vector<ball::Record>& ScopedLogObserver::records() const
 bool ScopedLogObserverUtil::recordMessageMatch(const ball::Record& record,
                                                const char*         pattern,
                                                bslma::Allocator*   allocator)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // PRECONDITIONS
     BSLS_ASSERT(pattern);
@@ -156,6 +159,7 @@ bool ScopedLogObserverUtil::recordMessageMatch(const ball::Record& record,
 
     return rc == 0;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 }  // close package namespace
 }  // close enterprise namespace

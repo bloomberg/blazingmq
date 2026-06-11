@@ -53,6 +53,7 @@ namespace bmqst {
 // ===========
 
 /// A variant value that can be used as a key in containers
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Value {
   public:
     // PUBLIC TYPES
@@ -143,6 +144,7 @@ class Value {
     /// Return the hash of this `Value`.
     size_t hash() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 inline bool   operator==(const Value& lhs, const Value& rhs);
@@ -209,6 +211,7 @@ inline Value& Value::operator=(const Value& rhs)
 }
 
 inline void Value::clear()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
 {
     if (d_owned) {
         d_allocator_p->deallocate(
@@ -219,6 +222,7 @@ inline void Value::clear()
     d_value.reset();
     d_hash = 0;
 }
+// NOLINTEND(cppcoreguidelines-pro-type-const-cast)
 
 template <typename TYPE>
 inline void Value::set(const TYPE& value)

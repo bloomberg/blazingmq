@@ -50,6 +50,7 @@ static void test1_breathingTest()
 // Testing:
 //   Basic functionality
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -76,12 +77,14 @@ static void test1_breathingTest()
     BMQTST_ASSERT_NE(mqbu::StorageKey::k_NULL_KEY,
                      mqbi::QueueEngine::k_DEFAULT_APP_KEY);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -96,3 +99,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

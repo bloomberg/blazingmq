@@ -39,6 +39,7 @@ namespace mqbstat {
 namespace {
 
 /// Name of the stat context to create (holding all domain's statistics)
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 static const char k_DOMAIN_STAT_NAME[] = "domains";
 
 }  // close unnamed namespace
@@ -57,11 +58,13 @@ bsls::Types::Int64 DomainStats::getValue(const bmqst::StatContext& context,
     const bmqst::StatValue::SnapshotLocation latestSnapshot(0, 0);
     const bmqst::StatValue::SnapshotLocation oldestSnapshot(0, snapshotId);
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define STAT_SINGLE(OPERATION, STAT)                                          \
     bmqst::StatUtil::OPERATION(                                               \
         context.value(bmqst::StatContext::e_DIRECT_VALUE, STAT),              \
         latestSnapshot)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define STAT_RANGE(OPERATION, STAT)                                           \
     bmqst::StatUtil::OPERATION(                                               \
         context.value(bmqst::StatContext::e_DIRECT_VALUE, STAT),              \
@@ -105,6 +108,7 @@ void DomainStats::initialize(mqbi::Domain*       domain,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!d_statContext_mp && "initialize was already called");
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<2048> localAllocator(allocator);
     d_statContext_mp = domainStatContext->addSubcontext(
         bmqst::StatContextConfiguration(domain->name(), &localAllocator));
@@ -143,10 +147,13 @@ bsl::shared_ptr<bmqst::StatContext>
 DomainStatsUtil::initializeStatContext(int               historySize,
                                        bslma::Allocator* allocator)
 {
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<2048> localAllocator(allocator);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bmqst::StatContextConfiguration config(k_DOMAIN_STAT_NAME,
                                            &localAllocator);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     config.isTable(true)
         .defaultHistorySize(historySize)
         .statValueAllocator(allocator)

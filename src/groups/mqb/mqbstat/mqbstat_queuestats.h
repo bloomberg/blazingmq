@@ -70,6 +70,7 @@ namespace mqbstat {
 
 /// Mechanism to keep track of individual overall statistics of a queue in a
 /// domain.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class QueueStatsDomain {
   public:
     // TRAITS
@@ -81,6 +82,7 @@ class QueueStatsDomain {
     /// are monitored.
     struct EventType {
         // TYPES
+        // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
         enum Enum {
             e_ADD_MESSAGE,
             e_DEL_MESSAGE,
@@ -101,12 +103,14 @@ class QueueStatsDomain {
             e_NO_SC_MESSAGE,
             e_UPDATE_HISTORY
         };
+        // NOLINTEND(cppcoreguidelines-use-enum-class)
     };
 
     /// Enum representing the various type of stats that can be obtained
     /// from this object.
     struct Stat {
         // TYPES
+        // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
         enum Enum {
             e_NB_PRODUCER,
             e_NB_CONSUMER,
@@ -147,6 +151,7 @@ class QueueStatsDomain {
             e_NO_SC_MSGS_ABS,
             e_HISTORY_ABS
         };
+        // NOLINTEND(cppcoreguidelines-use-enum-class)
 
         /// Return the non-modifiable string description corresponding to
         /// the specified enumeration `value`.
@@ -154,6 +159,7 @@ class QueueStatsDomain {
     };
 
     struct Role {
+        // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
         enum Enum { e_UNKNOWN, e_PRIMARY, e_REPLICA, e_PROXY };
 
         // CLASS METHODS
@@ -288,6 +294,7 @@ class QueueStatsDomain {
     /// Return a pointer to the statcontext.
     bmqst::StatContext* statContext();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 
@@ -308,6 +315,7 @@ bsl::ostream& operator<<(bsl::ostream&                stream,
 
 /// Mechanism to keep track of individual overall statistics of a queue in a
 /// client.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class QueueStatsClient {
   public:
     // TYPES
@@ -316,6 +324,7 @@ class QueueStatsClient {
     /// are monitored.
     struct EventType {
         // TYPES
+        // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
         enum Enum { e_ACK, e_CONFIRM, e_PUT, e_PUSH };
     };
 
@@ -323,6 +332,7 @@ class QueueStatsClient {
     /// from this object.
     struct Stat {
         // TYPES
+        // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
         enum Enum {
             e_PUT_MESSAGES_DELTA,
             e_PUT_BYTES_DELTA,
@@ -337,6 +347,7 @@ class QueueStatsClient {
             e_CONFIRM_DELTA,
             e_CONFIRM_ABS
         };
+        // NOLINTEND(cppcoreguidelines-use-enum-class)
     };
 
   private:
@@ -389,6 +400,7 @@ class QueueStatsClient {
     /// Return a pointer to the statcontext.
     bmqst::StatContext* statContext();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =====================
 // struct QueueStatsUtil
@@ -436,6 +448,7 @@ struct QueueStatsUtil {
 /// Namespace for the constants of stat values that applies to the queues
 /// on the domain
 struct DomainQueueStats {
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         /// Value:      Current number of clients who opened the queue with
         ///             the `WRITE` flag
@@ -507,6 +520,7 @@ struct DomainQueueStats {
         ///             (does not include messages in the queue)
         e_STAT_HISTORY
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 };
 
 // ============================================================================

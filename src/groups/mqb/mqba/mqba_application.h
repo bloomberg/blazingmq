@@ -92,6 +92,7 @@ class DomainManager;
 // =================
 
 /// BMQBRKR application top level component
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Application {
   private:
     // CLASS-SCOPE CATEGORY
@@ -273,6 +274,7 @@ class Application {
     void executeCommand(const mqbcmd::Command&  command,
                         mqbcmd::InternalResult* cmdResult);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

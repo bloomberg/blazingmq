@@ -49,6 +49,7 @@ namespace bmqio {
 
 /// Watermark event types supported by a `Channel`
 struct ChannelWatermarkType {
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum Enum { e_LOW_WATERMARK = 1, e_HIGH_WATERMARK = 2 };
 
     // CLASS METHODS
@@ -100,6 +101,7 @@ bsl::ostream& operator<<(bsl::ostream&              stream,
 // =============
 
 /// Pure protocol for a bi-directional async channel.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Channel {
   public:
     // TYPES
@@ -225,6 +227,7 @@ class Channel {
     /// this Channel.
     virtual const bmqvt::PropertyBag& properties() const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 

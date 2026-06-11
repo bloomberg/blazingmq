@@ -50,6 +50,7 @@ namespace bmqst {
 
 /// Protocol for an object that describes a table to be printed by
 /// `bmqst::PrintTableUtil`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class TableInfoProvider {
   public:
     // CREATORS
@@ -105,6 +106,7 @@ class TableInfoProvider {
                                       int           column,
                                       int           width) const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

@@ -81,6 +81,7 @@ namespace mqbc {
 // =========================
 
 /// This class provides a mechanism to manage the state of a cluster.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ClusterStateManager BSLS_KEYWORD_FINAL
 : public mqbi::ClusterStateManager,
   public ClusterStateTableActions<ClusterFSM::EventWithMetadata>,
@@ -665,6 +666,7 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     /// @note Used for testing purposes only.
     bool isWatchdogActive() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                           INLINE DEFINITIONS

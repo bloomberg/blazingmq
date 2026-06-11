@@ -43,6 +43,7 @@ namespace m_bmqstoragetool {
 // class JournalFile
 // =================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class JournalFile {
   public:
     // PUBLIC TYPES
@@ -176,6 +177,7 @@ class JournalFile {
         RecordsListType* records,
         size_t           numRecordsWithSameLeaseId);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

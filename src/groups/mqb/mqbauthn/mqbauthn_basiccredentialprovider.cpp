@@ -41,12 +41,14 @@ const char* BasicCredentialProvider::k_NAME = "BasicCredentialProvider";
 
 namespace {
 
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_MECHANISM[] = "BASIC";
 
 // ============================
 // class BasicCredentialFunctor
 // ============================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class BasicCredentialFunctor {
     // DATA
     mqbplug::AuthnCredential d_credential;
@@ -61,6 +63,7 @@ class BasicCredentialFunctor {
                            bsl::string_view  password,
                            bslma::Allocator* basicAllocator = 0)
     : d_credential(basicAllocator)
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     {
         bsl::string payload(username, basicAllocator);
         payload.append(":");
@@ -72,6 +75,7 @@ class BasicCredentialFunctor {
                                                 data,
                                                 basicAllocator);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     BasicCredentialFunctor(const BasicCredentialFunctor& original,
                            bslma::Allocator*             basicAllocator = 0)
@@ -85,6 +89,7 @@ class BasicCredentialFunctor {
         return d_credential;
     }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close unnamed namespace
 
@@ -179,6 +184,7 @@ BasicCredentialProviderPluginFactory::create(bslma::Allocator* allocator)
     bsl::string username(allocator);
     bsl::string password(allocator);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsl::vector<mqbcfg::PluginSettingKeyValue>::const_iterator it =
              cfg.settings().cbegin();
          it != cfg.settings().cend();
@@ -193,6 +199,7 @@ BasicCredentialProviderPluginFactory::create(bslma::Allocator* allocator)
             password = it->value().stringVal();
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     return bslma::ManagedPtr<mqbplug::CredentialProvider>(
         bslma::ManagedPtrUtil::allocateManaged<BasicCredentialProvider>(

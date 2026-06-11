@@ -104,6 +104,7 @@ namespace mqbs {
 class ReplicatedStorage;
 }
 namespace mqbs {
+// NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
 class VirtualStorage;
 }
 
@@ -118,6 +119,7 @@ class StorageManagerIterator;
 // ====================
 
 /// Storage Manager, in charge of all the partitions.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
   private:
     // CLASS-SCOPE CATEGORY
@@ -648,6 +650,7 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
     bslma::ManagedPtr<mqbi::StorageManagerIterator>
     getIterator(int partitionId) const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================
 // class StorageManagerIterator
@@ -661,6 +664,7 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
 /// construction and unlocking it at the iterator's destruction.  This
 /// guarantees that during the life time of an iterator, the partition's
 /// storage map can't be modified.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class StorageManagerIterator BSLS_KEYWORD_FINAL
 : public mqbi::StorageManagerIterator {
   private:
@@ -722,6 +726,7 @@ class StorageManagerIterator BSLS_KEYWORD_FINAL
     /// class object, its okay to pass a raw pointer.
     const mqbs::ReplicatedStorage* storage() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // --------------------
 // class StorageManager
@@ -795,11 +800,13 @@ inline void StorageManagerIterator::operator++()
 
 // ACCESSORS
 inline StorageManagerIterator::operator const void*() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
 {
     return (d_iterator == d_map_p->end())
                ? 0
                : const_cast<StorageManagerIterator*>(this);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-const-cast)
 
 inline const bmqt::Uri& StorageManagerIterator::uri() const
 {

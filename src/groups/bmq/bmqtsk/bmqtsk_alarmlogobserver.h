@@ -62,6 +62,7 @@ namespace bmqtsk {
 // ======================
 
 /// BALL observer emitting rate-controlled alarms to stderr
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class AlarmLogObserver : public ball::ObserverAdapter {
   private:
     // PRIVATE TYPES
@@ -116,6 +117,7 @@ class AlarmLogObserver : public ball::ObserverAdapter {
         publish(*record, context);
     }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

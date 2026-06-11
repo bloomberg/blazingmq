@@ -44,6 +44,7 @@ namespace {
 
 BALL_LOG_SET_NAMESPACE_CATEGORY("BMQIMP.NEGOTIATEDCHANNELFACTORY");
 
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 enum RcEnum {
     rc_SUCCESS                 = 0,
     rc_PACKET_ENCODE_FAILURE   = -1,
@@ -54,6 +55,7 @@ enum RcEnum {
     rc_INVALID_BROKER_RESPONSE = -6,
     rc_NEGOTIATION_FAILURE     = -7
 };
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 }  // close unnamed namespace
 
@@ -230,6 +232,7 @@ void NegotiatedChannelFactory::onBrokerNegotiationResponse(
     const bsl::shared_ptr<const bdlbb::Blob>& packet,
     const ResultCallback&                     cb,
     const bsl::shared_ptr<bmqio::Channel>&    channel) const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     BALL_LOG_TRACE << "Received a packet:\n"
                    << bmqu::BlobStartHexDumper(packet.get());
@@ -291,8 +294,10 @@ void NegotiatedChannelFactory::onBrokerNegotiationResponse(
         // have BALL observer.
         if (brokerResponse.result().category() ==
             bmqp_ctrlmsg::StatusCategory::E_NOT_SUPPORTED) {
+            // NOLINTBEGIN(*-magic-numbers)
             bdlma::LocalSequentialAllocator<512> localAllocator(
                 d_config.d_allocator_p);
+            // NOLINTEND(*-magic-numbers)
             bmqu::MemOutStream os(&localAllocator);
             os << "BMQALARM [UNSUPPORTED_SDK]: The BlazingMQ version used by "
                << "this client (" << bmqscm::Version::version()
@@ -314,8 +319,10 @@ void NegotiatedChannelFactory::onBrokerNegotiationResponse(
     // deprecated SDK version.  We can't use a LogAlarmObserver to write to
     // cerr because the task may not have a BALL observer.
     if (brokerResponse.isDeprecatedSdk()) {
+        // NOLINTBEGIN(*-magic-numbers)
         bdlma::LocalSequentialAllocator<512> localAllocator(
             d_config.d_allocator_p);
+        // NOLINTEND(*-magic-numbers)
         bmqu::MemOutStream os(&localAllocator);
         os << "BMQALARM [DEPRECATED_SDK]: The BlazingMQ version used by this "
            << "client (" << bmqscm::Version::version() << ") is deprecated. "
@@ -350,6 +357,7 @@ void NegotiatedChannelFactory::onBrokerNegotiationResponse(
 
     cb(bmqio::ChannelFactoryEvent::e_CHANNEL_UP, bmqio::Status(), channel);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 // CREATORS
 NegotiatedChannelFactory::NegotiatedChannelFactory(

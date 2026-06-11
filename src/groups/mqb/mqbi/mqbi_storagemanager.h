@@ -94,6 +94,7 @@ class Queue;
 
 /// This class provides a mechanism to manage the partition details/info
 /// stored inside storage.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class StorageManager_PartitionInfo {
   private:
     // DATA
@@ -136,6 +137,7 @@ class StorageManager_PartitionInfo {
     /// Return the primary status of this partition.  Thread-safe.
     bmqp_ctrlmsg::PrimaryStatus::Value primaryStatus() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================
 // class StorageManagerIterator
@@ -143,6 +145,7 @@ class StorageManager_PartitionInfo {
 
 /// Interface to provide a way for iteration through all the storages of a
 /// partition in the storage manager.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class StorageManagerIterator {
   public:
     // CREATORS
@@ -176,12 +179,14 @@ class StorageManagerIterator {
     /// class object, its okay to pass a raw pointer.
     virtual const mqbi::Storage* storage() const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ====================
 // class StorageManager
 // ====================
 
 /// Storage Manager, in charge of all the partitions.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class StorageManager {
   public:
     // TYPES
@@ -434,6 +439,7 @@ class StorageManager {
     virtual bslma::ManagedPtr<StorageManagerIterator>
     getIterator(int partitionId) const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                            INLINE DEFINITIONS

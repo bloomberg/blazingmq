@@ -75,6 +75,7 @@ namespace bmqp {
 
 /// An iterator providing read-only sequential access to messages contained
 /// into a `StorageEvent`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class StorageMessageIterator {
   private:
     // DATA
@@ -175,6 +176,7 @@ class StorageMessageIterator {
     /// StorageMessageIterator to the specified `stream`.
     void dumpBlob(bsl::ostream& stream) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -192,6 +194,7 @@ inline StorageMessageIterator::StorageMessageIterator()
     // NOTHING
 }
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline StorageMessageIterator::StorageMessageIterator(
     const bdlbb::Blob* blob,
     const EventHeader& eventHeader)
@@ -199,7 +202,9 @@ inline StorageMessageIterator::StorageMessageIterator(
 {
     reset(blob, eventHeader);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline StorageMessageIterator::StorageMessageIterator(
     const StorageMessageIterator& src)
 : d_blobIter(0,
@@ -209,6 +214,7 @@ inline StorageMessageIterator::StorageMessageIterator(
 {
     copyFrom(src);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline StorageMessageIterator&

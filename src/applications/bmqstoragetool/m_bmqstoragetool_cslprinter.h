@@ -40,6 +40,7 @@ namespace m_bmqstoragetool {
 // class CslPrinter
 // ================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class CslPrinter {
   protected:
     // PROTECTED TYPES
@@ -87,6 +88,7 @@ class CslPrinter {
                              const Parameters::ProcessCslRecordTypes&
                                  processCslRecordTypes) const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 /// Create an instance of CSL printer to print data to the specified 'stream'
 /// according to the specified 'mode' using the specified 'allocator'.

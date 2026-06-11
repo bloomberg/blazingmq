@@ -36,6 +36,7 @@ namespace mqbnet {
 // ========================
 
 // VST for the context associated with a session being negotiated.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class NegotiationContext {
   private:
     // DATA
@@ -108,6 +109,7 @@ class NegotiationContext {
     SessionEventProcessor*                  eventProcessor() const;
     Cluster*                                cluster() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

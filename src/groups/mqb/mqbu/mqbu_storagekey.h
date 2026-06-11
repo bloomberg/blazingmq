@@ -48,6 +48,7 @@ namespace mqbu {
 // class StorageKey
 // ================
 
+// NOLINTBEGIN(*-avoid-c-arrays)
 class StorageKey {
   private:
     // FRIENDS
@@ -59,6 +60,7 @@ class StorageKey {
 
   public:
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         // Enum representing the size of a buffer needed to represent a
         // StorageKey.
@@ -69,6 +71,7 @@ class StorageKey {
         /// Number of bytes in a hex representation
         e_KEY_LENGTH_HEX = 2 * e_KEY_LENGTH_BINARY
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // PUBLIC CONSTANTS
 
@@ -164,6 +167,7 @@ class StorageKey {
     bsl::ostream&
     print(bsl::ostream& os, int level = 0, int spacesPerLevel = 4) const;
 };
+// NOLINTEND(*-avoid-c-arrays)
 
 // ----------------
 // class StorageKey
@@ -195,6 +199,7 @@ bool operator<(const StorageKey& lhs, const StorageKey& rhs);
 // struct StorageKeyHexUtil
 // ========================
 
+// NOLINTBEGIN(*-avoid-c-arrays)
 struct StorageKeyHexUtil {
   private:
     // PRIVATE CONSTANTS
@@ -221,6 +226,7 @@ struct StorageKeyHexUtil {
     /// @param binLength The size of source buffer.
     static void binaryToHex(char* hex, const char* bin, size_t binLength);
 };
+// NOLINTEND(*-avoid-c-arrays)
 
 // =====================
 // struct StorageKeyLess
@@ -273,22 +279,45 @@ class StorageKeyHashAlgo {
 // ----------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline StorageKey::StorageKey()
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bsl::memset(d_buffer, '\0', StorageKey::e_KEY_LENGTH_BINARY);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline StorageKey::StorageKey(const BinaryRepresentation&, const void* data)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bsl::memcpy(d_buffer, data, StorageKey::e_KEY_LENGTH_BINARY);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline StorageKey::StorageKey(const HexRepresentation&, const char* data)
 {
     StorageKey::fromHex(data);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline StorageKey::StorageKey(unsigned int value)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTBEGIN(*-narrowing-conversions)
+// NOLINTBEGIN(*-narrowing-conversions)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTBEGIN(*-narrowing-conversions)
+// NOLINTBEGIN(*-narrowing-conversions)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTBEGIN(*-narrowing-conversions)
+// NOLINTBEGIN(*-narrowing-conversions)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTBEGIN(*-narrowing-conversions)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // We initialize 'd_buffer' from 'value' in such a way that when printed,
     // same sequence is printed for a given 'value' irrespective of platform's
@@ -300,8 +329,10 @@ inline StorageKey::StorageKey(unsigned int value)
                 reinterpret_cast<char*>(&value),
                 sizeof(value));
 #else
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     const unsigned char* buffer = reinterpret_cast<const unsigned char*>(
         &value);
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     d_buffer[1] = buffer[3];
     d_buffer[2] = buffer[2];
     d_buffer[3] = buffer[1];
@@ -315,19 +346,36 @@ inline StorageKey::StorageKey(unsigned int value)
 
     d_buffer[0] = '0';
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTEND(*-narrowing-conversions)
+// NOLINTEND(*-narrowing-conversions)
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTEND(*-narrowing-conversions)
+// NOLINTEND(*-narrowing-conversions)
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTEND(*-narrowing-conversions)
+// NOLINTEND(*-narrowing-conversions)
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTEND(*-narrowing-conversions)
+// NOLINTEND(*-narrowing-conversions)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline void StorageKey::fromHex(const char* value)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     StorageKeyHexUtil::hexToBinary(d_buffer,
                                    StorageKey::e_KEY_LENGTH_BINARY,
                                    value);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 inline void StorageKey::fromBinary(const void* data)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bsl::memcpy(d_buffer, data, StorageKey::e_KEY_LENGTH_BINARY);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 inline void StorageKey::reset()
 {
@@ -341,24 +389,31 @@ inline bool StorageKey::isNull() const
 }
 
 inline const char* StorageKey::data() const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     return d_buffer;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 inline void StorageKey::loadHex(char* out) const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     StorageKeyHexUtil::binaryToHex(out,
                                    d_buffer,
                                    StorageKey::e_KEY_LENGTH_BINARY);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 inline void StorageKey::loadBinary(bsl::vector<char>* out) const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     out->assign(d_buffer, d_buffer + StorageKey::e_KEY_LENGTH_BINARY);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 inline bsl::ostream&
 StorageKey::print(bsl::ostream& os, int level, int spacesPerLevel) const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bdlb::Print::indent(os, level, spacesPerLevel);
     bdlb::Print::singleLineHexDump(os,
@@ -366,6 +421,7 @@ StorageKey::print(bsl::ostream& os, int level, int spacesPerLevel) const
                                    StorageKey::e_KEY_LENGTH_BINARY);
     return os;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 // FREE FUNCTIONS
 template <class HASH_ALGORITHM>
@@ -387,11 +443,13 @@ inline bsl::ostream& operator<<(bsl::ostream&           stream,
 
 inline bool StorageKeyLess::operator()(const StorageKey& lhs,
                                        const StorageKey& rhs) const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     return 0 > bsl::memcmp(lhs.d_buffer,
                            rhs.d_buffer,
                            StorageKey::e_KEY_LENGTH_BINARY);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 // ------------------------
 // class StorageKeyHashAlgo
@@ -406,6 +464,7 @@ inline StorageKeyHashAlgo::StorageKeyHashAlgo()
 // MANIPULATORS
 inline void StorageKeyHashAlgo::operator()(const void*              data,
                                            BSLA_MAYBE_UNUSED size_t numBytes)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     // 10K Keys
     // --------
@@ -415,10 +474,12 @@ inline void StorageKeyHashAlgo::operator()(const void*              data,
 
     d_result = 5381ULL;
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     const unsigned char* start = reinterpret_cast<const unsigned char*>(data);
     d_result += (start[0]) + (start[1] << 8) + (start[2] << 16) +
                 (start[3] << 24);
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 inline StorageKeyHashAlgo::result_type StorageKeyHashAlgo::computeHash()
 {
@@ -434,11 +495,13 @@ inline StorageKeyHashAlgo::result_type StorageKeyHashAlgo::computeHash()
 // FREE OPERATORS
 inline bool mqbu::operator==(const mqbu::StorageKey& lhs,
                              const mqbu::StorageKey& rhs)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     return 0 == bsl::memcmp(lhs.d_buffer,
                             rhs.d_buffer,
                             mqbu::StorageKey::e_KEY_LENGTH_BINARY);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 inline bool mqbu::operator!=(const mqbu::StorageKey& lhs,
                              const mqbu::StorageKey& rhs)

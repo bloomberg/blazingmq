@@ -380,13 +380,15 @@ static void test3_bindWrapper_callOperator()
 // Testing:
 //   bmqex::BindUtil::BindUtil_BindWrapper::operator()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     typedef bmqex::BindUtil_BindWrapper<bmqex::ExecutionPolicy<>,
                                         AssignEmplaceOnCall<SumOf> >
         BindWrapper;
 
     bslma::TestAllocator alloc;
-    SumOf                sumOf(777);
+    // NOLINTNEXTLINE(*-magic-numbers)
+    SumOf sumOf(777);
 
     // create a bind wrapper
     BindWrapper wrapper(
@@ -425,12 +427,19 @@ static void test3_bindWrapper_callOperator()
     wrapper(2, 3, 5, 7, 11, 13, 17, 19, 23);
     BMQTST_ASSERT_EQ(sumOf.d_value, 100);
 }
+// NOLINTEND(*-magic-numbers)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
+// NOLINTBEGIN(bugprone-exception-escape)
 int main(int argc, char* argv[])
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTBEGIN(cert-err34-c)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -448,3 +457,9 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTEND(cert-err34-c)
+// NOLINTEND(bugprone-exception-escape)

@@ -115,6 +115,7 @@ class Domain;
 /// Enumeration for various cluster related error codes.
 struct ClusterErrorCode {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         /// Generic
         /// - - - -
@@ -165,6 +166,7 @@ struct ClusterErrorCode {
         /// with respect to a peer
         e_IRRECONCILABLE_DATA = -213
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -214,6 +216,7 @@ bsl::ostream& operator<<(bsl::ostream& stream, ClusterErrorCode::Enum value);
 // =============
 
 /// Interface for a Cluster.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Cluster : public DispatcherClient {
   public:
     // TYPES
@@ -484,7 +487,9 @@ class Cluster : public DispatcherClient {
     /// This can only be true when all cluster nodes support StopRequest V2.
     virtual bool isShutdownLogicOn() const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct ClusterResources {
     // Resources to use for all queues in all clusters
   public:
@@ -542,6 +547,7 @@ struct ClusterResources {
     /// Returns a shared pointer to the concurrent pool for Push elements
     const bsl::shared_ptr<bdlma::ConcurrentPool>& pushElementsPool() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

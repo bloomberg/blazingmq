@@ -199,6 +199,7 @@ namespace bmqst {
 // ===========
 
 /// Table of values obtained from a `bmqst::StatContext`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Table : public bmqst::BaseTable {
   private:
     // DATA
@@ -236,6 +237,7 @@ class Table : public bmqst::BaseTable {
     /// `row` and `column` indices.
     void value(Value* value, int row, int column) const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

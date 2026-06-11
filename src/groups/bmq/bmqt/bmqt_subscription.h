@@ -124,12 +124,14 @@ class SubscriptionExpression {
     // TYPES
 
     /// Enum representing criteria format
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         /// EMPTY
         e_NONE = 0,
         /// Simple Evaluator
         e_VERSION_1 = 1
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
   private:
     bsl::string d_expression;  // e.g., "firmId == foo"

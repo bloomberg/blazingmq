@@ -97,6 +97,7 @@ namespace bmqtsk {
 // =====================
 
 /// BALL observer printing to system log
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class SyslogObserver : public ball::ObserverAdapter {
   private:
     // DATA
@@ -184,6 +185,7 @@ class SyslogObserver : public ball::ObserverAdapter {
     /// with a value of `ball::Severity::e_OFF`.
     bool isEnabled() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

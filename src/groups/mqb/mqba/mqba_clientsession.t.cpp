@@ -109,6 +109,7 @@ struct TestClock {
     }
 };
 
+// NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
 enum Any { e_Any, e_Specific };
 
 template <typename T>
@@ -135,18 +136,26 @@ struct TypeOrAny {
     }
 };
 
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 enum ClientType {
     e_FirstHop,
     e_FirstHopCorrelationIds,
     e_MiddleHop,
     e_Broker
 };
+// NOLINTEND(cppcoreguidelines-use-enum-class)
+// NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
 enum AtMostOnce { e_AtLeastOnce, e_AtMostOnce };
+// NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
 enum PutAction { e_DoNotPut, e_DoPut };
+// NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
 enum AckRequested { e_AckNotRequested, e_AckRequested };
+// NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
 enum AckSuccess { e_AckFailure, e_AckSuccess };
+// NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
 enum AckResult { e_AckResultNone, e_AckResultSuccess, e_AckResultUnknown };
 
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 enum InvalidPut {
     e_InvalidPutUnknownQueue,
 
@@ -158,6 +167,7 @@ enum InvalidPut {
 
     e_InvalidPutClosedQueue
 };
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 typedef TypeOrAny<ClientType>   ClientTypeOrAny;
 typedef TypeOrAny<AtMostOnce>   AtMostOnceOrAny;
@@ -195,6 +205,7 @@ struct GuidCollisionSpec {
 // ----------------------------------------------------------------------------
 
 // ACK propagation general use cases
+// NOLINTBEGIN(*-avoid-c-arrays,cert-err58-cpp)
 const Spec s_spec[] = {
     // When we have at-least once mode on the first hop, then, an ack is
     // propagated if we get a failure _or_ if the GUID has been previously
@@ -271,8 +282,10 @@ const Spec s_spec[] = {
     {e_Any, e_AtMostOnce, e_DoNotPut, e_Any, e_Any, e_AckResultNone},
     {e_Any, e_AtMostOnce, e_DoPut, e_AckNotRequested, e_Any, e_AckResultNone},
     {e_Any, e_AtMostOnce, e_DoPut, e_AckRequested, e_Any, e_AckResultSuccess}};
+// NOLINTEND(*-avoid-c-arrays,cert-err58-cpp)
 
 // Invalid event use cases
+// NOLINTBEGIN(*-avoid-c-arrays,cert-err58-cpp)
 const InvalidPutSpec s_invalidPutSpec[] = {
     {e_Any, e_Any, e_Any, e_InvalidPutUnknownQueue, e_AckResultUnknown},
 
@@ -283,8 +296,10 @@ const InvalidPutSpec s_invalidPutSpec[] = {
     // {e_Any, e_Any, e_Any, e_InvalidPutOptions,      e_AckResultUnknown},
 
     {e_Any, e_Any, e_Any, e_InvalidPutClosedQueue, e_AckResultUnknown}};
+// NOLINTEND(*-avoid-c-arrays,cert-err58-cpp)
 
 // GUID collision use cases
+// NOLINTBEGIN(*-avoid-c-arrays,cert-err58-cpp)
 const GuidCollisionSpec s_guidCollisionSpec[] = {
     // For each case, we send two PUT messages, two success ACK messages
     // and check the result.
@@ -337,6 +352,7 @@ const GuidCollisionSpec s_guidCollisionSpec[] = {
      e_AckRequested,
      e_AckResultSuccess,
      e_AckResultSuccess}};
+// NOLINTEND(*-avoid-c-arrays,cert-err58-cpp)
 
 /// Attempts to find a `spec` that matches the specified `clientType`,
 /// `atMostOnce`, `putAction`, `ackRequested` and `ackSuccess`.
@@ -345,9 +361,12 @@ Spec findSpec(ClientType   clientType,
               PutAction    putAction,
               AckRequested ackRequested,
               AckSuccess   ackSuccess)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
 {
     int matchIndex = -1;
+    // NOLINTBEGIN(*-narrowing-conversions)
     for (unsigned i = 0; i < sizeof(s_spec) / sizeof(s_spec[0]); ++i) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Spec& current = s_spec[i];
         if (current.clientType == clientType &&
             current.atMostOnce == atMostOnce &&
@@ -358,9 +377,11 @@ Spec findSpec(ClientType   clientType,
             matchIndex = i;
         }
     }
+    // NOLINTEND(*-narrowing-conversions)
     BMQTST_ASSERT(matchIndex != -1);  // Exactly one should match
     return s_spec[matchIndex];
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
 /// Attempts to find a `spec` that matches the specified `clientType`,
 /// `atMostOnce`, `ackRequested` and `invalidPut`.
@@ -368,10 +389,13 @@ InvalidPutSpec findInvalidPutSpec(ClientType   clientType,
                                   AtMostOnce   atMostOnce,
                                   AckRequested ackRequested,
                                   InvalidPut   invalidPut)
+// NOLINTBEGIN(clang-analyzer-security.ArrayBound,cppcoreguidelines-pro-bounds-constant-array-index)
 {
     int      matchIndex = -1;
     unsigned n = sizeof(s_invalidPutSpec) / sizeof(s_invalidPutSpec[0]);
+    // NOLINTBEGIN(*-narrowing-conversions)
     for (unsigned i = 0; i < n; ++i) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const InvalidPutSpec& current = s_invalidPutSpec[i];
         if (current.clientType == clientType &&
             current.atMostOnce == atMostOnce &&
@@ -381,19 +405,24 @@ InvalidPutSpec findInvalidPutSpec(ClientType   clientType,
             matchIndex = i;
         }
     }
+    // NOLINTEND(*-narrowing-conversions)
     BMQTST_ASSERT(matchIndex != -1);  // Exactly one should match
     return s_invalidPutSpec[matchIndex];
 }
+// NOLINTEND(clang-analyzer-security.ArrayBound,cppcoreguidelines-pro-bounds-constant-array-index)
 
 /// Attempts to find a `spec` that matches the specified `clientType`,
 /// `ackRequested` and `atMostOnce`.
 GuidCollisionSpec findGuidCollisionSpec(ClientType   clientType,
                                         AtMostOnce   atMostOnce,
                                         AckRequested ackRequested)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
 {
     int      matchIndex = -1;
     unsigned n = sizeof(s_guidCollisionSpec) / sizeof(s_guidCollisionSpec[0]);
+    // NOLINTBEGIN(*-narrowing-conversions)
     for (unsigned i = 0; i < n; ++i) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const GuidCollisionSpec& current = s_guidCollisionSpec[i];
         if (current.clientType == clientType &&
             current.atMostOnce == atMostOnce &&
@@ -402,13 +431,16 @@ GuidCollisionSpec findGuidCollisionSpec(ClientType   clientType,
             matchIndex = i;
         }
     }
+    // NOLINTEND(*-narrowing-conversions)
     BMQTST_ASSERT(matchIndex != -1);  // Exactly one should match
     return s_guidCollisionSpec[matchIndex];
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
 bmqp_ctrlmsg::NegotiationMessage client(const ClientType clientType)
 // Create a 'NegotiationMessage' that represents a client configuration for
 // the specified 'clientType'.
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqp_ctrlmsg::NegotiationMessage negotiationMessage;
     if (clientType == e_Broker) {
@@ -428,8 +460,10 @@ bmqp_ctrlmsg::NegotiationMessage client(const ClientType clientType)
     }
     return negotiationMessage;
 }
+// NOLINTEND(*-magic-numbers)
 
 /// Overrides default `MockQueueHandle` behavior with extra functionality.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class MyMockQueueHandle : public mqbmock::QueueHandle {
   public:
     // PUBLIC TYPES
@@ -467,10 +501,12 @@ class MyMockQueueHandle : public mqbmock::QueueHandle {
                            domainStats,
                            handleParameters,
                            allocator)
+    // NOLINTBEGIN(*-magic-numbers)
     , d_statContext(bmqst::StatContextConfiguration("Test Stat Context")
                         .value("In", 11)
                         .value("Out", 11),
                     allocator)
+    // NOLINTEND(*-magic-numbers)
     {
         // Not used upstreamSubQueueId;
         unsigned int upstreamSubQueueId = 1;
@@ -503,10 +539,12 @@ class MyMockQueueHandle : public mqbmock::QueueHandle {
     /// Called by the framework when a new message with the specified
     /// `putHeader`, `appData` and `options` is sent upstream.  We capture
     /// the message.
+    // NOLINTBEGIN(cppcoreguidelines-explicit-virtual-functions)
     virtual void postMessage(const bmqp::PutHeader&              putHeader,
                              const bsl::shared_ptr<bdlbb::Blob>& appData,
                              const bsl::shared_ptr<bdlbb::Blob>& options)
         BSLS_KEYWORD_OVERRIDE
+    // NOLINTEND(cppcoreguidelines-explicit-virtual-functions)
     {
         Post& p = d_postedMessages.emplace_back();
 
@@ -515,7 +553,9 @@ class MyMockQueueHandle : public mqbmock::QueueHandle {
         p.d_options   = options;
     }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class MyQueueEngine : public mqbmock::QueueEngine {
   private:
     bslma::Allocator* d_allocator_p;
@@ -544,8 +584,10 @@ class MyQueueEngine : public mqbmock::QueueEngine {
         }
     }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 /// Overrides default `MockDomain` behavior with extra functionality.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class MyMockDomain : public mqbmock::Domain {
   public:
     mqbmock::Dispatcher*               d_mockDispatcher;
@@ -623,6 +665,7 @@ class MyMockDomain : public mqbmock::Domain {
                  confirmationCookie);
     }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 /// Create a new blob at the specified `arena` address, using the specified
 /// `bufferFactory` and `allocator`.
@@ -642,12 +685,13 @@ T assertFail()
 }
 
 /// The `TestBench` holds system components together.
+// NOLINTBEGIN(clang-analyzer-optin.performance.Padding,cppcoreguidelines-special-member-functions)
 class TestBench {
   public:
     // DATA
     bdlbb::PooledBlobBufferFactory            d_bufferFactory;
     BlobSpPool                                d_blobSpPool;
-    bsl::shared_ptr<bmqio::TestChannel>   d_channel;
+    bsl::shared_ptr<bmqio::TestChannel>       d_channel;
     mqbmock::Cluster                          d_cluster;
     mqbmock::Dispatcher                       d_mockDispatcher;
     MyMockDomain                              d_domain;
@@ -667,19 +711,23 @@ class TestBench {
     TestBench(const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
               const bool                              atMostOnce,
               bslma::Allocator*                       allocator)
+    // NOLINTNEXTLINE(*-magic-numbers)
     : d_bufferFactory(256, allocator)
+    // NOLINTBEGIN(*-magic-numbers)
     , d_blobSpPool(bdlf::BindUtil::bind(&createBlob,
                                         &d_bufferFactory,
                                         bdlf::PlaceHolders::_1,   // arena
                                         bdlf::PlaceHolders::_2),  // alloc
                    1024,  // blob pool growth strategy
                    allocator)
+    // NOLINTEND(*-magic-numbers)
     , d_channel(new bmqio::TestChannel(allocator))
     , d_cluster(allocator)
     , d_mockDispatcher(allocator)
     , d_domain(&d_mockDispatcher, &d_cluster, atMostOnce, allocator)
     , d_mockDomainFactory(d_domain, allocator)
     , d_clientStatContext_sp(
+          // NOLINTNEXTLINE(*-magic-numbers)
           mqbstat::QueueStatsUtil::initializeStatContextClients(10, allocator))
     , d_scheduler(bsls::SystemClockType::e_MONOTONIC, allocator)
     , d_testClock(d_scheduler)
@@ -840,6 +888,7 @@ class TestBench {
         const bmqp::MessageProperties& properties = bmqp::MessageProperties(),
         bmqt::CompressionAlgorithmType::Enum cat =
             bmqt::CompressionAlgorithmType::e_NONE)
+    // NOLINTBEGIN(performance-avoid-endl)
     {
         PVV("Sending PUT with queueId="
             << queueId << ", guid=" << msgGUID << ", correlationId="
@@ -891,6 +940,7 @@ class TestBench {
 
         dispatch(event_sp);
     }
+    // NOLINTEND(performance-avoid-endl)
 
     /// Sends a `Push` event for the specified `queueId`, `msgGUID` and
     /// `correlationId` with `isAckRequested` flag
@@ -900,6 +950,7 @@ class TestBench {
                   const bsl::shared_ptr<bdlbb::Blob>&  blob,
                   bmqt::CompressionAlgorithmType::Enum cat,
                   const bmqp::MessagePropertiesInfo&   logic)
+    // NOLINTBEGIN(performance-avoid-endl)
     {
         PVV("Sending PUSH with queueId=" << queueId << ", guid=" << msgGUID);
 
@@ -916,6 +967,7 @@ class TestBench {
 
         dispatch(event_sp);
     }
+    // NOLINTEND(performance-avoid-endl)
 
     bool validateData(const bdlbb::Blob& blob,
                       int                offset,
@@ -931,15 +983,17 @@ class TestBench {
 
     /// Asserts that the first event written is an Open Queue Control Event.
     void assertOpenQueueResponse()
+    // NOLINTBEGIN(performance-avoid-endl)
     {
         bmqio::TestChannel::WriteCall openQueueCall;
         BMQTST_ASSERT(d_channel->getWriteCall(&openQueueCall, 0));
 
-        bmqp::Event     openQueueEvent(&openQueueCall.d_blob,
+        bmqp::Event openQueueEvent(&openQueueCall.d_blob,
                                    bmqtst::TestHelperUtil::allocator());
         PVV("Event 1: " << openQueueEvent);
         BMQTST_ASSERT(openQueueEvent.isControlEvent());
     }
+    // NOLINTEND(performance-avoid-endl)
 
     /// Depending on the specified `ackResult` it might assert that an ack
     /// message for the specified `queueId`, `msgGUID` and `correlationId`
@@ -951,6 +1005,7 @@ class TestBench {
                                    int                      correlationId,
                                    size_t                   eventIndex = 1,
                                    bool                     isFinal    = true)
+    // NOLINTBEGIN(performance-avoid-endl)
     {
         if (ackResult == e_AckResultNone) {
             // If no ack expected we shouldn't have more events than
@@ -972,7 +1027,7 @@ class TestBench {
         bmqio::TestChannel::WriteCall ackCall;
         BMQTST_ASSERT(d_channel->getWriteCall(&ackCall, eventIndex));
 
-        bmqp::Event     ackEvent(&ackCall.d_blob,
+        bmqp::Event ackEvent(&ackCall.d_blob,
                              bmqtst::TestHelperUtil::allocator());
         PVV("Event " << eventIndex + 1 << ": " << ackEvent);
         BMQTST_ASSERT(ackEvent.isAckEvent());
@@ -999,9 +1054,11 @@ class TestBench {
             BMQTST_ASSERT_EQ(d_channel->numWriteCalls(), eventIndex + 1);
         }
     }
+    // NOLINTEND(performance-avoid-endl)
 
     /// A method that prepares and calls ClientSession's `dispatch()`
     /// using the specified `event`.
+    // NOLINTBEGIN(performance-unnecessary-value-param)
     void dispatch(mqbi::Dispatcher::DispatcherEventSp event)
     {
         mqbmock::Dispatcher::EventGuard guard(
@@ -1009,6 +1066,7 @@ class TestBench {
 
         d_cs.onDispatcherEvent(*event);
     }
+    // NOLINTEND(performance-unnecessary-value-param)
 
     void verifyPush(bmqp::MessageProperties* properties,
                     size_t                   pushIndex,
@@ -1065,6 +1123,7 @@ class TestBench {
         BMQTST_ASSERT(validateData(payloadBlob, msgPropsAreaSize, length));
     }
 };
+// NOLINTEND(clang-analyzer-optin.performance.Padding,cppcoreguidelines-special-member-functions)
 
 /// This implements the core testing functionality.  Implements a test run
 /// for the configuration defined by the specified `clientType`,
@@ -1074,6 +1133,7 @@ void test(ClientType   clientType,
           PutAction    putAction,
           AckRequested ackRequested,
           AckSuccess   ackSuccess)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PV("Running test with configuration"
        << " clientType: " << clientType << " and atMostOnce: " << atMostOnce
@@ -1161,6 +1221,7 @@ void test(ClientType   clientType,
     tb.d_cs.flush();
     tb.assertAckIsSentIfExpected(spec.ackResult, queueId, guid, correlationId);
 }
+// NOLINTEND(performance-avoid-endl)
 
 /// This implements the core testing functionality.  Implements a test run
 /// for the configuration defined by the specified `clientType`,
@@ -1169,6 +1230,7 @@ void testInvalidPut(ClientType   clientType,
                     AtMostOnce   atMostOnce,
                     AckRequested ackRequested,
                     InvalidPut   invalidPut)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PV("Running test with configuration"
        << " clientType: " << clientType << " and atMostOnce: " << atMostOnce
@@ -1237,6 +1299,7 @@ void testInvalidPut(ClientType   clientType,
     // Confirm that (if expected) the ack has been sent downstream.
     tb.assertAckIsSentIfExpected(spec.ackResult, queueId, guid, correlationId);
 }
+// NOLINTEND(performance-avoid-endl)
 
 /// This implements the core testing functionality.  Implements a test run
 /// for the configuration defined by the specified `clientType`,
@@ -1244,6 +1307,7 @@ void testInvalidPut(ClientType   clientType,
 void testGuidCollision(ClientType   clientType,
                        AtMostOnce   atMostOnce,
                        AckRequested ackRequested)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PV("Running test with configuration"
        << " clientType: " << clientType << " and atMostOnce: " << atMostOnce
@@ -1356,11 +1420,13 @@ void testGuidCollision(ClientType   clientType,
                                  eventIndex,
                                  isFinal);
 }
+// NOLINTEND(performance-avoid-endl)
 
 /// This implements the core testing functionality.  Implements a test run
 /// for the configuration defined by the specified `atMostOnce` and
 /// `ackRequested`.
 void testFirstHopUnsetGUID(AtMostOnce atMostOnce, AckRequested ackRequested)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PV("Running test with configuration"
        << " atMostOnce: " << atMostOnce
@@ -1399,6 +1465,7 @@ void testFirstHopUnsetGUID(AtMostOnce atMostOnce, AckRequested ackRequested)
                                  guid,
                                  correlationId);
 }
+// NOLINTEND(performance-avoid-endl)
 
 void encode(bmqp::MessageProperties* properties)
 {
@@ -1448,8 +1515,11 @@ static void test1_ackConfigurations()
     bmqtst::TestHelper::printTestName(
         "TESTS ACK CONFIGURATIONS FOR CLIENT SESSION");
 
+// NOLINTBEGIN(bugprone-macro-parentheses)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define SCENARIO_RUN(var, from, to) for (int var = from; var <= to; ++var) {
 #define END_SCENARIO }
+    // NOLINTEND(bugprone-macro-parentheses)
 
     SCENARIO_RUN(clientType, e_FirstHop, e_Broker)
     SCENARIO_RUN(atMostOnce, e_AtLeastOnce, e_AtMostOnce)
@@ -1492,8 +1562,11 @@ static void test2_invalidPutConfigurations()
     bmqtst::TestHelper::printTestName(
         "TESTS INVALID PUT CONFIGURATIONS FOR CLIENT SESSION");
 
+// NOLINTBEGIN(bugprone-macro-parentheses)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define SCENARIO_RUN(var, from, to) for (int var = from; var <= to; ++var) {
 #define END_SCENARIO }
+    // NOLINTEND(bugprone-macro-parentheses)
 
     SCENARIO_RUN(clientType, e_FirstHop, e_Broker)
     SCENARIO_RUN(atMostOnce, e_AtLeastOnce, e_AtMostOnce)
@@ -1534,8 +1607,11 @@ static void test3_guidCollisionConfigurations()
     bmqtst::TestHelper::printTestName(
         "TESTS GUID COLLISION CONFIGURATIONS FOR CLIENT SESSION");
 
+// NOLINTBEGIN(bugprone-macro-parentheses)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define SCENARIO_RUN(var, from, to) for (int var = from; var <= to; ++var) {
 #define END_SCENARIO }
+    // NOLINTEND(bugprone-macro-parentheses)
 
     SCENARIO_RUN(clientType, e_FirstHop, e_Broker)
     SCENARIO_RUN(atMostOnce, e_AtLeastOnce, e_AtMostOnce)
@@ -1700,8 +1776,11 @@ static void test6_firstHopUnsetGUID()
 {
     bmqtst::TestHelper::printTestName("TESTS FIRST HOP UNSET GUID");
 
+// NOLINTBEGIN(bugprone-macro-parentheses)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define SCENARIO_RUN(var, from, to) for (int var = from; var <= to; ++var) {
 #define END_SCENARIO }
+    // NOLINTEND(bugprone-macro-parentheses)
 
     SCENARIO_RUN(atMostOnce, e_AtLeastOnce, e_AtMostOnce)
     SCENARIO_RUN(ackRequested, e_AckNotRequested, e_AckRequested)
@@ -1727,6 +1806,7 @@ static void test7_oldStylePut()
 //   Instantiate a testbench, open a queue, send put and observe Post.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     bmqtst::TestHelper::printTestName("TESTS CONVERSION FROM OLD STYLE PUT");
 
@@ -1794,6 +1874,7 @@ static void test7_oldStylePut()
 
     verify(out);
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 static void test8_oldStyleCompressedPut()
 // ------------------------------------------------------------------------
@@ -1806,6 +1887,7 @@ static void test8_oldStyleCompressedPut()
 //   Instantiate a testbench, open a queue, send put and observe Post.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     bmqtst::TestHelper::printTestName(
         "TESTS OLD STYLE COMPRESSED PUT CONVERSION");
@@ -1880,6 +1962,7 @@ static void test8_oldStyleCompressedPut()
 
     verify(out);
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 static void test9_newStylePush()
 // ------------------------------------------------------------------------
@@ -1892,6 +1975,7 @@ static void test9_newStylePush()
 //   Instantiate a testbench, open a queue, send put, push and observe Push.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-init-variables)
 {
     bmqtst::TestHelper::printTestName(
         "TESTS OLD STYLE COMPRESSED PUT CONVERSION");
@@ -1935,7 +2019,7 @@ static void test9_newStylePush()
 
     BMQTST_ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS, rc);
 
-    bmqp::Event           rawEvent(peb.blob().get(),
+    bmqp::Event rawEvent(peb.blob().get(),
                          bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT(rawEvent.isValid());
@@ -1994,6 +2078,7 @@ static void test9_newStylePush()
 
     verify(out);
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-init-variables)
 
 static void test10_newStyleCompressedPush()
 // ------------------------------------------------------------------------
@@ -2050,7 +2135,7 @@ static void test10_newStyleCompressedPush()
 
     BMQTST_ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS, rc);
 
-    bmqp::Event           rawEvent(peb.blob().get(),
+    bmqp::Event rawEvent(peb.blob().get(),
                          bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT(rawEvent.isValid());
@@ -2120,14 +2205,15 @@ static void test11_initiateShutdown()
 //   is invoked when the session has or has no unconfirmed messages.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("TESTS SHUTTING DOWN");
 
     const bsl::string uri("bmq://my.domain/queue-foo-bar",
                           bmqtst::TestHelperUtil::allocator());
 
-    const int                queueId          = 4;  // A queue number
-    const bool                 isAtMostOnce     = false;
+    const int                  queueId      = 4;  // A queue number
+    const bool                 isAtMostOnce = false;
     bslmt::TimedSemaphore      semaphore;
     bmqp::Protocol::MsgGroupId msgGroupId(bmqtst::TestHelperUtil::allocator());
     const unsigned int         subscriptionId =
@@ -2259,6 +2345,7 @@ static void test11_initiateShutdown()
         BMQTST_ASSERT_EQ(callbackCounter, 1);
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void testN1_ackConfiguration()
 // ------------------------------------------------------------------------
@@ -2275,6 +2362,7 @@ static void testN1_ackConfiguration()
 // Testing:
 //   That acks are propagated as expected.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName(
         "TESTS ACK CONFIGURATION FOR CLIENT SESSION");
@@ -2295,6 +2383,7 @@ static void testN1_ackConfiguration()
     char buffer[10];
     bsl::cin.getline(buffer, 10, '\n');
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::istringstream is(buffer);
 
     int clientType   = 0;
@@ -2344,6 +2433,7 @@ static void testN1_ackConfiguration()
          static_cast<AckRequested>(ackRequested),
          static_cast<AckSuccess>(ackSuccess));
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 static void testN2_invalidPutConfiguration()
 // ------------------------------------------------------------------------
@@ -2360,6 +2450,7 @@ static void testN2_invalidPutConfiguration()
 // Testing:
 //   That acks are propagated as expected.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName(
         "TESTS INVALID PUT CONFIGURATION FOR CLIENT SESSION");
@@ -2380,6 +2471,7 @@ static void testN2_invalidPutConfiguration()
     char buffer[8];
     bsl::cin.getline(buffer, 8, '\n');
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::istringstream is(buffer);
 
     int clientType   = 0;
@@ -2420,6 +2512,7 @@ static void testN2_invalidPutConfiguration()
                    static_cast<AckRequested>(ackRequested),
                    static_cast<InvalidPut>(invalidPut));
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 static void testN3_guidCollisionConfiguration()
 // TESTS GUID COLLISION CONFIGURATION FOR CLIENT SESSION
@@ -2436,6 +2529,7 @@ static void testN3_guidCollisionConfiguration()
 // Testing:
 //   That acks are propagated or not as expected.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName(
         "TESTS GUID COLLISION CONFIGURATION FOR CLIENT SESSION");
@@ -2454,6 +2548,7 @@ static void testN3_guidCollisionConfiguration()
     char buffer[8];
     bsl::cin.getline(buffer, 8, '\n');
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::istringstream is(buffer);
 
     int clientType   = 0;
@@ -2485,12 +2580,14 @@ static void testN3_guidCollisionConfiguration()
                       static_cast<AtMostOnce>(atMostOnce),
                       static_cast<AckRequested>(ackRequested));
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -2504,9 +2601,11 @@ int main(int argc, char* argv[])
         mqbcfg::BrokerConfig::set(brokerConfig);
 
         bsl::shared_ptr<bmqst::StatContext> statContext =
+            // NOLINTBEGIN(*-magic-numbers)
             mqbstat::BrokerStatsUtil::initializeStatContext(
                 30,
                 bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
 
         switch (_testCase) {
         case 0:
@@ -2536,3 +2635,4 @@ int main(int argc, char* argv[])
     TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
     // Do not check for default/global allocator usage.
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

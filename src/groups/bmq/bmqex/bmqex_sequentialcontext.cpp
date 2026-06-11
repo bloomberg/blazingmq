@@ -162,6 +162,7 @@ void SequentialContext::stop() BSLS_KEYWORD_NOEXCEPT
 }
 
 void SequentialContext::join() BSLS_KEYWORD_NOEXCEPT
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // PRECONDITIONS
     BSLS_ASSERT(d_workingThreadId.loadAcquire() !=
@@ -192,6 +193,7 @@ void SequentialContext::join() BSLS_KEYWORD_NOEXCEPT
     // join the thread
     bslmt::ThreadUtil::join(workingThread);
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 size_t SequentialContext::dropPendingJobs() BSLS_KEYWORD_NOEXCEPT
 {
@@ -220,9 +222,11 @@ size_t SequentialContext::outstandingJobs() const BSLS_KEYWORD_NOEXCEPT
 
 SequentialContext::ExecutorType
 SequentialContext::executor() const BSLS_KEYWORD_NOEXCEPT
+// NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
 {
     return ExecutorType(const_cast<SequentialContext*>(this));
 }
+// NOLINTEND(cppcoreguidelines-pro-type-const-cast)
 
 bslma::Allocator* SequentialContext::allocator() const BSLS_KEYWORD_NOEXCEPT
 {

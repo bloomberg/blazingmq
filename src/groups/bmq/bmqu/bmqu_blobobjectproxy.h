@@ -258,6 +258,7 @@ namespace bmqu {
 /// Utility for reading/writing an object in a `bdlbb::Blob` easily, safely,
 /// and efficiently.
 template <class TYPE>
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class BlobObjectProxy {
   private:
     // DATA
@@ -455,8 +456,9 @@ class BlobObjectProxy {
     /// `BlobObjectProxy<Header>` would return `true` if its current
     /// `length` was at least `2 * sizeof(int)` and `false` otherwise.
     template <class MEMBER_TYPE>
-    bool hasMember(MEMBER_TYPE TYPE::*memberPtr) const;
+    bool hasMember(MEMBER_TYPE TYPE::* memberPtr) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -469,6 +471,7 @@ class BlobObjectProxy {
 // PRIVATE MANIPULATORS
 template <class TYPE>
 inline void BlobObjectProxy<TYPE>::writeOutIfNecessary()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-type-union-access)
 {
     if (d_writeMode && (d_object_p == &d_buffer.object())) {
         bmqu::BlobUtil::writeBytes(d_blob_p,
@@ -477,6 +480,7 @@ inline void BlobObjectProxy<TYPE>::writeOutIfNecessary()
                                    d_length);
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-type-union-access)
 
 template <class TYPE>
 inline bool BlobObjectProxy<TYPE>::resetImp(const bdlbb::Blob*        blob,
@@ -485,6 +489,7 @@ inline bool BlobObjectProxy<TYPE>::resetImp(const bdlbb::Blob*        blob,
                                             bool                      read,
                                             bool                      write,
                                             bool                      raw)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-union-access)
 {
     d_readMode  = read;
     d_writeMode = write;
@@ -531,10 +536,12 @@ inline bool BlobObjectProxy<TYPE>::resetImp(const bdlbb::Blob*        blob,
         }
     }
     else {
+        // NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
         const int ret = bmqu::BlobUtil::readNBytes(d_buffer.buffer(),
                                                    *blob,
                                                    position,
                                                    length);
+        // NOLINTEND(cppcoreguidelines-pro-type-union-access)
         if (ret == 0) {
             bsl::memset(d_buffer.buffer() + length, 0, sizeof(TYPE) - length);
             d_object_p = &d_buffer.object();
@@ -544,6 +551,7 @@ inline bool BlobObjectProxy<TYPE>::resetImp(const bdlbb::Blob*        blob,
 
     return d_object_p;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-union-access)
 
 // CREATORS
 template <class TYPE>
@@ -558,6 +566,7 @@ inline BlobObjectProxy<TYPE>::BlobObjectProxy()
 {
 }
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 template <class TYPE>
 inline BlobObjectProxy<TYPE>::BlobObjectProxy(const bdlbb::Blob* blob,
                                               bool               read,
@@ -565,7 +574,9 @@ inline BlobObjectProxy<TYPE>::BlobObjectProxy(const bdlbb::Blob* blob,
 {
     resetImp(blob, bmqu::BlobPosition(), sizeof(TYPE), read, write, false);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 template <class TYPE>
 inline BlobObjectProxy<TYPE>::BlobObjectProxy(const bdlbb::Blob* blob,
                                               int                length,
@@ -574,7 +585,9 @@ inline BlobObjectProxy<TYPE>::BlobObjectProxy(const bdlbb::Blob* blob,
 {
     resetImp(blob, bmqu::BlobPosition(), length, read, write, false);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 template <class TYPE>
 inline BlobObjectProxy<TYPE>::BlobObjectProxy(
     const bdlbb::Blob*        blob,
@@ -584,7 +597,9 @@ inline BlobObjectProxy<TYPE>::BlobObjectProxy(
 {
     resetImp(blob, position, sizeof(TYPE), read, write, false);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 template <class TYPE>
 inline BlobObjectProxy<TYPE>::BlobObjectProxy(
     const bdlbb::Blob*        blob,
@@ -595,6 +610,7 @@ inline BlobObjectProxy<TYPE>::BlobObjectProxy(
 {
     resetImp(blob, position, length, read, write, false);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 template <class TYPE>
 BlobObjectProxy<TYPE>::~BlobObjectProxy()
@@ -705,6 +721,7 @@ inline bool BlobObjectProxy<TYPE>::resetRaw(const bdlbb::Blob*        blob,
 
 template <class TYPE>
 bool BlobObjectProxy<TYPE>::resize(int newLength)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-union-access)
 {
     BSLS_ASSERT(d_object_p);
 
@@ -750,6 +767,7 @@ bool BlobObjectProxy<TYPE>::resize(int newLength)
         return true;
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-union-access)
 
 template <class TYPE>
 TYPE* BlobObjectProxy<TYPE>::object()
@@ -826,20 +844,24 @@ inline bool BlobObjectProxy<TYPE>::isSet() const
 
 template <class TYPE>
 inline bool BlobObjectProxy<TYPE>::isInBlob() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 {
     return d_object_p != &d_buffer.object();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
 
 template <class TYPE>
 template <class MEMBER_TYPE>
 inline bool
-BlobObjectProxy<TYPE>::hasMember(MEMBER_TYPE TYPE::*memberPtr) const
+BlobObjectProxy<TYPE>::hasMember(MEMBER_TYPE TYPE::* memberPtr) const
 {
     BSLS_ASSERT(d_object_p);
     bsls::Types::IntPtr minNecessary =
+        // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<bsls::Types::IntPtr>(&(d_object_p->*memberPtr)) -
         reinterpret_cast<bsls::Types::IntPtr>(d_object_p) +
         sizeof(MEMBER_TYPE);
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     return d_length >= minNecessary;
 }
 

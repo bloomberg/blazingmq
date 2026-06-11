@@ -69,6 +69,7 @@ namespace {
 
 // FUNCTIONS
 void readUserInput(bsl::string* input)
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     const int k_BUFFER_SIZE = 256;
 
@@ -79,6 +80,7 @@ void readUserInput(bsl::string* input)
     *input = buffer;
     bdlb::String::trim(input);
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 /// Print the current property value associated with the specified
 /// `iterator` to the specify `stream`.
@@ -131,6 +133,7 @@ class QueueManager;
 
 /// Concrete implementation of an event handler.  Note that the methods are
 /// called on the session's own threads.
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 class EventHandler : public bmqa::SessionEventHandler {
   private:
     // DATA
@@ -163,6 +166,7 @@ class EventHandler : public bmqa::SessionEventHandler {
     /// event handler.
     QueueManager* queueManager() const;
 };
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // ==================
 // class QueueManager
@@ -172,9 +176,11 @@ class EventHandler : public bmqa::SessionEventHandler {
 class QueueManager {
   public:
     // TYPES
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum QueueState { e_OPENING, e_OPENED, e_CLOSING, e_CLOSED };
 
     /// Struct holding members associated with the state of a queue.
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
     struct QueueContext {
         // DATA
         bmqa::QueueId d_queueId;
@@ -183,6 +189,7 @@ class QueueManager {
 
         QueueState d_state;
     };
+    // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
   private:
     // PRIVATE TYPES
@@ -383,6 +390,7 @@ void EventHandler::onMessageEvent(const bmqa::MessageEvent& messageEvent)
 
         // Received a 'PUSH' event from the broker.
         bmqa::MessageIterator msgIter = messageEvent.messageIterator();
+        // NOLINTBEGIN(*-narrowing-conversions)
         while (msgIter.nextMessage()) {
             const bmqa::Message& msg = msgIter.message();
 
@@ -457,6 +465,7 @@ void EventHandler::onMessageEvent(const bmqa::MessageEvent& messageEvent)
                                << "found! [queueId: " << msg.queueId() << "]";
             }
         }
+        // NOLINTEND(*-narrowing-conversions)
 
         // Confirm reception of the messages so that it can be deleted from the
         // queue.  Confirming means that the broker is free to purge the
@@ -535,9 +544,11 @@ void QueueManager::insertQueueContext(const QueueContext& context)
         bsl::make_pair(context.d_queueId.correlationId(), context));
 }
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 bsls::Types::Int64
 QueueManager::incrementMessageCount(bmqt::CorrelationId corrId,
                                     bsls::Types::Int64  delta)
+// NOLINTEND(performance-unnecessary-value-param)
 {
     // PRECONDITIONS
     BSLS_ASSERT(delta >= 0);
@@ -578,6 +589,7 @@ QueueManager::getMessageCount(const bmqt::CorrelationId& corrId) const
 //-----------------------------------------------------------------------------
 
 static void consume(bmqa::Session* session, QueueManager* queueManager)
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     BALL_LOG_SET_CATEGORY("CONSUMER.CONSUME");
 
@@ -597,12 +609,14 @@ static void consume(bmqa::Session* session, QueueManager* queueManager)
     // ids.
     const char k_QUEUE_URL[] = "bmq://bmq.test.mem.priority/test-queue";
 
-    bmqt::CorrelationId   corrId(bmqt::CorrelationId::autoValue());
-    bmqa::QueueId         queueId(corrId);
+    bmqt::CorrelationId corrId(bmqt::CorrelationId::autoValue());
+    bmqa::QueueId       queueId(corrId);
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bmqa::OpenQueueStatus status = session->openQueueSync(
         &queueId,
         k_QUEUE_URL,
         bmqt::QueueFlags::e_READ);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     // Note that 'openQueueSync()' takes another very useful optional parameter
     // bmqt::QueueOptions. For the sake of simplicity of this tutorial, we have
@@ -690,6 +704,7 @@ static void consume(bmqa::Session* session, QueueManager* queueManager)
     BALL_LOG_INFO << "Queue ['" << queueId.uri() << "'] has been shut down "
                   << "gracefully and is now closed.";
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 //=============================================================================
 //                              MAIN PROGRAM

@@ -63,6 +63,7 @@ namespace bmqp {
 
 /// This class provides a mechanism for accessing messages from a raw BMQ
 /// event packet.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Event {
   private:
     // CLASS-SCOPE CATEGORY
@@ -137,6 +138,7 @@ class Event {
     /// specified `original` object, leaving `original` in a valid but
     /// unspecified state.  Optionally specify an `allocator` used to supply
     /// memory.  If `allocator` is 0, the default memory allocator is used.
+    // NOLINTNEXTLINE(cppcoreguidelines-noexcept-move-operations,performance-noexcept-move-constructor)
     Event(bslmf::MovableRef<Event> src, bslma::Allocator* allocator = 0);
 
     // MANIPULATORS
@@ -146,6 +148,7 @@ class Event {
 
     /// Replace the contents of `*this` with those of `rhs`, leaving `rhs` in a
     /// valid but unspecified state.  Return `*this`.
+    // NOLINTNEXTLINE(cppcoreguidelines-noexcept-move-operations,performance-noexcept-move-constructor)
     Event& operator=(bslmf::MovableRef<Event> rhs);
 
     /// Reset this Event to use the specified `blob`.  If the optionally
@@ -227,7 +230,7 @@ class Event {
     void loadRejectMessageIterator(RejectMessageIterator* iterator) const;
 
     /// Return a pointer to the blob associated to this event.
-    const bdlbb::Blob* blob() const;
+    const bdlbb::Blob*                        blob() const;
     const bsl::shared_ptr<const bdlbb::Blob>& sharedBlob() const;
 
     /// Write the string representation of the specified `event` to the
@@ -243,6 +246,7 @@ class Event {
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 
@@ -400,19 +404,26 @@ inline Event::Event(const Event& src, bslma::Allocator* allocator)
 : d_allocator_p(allocator)
 , d_blob_sp(0, allocator)
 , d_blob_p(0)
+// NOLINTBEGIN(cppcoreguidelines-prefer-member-initializer)
 {
     d_blob_sp = src.d_blob_sp;
     initialize(src.d_blob_p);
 }
+// NOLINTEND(cppcoreguidelines-prefer-member-initializer)
 
+// NOLINTBEGIN(cppcoreguidelines-noexcept-move-operations,performance-noexcept-move-constructor)
 inline Event::Event(bslmf::MovableRef<Event> src, bslma::Allocator* allocator)
 : d_allocator_p(allocator)
 , d_blob_sp(0, allocator)
 , d_blob_p(0)
+// NOLINTBEGIN(cppcoreguidelines-prefer-member-initializer)
 {
     d_blob_sp = bslmf::MovableRefUtil::access(src).d_blob_sp;
     initialize(bslmf::MovableRefUtil::access(src).d_blob_p);
 }
+// NOLINTEND(cppcoreguidelines-prefer-member-initializer)
+// NOLINTEND(performance-noexcept-move-constructor)
+// NOLINTEND(cppcoreguidelines-noexcept-move-operations)
 
 inline Event& Event::operator=(const Event& rhs)
 {
@@ -427,6 +438,8 @@ inline Event& Event::operator=(const Event& rhs)
     return *this;
 }
 
+// NOLINTBEGIN(performance-noexcept-move-constructor)
+// NOLINTBEGIN(cppcoreguidelines-noexcept-move-operations)
 inline Event& Event::operator=(bslmf::MovableRef<Event> rhs)
 {
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
@@ -440,6 +453,7 @@ inline Event& Event::operator=(bslmf::MovableRef<Event> rhs)
     initialize(bslmf::MovableRefUtil::access(rhs).d_blob_p);
     return *this;
 }
+// NOLINTEND(cppcoreguidelines-noexcept-move-operations,performance-noexcept-move-constructor)
 
 inline void Event::reset(const bdlbb::Blob* blob)
 {

@@ -74,6 +74,7 @@ namespace mqbauthn {
 // class AnonAuthenticationResult
 // ==============================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class AnonAuthenticationResult : public mqbplug::AuthenticationResult {
   private:
     // DATA
@@ -100,11 +101,13 @@ class AnonAuthenticationResult : public mqbplug::AuthenticationResult {
     const bsl::optional<bsls::Types::Uint64>&
     lifetimeMs() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =======================
 // class AnonAuthenticator
 // =======================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class AnonAuthenticator : public mqbplug::Authenticator {
   public:
     // PUBLIC CLASS DATA
@@ -171,11 +174,13 @@ class AnonAuthenticator : public mqbplug::Authenticator {
     /// Stop the Authenticator.
     void stop() BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ====================================
 // class AnonAuthenticatorPluginFactory
 // ====================================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class AnonAuthenticatorPluginFactory
 : public mqbplug::AuthenticatorPluginFactory {
   public:
@@ -188,6 +193,7 @@ class AnonAuthenticatorPluginFactory
     bslma::ManagedPtr<mqbplug::Authenticator>
     create(bslma::Allocator* allocator) BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

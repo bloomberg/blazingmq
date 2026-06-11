@@ -483,6 +483,7 @@ int StorageUtil::addVirtualStoragesInternal(mqbs::ReplicatedStorage* storage,
                                             const AppInfos&  appIdKeyPairs,
                                             bsl::string_view partitionDesc,
                                             bool             isFanout)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
@@ -520,10 +521,12 @@ int StorageUtil::addVirtualStoragesInternal(mqbs::ReplicatedStorage* storage,
         }
     }
     else {
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const int rc = storage->addVirtualStorage(
             errorDesc,
             bmqp::ProtocolUtil::k_DEFAULT_APP_ID,
             mqbi::QueueEngine::k_DEFAULT_APP_KEY);
+        // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         // Unlike fanout queue above, we don't care about the returned value
         // for priority queue, since there is only one appId (default) which
         // could be added more than once in the startup sequence.  Its better
@@ -540,6 +543,7 @@ int StorageUtil::addVirtualStoragesInternal(mqbs::ReplicatedStorage* storage,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 int StorageUtil::removeVirtualStorageInternal(mqbs::ReplicatedStorage* storage,
                                               const mqbu::StorageKey&  appKey,
@@ -553,6 +557,7 @@ int StorageUtil::removeVirtualStorageInternal(mqbs::ReplicatedStorage* storage,
     // We should never have to remove a default appKey (for non-fanout queues)
     BSLS_ASSERT_SAFE(appKey != mqbi::QueueEngine::k_DEFAULT_APP_KEY);
 
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum { rc_SUCCESS = 0, rc_VIRTUAL_STORAGE_DOES_NOT_EXIST = -1 };
 
     bool existed = storage->removeVirtualStorage(appKey, asPrimary);
@@ -615,17 +620,20 @@ void StorageUtil::loadStorages(bsl::vector<mqbcmd::StorageQueueInfo>* storages,
 
     // Merge vector of vectors into a single vector
     StorageList storageList;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (StorageListsConstIter cit = storageLists.cbegin();
          cit != storageLists.cend();
          ++cit) {
         bsl::copy(cit->cbegin(), cit->cend(), bsl::back_inserter(storageList));
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     mqbs::StorageCollectionUtil::sortStorages(
         &storageList,
         mqbs::StorageCollectionUtilSortMetric::e_BYTE_COUNT);
 
     storages->reserve(storageList.size());
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (StorageList::const_iterator cit = storageList.begin();
          cit != storageList.end();
          ++cit) {
@@ -642,6 +650,7 @@ void StorageUtil::loadStorages(bsl::vector<mqbcmd::StorageQueueInfo>* storages,
         storage.queueUri() = (*cit)->queueUri().asString();
         storage.isPersistent() = (*cit)->isPersistent();
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 void StorageUtil::doRollover(mqbcmd::StorageResult* result,
@@ -655,6 +664,7 @@ void StorageUtil::doRollover(mqbcmd::StorageResult* result,
     BSLS_ASSERT_SAFE(result);
 
     if (partitionId < 0) {
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         bslmt::Latch     latch(fileStores->size());
         bsl::vector<int> rcs(fileStores->size(), allocator);
 
@@ -821,6 +831,7 @@ void StorageUtil::executeForEachPartitions(const PerPartitionFunctor& job,
 {
     // executed by cluster *DISPATCHER* thread
 
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     bslmt::Latch latch(fileStores.size());
 
     for (unsigned int i = 0; i < fileStores.size(); ++i) {
@@ -839,14 +850,18 @@ void StorageUtil::executeForValidPartitions(const PerPartitionFunctor& job,
     bsl::vector<int> validPartitionIds;
     validPartitionIds.reserve(fileStores.size());
 
+    // NOLINTBEGIN(*-narrowing-conversions)
     for (unsigned int i = 0; i < fileStores.size(); ++i) {
+        // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
         FileStoreSp fileStore = fileStores[i];
         if (fileStore->primaryNode() && fileStore->primaryNode()->nodeId() ==
                                             fileStore->config().nodeId()) {
             validPartitionIds.push_back(i);
         }
     }
+    // NOLINTEND(*-narrowing-conversions)
 
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     bslmt::Latch latch(validPartitionIds.size());
 
     BALL_LOG_INFO << "StorageUtil::executeForValidPartitions for "
@@ -867,6 +882,7 @@ int StorageUtil::processReplicationCommand(
     int*                              replicationFactor,
     FileStores*                       fileStores,
     const mqbcmd::ReplicationCommand& command)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // executed by cluster *DISPATCHER* thread
 
@@ -895,6 +911,7 @@ int StorageUtil::processReplicationCommand(
             tunableConfirmation.oldValue().makeTheInteger(*replicationFactor);
             *replicationFactor = tunable.value().theInteger();
 
+            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             for (FileStores::iterator it = fileStores->begin();
                  it != fileStores->end();
                  ++it) {
@@ -903,6 +920,7 @@ int StorageUtil::processReplicationCommand(
                     *it,
                     tunable.value().theInteger()));  // partitionId
             }
+            // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             tunableConfirmation.newValue().makeTheInteger(*replicationFactor);
             return 0;  // RETURN
         }
@@ -946,6 +964,7 @@ int StorageUtil::processReplicationCommand(
     replicationResult->error().message() = output.str();
     return -1;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 // FUNCTIONS
 bool StorageUtil::isStorageEmpty(bslmt::Mutex*       storagesLock,
@@ -975,6 +994,7 @@ void StorageUtil::storageMonitorCb(
     bsls::Types::Uint64            minimumRequiredDiskSpace,
     const bslstl::StringRef&       clusterDescription,
     const mqbcfg::PartitionConfig& partitionConfig)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // executed by the scheduler's *DISPATCHER* thread
 
@@ -1044,6 +1064,7 @@ void StorageUtil::storageMonitorCb(
         *lowDiskspaceWarning = false;
     }
 }
+// NOLINTEND(*-narrowing-conversions)
 
 bsl::ostream&
 StorageUtil::printRecoveryPhaseOneBanner(bsl::ostream&      out,
@@ -1070,6 +1091,7 @@ StorageUtil::printRecoveryPhaseOneBanner(bsl::ostream&      out,
 int StorageUtil::validatePartitionDirectory(
     const mqbcfg::PartitionConfig& config,
     bsl::ostream&                  errorDescription)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -1099,10 +1121,12 @@ int StorageUtil::validatePartitionDirectory(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 int StorageUtil::validateDiskSpace(const mqbcfg::PartitionConfig& config,
                                    const mqbc::ClusterData&       clusterData,
                                    const bsls::Types::Uint64&     minDiskSpace)
+// NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-use-enum-class)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
@@ -1170,6 +1194,7 @@ int StorageUtil::validateDiskSpace(const mqbcfg::PartitionConfig& config,
     }
     return rc_SUCCESS;
 }
+// NOLINTEND(*-narrowing-conversions,cppcoreguidelines-use-enum-class)
 
 template <>
 unsigned int StorageUtil::extractPartitionId<true>(const bmqp::Event& event)
@@ -1349,6 +1374,7 @@ int StorageUtil::assignPartitionDispatcherThreads(
     const RecoveredQueuesCb&       recoveredQueuesCb,
     const QueueCreationCb&         queueCreationCb,
     const QueueDeletionCb&         queueDeletionCb)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1423,6 +1449,7 @@ int StorageUtil::assignPartitionDispatcherThreads(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 void StorageUtil::clearPrimaryForPartition(
     mqbs::FileStore*   fs,
@@ -1607,6 +1634,7 @@ void StorageUtil::recoveredQueuesCb(
     // a global list of AppIds (in fact, we can't have that, because AppIds can
     // clash), so we check uniqueness of AppIds only for a given queue.
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     for (QueueKeyInfoMapConstIter qit = queueKeyInfoMap->begin();
          qit != queueKeyInfoMap->end();
          ++qit) {
@@ -1654,6 +1682,7 @@ void StorageUtil::recoveredQueuesCb(
         domainMap.insert(bsl::make_pair(uri.qualifiedDomain(),
                                         static_cast<mqbi::Domain*>(0)));
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     // Print the unique list of retrieved domain names (useful for debugging
     // purposes).
@@ -1681,6 +1710,7 @@ void StorageUtil::recoveredQueuesCb(
     // the broker is starting at this point, so its ok to do so.  Note that we
     // first issue all domain creation requests, and then block, instead of
     // issuing and blocking on one request at a time.
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     bslmt::Latch latch(domainMap.size());
 
     for (DomainMapIter dit = domainMap.begin(); dit != domainMap.end();
@@ -1749,6 +1779,7 @@ void StorageUtil::recoveredQueuesCb(
     // All domains have been created.  Now make 2nd pass over 'queueKeyUriMap'
     // and create file-backed storages for each recovered queue.
 
+    // NOLINTBEGIN(cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     for (QueueKeyInfoMapConstIter qit = queueKeyInfoMap->begin();
          qit != queueKeyInfoMap->end();
          ++qit) {
@@ -1916,6 +1947,7 @@ void StorageUtil::recoveredQueuesCb(
         bmqu::MemOutStream errorDesc;
         int                rc;
         if (domainCfg->mode().isFanoutValue()) {
+            // NOLINTBEGIN(bugprone-assignment-in-if-condition)
             for (mqbs::DataStoreConfigQueueInfo::AppInfos::const_iterator ait =
                      appIdKeyPairs.cbegin();
                  ait != appIdKeyPairs.cend();
@@ -1947,6 +1979,7 @@ void StorageUtil::recoveredQueuesCb(
                     << "], appKey [" << appKey << "] for queueUri ["
                     << queueUri << "], queueKey [" << queueKey << "].";
             }
+            // NOLINTEND(bugprone-assignment-in-if-condition)
         }
         else {
             // Fanout and non-fanout Queue Engines are converging.  Like Fanout
@@ -1981,6 +2014,7 @@ void StorageUtil::recoveredQueuesCb(
                           << queueKey << "].";
         }
     }
+    // NOLINTEND(cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     // Iterate over FS[partitionId] using FS-Iterator, and update file-backed
     // storages.  Note that any virtual storages associated with each
@@ -2190,11 +2224,13 @@ void StorageUtil::recoveredQueuesCb(
     }
 
     // Purge all records that have been invalidated
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (DataStoreRecordHandlesIter it = recordsToPurge.begin();
          it != recordsToPurge.end();
          ++it) {
         fs->removeRecordRaw(*it);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     fs->setLastStrongConsistency(lastStrongConsistencyPrimaryLeaseId,
                                  lastStrongConsistencySequenceNum);
@@ -2240,6 +2276,7 @@ void StorageUtil::dumpUnknownRecoveredDomains(
         // the log with statistics about them, allowing BlazingMQ developers to
         // investigate.
 
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (DomainQueueMessagesCountMaps::const_iterator cit =
                  unrecognizedDomains.cbegin();
              cit != unrecognizedDomains.cend();
@@ -2248,6 +2285,7 @@ void StorageUtil::dumpUnknownRecoveredDomains(
                 &unrecognizedDomainsFlat,
                 *cit);
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 
     // 2. Print statistics using the collapsed map, in sorted order of domain
@@ -2270,6 +2308,7 @@ void StorageUtil::dumpUnknownRecoveredDomains(
     bdlb::Print::newlineAndIndent(out, level);
     out << "Unrecognized domains found while recovering '"
         << clusterDescription << "'";
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (MapKeys::const_iterator cit = keys.cbegin(); cit != keys.cend();
          ++cit) {
         bdlb::Print::newlineAndIndent(out, level + 1);
@@ -2282,16 +2321,19 @@ void StorageUtil::dumpUnknownRecoveredDomains(
         const mqbs::StorageUtil::QueueMessagesCountMap& queueMessages =
             unrecognizedDomainsFlat[*cit];
         QueueMessagesList queueMessagesList;
+        // NOLINTBEGIN(modernize-use-emplace)
         for (mqbs::StorageUtil::QueueMessagesCountMap::const_iterator qmcit =
                  queueMessages.cbegin();
              qmcit != queueMessages.cend();
              ++qmcit) {
             queueMessagesList.push_back(*qmcit);
         }
+        // NOLINTEND(modernize-use-emplace)
         bsl::sort(queueMessagesList.begin(),
                   queueMessagesList.end(),
                   mqbs::StorageUtil::queueMessagesCountComparator);
 
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (QueueMessagesList::const_iterator qmlcit =
                  queueMessagesList.cbegin();
              qmlcit != queueMessagesList.cend();
@@ -2300,7 +2342,9 @@ void StorageUtil::dumpUnknownRecoveredDomains(
             out << qmlcit->first << ": "
                 << bmqu::PrintUtil::prettyNumber(qmlcit->second) << " msgs";
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     BALL_LOG_ERROR << out.str();
 }
@@ -2361,6 +2405,7 @@ void StorageUtil::stop(FileStores*        fileStores,
     BALL_LOG_INFO << clusterDescription
                   << ": Enqueuing event to close FileStores.";
 
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     bslmt::Latch       latch(fileStores->size());
     bsls::Types::Int64 shutdownStartTime = bmqu::Time::highResolutionTimer();
     for (unsigned int i = 0; i < fileStores->size(); ++i) {
@@ -3147,6 +3192,7 @@ int StorageUtil::configureStorage(
     const bsls::Types::Int64           messageTtl,
     const int                          maxDeliveryAttempts,
     const mqbconfm::StorageDefinition& storageDef)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(storageMap);
@@ -3197,6 +3243,7 @@ int StorageUtil::configureStorage(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 void StorageUtil::processReplicaStatusAdvisoryDispatched(
     mqbc::ClusterData*              clusterData,
@@ -3409,6 +3456,7 @@ void StorageUtil::purgeQueueDispatched(
     mqbi::Storage*            storage,
     const mqbs::FileStore*    fileStore,
     const bsl::string&        appId)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'fileStore'
 
@@ -3493,6 +3541,7 @@ void StorageUtil::purgeQueueDispatched(
     queueDetails.numMessagesPurged() = numMsgs;
     queueDetails.numBytesPurged()    = numBytes;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void StorageUtil::processCommand(
     mqbcmd::StorageResult*                       result,
@@ -3523,6 +3572,7 @@ void StorageUtil::processCommand(
         const int partitionId = command.partition().partitionId();
 
         if (partitionId >= static_cast<int>(fileStores->size())) {
+            // NOLINTNEXTLINE(*-magic-numbers)
             bdlma::LocalSequentialAllocator<256> localAllocator(allocator);
             bmqu::MemOutStream                   os(&localAllocator);
             os << "Too high partitionId value: '" << partitionId << "'";
@@ -3531,6 +3581,7 @@ void StorageUtil::processCommand(
         }
 
         if (partitionId < -1) {
+            // NOLINTNEXTLINE(*-magic-numbers)
             bdlma::LocalSequentialAllocator<256> localAllocator(allocator);
             bmqu::MemOutStream                   os(&localAllocator);
             os << "Too low partitionId value: '" << partitionId << "'";
@@ -3546,6 +3597,7 @@ void StorageUtil::processCommand(
         }
 
         if (partitionId < 0) {
+            // NOLINTNEXTLINE(*-magic-numbers)
             bdlma::LocalSequentialAllocator<256> localAllocator(allocator);
             bmqu::MemOutStream                   os(&localAllocator);
             os << "Too low partitionId value: '" << partitionId << "'";
@@ -3576,6 +3628,7 @@ void StorageUtil::processCommand(
     }
     else if (command.isDomainValue()) {
         if (!domainFactory->getDomain(command.domain().name())) {
+            // NOLINTNEXTLINE(*-magic-numbers)
             bdlma::LocalSequentialAllocator<256> localAllocator(allocator);
             bmqu::MemOutStream                   os(&localAllocator);
             os << "Unknown domain '" << command.domain().name() << "'";
@@ -3643,6 +3696,7 @@ void StorageUtil::processCommand(
         }
 
         if (!queueStorage) {
+            // NOLINTNEXTLINE(*-magic-numbers)
             bdlma::LocalSequentialAllocator<256> localAllocator(allocator);
             bmqu::MemOutStream                   os(&localAllocator);
             os << "Queue was not found in a storage '" << uri << "'";
@@ -3690,6 +3744,7 @@ void StorageUtil::processCommand(
         return;  // RETURN
     }
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<256> localAllocator(allocator);
     bmqu::MemOutStream                   os(&localAllocator);
     os << "Unknown command '" << command << "'";

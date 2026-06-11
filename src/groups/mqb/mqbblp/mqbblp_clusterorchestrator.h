@@ -87,6 +87,7 @@ namespace mqbblp {
 // =========================
 
 // @todo Document
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ClusterOrchestrator {
   private:
     // CLASS-SCOPE CATEGORY
@@ -116,6 +117,7 @@ class ClusterOrchestrator {
 
     /// The purpose is to avoid memory allocation by bdlf::BindUtil::bind
     /// when dispatching ElectorEvent from IO to Cluster.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     class OnElectorEventFunctor
     : public bmqu::ManagedCallback::CallbackFunctor {
       private:
@@ -134,6 +136,7 @@ class ClusterOrchestrator {
 
         void operator()() const BSLS_KEYWORD_OVERRIDE;
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     /// Vector of pairs of buffered primary status advisories and their source
     typedef bsl::vector<
@@ -528,6 +531,7 @@ class ClusterOrchestrator {
 
     const ClusterQueueHelper& queueHelper() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                           INLINE DEFINITIONS

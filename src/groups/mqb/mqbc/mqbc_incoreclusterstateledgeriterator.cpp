@@ -79,6 +79,7 @@ IncoreClusterStateLedgerIterator::~IncoreClusterStateLedgerIterator()
 // MANIPULATORS
 //   (virtual mqbc::ClusterStateLedgerIterator)
 int IncoreClusterStateLedgerIterator::next()
+// NOLINTBEGIN(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-init-variables,cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -107,9 +108,11 @@ int IncoreClusterStateLedgerIterator::next()
 
         // Validate the file header
         ClusterStateFileHeader* fh;
+        // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
         int rc = d_ledger_p->aliasRecord(reinterpret_cast<void**>(&fh),
                                          sizeof(ClusterStateFileHeader),
                                          d_currRecordId);
+        // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
         if (rc != 0) {
             return (rc * 10) + rc_RECORD_ALIAS_FAILURE;  // RETURN
         }
@@ -137,10 +140,12 @@ int IncoreClusterStateLedgerIterator::next()
     }
 
     // 2. Parse the new record
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     int rc = d_ledger_p->aliasRecord(
         reinterpret_cast<void**>(&d_currRecordHeader_p),
         sizeof(ClusterStateRecordHeader),
         d_currRecordId);
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     if (rc != 0) {
         return (rc * 10) + rc_RECORD_ALIAS_FAILURE;  // RETURN
     }
@@ -154,6 +159,7 @@ int IncoreClusterStateLedgerIterator::next()
     d_isValid = true;
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-init-variables,cppcoreguidelines-use-enum-class)
 
 // ACCESSORS
 //   (virtual mqbc::ClusterStateLedgerIterator)

@@ -47,6 +47,7 @@ namespace mqbs {
 // class ReplicatedStorage
 // =======================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ReplicatedStorage : public mqbi::Storage {
     // TBD
 
@@ -114,6 +115,7 @@ class ReplicatedStorage : public mqbi::Storage {
     // Return 'true' if the storage is of the strong consistency
     virtual bool isStrongConsistency() const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

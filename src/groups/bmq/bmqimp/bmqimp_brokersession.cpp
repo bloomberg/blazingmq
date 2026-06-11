@@ -137,8 +137,10 @@ const int k_FSMQUEUE_INITIAL_CAPACITY = 1000;
 ///
 const int k_NON_BUFFERED_REQUEST_GROUP_ID = 0;
 
+// NOLINTBEGIN(*-avoid-c-arrays)
 const char k_ENQUEUE_ERROR_TEXT[] = "Failed to process the operation, the"
                                     " session is already being destroyed";
+// NOLINTEND(*-avoid-c-arrays)
 
 /// Create an `Event` object at the specified `address` using the supplied
 /// `allocator`.  This is used by the ObjectPool.
@@ -242,6 +244,7 @@ void makeDeconfigure(bmqp_ctrlmsg::ControlMessage* request)
 }
 
 bmqp_ctrlmsg::StatusCategory::Value errorCategory(int status)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     bmqp_ctrlmsg::StatusCategory::Value category;
     int rc = bmqp_ctrlmsg::StatusCategory::fromInt(&category, status);
@@ -250,6 +253,7 @@ bmqp_ctrlmsg::StatusCategory::Value errorCategory(int status)
     }
     return category;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 }  // close unnamed namespace
 
@@ -576,7 +580,9 @@ BrokerSession::SessionFsm::SessionFsm(BrokerSession& session)
 , d_state(State::e_STOPPED)
 , d_onceConnected(false)
 , d_beginTimestamp(0)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
+    // NOLINTBEGIN(*-avoid-c-arrays)
     StateTransition table[] = {
 #define S State
 #define E FsmEvent
@@ -614,12 +620,14 @@ BrokerSession::SessionFsm::SessionFsm(BrokerSession& session)
 #undef S
 #undef E
     };
+    // NOLINTEND(*-avoid-c-arrays)
 
     const int size    = sizeof(table) / sizeof(table[0]);
     d_transitionTable = bsl::vector<StateTransition>(table,
                                                      table + size,
                                                      d_session.d_allocator_p);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 bmqt::GenericResult::Enum BrokerSession::SessionFsm::handleStartRequest()
 {
@@ -1309,6 +1317,7 @@ bmqt::ConfigureQueueResult::Enum
 BrokerSession::QueueFsm::actionReconfigureQueue(
     const bsl::shared_ptr<Queue>&       queue,
     const bmqp_ctrlmsg::ControlMessage& response)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // executed by the FSM thread
 
@@ -1365,6 +1374,7 @@ BrokerSession::QueueFsm::actionReconfigureQueue(
     }
     return rc;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void BrokerSession::QueueFsm::actionInitiateQueueSuspend(
     const bsl::shared_ptr<Queue>& queue)
@@ -1434,10 +1444,12 @@ void BrokerSession::QueueFsm::logOperationTime(const bsl::string& queueUri,
 BrokerSession::QueueFsm::QueueFsm(BrokerSession& session)
 : d_session(session)
 , d_timestampMap(session.d_allocator_p)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     typedef QueueState    S;
     typedef QueueFsmEvent E;
-    QueueStateTransition  table[] = {
+    // NOLINTBEGIN(*-avoid-c-arrays)
+    QueueStateTransition table[] = {
         // current state           event              new state
         {S::e_CLOSED, E::e_OPEN_CMD, S::e_OPENING_OPN},
         //
@@ -1510,6 +1522,7 @@ BrokerSession::QueueFsm::QueueFsm(BrokerSession& session)
         {S::e_PENDING, E::e_RESP_TIMEOUT, S::e_PENDING},
         {S::e_PENDING, E::e_RESP_EXPIRED, S::e_PENDING},
         {S::e_PENDING, E::e_SESSION_DOWN, S::e_CLOSED}};
+    // NOLINTEND(*-avoid-c-arrays)
 
     const int size    = sizeof(table) / sizeof(table[0]);
     d_transitionTable = bsl::vector<QueueStateTransition>(
@@ -1517,6 +1530,7 @@ BrokerSession::QueueFsm::QueueFsm(BrokerSession& session)
         table + size,
         d_session.d_allocator_p);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 // MANIPULATORS
 bmqt::OpenQueueResult::Enum BrokerSession::QueueFsm::handleOpenRequest(
@@ -2996,6 +3010,7 @@ void BrokerSession::QueueFsm::handleChannelDown(
 
 void BrokerSession::QueueFsm::handleQueueSuspend(
     const bsl::shared_ptr<Queue>& queue)
+// NOLINTBEGIN(bugprone-branch-clone)
 {
     // executed by the FSM thread
 
@@ -3031,9 +3046,11 @@ void BrokerSession::QueueFsm::handleQueueSuspend(
     } break;
     }
 }
+// NOLINTEND(bugprone-branch-clone)
 
 void BrokerSession::QueueFsm::handleQueueResume(
     const bsl::shared_ptr<Queue>& queue)
+// NOLINTBEGIN(bugprone-branch-clone)
 {
     // executed by the FSM thread
 
@@ -3077,6 +3094,7 @@ void BrokerSession::QueueFsm::handleQueueResume(
     } break;
     }
 }
+// NOLINTEND(bugprone-branch-clone)
 
 // ----------------------------
 // class BrokerSession_Executor
@@ -3279,6 +3297,7 @@ void BrokerSession::asyncRequestNotifier(
     const bmqt::CorrelationId&           correlationId,
     const bsl::shared_ptr<Queue>&        queue,
     const EventCallback&                 eventCallback)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // executed by *ANY* thread
 
@@ -3317,6 +3336,7 @@ void BrokerSession::asyncRequestNotifier(
                             eventCallback);
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 void BrokerSession::syncRequestNotifier(
     bslmt::Semaphore*                    semaphore,
@@ -3360,6 +3380,7 @@ void BrokerSession::manualSyncRequestNotifier(
     const bmqt::CorrelationId&           correlationId,
     const bsl::shared_ptr<Queue>&        queue,
     const EventCallback&                 eventCallback)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // executed by *ANY* thread
 
@@ -3392,6 +3413,7 @@ void BrokerSession::manualSyncRequestNotifier(
 
     eventCallback(event);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 void BrokerSession::processRawEvent(const bmqp::Event& event)
 {
@@ -3427,6 +3449,7 @@ void BrokerSession::processControlEvent(const bmqp::Event& event)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_fsmThreadChecker.inSameThread());
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
     bmqp_ctrlmsg::ControlMessage          controlMessage(&localAllocator);
 
@@ -3601,6 +3624,7 @@ void BrokerSession::processConfirmEvent(const bmqp::Event& event)
 }
 
 void BrokerSession::processPushEvent(const bmqp::Event& event)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class,performance-avoid-endl)
 {
     // executed by the FSM thread
     // PRECONDITIONS
@@ -3609,6 +3633,7 @@ void BrokerSession::processPushEvent(const bmqp::Event& event)
     enum { e_NUM_BYTES_IN_BLOB_TO_DUMP = 256 };
 
     // Update stats
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<1024> iteratorLsa(d_allocator_p);
     bmqp::PushMessageIterator msgIterator(d_bufferFactory_p, &iteratorLsa);
     event.loadPushMessageIterator(&msgIterator);
@@ -3623,6 +3648,7 @@ void BrokerSession::processPushEvent(const bmqp::Event& event)
     int  eventByteCount                    = 0;
     bool hasMessageWithMultipleSubQueueIds = false;
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<16 * sizeof(bmqp::EventUtilEventInfo)>
         localAllocator(d_allocator_p);
 
@@ -3687,12 +3713,14 @@ void BrokerSession::processPushEvent(const bmqp::Event& event)
         }
         // Insert queues in event
         const bmqp::EventUtilEventInfo::Ids& sIds = currEventInfo.d_ids;
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (bmqp::EventUtilEventInfo::Ids::const_iterator citer =
                  sIds.begin();
              citer != sIds.end();
              ++citer) {
             d_queueManager.observePushEvent(queueEvent.get(), *citer);
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
         // Update event bytes
         eventByteCount += queueEvent->rawEvent().blob()->length();
@@ -3722,6 +3750,7 @@ void BrokerSession::processPushEvent(const bmqp::Event& event)
                           eventByteCount,
                           eventMessageCount);
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class,performance-avoid-endl)
 
 void BrokerSession::processAckEvent(const bmqp::Event& event)
 {
@@ -3884,6 +3913,7 @@ BrokerSession::configureQueueImp(const RequestManagerType::RequestSp& context,
                                  const bsls::TimeInterval  timeout,
                                  const ConfiguredCallback& configuredCb,
                                  const bool                checkConcurrent)
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
 {
     // executed by the FSM thread
 
@@ -3959,6 +3989,7 @@ BrokerSession::configureQueueImp(const RequestManagerType::RequestSp& context,
 
     return static_cast<bmqt::ConfigureQueueResult::Enum>(rc);
 }
+// NOLINTEND(bugprone-unchecked-optional-access)
 
 bmqt::ConfigureQueueResult::Enum
 BrokerSession::sendConfigureRequest(const bsl::shared_ptr<Queue>&  queue,
@@ -5174,9 +5205,11 @@ void BrokerSession::doCloseQueue(
     }
 }
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 void BrokerSession::doSetChannel(
     const bsl::shared_ptr<bmqio::Channel> channel,
     BSLA_MAYBE_UNUSED const bsl::shared_ptr<Event>& eventSp)
+// NOLINTEND(performance-unnecessary-value-param)
 {
     // executed by the FSM thread
     // PRECONDITIONS
@@ -5286,6 +5319,7 @@ BrokerSession::RequestManagerType::RequestSp
 BrokerSession::createOpenQueueContext(const bsl::shared_ptr<Queue>& queue,
                                       const FsmCallback& fsmCallback,
                                       bool               isBuffered)
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
 {
     // executed by the FSM thread
     // PRECONDITIONS
@@ -5313,6 +5347,7 @@ BrokerSession::createOpenQueueContext(const bsl::shared_ptr<Queue>& queue,
 
     return context;
 }
+// NOLINTEND(bugprone-unchecked-optional-access)
 
 BrokerSession::RequestManagerType::RequestSp
 BrokerSession::createConfigureQueueContext(const bsl::shared_ptr<Queue>& queue,
@@ -5356,6 +5391,7 @@ BrokerSession::createConfigureQueueContext(const bsl::shared_ptr<Queue>& queue,
         bmqt::QueueOptions::SubscriptionsSnapshot snapshot(d_allocator_p);
         options.loadSubscriptions(&snapshot);
 
+        // NOLINTBEGIN(cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (bmqt::QueueOptions::SubscriptionsSnapshot::const_iterator cit =
                  snapshot.begin();
              cit != snapshot.end();
@@ -5415,6 +5451,7 @@ BrokerSession::createConfigureQueueContext(const bsl::shared_ptr<Queue>& queue,
                                                   cit->first.id(),
                                                   cit->first.correlationId());
         }
+        // NOLINTEND(cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-pointer-arithmetic)
         return context;  // RETURN
     }
 
@@ -5613,6 +5650,7 @@ BrokerSession::requestWriterCb(const RequestManagerType::RequestSp& context,
                                const bmqp::QueueId&                 queueId,
                                const bsl::shared_ptr<bdlbb::Blob>&  blob_sp,
                                bsls::Types::Int64                   watermark)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // executed by the FSM thread
 
@@ -5624,6 +5662,7 @@ BrokerSession::requestWriterCb(const RequestManagerType::RequestSp& context,
     if (isBuffered) {
         const bmqt::MessageGUID guid =
             d_messageCorrelationIdContainer.add(context, queueId, *blob_sp);
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         char guidHex[bmqt::MessageGUID::e_SIZE_HEX];
         guid.toHex(guidHex);
         context->adoptUserData(
@@ -5655,6 +5694,7 @@ BrokerSession::requestWriterCb(const RequestManagerType::RequestSp& context,
 
     return res;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 bmqt::GenericResult::Enum
 BrokerSession::writeOrBuffer(const bdlbb::Blob& eventBlob,
@@ -5763,7 +5803,9 @@ BrokerSession::BrokerSession(
 , d_queueManager(allocator)
 , d_numPendingReopenQueues(0)
 , d_numPendingHostHealthRequests(0)
+// NOLINTNEXTLINE(*-magic-numbers)
 , d_throttledFailedPostMessage(5000, 1)  // 1 log per 5s interval
+// NOLINTNEXTLINE(*-magic-numbers)
 , d_throttledFailedAckMessages(3000, 1)  // 1 log per 3s interval
 , d_messageDumper(&d_queueManager,
                   &d_messageCorrelationIdContainer,
@@ -5863,6 +5905,7 @@ BrokerSession::processPacket(const bsl::shared_ptr<const bdlbb::Blob>& packet)
 
 bmqt::GenericResult::Enum
 BrokerSession::processPacket(const bmqp::Event& event)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // executed by the *IO* thread
     // or *APPLICATION* thread
@@ -5883,6 +5926,7 @@ BrokerSession::processPacket(const bmqp::Event& event)
     queueEvent->configureAsRawEvent(event);
     return enqueueFsmEvent(queueEvent);
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 void BrokerSession::setChannel(const bsl::shared_ptr<bmqio::Channel>& channel)
 {
@@ -5947,6 +5991,7 @@ int BrokerSession::start(const bsls::TimeInterval& timeout)
 }
 
 int BrokerSession::startAsync()
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // Use local semaphore to wait until start request is accepted by the FSM.
     // The FSM may return an error code that startAsync will use as its return
@@ -5973,6 +6018,7 @@ int BrokerSession::startAsync()
 
     return startStatus;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 void BrokerSession::onDisconnectResponse(
     const RequestManagerType::RequestSp& context)
@@ -6057,6 +6103,7 @@ void BrokerSession::onOpenQueueResponse(
     const RequestManagerType::RequestSp& context,
     const bsl::shared_ptr<Queue>&        queue,
     const bsls::TimeInterval             absTimeout)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // executed by the FSM thread
 
@@ -6095,6 +6142,7 @@ void BrokerSession::onOpenQueueResponse(
                         context->isLateResponse(),
                         absTimeout);
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 void BrokerSession::onCloseQueueResponse(
     const RequestManagerType::RequestSp& context,
@@ -6211,6 +6259,7 @@ void BrokerSession::onOpenQueueConfigured(
     }
 
     const int pendingId = queue->pendingConfigureId();
+    // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
     const int currentId = configureQueueContext->request().rId().value();
 
     if (pendingId == currentId || pendingId == Queue::k_INVALID_CONFIGURE_ID) {
@@ -6521,6 +6570,7 @@ void BrokerSession::onCloseQueueConfigured(
 }
 
 void BrokerSession::reopenQueues()
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // executed by the FSM thread
     // PRECONDITIONS
@@ -6588,6 +6638,7 @@ void BrokerSession::reopenQueues()
                                        context);
     }
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void BrokerSession::notifyQueuesChannelDown()
 {
@@ -7338,6 +7389,7 @@ int BrokerSession::confirmMessage(const bsl::shared_ptr<bmqimp::Queue>& queue,
     // Build event
     bmqp::ConfirmEventBuilder      builder(d_blobSpPool_p, d_allocator_p);
     bmqt::EventBuilderResult::Enum rc =
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         builder.appendMessage(queue->id(), queue->subQueueId(), messageId);
 
     // no handling bmqt::EventBuilderResult::e_EVENT_TOO_BIG error since there

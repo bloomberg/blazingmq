@@ -155,6 +155,7 @@ typedef bsl::shared_ptr<AtomicValidator> AtomicValidatorSp;
 
 /// This class implements a guard-like mechanism for acquisition and release
 /// of an AtomicValidator object.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class AtomicValidatorGuard {
   private:
     // DATA
@@ -210,6 +211,7 @@ class AtomicValidatorGuard {
     /// return true.
     bool isValid() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 struct AtomicValidatorGuardUtil {
     /// Release the underlying validator from management by the provided

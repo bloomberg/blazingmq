@@ -38,6 +38,7 @@ static void test1_breathingTest()
 // Testing:
 //   Basic functionality of protocol structs.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("breathingTest");
 
@@ -86,8 +87,10 @@ static void test1_breathingTest()
     BMQTST_ASSERT_EQ(obj.remaining(), 0U);
     BMQTST_ASSERT_EQ(obj.block(), static_cast<const mqbs::MemoryBlock*>(0));
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test2_reverseIteration()
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("reverseIteration");
 
@@ -96,6 +99,7 @@ static void test2_reverseIteration()
     mqbs::MemoryBlock   block(&dummy, size);
 
     // Create iterator
+    // NOLINTNEXTLINE(*-magic-numbers)
     mqbs::MemoryBlockIterator obj(&block, size, size - 1000, false);
 
     BMQTST_ASSERT_EQ(obj.isForwardIterator(), false);
@@ -123,8 +127,10 @@ static void test2_reverseIteration()
     BMQTST_ASSERT_EQ(obj.remaining(), 0U);
     BMQTST_ASSERT_EQ(obj.block(), &block);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test3_bidirectionalIteration()
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("bi-directional Iteration");
 
@@ -133,10 +139,12 @@ static void test3_bidirectionalIteration()
     mqbs::MemoryBlock   block(&dummy, size);
 
     // Create objator.
+    // NOLINTBEGIN(*-magic-numbers)
     mqbs::MemoryBlockIterator obj(&block,
                                   0,     // position
                                   8000,  // remaining
                                   true);
+    // NOLINTEND(*-magic-numbers)
 
     BMQTST_ASSERT_EQ(obj.isForwardIterator(), true);
     BMQTST_ASSERT_EQ(obj.atEnd(), false);
@@ -187,12 +195,14 @@ static void test3_bidirectionalIteration()
     BMQTST_ASSERT_EQ(obj.remaining(), 8000U);
     BMQTST_ASSERT_EQ(obj.block(), &block);
 }
+// NOLINTEND(*-magic-numbers)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -209,3 +219,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

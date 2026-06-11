@@ -73,6 +73,7 @@ struct ClusterStateLedgerProtocol {
 /// HeaderWords...........: Total size (in words) of this header
 /// FileKey...............: First 5 bytes of hashed file name
 /// ```
+// NOLINTBEGIN(*-avoid-c-arrays)
 struct ClusterStateFileHeader {
   private:
     // PRIVATE CONSTANTS
@@ -92,6 +93,7 @@ struct ClusterStateFileHeader {
     unsigned char d_protocolVersionAndHeaderWords;
 
     /// File key, i.e., first 5 bytes of the hashed file name.
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     char d_fileKey[mqbu::StorageKey::e_KEY_LENGTH_BINARY];
 
     /// Reserved.
@@ -145,6 +147,7 @@ struct ClusterStateFileHeader {
     /// Return the file key.
     const mqbu::StorageKey& fileKey() const;
 };
+// NOLINTEND(*-avoid-c-arrays)
 
 // =============================
 // struct ClusterStateRecordType
@@ -153,6 +156,7 @@ struct ClusterStateFileHeader {
 /// This struct defines various types of cluster state records.
 struct ClusterStateRecordType {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         e_UNDEFINED = 0,
         e_SNAPSHOT  = 1,
@@ -160,6 +164,7 @@ struct ClusterStateRecordType {
         e_COMMIT    = 3,
         e_ACK       = 4
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // PUBLIC CONSTANTS
 
@@ -269,6 +274,7 @@ bsl::ostream& operator<<(bsl::ostream&                stream,
 ///       over the header and payload, will follow this header.  The total size
 ///       of the leader advisory message and CRC32-C is `LeaderAdvisoryWords`.
 ///
+// NOLINTBEGIN(*-avoid-c-arrays)
 struct ClusterStateRecordHeader {
   private:
     // PRIVATE CONSTANTS
@@ -383,6 +389,7 @@ struct ClusterStateRecordHeader {
     /// Return the timestamp.
     bsls::Types::Uint64 timestamp() const;
 };
+// NOLINTEND(*-avoid-c-arrays)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -393,6 +400,7 @@ struct ClusterStateRecordHeader {
 // -----------------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline ClusterStateFileHeader::ClusterStateFileHeader()
 {
     bsl::memset(this, 0, sizeof(ClusterStateFileHeader));
@@ -401,6 +409,7 @@ inline ClusterStateFileHeader::ClusterStateFileHeader()
                    bmqp::Protocol::k_WORD_SIZE);
     setFileKey(mqbu::StorageKey::k_NULL_KEY);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline ClusterStateFileHeader&
@@ -431,6 +440,7 @@ ClusterStateFileHeader::setHeaderWords(unsigned int value)
 
 inline ClusterStateFileHeader&
 ClusterStateFileHeader::setFileKey(const mqbu::StorageKey& value)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bsl::memcpy(d_fileKey,
                 value.data(),
@@ -438,6 +448,7 @@ ClusterStateFileHeader::setFileKey(const mqbu::StorageKey& value)
 
     return *this;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 // ACCESSORS
 inline unsigned char ClusterStateFileHeader::protocolVersion() const
@@ -454,21 +465,25 @@ inline unsigned int ClusterStateFileHeader::headerWords() const
 }
 
 inline const mqbu::StorageKey& ClusterStateFileHeader::fileKey() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     return reinterpret_cast<const mqbu::StorageKey&>(d_fileKey);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 // -------------------------------
 // struct ClusterStateRecordHeader
 // -------------------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline ClusterStateRecordHeader::ClusterStateRecordHeader()
 {
     bsl::memset(this, 0, sizeof(ClusterStateRecordHeader));
     setHeaderWords(sizeof(ClusterStateRecordHeader) /
                    bmqp::Protocol::k_WORD_SIZE);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline ClusterStateRecordHeader&

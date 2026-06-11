@@ -88,6 +88,7 @@ class Interactive {
     // failure.
 
     // TYPES
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum UriEntryStatus { e_FAILURE = -1, e_IN_PROGRESS = 0, e_SUCCESS = 1 };
 
     /// URI map entry is reference counted.

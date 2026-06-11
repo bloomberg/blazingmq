@@ -172,6 +172,7 @@ void populateBlob(bdlbb::Blob*                        blob,
                   bsl::vector<bdlb::BigEndianUint32>* subQueueIdsOld,
                   bool                                useSubQueueIdsOld,
                   size_t                              numSubQueueInfos)
+// NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     BSLS_ASSERT_SAFE(blob);
     BSLS_ASSERT_SAFE(optionsAreaPosition);
@@ -209,8 +210,10 @@ void populateBlob(bdlbb::Blob*                        blob,
         .setMessageGUID(guid);
     ph.setMessageWords(ph.optionsWords() + ph.headerWords());
 
+    // NOLINTBEGIN(*-narrowing-conversions,bugprone-implicit-widening-of-multiplication-result)
     const int eventLength = sizeof(bmqp::EventHeader) +
                             ph.messageWords() * bmqp::Protocol::k_WORD_SIZE;
+    // NOLINTEND(*-narrowing-conversions,bugprone-implicit-widening-of-multiplication-result)
 
     // Append EventHeader
     bmqp::EventHeader eh;
@@ -271,6 +274,7 @@ void populateBlob(bdlbb::Blob*                        blob,
         }
     }
 }
+// NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-type-reinterpret-cast)
 
 /// Populate the specified `blob` with a PUSH event consisting of an event
 /// header, a push header, and a *packed* option header containing a random
@@ -283,6 +287,7 @@ void populatePackedBlob(bdlbb::Blob*                     blob,
                         bmqu::BlobPosition*              optionsAreaPosition,
                         int*                             optionsAreaSize,
                         bsl::vector<bmqp::SubQueueInfo>* subQueueInfos)
+// NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     BSLS_ASSERT_SAFE(blob);
     BSLS_ASSERT_SAFE(optionsAreaPosition);
@@ -305,8 +310,10 @@ void populatePackedBlob(bdlbb::Blob*                     blob,
         .setMessageGUID(guid)
         .setMessageWords(ph.optionsWords() + ph.headerWords());
 
+    // NOLINTBEGIN(*-narrowing-conversions,bugprone-implicit-widening-of-multiplication-result)
     const int eventLength = sizeof(bmqp::EventHeader) +
                             ph.messageWords() * bmqp::Protocol::k_WORD_SIZE;
+    // NOLINTEND(*-narrowing-conversions,bugprone-implicit-widening-of-multiplication-result)
 
     // Append EventHeader
     bmqp::EventHeader eh;
@@ -341,6 +348,7 @@ void populatePackedBlob(bdlbb::Blob*                     blob,
                                reinterpret_cast<const char*>(&oh),
                                sizeof(bmqp::OptionHeader));
 }
+// NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-type-reinterpret-cast)
 
 // ============================================================================
 //                                    TESTS
@@ -362,10 +370,13 @@ void test1_breathingTest()
 // Testing:
 //   Basic functionality
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     PV(endl << "BREATHING TEST" << endl << "==============" << endl);
 
@@ -569,6 +580,7 @@ void test1_breathingTest()
         verifySubQueueInfos(view, subQueueInfos);
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 void test2_subQueueIdsOld()
 // ------------------------------------------------------------------------
@@ -589,12 +601,15 @@ void test2_subQueueIdsOld()
 //   loadSubQueueInfosOption(...)
 //   loadSubQueueIdsOption(...)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PV(endl << "SUB QUEUE IDS OLD" << endl << "=================" << endl);
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     // Create valid view, PUSH event with 3 old sub-queue ids
     bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
@@ -641,6 +656,7 @@ void test2_subQueueIdsOld()
                      view.reset(&blob, optionsAreaPosition, optionsAreaSize));
     verifySubQueueIdsOld(view, subQueueIdsOld);
 }
+// NOLINTEND(performance-avoid-endl)
 
 void test3_packedOptions()
 // ------------------------------------------------------------------------
@@ -661,9 +677,11 @@ void test3_packedOptions()
 //   loadSubQueueIdsOption(...)
 // ------------------------------------------------------------------------
 {
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     // Create valid view, PUSH event with a *packed* sub-queue id option
     bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
@@ -726,14 +744,17 @@ void test4_invalidOptionsArea()
 //   invalid OptionsView instance ('isValid()' returns false) or inability
 //   to load an option's payload as determined by the return code.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-type-reinterpret-cast,performance-avoid-endl)
 {
     PV(endl
        << "INVALID OPTIONS AREA" << endl
        << "====================" << endl);
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     {
         // [1]
@@ -750,10 +771,14 @@ void test4_invalidOptionsArea()
         bmqu::BlobPosition optionsAreaPosition;  // start of blob
         int                numSubQueueInfos = 6;
 
+        // NOLINTBEGIN(*-narrowing-conversions)
         const int optionPayloadSize = numSubQueueInfos *
                                       sizeof(bmqp::SubQueueInfo);
+        // NOLINTEND(*-narrowing-conversions)
+        // NOLINTBEGIN(*-narrowing-conversions)
         const int optionsAreaSize = sizeof(bmqp::OptionHeader) +
                                     optionPayloadSize;
+        // NOLINTEND(*-narrowing-conversions)
 
         bmqp::OptionHeader oh;
         oh.setType(bmqp::OptionType::e_SUB_QUEUE_INFOS);
@@ -985,8 +1010,10 @@ void test4_invalidOptionsArea()
         BMQTST_ASSERT_EQ(false, view.isValid());
     }
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-type-reinterpret-cast,performance-avoid-endl)
 
 void test5_iteratorTest()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     // ------------------------------------------------------------------------
     // ITERATOR TEST TEST
@@ -1006,9 +1033,11 @@ void test5_iteratorTest()
     //
     // ------------------------------------------------------------------------
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     PV("OPTIONS VIEW ITERATOR FUNCTIONALITY TEST");
 
@@ -1050,8 +1079,10 @@ void test5_iteratorTest()
     ++(iter.imp());
     BMQTST_ASSERT(iter == view.end());
 }
+// NOLINTEND(performance-avoid-endl)
 
 void test6_iteratorTestSubQueueIdsOld()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     // ------------------------------------------------------------------------
     // ITERATOR TEST TEST SUB QUEUE IDS OLD
@@ -1072,9 +1103,11 @@ void test6_iteratorTestSubQueueIdsOld()
     //
     // ------------------------------------------------------------------------
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     PV("OPTIONS VIEW ITERATOR FUNCTIONALITY TEST (SUB QUEUE IDS OLD)");
 
@@ -1116,8 +1149,10 @@ void test6_iteratorTestSubQueueIdsOld()
     ++(iter.imp());
     BMQTST_ASSERT(iter == view.end());
 }
+// NOLINTEND(performance-avoid-endl)
 
 void test7_dumpBlob()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     // --------------------------------------------------------------------
     // DUMP BLOB
@@ -1137,9 +1172,11 @@ void test7_dumpBlob()
     // Testing:
     //   void dumpBlob(bsl::ostream& stream);
     // --------------------------------------------------------------------
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     PV("DUMP BLOB: ONE OPTION HEADER, MULTIPLE OPTION VALUES");
 
@@ -1201,8 +1238,10 @@ void test7_dumpBlob()
         BMQTST_ASSERT_EQ(str1, str2);
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 void test8_dumpBlobSubQueueIdsOld()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     // --------------------------------------------------------------------
     // DUMP BLOB SUB QUEUE IDS OLD
@@ -1220,9 +1259,11 @@ void test8_dumpBlobSubQueueIdsOld()
     // Testing:
     //   void dumpBlob(bsl::ostream& stream);
     // --------------------------------------------------------------------
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     PV("DUMP BLOB: ONE OPTION HEADER, MULTIPLE OPTION VALUES "
        "(SUB QUEUE IDS OLD)");
@@ -1271,6 +1312,7 @@ void test8_dumpBlobSubQueueIdsOld()
         stream.reset();
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 }  // close unnamed namespace
 
@@ -1279,6 +1321,7 @@ void test8_dumpBlobSubQueueIdsOld()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -1300,3 +1343,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

@@ -42,6 +42,7 @@ namespace mqbplug {
 
 /// A value-semantic type holding an authentication mechanism and binary
 /// credential data for outbound authentication.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class AuthnCredential {
   private:
     // DATA
@@ -87,6 +88,7 @@ class AuthnCredential {
     /// data.
     const bsl::vector<char>& data() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

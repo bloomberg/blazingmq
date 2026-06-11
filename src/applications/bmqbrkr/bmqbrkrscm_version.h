@@ -50,6 +50,7 @@ struct Version {
     static const char* s_what;
 
 #define BMQBRKRSCM_CONCAT2(a, b, c, d, e) a##b##c##d##e
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQBRKRSCM_CONCAT(a, b, c, d, e) BMQBRKRSCM_CONCAT2(a, b, c, d, e)
 
 // 'BMQBRKRSCM_S_VERSION' is a symbol whose name warns users of version
@@ -104,6 +105,7 @@ inline int Version::versionAsInt()
 
 BSLS_LINKCOERCION_FORCE_SYMBOL_DEPENDENCY(
     const char*,
+    // NOLINTNEXTLINE(cert-err58-cpp,cppcoreguidelines-avoid-non-const-global-variables)
     bmqbrkrscm_version_assertion,
     bmqbrkrscm::Version::BMQBRKRSCM_S_VERSION)
 

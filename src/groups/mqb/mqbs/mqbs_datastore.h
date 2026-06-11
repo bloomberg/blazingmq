@@ -274,6 +274,7 @@ struct DataStoreRecordKeyLess {
 
 /// This component provides a VST to capture basic information about a queue
 /// recovered from the storage.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class DataStoreConfigQueueInfo {
   public:
     // TYPES
@@ -356,6 +357,7 @@ class DataStoreConfigQueueInfo {
 
     bool isRecorded() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =====================
 // class DataStoreConfig
@@ -576,6 +578,7 @@ bool operator!=(const DataStoreRecordHandle& lhs,
 // ===============
 
 /// This component provides an interface for a BlazingMQ data store.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class DataStore : public mqbi::DispatcherClient {
   public:
     // TYPES
@@ -585,6 +588,7 @@ class DataStore : public mqbi::DispatcherClient {
 
   public:
     // CREATORS
+    // NOLINTNEXTLINE(cppcoreguidelines-explicit-virtual-functions)
     virtual ~DataStore() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
@@ -769,6 +773,7 @@ class DataStore : public mqbi::DispatcherClient {
     /// `handle`.
     virtual bool hasReceipt(const DataStoreRecordHandle& handle) const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -862,10 +867,12 @@ void hashAppend(HASH_ALGORITHM& hashAlgo, const mqbs::DataStoreRecordKey& key)
 template <class TYPE>
 inline DataStoreRecordKeyHashAlgo::result_type
 DataStoreRecordKeyHashAlgo::operator()(const TYPE& type) const
+// NOLINTBEGIN(*-magic-numbers)
 {
     return type.d_sequenceNum +
            (static_cast<bsls::Types::Uint64>(type.d_primaryLeaseId) << 32);
 }
+// NOLINTEND(*-magic-numbers)
 
 // -----------------------------
 // struct DataStoreRecordKeyLess

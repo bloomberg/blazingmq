@@ -66,6 +66,7 @@ namespace bmqu {
 // ====================
 
 /// Mechanism to print key-value pairs in an aligned manner.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class AlignedPrinter {
   private:
     // DATA
@@ -99,6 +100,7 @@ class AlignedPrinter {
     template <typename TYPE>
     AlignedPrinter& operator<<(const TYPE& value);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -133,6 +135,7 @@ inline AlignedPrinter::AlignedPrinter(bsl::ostream&                   stream,
 
 template <typename TYPE>
 inline AlignedPrinter& AlignedPrinter::operator<<(const TYPE& value)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     BSLS_ASSERT_SAFE(d_counter < d_fields_p->size());
 
@@ -144,6 +147,7 @@ inline AlignedPrinter& AlignedPrinter::operator<<(const TYPE& value)
     ++d_counter;
     return *this;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 }  // close package namespace
 }  // close enterprise namespace

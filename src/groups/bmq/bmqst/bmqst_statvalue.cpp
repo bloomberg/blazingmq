@@ -27,7 +27,9 @@ namespace bmqst {
 
 namespace {
 
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 bsls::Types::Int64 MAX_INT = bsl::numeric_limits<bsls::Types::Int64>::max();
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 bsls::Types::Int64 MIN_INT = bsl::numeric_limits<bsls::Types::Int64>::min();
 
 }  // close anonymous namespace
@@ -115,6 +117,7 @@ StatValue::StatValue(const StatValue& other, bslma::Allocator* basicAllocator)
 }
 
 // MANIPULATORS
+// NOLINTBEGIN(cert-oop54-cpp)
 StatValue& StatValue::operator=(const StatValue& rhs)
 {
     d_currentStats       = rhs.d_currentStats;
@@ -126,6 +129,7 @@ StatValue& StatValue::operator=(const StatValue& rhs)
 
     return *this;
 }
+// NOLINTEND(cert-oop54-cpp)
 
 void StatValue::addSnapshot(const StatValue& other)
 {
@@ -170,6 +174,7 @@ void StatValue::setFromUpdate(const bmqstm::StatValueUpdate& update)
     typedef bmqstm::StatValueFields                 Fields;
     bsl::vector<bsls::Types::Int64>::const_iterator f =
         update.fields().begin();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (int i = 0; f != update.fields().end() && i < Fields::NUM_ENUMERATORS;
          ++i) {
         if (bdlb::BitUtil::isBitSet(update.fieldMask(), i)) {
@@ -206,9 +211,11 @@ void StatValue::setFromUpdate(const bmqstm::StatValueUpdate& update)
             ++f;
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 void StatValue::takeSnapshot(bsls::Types::Int64 snapshotTime)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     bsls::Types::Int64 value = d_currentStats.d_value;
     bsls::Types::Int64 incrementsOrEvents;
@@ -248,6 +255,7 @@ void StatValue::takeSnapshot(bsls::Types::Int64 snapshotTime)
         aggregateLevel(0, snapshotTime);
     }
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 void StatValue::clear(bsls::Types::Int64 snapshotTime)
 {

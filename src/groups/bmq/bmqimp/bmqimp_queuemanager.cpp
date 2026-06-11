@@ -154,10 +154,12 @@ void QueueManager::insertQueue(const QueueSp& queue)
             queueInfo.d_nextSubQueueId = queue->subQueueId() + 1;
         }
 
+        // NOLINTBEGIN(modernize-use-emplace)
         bsl::pair<UrisMap::iterator, bool> insertRet = d_uris.emplace(
             UrisMap::value_type(bsl::string(queue->uri().canonical(),
                                             d_allocator_p),
                                 queueInfo));
+        // NOLINTEND(modernize-use-emplace)
 
         BSLS_ASSERT_SAFE(insertRet.second);  // Insertion was successful
 
@@ -288,6 +290,7 @@ void QueueManager::resetState()
 
 void QueueManager::observePushEvent(Event*                          queueEvent,
                                     const bmqp::EventUtilQueueInfo& info)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(queueEvent);
@@ -318,11 +321,13 @@ void QueueManager::observePushEvent(Event*                          queueEvent,
                            subscriptionHandleId,
                            info.d_schema_sp);
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 int QueueManager::onPushEvent(QueueManager::EventInfos* eventInfos,
                               int*                      messageCount,
                               bool* hasMessageWithMultipleSubQueueIds,
                               const bmqp::PushMessageIterator& iterator)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(eventInfos);
@@ -349,6 +354,7 @@ int QueueManager::onPushEvent(QueueManager::EventInfos* eventInfos,
 
     bsls::SpinLockGuard guard(&d_queuesLock);  // d_queuesLock LOCKED
 
+    // NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,modernize-use-emplace)
     while (
         BSLS_PERFORMANCEHINT_PREDICT_LIKELY((rc = msgIterator.next()) == 1)) {
         // Check options
@@ -399,6 +405,7 @@ int QueueManager::onPushEvent(QueueManager::EventInfos* eventInfos,
              optionsView.end()) ||
             (optionsView.find(bmqp::OptionType::e_SUB_QUEUE_IDS_OLD) !=
              optionsView.end())) {
+            // NOLINTNEXTLINE(*-magic-numbers)
             bdlma::LocalSequentialAllocator<16 * sizeof(int)> lsa(
                 d_allocator_p);
 
@@ -436,6 +443,7 @@ int QueueManager::onPushEvent(QueueManager::EventInfos* eventInfos,
             ++(*messageCount);
         }
     }
+    // NOLINTEND(*-magic-numbers,*-narrowing-conversions,modernize-use-emplace)
 
     // Check if encountered an error while iterating
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
@@ -445,10 +453,12 @@ int QueueManager::onPushEvent(QueueManager::EventInfos* eventInfos,
 
     return rc;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int QueueManager::updateStatsOnPutEvent(
     int*                            messageCount,
     const bmqp::PutMessageIterator& iterator)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(messageCount);
@@ -473,6 +483,7 @@ int QueueManager::updateStatsOnPutEvent(
 
     // Iterate over the messages to validate queues and update their associated
     // stats.
+    // NOLINTBEGIN(*-magic-numbers)
     while (
         BSLS_PERFORMANCEHINT_PREDICT_LIKELY((rc = putIterator.next()) == 1)) {
         // NOTE: We don't need to verify that queueId is valid (i.e.
@@ -501,6 +512,7 @@ int QueueManager::updateStatsOnPutEvent(
 
         ++(*messageCount);
     }
+    // NOLINTEND(*-magic-numbers)
 
     // Check if encountered an error while iterating
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
@@ -510,6 +522,7 @@ int QueueManager::updateStatsOnPutEvent(
 
     return rc;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 void QueueManager::incrementSubStreamCount(const bsl::string& canonicalUri)
 {

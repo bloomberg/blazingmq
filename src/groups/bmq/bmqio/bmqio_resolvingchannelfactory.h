@@ -59,6 +59,7 @@ namespace bmqio {
 // ===================================
 
 /// Configuration for a `ResolvingChannelFactory`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ResolvingChannelFactoryConfig {
   public:
     // TYPES
@@ -129,12 +130,14 @@ class ResolvingChannelFactoryConfig {
     ///                     true)'.
     ResolvingChannelFactoryConfig& resolutionFn(const ResolutionFn& value);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =====================================
 // class ResolvingChannelFactory_Channel
 // =====================================
 
 /// A `Channel` produced by a `ResolvingChannelFactory`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ResolvingChannelFactory_Channel : public DecoratingChannelPartialImp {
   private:
     // PRIVATE DATA
@@ -179,6 +182,7 @@ class ResolvingChannelFactory_Channel : public DecoratingChannelPartialImp {
     /// start returning the resolved peerUri after that.
     const bsl::string& peerUri() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =============================
 // class ResolvingChannelFactory
@@ -186,6 +190,7 @@ class ResolvingChannelFactory_Channel : public DecoratingChannelPartialImp {
 
 /// `ChannelFactory` implementation that resolves the `peerUri` of a base
 /// channel.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ResolvingChannelFactory : public ChannelFactory {
   public:
     // TYPES
@@ -264,6 +269,7 @@ class ResolvingChannelFactory : public ChannelFactory {
     /// `start()` and is not one of the I/O threads used by this object.
     void stop() BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ==================================
 // struct ResolvingChannelFactoryUtil

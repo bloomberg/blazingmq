@@ -73,6 +73,7 @@ AuthenticatorUtil::findAuthenticatorConfig(bsl::string_view name)
     // 1. This is typically called during startup phase, not hot path
     // 2. Number of configured authenticators is usually small (< 10)
     // 3. The cost of maintaining a persistent cache would outweigh benefits
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsl::vector<mqbcfg::AuthenticatorPluginConfig>::const_iterator cit =
              authenticatorsCfg.cbegin();
          cit != authenticatorsCfg.cend();
@@ -81,6 +82,7 @@ AuthenticatorUtil::findAuthenticatorConfig(bsl::string_view name)
             return &(*cit);
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     return 0;
 }
 

@@ -188,6 +188,7 @@ struct Parameters {
     // PUBLIC TYPES
 
     /// Enum with available printing modes
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum PrintMode { e_HUMAN, e_JSON_PRETTY, e_JSON_LINE };
 
     /// VST representing search range parameters

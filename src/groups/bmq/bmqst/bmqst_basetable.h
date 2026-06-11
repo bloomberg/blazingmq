@@ -41,6 +41,7 @@ class Value;
 // ===============
 
 /// Protocol for a generic table of `bmqst::Value`s
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class BaseTable {
   public:
     // CREATORS
@@ -63,6 +64,7 @@ class BaseTable {
     /// of the specified `row`.
     virtual void value(bmqst::Value* value, int row, int column) const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

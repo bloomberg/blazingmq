@@ -50,6 +50,7 @@ namespace bmqp {
 // ================
 
 template <class VALUE>
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct QueueInfo {
     struct StreamInfo {
         VALUE d_value;
@@ -63,6 +64,7 @@ struct QueueInfo {
 
     /// This struct provides named access to `VALUE` - by `appId` and by
     /// `subId`
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct iterator {
         typename StreamsMap::iterator d_iterator;
 
@@ -82,6 +84,7 @@ struct QueueInfo {
         bool operator!=(const iterator& other) const;
         bool operator==(const iterator& other) const;
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
     /// This struct provides named access to `VALUE` - by `appId` and by
     /// `subId`
     struct const_iterator {
@@ -161,6 +164,7 @@ struct QueueInfo {
 
     typename StreamsMap::size_type size() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -559,6 +563,7 @@ inline void QueueInfo<VALUE>::addSubscriptions(
     iterator itStream = findByAppId(parameters.appId());
 
     const Subscriptions& subscriptions = parameters.subscriptions();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (Subscriptions::const_iterator it = subscriptions.begin();
          it != subscriptions.end();
          ++it) {
@@ -567,6 +572,7 @@ inline void QueueInfo<VALUE>::addSubscriptions(
                 bsl::make_pair(it->sId(), itStream));
         BSLS_ASSERT_SAFE(insertRC.second);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 template <class VALUE>

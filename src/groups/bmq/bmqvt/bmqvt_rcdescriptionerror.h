@@ -42,6 +42,7 @@ namespace bmqvt {
 // ========================
 
 /// An error type with an `int` and a `bsl::string`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class RcDescriptionError {
   private:
     // DATA
@@ -104,6 +105,7 @@ class RcDescriptionError {
     /// Returns the description associated to this object.
     const bsl::string& description() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 

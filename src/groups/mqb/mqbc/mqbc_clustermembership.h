@@ -70,6 +70,7 @@ class ClusterNodeSession;
 /// @note This is purposely not a pure interface, each method has a default
 ///       void implementation, so that clients only need to implement the ones
 ///       they care about.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ClusterMembershipObserver {
   public:
     // CREATORS
@@ -86,6 +87,7 @@ class ClusterMembershipObserver {
     ///         dispatcher thread.
     virtual void onSelfNodeStatus(bmqp_ctrlmsg::NodeStatus::Value value);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =======================
 // class ClusterMembership
@@ -189,6 +191,7 @@ class ClusterMembership {
 // -----------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline ClusterMembership::ClusterMembership(
     bslma::ManagedPtr<mqbnet::Cluster> netCluster,
     bslma::Allocator*                  allocator)
@@ -198,6 +201,7 @@ inline ClusterMembership::ClusterMembership(
 {
     // NOTHING
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // ACCESSORS
 inline mqbnet::Cluster* ClusterMembership::netCluster() const
@@ -224,9 +228,11 @@ ClusterMembership::getClusterNodeSession(mqbnet::ClusterNode* key) const
 }
 
 inline mqbnet::ClusterNode* ClusterMembership::selfNode() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
 {
     return const_cast<mqbnet::ClusterNode*>(d_netCluster_mp->selfNode());
 }
+// NOLINTEND(cppcoreguidelines-pro-type-const-cast)
 
 inline mqbc::ClusterNodeSession* ClusterMembership::selfNodeSession() const
 {

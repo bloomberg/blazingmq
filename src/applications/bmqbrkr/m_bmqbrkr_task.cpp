@@ -45,11 +45,13 @@ namespace BloombergLP {
 namespace m_bmqbrkr {
 
 namespace {
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_MTRAP_SET_THREADNAME[] = "__setThreadName";
 
 /// Invoked by the top level CountingAllocator when its cumulated allocation
 /// has crossed the configured specified `limit`.
 void onAllocationLimit(bsls::Types::Uint64 limit)
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions)
 {
     // This function will execute in 'arbitrary' thread (whichever one
     // triggered the allocation to go beyond the configured limit).  Inside
@@ -87,6 +89,7 @@ void onAllocationLimit(bsls::Types::Uint64 limit)
     // Initiate a graceful shutdown of the broker
     mqbu::ExitUtil::shutdown(mqbu::ExitCode::e_MEMORY_LIMIT);
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions)
 
 }  // close unnamed namespace
 
@@ -103,6 +106,7 @@ Task_AllocatorManager::Task_AllocatorManager(
 , d_stackTraceTestAllocator(bslma::Default::allocator(0))
 , d_store_p(0)
 , d_statContext_p(0)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-type-union-access)
 {
     switch (d_type) {
     case mqbcfg::AllocatorType::NEWDELETE: {
@@ -156,8 +160,10 @@ Task_AllocatorManager::Task_AllocatorManager(
     }
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-type-union-access)
 
 Task_AllocatorManager::~Task_AllocatorManager()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 {
     if (d_type == mqbcfg::AllocatorType::NEWDELETE) {
         // Properly destroy the object buffer object.
@@ -186,12 +192,14 @@ Task_AllocatorManager::~Task_AllocatorManager()
             .bmqma::CountingAllocatorStore ::~CountingAllocatorStore();
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
 
 // ----------
 // class Task
 // ----------
 
 int Task::onControlMessage(const bsl::string& message)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // executes on the PIPE CONTROL CHANNEL thread
 
@@ -209,6 +217,7 @@ int Task::onControlMessage(const bsl::string& message)
 
     return rc;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 void Task::onLogCommand(const bsl::string& prefix, bsl::istream& input)
 {
@@ -260,6 +269,7 @@ Task::~Task()
 
 int Task::initialize(bsl::ostream&             errorDescription,
                      const mqbcfg::TaskConfig& config)
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(!d_isInitialized &&
@@ -362,6 +372,7 @@ int Task::initialize(bsl::ostream&             errorDescription,
     d_isInitialized = true;
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-use-enum-class)
 
 void Task::shutdown()
 {

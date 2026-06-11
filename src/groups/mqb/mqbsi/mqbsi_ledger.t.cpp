@@ -201,6 +201,7 @@ static void test1_ledger_protocol()
 // Testing:
 //   PROTOCOL TEST
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("LEDGER");
 
@@ -217,12 +218,14 @@ static void test1_ledger_protocol()
     PV("Verify that the destructor is virtual");
     BMQTST_ASSERT(testObj.testVirtualDestructor());
 }
+// NOLINTEND(performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -237,6 +240,7 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 
 #if defined(BSLS_PLATFORM_CMP_CLANG)
 #pragma clang diagnostic pop

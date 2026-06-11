@@ -109,6 +109,7 @@ Message& Message::setPropertiesRef(const MessageProperties* properties)
                      "message not editable");
 
     const bmqp::MessageProperties* const* propertiesImpl =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<const bmqp::MessageProperties* const*>(properties);
 
     d_impl.d_event_p->putEventBuilder()->setMessageProperties(*propertiesImpl);
@@ -193,6 +194,7 @@ const bmqa::QueueId& Message::queueId() const
 
     // Lazy lookup of the queueId: if it is already initialized, return it
     bsl::shared_ptr<bmqimp::Queue>& queueSpRef =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<bsl::shared_ptr<bmqimp::Queue>&>(d_impl.d_queueId);
 
     if (queueSpRef->id() != bmqimp::Queue::k_INVALID_QUEUE_ID) {
@@ -264,6 +266,7 @@ bmqt::CompressionAlgorithmType::Enum Message::compressionAlgorithmType() const
 }
 
 const bmqt::MessageGUID& Message::messageGUID() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(isInitialized());
@@ -291,6 +294,7 @@ const bmqt::MessageGUID& Message::messageGUID() const
         return reinterpret_cast<const bmqt::MessageGUID&>(*this);  // RETURN
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 MessageConfirmationCookie bmqa::Message::confirmationCookie() const
 {
@@ -412,12 +416,14 @@ bool Message::hasProperties() const
 }
 
 int Message::loadProperties(MessageProperties* buffer) const
+// NOLINTBEGIN(*-magic-numbers)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(isInitialized());
     BSLS_ASSERT_SAFE(buffer);
 
     bmqp::MessageProperties* propertiesImpl =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         *reinterpret_cast<bmqp::MessageProperties**>(buffer);
 
     bmqimp::Event*     event    = d_impl.d_event_p;
@@ -426,8 +432,10 @@ int Message::loadProperties(MessageProperties* buffer) const
 
     if (rawEvent.isPushEvent()) {
         bsl::shared_ptr<bmqimp::Queue>& queue =
+            // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
             reinterpret_cast<bsl::shared_ptr<bmqimp::Queue>&>(
                 d_impl.d_queueId);
+        // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
         if (queue->id() == bmqimp::Queue::k_INVALID_QUEUE_ID) {
             queue = event->lookupQueue();
@@ -463,6 +471,7 @@ int Message::loadProperties(MessageProperties* buffer) const
 
     return rc;
 }
+// NOLINTEND(*-magic-numbers)
 
 bsl::ostream&
 Message::print(bsl::ostream& stream, int level, int spacesPerLevel) const

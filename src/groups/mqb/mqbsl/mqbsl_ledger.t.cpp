@@ -59,23 +59,28 @@ using namespace bsl;
 namespace {
 
 // CONSTANTS
-const bsls::Types::Int64 k_LOG_MAX_SIZE          = 64 * 1024 * 1024;
-const char*              k_DEFAULT_LOG_PREFIX    = "BMQ_TEST_LOG_";
-const char*              k_DUMMY_LOG_MESSAGE     = "This is dummy message.";
-const int                k_DUMMY_LOG_MESSAGE_LEN = 22;
+// NOLINTNEXTLINE(bugprone-implicit-widening-of-multiplication-result)
+const bsls::Types::Int64 k_LOG_MAX_SIZE = 64 * 1024 * 1024;
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+const char* k_DEFAULT_LOG_PREFIX = "BMQ_TEST_LOG_";
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+const char* k_DUMMY_LOG_MESSAGE     = "This is dummy message.";
+const int   k_DUMMY_LOG_MESSAGE_LEN = 22;
 
-const char* const k_ENTRIES[]   = {"ax001",
-                                   "ax002",
-                                   "ax003",
-                                   "ax004",
-                                   "ax005",
-                                   "ax006",
-                                   "ax007",
-                                   "ax008",
-                                   "ax009",
-                                   "ax010"};
-const int         k_NUM_ENTRIES = 10;
-const int         k_ENTRY_LEN   = 5;
+// NOLINTBEGIN(*-avoid-c-arrays)
+const char* const k_ENTRIES[] = {"ax001",
+                                 "ax002",
+                                 "ax003",
+                                 "ax004",
+                                 "ax005",
+                                 "ax006",
+                                 "ax007",
+                                 "ax008",
+                                 "ax009",
+                                 "ax010"};
+// NOLINTEND(*-avoid-c-arrays)
+const int k_NUM_ENTRIES = 10;
+const int k_ENTRY_LEN   = 5;
 
 const char* const k_EXTRA_ENTRY_1   = "bxx001";
 const char* const k_EXTRA_ENTRY_2   = "bxx002";
@@ -93,9 +98,12 @@ typedef mqbsi::LedgerOpResult LedgerOpResult;
 typedef mqbsi::LedgerRecordId LedgerRecordId;
 
 // FUNCTIONS
+// NOLINTBEGIN(performance-unnecessary-value-param)
 int extractLogIdCallback(mqbu::StorageKey*                      logId,
                          const bsl::string&                     logPath,
                          bsl::shared_ptr<mqbsi::LogIdGenerator> logIdGenerator)
+// NOLINTEND(performance-unnecessary-value-param)
+// NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     bsl::string logName;
     int         rc = bdls::PathUtil::getLeaf(&logName, logPath);
@@ -104,12 +112,15 @@ int extractLogIdCallback(mqbu::StorageKey*                      logId,
     PVV("Extracting log id from '" << logPath << "'");
 
     // Open file
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-vararg)
     int fd = ::open(logPath.c_str(),
                     O_RDONLY,
                     S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+    // NOLINTEND(cppcoreguidelines-pro-type-vararg)
     BSLS_ASSERT_OPT(fd >= 0);
 
     // Read the file to extract logId
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     char logIdStr[mqbu::StorageKey::e_KEY_LENGTH_BINARY];
     rc = ::read(fd, logIdStr, mqbu::StorageKey::e_KEY_LENGTH_BINARY);
     BSLS_ASSERT_OPT(rc == mqbu::StorageKey::e_KEY_LENGTH_BINARY);
@@ -119,6 +130,7 @@ int extractLogIdCallback(mqbu::StorageKey*                      logId,
 
     return 0;
 }
+// NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 int validateLogCallback(
     mqbsi::Log::Offset*     offset,
@@ -211,6 +223,7 @@ struct Tester {
     // MANIPULATORS
     void generateOldLogs(int numLogs)
     {
+        // NOLINTBEGIN(*-narrowing-conversions,performance-avoid-endl)
         for (int i = 0; i < numLogs; ++i) {
             bsl::string      logName;
             mqbu::StorageKey logId;
@@ -245,6 +258,7 @@ struct Tester {
             rc = log->close();
             BSLS_ASSERT_OPT(rc == 0);
         }
+        // NOLINTEND(*-narrowing-conversions,performance-avoid-endl)
     }
 
     /// Return a new ledger with the specified `keepOldLogs` flags.
@@ -342,6 +356,7 @@ static void test2_openMultipleLogs()
     BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(), Tester::k_OLD_LOG_LEN * 3);
     BMQTST_ASSERT_EQ(ledger->totalNumBytes(), Tester::k_OLD_LOG_LEN * 3);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (mqbsl::Ledger::Logs::const_iterator cit = ledger->logs().cbegin();
          cit != ledger->logs().cend();
          ++cit) {
@@ -350,6 +365,7 @@ static void test2_openMultipleLogs()
                          Tester::k_OLD_LOG_LEN);
         BMQTST_ASSERT_EQ(ledger->totalNumBytes(logId), Tester::k_OLD_LOG_LEN);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     BSLS_ASSERT_OPT(ledger->close() == LedgerOpResult::e_SUCCESS);
 }
@@ -367,6 +383,7 @@ static void test3_openMultipleLogsNoKeep()
 // Testing:
 //   open()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     bmqtst::TestHelper::printTestName("OPEN MULTIPLE LOGS NO KEEP");
 
@@ -405,8 +422,9 @@ static void test3_openMultipleLogsNoKeep()
                     LedgerOpResult::e_SUCCESS);
 
     LedgerRecordId obsoleteRecordId(obsoleteLogId, 0);
-    char           entry[Tester::k_OLD_LOG_LEN];
-    bdlbb::Blob    blobEntry(tester.bufferFactory(),
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
+    char        entry[Tester::k_OLD_LOG_LEN];
+    bdlbb::Blob blobEntry(tester.bufferFactory(),
                           bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT_EQ(ledger->updateOutstandingNumBytes(obsoleteLogId, 100),
                      LedgerOpResult::e_LOG_NOT_FOUND);
@@ -432,6 +450,7 @@ static void test3_openMultipleLogsNoKeep()
 
     BSLS_ASSERT_OPT(ledger->close() == LedgerOpResult::e_SUCCESS);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-reinterpret-cast)
 
 static void test4_updateOutstandingNumBytes()
 // ------------------------------------------------------------------------
@@ -443,6 +462,7 @@ static void test4_updateOutstandingNumBytes()
 // Testing:
 //   updateOutstandingNumBytes(...)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result)
 {
     bmqtst::TestHelper::printTestName("UPDATE OUTSTANDING NUM BYTES");
 
@@ -499,6 +519,7 @@ static void test4_updateOutstandingNumBytes()
 
     BSLS_ASSERT_OPT(ledger->close() == LedgerOpResult::e_SUCCESS);
 }
+// NOLINTEND(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result)
 
 static void test5_setOutstandingNumBytes()
 // ------------------------------------------------------------------------
@@ -510,6 +531,7 @@ static void test5_setOutstandingNumBytes()
 // Testing:
 //   setOutstandingNumBytes(...)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result)
 {
     bmqtst::TestHelper::printTestName("SET OUTSTANDING NUM BYTES");
 
@@ -559,9 +581,11 @@ static void test5_setOutstandingNumBytes()
 
     BSLS_ASSERT_OPT(ledger->close() == LedgerOpResult::e_SUCCESS);
 }
+// NOLINTEND(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result)
 
 /// Impl. of the "WRITE RECORD RAW" test, using the specified `ledger`.
 static void writeRecordRawImpl(mqbsi::Ledger* ledger)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     BSLS_ASSERT_OPT(ledger->open(mqbsi::Ledger::e_CREATE_IF_MISSING) ==
                     LedgerOpResult::e_SUCCESS);
@@ -580,6 +604,7 @@ static void writeRecordRawImpl(mqbsi::Ledger* ledger)
 
     // 1. Write a list of records.
     LedgerRecordId recordId;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         BMQTST_ASSERT_EQ(
             ledger->writeRecord(&recordId, k_ENTRIES[i], 0, k_ENTRY_LEN),
@@ -596,6 +621,7 @@ static void writeRecordRawImpl(mqbsi::Ledger* ledger)
         BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(),
                          oldLogNumBytes + Tester::k_OLD_LOG_LEN);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
     // 2. Set `outstandingNumBytes` to zero, indicating that all entries are no
     //    longer outstanding.
@@ -686,6 +712,7 @@ static void writeRecordRawImpl(mqbsi::Ledger* ledger)
 
     BSLS_ASSERT_OPT(ledger->close() == LedgerOpResult::e_SUCCESS);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test6_writeRecordRaw()
 // ------------------------------------------------------------------------
@@ -729,6 +756,7 @@ static void test7_writeRecordBlob()
 //               const bmqu::BlobPosition&  offset,
 //               int                        length)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("WRITE RECORD BLOB");
 
@@ -757,6 +785,7 @@ static void test7_writeRecordBlob()
     bdlbb::Blob    blob(tester.miniBufferFactory(),
                      bmqtst::TestHelperUtil::allocator());
     LedgerRecordId recordId;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         bdlbb::BlobUtil::append(&blob, k_ENTRIES[i], k_ENTRY_LEN);
 
@@ -776,6 +805,7 @@ static void test7_writeRecordBlob()
         BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(),
                          oldLogNumBytes + Tester::k_OLD_LOG_LEN);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
     // 2. Set `outstandingNumBytes` to zero, indicating that all entries are no
     //    longer outstanding.
@@ -880,6 +910,7 @@ static void test7_writeRecordBlob()
 
     BSLS_ASSERT_OPT(ledger->close() == LedgerOpResult::e_SUCCESS);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test8_writeRecordBlobSection()
 // ------------------------------------------------------------------------
@@ -895,6 +926,7 @@ static void test8_writeRecordBlobSection()
 //               const bdlbb::Blob&         record,
 //               const bmqu::BlobSection&  section)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("WRITE RECORD BLOB SECTION");
 
@@ -923,6 +955,7 @@ static void test8_writeRecordBlobSection()
     bdlbb::Blob    blob(tester.miniBufferFactory(),
                      bmqtst::TestHelperUtil::allocator());
     LedgerRecordId recordId;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         bdlbb::BlobUtil::append(&blob, k_ENTRIES[i], k_ENTRY_LEN);
 
@@ -943,6 +976,7 @@ static void test8_writeRecordBlobSection()
         BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(),
                          oldLogNumBytes + Tester::k_OLD_LOG_LEN);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
     // 2. Set `outstandingNumBytes` to zero, indicating that all entries are no
     //    longer outstanding.
@@ -1049,6 +1083,7 @@ static void test8_writeRecordBlobSection()
 
     BSLS_ASSERT_OPT(ledger->close() == LedgerOpResult::e_SUCCESS);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test9_readRecordRaw()
 // ------------------------------------------------------------------------
@@ -1063,6 +1098,7 @@ static void test9_readRecordRaw()
 //              int                    length,
 //              const LedgerRecordId&  recordId)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bmqtst::TestHelper::printTestName("READ RECORD RAW");
 
@@ -1117,12 +1153,14 @@ static void test9_readRecordRaw()
         0);
     recordId.setOffset(recordId.offset() + k_DUMMY_LOG_MESSAGE_LEN);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         BMQTST_ASSERT_EQ(ledger->readRecord(entry, k_ENTRY_LEN, recordId),
                          LedgerOpResult::e_SUCCESS);
         BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LEN), 0);
         recordId.setOffset(recordId.offset() + k_ENTRY_LEN);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
 
     BMQTST_ASSERT_EQ(ledger->readRecord(entry, k_LONG_ENTRY_LEN, recordId),
                      LedgerOpResult::e_SUCCESS);
@@ -1160,12 +1198,14 @@ static void test9_readRecordRaw()
     // 6. Re-read the list of records from Log 2, then read the newest record
     //    in Log 3
     recordId.setLogId(logId2).setOffset(Tester::k_OLD_LOG_LEN);
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         BMQTST_ASSERT_EQ(ledger->readRecord(entry, k_ENTRY_LEN, recordId),
                          LedgerOpResult::e_SUCCESS);
         BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LEN), 0);
         recordId.setOffset(recordId.offset() + k_ENTRY_LEN);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
 
     BMQTST_ASSERT_EQ(
         ledger->readRecord(entry, k_EXTRA_ENTRY_LEN, extraRecordId),
@@ -1193,6 +1233,7 @@ static void test9_readRecordRaw()
     BSLS_ASSERT_OPT(ledger->flush() == LedgerOpResult::e_SUCCESS);
     BSLS_ASSERT_OPT(ledger->close() == LedgerOpResult::e_SUCCESS);
 }
+// NOLINTEND(*-avoid-c-arrays,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 static void test10_readRecordBlob()
 // ------------------------------------------------------------------------
@@ -1207,6 +1248,7 @@ static void test10_readRecordBlob()
 //              int                    length,
 //              const LedgerRecordId&  recordId)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bmqtst::TestHelper::printTestName("READ RECORD BLOB");
 
@@ -1273,6 +1315,7 @@ static void test10_readRecordBlob()
     recordId.setOffset(recordId.offset() + k_DUMMY_LOG_MESSAGE_LEN);
     blob.removeBuffer(0);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         BMQTST_ASSERT_EQ(ledger->readRecord(&blob, k_ENTRY_LEN, recordId),
                          LedgerOpResult::e_SUCCESS);
@@ -1284,6 +1327,7 @@ static void test10_readRecordBlob()
         recordId.setOffset(recordId.offset() + k_ENTRY_LEN);
         blob.removeBuffer(0);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
 
     BMQTST_ASSERT_EQ(ledger->readRecord(&blob, k_LONG_ENTRY_LEN, recordId),
                      LedgerOpResult::e_SUCCESS);
@@ -1336,6 +1380,7 @@ static void test10_readRecordBlob()
     // 6. Re-read the list of records from Log 2, then read the newest record
     //    in Log 3
     recordId.setLogId(logId2).setOffset(Tester::k_OLD_LOG_LEN);
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         BMQTST_ASSERT_EQ(ledger->readRecord(&blob, k_ENTRY_LEN, recordId),
                          LedgerOpResult::e_SUCCESS);
@@ -1347,6 +1392,7 @@ static void test10_readRecordBlob()
         recordId.setOffset(recordId.offset() + k_ENTRY_LEN);
         blob.removeBuffer(0);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
 
     BMQTST_ASSERT_EQ(
         ledger->readRecord(&blob, k_EXTRA_ENTRY_LEN, extraRecordId),
@@ -1379,6 +1425,7 @@ static void test10_readRecordBlob()
     BSLS_ASSERT_OPT(ledger->flush() == LedgerOpResult::e_SUCCESS);
     BSLS_ASSERT_OPT(ledger->close() == LedgerOpResult::e_SUCCESS);
 }
+// NOLINTEND(*-avoid-c-arrays,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 static void test11_aliasRecordRaw()
 // ------------------------------------------------------------------------
@@ -1393,6 +1440,7 @@ static void test11_aliasRecordRaw()
 //               int                     length,
 //               const LedgerRecordId&   recordId)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-init-variables,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     bmqtst::TestHelper::printTestName("ALIAS RECORD RAW");
 
@@ -1449,6 +1497,7 @@ static void test11_aliasRecordRaw()
         0);
     recordId.setOffset(recordId.offset() + k_DUMMY_LOG_MESSAGE_LEN);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index,cppcoreguidelines-pro-type-reinterpret-cast)
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         BMQTST_ASSERT_EQ(ledger->aliasRecord(reinterpret_cast<void**>(&entry),
                                              k_ENTRY_LEN,
@@ -1457,6 +1506,7 @@ static void test11_aliasRecordRaw()
         BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LEN), 0);
         recordId.setOffset(recordId.offset() + k_ENTRY_LEN);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index,cppcoreguidelines-pro-type-reinterpret-cast)
 
     BMQTST_ASSERT_EQ(ledger->aliasRecord(reinterpret_cast<void**>(&entry),
                                          k_LONG_ENTRY_LEN,
@@ -1500,6 +1550,7 @@ static void test11_aliasRecordRaw()
     // 6. Re-read the list of records from Log 2, then read the newest record
     //    in Log 3
     recordId.setLogId(logId2).setOffset(Tester::k_OLD_LOG_LEN);
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index,cppcoreguidelines-pro-type-reinterpret-cast)
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         BMQTST_ASSERT_EQ(ledger->aliasRecord(reinterpret_cast<void**>(&entry),
                                              k_ENTRY_LEN,
@@ -1508,6 +1559,7 @@ static void test11_aliasRecordRaw()
         BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LEN), 0);
         recordId.setOffset(recordId.offset() + k_ENTRY_LEN);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index,cppcoreguidelines-pro-type-reinterpret-cast)
 
     BMQTST_ASSERT_EQ(ledger->aliasRecord(reinterpret_cast<void**>(&entry),
                                          k_EXTRA_ENTRY_LEN,
@@ -1540,6 +1592,7 @@ static void test11_aliasRecordRaw()
     BSLS_ASSERT_OPT(ledger->flush() == LedgerOpResult::e_SUCCESS);
     BSLS_ASSERT_OPT(ledger->close() == LedgerOpResult::e_SUCCESS);
 }
+// NOLINTEND(bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-init-variables,cppcoreguidelines-pro-type-reinterpret-cast)
 
 static void test12_aliasRecordBlob()
 // ------------------------------------------------------------------------
@@ -1554,6 +1607,7 @@ static void test12_aliasRecordBlob()
 //               int                    length,
 //               const LedgerRecordId&  recordId)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bmqtst::TestHelper::printTestName("ALIAS RECORD BLOB");
 
@@ -1620,6 +1674,7 @@ static void test12_aliasRecordBlob()
     recordId.setOffset(recordId.offset() + k_DUMMY_LOG_MESSAGE_LEN);
     blob.removeBuffer(0);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         BMQTST_ASSERT_EQ(ledger->aliasRecord(&blob, k_ENTRY_LEN, recordId),
                          LedgerOpResult::e_SUCCESS);
@@ -1631,6 +1686,7 @@ static void test12_aliasRecordBlob()
         recordId.setOffset(recordId.offset() + k_ENTRY_LEN);
         blob.removeBuffer(0);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
 
     BMQTST_ASSERT_EQ(ledger->aliasRecord(&blob, k_LONG_ENTRY_LEN, recordId),
                      LedgerOpResult::e_SUCCESS);
@@ -1683,6 +1739,7 @@ static void test12_aliasRecordBlob()
     // 6. Re-read the list of records from Log 2, then read the newest record
     //    in Log 3
     recordId.setLogId(logId2).setOffset(Tester::k_OLD_LOG_LEN);
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         BMQTST_ASSERT_EQ(ledger->aliasRecord(&blob, k_ENTRY_LEN, recordId),
                          LedgerOpResult::e_SUCCESS);
@@ -1694,6 +1751,7 @@ static void test12_aliasRecordBlob()
         recordId.setOffset(recordId.offset() + k_ENTRY_LEN);
         blob.removeBuffer(0);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
 
     BMQTST_ASSERT_EQ(
         ledger->aliasRecord(&blob, k_EXTRA_ENTRY_LEN, extraRecordId),
@@ -1727,12 +1785,14 @@ static void test12_aliasRecordBlob()
     BSLS_ASSERT_OPT(ledger->flush() == LedgerOpResult::e_SUCCESS);
     BSLS_ASSERT_OPT(ledger->close() == LedgerOpResult::e_SUCCESS);
 }
+// NOLINTEND(*-avoid-c-arrays,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -1764,3 +1824,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

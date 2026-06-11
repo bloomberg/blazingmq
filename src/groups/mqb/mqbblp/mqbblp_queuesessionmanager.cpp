@@ -52,6 +52,7 @@ void createQueueStatsDatum(bmqst::StatContext* statContext,
                            const bsl::string&  domain,
                            const bsl::string&  cluster,
                            bsls::Types::Uint64 queueFlags)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     typedef bslma::ManagedPtr<bdld::ManagedDatum> ManagedDatumMp;
     bslma::Allocator* alloc = statContext->datumAllocator();
@@ -65,6 +66,7 @@ void createQueueStatsDatum(bmqst::StatContext* statContext,
 
     datum->adopt(builder.commit());
 }
+// NOLINTEND(*-narrowing-conversions)
 
 /// This method does nothing; it is just used so that we can control the
 /// closeQueue flow for a client, by binding the specified `handle` (which
@@ -320,6 +322,7 @@ void QueueSessionManager::onQueueOpenCbDispatched(
             //      thread.  Since this is used only for stats, it is left
             //      'broken' for now.
             const bsls::Types::Int64 queueFlags =
+                // NOLINTNEXTLINE(*-narrowing-conversions)
                 queueHandle->handleParameters().flags();
 
             createQueueStatsDatum(
@@ -507,8 +510,8 @@ QueueSessionManager::QueueSessionManager(
 : d_dispatcherClient_p(dispatcherClient)
 , d_domainFactory_p(domainFactory)
 , d_shutdownInProgress(false)
-, d_validator_sp(new(*allocator) bmqu::AtomicValidator(), allocator)
-, d_requesterContext_sp(new(*allocator)
+, d_validator_sp(new (*allocator) bmqu::AtomicValidator(), allocator)
+, d_requesterContext_sp(new (*allocator)
                             mqbi::QueueHandleRequesterContext(allocator),
                         allocator)
 {

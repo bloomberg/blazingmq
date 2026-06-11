@@ -66,6 +66,7 @@ class MultiRequestManager;
 // =======================================
 
 template <class REQUEST, class RESPONSE, class TARGET>
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class MultiRequestManagerRequestContext {
     // FRIENDS
     friend class MultiRequestManager<REQUEST, RESPONSE, TARGET>;
@@ -164,12 +165,14 @@ class MultiRequestManagerRequestContext {
     /// corresponding member of this object.
     const NodeResponsePairs& response() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =========================
 // class MultiRequestManager
 // =========================
 
 template <class REQUEST, class RESPONSE, class TARGET = mqbnet::ClusterNode*>
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class MultiRequestManager {
   public:
     // TYPES
@@ -218,10 +221,12 @@ class MultiRequestManager {
     /// Object Pool.
     void poolCreateRequestContext(void* address, bslma::Allocator* allocator);
 
+    // NOLINTBEGIN(performance-unnecessary-value-param)
     void onSingleResponse(
         const typename RequestManagerType::RequestSp& singleRequestContext,
         const RequestContextSp&                       multiRequestContext,
         TARGET                                        node);
+    // NOLINTEND(performance-unnecessary-value-param)
 
     const bsl::string&
     targetDescription(const mqbnet::ClusterNode* target) const;
@@ -268,6 +273,7 @@ class MultiRequestManager {
 
     void processResponse(const bmqp_ctrlmsg::ControlMessage& message);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -313,6 +319,7 @@ void MultiRequestManagerRequestContext<REQUEST, RESPONSE, TARGET>::
     setDestinationNodes(const Nodes& nodes)
 {
     d_nodeResponsePairs.clear();
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (NodesConstIter it = nodes.begin(); it != nodes.end(); ++it) {
         d_nodeResponsePairs.push_back(bsl::make_pair(*it, RESPONSE()));
     }
@@ -417,6 +424,7 @@ void MultiRequestManager<REQUEST, RESPONSE, TARGET>::onSingleResponse(
 
     int                   numOutstandingRequests = -1;
     NodeResponsePairsIter it;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (it = multiRequestContext->d_nodeResponsePairs.begin();
          it != multiRequestContext->d_nodeResponsePairs.end();
          ++it) {
@@ -426,6 +434,7 @@ void MultiRequestManager<REQUEST, RESPONSE, TARGET>::onSingleResponse(
                 multiRequestContext->d_numOutstandingRequests);
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     BSLS_ASSERT_SAFE(0 <= numOutstandingRequests);
     if (0 == numOutstandingRequests) {
@@ -474,6 +483,7 @@ void MultiRequestManager<REQUEST, RESPONSE, TARGET>::sendRequest(
     NodeResponsePairs& nodeResponsePairs = context->d_nodeResponsePairs;
     int                numRequests       = context->d_numOutstandingRequests;
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (NodeResponsePairsIter it = nodeResponsePairs.begin();
          it != nodeResponsePairs.end();
          ++it) {
@@ -520,6 +530,7 @@ void MultiRequestManager<REQUEST, RESPONSE, TARGET>::sendRequest(
             failure.message() = errorMsg.str();
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     if (0 == numRequests) {
         context->d_responseCb(context);

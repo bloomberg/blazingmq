@@ -60,8 +60,10 @@ namespace {
 const int k_MAX_INSTANT_MESSAGES = 10;
 // Maximum messages logged with throttling in a short period of time.
 
+// NOLINTBEGIN(cppcoreguidelines-interfaces-global-init)
 const bsls::Types::Int64 k_NS_PER_MESSAGE =
     bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
+// NOLINTEND(cppcoreguidelines-interfaces-global-init)
 // Time interval between messages logged with throttling.
 
 #define BMQ_LOGTHROTTLE_WARN                                                  \
@@ -657,6 +659,7 @@ void StorageManager::determineDataDestinations(DataDestinations* destinations,
     // Determine data push/drop destinations
     typedef bsl::vector<NodeToPSNCtxMapCIter>::const_iterator
         NodesToCheckCIter;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (NodesToCheckCIter nit = nodesToCheck.cbegin();
          nit != nodesToCheck.cend();
          nit++) {
@@ -750,6 +753,7 @@ void StorageManager::determineDataDestinations(DataDestinations* destinations,
             dataDropDestinations.emplace_back(cit);
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 void StorageManager::sendReplicaDataRequestPush(
@@ -768,6 +772,7 @@ void StorageManager::sendReplicaDataRequestPush(
     // Send ReplicaDataRequestPush to destination replicas
     const bsl::vector<NodeToPSNCtxMapCIter>& destinationReplicas =
         destinations.d_dataPushDestinations;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsl::vector<NodeToPSNCtxMapCIter>::const_iterator cit =
              destinationReplicas.cbegin();
          cit != destinationReplicas.cend();
@@ -823,6 +828,7 @@ void StorageManager::sendReplicaDataRequestPush(
                 failedPartitionFSMEventData);
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 void StorageManager::sendReplicaDataRequestDrop(
@@ -840,6 +846,7 @@ void StorageManager::sendReplicaDataRequestDrop(
     // Send ReplicaDataRequestDrop to replicas with obsolete data
     const bsl::vector<NodeToPSNCtxMapCIter>& destinationReplicas =
         destinations.d_dataDropDestinations;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsl::vector<NodeToPSNCtxMapCIter>::const_iterator cit =
              destinationReplicas.cbegin();
          cit != destinationReplicas.cend();
@@ -892,6 +899,7 @@ void StorageManager::sendReplicaDataRequestDrop(
                 failedPartitionFSMEventData);
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 void StorageManager::primaryRemoveStorageImpl(int partitionId)
@@ -950,6 +958,7 @@ void StorageManager::startSendDataChunksAsPrimary(
     // For each node, check if we need to send data chunks
     const bsl::vector<NodeToPSNCtxMapCIter>& destinationReplicas =
         destinations.d_dataPushDestinations;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsl::vector<NodeToPSNCtxMapCIter>::const_iterator cit =
              destinationReplicas.begin();
          cit != destinationReplicas.end();
@@ -1002,6 +1011,7 @@ void StorageManager::startSendDataChunksAsPrimary(
                 sendPartitionFSMEventData);
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 void StorageManager::processReplicaDataRequestPull(
@@ -1293,6 +1303,7 @@ void StorageManager::processReplicaDataRequestDrop(
 void StorageManager::processPrimaryStateResponseDispatched(
     const RequestManagerType::RequestSp& context,
     mqbnet::ClusterNode*                 responder)
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1309,9 +1320,11 @@ void StorageManager::processPrimaryStateResponseDispatched(
                          context->response().rId().value());
     }
 
-    const int responseId  = context->response().rId().isNull()
-                                ? -1
-                                : context->response().rId().value();
+    // NOLINTBEGIN(bugprone-unchecked-optional-access)
+    const int responseId = context->response().rId().isNull()
+                               ? -1
+                               : context->response().rId().value();
+    // NOLINTEND(bugprone-unchecked-optional-access)
     const int partitionId = context->request()
                                 .choice()
                                 .clusterMessage()
@@ -1400,6 +1413,7 @@ void StorageManager::processPrimaryStateResponseDispatched(
     enqueuePartitionFSMEvent(PartitionFSM::Event::e_PRIMARY_STATE_RSPN,
                              eventData);
 }
+// NOLINTEND(bugprone-unchecked-optional-access)
 
 void StorageManager::processPrimaryStateResponse(
     const RequestManagerType::RequestSp& context,
@@ -1499,6 +1513,7 @@ void StorageManager::processReplicaStateResponseDispatched(
                          .choice()
                          .isReplicaStateResponseValue());
 
+    // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
     const int requestId = requestContext->response().rId().value();
 
     const bmqp_ctrlmsg::ReplicaStateResponse& response =
@@ -1558,6 +1573,7 @@ void StorageManager::processReplicaStateResponse(
 void StorageManager::processReplicaDataResponseDispatched(
     const RequestManagerType::RequestSp& context,
     mqbnet::ClusterNode*                 responder)
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1568,6 +1584,7 @@ void StorageManager::processReplicaDataResponseDispatched(
     BSLS_ASSERT_SAFE(context->request().rId().value() ==
                      context->response().rId().value());
 
+    // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
     const int responseId = context->response().rId().value();
 
     const bmqp_ctrlmsg::ReplicaDataRequest& request =
@@ -1730,6 +1747,7 @@ void StorageManager::processReplicaDataResponseDispatched(
     } break;
     }
 }
+// NOLINTEND(bugprone-unchecked-optional-access)
 
 void StorageManager::processReplicaDataResponse(
     const RequestManagerType::RequestSp& context,
@@ -2096,6 +2114,7 @@ void StorageManager::do_replicaStateRequest(const EventWithData& event)
     const bmqp_ctrlmsg::PartitionSequenceNumber selfFirstSyncAfterRolloverPSN =
         getSelfFirstSyncPointAfterRolloverPSN(partitionId);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsl::vector<mqbnet::ClusterNode*>::const_iterator it =
              replicas.cbegin();
          it != replicas.cend();
@@ -2148,6 +2167,7 @@ void StorageManager::do_replicaStateRequest(const EventWithData& event)
                 failedPartitionFSMEventData);
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 void StorageManager::do_replicaStateResponse(const EventWithData& event)
@@ -2395,10 +2415,12 @@ void StorageManager::do_primaryStateRequest(const EventWithData& event)
                              bdlf::PlaceHolders::_1,
                              primary));
 
+    // NOLINTBEGIN(*-magic-numbers)
     bmqt::GenericResult::Enum status = d_clusterData_p->cluster().sendRequest(
         request,
         primary,
         bsls::TimeInterval(10));
+    // NOLINTEND(*-magic-numbers)
 
     if (bmqt::GenericResult::e_SUCCESS != status) {
         PartitionFSMEventData failedPartitionFSMEventData(
@@ -2940,6 +2962,7 @@ void StorageManager::do_processBufferedLiveData(const EventWithData& event)
                   << bufferedStorageEvents.size()
                   << " buffered storage events to the partition.";
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsl::vector<bsl::shared_ptr<bdlbb::Blob> >::const_iterator cit =
              bufferedStorageEvents.cbegin();
          cit != bufferedStorageEvents.cend();
@@ -2963,6 +2986,7 @@ void StorageManager::do_processBufferedLiveData(const EventWithData& event)
             break;  // BREAK
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 void StorageManager::do_clearBufferedLiveData(const EventWithData& event)
@@ -3814,6 +3838,7 @@ StorageManager::StorageManager(
 , d_isStarted(false)
 , d_watchdogContexts(clusterConfig.partitionConfig().numPartitions(),
                      allocator)
+// NOLINTNEXTLINE(*-narrowing-conversions)
 , d_watchdogTimeoutInterval(watchdogTimeoutDuration)
 , d_watchdogNumRetries(watchdogNumRetries)
 , d_lowDiskspaceWarning(false)
@@ -3826,6 +3851,7 @@ StorageManager::StorageManager(
 , d_clusterState_p(clusterState)
 , d_clusterConfig(clusterConfig)
 , d_fileStores(allocator)
+// NOLINTNEXTLINE(*-magic-numbers)
 , d_miscWorkThreadPool(1, 100, allocator)
 , d_recoveryStatusCb(recoveryStatusCb)
 , d_partitionPrimaryStatusCb(partitionPrimaryStatusCb)
@@ -3846,6 +3872,7 @@ StorageManager::StorageManager(
 , d_gcMessagesEventHandle()
 , d_recoveryManager_mp()
 , d_replicationFactor(0)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(allocator);
@@ -3887,6 +3914,7 @@ StorageManager::StorageManager(
     // accessing 'd_cluster_p' before the above non-nullness check.
     d_replicationFactor = (d_cluster_p->netCluster().nodes().size() / 2) + 1;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 StorageManager::~StorageManager()
 {
@@ -3945,6 +3973,7 @@ void StorageManager::onTransitionOutOfHealed(
 
 // MANIPULATORS
 int StorageManager::start(bsl::ostream& errorDescription)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -4117,6 +4146,7 @@ int StorageManager::start(bsl::ostream& errorDescription)
     d_isStarted = true;
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 void StorageManager::stop()
 {
@@ -4180,6 +4210,7 @@ void StorageManager::initializeQueueKeyInfoMap(
         return;  // RETURN
     }
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (QueueKeyInfoMapVec::iterator it = d_queueKeyInfoMapVec.begin();
          it != d_queueKeyInfoMapVec.end();
          ++it) {
@@ -4187,6 +4218,7 @@ void StorageManager::initializeQueueKeyInfoMap(
         it->reset(new (*d_allocator_p) QueueKeyInfoMap(d_allocator_p),
                   d_allocator_p);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     // Populate 'd_queueKeyInfoMapVec' from cluster state
     for (DomainStatesCIter dscit = clusterState.domainStates().cbegin();
@@ -4350,11 +4382,13 @@ void StorageManager::stopPFSMs()
     BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
 
     for (size_t pid = 0; pid < d_fileStores.size(); pid++) {
+        // NOLINTBEGIN(*-narrowing-conversions)
         PartitionFSMEventData eventData(
             d_clusterData_p->membership().selfNode(),
             -1,  // placeholder requestId
             pid,
             1);
+        // NOLINTEND(*-narrowing-conversions)
         enqueuePartitionFSMEvent(PartitionFSM::Event::e_STOP_NODE, eventData);
     }
 }
@@ -4675,6 +4709,7 @@ void StorageManager::processStorageEvent(const mqbevt::StorageEvent& event)
     }
     BSLS_ASSERT_SAFE(d_fileStores.size() > pid);
 
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     PartitionFSMEventData eventData(event.clusterNode(), pid, 1, event.blob());
 
     if (rawEvent.isStorageEvent()) {

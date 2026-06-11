@@ -72,6 +72,7 @@ struct InPlaceTestCallback {
 
 // UTILITY FUNCTIONS
 void onThreadExit(void* threadsCompleted)
+// NOLINTBEGIN(*-magic-numbers)
 {
     // sleep a bit
     bslmt::ThreadUtil::sleep(bsls::TimeInterval(0.25));
@@ -79,6 +80,7 @@ void onThreadExit(void* threadsCompleted)
     // increment the number of threads completed
     ++(*static_cast<bsls::AtomicInt*>(threadsCompleted));
 }
+// NOLINTEND(*-magic-numbers)
 
 }  // close unnamed namespace
 
@@ -127,6 +129,7 @@ static void test2_context_creators()
 //   'bmqex::SystemExecutor_Context's constructor
 //   'bmqex::SystemExecutor_Context's destructor
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     static const int k_NUM_JOBS = 10;
 
@@ -165,6 +168,7 @@ static void test2_context_creators()
     rc = bslmt::ThreadUtil::deleteKey(tlsKey);
     BSLS_ASSERT_OPT(rc == 0);
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 static void test3_executor_creators()
 // ------------------------------------------------------------------------
@@ -183,6 +187,7 @@ static void test3_executor_creators()
 // Testing:
 //   bmqex::SystemExecutor's creators
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bslma::TestAllocator alloc;
 
@@ -228,6 +233,7 @@ static void test3_executor_creators()
         BMQTST_ASSERT_EQ(ex.threadAttributes()->threadName(), "myThread");
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test4_executor_post()
 // ------------------------------------------------------------------------
@@ -293,6 +299,7 @@ static void test5_executor_dispatch()
 // Testing:
 //   bmqex::SystemExecutor::dispatch
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     static const int k_NUM_JOBS = 32;
 
@@ -316,6 +323,7 @@ static void test5_executor_dispatch()
         BMQTST_ASSERT_EQ(threadId, bslmt::ThreadUtil::selfId());
     }
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 static void test6_executor_comparison()
 // ------------------------------------------------------------------------
@@ -343,6 +351,7 @@ static void test6_executor_comparison()
 // Testing:
 //   bmqex::SystemExecutor's comparison operators
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-unnecessary-copy-initialization)
 {
     bslma::TestAllocator alloc;
 
@@ -413,12 +422,14 @@ static void test6_executor_comparison()
         BMQTST_ASSERT_EQ(ex1 != ex2, true);
     }
 }
+// NOLINTEND(performance-unnecessary-copy-initialization)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -439,3 +450,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

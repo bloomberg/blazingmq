@@ -39,6 +39,7 @@ namespace bmqimp {
 
 namespace {
 /// Name of the stat context to create (holding all queues statistics)
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_STAT_NAME[] = "queues";
 
 /// Factor governing the precision for compression ratio stat.  For example,
@@ -53,6 +54,7 @@ const double k_COMPRESSION_RATIO_PRECISION_FACTOR = 10000.;
 const double k_COMPRESSION_RATIO_PRECISION_FACTOR_INV =
     1 / k_COMPRESSION_RATIO_PRECISION_FACTOR;
 
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 enum {
     /// value = bytes received ; increments = messages received
     k_STAT_IN = 0,
@@ -61,6 +63,7 @@ enum {
     /// value = sum of all compression ratio for compressed packed messages
     k_STAT_COMPRESSION_RATIO = 2
 };
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 double
 calculateCompressionRatio(const bmqst::StatValue&                   value,
@@ -159,10 +162,12 @@ void QueueStatsUtil::initializeStats(
     const bmqst::StatValue::SnapshotLocation& end,
     bslma::Allocator*                         allocator)
 {
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<2048> localAllocator(allocator);
 
     // Create the queues stat context
     // ------------------------------
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bmqst::StatContextConfiguration config(k_STAT_NAME, &localAllocator);
     config.isTable(true);
     config.value("in").value("out").value("compression_ratio");
@@ -352,6 +357,7 @@ void Queue::registerStatContext(bmqst::StatContext* parentStatContext)
                      "Queue must be opened before registerStatContext()");
 
     // Create subContext
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
 
     d_stats_mp = parentStatContext->addSubcontext(
@@ -386,6 +392,7 @@ void Queue::clearStatContext()
 
 bsl::ostream&
 Queue::print(bsl::ostream& stream, int level, int spacesPerLevel) const
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
 {
     if (stream.bad()) {
         return stream;  // RETURN
@@ -423,6 +430,7 @@ Queue::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 
     return stream;
 }
+// NOLINTEND(bugprone-unchecked-optional-access)
 
 }  // close package namespace
 }  // close enterprise namespace

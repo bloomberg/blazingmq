@@ -137,6 +137,7 @@ namespace bmqex {
 /// instantiated and stored via a pointer to its base class (this one).
 /// Then, calls to `bmqex::Executor`s public methods are forwarded to this
 /// class.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Executor_TargetBase {
   public:
     // CREATORS
@@ -177,6 +178,7 @@ class Executor_TargetBase {
     /// Copy-construct `*this` into the specified `dst` address.
     virtual void copy(void* dst) const BSLS_KEYWORD_NOEXCEPT = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =====================
 // class Executor_Target
@@ -188,6 +190,7 @@ class Executor_TargetBase {
 /// `EXECUTOR` must meet the requirements of Executor (see package
 /// documentation).
 template <class EXECUTOR>
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Executor_Target : public Executor_TargetBase {
   private:
     // PRIVATE DATA
@@ -207,6 +210,7 @@ class Executor_Target : public Executor_TargetBase {
     ///
     /// `bsl::decay_t<EXECUTOR_PARM>` shall be the same type as `EXECUTOR`.
     template <class EXECUTOR_PARAM>
+    // NOLINTNEXTLINE(bugprone-forwarding-reference-overload)
     Executor_Target(BSLS_COMPILERFEATURES_FORWARD_REF(EXECUTOR_PARAM)
                         executor) BSLS_KEYWORD_NOEXCEPT;
 
@@ -240,6 +244,7 @@ class Executor_Target : public Executor_TargetBase {
     /// Implements `Executor_TargetBase::copy`.
     void copy(void* dst) const BSLS_KEYWORD_NOEXCEPT BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =========================
 // class Executor_Box_DefImp
@@ -291,6 +296,7 @@ class Executor_Box_SboImp {
 
     /// Provides a "small" dummy object which size is used to calculate the
     /// size of the on-stack buffer used to store the executor target.
+    // NOLINTBEGIN(*-avoid-c-arrays)
     struct Dummy {
         void* d_padding[4];
 
@@ -304,6 +310,7 @@ class Executor_Box_SboImp {
             // NOTHING
         }
     };
+    // NOLINTEND(*-avoid-c-arrays)
 
   private:
     // PRIVATE DATA
@@ -412,6 +419,7 @@ class Executor_Box {
 // ==============
 
 /// Provides a polymorphic wrapper for executor types.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Executor {
   private:
     // PRIVATE DATA
@@ -547,6 +555,7 @@ class Executor {
     /// return `typeid(void)`.
     const bsl::type_info& targetType() const BSLS_KEYWORD_NOEXCEPT;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 
@@ -562,6 +571,7 @@ void swap(Executor& lhs, Executor& rhs) BSLS_KEYWORD_NOEXCEPT;
 // ---------------------
 
 // CREATORS
+// NOLINTBEGIN(bugprone-forwarding-reference-overload,cppcoreguidelines-missing-std-forward)
 template <class EXECUTOR>
 template <class EXECUTOR_PARAM>
 inline Executor_Target<EXECUTOR>::Executor_Target(
@@ -571,6 +581,7 @@ inline Executor_Target<EXECUTOR>::Executor_Target(
 {
     // NOTHING
 }
+// NOLINTEND(bugprone-forwarding-reference-overload,cppcoreguidelines-missing-std-forward)
 
 // MANIPULATORS
 template <class EXECUTOR>
@@ -589,6 +600,7 @@ Executor_Target<EXECUTOR>::dispatch(const bsl::function<void()>& f) const
 
 template <class EXECUTOR>
 inline void Executor_Target<EXECUTOR>::move(void* dst) BSLS_KEYWORD_NOEXCEPT
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // PRECONDITIONS
     BSLS_ASSERT(dst);
@@ -598,6 +610,7 @@ inline void Executor_Target<EXECUTOR>::move(void* dst) BSLS_KEYWORD_NOEXCEPT
         static_cast<bslma::Allocator*>(0),
         bslmf::MovableRefUtil::move(d_executor));
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 // ACCESSORS
 template <class EXECUTOR>
@@ -634,6 +647,7 @@ Executor_Target<EXECUTOR>::targetType() const BSLS_KEYWORD_NOEXCEPT
 template <class EXECUTOR>
 inline void
 Executor_Target<EXECUTOR>::copy(void* dst) const BSLS_KEYWORD_NOEXCEPT
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // PRECONDITIONS
     BSLS_ASSERT(dst);
@@ -643,6 +657,7 @@ Executor_Target<EXECUTOR>::copy(void* dst) const BSLS_KEYWORD_NOEXCEPT
         static_cast<bslma::Allocator*>(0),
         d_executor);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 // -------------------------
 // class Executor_Box_DefImp
@@ -669,6 +684,7 @@ template <class EXECUTOR>
 inline Executor_Box_SboImp::Executor_Box_SboImp(EXECUTOR          executor,
                                                 bslma::Allocator* allocator)
     BSLS_KEYWORD_NOEXCEPT : d_buffer()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // PRECONDITIONS
     BSLMF_ASSERT(Executor_Box_SboImpCanHold<EXECUTOR>::value);
@@ -678,6 +694,7 @@ inline Executor_Box_SboImp::Executor_Box_SboImp(EXECUTOR          executor,
         allocator,
         bslmf::MovableRefUtil::move(executor));
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 // ------------------
 // class Executor_Box
@@ -731,6 +748,7 @@ inline void Executor::assign(EXECUTOR          executor,
 }
 
 template <class FUNCTION>
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 inline void Executor::post(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) f) const
 {
     // PRECONDITIONS
@@ -738,10 +756,13 @@ inline void Executor::post(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) f) const
 
     d_box.target()->post(BSLS_COMPILERFEATURES_FORWARD(FUNCTION, f));
 }
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 
 template <class FUNCTION>
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 inline void Executor::dispatch(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION)
                                    f) const
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 {
     // PRECONDITIONS
     BSLS_ASSERT(d_box.target());

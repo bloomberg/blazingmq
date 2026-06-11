@@ -92,13 +92,16 @@ namespace mqbblp {
 
 namespace {
 
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_SELF_NODE_IS_STOPPING[] = "self node is stopping";
 
 const int k_MAX_INSTANT_MESSAGES = 10;
 // Maximum messages logged with throttling in a short period of time.
 
+// NOLINTBEGIN(cppcoreguidelines-interfaces-global-init)
 const bsls::Types::Int64 k_NS_PER_MESSAGE =
     bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
+// NOLINTEND(cppcoreguidelines-interfaces-global-init)
 // Time interval between messages logged with throttling.
 
 #define BMQ_LOGTHROTTLE_INFO                                                  \
@@ -121,6 +124,7 @@ void createQueueUriKey(bmqt::Uri*        out,
                        const bmqt::Uri&  uri,
                        bslma::Allocator* allocator)
 {
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<1024> localAllocator(allocator);
     bmqt::UriBuilder                      builder(&localAllocator);
     builder.setDomain(uri.domain()).setTier(uri.tier()).setQueue(uri.queue());
@@ -255,6 +259,7 @@ void ClusterQueueHelper::finishAllOpening(const QueueContextSp& queueContext,
     bsl::vector<OpenQueueContextSp> contexts(d_allocator_p);
     contexts.swap(queueContext->d_liveQInfo.d_pending);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsl::vector<OpenQueueContextSp>::const_iterator cIt =
              contexts.begin();
          cIt != contexts.end();
@@ -265,6 +270,7 @@ void ClusterQueueHelper::finishAllOpening(const QueueContextSp& queueContext,
                       bmqp_ctrlmsg::OpenQueueResponse(),
                       mqbi::OpenQueueConfirmationCookieSp());
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 void ClusterQueueHelper::OpenQueueContext::setQueueContext(
@@ -326,6 +332,7 @@ void ClusterQueueHelper::QueueLiveState::resetButKeepPending()
 // ------------------------
 
 unsigned int ClusterQueueHelper::getNextQueueId()
+// NOLINTBEGIN(*-magic-numbers)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -368,9 +375,11 @@ unsigned int ClusterQueueHelper::getNextQueueId()
 
     return res;
 }
+// NOLINTEND(*-magic-numbers)
 
 unsigned int
 ClusterQueueHelper::getNextSubQueueId(const OpenQueueContextSp& context)
+// NOLINTBEGIN(*-magic-numbers)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -423,6 +432,7 @@ ClusterQueueHelper::getNextSubQueueId(const OpenQueueContextSp& context)
 
     return res;
 }
+// NOLINTEND(*-magic-numbers)
 
 void ClusterQueueHelper::afterPartitionPrimaryAssignment(
     int                                partitionId,
@@ -863,6 +873,7 @@ void ClusterQueueHelper::finishReopening(
     StreamsMap::iterator                         sqit,
     mqbnet::ClusterNode*                         activeNode,
     const bsl::shared_ptr<PartitionReopenCycle>& cycle)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1009,6 +1020,7 @@ void ClusterQueueHelper::finishReopening(
         processPendingContexts(queueContext);
     }
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void ClusterQueueHelper::processPendingContexts(QueueContext* queueContext)
 {
@@ -1031,15 +1043,18 @@ void ClusterQueueHelper::processPendingContexts(QueueContext* queueContext)
                   << contexts.size() << " associated pending contexts for '"
                   << queueContext->uri() << "'";
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsl::vector<OpenQueueContextSp>::iterator it = contexts.begin();
          it != contexts.end();
          ++it) {
         processOpenQueueRequest(*it);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 void ClusterQueueHelper::assignUpstreamSubqueueId(
     const OpenQueueContextSp& context)
+// NOLINTBEGIN(bugprone-unchecked-optional-access,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     BSLS_ASSERT_SAFE(context);
 
@@ -1086,6 +1101,7 @@ void ClusterQueueHelper::assignUpstreamSubqueueId(
                             d_allocator_p));
     }
 }
+// NOLINTEND(bugprone-unchecked-optional-access,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 void ClusterQueueHelper::processOpenQueueRequest(
     const OpenQueueContextSp& context)
@@ -1173,6 +1189,7 @@ void ClusterQueueHelper::processOpenQueueRequest(
 
 void ClusterQueueHelper::sendOpenQueueRequest(
     const OpenQueueContextSp& context)
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1307,6 +1324,7 @@ void ClusterQueueHelper::sendOpenQueueRequest(
         qcontext->d_liveQInfo.d_pending.push_back(context);
     }
 }
+// NOLINTEND(bugprone-unchecked-optional-access)
 
 bmqt::GenericResult::Enum ClusterQueueHelper::sendReopenQueueRequest(
     QueueContext*                                queueContext,
@@ -1795,6 +1813,7 @@ void ClusterQueueHelper::onConfigureQueueResponse(
     const bmqp_ctrlmsg::StreamParameters&              streamParameters,
     bsls::Types::Uint64                                generationCount,
     const mqbi::QueueHandle::HandleConfiguredCallback& callback)
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1832,12 +1851,14 @@ void ClusterQueueHelper::onConfigureQueueResponse(
             }
         }
 
+        // NOLINTBEGIN(bugprone-exception-escape)
         ~ScopeGuard()
         {
             if (d_callback) {
                 d_callback(d_status, d_streamParams);
             }
         }
+        // NOLINTEND(bugprone-exception-escape)
 
     } guard(callback, requestContext, streamParameters);
 
@@ -1896,6 +1917,7 @@ void ClusterQueueHelper::onConfigureQueueResponse(
                     false);  // isWriterOnly
     }
 }
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 void ClusterQueueHelper::onReopenQueueRetry(
     const RequestManagerType::RequestSp&         requestContext,
@@ -2093,6 +2115,7 @@ bool ClusterQueueHelper::createQueue(
     mqbi::Domain* domain = context->d_domain_p;
 
     mqbi::ClusterErrorCode::Enum result = mqbi::ClusterErrorCode::e_OK;
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<1024> la(d_allocator_p);
     bmqu::MemOutStream                    errorDescription(&la);
 
@@ -2233,6 +2256,7 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
     bsl::ostream&                          errorDescription,
     const OpenQueueContext&                context,
     const bmqp_ctrlmsg::OpenQueueResponse& openQueueResponse)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -2345,6 +2369,7 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
     }
 
     // Configure the queue
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
     bmqu::MemOutStream                    error(&localAllocator);
 
@@ -2397,6 +2422,7 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
 
     return queueSp;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void ClusterQueueHelper::onHandleReleased(
     const bsl::shared_ptr<mqbi::QueueHandle>& handle,
@@ -2442,6 +2468,7 @@ void ClusterQueueHelper::onHandleReleasedDispatched(
         BSLS_ASSERT_SAFE(handle);
 
         // An event that may need erasing stream(s)
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         CNSQueueHandleMapIter it = requester->queueHandles().find(queueId);
         if (it != requester->queueHandles().end()) {
             // Erase handle.  First erase the subQueueId
@@ -2480,6 +2507,7 @@ void ClusterQueueHelper::onHandleReleasedDispatched(
         }
     }
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
     bmqp_ctrlmsg::ControlMessage          response(&localAllocator);
 
@@ -2510,6 +2538,7 @@ void ClusterQueueHelper::onHandleConfigured(
     const bmqp_ctrlmsg::StreamParameters& streamParameters,
     const bmqp_ctrlmsg::ControlMessage&   request,
     mqbc::ClusterNodeSession*             requester)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // executed by *ANY* thread
 
@@ -2519,6 +2548,7 @@ void ClusterQueueHelper::onHandleConfigured(
     // 'synchronize' (Queue with the Cluster) would result in a dead-lock if
     // 'Queue::configure' synchronizes Cluster with Queue.
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
     bmqp_ctrlmsg::ControlMessage          response(&localAllocator);
 
@@ -2573,6 +2603,7 @@ void ClusterQueueHelper::onHandleConfigured(
         response,
         requester->clusterNode());
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 void ClusterQueueHelper::onHandleConfiguredDispatched(
     int                                   qId,
@@ -2644,6 +2675,7 @@ void ClusterQueueHelper::onGetDomainDispatched(
                       << ", error: '" << status << "']";
 
         // Send an error response
+        // NOLINTNEXTLINE(*-magic-numbers)
         bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
         bmqp_ctrlmsg::ControlMessage          response(&localAllocator);
 
@@ -2740,6 +2772,7 @@ void ClusterQueueHelper::onGetQueueHandleDispatched(
     const bmqp_ctrlmsg::ControlMessage&        request,
     mqbc::ClusterNodeSession*                  requester,
     const int                                  requesterId)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -2772,6 +2805,7 @@ void ClusterQueueHelper::onGetQueueHandleDispatched(
         return;  // RETURN
     }
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
     if (status.category() != bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
         // Failed to create the queue (might be because we no longer are the
@@ -2809,6 +2843,7 @@ void ClusterQueueHelper::onGetQueueHandleDispatched(
         openQueue.handleParameters();
     const unsigned int queueId = handleParams.qId();
 
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     CNSQueueHandleMapIter iter = requester->queueHandles().find(queueId);
     if (iter != requester->queueHandles().end()) {
         BMQ_LOGTHROTTLE_INFO
@@ -2863,6 +2898,7 @@ void ClusterQueueHelper::onGetQueueHandleDispatched(
         response,
         requester->clusterNode());
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void ClusterQueueHelper::notifyQueue(QueueContext*       queueContext,
                                      unsigned int        upstreamSubQueueId,
@@ -2917,6 +2953,7 @@ void ClusterQueueHelper::configureQueueDispatched(
     unsigned int                                       upstreamSubQueueId,
     const bmqp_ctrlmsg::StreamParameters&              streamParameters,
     const mqbi::QueueHandle::HandleConfiguredCallback& callback)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -3076,6 +3113,7 @@ void ClusterQueueHelper::configureQueueDispatched(
                               genCount,
                               upstreamSubQueueId);
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void ClusterQueueHelper::closeQueueDispatched(
     const bmqp_ctrlmsg::QueueHandleParameters&   handleParameters,
@@ -4108,6 +4146,7 @@ void ClusterQueueHelper::deleteQueue(QueueContext* queueContext)
 }
 
 void ClusterQueueHelper::removeQueue(const QueueContextMapIter& it)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -4195,8 +4234,10 @@ void ClusterQueueHelper::removeQueue(const QueueContextMapIter& it)
     // 'gcExpiredQueues' routine, and queue will be marked for gc, and
     // eventually gc'd if it matches the criteria.
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void ClusterQueueHelper::removeQueueRaw(const QueueContextMapIter& it)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -4226,6 +4267,7 @@ void ClusterQueueHelper::removeQueueRaw(const QueueContextMapIter& it)
     }
     d_queues.erase(it);
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void ClusterQueueHelper::onSelfNodeStatus(
     bmqp_ctrlmsg::NodeStatus::Value value)
@@ -4362,6 +4404,7 @@ void ClusterQueueHelper::onQueueAssigned(
 
 void ClusterQueueHelper::onQueueUnassigned(
     const bsl::shared_ptr<mqbc::ClusterStateQueueInfo>& info)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -4501,6 +4544,7 @@ void ClusterQueueHelper::onQueueUnassigned(
     BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
                          << ": Unassigned queue: " << *info;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void ClusterQueueHelper::onQueueUpdated(
     const bmqt::Uri&        uri,
@@ -4589,11 +4633,13 @@ void ClusterQueueHelper::onQueueUpdated(
         BMQ_LOGTHROTTLE_INFO << d_cluster_p->description() << ": processing "
                              << pending.size() << " pending Apps Updates.";
 
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (bsl::vector<VoidFunctor>::iterator it = pending.begin();
              it != pending.end();
              ++it) {
             (*it)();
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 
     // Resume open queue request(s) waiting for new App(s) _after_
@@ -4740,6 +4786,7 @@ void ClusterQueueHelper::openQueue(
     const bmqp_ctrlmsg::QueueHandleParameters&                handleParameters,
     const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>& clientContext,
     const mqbi::Cluster::OpenQueueCallback&                   callback)
+// NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // ===                                                                  ===
     // TBD: This should not take the domain, but look it up itself !          =
@@ -4755,13 +4802,15 @@ void ClusterQueueHelper::openQueue(
                          << ": Initiating openQueue of '" << uri << "' for '"
                          << clientContext->description() << "'";
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define CALLBACK_FAILURE(REASON, CODE)                                        \
     do {                                                                      \
         BMQ_LOGTHROTTLE_ERROR                                                 \
             << d_cluster_p->description()                                     \
             << ": Received an openQueue request from a cluster peer "         \
             << "node for '" << uri << "' that I can not process "             \
-            << "[reason: '" << REASON << "']";                                \
+            << "[reason: '" << REASON                                         \
+            << "']"; /* NOLINT(bugprone-macro-parentheses) */                 \
         bmqp_ctrlmsg::Status failure;                                         \
         failure.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;         \
         failure.code()     = CODE;                                            \
@@ -4941,6 +4990,7 @@ void ClusterQueueHelper::openQueue(
         }
     }
 }
+// NOLINTEND(*-narrowing-conversions,cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 void ClusterQueueHelper::configureQueue(
     mqbi::Queue*                                       queue,
@@ -5037,6 +5087,7 @@ void ClusterQueueHelper::onQueueHandleDestroyed(mqbi::Queue*     queue,
 void ClusterQueueHelper::processPeerOpenQueueRequest(
     const bmqp_ctrlmsg::ControlMessage& request,
     mqbc::ClusterNodeSession*           requester)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -5104,10 +5155,12 @@ void ClusterQueueHelper::processPeerOpenQueueRequest(
             requester,
             requester->handleRequesterContext()->requesterId()));
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 void ClusterQueueHelper::processPeerConfigureStreamRequest(
     const bmqp_ctrlmsg::ControlMessage& request,
     mqbc::ClusterNodeSession*           requester)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -5146,6 +5199,7 @@ void ClusterQueueHelper::processPeerConfigureStreamRequest(
     }
 
     // Lookup the handle.
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     CNSQueueHandleMapCIter it = requester->queueHandles().find(req.qId());
     if (it == requester->queueHandles().end()) {
         // Failure.
@@ -5222,6 +5276,7 @@ void ClusterQueueHelper::processPeerConfigureStreamRequest(
                               request,
                               requester));
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 void ClusterQueueHelper::processPeerCloseQueueRequest(
     const bmqp_ctrlmsg::ControlMessage& request,
@@ -5415,6 +5470,7 @@ void ClusterQueueHelper::sendErrorResponse(
     int                                 code,
     const char*                         message)
 {
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
     bmqp_ctrlmsg::ControlMessage          response(&localAllocator);
 
@@ -5795,6 +5851,7 @@ void ClusterQueueHelper::checkUnconfirmedV2Dispatched(
 
 int ClusterQueueHelper::gcExpiredQueues(bool               immediate,
                                         const bsl::string& domainName)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -5820,6 +5877,7 @@ int ClusterQueueHelper::gcExpiredQueues(bool               immediate,
     bsls::Types::Int64 currentTimestampMs = bmqu::Time::highResolutionTimer() /
                                             bdlt::TimeUnitRatio::k_NS_PER_MS;
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<512> vecAlloc(d_allocator_p);
     bsl::vector<QueueContextMapIter>     queuesToGc(&vecAlloc);
 
@@ -6007,6 +6065,7 @@ int ClusterQueueHelper::gcExpiredQueues(bool               immediate,
         mqbc::ClusterUtil::setPendingUnassignment(d_clusterState_p, uriCopy);
 
         // Populate 'QueueUnAssignmentAdvisory'
+        // NOLINTNEXTLINE(*-magic-numbers)
         bdlma::LocalSequentialAllocator<1024>    localAlloc(d_allocator_p);
         bmqp_ctrlmsg::ControlMessage             controlMsg(&localAlloc);
         bmqp_ctrlmsg::QueueUnAssignmentAdvisory& queueAdvisory =
@@ -6035,6 +6094,7 @@ int ClusterQueueHelper::gcExpiredQueues(bool               immediate,
 
     return rc_SUCCESS;  // RETURN
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 bool ClusterQueueHelper::hasActiveQueue(const bsl::string& domainName)
 {
@@ -6076,11 +6136,13 @@ bool ClusterQueueHelper::hasActiveQueue(const bsl::string& domainName)
 int ClusterQueueHelper::numPendingReopenQueueRequests() const
 {
     int sum = 0;
+    // NOLINTBEGIN(*-narrowing-conversions)
     for (ReopenCycles::const_iterator cit = d_reopenCycles.begin();
          cit != d_reopenCycles.end();
          ++cit) {
         sum += cit->second.use_count();
     }
+    // NOLINTEND(*-narrowing-conversions)
     return sum;
 }
 

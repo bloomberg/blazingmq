@@ -55,6 +55,7 @@ namespace mqbauthn {
 // class AuthenticationController
 // ==============================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class AuthenticationController {
   private:
     // CLASS-SCOPE CATEGORY
@@ -196,6 +197,7 @@ class AuthenticationController {
     /// `hasCredentialProvider()` returns true.
     const mqbplug::CredentialProvider::CredentialCb& credentialCb() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

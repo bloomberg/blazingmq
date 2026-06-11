@@ -129,6 +129,7 @@ struct SequentialContext_ThreadUtil {
 
 /// Provides a single threaded execution context that provides guarantees of
 /// ordering and non-concurrency.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class SequentialContext {
   public:
     // TYPES
@@ -257,6 +258,7 @@ class SequentialContext {
     BSLMF_NESTED_TRAIT_DECLARATION(SequentialContext,
                                    bslma::UsesBslmaAllocator)
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ===============================
 // class SequentialContextExecutor
@@ -360,9 +362,11 @@ void swap(SequentialContextExecutor& lhs,
 
 // MANIPULATORS
 template <class FUNCTION>
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 inline void
 SequentialContextExecutor::post(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION)
                                     f) const
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 {
     // add 'f' to the job queue
     {
@@ -377,9 +381,11 @@ SequentialContextExecutor::post(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION)
 }
 
 template <class FUNCTION>
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 inline void
 SequentialContextExecutor::dispatch(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION)
                                         f) const
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 {
     if (runningInThisThread()) {
         // make a local, non-const copy of the function

@@ -46,6 +46,7 @@ namespace bmqu {
 class AtomicState {
   private:
     // PRIVATE TYPES
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum Enum { e_INIT = 0, e_CANCEL = 1, e_LOCK = 2, e_PROCESS = 4 };
 
     // PRIVATE DATA

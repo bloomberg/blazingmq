@@ -62,6 +62,7 @@ namespace m_bmqstoragetool {
 // =====================
 
 /// This class provides an interface for CSL search processors.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class CslSearchResult {
   public:
     // CREATORS
@@ -85,6 +86,7 @@ class CslSearchResult {
     /// Return a reference to the non-modifiable CSL printer
     virtual const bsl::shared_ptr<CslPrinter>& printer() const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ==========================
 // class CslSearchShortResult
@@ -192,6 +194,7 @@ class CslSearchDetailResult : public CslSearchResult {
 
 /// This class provides a base decorator that handles
 /// given `component`.
+// NOLINTBEGIN(cppcoreguidelines-non-private-member-variables-in-classes)
 class CslSearchResultDecorator : public CslSearchResult {
   protected:
     /// Pointer to object that is decorated.
@@ -224,6 +227,7 @@ class CslSearchResultDecorator : public CslSearchResult {
     /// Return a reference to the non-modifiable CSL printer
     const bsl::shared_ptr<CslPrinter>& printer() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-non-private-member-variables-in-classes)
 
 // ======================================
 // class CslSearchSequenceNumberDecorator

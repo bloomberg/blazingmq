@@ -60,6 +60,7 @@ namespace mqbmock {
 // =================
 
 /// Mock implementation of the `mqbi::QueueEngine` interface.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class QueueEngine : public mqbi::QueueEngine {
   private:
     // NOT IMPLEMENTED
@@ -224,6 +225,7 @@ class QueueEngine : public mqbi::QueueEngine {
     /// this queue engine and associated queue handles.
     void loadInternals(mqbcmd::QueueEngine* out) const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

@@ -66,6 +66,7 @@ class StatValue;
 // =====================
 
 template <typename T, typename NON_ATOMIC = T>
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class StatValue_Value {
   private:
     // DATA
@@ -114,6 +115,7 @@ class StatValue_Value {
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ================================
 // class StatValue_SnapshotLocation
@@ -179,12 +181,14 @@ bsl::ostream& operator<<(bsl::ostream&                     stream,
 // ===============
 
 /// Statistic-collecting value
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class StatValue {
   public:
     // PUBLIC TYPES
     typedef StatValue_Value<bsls::Types::Int64> Snapshot;
     typedef StatValue_SnapshotLocation          SnapshotLocation;
 
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Type {
         /// A continuous value logically represents a curve that is moved
         /// with `adjustValue` and `setValue`.  When adding two continuous
@@ -200,6 +204,7 @@ class StatValue {
         /// discrete values will be the max of all the individual maxes.
         e_DISCRETE = 1
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
   private:
     // PRIVATE TYPES
@@ -335,6 +340,7 @@ class StatValue {
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ====================
 // struct StatValueUtil
@@ -362,18 +368,22 @@ struct StatValueUtil {
     /// values of that snapshot.  Optionally specify a `valueFieldMask` to
     /// control which attributes of this value are loaded into `update`.  If
     /// `valueFieldMask` is not specified, all attributes are saved.
+    // NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions)
     static void loadUpdate(bmqstm::StatValueUpdate* update,
                            const StatValue&         value,
                            int valueFieldMask = 0xFFFFFFFF);
+    // NOLINTEND(*-magic-numbers,*-narrowing-conversions)
 
     /// Load into the specified `update` the latest snapshotted values of
     /// all fields in the specified `value`.  Optionally specify a
     /// `valueFieldMask` to control which attributes of this value are
     /// loaded into `update`.  If `valueFieldMask` is not specified, all
     /// attributes are saved.
+    // NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions)
     static void loadFullUpdate(bmqstm::StatValueUpdate* update,
                                const StatValue&         value,
                                int valueFieldMask = 0xFFFFFFFF);
+    // NOLINTEND(*-magic-numbers,*-narrowing-conversions)
 };
 
 // ============================================================================
@@ -409,9 +419,11 @@ StatValue_Value<T, NON_ATOMIC>::StatValue_Value(
 }
 
 // MANIPULATORS
+// NOLINTBEGIN(cert-oop54-cpp)
 template <typename T, typename NON_ATOMIC>
 StatValue_Value<T, NON_ATOMIC>& StatValue_Value<T, NON_ATOMIC>::operator=(
     const StatValue_Value<T, NON_ATOMIC>& rhs)
+// NOLINTEND(cert-oop54-cpp)
 {
     d_value              = static_cast<NON_ATOMIC>(rhs.d_value);
     d_min                = static_cast<NON_ATOMIC>(rhs.d_min);

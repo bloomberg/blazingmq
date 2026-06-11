@@ -46,6 +46,7 @@ class InitialConnectionContext;
 // ================
 
 /// Protocol for a session negotiator.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Negotiator {
   public:
     // CREATORS
@@ -70,6 +71,7 @@ class Negotiator {
     virtual int negotiateOutbound(bsl::ostream&             errorDescription,
                                   InitialConnectionContext* context) = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

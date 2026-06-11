@@ -71,12 +71,15 @@ static void test1_breathingTest()
 // Testing:
 //   Basic functionality
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     {
         PVV("CREATE INVALID ITER");
@@ -600,6 +603,7 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(false, iter.isValid());
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test2_reset()
 // ------------------------------------------------------------------------
@@ -611,12 +615,15 @@ static void test2_reset()
 // Testing:
 //   reset
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("RESET");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     {
         PVV("NO COMPRESSION, DECOMPRESS FLAG FALSE");
@@ -751,6 +758,7 @@ static void test2_reset()
         BMQTST_ASSERT_EQ(false, pmt.isValid());
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test3_putEventWithNoMessages()
 // ------------------------------------------------------------------------
@@ -764,9 +772,11 @@ static void test3_putEventWithNoMessages()
     bmqtst::TestHelper::printTestName("PUT EVENT WITH NO MESSAGES");
 
     // Test
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     bsl::vector<bmqp::PutTester::Data> data(
@@ -798,12 +808,15 @@ static void test4_invalidPutEvent()
 //   - attempting to load options from blob having not enough bytes
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("INVALID PUT EVENT");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     {
         PVV("NEXT METHOD OVER INVALID BLOB");
         bdlbb::Blob                        eventBlob(&bufferFactory,
@@ -875,6 +888,7 @@ static void test4_invalidPutEvent()
         BMQTST_ASSERT_EQ(options.length(), 0);
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test5_putEventWithMultipleMessages()
 // ------------------------------------------------------------------------
@@ -884,12 +898,15 @@ static void test5_putEventWithMultipleMessages()
 //   Iterating over PUT event having multiple PUT messages.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("PUT EVENT WITH MULTIPLE MESSAGES");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     {
         PVV("WITH ZLIB COMPRESSION, DECOMPRESS FLAG TRUE");
@@ -1074,6 +1091,7 @@ static void test5_putEventWithMultipleMessages()
         BMQTST_ASSERT_EQ(false, iter.isValid());
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test6_putEventWithZeroLengthPutMessages()
 // ------------------------------------------------------------------------
@@ -1084,12 +1102,15 @@ static void test6_putEventWithZeroLengthPutMessages()
 //   messages.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("PUT EVENT WITH ZERO-LENGTH MESSAGES");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     {
         PVV("WITH NO COMPRESSION, DECOMPRESS FLAG TRUE");
@@ -1177,12 +1198,14 @@ static void test6_putEventWithZeroLengthPutMessages()
         BMQTST_ASSERT_EQ(false, iter.isValid());
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -1202,3 +1225,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

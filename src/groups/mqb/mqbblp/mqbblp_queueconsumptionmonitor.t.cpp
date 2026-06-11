@@ -62,6 +62,7 @@ static mqbconfm::Domain getDomainConfig()
     return domainCfg;
 }
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class QueueConsumptionMonitorTest : public QueueConsumptionMonitor {
     // This class is a test driver for the 'QueueConsumptionMonitor' class.
     // It is used to get access to the protected members of the class for
@@ -81,6 +82,7 @@ class QueueConsumptionMonitorTest : public QueueConsumptionMonitor {
 
     void idleEventDispatched(const bsl::string& appId) BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 QueueConsumptionMonitorTest::QueueConsumptionMonitorTest(
     QueueState*              queueState,
@@ -223,6 +225,7 @@ bool MockStorageIterator::hasReceipt() const
     return true;
 }
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct Test : bmqtst::Test {
     // PUBLIC DATA
     bslma::Allocator*           d_allocator_p;
@@ -253,6 +256,7 @@ struct Test : bmqtst::Test {
         const bsl::string&                              appId,
         const bslma::ManagedPtr<mqbi::StorageIterator>& oldestMsgIt) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 Test::Test()
 : d_allocator_p(bmqtst::TestHelperUtil::allocator())
@@ -261,6 +265,7 @@ Test::Test()
 , d_cluster(d_allocator_p)
 , d_domain(&d_cluster, d_allocator_p)
 , d_queue(&d_domain, d_allocator_p)
+// NOLINTBEGIN(*-magic-numbers)
 , d_queueState(&d_queue,
                bmqt::Uri("bmq://bmq.test.local/test_queue"),
                802701,
@@ -269,6 +274,7 @@ Test::Test()
                &d_domain,
                d_cluster._resources(),
                d_allocator_p)
+// NOLINTEND(*-magic-numbers)
 , d_monitor(&d_queueState,
             bdlf::BindUtil::bind(&Test::haveUndeliveredCb,
                                  this,
@@ -367,6 +373,7 @@ void Test::loggingCb(
 //                                    TESTS
 // ----------------------------------------------------------------------------
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST_F(Test, calculateAlarmTime)
 // ------------------------------------------------------------------------
 // Concerns:
@@ -374,6 +381,7 @@ BMQTST_TEST_F(Test, calculateAlarmTime)
 //
 // Plan: Instantiate component, calculate alarm time and check the result.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     d_monitor.setMaxIdleTime(0);
     BMQTST_ASSERT_EQ(d_monitor.calculateAlarmTime(0, bsls::TimeInterval(1, 2)),
@@ -387,7 +395,9 @@ BMQTST_TEST_F(Test, calculateAlarmTime)
                                                   bsls::TimeInterval(1, 2)),
                      bsls::TimeInterval(9, 2));
 }
+// NOLINTEND(*-magic-numbers)
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST_F(Test, doNotMonitor)
 // ------------------------------------------------------------------------
 // Concerns:
@@ -409,6 +419,7 @@ BMQTST_TEST_F(Test, doNotMonitor)
     BMQTST_ASSERT_EQ(observer.records().size(), 0U);
 }
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST_F(Test, emptyQueue)
 // ------------------------------------------------------------------------
 // Concerns:
@@ -433,6 +444,7 @@ BMQTST_TEST_F(Test, emptyQueue)
     BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
 }
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST_F(Test, putAliveIdleSendAlive)
 // ------------------------------------------------------------------------
 // Concerns: State becomes IDLE after set period then returns to normal
@@ -485,6 +497,7 @@ BMQTST_TEST_F(Test, putAliveIdleSendAlive)
         d_allocator_p));
 }
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST_F(Test, putAliveIdleEmptyAlive)
 // ------------------------------------------------------------------------
 // Concerns: Emptying the queue flips state back to 'alive'.
@@ -530,6 +543,7 @@ BMQTST_TEST_F(Test, putAliveIdleEmptyAlive)
         d_allocator_p));
 }
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST_F(Test, changeMaxIdleTime)
 // ------------------------------------------------------------------------
 // Concerns: setting max idle time to new value. Setting zero value resets
@@ -592,6 +606,7 @@ BMQTST_TEST_F(Test, changeMaxIdleTime)
     BMQTST_ASSERT_EQ(logObserver.records().size(), 1u);
 }
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST_F(Test, reset)
 // ------------------------------------------------------------------------
 // Concerns: 'reset' puts component in same state as just after
@@ -623,6 +638,7 @@ BMQTST_TEST_F(Test, reset)
     BMQTST_ASSERT_EQ(logObserver.records().size(), 0u);
 }
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST_F(Test, putAliveIdleSendAliveTwoSubstreams)
 // ------------------------------------------------------------------------
 // Concerns: State becomes IDLE after set period then returns to normal
@@ -715,6 +731,7 @@ BMQTST_TEST_F(Test, putAliveIdleSendAliveTwoSubstreams)
                      QueueConsumptionMonitor::State::e_ALIVE);
 }
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST_F(Test, usage)
 // -------------------------------------------------------------------------
 // Concerns: Make sure the usage example is correct.
@@ -722,6 +739,7 @@ BMQTST_TEST_F(Test, usage)
 // Plan: Following code can be edited into the usage example via a few
 // simple replacements and deletions.
 // -------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
 #define monitor d_monitor
 
@@ -776,12 +794,14 @@ BMQTST_TEST_F(Test, usage)
 
 #undef monitor
 }
+// NOLINTEND(*-magic-numbers)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     BALL_LOG_SET_CATEGORY("MAIN");
 
@@ -797,12 +817,15 @@ int main(int argc, char* argv[])
         mqbcfg::BrokerConfig::set(brokerConfig);
 
         bsl::shared_ptr<bmqst::StatContext> statContext =
+            // NOLINTBEGIN(*-magic-numbers)
             mqbstat::BrokerStatsUtil::initializeStatContext(
                 30,
                 bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
 
         bmqtst::runTest(_testCase);
     }
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

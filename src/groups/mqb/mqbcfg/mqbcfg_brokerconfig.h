@@ -38,6 +38,7 @@ class AppConfig;
 // ===================
 
 /// Mechanism to set and get the broker configuration.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct BrokerConfig {
     // NOT IMPLEMENTED
     BrokerConfig() BSLS_CPP11_DELETED;
@@ -56,6 +57,7 @@ struct BrokerConfig {
     /// `set` has been called.
     static const AppConfig& get();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

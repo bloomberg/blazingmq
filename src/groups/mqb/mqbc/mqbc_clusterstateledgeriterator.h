@@ -53,6 +53,7 @@ namespace mqbc {
 
 /// Provide an interface to iterate through an
 /// @bbref{mqbc::ClusterStateLedger}.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ClusterStateLedgerIterator {
   public:
     // CREATORS
@@ -127,6 +128,7 @@ class ClusterStateLedgerIterator {
                                 int           level          = 0,
                                 int           spacesPerLevel = 4) const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 

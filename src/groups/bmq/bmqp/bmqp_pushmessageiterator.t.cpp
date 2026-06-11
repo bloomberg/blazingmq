@@ -83,6 +83,7 @@ struct Data {
 };
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 Data::Data(bdlbb::BlobBufferFactory* bufferFactory,
            bslma::Allocator*         allocator)
 : d_flags(0)
@@ -93,6 +94,7 @@ Data::Data(bdlbb::BlobBufferFactory* bufferFactory,
 {
     // NOTHING
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 Data::Data(const Data& other, bslma::Allocator* allocator)
 : d_flags(other.d_flags)
@@ -136,6 +138,7 @@ struct Data1 {
 };
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 Data1::Data1(bdlbb::BlobBufferFactory* bufferFactory,
              bslma::Allocator*         allocator)
 : d_subQueueInfos(allocator)
@@ -144,6 +147,7 @@ Data1::Data1(bdlbb::BlobBufferFactory* bufferFactory,
 {
     // NOTHING
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 Data1::Data1(const Data1& other, bslma::Allocator* allocator)
 : d_guid(other.d_guid)
@@ -160,6 +164,7 @@ Data1::Data1(const Data1& other, bslma::Allocator* allocator)
 /// specified `max`, inclusive.  The behavior is undefined unless `min >= 0`
 /// and `max >= min`.
 static int generateRandomInteger(int min, int max)
+// NOLINTBEGIN(cert-msc30-c,cert-msc50-cpp)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(min >= 0);
@@ -167,6 +172,7 @@ static int generateRandomInteger(int min, int max)
 
     return min + (bsl::rand() % (max - min + 1));
 }
+// NOLINTEND(cert-msc30-c,cert-msc50-cpp)
 
 /// Populate the specified `subQueueInfos` with the specified
 /// `numSubQueueInfos` number of unique, randomly generated SubQueueInfos.
@@ -185,12 +191,17 @@ generateSubQueueInfos(bsl::vector<bmqp::SubQueueInfo>* subQueueInfos,
 
     bsl::unordered_set<unsigned int> generatedIds(
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTBEGIN(modernize-use-emplace)
     for (int i = 0; i < numSubQueueInfos; ++i) {
+        // NOLINTBEGIN(*-magic-numbers)
         unsigned int currId = static_cast<unsigned int>(
             generateRandomInteger(0, 200));
+        // NOLINTEND(*-magic-numbers)
+        // NOLINTBEGIN(*-magic-numbers)
         while (generatedIds.find(currId) != generatedIds.end()) {
             currId = static_cast<unsigned int>(generateRandomInteger(0, 200));
         }
+        // NOLINTEND(*-magic-numbers)
         generatedIds.insert(currId);
 
         const unsigned int rdaCounter = static_cast<unsigned int>(
@@ -198,6 +209,7 @@ generateSubQueueInfos(bsl::vector<bmqp::SubQueueInfo>* subQueueInfos,
         subQueueInfos->push_back(bmqp::SubQueueInfo(currId));
         subQueueInfos->back().rdaInfo().setCounter(rdaCounter);
     }
+    // NOLINTEND(modernize-use-emplace)
 
     // POSTCONDITIONS
     BSLS_ASSERT_OPT(subQueueInfos->size() ==
@@ -212,6 +224,7 @@ static void populateBlob(bdlbb::Blob* blob, int* payloadLen, int atLeastLen)
     const char* k_FIXED_PAYLOAD =
         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     const int k_FIXED_PAYLOAD_LEN = bsl::strlen(k_FIXED_PAYLOAD);
 
     const int numIters = atLeastLen / k_FIXED_PAYLOAD_LEN + 1;
@@ -265,6 +278,7 @@ static void appendMessages1(bmqp::EventHeader*        eh,
                             const bsl::vector<Data1>& data,
                             bdlbb::BlobBufferFactory* bufferFactory,
                             BSLA_MAYBE_UNUSED bslma::Allocator* allocator)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(eh);
@@ -282,6 +296,7 @@ static void appendMessages1(bmqp::EventHeader*        eh,
                             reinterpret_cast<const char*>(eh),
                             eh->headerWords() * bmqp::Protocol::k_WORD_SIZE);
 
+    // NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-type-reinterpret-cast)
     for (bsl::vector<Data1>::size_type i = 0; i < data.size(); ++i) {
         const Data1& D               = data[i];
         int          subQueueWords   = 0;
@@ -297,11 +312,13 @@ static void appendMessages1(bmqp::EventHeader*        eh,
                                 bmqp::Protocol::k_WORD_SIZE;
             }
             else {
-                const size_t itemSize    = D.d_useOldSubQueueIds
-                                               ? bmqp::Protocol::k_WORD_SIZE
-                                               : sizeof(bmqp::SubQueueInfo);
-                const int    optionsSize = sizeof(bmqp::OptionHeader) +
+                const size_t itemSize = D.d_useOldSubQueueIds
+                                            ? bmqp::Protocol::k_WORD_SIZE
+                                            : sizeof(bmqp::SubQueueInfo);
+                // NOLINTBEGIN(*-narrowing-conversions)
+                const int optionsSize = sizeof(bmqp::OptionHeader) +
                                         (D.d_subQueueInfos.size() * itemSize);
+                // NOLINTEND(*-narrowing-conversions)
                 subQueueWords = optionsSize / bmqp::Protocol::k_WORD_SIZE;
             }
         }
@@ -363,13 +380,17 @@ static void appendMessages1(bmqp::EventHeader*        eh,
         bdlbb::BlobUtil::append(blob, D.d_payload);
         bmqp::ProtocolUtil::appendPadding(blob, D.d_payload.length());
     }
+    // NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-type-reinterpret-cast)
 
     // Set EventHeader length
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     bmqp::EventHeader* e = reinterpret_cast<bmqp::EventHeader*>(
         blob->buffer(0).data());
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     e->setLength(eventLength);
     eh->setLength(eventLength);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 /// Populate specified `blob` with a PUSH event which has specified
 /// `numMsgs` PUSH messages, update specified `eh` with corresponding
@@ -382,6 +403,7 @@ void populateBlob(bdlbb::Blob*              blob,
                   bool                      implicitAppData,
                   bool                      zeroLengthMsgs,
                   bslma::Allocator*         allocator)
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // Create guid from valid hex rep
 
@@ -401,17 +423,21 @@ void populateBlob(bdlbb::Blob*              blob,
                             reinterpret_cast<const char*>(eh),
                             eh->headerWords() * bmqp::Protocol::k_WORD_SIZE);
 
+    // NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-reinterpret-cast)
     for (size_t i = 0; i < numMsgs; ++i) {
         Data        data(bufferFactory, allocator);
         bdlbb::Blob properties(bufferFactory, allocator);
         bdlbb::Blob payload(bufferFactory, allocator);
         int         blobSize = bdlb::Random::generate15(&seed) + 1;
         // avoid value of zero
+        // NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions)
         int propAreaSize = blobSize / 2 + 13 +  // some random value
                            sizeof(bmqp::MessagePropertyHeader) +
                            sizeof(bmqp::MessagePropertiesHeader);
-        int optionsSize      = 0;
-        int optionsWords     = 0;
+        // NOLINTEND(*-magic-numbers,*-narrowing-conversions)
+        int optionsSize  = 0;
+        int optionsWords = 0;
+        // NOLINTNEXTLINE(*-magic-numbers,*-narrowing-conversions)
         int numSubQueueInfos = i % 5;
         // Number of subQueueInfos vary from 0-4
 
@@ -569,12 +595,16 @@ void populateBlob(bdlbb::Blob*              blob,
 
         vec->push_back(data);
     }
+    // NOLINTEND(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-reinterpret-cast)
 
     // set EventHeader length
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     bmqp::EventHeader* e = reinterpret_cast<bmqp::EventHeader*>(
         blob->buffer(0).data());
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     e->setLength(eventLength);
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-type-reinterpret-cast)
 
 void populateBlob(bdlbb::Blob*             blob,
                   bmqp::EventHeader*       eh,
@@ -588,6 +618,7 @@ void populateBlob(bdlbb::Blob*             blob,
                   bdlbb::Blob*                         compressedEb,
                   bdlbb::BlobBufferFactory*            bufferFactory,
                   bslma::Allocator*                    allocator)
+// NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // Payload is 36 bytes. Per BlazingMQ protocol, it will require 4 bytes of
     // padding (ie 1 word)
@@ -598,7 +629,8 @@ void populateBlob(bdlbb::Blob*             blob,
     bdlbb::BlobUtil::append(eb, payload, *ebLen);
     bmqu::MemOutStream error(allocator);
     bdlbb::Blob        compressedBlob(bufferFactory, allocator);
-    int                payloadLength = bsl::strlen(payload);
+    // NOLINTNEXTLINE(*-narrowing-conversions)
+    int payloadLength = bsl::strlen(payload);
     bmqp::Compression::compress(&compressedBlob,
                                 bufferFactory,
                                 cat,
@@ -615,9 +647,11 @@ void populateBlob(bdlbb::Blob*             blob,
     BSLS_ASSERT_SAFE(numWords >= 0);
     // Adding padding per BlazingMQ protocol
     bsl::string paddingCompressedBlob(padding, '\0');
+    // NOLINTBEGIN(*-narrowing-conversions)
     for (int index = 0; index < padding; index++) {
         paddingCompressedBlob[index] = padding;
     }
+    // NOLINTEND(*-narrowing-conversions)
     bdlbb::BlobUtil::append(&compressedBlob,
                             paddingCompressedBlob.data(),
                             padding);
@@ -634,8 +668,10 @@ void populateBlob(bdlbb::Blob*             blob,
     ph.setMessageWords(ph.headerWords() + payloadLenWords);
     ph.setCompressionAlgorithmType(cat);
 
+    // NOLINTBEGIN(*-narrowing-conversions,bugprone-implicit-widening-of-multiplication-result)
     int eventLength = sizeof(bmqp::EventHeader) +
                       ph.messageWords() * bmqp::Protocol::k_WORD_SIZE;
+    // NOLINTEND(*-narrowing-conversions,bugprone-implicit-widening-of-multiplication-result)
 
     // EventHeader
     eh->setLength(eventLength);
@@ -661,6 +697,7 @@ void populateBlob(bdlbb::Blob*             blob,
     bdlbb::BlobUtil::append(blob, compressedBlob);
     bmqu::BlobUtil::findOffset(payloadPosition, *blob, payloadOffset);
 }
+// NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-type-reinterpret-cast)
 
 void breathingTestHelper(
     bool                                 decompressFlag,
@@ -877,12 +914,15 @@ static void test1_breathingTest()
 // Testing:
 //   Basic functionality
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     {
         // Create invalid iter
@@ -943,14 +983,17 @@ static void test1_breathingTest()
                             &bufferFactory);
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test2_iteratorReset()
 {
     bmqtst::TestHelper::printTestName("ITERATOR RESET");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::PushMessageIterator pmt(&bufferFactory,
                                   bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob               copiedBlob(bmqtst::TestHelperUtil::allocator());
@@ -1024,9 +1067,11 @@ static void test3_iteratePushEventHavingNoMessages()
     bmqtst::TestHelper::printTestName(
         "ITERATE PUSH EVENT HAVING NO PUSH MESSAGES");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     bsl::vector<Data> data(bmqtst::TestHelperUtil::allocator());
@@ -1051,12 +1096,15 @@ static void test3_iteratePushEventHavingNoMessages()
 /// Test iterating over invalid PUSH event (having a PUSH message, but not
 /// enough bytes in the blob).
 static void test4_iterateInvalidPushEvent()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("ITERATE INVALID PUSH EVENT");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     bsl::vector<Data> data(bmqtst::TestHelperUtil::allocator());
@@ -1090,15 +1138,18 @@ static void test4_iterateInvalidPushEvent()
     bsl::cout << "Error returned: " << rc << bsl::endl;
     iter.dumpBlob(bsl::cout);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test5_iteratePushEventHavingMultipleMessages()
 {
     bmqtst::TestHelper::printTestName("PUSH EVENT HAVING MULTIPLE MESSAGES");
     // Test iterating over PUSH event having multiple PUSH messages
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bsl::vector<Data> data(bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader eventHeader;
@@ -1208,9 +1259,11 @@ static void test6_iteratePushEventHavingZeroLengthMessages()
     bmqtst::TestHelper::printTestName(
         "PUSH EVENT HAVING ZERO-LENGTH MESSAGES");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bsl::vector<Data> data(bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader eventHeader;
@@ -1340,12 +1393,15 @@ static void test7_extractOptions()
 //   event.
 //   - extractQueueInfo(...)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-init-variables)
 {
     bmqtst::TestHelper::printTestName("EXTRACT OPTIONS");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bsl::vector<Data1> data(bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader  eventHeader;
@@ -1448,6 +1504,7 @@ static void test7_extractOptions()
     BMQTST_ASSERT_EQ(iter.isValid(), true);
 
     size_t index = 0;
+    // NOLINTBEGIN(cppcoreguidelines-init-variables,performance-avoid-endl)
     while (iter.next() == 1 && index < data.size()) {
         const Data1& D = data[index];
 
@@ -1487,13 +1544,16 @@ static void test7_extractOptions()
 
         ++index;
     }
+    // NOLINTEND(cppcoreguidelines-init-variables,performance-avoid-endl)
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-init-variables)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -1534,3 +1594,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

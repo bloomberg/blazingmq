@@ -59,6 +59,7 @@ class MockClusterNode;
 // =====================
 
 /// Mechanism to mock a cluster node.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class MockClusterNode : public ClusterNode {
   private:
     // DATA
@@ -164,12 +165,14 @@ class MockClusterNode : public ClusterNode {
     /// channel.
     bool isAvailable() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =================
 // class MockCluster
 // =================
 
 /// Mechanism to manipulate a collection of nodes.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class MockCluster : public Cluster {
   private:
     // PRIVATE TYPES
@@ -322,6 +325,7 @@ class MockCluster : public Cluster {
     /// nodes part of this cluster.
     const Cluster::NodesList& nodes() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

@@ -123,6 +123,7 @@ namespace bmqa {
 
 /// @private
 /// Component-private class.  Do not use.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct ConfirmEventBuilderImpl {
     // CONSTANTS
 
@@ -148,12 +149,14 @@ struct ConfirmEventBuilderImpl {
     ConfirmEventBuilderImpl&
     operator=(const ConfirmEventBuilderImpl&);  // = delete
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =========================
 // class ConfirmEventBuilder
 // =========================
 
 /// Mechanism to build a batch of CONFIRM messages.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ConfirmEventBuilder {
   private:
     // DATA
@@ -215,6 +218,7 @@ class ConfirmEventBuilder {
 
     const bsl::shared_ptr<bdlbb::Blob>& sharedBlob() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

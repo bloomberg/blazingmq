@@ -67,6 +67,7 @@ int CommandRouter::AllPartitionPrimariesRoutingMode::getRouteTargets(
     bsl::ostream&  errorDescription,
     RouteTargets*  routeTargets,
     mqbi::Cluster* cluster)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(routeTargets);
@@ -87,6 +88,7 @@ int CommandRouter::AllPartitionPrimariesRoutingMode::getRouteTargets(
 
     return rc;  // RETURN
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 CommandRouter::SinglePartitionPrimaryRoutingMode::
     SinglePartitionPrimaryRoutingMode(int partitionId)
@@ -98,6 +100,7 @@ int CommandRouter::SinglePartitionPrimaryRoutingMode::getRouteTargets(
     bsl::ostream&  errorDescription,
     RouteTargets*  routeTargets,
     mqbi::Cluster* cluster)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(routeTargets);
@@ -126,6 +129,7 @@ int CommandRouter::SinglePartitionPrimaryRoutingMode::getRouteTargets(
 
     return rc;  // RETURN
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 CommandRouter::ClusterWideRoutingMode::ClusterWideRoutingMode()
 {
@@ -162,6 +166,7 @@ int CommandRouter::ClusterWideRoutingMode::getRouteTargets(
 int CommandRouter::route(bsl::ostream&  errorDescription,
                          bool*          selfShouldExecute,
                          mqbi::Cluster* relevantCluster)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_routingModeMp);
@@ -210,6 +215,7 @@ int CommandRouter::route(bsl::ostream&  errorDescription,
 
     bmqu::MemOutStream os;
     os << "Routing command to the following nodes [";
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (NodesVector::const_iterator nit = routeTargets.d_nodes.begin();
          nit != routeTargets.d_nodes.end();
          nit++) {
@@ -218,6 +224,7 @@ int CommandRouter::route(bsl::ostream&  errorDescription,
             os << ", ";
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     os << "]";
     BALL_LOG_INFO << os.str();
 
@@ -226,8 +233,9 @@ int CommandRouter::route(bsl::ostream&  errorDescription,
                              this,
                              bdlf::PlaceHolders::_1));
 
-    const mqbcfg::AppConfig& config  = mqbcfg::BrokerConfig::get();
-    double                   timeout = config.routeCommandTimeoutMs() / 1000.0;
+    const mqbcfg::AppConfig& config = mqbcfg::BrokerConfig::get();
+    // NOLINTNEXTLINE(*-magic-numbers)
+    double timeout = config.routeCommandTimeoutMs() / 1000.0;
     relevantCluster->multiRequestManager().sendRequest(
         contextSp,
         bsls::TimeInterval(timeout));
@@ -236,6 +244,7 @@ int CommandRouter::route(bsl::ostream&  errorDescription,
 
     return rc_SUCCESS;  // RETURN
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 void CommandRouter::onRouteCommandResponse(
     const MultiRequestContextSp& requestContext)
@@ -246,6 +255,7 @@ void CommandRouter::onRouteCommandResponse(
 
     NodePairsVector responsePairs = requestContext->response();
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (NodePairsVector::const_iterator pairIt = responsePairs.begin();
          pairIt != responsePairs.end();
          pairIt++) {
@@ -284,11 +294,13 @@ void CommandRouter::onRouteCommandResponse(
         }
         d_responses.responses().push_back(routeResponse);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     releaseLatch();
 }
 
 void CommandRouter::setCommandRoutingMode()
+// NOLINTBEGIN(bugprone-branch-clone)
 {
     bslma::Allocator* allocator = bslma::Default::allocator();
 
@@ -374,6 +386,7 @@ void CommandRouter::setCommandRoutingMode()
             else if (cluster.isStateValue()) {
                 const mqbcmd::ClusterStateCommand state = cluster.state();
                 if (state.isElectorValue()) {
+                    // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
                     const mqbcmd::ElectorCommand elector = state.elector();
                     if (elector.isSetTunableValue()) {
                         const mqbcmd::SetTunable& tunable =
@@ -398,6 +411,7 @@ void CommandRouter::setCommandRoutingMode()
         }
     }
 }
+// NOLINTEND(bugprone-branch-clone)
 
 }  // close package namespace
 }  // close enterprise namespace

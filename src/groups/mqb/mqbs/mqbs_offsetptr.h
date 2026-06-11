@@ -100,6 +100,7 @@ inline OffsetPtr<TYPE>::OffsetPtr(const MemoryBlock& block, bsl::size_t offset)
 template <class TYPE>
 inline void OffsetPtr<TYPE>::reset(const MemoryBlock& block,
                                    bsl::size_t        offset)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(offset < block.size());
@@ -109,6 +110,7 @@ inline void OffsetPtr<TYPE>::reset(const MemoryBlock& block,
 
     d_ptr_p = reinterpret_cast<TYPE*>(block.base() + offset);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
 
 // ACCESSORS
 template <class TYPE>

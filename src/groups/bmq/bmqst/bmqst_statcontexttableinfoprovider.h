@@ -54,6 +54,7 @@ namespace bmqst {
 
 /// Protocol for a class that defines a custom column to be printed by a
 /// `bmqst::StatContextTableInfoProvider`
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class StatContextTableInfoProviderCustomColumn {
   public:
     // CREATORS
@@ -77,12 +78,14 @@ class StatContextTableInfoProviderCustomColumn {
                const StatContext&     context,
                StatContext::ValueType valueType) const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ==================================
 // class StatContextTableInfoProvider
 // ==================================
 
 /// `bmqst::TableInfoProvider` for a table `bmqst::StatContext`
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class StatContextTableInfoProvider : public bmqst::TableInfoProvider {
   public:
     // PUBLIC TYPES
@@ -104,6 +107,7 @@ class StatContextTableInfoProvider : public bmqst::TableInfoProvider {
                                                     IntValueFunctor;
     typedef bsl::function<double(const StatValue&)> DoubleValueFunctor;
 
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum PrintType { e_INT_VALUE = 0, e_NS_INTERVAL_VALUE = 1 };
 
   private:
@@ -132,6 +136,7 @@ class StatContextTableInfoProvider : public bmqst::TableInfoProvider {
         int                    d_level;
     };
 
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct ColumnInfo {
         // DATA
         int                 d_groupIndex;
@@ -204,6 +209,7 @@ class StatContextTableInfoProvider : public bmqst::TableInfoProvider {
         {
         }
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     // DATA
     bslma::ManagedPtr<CustomColumn> d_defaultIdColumn_p;
@@ -400,6 +406,7 @@ class StatContextTableInfoProvider : public bmqst::TableInfoProvider {
                               int           column,
                               int           width) const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

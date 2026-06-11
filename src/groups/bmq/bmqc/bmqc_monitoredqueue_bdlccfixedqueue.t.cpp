@@ -53,15 +53,18 @@ using namespace bsl;
 
 namespace {
 
-const int           k_BUSY_WORK        = 3;
+const int k_BUSY_WORK = 3;
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static unsigned int s_antiOptimization = 0;
 
 static inline void busyWork(int load)
 {
     int j = 1;
+    // NOLINTBEGIN(*-magic-numbers)
     for (int i = 0; i < load; ++i) {
         j = j * 3 % 7;
     }
+    // NOLINTEND(*-magic-numbers)
     s_antiOptimization += j;
 }
 
@@ -107,6 +110,7 @@ static void performanceTestPusher(int                        iterations,
 }
 
 static void printProcessedItems(int numItems, bsls::Types::Int64 elapsedTime)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     const double numSeconds = static_cast<double>(elapsedTime) / 1000000000LL;
     const bsls::Types::Int64 itemsPerSec = static_cast<bsls::Types::Int64>(
@@ -117,6 +121,7 @@ static void printProcessedItems(int numItems, bsls::Types::Int64 elapsedTime)
               << bmqu::PrintUtil::prettyNumber(itemsPerSec) << "/s"
               << bsl::endl;
 }
+// NOLINTEND(performance-avoid-endl)
 
 }  // Close anonymous namespace
 
@@ -151,6 +156,7 @@ static void test1_MonitoredQueue_breathingTest()
 //                       bslma::Allocator *basicAllocator = 0);
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("MONITORED QUEUE - BREATHING TEST");
 
@@ -283,6 +289,7 @@ static void test1_MonitoredQueue_breathingTest()
         BMQTST_ASSERT_EQ(queue.isEmpty(), true);
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test2_MonitoredQueue_reset()
 // ------------------------------------------------------------------------
@@ -300,6 +307,7 @@ static void test2_MonitoredQueue_reset()
 // Testing:
 //   reset
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("MONITORED QUEUE - RESET");
 
@@ -342,6 +350,7 @@ static void test2_MonitoredQueue_reset()
     BMQTST_ASSERT_EQ(queue.isEmpty(), true);
     BMQTST_ASSERT_EQ(queue.state(), bmqc::MonitoredQueueState::e_NORMAL);
 }
+// NOLINTEND(*-magic-numbers)
 
 BSLA_MAYBE_UNUSED
 static void testN1_MonitoredQueue_performance()
@@ -360,6 +369,7 @@ static void testN1_MonitoredQueue_performance()
 // Testing:
 //  Performance
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
@@ -553,6 +563,7 @@ static void testN1_MonitoredQueue_performance()
 
     PRINT("s_antiOptimization = " << s_antiOptimization);
 }
+// NOLINTEND(performance-avoid-endl)
 
 #ifdef BMQTST_BENCHMARK_ENABLED
 static void
@@ -570,6 +581,7 @@ testN1_MonitoredQueue_performance_GoogleBenchmark(benchmark::State& state)
 // Testing:
 //  Performance
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
@@ -618,6 +630,7 @@ testN1_MonitoredQueue_performance_GoogleBenchmark(benchmark::State& state)
         }
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores,performance-avoid-endl)
 
 static void testN1_MonitoredQueueThreaded_performance_GoogleBenchmark(
     benchmark::State& state)
@@ -634,6 +647,7 @@ static void testN1_MonitoredQueueThreaded_performance_GoogleBenchmark(
 // Testing:
 //  Performance
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
@@ -690,6 +704,7 @@ static void testN1_MonitoredQueueThreaded_performance_GoogleBenchmark(
         }
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void
 testN1_bdlccFixedQueue_performance_GoogleBenchmark(benchmark::State& state)
@@ -707,6 +722,7 @@ testN1_bdlccFixedQueue_performance_GoogleBenchmark(benchmark::State& state)
 //  Performance
 // ------------------------------------------------------------------------
 
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores,performance-avoid-endl)
 {
     const int k_NUM_ITERATIONS = 10 * 1000 * 1000;  // 10 M
     const int k_NUM_PUSHERS    = 5;
@@ -750,6 +766,7 @@ testN1_bdlccFixedQueue_performance_GoogleBenchmark(benchmark::State& state)
         }
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores,performance-avoid-endl)
 
 static void testN1_bdlccFixedQueueThreaded_performance_GoogleBenchmark(
     benchmark::State& state)
@@ -767,6 +784,7 @@ static void testN1_bdlccFixedQueueThreaded_performance_GoogleBenchmark(
 //  Performance
 // ------------------------------------------------------------------------
 
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     const int                 k_NUM_ITERATIONS = 10 * 1000 * 1000;  // 10 M
     const int                 k_QUEUE_SIZE     = 250 * 1000;        // 250K
@@ -814,13 +832,20 @@ static void testN1_bdlccFixedQueueThreaded_performance_GoogleBenchmark(
         }
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 #endif  // BMQTST_BENCHMARK_ENABLED
 
 //=============================================================================
 //                                MAIN PROGRAM
 //-----------------------------------------------------------------------------
 
+// NOLINTBEGIN(bugprone-exception-escape)
 int main(int argc, char* argv[])
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTBEGIN(cert-err34-c)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -852,5 +877,11 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTEND(cert-err34-c)
+// NOLINTEND(bugprone-exception-escape)
 
 // ----------------------------------------------------------------------------

@@ -79,6 +79,7 @@ struct ClusterUtil {
 /// NOTE: This is purposely not a pure interface, each method has a default
 ///       void implementation, so that clients only need to implement the
 ///       ones they care about.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ClusterObserver {
   public:
     // CREATORS
@@ -99,6 +100,7 @@ class ClusterObserver {
                         const bmqp_ctrlmsg::ClientIdentity&    identity,
                         bsl::string_view                       description);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =================
 // class ClusterNode
@@ -110,6 +112,7 @@ class ClusterObserver {
 /// writes to the underlying channel should be done through its interface,
 /// so that features such as throttling, nagling, statistics gathering, ...,
 /// can be performed.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ClusterNode {
   public:
     // CREATORS
@@ -177,12 +180,14 @@ class ClusterNode {
     /// channel.
     virtual bool isAvailable() const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =============
 // class Cluster
 // =============
 
 /// Interface for a mechanism to manipulate a collection of nodes.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Cluster {
   public:
     // TYPES
@@ -258,6 +263,7 @@ class Cluster {
     /// nodes part of this cluster.
     virtual const NodesList& nodes() const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

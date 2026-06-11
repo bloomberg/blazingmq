@@ -504,6 +504,7 @@ DomainManager::~DomainManager()
 }
 
 int DomainManager::start(bsl::ostream& errorDescription)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -527,6 +528,7 @@ int DomainManager::start(bsl::ostream& errorDescription)
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 void DomainManager::stop()
 {
@@ -546,6 +548,7 @@ void DomainManager::stop()
 
     // Stop all domains (and queues).
     bmqu::SharedResource<DomainManager> self(this);
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     bslmt::Latch latch(d_domains.size(), bsls::SystemClockType::e_MONOTONIC);
 
     for (DomainSpMap::iterator it = d_domains.begin(); it != d_domains.end();
@@ -585,6 +588,7 @@ void DomainManager::stop()
 
 int DomainManager::locateDomain(DomainSp*          domain,
                                 const bsl::string& domainName)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -602,6 +606,7 @@ int DomainManager::locateDomain(DomainSp*          domain,
     *domain = it->second;
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 int DomainManager::locateOrCreateDomain(DomainSp*          domain,
                                         const bsl::string& domainName)
@@ -828,6 +833,7 @@ int DomainManager::processCommand(mqbcmd::DomainsResult*        result,
 }
 
 int DomainManager::removeDomain(const bsl::string& domainName)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -847,6 +853,7 @@ int DomainManager::removeDomain(const bsl::string& domainName)
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 void DomainManager::qualifyDomain(
     const bslstl::StringRef&                      name,

@@ -57,6 +57,7 @@ Message& MessageEventBuilder::startMessage()
 {
     // Get bmqimp::Event from bmqa::MessageEvent
     typedef bsl::shared_ptr<bmqimp::Event> EventSP;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     EventSP& eventSpRef = reinterpret_cast<EventSP&>(d_impl.d_msgEvent);
 
     BSLS_ASSERT_OPT(eventSpRef &&
@@ -68,6 +69,7 @@ Message& MessageEventBuilder::startMessage()
                     "reset() must be called on this builder.");
 
     // Get bmqa::MessageImpl from bmqa::Message
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     MessageImpl& msgImplRef = reinterpret_cast<MessageImpl&>(d_impl.d_msg);
 
     msgImplRef.d_event_p = eventSpRef.get();
@@ -81,8 +83,10 @@ Message& MessageEventBuilder::startMessage()
 
 bmqt::EventBuilderResult::Enum
 MessageEventBuilder::packMessage(const bmqa::QueueId& queueId)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // Get bmqa::MessageImpl from bmqa::Message
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     MessageImpl& msgImplRef = reinterpret_cast<MessageImpl&>(d_impl.d_msg);
     BSLS_ASSERT_OPT(msgImplRef.d_event_p &&
                     "StartMessage must be called before 'packMessage'.");
@@ -95,6 +99,7 @@ MessageEventBuilder::packMessage(const bmqa::QueueId& queueId)
 
     // Extract internal queueId; in order to do that, first get the rep
     typedef bsl::shared_ptr<bmqimp::Queue> QueueSP;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     const QueueSP& queueSpRef = reinterpret_cast<const QueueSP&>(queueId);
 
     // Check that the queue is valid, which means not only the OPENED state but
@@ -167,10 +172,12 @@ MessageEventBuilder::packMessage(const bmqa::QueueId& queueId)
 
     return rc;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 void MessageEventBuilder::reset()
 {
     // Get bmqa::MessageImpl from bmqa::Message
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     MessageImpl& msgImplRef = reinterpret_cast<MessageImpl&>(d_impl.d_msg);
     msgImplRef.d_event_p    = 0;
     msgImplRef.d_correlationId.makeUnset();
@@ -186,6 +193,7 @@ const MessageEvent& MessageEventBuilder::messageEvent()
 {
     // Get bmqimp::Event from bmqa::MessageEvent
     typedef bsl::shared_ptr<bmqimp::Event> EventSP;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     EventSP& eventSpRef = reinterpret_cast<EventSP&>(d_impl.d_msgEvent);
 
     if (eventSpRef->messageEventMode() ==
@@ -206,6 +214,7 @@ const MessageEvent& MessageEventBuilder::messageEvent()
 }
 
 Message& MessageEventBuilder::currentMessage()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // PRECONDITIONS
     BSLS_ASSERT(reinterpret_cast<MessageImpl&>(d_impl.d_msg).d_event_p &&
@@ -213,13 +222,16 @@ Message& MessageEventBuilder::currentMessage()
 
     return d_impl.d_msg;
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 int MessageEventBuilder::messageCount() const
 {
     // Get bmqimp::Event from bmqa::MessageEvent
     typedef bsl::shared_ptr<bmqimp::Event> EventSP;
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     const EventSP& eventSpRef = reinterpret_cast<const EventSP&>(
         d_impl.d_msgEvent);
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
     if (eventSpRef->messageEventMode() ==
         bmqimp::Event::MessageEventMode::e_READ) {
@@ -236,8 +248,10 @@ int MessageEventBuilder::messageEventSize() const
 {
     // Get bmqimp::Event from bmqa::MessageEvent
     typedef bsl::shared_ptr<bmqimp::Event> EventSP;
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     const EventSP& eventSpRef = reinterpret_cast<const EventSP&>(
         d_impl.d_msgEvent);
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
     if (eventSpRef->messageEventMode() ==
         bmqimp::Event::MessageEventMode::e_READ) {

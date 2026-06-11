@@ -93,12 +93,16 @@
 #include <bsls_compilerfeatures.h>
 
 #if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+// clang-format off
 // Include version that can be compiled with C++03
-// Generated on Wed Jun 18 14:44:06 2025
+// Generated on Thu Jun 11 19:52:21 2026
 // Command line: sim_cpp11_features.pl bmqu_managedcallback.h
+
 # define COMPILING_BMQU_MANAGEDCALLBACK_H
 # include <bmqu_managedcallback_cpp03.h>
-#undef COMPILING_BMQU_MANAGEDCALLBACK_H
+# undef COMPILING_BMQU_MANAGEDCALLBACK_H
+
+// clang-format on
 #else
 
 namespace BloombergLP {
@@ -108,6 +112,7 @@ namespace bmqu {
 // ManagedCallback
 // ===============
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ManagedCallback BSLS_KEYWORD_FINAL {
     /// The class useful for in-place construction and passing of functors
     /// between different actors.
@@ -131,6 +136,7 @@ class ManagedCallback BSLS_KEYWORD_FINAL {
     // CallbackFunctor
     // ===============
     /// The interface for all callback functors passed to ManagedCallback.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct CallbackFunctor {
         // CREATORS
         virtual ~CallbackFunctor();
@@ -138,6 +144,7 @@ class ManagedCallback BSLS_KEYWORD_FINAL {
         // ACCESSORS
         virtual void operator()() const = 0;
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     // CREATORS
     /// Create a ManagedCallback object using the optionally specified
@@ -199,6 +206,7 @@ class ManagedCallback BSLS_KEYWORD_FINAL {
     template <class CALLBACK_TYPE>
     char* place();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -221,6 +229,7 @@ inline ManagedCallback::~ManagedCallback()
 }
 
 inline void ManagedCallback::reset()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     if (!d_empty) {
         // Not necessary to resize the vector or memset its elements to 0,
@@ -231,6 +240,7 @@ inline void ManagedCallback::reset()
         d_empty = true;
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 template <class CALLBACK_TYPE>
 inline char* ManagedCallback::place()
@@ -259,12 +269,14 @@ inline bool ManagedCallback::empty() const
 }
 
 inline void ManagedCallback::operator()() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!d_empty);
 
     (*reinterpret_cast<const CallbackFunctor*>(d_callbackBuffer.data()))();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 #if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=9
 template <class CALLBACK_TYPE, class... ARGS>

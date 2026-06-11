@@ -53,10 +53,12 @@ namespace {
 
 void eventHandler(const bsl::shared_ptr<bmqimp::Event>& event,
                   bsls::AtomicInt&                      eventCounter)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PVVV("Handler: " << *event);
     ++eventCounter;
 }
+// NOLINTEND(performance-avoid-endl)
 
 /// Create an `Event` object at the specified `address` using the supplied
 /// allocator `allocator`; This is used by the Object Pool.
@@ -94,6 +96,7 @@ struct TestClock {
 };
 
 void performanceTestQueuePusher(bmqimp::EventQueue* queue, int numIter)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PRINT_SAFE("Enqueuing " << numIter << " items.");
     for (int i = 0; i < numIter; ++i) {
@@ -107,8 +110,10 @@ void performanceTestQueuePusher(bmqimp::EventQueue* queue, int numIter)
     }
     PRINT_SAFE("Enqueued " << numIter << " items.");
 }
+// NOLINTEND(performance-avoid-endl)
 
 void performanceTestQueuePopper(bmqimp::EventQueue* queue, int numIter)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     int i = 0;
     for (; i < numIter; i++) {
@@ -119,10 +124,13 @@ void performanceTestQueuePopper(bmqimp::EventQueue* queue, int numIter)
     }
     PRINT_SAFE("Finished popping " << i << " items.");
 }
+// NOLINTEND(performance-avoid-endl)
 
 void printProcessedItems(int numItems, bsls::Types::Int64 elapsedTime)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     const double numSeconds = static_cast<double>(elapsedTime) / 1000000000LL;
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     const bsls::Types::Int64 itemsPerSec = numItems / numSeconds;
 
     bsl::cout << "Processed " << numItems << " items in "
@@ -130,12 +138,14 @@ void printProcessedItems(int numItems, bsls::Types::Int64 elapsedTime)
               << bmqu::PrintUtil::prettyNumber(itemsPerSec) << "/s"
               << bsl::endl;
 }
+// NOLINTEND(performance-avoid-endl)
 
 void queuePerformance(int                       numReaders,
                       int                       numWriters,
                       int                       numIter,
                       int                       queueSize,
                       bdlbb::BlobBufferFactory* bufferFactory)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bdlmt::ThreadPool threadPool(
         bslmt::ThreadAttributes(),        // default
@@ -189,6 +199,7 @@ void queuePerformance(int                       numReaders,
 
     printProcessedItems(numIter, endTime - startTime);
 }
+// NOLINTEND(performance-avoid-endl)
 
 }  // close unnamed namespace
 
@@ -199,13 +210,16 @@ void queuePerformance(int                       numReaders,
 // ----------------------------------------------------------------------------
 
 static void test1_breathingTest()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     bmqimp::EventQueue::EventHandlerCallback emptyEventHandler;
-    bdlbb::PooledBlobBufferFactory           bufferFactory(
+    // NOLINTBEGIN(*-magic-numbers)
+    bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqimp::EventQueue::EventPool eventPool(
         bdlf::BindUtil::bind(&poolCreateEvent,
                              bdlf::PlaceHolders::_1,  // address
@@ -214,6 +228,7 @@ static void test1_breathingTest()
         -1,
         bmqtst::TestHelperUtil::allocator());
 
+    // NOLINTBEGIN(*-magic-numbers)
     bmqimp::EventQueue obj(&eventPool,
                            1,  // initialCapacity
                            3,  // lowWatermark
@@ -222,6 +237,7 @@ static void test1_breathingTest()
                            0,  // numProcessingThreads
                            bmqimp::SessionId(),
                            bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     // Basic testing.. enqueue one item, pop it out ..
     bsl::shared_ptr<bmqimp::Event> event = eventPool.getObject();
@@ -238,6 +254,7 @@ static void test1_breathingTest()
     PV("Dequeued: " << (*event));
     BMQTST_ASSERT_EQ(event->statusCode(), 1);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test2_capacityTest()
 // ------------------------------------------------------------------------
@@ -266,9 +283,11 @@ static void test2_capacityTest()
 
     const int k_INITIAL_CAPACITY = 3;
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -301,12 +320,14 @@ static void test2_capacityTest()
     bsl::shared_ptr<bmqimp::Event> event;
 
     // Enqueue k_INITIAL_CAPACITY events
+    // NOLINTBEGIN(performance-avoid-endl)
     for (int i = 0; i < k_INITIAL_CAPACITY; ++i) {
         event = eventPool.getObject();
         event->configureAsMessageEvent(rawEvent);
         PVV("[" << i << "] Enqueuing: " << (*event));
         BMQTST_ASSERT_EQ_D(i, obj.pushBack(event), 0);
     }
+    // NOLINTEND(performance-avoid-endl)
 
     // Trying to push one over succeeds
     event = eventPool.getObject();
@@ -315,13 +336,16 @@ static void test2_capacityTest()
     BMQTST_ASSERT_EQ(obj.pushBack(event), 0);
 
     // Dequeue k_INITIAL_CAPACITY + 1 plus two events (2 session events)
+    // NOLINTBEGIN(performance-avoid-endl)
     for (int i = 0; i < k_INITIAL_CAPACITY + 1 + 2; ++i) {
         event = obj.popFront();
         PVV("Dequeued: " << (*event));
         BMQTST_ASSERT(event != 0);
     }
+    // NOLINTEND(performance-avoid-endl)
 
     // No more events
+    // NOLINTNEXTLINE(*-magic-numbers)
     bsls::TimeInterval timeout(0, 2000000);  // 2 ms
     event = obj.timedPopFront(timeout);
 
@@ -331,13 +355,16 @@ static void test2_capacityTest()
 }
 
 static void test3_watermark()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("WATERMARK");
 
     bmqimp::EventQueue::EventHandlerCallback emptyEventHandler;
-    bdlbb::PooledBlobBufferFactory           bufferFactory(
+    // NOLINTBEGIN(*-magic-numbers)
+    bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqimp::EventQueue::EventPool eventPool(
         bdlf::BindUtil::bind(&poolCreateEvent,
                              bdlf::PlaceHolders::_1,  // address
@@ -346,6 +373,7 @@ static void test3_watermark()
         -1,
         bmqtst::TestHelperUtil::allocator());
 
+    // NOLINTBEGIN(*-magic-numbers)
     bmqimp::EventQueue obj(&eventPool,
                            1,  // initialCapacity
                            3,  // lowWatermark
@@ -354,11 +382,13 @@ static void test3_watermark()
                            0,  // numProcessingThreads
                            bmqimp::SessionId(),
                            bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     bsl::shared_ptr<bmqimp::Event> event;
 
     // Test that HighWatermark is created and prioritized
     PV("Enqueue 6 items");
+    // NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
     for (int i = 0; i < 6; ++i) {
         event = eventPool.getObject();
         event->configureAsSessionEvent(bmqt::SessionEventType::e_UNDEFINED,
@@ -369,6 +399,7 @@ static void test3_watermark()
         PVV("Enqueuing: " << (*event));
         obj.pushBack(event);
     }
+    // NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
     // Now deque.. it should be a HighWatermark event
     event = obj.popFront();
@@ -377,11 +408,13 @@ static void test3_watermark()
                      bmqt::SessionEventType::e_SLOWCONSUMER_HIGHWATERMARK);
 
     // And dequeue 6 times checking order
+    // NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
     for (int i = 0; i < 6; ++i) {
         event = obj.popFront();
         PVV("Dequeued: " << (*event));
         BMQTST_ASSERT_EQ(event->statusCode(), i);
     }
+    // NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
     // Finally we should be able to dequeue a last item, consumer_normal
     // (note that this event is not prioritized)
@@ -390,6 +423,7 @@ static void test3_watermark()
     BMQTST_ASSERT_EQ(event->sessionEventType(),
                      bmqt::SessionEventType::e_SLOWCONSUMER_NORMAL);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test4_basicEventHandlerTest()
 // ------------------------------------------------------------------------
@@ -413,14 +447,17 @@ static void test4_basicEventHandlerTest()
 //   - popFront
 //   - timedPopFront
 //   ----------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BASIC EVENT HANDLER");
 
-    const int                      k_NUM_THREADS = 15;
-    bsls::AtomicInt                eventCounter;
+    const int       k_NUM_THREADS = 15;
+    bsls::AtomicInt eventCounter;
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqimp::EventQueue::EventPool eventPool(
         bdlf::BindUtil::bind(&poolCreateEvent,
                              bdlf::PlaceHolders::_1,  // address
@@ -429,6 +466,7 @@ static void test4_basicEventHandlerTest()
         -1,
         bmqtst::TestHelperUtil::allocator());
 
+    // NOLINTBEGIN(*-magic-numbers)
     bmqimp::EventQueue obj(&eventPool,
                            100,  // initialCapacity
                            3,    // lowWatermark
@@ -439,6 +477,7 @@ static void test4_basicEventHandlerTest()
                            k_NUM_THREADS,  // numProcessingThreads
                            bmqimp::SessionId(),
                            bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     obj.start();
 
@@ -457,6 +496,7 @@ static void test4_basicEventHandlerTest()
     // The event handler should be called once for the user event
     BMQTST_ASSERT_EQ(eventCounter, 1);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test5_emptyStatsTest()
 // ------------------------------------------------------------------------
@@ -508,9 +548,11 @@ static void test5_emptyStatsTest()
     end.setLevel(0).setIndex(1);
 
     bmqimp::EventQueue::EventHandlerCallback emptyEventHandler;
-    bdlbb::PooledBlobBufferFactory           bufferFactory(
+    // NOLINTBEGIN(*-magic-numbers)
+    bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqimp::EventQueue::EventPool eventPool(
         bdlf::BindUtil::bind(&poolCreateEvent,
                              bdlf::PlaceHolders::_1,  // address
@@ -519,6 +561,7 @@ static void test5_emptyStatsTest()
         -1,
         bmqtst::TestHelperUtil::allocator());
 
+    // NOLINTBEGIN(*-magic-numbers)
     bmqimp::EventQueue obj(&eventPool,
                            1,  // initialCapacity
                            3,  // lowWatermark
@@ -527,6 +570,7 @@ static void test5_emptyStatsTest()
                            0,  // numProcessingThreads
                            bmqimp::SessionId(),
                            bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     BMQTST_ASSERT_SAFE_FAIL(obj.printStats(out, false));
 
@@ -563,6 +607,7 @@ static void test6_workingStatsTest()
 //   - initializeStats
 //   - printStats
 //   ----------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("EMPTY STATS");
 
@@ -579,9 +624,11 @@ static void test6_workingStatsTest()
     TestClock          testClock;
     bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
     bmqu::MemOutStream expected(bmqtst::TestHelperUtil::allocator());
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -652,6 +699,7 @@ static void test6_workingStatsTest()
     bsl::shared_ptr<bmqimp::Event> event;
 
     // Enqueue events
+    // NOLINTBEGIN(performance-avoid-endl)
     for (int i = 0; i < k_INITIAL_CAPACITY; ++i) {
         event = eventPool.getObject();
         event->configureAsMessageEvent(rawEvent);
@@ -659,15 +707,18 @@ static void test6_workingStatsTest()
         BMQTST_ASSERT_EQ_D(i, obj.pushBack(event), 0);
         testClock.d_highResTimer += k_MILL_SEC;
     }
+    // NOLINTEND(performance-avoid-endl)
 
     testClock.d_highResTimer += k_QUEUE_WAIT;
 
     // And dequeue some of them
+    // NOLINTBEGIN(performance-avoid-endl)
     for (int i = 0; i < k_QUEUE_POPPED; ++i) {
         event = obj.popFront();
         BMQTST_ASSERT(event != 0);
         PVV("Dequeued: " << (*event));
     }
+    // NOLINTEND(performance-avoid-endl)
 
     rootStatContext.snapshot();
     obj.printStats(out, true);
@@ -697,6 +748,7 @@ static void test6_workingStatsTest()
     BMQTST_ASSERT_EQ(valTime.max(),
                      k_INITIAL_CAPACITY * k_MILL_SEC + k_QUEUE_WAIT);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void testN1_performance()
 // ------------------------------------------------------------------------
@@ -714,13 +766,16 @@ static void testN1_performance()
 // Testing:
 //  Performance
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     // CONSTANTS
     const int k_NUM_ITERATIONS   = 10 * 1000 * 1000;  // 10 M
     const int k_FIXED_QUEUE_SIZE = 10 * 1000 * 1000;  // 10 M
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     queuePerformance(1,
                      1,
@@ -748,12 +803,21 @@ static void testN1_performance()
                      k_FIXED_QUEUE_SIZE,
                      &bufferFactory);
 }
+// NOLINTEND(*-magic-numbers)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
+// NOLINTBEGIN(bugprone-exception-escape)
 int main(int argc, char* argv[])
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTBEGIN(cert-err34-c)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -782,3 +846,11 @@ int main(int argc, char* argv[])
     //          generates a unique name using an ostringstream, hence the
     //          default allocator.
 }
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTEND(cert-err34-c)
+// NOLINTEND(bugprone-exception-escape)

@@ -85,6 +85,7 @@ void Table::print(bsl::ostream& os) const
     }
 
     // Print the table using precalculated column widths
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t rowId = 0; rowId < rows; rowId++) {
         for (size_t columnId = 0; columnId < d_columns.size(); columnId++) {
             if (columnId > 0) {
@@ -97,15 +98,18 @@ void Table::print(bsl::ostream& os) const
         // Print horizontal line after the initial row
         if (rowId == 0) {
             size_t lineWidth = 0;
+            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             for (bsl::vector<size_t>::const_iterator it = paddings.cbegin();
                  it != paddings.cend();
                  ++it) {
                 lineWidth += *it;
             }
+            // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             lineWidth += separator.size() * (paddings.size() - 1);
             os << bsl::string(lineWidth, '=', d_allocator_p) << bsl::endl;
         }
     }
+    // NOLINTEND(performance-avoid-endl)
 }
 
 // -----------------------
@@ -114,10 +118,12 @@ void Table::print(bsl::ostream& os) const
 
 // MANIPULATORS
 void Table::ColumnView::insertValue(bsl::string_view value)
+// NOLINTBEGIN(modernize-use-emplace)
 {
     d_table.d_columns.at(d_columnIndex)
         .push_back(bsl::string(value, d_table.d_allocator_p));
 }
+// NOLINTEND(modernize-use-emplace)
 
 void Table::ColumnView::insertValue(const bsls::Types::Uint64& value)
 {

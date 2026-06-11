@@ -72,6 +72,7 @@ namespace mqbblp {
 // ================
 
 /// @todo Document this class.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class LocalQueue BSLS_CPP11_FINAL {
   private:
     // CLASS-SCOPE CATEGORY
@@ -236,6 +237,7 @@ class LocalQueue BSLS_CPP11_FINAL {
     /// Return the domain this queue belongs to.
     mqbi::Domain* domain() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

@@ -70,7 +70,9 @@ typedef bsl::vector<ReqSp>                 ReqVec;
 typedef bmqp_ctrlmsg::ControlMessageChoice ReqChoice;
 typedef bsl::unordered_set<ReqChoice>      ReqChoiceSet;
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 const bsls::TimeInterval SEND_REQUEST_TIMEOUT(30);
+// NOLINTNEXTLINE(bugprone-implicit-widening-of-multiplication-result)
 const bsls::Types::Int64 WATERMARK = 64 * 1024 * 1024;
 
 }  // close unnamed namespace
@@ -108,6 +110,7 @@ struct TestClock {
 };
 
 /// Buffer factory provided to the various builders
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class TestContext {
     bdlbb::PooledBlobBufferFactory d_blobBufferFactory;
 
@@ -201,8 +204,10 @@ class TestContext {
     /// Send the specified `request` to the hardcoded TestChannel object.
     void sendChannelRequest(const ReqSp& request);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 TestContext::TestContext(bool lateResponseMode, bslma::Allocator* allocator)
+// NOLINTNEXTLINE(*-magic-numbers)
 : d_blobBufferFactory(1024, allocator)
 , d_blobSpPool_sp(
       bmqp::BlobPoolUtil::createBlobPool(&d_blobBufferFactory, allocator))
@@ -227,12 +232,14 @@ TestContext::TestContext(bool lateResponseMode, bslma::Allocator* allocator)
     BMQTST_ASSERT_EQ(rc, 0);
 }
 
+// NOLINTBEGIN(bugprone-exception-escape)
 TestContext::~TestContext()
 {
     d_scheduler.cancelAllEventsAndWait();
     d_scheduler.stop();
     cancelRequests();
 }
+// NOLINTEND(bugprone-exception-escape)
 
 // ACCESSORS
 bslma::Allocator* TestContext::allocator() const
@@ -383,9 +390,11 @@ static void test1_creatorsTest()
 {
     bmqtst::TestHelper::printTestName("CREATORS TEST");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory blobBufferFactory(
         4096,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &blobBufferFactory,
@@ -513,6 +522,7 @@ static void test4_sendRequestTest()
 
         ReqVec requests(bmqtst::TestHelperUtil::allocator());
         requests.reserve(num_requests);
+        // NOLINTBEGIN(*-narrowing-conversions)
         for (bsl::size_t i = 0; i < num_requests; ++i) {
             ReqSp              request = context.createRequest();
             bsl::ostringstream os(bmqtst::TestHelperUtil::allocator());
@@ -526,6 +536,7 @@ static void test4_sendRequestTest()
             context.sendChannelRequest(request);
             requests.emplace_back(request);
         }
+        // NOLINTEND(*-narrowing-conversions)
 
         for (bsl::size_t i = 0; i < num_requests; ++i) {
             // checking, that RequestManager has really sent all the requests
@@ -574,17 +585,20 @@ static void test4_sendRequestTest()
             // ------------------------------------------------------------
             {
                 barrier->wait();
+                // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
                 for (ReqVec::const_iterator it = requests.begin();
                      it != requests.end();
                      ++it) {
                     context->sendChannelRequest(*it);
                 }
+                // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             }
         };
 
         for (bsl::size_t i = 0; i < numThreads; ++i) {
             ReqVec requestsGroup(bmqtst::TestHelperUtil::allocator());
             requestsGroup.reserve(numRequests);
+            // NOLINTBEGIN(*-narrowing-conversions)
             for (bsl::size_t j = 0; j < numRequests; ++j) {
                 ReqSp              req = context.createRequest();
                 bsl::ostringstream os(bmqtst::TestHelperUtil::allocator());
@@ -598,6 +612,7 @@ static void test4_sendRequestTest()
                 requestsGroup.emplace_back(req);
                 requestsWithoutId.emplace(req->request().choice());
             }
+            // NOLINTEND(*-narrowing-conversions)
 
             int rc = threadGroup.addThread(
                 bdlf::BindUtil::bind(&Caller::requestSenderJob,
@@ -634,6 +649,7 @@ static void test5_processResponseTest()
 // Testing:
 //   int RequestManager::processResponse()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("PROCESS RESPONSE TEST");
 
@@ -644,8 +660,10 @@ static void test5_processResponseTest()
         context.populateRequest(request);
         context.sendChannelRequest(request);
 
+        // NOLINTBEGIN(bugprone-unchecked-optional-access)
         Mes response = context.createResponse(
             request->request().rId().value());
+        // NOLINTEND(bugprone-unchecked-optional-access)
 
         BMQTST_ASSERT_EQ(context.manager().processResponse(response), 0);
         request->wait();
@@ -663,6 +681,7 @@ static void test5_processResponseTest()
         request->request().rId() = 111;
         context.sendChannelRequest(request);
 
+        // NOLINTNEXTLINE(*-magic-numbers)
         Mes response = context.createResponse(222);
 
         BMQTST_ASSERT_NE(context.manager().processResponse(response), 0);
@@ -684,8 +703,10 @@ static void test5_processResponseTest()
                                                     bdlf::PlaceHolders::_1,
                                                     &request));
         context.sendChannelRequest(request);
+        // NOLINTBEGIN(bugprone-unchecked-optional-access)
         Mes response = context.createResponse(
             request->request().rId().value());
+        // NOLINTEND(bugprone-unchecked-optional-access)
         BMQTST_ASSERT_EQ(context.manager().processResponse(response), 0);
         context.advanceTime(SEND_REQUEST_TIMEOUT);
         BMQTST_ASSERT_EQ(request->result(), bmqt::GenericResult::e_SUCCESS);
@@ -708,8 +729,10 @@ static void test5_processResponseTest()
         context.sendChannelRequest(request);
         context.advanceTime(SEND_REQUEST_TIMEOUT);
 
+        // NOLINTBEGIN(bugprone-unchecked-optional-access)
         Mes response = context.createResponse(
             request->request().rId().value());
+        // NOLINTEND(bugprone-unchecked-optional-access)
 
         BMQTST_ASSERT_NE(context.manager().processResponse(response), 0);
         BMQTST_ASSERT_EQ(request->result(), bmqt::GenericResult::e_TIMEOUT);
@@ -731,8 +754,10 @@ static void test5_processResponseTest()
         context.sendChannelRequest(request);
         context.advanceTime(SEND_REQUEST_TIMEOUT);
 
+        // NOLINTBEGIN(bugprone-unchecked-optional-access)
         Mes response = context.createResponse(
             request->request().rId().value());
+        // NOLINTEND(bugprone-unchecked-optional-access)
 
         BMQTST_ASSERT_EQ(context.manager().processResponse(response), 0);
         BMQTST_ASSERT_EQ(request->result(), bmqt::GenericResult::e_SUCCESS);
@@ -798,6 +823,7 @@ static void test5_processResponseTest()
         requests.reserve(numRequests);
 
         // Prepare requests to process them in parallel
+        // NOLINTBEGIN(*-narrowing-conversions)
         for (bsl::size_t i = 0; i < numRequests; ++i) {
             ReqSp& request = requests.emplace_back(context.createRequest());
 
@@ -817,10 +843,13 @@ static void test5_processResponseTest()
                                       bdlf::PlaceHolders::_1,
                                       &request));
             context.sendChannelRequest(request);
+            // NOLINTBEGIN(bugprone-unchecked-optional-access)
             Mes response = context.createResponse(
                 request->request().rId().value());
+            // NOLINTEND(bugprone-unchecked-optional-access)
             responses.emplace(response);
         }
+        // NOLINTEND(*-narrowing-conversions)
 
         // Start the threads to process responses from queue
         for (bsl::size_t i = 0; i < numThreads; ++i) {
@@ -839,6 +868,7 @@ static void test5_processResponseTest()
         BMQTST_ASSERT_EQ(callsCounter, numRequests);
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test6_cancelAllRequestsTest()
 // ------------------------------------------------------------------------
@@ -868,6 +898,7 @@ static void test6_cancelAllRequestsTest()
         const bsl::size_t numRequests = 10;
         ReqVec            requests(bmqtst::TestHelperUtil::allocator());
         requests.reserve(numRequests);
+        // NOLINTBEGIN(*-narrowing-conversions)
         for (bsl::size_t i = 0; i < numRequests; ++i) {
             ReqSp              request = context.createRequest();
             bsl::ostringstream os(bmqtst::TestHelperUtil::allocator());
@@ -881,11 +912,13 @@ static void test6_cancelAllRequestsTest()
             context.sendChannelRequest(request);
             requests.emplace_back(request);
         }
+        // NOLINTEND(*-narrowing-conversions)
 
         Mes reason = context.createResponseCancel();
         context.manager().cancelAllRequests(reason);
 
         for (bsl::size_t i = 0; i < numRequests; ++i) {
+            // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
             ReqSp request = requests[i];
             BMQTST_ASSERT_EQ(request->result(),
                              bmqt::GenericResult::e_CANCELED);
@@ -915,6 +948,7 @@ static void test6_cancelAllRequestsTest()
         context.manager().cancelGroupRequests(reason, 1);
 
         for (bsl::size_t i = 0; i < numRequests; ++i) {
+            // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
             ReqSp request = requests[i];
             if (request->groupId() == 1) {
                 BMQTST_ASSERT_EQ(request->result(),
@@ -959,6 +993,7 @@ static void test6_cancelAllRequestsTest()
             bmqp::RequestManagerComponentId::k_CLUSTER_FSM);
 
         for (bsl::size_t i = 0; i < numRequests; ++i) {
+            // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
             ReqSp request = requests[i];
             if (request->componentId() ==
                 bmqp::RequestManagerComponentId::k_CLUSTER_FSM) {
@@ -980,6 +1015,7 @@ static void test7_requestBreathingTest()
 // Testing:
 //   Basic functionality
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("REQUEST BREATHING TEST");
 
@@ -1078,6 +1114,7 @@ static void test7_requestBreathingTest()
         BMQTST_ASSERT_EQ(test, new_datum.theString());
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test8_requestSignalWaitTest()
 // ------------------------------------------------------------------------
@@ -1085,6 +1122,7 @@ static void test8_requestSignalWaitTest()
 //   void RequestManagerRequest::signal()
 //   void RequestManagerRequest::wait()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     bmqtst::TestHelper::printTestName("REQUEST SIGNAL WAIT TEST");
 
@@ -1126,12 +1164,23 @@ static void test8_requestSignalWaitTest()
         BMQTST_ASSERT(worked);
     }
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 // ============================================================================
 //                                MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
+// NOLINTBEGIN(bugprone-exception-escape)
 int main(int argc, char* argv[])
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTBEGIN(cert-err34-c)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -1159,3 +1208,13 @@ int main(int argc, char* argv[])
     // Default: EventQueue uses bmqex::BindUtil::bindExecute(), which uses
     //          default allocator.
 }
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTEND(cert-err34-c)
+// NOLINTEND(bugprone-exception-escape)

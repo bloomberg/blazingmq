@@ -120,6 +120,7 @@ struct Strand_ThreadUtil {
 /// `EXECUTOR` must meet the requirements of Executor (see package
 /// documentation).
 template <class EXECUTOR>
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Strand {
   public:
     // TYPES
@@ -241,6 +242,7 @@ class Strand {
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(Strand, bslma::UsesBslmaAllocator)
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ====================
 // class StrandExecutor
@@ -510,9 +512,11 @@ inline size_t Strand<EXECUTOR>::outstandingJobs() const BSLS_KEYWORD_NOEXCEPT
 template <class EXECUTOR>
 inline typename Strand<EXECUTOR>::ExecutorType
 Strand<EXECUTOR>::executor() const BSLS_KEYWORD_NOEXCEPT
+// NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
 {
     return const_cast<Strand*>(this);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-const-cast)
 
 template <class EXECUTOR>
 inline typename Strand<EXECUTOR>::InnerExecutorType
@@ -542,11 +546,13 @@ inline StrandExecutor<EXECUTOR>::StrandExecutor(ContextType* context)
 }
 
 // MANIPULATORS
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 template <class EXECUTOR>
 template <class FUNCTION>
 inline void
 StrandExecutor<EXECUTOR>::post(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION)
                                    f) const
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 {
     bslmt::LockGuard<bslmt::Mutex> lock(&d_context_p->d_mutex);  // LOCK
 
@@ -571,11 +577,13 @@ StrandExecutor<EXECUTOR>::post(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION)
     }
 }
 
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 template <class EXECUTOR>
 template <class FUNCTION>
 inline void
 StrandExecutor<EXECUTOR>::dispatch(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION)
                                        f) const
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 {
     if (runningInThisThread()) {
         // make a local, non-const copy of the function

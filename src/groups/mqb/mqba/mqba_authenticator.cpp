@@ -126,6 +126,7 @@ int Authenticator::sendAuthenticationResponse(
     const bsl::optional<bsls::Types::Uint64>& lifetimeMs,
     const bsl::shared_ptr<bmqio::Channel>&    channel,
     bmqp::EncodingType::Enum                  authenticationEncodingType)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // executed by an *AUTHENTICATION* thread
     enum RcEnum {
@@ -175,6 +176,7 @@ int Authenticator::sendAuthenticationResponse(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 int Authenticator::authenticateAsync(
     bsl::ostream&                          errorDescription,
@@ -207,6 +209,7 @@ void Authenticator::authenticate(
     const bsl::shared_ptr<bmqio::Channel>& channel,
     bool                                   isDefaultAuthn,
     bool                                   isReauthn)
+// NOLINTBEGIN(*-magic-numbers,clang-analyzer-deadcode.DeadStores,cppcoreguidelines-use-enum-class)
 {
     // executed by an *AUTHENTICATION* thread
 
@@ -393,6 +396,7 @@ void Authenticator::authenticate(
         event.value() = InitialConnectionEvent::e_AUTHN_SUCCESS;
     }
 }
+// NOLINTEND(*-magic-numbers,clang-analyzer-deadcode.DeadStores,cppcoreguidelines-use-enum-class)
 
 // CREATORS
 Authenticator::Authenticator(
@@ -402,11 +406,13 @@ Authenticator::Authenticator(
     bslma::Allocator*                   allocator)
 : d_allocator_p(allocator)
 , d_authnController_p(authnController)
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions)
 , d_threadPool(bslmt::ThreadAttributes(),
                mqbcfg::BrokerConfig::get().authentication().minThreads(),
                mqbcfg::BrokerConfig::get().authentication().maxThreads(),
                bsls::TimeInterval(120).totalMilliseconds(),  // idle time
                allocator)
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions)
 , d_blobSpPool_p(blobSpPool)
 , d_scheduler_p(scheduler)
 , d_isStarted(false)
@@ -462,6 +468,7 @@ int Authenticator::handleAuthentication(
     bsl::ostream&                              errorDescription,
     mqbnet::InitialConnectionContext*          context_p,
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // executed by one of the *IO* threads
 
@@ -505,11 +512,13 @@ int Authenticator::handleAuthentication(
 
     return rc;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int Authenticator::handleReauthentication(
     bsl::ostream&                          errorDescription,
     const AuthenticationContextSp&         context,
     const bsl::shared_ptr<bmqio::Channel>& channel)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // executed by one of the *IO* threads
 
@@ -541,6 +550,7 @@ int Authenticator::handleReauthentication(
 
     return rc;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int Authenticator::authenticationOutbound(
     BSLA_MAYBE_UNUSED bsl::ostream&                  errorDescription,

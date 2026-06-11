@@ -42,17 +42,29 @@ const int ClusterStateLedgerProtocol::k_VERSION;
 // struct ClusterStateFileHeader
 // -----------------------------
 
+// NOLINTBEGIN(cppcoreguidelines-interfaces-global-init)
+// NOLINTBEGIN(cert-err58-cpp)
 const int ClusterStateFileHeader::k_PROTOCOL_VERSION_MASK =
+    // NOLINTBEGIN(*-narrowing-conversions)
+    // NOLINTBEGIN(*-narrowing-conversions)
     bdlb::BitMaskUtil::one(
         ClusterStateFileHeader::k_PROTOCOL_VERSION_START_IDX,
         ClusterStateFileHeader::k_PROTOCOL_VERSION_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions)
+// NOLINTEND(*-narrowing-conversions)
+// NOLINTEND(cppcoreguidelines-interfaces-global-init)
+// NOLINTEND(cert-err58-cpp)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int ClusterStateFileHeader::k_HEADER_WORDS_MASK = bdlb::BitMaskUtil::one(
     ClusterStateFileHeader::k_HEADER_WORDS_START_IDX,
     ClusterStateFileHeader::k_HEADER_WORDS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(cppcoreguidelines-interfaces-global-init)
 const unsigned int ClusterStateFileHeader::k_HEADER_NUM_WORDS =
     sizeof(ClusterStateFileHeader) / bmqp::Protocol::k_WORD_SIZE;
+// NOLINTEND(cppcoreguidelines-interfaces-global-init)
 
 // -----------------------------
 // struct ClusterStateRecordType
@@ -94,16 +106,34 @@ const char* ClusterStateRecordType::toAscii(ClusterStateRecordType::Enum value)
 // struct ClusterStateRecordHeader
 // -------------------------------
 
+// NOLINTBEGIN(cppcoreguidelines-interfaces-global-init)
+// NOLINTBEGIN(cert-err58-cpp)
 const int ClusterStateRecordHeader::k_HEADER_WORDS_MASK =
+    // NOLINTBEGIN(*-narrowing-conversions)
+    // NOLINTBEGIN(*-narrowing-conversions)
     bdlb::BitMaskUtil::one(ClusterStateRecordHeader::k_HEADER_WORDS_START_IDX,
                            ClusterStateRecordHeader::k_HEADER_WORDS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions)
+// NOLINTEND(*-narrowing-conversions)
+// NOLINTEND(cppcoreguidelines-interfaces-global-init)
+// NOLINTEND(cert-err58-cpp)
 
+// NOLINTBEGIN(cppcoreguidelines-interfaces-global-init)
+// NOLINTBEGIN(cert-err58-cpp)
 const int ClusterStateRecordHeader::k_RECORD_TYPE_MASK =
+    // NOLINTBEGIN(*-narrowing-conversions)
+    // NOLINTBEGIN(*-narrowing-conversions)
     bdlb::BitMaskUtil::one(ClusterStateRecordHeader::k_RECORD_TYPE_START_IDX,
                            ClusterStateRecordHeader::k_RECORD_TYPE_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions)
+// NOLINTEND(*-narrowing-conversions)
+// NOLINTEND(cppcoreguidelines-interfaces-global-init)
+// NOLINTEND(cert-err58-cpp)
 
+// NOLINTBEGIN(cppcoreguidelines-interfaces-global-init)
 const unsigned int ClusterStateRecordHeader::k_HEADER_NUM_WORDS =
     sizeof(ClusterStateRecordHeader) / bmqp::Protocol::k_WORD_SIZE;
+// NOLINTEND(cppcoreguidelines-interfaces-global-init)
 
 }  // close package namespace
 }  // close enterprise namespace

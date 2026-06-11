@@ -48,6 +48,7 @@ namespace mqbplug {
 
 /// VST representing the `metadata` for a given Plugin: describing it and
 /// exposing the factory method which it exposes.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class PluginInfo {
   public:
     // TYPES
@@ -130,6 +131,7 @@ class PluginInfo {
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 

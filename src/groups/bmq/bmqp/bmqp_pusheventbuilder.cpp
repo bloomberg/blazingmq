@@ -236,6 +236,7 @@ int PushEventBuilder::reset()
 
 bmqt::EventBuilderResult::Enum PushEventBuilder::addSubQueueIdsOption(
     const Protocol::SubQueueIdsArrayOld& subQueueIds)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // PRECONDITIONS
     BSLA_MAYBE_UNUSED const int optionsSize = d_options.size();
@@ -252,8 +253,10 @@ bmqt::EventBuilderResult::Enum PushEventBuilder::addSubQueueIdsOption(
         return bmqt::EventBuilderResult::e_SUCCESS;  // RETURN
     }
 
-    const int  currentSize = eventSize() + sizeof(PushHeader);
-    const int  size        = numSubQueueIds * Protocol::k_WORD_SIZE;
+    // NOLINTNEXTLINE(*-narrowing-conversions)
+    const int currentSize = eventSize() + sizeof(PushHeader);
+    // NOLINTNEXTLINE(*-narrowing-conversions)
+    const int  size   = numSubQueueIds * Protocol::k_WORD_SIZE;
     OptionMeta option = OptionMeta::forOption(OptionType::e_SUB_QUEUE_IDS_OLD,
                                               size);
 
@@ -269,6 +272,7 @@ bmqt::EventBuilderResult::Enum PushEventBuilder::addSubQueueIdsOption(
 
     // We need to convert the SubQueueIds to a vector of BigEndianUint32 and
     // then write them to the blob.
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<16 * sizeof(unsigned int)> lsa(
         d_allocator_p);
     bsl::vector<bdlb::BigEndianUint32> tempVec(&lsa);
@@ -286,10 +290,12 @@ bmqt::EventBuilderResult::Enum PushEventBuilder::addSubQueueIdsOption(
 
     return bmqt::EventBuilderResult::e_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 bmqt::EventBuilderResult::Enum PushEventBuilder::addSubQueueInfosOption(
     const Protocol::SubQueueInfosArray& subQueueInfos,
     bool                                packRdaCounter)
+// NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // PRECONDITIONS
     BSLA_MAYBE_UNUSED const int optionsSize = d_options.size();
@@ -307,6 +313,7 @@ bmqt::EventBuilderResult::Enum PushEventBuilder::addSubQueueInfosOption(
     }
 
     // Old option only includes subQueueId
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     int        size   = numSubQueueIds * Protocol::k_WORD_SIZE;
     OptionMeta option = OptionMeta::forOption(OptionType::e_SUB_QUEUE_IDS_OLD,
                                               size);
@@ -333,6 +340,7 @@ bmqt::EventBuilderResult::Enum PushEventBuilder::addSubQueueInfosOption(
                                        typeSpecific);
     }
 
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     const int          currentSize = eventSize() + sizeof(PushHeader);
     const Result::Enum rc          = d_options.canAdd(currentSize, option);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != Result::e_SUCCESS)) {
@@ -354,6 +362,7 @@ bmqt::EventBuilderResult::Enum PushEventBuilder::addSubQueueInfosOption(
     if (packRdaCounter) {
         // New options: Can directly add the subQueueInfos (subQueueId,
         // rdaCounter). Need contiguous memory, so first copy into a vector.
+        // NOLINTNEXTLINE(*-magic-numbers)
         bdlma::LocalSequentialAllocator<32 * sizeof(bmqp::SubQueueInfo)> lsa(
             d_allocator_p);
         bsl::vector<bmqp::SubQueueInfo> tempVec(&lsa);
@@ -368,18 +377,21 @@ bmqt::EventBuilderResult::Enum PushEventBuilder::addSubQueueInfosOption(
 
     // Old options: We need to convert the SubQueueInfos to a vector of
     // subQueueIds (BigEndianUint32) and then write them to the blob.
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<32 * sizeof(bdlb::BigEndianUint32)> lsa(
         d_allocator_p);
     bsl::vector<bdlb::BigEndianUint32> tempVec(&lsa);
 
     // Only pack in the subQueueIds
     tempVec.reserve(numSubQueueIds);
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (Protocol::SubQueueInfosArray::const_iterator citer =
              subQueueInfos.begin();
          citer != subQueueInfos.end();
          ++citer) {
         tempVec.push_back(bdlb::BigEndianUint32::make(citer->id()));
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     d_options.add(d_blob_sp.get(),
                   reinterpret_cast<const char*>(tempVec.data()),
@@ -387,9 +399,11 @@ bmqt::EventBuilderResult::Enum PushEventBuilder::addSubQueueInfosOption(
 
     return bmqt::EventBuilderResult::e_SUCCESS;
 }
+// NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-type-reinterpret-cast)
 
 bmqt::EventBuilderResult::Enum
 PushEventBuilder::addMsgGroupIdOption(const Protocol::MsgGroupId& msgGroupId)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // PRECONDITIONS
     BSLMF_ASSERT(OptionHeader::k_MAX_SIZE >
@@ -410,8 +424,10 @@ PushEventBuilder::addMsgGroupIdOption(const Protocol::MsgGroupId& msgGroupId)
     typedef bmqt::EventBuilderResult Result;
     typedef OptionUtil::OptionMeta   OptionMeta;
 
-    const int  currentSize = eventSize() + sizeof(PushHeader);
-    const int  size        = msgGroupId.length();
+    // NOLINTNEXTLINE(*-narrowing-conversions)
+    const int currentSize = eventSize() + sizeof(PushHeader);
+    // NOLINTNEXTLINE(*-narrowing-conversions)
+    const int  size = msgGroupId.length();
     OptionMeta option =
         OptionMeta::forOptionWithPadding(OptionType::e_MSG_GROUP_ID, size);
     Result::Enum rc = d_options.canAdd(currentSize, option);
@@ -437,6 +453,7 @@ PushEventBuilder::addMsgGroupIdOption(const Protocol::MsgGroupId& msgGroupId)
 
     return bmqt::EventBuilderResult::e_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 // ACCESSORS
 const bsl::shared_ptr<bdlbb::Blob>& PushEventBuilder::blob() const
@@ -446,8 +463,10 @@ const bsl::shared_ptr<bdlbb::Blob>& PushEventBuilder::blob() const
 
     // Fix packet's length in header now that we know it ..  Following is valid
     // (see comment in reset)
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     EventHeader& eh = *reinterpret_cast<EventHeader*>(
         d_blob_sp->buffer(0).data());
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     eh.setLength(d_blob_sp->length());
 
     return d_blob_sp;

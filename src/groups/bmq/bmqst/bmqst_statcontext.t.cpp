@@ -64,13 +64,19 @@ using namespace bmqst;
 
 namespace {
 
-static int  testStatus          = 0;
-static bool verbose             = 0;
-static bool veryVerbose         = 0;
-static bool veryVeryVerbose     = 0;
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+static int testStatus = 0;
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+static bool verbose = 0;
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+static bool veryVerbose = 0;
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+static bool veryVeryVerbose = 0;
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static bool veryVeryVeryVerbose = 0;
 
 static void aSsErT(int c, const char* s, int i)
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     if (c) {
         cout << "Error " << __FILE__ << "(" << i << "): " << s
@@ -79,6 +85,7 @@ static void aSsErT(int c, const char* s, int i)
             ++testStatus;
     }
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 }  // close anonymous namespace
 
@@ -96,18 +103,23 @@ static void aSsErT(int c, const char* s, int i)
 // levels of verbosity.  Note that 'X' is not surrounded with parentheses so
 // that expressions containing output stream operations can be supported.
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PV(X)                                                                 \
     if (verbose)                                                              \
-        cout << endl << X << endl;
+        cout << endl << X << endl; /* NOLINT(bugprone-macro-parentheses) */
 
 //=============================================================================
 //               GLOBAL HELPER CLASSES AND FUNCTIONS FOR TESTING
 //-----------------------------------------------------------------------------
 
+// NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
 static bsls::Types::Int64 MAX_INT =
     bsl::numeric_limits<bsls::Types::Int64>::max();
+// NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
 static bsls::Types::Int64 MIN_INT =
     bsl::numeric_limits<bsls::Types::Int64>::min();
+// NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
 
 /// Compare the snapshot of the specified `value` at he specified `index`
 /// of the specified `level` to the specified `snapshotDesc`.
@@ -119,6 +131,7 @@ static bool checkSnapshot(const StatValue& value,
                           int              level,
                           int              index,
                           const char*      snapshotDesc)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     const StatValue::Snapshot& snapshot = value.snapshot(
         StatValue::SnapshotLocation(level, index));
@@ -144,6 +157,7 @@ static bool checkSnapshot(const StatValue& value,
     ASSERT_EQUALS(expectedValues, snapshotValues);
     return expectedValues == snapshotValues;
 }
+// NOLINTEND(performance-avoid-endl)
 
 /// Return `true` if the specified `update` contains the specified `field`,
 /// and `false` otherwise.
@@ -183,6 +197,7 @@ static const StatValue& direct(const StatContext& context, int index)
 // USAGE EXAMPLES
 
 static void usageExample(bsl::ostream& stream, bslma::Allocator* allocator)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // ------------------------------------------------------------------------
     // USAGE EXAMPLE
@@ -304,6 +319,7 @@ static void usageExample(bsl::ostream& stream, bslma::Allocator* allocator)
     // reprint the 'StatContext' after each second elapse.  We start the
     // test by calling 'clearValue' to erase any history in the context.
     context.clearValues();
+    // NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
     for (int i = 0; i < 15; ++i) {
         // Receive a message
         messageLength = 100;  // bytes
@@ -320,6 +336,7 @@ static void usageExample(bsl::ostream& stream, bslma::Allocator* allocator)
             bmqst::TableUtil::printTable(stream, tip);
         }
     }
+    // NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
     // The output of the test will show the byte rate increasing and then
     // stabilizing at 100 bytes/s, and similarly the message rate increasing
@@ -335,9 +352,11 @@ static void usageExample(bsl::ostream& stream, bslma::Allocator* allocator)
     //     -----------------+------+--------+---------+-----------+
     //     Network Interface| 1,500|  100.00|       15|       1.00|
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 static void usageExampleUpdate(bsl::ostream&     stream,
                                bslma::Allocator* allocator)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     int                       numSnapshots = 11;
     bmqstm::StatContextUpdate update;
@@ -388,6 +407,7 @@ static void usageExampleUpdate(bsl::ostream&     stream,
 
     context.clearValues();
     updatedContext.clearValues();
+    // NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
     for (int i = 0; i < 15; ++i) {
         // Receive a message
         messageLength = 100;  // bytes
@@ -405,10 +425,13 @@ static void usageExampleUpdate(bsl::ostream&     stream,
             bmqst::TableUtil::printTable(stream, tip);
         }
     }
+    // NOLINTEND(*-magic-numbers,performance-avoid-endl)
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 static void tableUsageExample(bsl::ostream&     stream,
                               bslma::Allocator* allocator)
+// NOLINTBEGIN(*-magic-numbers)
 {
     // ------------------------------------------------------------------------
     // USAGE EXAMPLE WITH TABLE
@@ -523,9 +546,11 @@ static void tableUsageExample(bsl::ostream&     stream,
     //   *direct*       |     0|    0.00|        0|       0.00
     //   tcp://5678     |   300|   30.00|        1|       0.10
 }
+// NOLINTEND(*-magic-numbers)
 
 static void tableUsageExampleUpdate(bsl::ostream&     stream,
                                     bslma::Allocator* allocator)
+// NOLINTBEGIN(*-magic-numbers)
 {
     int                       numSnapshots = 11;
     bmqstm::StatContextUpdate update;
@@ -585,9 +610,11 @@ static void tableUsageExampleUpdate(bsl::ostream&     stream,
         bmqst::TableUtil::printTable(stream, tip);
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void subcontextUsageExample(bsl::ostream&     stream,
                                    bslma::Allocator* allocator)
+// NOLINTBEGIN(*-magic-numbers)
 {
     // ------------------------------------------------------------------------
     // USAGE EXAMPLE WITH SUBCONTEXT
@@ -651,9 +678,11 @@ static void subcontextUsageExample(bsl::ostream&     stream,
     //   *direct*           | 50,000|  5000.00|   0| 50,000
     //   Interface Allocator|  1,500|   150.00|   0|  1,500
 }
+// NOLINTEND(*-magic-numbers)
 
 static void subcontextUsageExampleUpdate(bsl::ostream&     stream,
                                          bslma::Allocator* allocator)
+// NOLINTBEGIN(*-magic-numbers)
 {
     int                       numSnapshots = 11;
     bmqstm::StatContextUpdate update;
@@ -694,9 +723,11 @@ static void subcontextUsageExampleUpdate(bsl::ostream&     stream,
         bmqst::TableUtil::printTable(stream, tip);
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void valueLevelUsageExample(bsl::ostream&     stream,
                                    bslma::Allocator* allocator)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // ------------------------------------------------------------------------
     // USAGE EXAMPLE WITH VALUE LEVEL
@@ -714,7 +745,9 @@ static void valueLevelUsageExample(bsl::ostream&     stream,
     // First, create a context with 60 samples at level 0 and 5 samples at
     // level 1 ('valueLevel'):
     enum { e_IN = 0 };
-    int                numSnapshots    = 60 + 1;
+    // NOLINTNEXTLINE(*-magic-numbers)
+    int numSnapshots = 60 + 1;
+    // NOLINTNEXTLINE(*-magic-numbers)
     int                numAggSnapshots = 5 + 1;
     bmqst::StatContext context(
         bmqst::StatContextConfiguration("Network Interface")
@@ -757,12 +790,15 @@ static void valueLevelUsageExample(bsl::ostream&     stream,
     // Capture 5 minutes of data.
     int messageLength = 10;  // bytes
 
+    // NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
     for (int i = 0; i < 5; ++i) {
+        // NOLINTBEGIN(*-magic-numbers)
         for (int j = 0; j < 60; ++j) {
             // Snapshot 1 second
             context.adjustValue(e_IN, messageLength);
             context.snapshot();
         }
+        // NOLINTEND(*-magic-numbers)
 
         // Print with the TIP after each minute
         tip.update();
@@ -771,14 +807,19 @@ static void valueLevelUsageExample(bsl::ostream&     stream,
             bmqst::TableUtil::printTable(stream, tip);
         }
     }
+    // NOLINTEND(*-magic-numbers,performance-avoid-endl)
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 static void valueLevelUsageExampleUpdate(bsl::ostream&     stream,
                                          bslma::Allocator* allocator)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     bmqstm::StatContextUpdate update;
     enum { e_IN = 0 };
-    int                numSnapshots    = 60 + 1;
+    // NOLINTNEXTLINE(*-magic-numbers)
+    int numSnapshots = 60 + 1;
+    // NOLINTNEXTLINE(*-magic-numbers)
     int                numAggSnapshots = 5 + 1;
     bmqst::StatContext context(
         bmqst::StatContextConfiguration("Network Interface")
@@ -830,13 +871,16 @@ static void valueLevelUsageExampleUpdate(bsl::ostream&     stream,
     // Capture 5 minutes of data.
     int messageLength = 10;  // bytes
 
+    // NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
     for (int i = 0; i < 5; ++i) {
+        // NOLINTBEGIN(*-magic-numbers)
         for (int j = 0; j < 60; ++j) {
             // Snapshot 1 second
             context.adjustValue(e_IN, messageLength);
             context.snapshot();
             updatedContext.snapshotFromUpdate(update);
         }
+        // NOLINTEND(*-magic-numbers)
 
         // Print with the TIP after each minute
         tip.update();
@@ -845,9 +889,12 @@ static void valueLevelUsageExampleUpdate(bsl::ostream&     stream,
             bmqst::TableUtil::printTable(stream, tip);
         }
     }
+    // NOLINTEND(*-magic-numbers,performance-avoid-endl)
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 static void testUpdates(bslma::Allocator* /*allocator*/)
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     // ------------------------------------------------------------------------
     // UPDATE TEST
@@ -1018,8 +1065,10 @@ static void testUpdates(bslma::Allocator* /*allocator*/)
     ASSERT(checkSnapshot(direct(c2, 1), 0, 1, "10 10 3 19"));
     ASSERT(checkSnapshot(direct(c2, 1), 1, 0, "4 10 3 19"));
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 static void testUpdatesWithUsageExample(bslma::Allocator* allocator)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PV("Test usage examples using updates");
 
@@ -1059,8 +1108,10 @@ static void testUpdatesWithUsageExample(bslma::Allocator* allocator)
 
     ASSERT_EQUALS(nstream.str(), ustream.str());
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void testDatum(bslma::Allocator* allocator)
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqst::StatContextConfiguration config("test");
     bmqst::StatContext              context(config, allocator);
@@ -1075,13 +1126,16 @@ static void testDatum(bslma::Allocator* allocator)
 
     ASSERT(datum->datum().isInteger());
 }
+// NOLINTEND(*-magic-numbers)
 
 //=============================================================================
 //                              MAIN PROGRAM
 //-----------------------------------------------------------------------------
 
 int main(int argc, char** argv)
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
+    // NOLINTNEXTLINE(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     int test            = argc > 1 ? atoi(argv[1]) : 0;
     verbose             = argc > 2;
     veryVerbose         = argc > 3;
@@ -1202,3 +1256,4 @@ int main(int argc, char** argv)
     bmqst::TestUtil::printTestStatus(testStatus, verbose);
     return testStatus;
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)

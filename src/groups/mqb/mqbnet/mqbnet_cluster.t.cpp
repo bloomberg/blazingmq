@@ -216,6 +216,7 @@ static void test1_ClusterObserver()
 // Testing:
 //   PROTOCOL TEST
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("ClusterObserver");
 
@@ -244,6 +245,7 @@ static void test1_ClusterObserver()
                                                    dummyBool));
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test2_ClusterNode()
 // ------------------------------------------------------------------------
@@ -284,6 +286,7 @@ static void test2_ClusterNode()
 // Testing:
 //   PROTOCOL TEST
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("ClusterNode");
 
@@ -327,6 +330,7 @@ static void test2_ClusterNode()
         BSLS_PROTOCOLTEST_ASSERT(testObj, isAvailable());
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test3_Cluster()
 // ------------------------------------------------------------------------
@@ -367,6 +371,7 @@ static void test3_Cluster()
 // Testing:
 //   PROTOCOL TEST
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("Cluster");
 
@@ -423,12 +428,14 @@ static void test3_Cluster()
     BMQTST_ASSERT_NE(mqbnet::Cluster::k_INVALID_NODE_ID,
                      mqbnet::Cluster::k_ALL_NODES_ID);
 }
+// NOLINTEND(performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -445,3 +452,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

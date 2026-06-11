@@ -47,6 +47,7 @@ using namespace BloombergLP::mqbnet;
 namespace {
 
 /// Elector clock with static storage used in various test cases
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static bmqtst::MockTime* s_electorClock;
 
 // ====================
@@ -61,6 +62,7 @@ struct ExpectedState {
     bsls::Types::Uint64           d_term;
     bsls::Types::Uint64           d_age;
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
     ExpectedState()
     {
         // TBD: Temporary to silence compiler warning of
@@ -68,6 +70,7 @@ struct ExpectedState {
         this->setLeader(0).setTentativeLeader(0).setTerm(0);
         reset();
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
     void validate(const ElectorStateMachine& sm, int line) const
     {
@@ -165,6 +168,7 @@ struct ExpectedState {
     }
 };
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define ELECTOR_VALIDATE(A, B) A.validate(B, __LINE__);
 
 }  // close unnamed namespace
@@ -179,6 +183,7 @@ static void test1_breathingTest()
 // Testing:
 //   Dormant -> Follower -> Candidate -> Leader
 // --------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -242,6 +247,7 @@ static void test1_breathingTest()
         .setReason(ElectorTransitionReason::e_STARTED);
     ELECTOR_VALIDATE(exState, sm);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test2()
 // ------------------------------------------------------------------------
@@ -1040,6 +1046,7 @@ static void test6()
 //     proposals with smaller, same and higher terms, but ignores them in
 //     all 3 cases.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
@@ -1221,6 +1228,7 @@ static void test6()
     BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
     BMQTST_ASSERT_EQ(age, sm.age());
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test7()
 // ------------------------------------------------------------------------
@@ -1714,6 +1722,7 @@ static void test11()
 //     Follower without leader
 //   * Quorum == 3
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
@@ -1878,6 +1887,7 @@ static void test11()
     BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
     BMQTST_ASSERT_EQ(++age, sm.age());
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test12()
 // ------------------------------------------------------------------------
@@ -1889,6 +1899,7 @@ static void test12()
 // elector to become a follower, and then receives heartbeat from a
 // leader.  The node must send out voting support event to the leader.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
@@ -1940,6 +1951,7 @@ static void test12()
     BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
     BMQTST_ASSERT_EQ(++age, sm.age());
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test13()
 // ------------------------------------------------------------------------
@@ -1949,6 +1961,7 @@ static void test13()
 //   receiving stale leader hearbeat.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
@@ -2016,6 +2029,7 @@ static void test13()
     BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
     BMQTST_ASSERT_EQ(age, sm.age());
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test14()
 // ------------------------------------------------------------------------
@@ -2029,6 +2043,7 @@ static void test14()
 //   of sticky leader.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
@@ -2135,6 +2150,7 @@ static void test14()
     BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
     BMQTST_ASSERT_EQ(age, sm.age());
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test15()
 // ------------------------------------------------------------------------
@@ -2459,6 +2475,7 @@ static void test18()
 //   Leader becomes unavailable -> Leader becomes available and follower
 //   receives heartbeat from it (follower submits to leader).
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
@@ -2546,6 +2563,7 @@ static void test18()
     BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
     BMQTST_ASSERT_EQ(++age, sm.age());
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test19()
 // ------------------------------------------------------------------------
@@ -2558,6 +2576,7 @@ static void test19()
 //   Follower receives leadershipCession event from leader (follower stops
 //   following the leader).
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
@@ -2627,6 +2646,7 @@ static void test19()
     BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
     BMQTST_ASSERT_EQ(++age, sm.age());
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test20()
 // ------------------------------------------------------------------------
@@ -2637,6 +2657,7 @@ static void test20()
 //     heartbeat with same or smaller term as self and sends leader
 //     heartbeat in return so that sender node can follow self.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
@@ -2778,12 +2799,14 @@ static void test20()
     BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
     BMQTST_ASSERT_EQ(age, sm.age());
 }
+// NOLINTEND(*-magic-numbers)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -2825,3 +2848,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

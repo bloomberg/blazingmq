@@ -163,15 +163,19 @@ MockCluster::MockCluster(const mqbcfg::ClusterDefinition& config,
 , d_nodeStateObservers(allocator)
 , d_isReadEnabled(false)
 , d_disableBroadcast(false)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // Create the nodes
     bsl::vector<mqbcfg::ClusterNode>::const_iterator nodeIt;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (nodeIt = d_config.nodes().begin(); nodeIt != d_config.nodes().end();
          ++nodeIt) {
         d_nodes.emplace_back(this, *nodeIt, blobBufferFactory);
         d_nodesList.emplace_back(&d_nodes.back());
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 MockCluster::~MockCluster()
 {

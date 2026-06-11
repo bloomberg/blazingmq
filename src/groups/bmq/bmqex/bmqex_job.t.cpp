@@ -76,18 +76,22 @@ class LargeNullaryFunctor : public SmallNullaryFunctor {
     // PRIVATE DATA
 
     /// Anonymous union suppresses unused private-field warning for Clang.
+    // NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers)
     union {
         char d_padding[128];
     };
+    // NOLINTEND(*-avoid-c-arrays,*-magic-numbers)
 
   public:
     // CREATORS
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
     explicit LargeNullaryFunctor(bool* invoked)
     : SmallNullaryFunctor(invoked)
     {
         // PRECONDITIONS
         BSLS_ASSERT(invoked);
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 };
 
 }  // close unnamed namespace
@@ -158,6 +162,7 @@ static void test1_breathing()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -173,3 +178,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

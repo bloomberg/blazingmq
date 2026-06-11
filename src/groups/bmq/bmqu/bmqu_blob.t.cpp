@@ -71,6 +71,7 @@ static void test1_positionBreathingTest()
 // Testing:
 //   BlobPosition
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("Position Breathing Test");
 
@@ -87,6 +88,7 @@ static void test1_positionBreathingTest()
 
     {
         PVV("Initialized constructor");
+        // NOLINTNEXTLINE(*-magic-numbers)
         bmqu::BlobPosition obj(12, 98);
         BMQTST_ASSERT_EQ(obj.buffer(), 12);
         BMQTST_ASSERT_EQ(obj.byte(), 98);
@@ -115,6 +117,7 @@ static void test1_positionBreathingTest()
         BMQTST_ASSERT_EQ(os.str(), "[ position = [ buffer = 1 byte = 2 ] ]");
     }
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 static void test2_positionComparison()
 // ------------------------------------------------------------------------
@@ -129,6 +132,7 @@ static void test2_positionComparison()
 // Testing:
 //   '<', '==' and '!='
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-type-member-init)
 {
     bmqtst::TestHelper::printTestName("Position Comparison Test");
 
@@ -140,6 +144,7 @@ static void test2_positionComparison()
         bool         d_less;
         bool         d_equal;
         bool         d_different;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {
         {L_, BlobPosition(0, 0), BlobPosition(0, 0), false, true, false},
         {L_, BlobPosition(2, 3), BlobPosition(2, 3), false, true, false},
@@ -153,10 +158,14 @@ static void test2_positionComparison()
         {L_, BlobPosition(2, 5), BlobPosition(2, 6), true, false, true},
         {L_, BlobPosition(2, 6), BlobPosition(2, 5), false, false, true},
     };
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": comparing " << test.d_lhs << " vs "
@@ -172,7 +181,9 @@ static void test2_positionComparison()
                            test.d_lhs != test.d_rhs,
                            test.d_different);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-type-member-init)
 
 static void test3_sectionBreathingTest()
 // ------------------------------------------------------------------------
@@ -188,6 +199,7 @@ static void test3_sectionBreathingTest()
 // Testing:
 //   BlobSection
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("Section Breathing Test");
 
@@ -204,8 +216,10 @@ static void test3_sectionBreathingTest()
 
     {
         PVV("Initialized constructor");
+        // NOLINTBEGIN(*-magic-numbers)
         bmqu::BlobSection obj(bmqu::BlobPosition(1, 2),
                               bmqu::BlobPosition(9, 8));
+        // NOLINTEND(*-magic-numbers)
         BMQTST_ASSERT_EQ(obj.start(), bmqu::BlobPosition(1, 2));
         BMQTST_ASSERT_EQ(obj.end(), bmqu::BlobPosition(9, 8));
         obj.start() = bmqu::BlobPosition(3, 4);
@@ -215,6 +229,7 @@ static void test3_sectionBreathingTest()
     }
 
     // Verifying printing
+    // NOLINTNEXTLINE(*-magic-numbers)
     bmqu::BlobSection obj(bmqu::BlobPosition(1, 2), bmqu::BlobPosition(9, 8));
     {
         bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
@@ -237,6 +252,7 @@ static void test3_sectionBreathingTest()
                          "end = [ buffer = 9 byte = 8 ] ] ]");
     }
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 static void test4_bufferSize()
 // ------------------------------------------------------------------------
@@ -253,6 +269,7 @@ static void test4_bufferSize()
 // Testing:
 //   bufferSize
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,clang-analyzer-optin.performance.Padding)
 {
     bmqtst::TestHelper::printTestName("Buffer Size Test");
 
@@ -269,9 +286,12 @@ static void test4_bufferSize()
         {L_, "ab|cde|fghiXXX", {2, 3, 4, -1}},
     };
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": checking blob '" << test.d_blobFormat << "'");
@@ -281,13 +301,17 @@ static void test4_bufferSize()
                                          test.d_blobFormat,
                                          bmqtst::TestHelperUtil::allocator());
 
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
         for (int bufIdx = 0; test.d_bufSizes[bufIdx] != -1; ++bufIdx) {
             BMQTST_ASSERT_EQ_D("line " << test.d_line << ", bufIdx " << bufIdx,
                                bmqu::BlobUtil::bufferSize(blob, bufIdx),
                                test.d_bufSizes[bufIdx]);
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers,clang-analyzer-optin.performance.Padding)
 
 static void test5_isValidPos()
 // ------------------------------------------------------------------------
@@ -303,6 +327,7 @@ static void test5_isValidPos()
 // Testing:
 //   isValidPos
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-type-member-init)
 {
     bmqtst::TestHelper::printTestName("Is Valid Pos Test");
 
@@ -315,6 +340,7 @@ static void test5_isValidPos()
         int                d_line;
         bmqu::BlobPosition d_position;
         bool               d_expected;  // expected result
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {
         // All valid positions
         {L_, bmqu::BlobPosition(0, 0), true},
@@ -336,10 +362,14 @@ static void test5_isValidPos()
         {L_, bmqu::BlobPosition(5, 0), false},
         {L_, bmqu::BlobPosition(5, 1), false},
     };
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": checking validity of " << test.d_position);
@@ -347,7 +377,9 @@ static void test5_isValidPos()
                            bmqu::BlobUtil::isValidPos(blob, test.d_position),
                            test.d_expected);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-type-member-init)
 
 static void test6_positionToOffset()
 // ------------------------------------------------------------------------
@@ -365,6 +397,7 @@ static void test6_positionToOffset()
 //   positionToOffsetSafe
 //   positionToOffset
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-type-member-init)
 {
     bmqtst::TestHelper::printTestName("Position To Offset Test");
 
@@ -377,6 +410,7 @@ static void test6_positionToOffset()
         int                d_line;
         bmqu::BlobPosition d_position;
         int                d_expected;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {
         // All valid positions
         {L_, bmqu::BlobPosition(0, 0), 0},
@@ -398,10 +432,14 @@ static void test6_positionToOffset()
         {L_, bmqu::BlobPosition(5, 0), -1},
         {L_, bmqu::BlobPosition(5, 1), -1},
     };
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": checking offset of " << test.d_position);
@@ -427,7 +465,9 @@ static void test6_positionToOffset()
             BMQTST_ASSERT_EQ_D("line " << test.d_line, rc, -1);
         }
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-type-member-init)
 
 static void test7_findOffset()
 // ------------------------------------------------------------------------
@@ -444,6 +484,7 @@ static void test7_findOffset()
 //   findOffsetSafe
 //   findOffset
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-type-member-init,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("Find Offset Test");
 
@@ -459,6 +500,7 @@ static void test7_findOffset()
             int                d_offset;
             int                d_expectedRc;
             bmqu::BlobPosition d_expected;
+            // NOLINTBEGIN(*-magic-numbers)
         } k_DATA[] = {
             // Valid offsets
             {L_, 0, 0, bmqu::BlobPosition(0, 0)},
@@ -475,10 +517,14 @@ static void test7_findOffset()
             {L_, 10, -2, bmqu::BlobPosition(0, 0)},
             {L_, 11, -2, bmqu::BlobPosition(0, 0)},
         };
+        // NOLINTEND(*-magic-numbers)
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+        // NOLINTBEGIN(performance-avoid-endl)
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const Test& test = k_DATA[idx];
 
             PVV(test.d_line << ": checking position of offset "
@@ -507,6 +553,7 @@ static void test7_findOffset()
                                    test.d_expected);
             }
         }
+        // NOLINTEND(performance-avoid-endl)
     }
 
     PV("Using a start offset");
@@ -517,6 +564,7 @@ static void test7_findOffset()
             int                d_offset;
             int                d_expectedRc;
             bmqu::BlobPosition d_expected;
+            // NOLINTBEGIN(*-magic-numbers)
         } k_DATA[] = {
             // Start of (0, 1)
             {L_, bmqu::BlobPosition(0, 1), 0, 0, bmqu::BlobPosition(0, 1)},
@@ -561,10 +609,14 @@ static void test7_findOffset()
             // Invalid start
             {L_, bmqu::BlobPosition(5, 2), 0, -1, bmqu::BlobPosition(0, 0)},
             {L_, bmqu::BlobPosition(5, 2), 1, -1, bmqu::BlobPosition(0, 0)}};
+        // NOLINTEND(*-magic-numbers)
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+        // NOLINTBEGIN(performance-avoid-endl)
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const Test& test = k_DATA[idx];
 
             PVV(test.d_line << ": checking position of offset "
@@ -595,8 +647,10 @@ static void test7_findOffset()
                                    test.d_expected);
             }
         }
+        // NOLINTEND(performance-avoid-endl)
     }
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-type-member-init,performance-avoid-endl)
 
 static void test8_reserve()
 // ------------------------------------------------------------------------
@@ -611,6 +665,7 @@ static void test8_reserve()
 // Testing:
 //   reserve
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding,cppcoreguidelines-pro-type-member-init)
 {
     bmqtst::TestHelper::printTestName("Reserve Test");
 
@@ -633,9 +688,12 @@ static void test8_reserve()
         {L_, "abcd|efgX", 2, bmqu::BlobPosition(1, 3)},
     };
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": reserve in blob '" << test.d_blobPattern << "'");
@@ -673,7 +731,9 @@ static void test8_reserve()
             BMQTST_ASSERT_EQ_D("line " << test.d_line, pos, test.d_expected);
         }
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding,cppcoreguidelines-pro-type-member-init)
 
 static void test9_writeBytes()
 // ------------------------------------------------------------------------
@@ -689,6 +749,7 @@ static void test9_writeBytes()
 // Testing:
 //   writeBytes
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding,cppcoreguidelines-pro-type-member-init)
 {
     bmqtst::TestHelper::printTestName("Write Bytes Test");
 
@@ -701,6 +762,7 @@ static void test9_writeBytes()
         const char*        d_data;
         const char*        d_resultBlob;
         int                d_expectedRc;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {
         {L_, "", BlobPosition(0, 0), "", "", 0},
         {L_, "", BlobPosition(0, 0), "a", "", -21},
@@ -728,10 +790,14 @@ static void test9_writeBytes()
         {L_, "ab|cde", BlobPosition(1, 1), "12", "abc12", 0},
         {L_, "ab|cde", BlobPosition(1, 1), "123", "abcde", -21},
         {L_, "ab|cde|fg|h|ij", BlobPosition(1, 1), "123456", "abc123456j", 0}};
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << " in blob '" << test.d_blobPattern << "':  write '"
@@ -743,10 +809,12 @@ static void test9_writeBytes()
                                          test.d_blobPattern,
                                          bmqtst::TestHelperUtil::allocator());
 
+        // NOLINTBEGIN(*-narrowing-conversions)
         int rc = bmqu::BlobUtil::writeBytes(&blob,
                                             test.d_position,
                                             test.d_data,
                                             bsl::strlen(test.d_data));
+        // NOLINTEND(*-narrowing-conversions)
         BMQTST_ASSERT_EQ_D("line " << test.d_line, rc, test.d_expectedRc);
 
         bsl::string resultBlob(bmqtst::TestHelperUtil::allocator());
@@ -756,7 +824,9 @@ static void test9_writeBytes()
                            bsl::string(test.d_resultBlob,
                                        bmqtst::TestHelperUtil::allocator()));
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding,cppcoreguidelines-pro-type-member-init)
 
 static void test10_appendBlobFromIndex()
 // ------------------------------------------------------------------------
@@ -772,6 +842,7 @@ static void test10_appendBlobFromIndex()
 // Testing:
 //   appendBlobFromIndex
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 {
     bmqtst::TestHelper::printTestName("Append Blob From Index Test");
 
@@ -789,6 +860,7 @@ static void test10_appendBlobFromIndex()
         const int   d_length;
         const char* d_data;
         const char* d_resultBlob;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {{L_, "", 0, 0, 0, "ab|cdeXX", ""},
                   {L_, "", 0, 1, 0, "ab|cdeXX", ""},
                   {L_, "", 1, 0, 0, "ab|cdeXX", ""},
@@ -802,10 +874,14 @@ static void test10_appendBlobFromIndex()
                   {L_, "wx|yzXX", 0, 1, 2, "ab|cdeXX", "wx|yzbc"},
                   {L_, "wx|yzXX", 1, 0, 3, "ab|cdeXX", "wx|yzcd|eXXX"},
                   {L_, "wx|yzXX", 1, 2, 1, "ab|cdeXX", "wx|yzeX"}};
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << " in blob '" << test.d_blobPattern << "':  append "
@@ -836,7 +912,9 @@ static void test10_appendBlobFromIndex()
                            bsl::string(test.d_resultBlob,
                                        bmqtst::TestHelperUtil::allocator()));
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 
 static void test11_sectionSize()
 // ------------------------------------------------------------------------
@@ -852,6 +930,7 @@ static void test11_sectionSize()
 // Testing:
 //   sectionSize
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("Section Size Test");
 
@@ -874,9 +953,12 @@ static void test11_sectionSize()
         {L_, "ab|cdXX", BlobPosition(1, 0), BlobPosition(2, 2), -1, 0},
         {L_, "ab|cdXX", BlobPosition(0, 1), BlobPosition(2, 0), 0, 3}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << " in blob '" << test.d_blobPattern << "':  section "
@@ -895,7 +977,9 @@ static void test11_sectionSize()
         BMQTST_ASSERT_EQ_D("line " << test.d_line, rc, test.d_rc);
         BMQTST_ASSERT_EQ_D("line " << test.d_line, size, test.d_size);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test12_compareSection()
 // ------------------------------------------------------------------------
@@ -911,6 +995,7 @@ static void test12_compareSection()
 // Testing:
 //   compareSection
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 {
     bmqtst::TestHelper::printTestName("Compare Section Test");
 
@@ -931,9 +1016,12 @@ static void test12_compareSection()
                   {L_, "abcd|efXX", BlobPosition(0, 2), "cdee", 4, 0, -1},
                   {L_, "abcd|efXX", BlobPosition(0, 3), "def_", 4, -1, 0}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << " in blob '" << test.d_blobPattern << "':  compare "
@@ -957,7 +1045,9 @@ static void test12_compareSection()
                            cmpResult,
                            test.d_cmpResult);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 
 static void test13_copyToRawBufferFromIndex()
 // ------------------------------------------------------------------------
@@ -974,6 +1064,7 @@ static void test13_copyToRawBufferFromIndex()
 // Testing:
 //   copyToRawBufferFromIndex
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("Copy To Raw Buffer From Index Test");
 
@@ -987,6 +1078,7 @@ static void test13_copyToRawBufferFromIndex()
         const int   d_byte;
         const int   d_length;
         const char* d_result;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {{L_, 0, "ab|cdeXX", 0, 0, 0, "1234567"},
                   {L_, 0, "ab|cdeXX", 0, 1, 0, "1234567"},
                   {L_, 0, "ab|cdeXX", 1, 0, 0, "1234567"},
@@ -1000,17 +1092,23 @@ static void test13_copyToRawBufferFromIndex()
                   {L_, 5, "ab|cdeXX", 0, 1, 2, "12345bc"},
                   {L_, 4, "ab|cdeXX", 1, 0, 3, "1234cde"},
                   {L_, 1, "ab|cdeXX", 0, 0, 5, "1abcde7"}};
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         const size_t NUM = 7;
         char         dst[NUM];
+        // NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-bounds-constant-array-index)
         for (size_t i = 0; i < NUM; ++i) {
             dst[i] = '1' + i;
         }
+        // NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-bounds-constant-array-index)
 
         PVV(test.d_line << " with offset of " << test.d_rawBufferOffset
                         << " bytes in destination buffer copy "
@@ -1034,7 +1132,9 @@ static void test13_copyToRawBufferFromIndex()
             bsl::string(dst, NUM, bmqtst::TestHelperUtil::allocator()),
             bsl::string(test.d_result, bmqtst::TestHelperUtil::allocator()));
     }
+    // NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test14_readUpToNBytes()
 // ------------------------------------------------------------------------
@@ -1051,6 +1151,7 @@ static void test14_readUpToNBytes()
 // Testing:
 //   readUpToNBytes
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-type-member-init)
 {
     bmqtst::TestHelper::printTestName("Read Up To N Bytes Test");
 
@@ -1068,6 +1169,7 @@ static void test14_readUpToNBytes()
         int                d_length;
         int                d_expectedRc;
         const char*        d_expected;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {
         {L_, bmqu::BlobPosition(0, 0), 0, 0, ""},
         {L_, bmqu::BlobPosition(0, 0), 1, 1, "a"},
@@ -1092,10 +1194,14 @@ static void test14_readUpToNBytes()
         {L_, bmqu::BlobPosition(4, 0), 1, 0, ""},
         {L_, bmqu::BlobPosition(5, 1), 0, -1, ""},  // invalid start
     };
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << " in blob pattern '" << blobPattern << "': read "
@@ -1104,10 +1210,12 @@ static void test14_readUpToNBytes()
 
         char buffer[32];
 
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         int numRead = bmqu::BlobUtil::readUpToNBytes(buffer,
                                                      blob,
                                                      test.d_start,
                                                      test.d_length);
+        // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
         BMQTST_ASSERT_EQ_D("line " << test.d_line, numRead, test.d_expectedRc);
 
@@ -1121,7 +1229,9 @@ static void test14_readUpToNBytes()
                             bmqtst::TestHelperUtil::allocator()));
         }
     }
+    // NOLINTEND(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-type-member-init)
 
 static void test15_readNBytes()
 // ------------------------------------------------------------------------
@@ -1138,6 +1248,7 @@ static void test15_readNBytes()
 // Testing:
 //   readNBytes
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-type-member-init)
 {
     bmqtst::TestHelper::printTestName("Read N Bytes Test");
 
@@ -1155,6 +1266,7 @@ static void test15_readNBytes()
         int                d_length;
         int                d_expectedRc;
         const char*        d_expected;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {
         {L_, bmqu::BlobPosition(0, 0), 0, 0, ""},
         {L_, bmqu::BlobPosition(0, 0), 1, 0, "a"},
@@ -1180,10 +1292,14 @@ static void test15_readNBytes()
         {L_, bmqu::BlobPosition(5, 1), 0, -11, ""},
         // invalid start
     };
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << " in blob pattern '" << blobPattern << "': read "
@@ -1192,10 +1308,12 @@ static void test15_readNBytes()
 
         char buffer[32];
 
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         int rc = bmqu::BlobUtil::readNBytes(buffer,
                                             blob,
                                             test.d_start,
                                             test.d_length);
+        // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
         BMQTST_ASSERT_EQ_D("line " << test.d_line, rc, test.d_expectedRc);
 
@@ -1209,7 +1327,9 @@ static void test15_readNBytes()
                             bmqtst::TestHelperUtil::allocator()));
         }
     }
+    // NOLINTEND(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-type-member-init)
 
 static void test16_appendToBlob()
 // ------------------------------------------------------------------------
@@ -1225,6 +1345,7 @@ static void test16_appendToBlob()
 // Testing:
 //   appendToBlob
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("Append To Blob Test");
 
@@ -1246,6 +1367,7 @@ static void test16_appendToBlob()
             const int   d_length;
             const int   d_rc;
             const char* d_resultPattern;
+            // NOLINTBEGIN(*-magic-numbers)
         } k_DATA[] = {
             {L_, "ab|cdXX", "ef|ghXX", 1, 2, 1, -1, "ab|cdXX"},
             // invalid start
@@ -1257,10 +1379,14 @@ static void test16_appendToBlob()
             {L_, "ab|cdXX", "ef|ghXX", 0, 1, 3, 0, "ab|cd|f|gh"},
             {L_, "ab|cdXX", "ef|ghXX", 0, 0, 4, 0, "ab|cd|ef|gh"},
         };
+        // NOLINTEND(*-magic-numbers)
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+        // NOLINTBEGIN(performance-avoid-endl)
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const Test& test = k_DATA[idx];
 
             PVV(test.d_line << " in blob '" << test.d_destPattern
@@ -1297,6 +1423,7 @@ static void test16_appendToBlob()
                 bsl::string(test.d_resultPattern,
                             bmqtst::TestHelperUtil::allocator()));
         }
+        // NOLINTEND(performance-avoid-endl)
     }
 
     {
@@ -1320,9 +1447,12 @@ static void test16_appendToBlob()
             {L_, "ab|cdXX", "ef|ghXX", 2, 0, 0, "ab|cd"},
         };
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+        // NOLINTBEGIN(performance-avoid-endl)
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const Test& test = k_DATA[idx];
 
             PVV(test.d_line << " in blob '" << test.d_destPattern
@@ -1357,8 +1487,10 @@ static void test16_appendToBlob()
                 bsl::string(test.d_resultPattern,
                             bmqtst::TestHelperUtil::allocator()));
         }
+        // NOLINTEND(performance-avoid-endl)
     }
 }
+// NOLINTEND(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding,performance-avoid-endl)
 
 static void test17_getAlignedSection()
 // ------------------------------------------------------------------------
@@ -1376,6 +1508,7 @@ static void test17_getAlignedSection()
 //   getAlignedSectionSafe
 //   getAlignedSection
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding,cppcoreguidelines-use-enum-class)
 {
     bmqtst::TestHelper::printTestName("Get Aligned Section Test");
 
@@ -1393,6 +1526,7 @@ static void test17_getAlignedSection()
         const int   d_length;
         const bool  d_copyFromBlob;
         const Res   d_res;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {
         {L_, "ab|cdXX", 3, 0, 0, false, Test::e_NULL},  // invalid start
         {L_, "ab|cdXX", 3, 0, 0, true, Test::e_NULL},   // invalid start
@@ -1409,10 +1543,14 @@ static void test17_getAlignedSection()
         {L_, "ab|cdXX", 0, 0, 5, false, Test::e_NULL},  // invalid length
         {L_, "ab|cdXX", 0, 0, 5, true, Test::e_NULL},   // invalid length
     };
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << " in blob '" << test.d_blobPattern
@@ -1428,7 +1566,8 @@ static void test17_getAlignedSection()
 
         const BlobPosition start(test.d_index, test.d_byte);
 
-        char        storageSafe[10];
+        char storageSafe[10];
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const char* resSafe = bmqu::BlobUtil::getAlignedSectionSafe(
             storageSafe,
             blob,
@@ -1436,6 +1575,7 @@ static void test17_getAlignedSection()
             test.d_length,
             k_ALIGNMENT,
             test.d_copyFromBlob);
+        // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
         if (test.d_res == Test::e_NULL) {
             PVVV("null result")
@@ -1444,7 +1584,8 @@ static void test17_getAlignedSection()
         }
 
         // Also call "unsafe" version
-        char        storage[10];
+        char storage[10];
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const char* res = bmqu::BlobUtil::getAlignedSection(
             storage,
             blob,
@@ -1452,9 +1593,11 @@ static void test17_getAlignedSection()
             test.d_length,
             k_ALIGNMENT,
             test.d_copyFromBlob);
+        // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
         char      expected[10];
         const int rc =
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
             bmqu::BlobUtil::readNBytes(expected, blob, start, test.d_length);
         BMQTST_ASSERT_EQ_D("line " << test.d_line, rc, 0);
 
@@ -1485,7 +1628,9 @@ static void test17_getAlignedSection()
             }
         }
     }
+    // NOLINTEND(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding,cppcoreguidelines-use-enum-class)
 
 static void test18_getAlignedObject()
 // ------------------------------------------------------------------------
@@ -1503,6 +1648,7 @@ static void test18_getAlignedObject()
 //   getAlignedObjectSafe
 //   getAlignedObject
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 {
     bmqtst::TestHelper::printTestName("Get Aligned Object Test");
 
@@ -1532,9 +1678,12 @@ static void test18_getAlignedObject()
         {L_, "ab|cdXX", 1, 1, true, 0},   // blob too short
     };
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << " in blob '" << test.d_blobPattern
@@ -1562,6 +1711,7 @@ static void test18_getAlignedObject()
             continue;
         }
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         TestObject expected = {test.d_resData[0], test.d_resData[1]};
         BMQTST_ASSERT_EQ_D("line " << test.d_line, *resSafe, expected);
 
@@ -1575,7 +1725,9 @@ static void test18_getAlignedObject()
 
         BMQTST_ASSERT_EQ_D("line " << test.d_line, *res, expected);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 
 static void test19_blobStartHexDumper()
 // ------------------------------------------------------------------------
@@ -1592,6 +1744,7 @@ static void test19_blobStartHexDumper()
 // Testing:
 //   BlobStartHexDumper
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("Blob Start Hex Dumper Test");
 
@@ -1635,12 +1788,14 @@ static void test19_blobStartHexDumper()
                          "\t+ 2 more bytes. (8 total)");
     }
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -1673,3 +1828,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

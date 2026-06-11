@@ -83,6 +83,7 @@ namespace mqbblp {
 // class ClusterStateManager
 // =========================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ClusterStateManager BSLS_KEYWORD_FINAL
 : public mqbc::ClusterStateObserver,
   public mqbi::ClusterStateManager,
@@ -513,6 +514,7 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     int latestLedgerLSN(bmqp_ctrlmsg::LeaderMessageSequence* out) const
         BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                           INLINE DEFINITIONS

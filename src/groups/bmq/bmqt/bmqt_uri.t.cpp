@@ -66,6 +66,7 @@ static void test1_breathingTest()
 //   class Uri
 //   int Uri::parseUri
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -296,9 +297,11 @@ static void test1_breathingTest()
              bmqt::UriParser::UriParseResult::e_UNSUPPORTED_CHAR},
         };
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const Test& test = k_DATA[idx];
 
             bmqt::Uri obj(bmqtst::TestHelperUtil::allocator());
@@ -313,8 +316,10 @@ static void test1_breathingTest()
         }
     }
 }
+// NOLINTEND(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 static void test2_URIBuilder()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -440,6 +445,7 @@ static void test2_URIBuilder()
         BMQTST_ASSERT_EQ(tmpUri.asString(), "bmq://my.domain/yourQueue");
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 /// Test same `UriBuilder` object to match various patterns concurrently
 /// from multiple threads.
@@ -525,6 +531,7 @@ static void test3_URIBuilderMultiThreaded()
 
 /// Test Uri print method.
 static void test4_testPrint()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("PRINT");
 
@@ -549,6 +556,7 @@ static void test4_testPrint()
     stream << obj;
     BMQTST_ASSERT_EQ(stream.str(), "NO LAYOUT");
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test5_hashAppend()
 // ------------------------------------------------------------------------
@@ -568,6 +576,7 @@ static void test5_hashAppend()
 //   void
 //   hashAppend(HASH_ALGORITHM&  hashAlgo, const bmqt::Uri& uri)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("HASH APPEND");
 
@@ -588,6 +597,7 @@ static void test5_hashAppend()
     bsl::hash<bmqt::Uri>              hasher;
     bsl::hash<bmqt::Uri>::result_type firstHash = hasher(obj);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t i = 0; i < k_NUM_ITERATIONS; ++i) {
         bslh::DefaultHashAlgorithm algo;
         hashAppend(algo, obj);
@@ -595,7 +605,9 @@ static void test5_hashAppend()
         PVVV("[" << i << "] hash: " << currHash);
         BMQTST_ASSERT_EQ_D(i, currHash, firstHash);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test6_testLongUri()
 {
@@ -671,8 +683,10 @@ struct UriConstructorBenchmark {
             bmqtst::TestHelperUtil::allocator());
 
         // Test allocator is slow and might skew the benchmarks
+        // NOLINTBEGIN(*-magic-numbers)
         bdlma::LocalSequentialAllocator<256> lsa(
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
 
         initLatch_p->arrive();
         startBarrier_p->wait();
@@ -743,6 +757,7 @@ static void testN1_benchmark(benchmark::State& state)
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -806,3 +821,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

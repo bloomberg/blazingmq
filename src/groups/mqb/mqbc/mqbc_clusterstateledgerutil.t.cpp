@@ -58,15 +58,18 @@ using namespace bsl;
 namespace {
 
 // CONSTANTS
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 const char* k_DEFAULT_LOG_PREFIX = "BMQ_TEST_LOG_";
 
 // TYPES
 struct AdvisoryType {
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         e_PARTITION_PRIMARY = 0,
         e_QUEUE_ASSIGNMENT  = 1,
         e_COMMIT            = 2
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 };
 
 // FUNCTIONS
@@ -86,6 +89,7 @@ int onRolloverCallback(BSLA_MAYBE_UNUSED const mqbu::StorageKey& oldLogId,
 // struct Tester
 // =============
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct Tester {
   private:
     // DATA
@@ -104,7 +108,9 @@ struct Tester {
     : d_config(allocator)
     , d_ledger_mp(0)
     , d_tempDir(allocator)
+    // NOLINTNEXTLINE(*-magic-numbers)
     , d_bufferFactory(1024, allocator)
+    // NOLINTBEGIN(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result)
     {
         // Instantiate ledger config
         bsl::shared_ptr<mqbsi::LogIdGenerator> logIdGenerator(
@@ -139,6 +145,7 @@ struct Tester {
         BSLS_ASSERT_OPT(
             d_ledger_mp->open(mqbsi::Ledger::e_CREATE_IF_MISSING) == 0);
     }
+    // NOLINTEND(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result)
 
     ~Tester() { BSLS_ASSERT_OPT(d_ledger_mp->close() == 0); }
 
@@ -146,6 +153,7 @@ struct Tester {
     createClusterMessage(bmqp_ctrlmsg::ClusterMessage* message,
                          AdvisoryType::Enum            advisoryType,
                          const bmqp_ctrlmsg::LeaderMessageSequence& lms)
+    // NOLINTBEGIN(*-magic-numbers)
     {
         switch (advisoryType) {
         case AdvisoryType::e_PARTITION_PRIMARY: {
@@ -187,11 +195,13 @@ struct Tester {
             BSLS_ASSERT(false && "Advisory type is not a cluster message");
         }
     }
+    // NOLINTEND(*-magic-numbers)
 
     mqbsi::Ledger* ledger() const { return d_ledger_mp.get(); }
 
     bdlbb::BlobBufferFactory* bufferFactory() { return &d_bufferFactory; }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close anonymous namespace
 
@@ -263,6 +273,7 @@ static void test2_validateRecordHeader()
 // Testing:
 //   validateRecordHeader(...)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("VALIDATE RECORD HEADER");
 
@@ -299,6 +310,7 @@ static void test2_validateRecordHeader()
         mqbc::ClusterStateLedgerUtilRc::e_INVALID_LEADER_ADVISORY_WORDS);
     header.setLeaderAdvisoryWords(17);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test3_extractLogId()
 // ------------------------------------------------------------------------
@@ -339,6 +351,7 @@ static void test4_validateLog()
 // Testing:
 //   validateLog(...)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-type-reinterpret-cast,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("VALIDATE LOG");
 
@@ -467,6 +480,7 @@ static void test4_validateLog()
                                                   ledger->currentLog()),
         0);
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-type-reinterpret-cast,performance-avoid-endl)
 
 static void test5_validateLog_invalidCrc32c()
 // ------------------------------------------------------------------------
@@ -478,6 +492,7 @@ static void test5_validateLog_invalidCrc32c()
 // Testing:
 //   validateLog(...)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-type-member-init,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     bmqtst::TestHelper::printTestName("VALIDATE LOG - INVALID CRC32-C");
 
@@ -567,6 +582,7 @@ static void test5_validateLog_invalidCrc32c()
                                                   ledger->currentLog()),
         0);
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-type-member-init,cppcoreguidelines-pro-type-reinterpret-cast)
 
 static void test6_writeFileHeader()
 // ------------------------------------------------------------------------
@@ -578,6 +594,7 @@ static void test6_writeFileHeader()
 // Testing:
 //   writeFileHeader(...)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-init-variables,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     bmqtst::TestHelper::printTestName("WRTIE FILE HEADER");
 
@@ -605,6 +622,7 @@ static void test6_writeFileHeader()
                      mqbc::ClusterStateFileHeader::k_HEADER_NUM_WORDS);
     BMQTST_ASSERT_EQ(header->fileKey(), logId);
 }
+// NOLINTEND(cppcoreguidelines-init-variables,cppcoreguidelines-pro-type-reinterpret-cast)
 
 static void test7_appendRecord()
 // ------------------------------------------------------------------------
@@ -616,6 +634,7 @@ static void test7_appendRecord()
 // Testing:
 //   appendRecord(...)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     bmqtst::TestHelper::printTestName("APPEND RECORD");
 
@@ -631,12 +650,14 @@ static void test7_appendRecord()
 
     bdlbb::Blob record(tester.bufferFactory(),
                        bmqtst::TestHelperUtil::allocator());
-    int         rc = mqbc::ClusterStateLedgerUtil::appendRecord(
+    // NOLINTBEGIN(*-magic-numbers)
+    int rc = mqbc::ClusterStateLedgerUtil::appendRecord(
         &record,
         msg,
         lms,
         123456U,
         mqbc::ClusterStateRecordType::e_UPDATE);
+    // NOLINTEND(*-magic-numbers)
     BMQTST_ASSERT_EQ(rc, 0);
 
     // 2. Verify record header
@@ -667,6 +688,7 @@ static void test7_appendRecord()
 
     BMQTST_ASSERT_EQ(out, msg);
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-type-reinterpret-cast)
 
 static void test8_loadClusterMessageLedger()
 // ------------------------------------------------------------------------
@@ -684,6 +706,7 @@ static void test8_loadClusterMessageLedger()
 //                      const mqbsi::Ledger&          ledger,
 //                      const mqbsi::LedgerRecordId&  recordId)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     bmqtst::TestHelper::printTestName("LOAD CLUSTER MESSAGE LEDGER");
 
@@ -700,12 +723,14 @@ static void test8_loadClusterMessageLedger()
 
     bdlbb::Blob record(tester.bufferFactory(),
                        bmqtst::TestHelperUtil::allocator());
-    int         rc = mqbc::ClusterStateLedgerUtil::appendRecord(
+    // NOLINTBEGIN(*-magic-numbers)
+    int rc = mqbc::ClusterStateLedgerUtil::appendRecord(
         &record,
         msg,
         lms,
         123456U,
         mqbc::ClusterStateRecordType::e_UPDATE);
+    // NOLINTEND(*-magic-numbers)
     BSLS_ASSERT_OPT(rc == 0);
 
     // 2. Write the record to ledger
@@ -744,6 +769,7 @@ static void test8_loadClusterMessageLedger()
 
     BMQTST_ASSERT_EQ(out2, msg);
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-type-reinterpret-cast)
 
 static void test9_loadClusterMessageBlob()
 // ------------------------------------------------------------------------
@@ -761,6 +787,7 @@ static void test9_loadClusterMessageBlob()
 //                      const bdlbb::Blob&            record,
 //                      int                           offset)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     bmqtst::TestHelper::printTestName("LOAD CLUSTER MESSAGE BLOB");
 
@@ -776,12 +803,14 @@ static void test9_loadClusterMessageBlob()
 
     bdlbb::Blob record(tester.bufferFactory(),
                        bmqtst::TestHelperUtil::allocator());
-    int         rc = mqbc::ClusterStateLedgerUtil::appendRecord(
+    // NOLINTBEGIN(*-magic-numbers)
+    int rc = mqbc::ClusterStateLedgerUtil::appendRecord(
         &record,
         msg,
         lms,
         123456U,
         mqbc::ClusterStateRecordType::e_UPDATE);
+    // NOLINTEND(*-magic-numbers)
     BSLS_ASSERT_OPT(rc == 0);
 
     // 2. Prepend an empty buffer to force the record to start at an offset
@@ -819,6 +848,7 @@ static void test9_loadClusterMessageBlob()
 
     BMQTST_ASSERT_EQ(out2, msg);
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-type-reinterpret-cast)
 
 static void test10_recordSize()
 // ------------------------------------------------------------------------
@@ -830,6 +860,7 @@ static void test10_recordSize()
 // Testing:
 //   recordSize(...)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("RECORD SIZE");
 
@@ -842,17 +873,21 @@ static void test10_recordSize()
         .setTimestamp(123456U);
 
     bsls::Types::Int64 expectedRecordSize =
+        // NOLINTBEGIN(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result)
         (mqbc::ClusterStateRecordHeader::k_HEADER_NUM_WORDS + 17) *
         bmqp::Protocol::k_WORD_SIZE;
+    // NOLINTEND(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result)
     BMQTST_ASSERT_EQ(mqbc::ClusterStateLedgerUtil::recordSize(header),
                      expectedRecordSize);
 }
+// NOLINTEND(*-magic-numbers)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -880,3 +915,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

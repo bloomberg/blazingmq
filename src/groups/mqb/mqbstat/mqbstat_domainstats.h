@@ -50,6 +50,7 @@ namespace mqbstat {
 // =================
 
 /// Mechanism to keep track of individual overall statistics of a domain
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class DomainStats {
   public:
     // TYPES
@@ -58,24 +59,28 @@ class DomainStats {
     /// are monitored.
     struct EventType {
         // TYPES
+        // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
         enum Enum {
             e_CFG_MSGS,
             e_CFG_BYTES,
             e_QUEUE_COUNT,
             e_QUEUE_COUNT_OPEN
         };
+        // NOLINTEND(cppcoreguidelines-use-enum-class)
     };
 
     /// Enum representing the various type of stats that can be obtained
     /// from this object.
     struct Stat {
         // TYPES
+        // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
         enum Enum {
             e_CFG_MSGS,
             e_CFG_BYTES,
             e_QUEUE_COUNT,
             e_QUEUE_COUNT_OPEN
         };
+        // NOLINTEND(cppcoreguidelines-use-enum-class)
     };
 
   private:
@@ -89,12 +94,14 @@ class DomainStats {
     /// Namespace for the constants of stat values that applies to the queues
     /// from the clients
     struct DomainStatsIndex {
+        // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
         enum Enum {
             e_STAT_CFG_MSGS,
             e_STAT_CFG_BYTES,
             e_STAT_QUEUE_COUNT,
             e_STAT_QUEUE_COUNT_OPEN
         };
+        // NOLINTEND(cppcoreguidelines-use-enum-class)
     };
 
   private:
@@ -141,6 +148,7 @@ class DomainStats {
     /// Return a pointer to the statcontext.
     bmqst::StatContext* statContext();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ======================
 // struct DomainStatsUtil

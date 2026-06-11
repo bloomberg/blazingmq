@@ -86,6 +86,7 @@ class QueueHandle;
 /// remove operations on a Storage
 struct StorageResult {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         e_SUCCESS           = 0,
         e_INVALID_OPERATION = -1,
@@ -101,6 +102,7 @@ struct StorageResult {
         e_APPKEY_NOT_FOUND    = -9,
         e_DUPLICATE           = -10
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -279,6 +281,7 @@ struct AppMessage {
     BSLMF_NESTED_TRAIT_DECLARATION(AppMessage, bsl::is_trivially_copyable)
 
     // PULIC TYOES
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum State { e_NONE = 0, e_PUT = 1, e_PUSH = 2, e_CONFIRM = 3 };
 
     bmqp::RdaInfo d_rdaInfo;
@@ -344,6 +347,7 @@ struct DataStreamMessage {
 /// the underlying structure used by the storage to keep track of the
 /// message, hence providing lightweight and very efficient way to iterate
 /// over messages.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class StorageIterator {
   public:
     // CREATORS
@@ -413,12 +417,14 @@ class StorageIterator {
     /// iterator has received replication factor Receipts.
     virtual bool hasReceipt() const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =============
 // class Storage
 // =============
 
 /// Interface for a Storage.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Storage {
   public:
     // PUBLIC CONSTANTS
@@ -713,6 +719,7 @@ class Storage {
     /// Return the number of auto confirmed Apps for the current message.
     virtual unsigned int numAutoConfirms() const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

@@ -42,6 +42,7 @@ namespace {
 /// specified `max`, inclusive.  The behavior is undefined unless `min >= 0`
 /// and `max >= min`.
 int generateRandomInteger(int min, int max)
+// NOLINTBEGIN(cert-msc30-c,cert-msc50-cpp)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(min >= 0);
@@ -49,6 +50,7 @@ int generateRandomInteger(int min, int max)
 
     return min + (bsl::rand() % (max - min + 1));
 }
+// NOLINTEND(cert-msc30-c,cert-msc50-cpp)
 
 }  // close unnamed namespace
 
@@ -57,6 +59,7 @@ int generateRandomInteger(int min, int max)
 // ----------------------------------------------------------------------------
 
 static void test1_breathingTest()
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -121,8 +124,10 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(obj3.subId(), k_DEFAULT_SUBQUEUE_ID);
     }
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 static void test2_print()
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("PRINT");
 
@@ -151,6 +156,7 @@ static void test2_print()
 
     BMQTST_ASSERT_EQ(out.str(), expected);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test3_hashAppend()
 // ------------------------------------------------------------------------
@@ -170,6 +176,7 @@ static void test3_hashAppend()
 //   hashAppend(HASH_ALGORITHM&      hashAlgo,
 //              const bmqp::QueueId& queueId)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("HASH APPEND");
 
@@ -184,6 +191,7 @@ static void test3_hashAppend()
 
         bsl::hash<bmqp::QueueId>              hasher;
         bsl::hash<bmqp::QueueId>::result_type firstHash = hasher(obj);
+        // NOLINTBEGIN(performance-avoid-endl)
         for (size_t i = 0; i < k_NUM_ITERATIONS; ++i) {
             bslh::DefaultHashAlgorithm algo;
             hashAppend(algo, obj);
@@ -192,14 +200,17 @@ static void test3_hashAppend()
             PVV("[" << i << "] hash: " << currHash);
             BMQTST_ASSERT_EQ_D(i, currHash, firstHash);
         }
+        // NOLINTEND(performance-avoid-endl)
     }
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -220,3 +231,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

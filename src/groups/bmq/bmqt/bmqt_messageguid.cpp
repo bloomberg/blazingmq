@@ -40,13 +40,16 @@ BSLMF_ASSERT(0 == sizeof(MessageGUID) % 4);
 BSLMF_ASSERT(1 == bsls::AlignmentFromType<MessageGUID>::VALUE);
 // Compile-time assertion of alignment of MessageGUID
 
+// NOLINTBEGIN(*-avoid-c-arrays)
 const char k_HEX_INT_TABLE[24] = {0,  1,  2,  3,  4,  5,  6,  7,
                                   8,  9,  99, 99, 99, 99, 99, 99,
                                   99, 10, 11, 12, 13, 14, 15, 99};
+// NOLINTEND(*-avoid-c-arrays)
 // Conversion table used to convert a hexadecimal value to it's int
 // representation. (99 is because in the ASCII table, '9' is 57 and 'A' is
 // 65, so the 99 represents unexpected invalid value in the input).
 
+// NOLINTBEGIN(*-avoid-c-arrays)
 const char k_INT_HEX_TABLE[16] = {'0',
                                   '1',
                                   '2',
@@ -63,6 +66,7 @@ const char k_INT_HEX_TABLE[16] = {'0',
                                   'D',
                                   'E',
                                   'F'};
+// NOLINTEND(*-avoid-c-arrays)
 // Conversion table used to convert an int number to its hexadecimal
 // representation.
 }  // close unnamed namespace
@@ -71,63 +75,79 @@ const char k_INT_HEX_TABLE[16] = {'0',
 // class MessageGUID
 // -----------------
 
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char MessageGUID::k_UNSET_GUID[e_SIZE_BINARY] = {0};
 
 // CLASS LEVEL METHODS
 bool MessageGUID::isValidHexRepresentation(const char* buffer)
 {
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (int i = 0; i < MessageGUID::e_SIZE_HEX; ++i) {
         if (!(buffer[i] >= '0' && buffer[i] <= '9') &&
             !(buffer[i] >= 'A' && buffer[i] <= 'F')) {
             return false;  // RETURN
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     return true;
 }
 
 // MANIPULATORS
 MessageGUID& MessageGUID::fromBinary(const unsigned char* buffer)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bsl::memcpy(d_buffer, buffer, MessageGUID::e_SIZE_BINARY);
     return *this;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 MessageGUID& MessageGUID::fromHex(const char* buffer)
 {
+    // NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-bounds-constant-array-index)
     for (int i = 0; i < MessageGUID::e_SIZE_BINARY; ++i) {
         const int index = 2 * i;
-        const int ch1   = buffer[index + 0] - '0';
-        const int ch2   = buffer[index + 1] - '0';
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        const int ch1 = buffer[index + 0] - '0';
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        const int ch2 = buffer[index + 1] - '0';
 
         d_buffer[i] = (k_HEX_INT_TABLE[ch1] << 4) | (k_HEX_INT_TABLE[ch2]);
     }
+    // NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-bounds-constant-array-index)
 
     return *this;
 }
 
 // ACCESSORS
 void MessageGUID::toBinary(unsigned char* destination) const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bsl::memcpy(destination, d_buffer, MessageGUID::e_SIZE_BINARY);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 void MessageGUID::toHex(char* destination) const
 {
+    // NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-constant-array-index,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (int i = 0; i < MessageGUID::e_SIZE_BINARY; i += 2) {
-        const int           index = 2 * i;
-        const unsigned char ch1   = d_buffer[i + 0];
-        const unsigned char ch2   = d_buffer[i + 1];
+        const int index = 2 * i;
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+        const unsigned char ch1 = d_buffer[i + 0];
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+        const unsigned char ch2 = d_buffer[i + 1];
 
         destination[index + 0] = k_INT_HEX_TABLE[ch1 >> 4];
         destination[index + 1] = k_INT_HEX_TABLE[ch1 & 0xF];
         destination[index + 2] = k_INT_HEX_TABLE[ch2 >> 4];
         destination[index + 3] = k_INT_HEX_TABLE[ch2 & 0xF];
     }
+    // NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-constant-array-index,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 bsl::ostream&
 MessageGUID::print(bsl::ostream& stream, int level, int spacesPerLevel) const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     if (stream.bad()) {
         return stream;  // RETURN
@@ -139,6 +159,7 @@ MessageGUID::print(bsl::ostream& stream, int level, int spacesPerLevel) const
         stream << "** UNSET **";
     }
     else {
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         char buffer[MessageGUID::e_SIZE_HEX];
         toHex(buffer);
         stream.write(buffer, MessageGUID::e_SIZE_HEX);
@@ -150,6 +171,7 @@ MessageGUID::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 
     return stream;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 }  // close package namespace
 }  // close enterprise namespace

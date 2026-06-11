@@ -141,6 +141,7 @@ void FileStorePrintUtil::loadQueuesStatus(
     unsigned int            maxNumQueues)
 {
     storageContent->storages().reserve(storages.size());
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (StorageListConstIter cit = storages.begin(); cit != storages.end();
          ++cit) {
         storageContent->storages().resize(storageContent->storages().size() +
@@ -153,6 +154,7 @@ void FileStorePrintUtil::loadQueuesStatus(
             break;  // BREAK
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 }  // close package namespace

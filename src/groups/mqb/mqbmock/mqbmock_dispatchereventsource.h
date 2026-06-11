@@ -62,6 +62,7 @@ namespace mqbmock {
 
 /// Mock implementation of mqbi::DispatcherEventSource that allocates new
 /// events using bsl::allocate_shared.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class DispatcherEventSource BSLS_KEYWORD_FINAL
 : public mqbi::DispatcherEventSource {
   private:
@@ -106,6 +107,7 @@ class DispatcherEventSource BSLS_KEYWORD_FINAL
     bsl::shared_ptr<mqbevt::StorageEvent>
     getStorageEvent() BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

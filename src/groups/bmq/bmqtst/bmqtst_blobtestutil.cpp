@@ -48,13 +48,16 @@ bdlbb::Blob& BlobTestUtil::fromString(bdlbb::Blob*             blob,
 
     size_t idx = 0;
     while (idx < format.size()) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         const char* dataStart = format.data() + idx;
         while ((idx < format.size()) && format[idx] != '|') {
             ++idx;
         }
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         const size_t length = (format.data() + idx) - dataStart;
-        char* bufData       = reinterpret_cast<char*>(alloc->allocate(length));
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+        char* bufData = reinterpret_cast<char*>(alloc->allocate(length));
         bsl::memcpy(bufData, dataStart, length);
         bsl::shared_ptr<char> buffer;
         buffer.reset(bufData, alloc);
@@ -69,9 +72,11 @@ bdlbb::Blob& BlobTestUtil::fromString(bdlbb::Blob*             blob,
     // The 'idx' is now at the end of the string, and we know that the string
     // was not empty, so iterate backward to count the 'X'.
     int numX = 0;
+    // NOLINTBEGIN(bugprone-inc-dec-in-conditions)
     while ((idx > 0) && format[--idx] == 'X') {
         ++numX;
     }
+    // NOLINTEND(bugprone-inc-dec-in-conditions)
     if (numX != 0) {
         blob->setLength(blob->length() - numX);
     }
@@ -85,6 +90,7 @@ bsl::string& BlobTestUtil::toString(bsl::string*       str,
 {
     str->reserve(blob.length());
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (int bufferIdx = 0; bufferIdx < blob.numDataBuffers(); ++bufferIdx) {
         // NOTE: to avoid dependency on 'bmqu' package, inline implementation
         // of 'bmqu::BlobUtil::bufferSize' routine.
@@ -99,6 +105,7 @@ bsl::string& BlobTestUtil::toString(bsl::string*       str,
             str->push_back('|');
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     if (blob.length() < blob.totalSize()) {
         str->append(blob.totalSize() - blob.length(), 'X');

@@ -29,6 +29,7 @@
 namespace BloombergLP {
 namespace bmqio {
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ChannelFactoryPipeline : public bmqio::ChannelFactory {
   private:
     // PRIVATE TYPES
@@ -42,6 +43,7 @@ class ChannelFactoryPipeline : public bmqio::ChannelFactory {
     typedef bsl::shared_ptr<bmqio::ChannelFactory> ChannelFactorySP;
 
     /// A builder class for constructing `ChannelFactoryPipelines`.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     class Config {
       private:
         // PRIVATE DATA
@@ -97,6 +99,7 @@ class ChannelFactoryPipeline : public bmqio::ChannelFactory {
         /// Get the current size of the pipeline.
         size_t size() const;
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
   private:
     // PRIVATE DATA
@@ -159,15 +162,19 @@ class ChannelFactoryPipeline : public bmqio::ChannelFactory {
     template <typename T>
     T* get();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 inline ChannelFactoryPipeline::~ChannelFactoryPipeline() BSLS_KEYWORD_NOEXCEPT
+// NOLINTBEGIN(clang-analyzer-optin.cplusplus.VirtualCall)
 {
     this->stop();
 }
+// NOLINTEND(clang-analyzer-optin.cplusplus.VirtualCall)
 
 template <typename T>
 inline T* ChannelFactoryPipeline::get()
 {
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsl::vector<ChannelFactorySP>::iterator it  = d_pipeline.begin(),
                                                  end = d_pipeline.end();
          it != end;
@@ -177,6 +184,7 @@ inline T* ChannelFactoryPipeline::get()
             return test;
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     return NULL;
 }
 

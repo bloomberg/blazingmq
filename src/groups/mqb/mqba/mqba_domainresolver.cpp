@@ -46,6 +46,7 @@ namespace mqba {
 namespace {
 BALL_LOG_SET_NAMESPACE_CATEGORY("MQBA.DOMAINRESOLVER");
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 const bsls::TimeInterval k_DIR_CHECK_TTL = bsls::TimeInterval(60.0);
 // Minimum interval between checking the last
 // modification time of the script or config
@@ -124,6 +125,7 @@ int DomainResolver::getOrRead(bsl::ostream&    errorDescription,
                               bsl::string*     resolvedDomainName,
                               bsl::string*     clusterName,
                               bsl::string_view domainName)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // executed by *ANY* thread
     BSLS_ASSERT_SAFE(resolvedDomainName);
@@ -156,6 +158,7 @@ int DomainResolver::getOrRead(bsl::ostream&    errorDescription,
 
     bsl::string redirectedDomainName(domainName, d_allocator_p);
 
+    // NOLINTBEGIN(*-narrowing-conversions)
     for (; redirection < 2; ++redirection) {
         // 1. read config
         bsl::string filePath = mqbcfg::BrokerConfig::get().etcDir() +
@@ -164,8 +167,10 @@ int DomainResolver::getOrRead(bsl::ostream&    errorDescription,
         // This is copy-pasted from mqba_configprovider.cpp. Maybe we are
         // going to merge the two? If not, consider factoring this bit.
         if (!bdls::FilesystemUtil::exists(filePath)) {
+            // NOLINTBEGIN(*-magic-numbers)
             bdlma::LocalSequentialAllocator<1024> localAllocator(
                 d_allocator_p);
+            // NOLINTEND(*-magic-numbers)
             bmqu::MemOutStream os(&localAllocator);
             os << "Domain file '" << filePath << "' doesn't exist";
             content.assign(os.str().data(), os.str().length());
@@ -174,8 +179,10 @@ int DomainResolver::getOrRead(bsl::ostream&    errorDescription,
         else {
             bsl::ifstream fileStream(filePath.c_str(), bsl::ios::in);
             if (!fileStream) {
+                // NOLINTBEGIN(*-magic-numbers)
                 bdlma::LocalSequentialAllocator<1024> localAllocator(
                     d_allocator_p);
+                // NOLINTEND(*-magic-numbers)
                 bmqu::MemOutStream os(&localAllocator);
                 os << "Unable to open domain file '" << filePath << "'";
                 content.assign(os.str().data(), os.str().length());
@@ -206,6 +213,7 @@ int DomainResolver::getOrRead(bsl::ostream&    errorDescription,
                           << ", rc: " << rc << ", output:\n"
                           << content;
 
+            // NOLINTNEXTLINE(performance-faster-string-find)
             size_t eol = content.find("\n");
             if (eol != bsl::string::npos) {
                 errorDescription << bsl::string_view(content.c_str(), eol);
@@ -264,11 +272,13 @@ int DomainResolver::getOrRead(bsl::ostream&    errorDescription,
         *clusterName        = cacheEntry.d_cluster;
         return rc_SUCCESS;  // RETURN
     }
+    // NOLINTEND(*-narrowing-conversions)
 
     errorDescription << "Too many redirections [domain: '" << domainName
                      << ", redirections: " << redirection << "']";
     return rc_REDIRECTION_ERROR;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 DomainResolver::DomainResolver(bslma::Allocator* allocator)
 : d_cache(allocator)

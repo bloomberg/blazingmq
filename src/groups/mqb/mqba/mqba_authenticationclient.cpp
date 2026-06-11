@@ -89,6 +89,7 @@ AuthenticationClient::~AuthenticationClient()
 
 // MANIPULATORS
 int AuthenticationClient::authenticate(bsl::ostream& errorDescription)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // executed by the *IO* or *SCHEDULER* thread
 
@@ -158,10 +159,12 @@ int AuthenticationClient::authenticate(bsl::ostream& errorDescription)
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 int AuthenticationClient::handleResponse(
     bsl::ostream&                              errorDescription,
     const bmqp_ctrlmsg::AuthenticationMessage& response)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // executed by the *IO* thread
 
@@ -218,6 +221,7 @@ int AuthenticationClient::handleResponse(
     // sent at 80% of the lifetime before the connection expires.
     if (authnResponse.lifetimeMs().has_value()) {
         const bsls::Types::Int64 lifetimeMs =
+            // NOLINTNEXTLINE(*-narrowing-conversions)
             authnResponse.lifetimeMs().value();
 
         const bsls::Types::Int64 reauthMs = static_cast<bsls::Types::Int64>(
@@ -242,6 +246,7 @@ int AuthenticationClient::handleResponse(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 }  // close package namespace
 }  // close enterprise namespace

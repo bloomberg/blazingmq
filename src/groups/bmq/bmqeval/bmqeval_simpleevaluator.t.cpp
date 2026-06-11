@@ -54,6 +54,7 @@ class MockPropertiesReader : public PropertiesReader {
 
 MockPropertiesReader::MockPropertiesReader(bslma::Allocator* allocator)
 : d_map(allocator)
+// NOLINTBEGIN(*-magic-numbers)
 {
     d_map["b_true"]  = bdld::Datum::createBoolean(true);
     d_map["b_false"] = bdld::Datum::createBoolean(false);
@@ -66,6 +67,7 @@ MockPropertiesReader::MockPropertiesReader(bslma::Allocator* allocator)
     d_map["s_foo"]   = bdld::Datum::createStringRef("foo", allocator);
     d_map["exists"]  = bdld::Datum::createInteger(42);
 }
+// NOLINTEND(*-magic-numbers)
 
 bdld::Datum MockPropertiesReader::get(const bsl::string& name,
                                       bslma::Allocator*)
@@ -82,6 +84,7 @@ bdld::Datum MockPropertiesReader::get(const bsl::string& name,
 
 #ifdef BMQTST_BENCHMARK_ENABLED
 static void testN1_SimpleEvaluator_GoogleBenchmark(benchmark::State& state)
+// NOLINTBEGIN(*-magic-numbers,clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK: SimpleEvaluator");
 
@@ -103,6 +106,7 @@ static void testN1_SimpleEvaluator_GoogleBenchmark(benchmark::State& state)
     }
     // </time>
 }
+// NOLINTEND(*-magic-numbers,clang-analyzer-deadcode.DeadStores)
 #else
 static void testN1_SimpleEvaluator()
 {
@@ -138,14 +142,17 @@ static bsl::string makeTooLongExpression()
     // single byte, and also we need to call shared_ptr and Not destructors in
     // pairs. But the initial guess of `k_STACK_SIZE` is more than sufficient
     // to cause segfault if this case is not handled properly.
+    // NOLINTNEXTLINE(bugprone-implicit-widening-of-multiplication-result)
     const size_t k_STACK_SIZE = 1024 * 1024;
     BMQTST_ASSERT(SimpleEvaluator::k_MAX_EXPRESSION_LENGTH < k_STACK_SIZE);
 
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 0; i < k_STACK_SIZE; i += 16) {
         // Combining `!` and `~` differently in case we want to introduce
         // "NOT" optimization one day (remove double sequential "NOTs")
         os << "!!!!~~~~!~!~!!~~";
     }
+    // NOLINTEND(*-magic-numbers)
 
     os << "x";
 
@@ -153,6 +160,7 @@ static bsl::string makeTooLongExpression()
 }
 
 static void test1_compilationErrors()
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     struct TestParameters {
         bsl::string expression;
@@ -230,10 +238,13 @@ static void test1_compilationErrors()
          ErrorType::e_SYNTAX,
          "integer overflow at offset 7"},  // 2 ** 255 - 1
     };
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     const TestParameters* testParametersEnd = testParameters +
                                               sizeof(testParameters) /
                                                   sizeof(*testParameters);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
     for (const TestParameters* parameters = testParameters;
          parameters < testParametersEnd;
          ++parameters) {
@@ -251,9 +262,12 @@ static void test1_compilationErrors()
                              parameters->errorMessage);
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test2_propertyNames()
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     struct TestParameters {
         bsl::string expression;
@@ -377,11 +391,14 @@ static void test2_propertyNames()
         {".11111111111111111111111111111 > 0", false},
         {"22222222222222222222222222222. > 0", false},
     };
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     const TestParameters* testParametersEnd = testParameters +
                                               sizeof(testParameters) /
                                                   sizeof(*testParameters);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     CompilationContext compilationContext(bmqtst::TestHelperUtil::allocator());
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
     for (const TestParameters* parameters = testParameters;
          parameters < testParametersEnd;
          ++parameters) {
@@ -392,9 +409,12 @@ static void test2_propertyNames()
             BMQTST_ASSERT_EQ(valid, parameters->valid);
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test3_evaluation()
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     MockPropertiesReader reader(bmqtst::TestHelperUtil::allocator());
     EvaluationContext    evaluationContext(&reader,
@@ -559,10 +579,13 @@ static void test3_evaluation()
         {"exists == 42", true},
         {"exists(exists)", true},
     };
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     const TestParameters* testParametersEnd = testParameters +
                                               sizeof(testParameters) /
                                                   sizeof(*testParameters);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
     for (const TestParameters* parameters = testParameters;
          parameters < testParametersEnd;
          ++parameters) {
@@ -585,9 +608,12 @@ static void test3_evaluation()
                              parameters->expected);
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test4_evaluationErrors()
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     MockPropertiesReader reader(bmqtst::TestHelperUtil::allocator());
     EvaluationContext    evaluationContext(&reader,
@@ -614,10 +640,13 @@ static void test4_evaluationErrors()
         {"i_42 % i_0 > 1", ErrorType::e_ARITHMETIC},
 
     };
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     const TestParameters* testParametersEnd = testParameters +
                                               sizeof(testParameters) /
                                                   sizeof(*testParameters);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
     for (const TestParameters* parameters = testParameters;
          parameters < testParametersEnd;
          ++parameters) {
@@ -639,13 +668,16 @@ static void test4_evaluationErrors()
                              parameters->expectedError);
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -671,3 +703,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

@@ -88,6 +88,7 @@ class AuthenticationData BSLS_KEYWORD_FINAL {
 // ==========================
 
 /// The results of authentication.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class AuthenticationResult {
   public:
     // CREATORS
@@ -101,12 +102,14 @@ class AuthenticationResult {
     /// Return the remaining lifetime of an authenticated session.
     virtual const bsl::optional<bsls::Types::Uint64>& lifetimeMs() const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ===================
 // class Authenticator
 // ===================
 
 /// Interface for an Authenticator.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Authenticator {
   public:
     // CREATORS
@@ -153,6 +156,7 @@ class Authenticator {
     /// Stop the Authenticator.
     virtual void stop() = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ================================
 // class AuthenticatorPluginFactory
@@ -161,6 +165,7 @@ class Authenticator {
 /// This is the base class for the factory of plugins of type `Authenticator`.
 /// All it does is allows to instantiate a concrete object of the
 /// `Authenticator` interface, taking any required (plugin specific) arguments.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class AuthenticatorPluginFactory : public PluginFactory {
   public:
     // CREATORS
@@ -172,6 +177,7 @@ class AuthenticatorPluginFactory : public PluginFactory {
     virtual bslma::ManagedPtr<Authenticator>
     create(bslma::Allocator* allocator) = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ========================
 // struct AuthenticatorUtil

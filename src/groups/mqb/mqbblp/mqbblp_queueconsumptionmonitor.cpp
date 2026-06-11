@@ -300,6 +300,7 @@ void QueueConsumptionMonitor::onTransitionToAlive(SubStreamInfo* subStreamInfo,
 
     subStreamInfo->d_state = State::e_ALIVE;
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
 
     BALL_LOG_INFO_BLOCK

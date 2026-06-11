@@ -58,6 +58,7 @@ class QueueHandleRequesterContext;
 // =================
 
 /// Interface for a QueueEngine.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class QueueEngine {
   public:
     // CONSTANTS
@@ -259,6 +260,7 @@ class QueueEngine {
     logAppSubscriptionInfo(bsl::ostream&      stream,
                            const bsl::string& appId) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

@@ -61,6 +61,7 @@ namespace bmqa {
 /// Struct to hold the impl of the `MessageIterator`; that is so that we can
 /// keep the real impl private and use some special cast to manipulate it,
 /// without publicly exposing private members.
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 struct MessageIteratorImpl {
     // PUBLIC DATA
 
@@ -76,6 +77,7 @@ struct MessageIteratorImpl {
     /// Position of `d_message` in the underlying message event.
     int d_messageIndex;
 };
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // =====================
 // class MessageIterator

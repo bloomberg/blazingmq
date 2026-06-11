@@ -116,6 +116,7 @@ namespace mqbstat {
 /// historical snapshot is incremented by one, starting at zero and
 /// increasing monotonically until reaching the `historySize` provided at
 /// construction.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class StatMonitor {
   private:
     // CLASS-SCOPE CATEGORY
@@ -268,6 +269,7 @@ class StatMonitor {
     ///    difference(value[0], value[snapshotId]).
     bsls::Types::Int64 involuntaryContextSwitches(int snapshotId) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ======================
 // struct StatMonitorUtil

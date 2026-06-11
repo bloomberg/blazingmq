@@ -61,13 +61,16 @@ void ConfirmEventBuilder::reset()
 
 bmqt::EventBuilderResult::Enum ConfirmEventBuilder::addMessageConfirmation(
     const MessageConfirmationCookie& cookie)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // PRECONDITIONS
     BSLS_ASSERT(d_impl.d_builder_p);
 
     const bsl::shared_ptr<bmqimp::Queue>& queue =
+        // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<const bsl::shared_ptr<bmqimp::Queue>&>(
             cookie.queueId());
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!queue->isOpened())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -84,6 +87,7 @@ bmqt::EventBuilderResult::Enum ConfirmEventBuilder::addMessageConfirmation(
                                              queue->subQueueId(),
                                              cookie.messageGUID());
 }
+// NOLINTEND(*-narrowing-conversions)
 
 // ACCESSORS
 int ConfirmEventBuilder::messageCount() const

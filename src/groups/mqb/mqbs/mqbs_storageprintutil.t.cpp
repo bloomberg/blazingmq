@@ -51,24 +51,35 @@ using namespace bsl;
 namespace {
 
 // CONSTANTS
-const char             k_HEX_QUEUE[] = "ABCDEF1234";
+// NOLINTNEXTLINE(*-avoid-c-arrays)
+const char k_HEX_QUEUE[] = "ABCDEF1234";
+// NOLINTBEGIN(cert-err58-cpp,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 const mqbu::StorageKey k_QUEUE_KEY(mqbu::StorageKey::HexRepresentation(),
                                    k_HEX_QUEUE);
-const char*            k_APP_ID1 = "ABCDEF1111";
+// NOLINTEND(cert-err58-cpp,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+const char* k_APP_ID1 = "ABCDEF1111";
+// NOLINTBEGIN(cert-err58-cpp)
 const mqbu::StorageKey k_APP_KEY1(mqbu::StorageKey::HexRepresentation(),
                                   k_APP_ID1);
-const char*            k_APP_ID2 = "ABCDEF2222";
+// NOLINTEND(cert-err58-cpp)
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+const char* k_APP_ID2 = "ABCDEF2222";
+// NOLINTBEGIN(cert-err58-cpp)
 const mqbu::StorageKey k_APP_KEY2(mqbu::StorageKey::HexRepresentation(),
                                   k_APP_ID2);
+// NOLINTEND(cert-err58-cpp)
 
 const bsls::Types::Int64 k_INT64_MAX =
     bsl::numeric_limits<bsls::Types::Int64>::max();
 
 // STRUCTS
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers)
 struct TestData {
     const bslstl::StringRef d_appId;
     bsls::Types::Int64 d_offset, d_count, d_expectedCount, d_expectedIndex[10];
 };
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers)
 
 // FUNCTIONS
 
@@ -99,9 +110,11 @@ void verifyOutput(const mqbcmd::QueueContents&          queueContents,
                   const TestData&                       test,
                   const bsl::vector<bmqt::MessageGUID>& guids,
                   mqbi::Storage*                        storage)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     unsigned int index;
     for (index = 0; index < test.d_expectedCount; ++index) {
+        // NOLINTNEXTLINE(*-narrowing-conversions,cppcoreguidelines-pro-bounds-constant-array-index)
         int                      expectedIndex = test.d_expectedIndex[index];
         const bmqt::MessageGUID& guid          = guids[expectedIndex];
         verifyMessageConstruction(queueContents.messages()[index],
@@ -111,6 +124,7 @@ void verifyOutput(const mqbcmd::QueueContents&          queueContents,
 
     BMQTST_ASSERT_EQ(index, queueContents.messages().size());
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 // CLASSES
 // =============
@@ -132,11 +146,13 @@ struct Tester {
     // CREATORS
     Tester()
     : d_allocator_p(bmqtst::TestHelperUtil::allocator())
+    // NOLINTNEXTLINE(*-magic-numbers)
     , d_bufferFactory(1024, d_allocator_p)
     , d_guids(d_allocator_p)
     , d_capacityMeter(bsl::string("test", d_allocator_p), 0, d_allocator_p)
     , d_cluster(d_allocator_p)
     , d_domain(&d_cluster, d_allocator_p)
+    // NOLINTBEGIN(*-magic-numbers)
     {
         d_capacityMeter.setLimits(k_INT64_MAX, k_INT64_MAX);
 
@@ -178,10 +194,12 @@ struct Tester {
                                 domainCfg.messageTtl(),
                                 domainCfg.maxDeliveryAttempts());
     }
+    // NOLINTEND(*-magic-numbers)
 
     // MANIPULATORS
     void populateMessages()
     {
+        // NOLINTBEGIN(*-magic-numbers)
         for (int i = 0; i < 10; ++i) {
             d_guids.emplace_back();
             bmqt::MessageGUID& guid = d_guids.back();
@@ -196,11 +214,14 @@ struct Tester {
             attributes.setAppDataLen(appDataPtr->length());
             d_storage_mp->put(&attributes, guid, appDataPtr, appDataPtr);
         }
+        // NOLINTEND(*-magic-numbers)
 
+        // NOLINTBEGIN(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result)
         for (int i = 0; i < 5; ++i) {
             d_storage_mp->confirm(d_guids[i * 2], k_APP_KEY1, 0);
             d_storage_mp->confirm(d_guids[i * 2 + 1], k_APP_KEY2, 0);
         }
+        // NOLINTEND(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result)
     }
 
     // ACCESSORS
@@ -234,12 +255,15 @@ static void test1_listMessage()
     Tester tester;
     tester.populateMessages();
 
-    const mqbu::StorageKey K_APP_KEYS[3]  = {mqbu::StorageKey::k_NULL_KEY,
-                                             k_APP_KEY1,
-                                             k_APP_KEY2};
-    const int              K_NUM_APP_KEYS = 3;
+    // NOLINTBEGIN(*-avoid-c-arrays)
+    const mqbu::StorageKey K_APP_KEYS[3] = {mqbu::StorageKey::k_NULL_KEY,
+                                            k_APP_KEY1,
+                                            k_APP_KEY2};
+    // NOLINTEND(*-avoid-c-arrays)
+    const int K_NUM_APP_KEYS = 3;
 
     for (int idx = 0; idx < K_NUM_APP_KEYS; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         mqbu::StorageKey appKey = K_APP_KEYS[idx];
 
         for (bslma::ManagedPtr<mqbi::StorageIterator> it =
@@ -275,6 +299,7 @@ static void test2_listMessages()
     Tester tester;
     tester.populateMessages();
 
+    // NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers)
     struct TestData k_DATA[] = {
         //     appId   offs count #  expected
         {"", 0, 10, 10, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}},
@@ -288,10 +313,13 @@ static void test2_listMessages()
         {k_APP_ID1, 0, 0, 5, {1, 3, 5, 7, 9}},
         {k_APP_ID2, 0, 0, 5, {0, 2, 4, 6, 8}},
     };
+    // NOLINTEND(*-avoid-c-arrays,*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const int k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     for (int idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const TestData& test = k_DATA[idx];
 
         mqbcmd::QueueContents queueContents(
@@ -310,6 +338,7 @@ static void test2_listMessages()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -325,3 +354,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

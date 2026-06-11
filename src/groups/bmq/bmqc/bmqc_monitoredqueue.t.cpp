@@ -59,6 +59,7 @@ static void test1_MonitoredQueueState_toAscii()
 // Testing:
 //   'MonitoredQueueState::toAscii'
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("MONITORED  QUEUE STATE "
                                       "- TO ASCII");
@@ -74,9 +75,12 @@ static void test1_MonitoredQueueState_toAscii()
     // NOTE: Using the 'integer' value instead of the enum to ensure the
     //       numeric values are *never* changed.
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": Testing: toAscii(" << test.d_value
@@ -88,7 +92,9 @@ static void test1_MonitoredQueueState_toAscii()
 
         BMQTST_ASSERT_EQ_D(test.d_line, ascii, test.d_expected);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test2_MonitoredQueueState_print()
 // ------------------------------------------------------------------------
@@ -109,6 +115,7 @@ static void test2_MonitoredQueueState_print()
 //   'MonitoredQueueState::print'
 //   operator<<(bsl::ostream&, MonitoredQueueState::Enum)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("MONITORED QUEUE STATE - PRINT");
 
@@ -123,9 +130,12 @@ static void test2_MonitoredQueueState_print()
     // NOTE: Using the 'integer' value instead of the enum to ensure the
     //       numeric values are *never* changed.
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": Testing: print(" << test.d_value
@@ -159,13 +169,16 @@ static void test2_MonitoredQueueState_print()
 
         BMQTST_ASSERT_EQ_D(test.d_line, out.str(), "");
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 //=============================================================================
 //                                MAIN PROGRAM
 //-----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -181,3 +194,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

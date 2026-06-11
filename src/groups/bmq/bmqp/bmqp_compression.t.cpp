@@ -74,13 +74,17 @@ struct CompressionRatioRecord {
 /// of the specified `len` size.
 static void generateRandomString(bsl::string* str, size_t len)
 {
+    // NOLINTBEGIN(*-avoid-c-arrays)
     static const char k_ALPHANUM[] = "0123456789"
                                      "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                      "abcdefghijklmnopqrstuvwxyz";
+    // NOLINTEND(*-avoid-c-arrays)
 
+    // NOLINTBEGIN(cert-msc30-c,cert-msc50-cpp,cppcoreguidelines-pro-bounds-constant-array-index)
     for (size_t i = 0; i < len; ++i) {
         str->push_back(k_ALPHANUM[rand() % (sizeof(k_ALPHANUM) - 1)]);
     }
+    // NOLINTEND(cert-msc30-c,cert-msc50-cpp,cppcoreguidelines-pro-bounds-constant-array-index)
 }
 
 /// Print the specified `headers` to the specified `out` in the following
@@ -117,6 +121,7 @@ static void printTableHeader(bsl::ostream&                   out,
 static void printRecord(bsl::ostream&                   out,
                         const TableRecord&              record,
                         const bsl::vector<bsl::string>& headerCols)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // NOTE: we can't just bsl::setw(colWidth) << PrintUtil::pretty... because
     //       internal PrintUtil uses setw, so instead print in a temp buffer
@@ -139,10 +144,12 @@ static void printRecord(bsl::ostream&                   out,
     out << "| " << bsl::setw(headerCols[2].size()) << decompressStream.str();
     out << '\n';
 }
+// NOLINTEND(*-narrowing-conversions)
 
 static void printRecord(bsl::ostream&                   out,
                         const CompressionRatioRecord&   record,
                         const bsl::vector<bsl::string>& headerCols)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // NOTE: we can't just bsl::setw(colWidth) << PrintUtil::pretty... because
     //       internal PrintUtil uses setw, so instead print in a temp buffer
@@ -165,6 +172,7 @@ static void printRecord(bsl::ostream&                   out,
         << record.d_compressionRatio;
     out << '\n';
 }
+// NOLINTEND(*-narrowing-conversions)
 
 /// Print the specified `tableRecords` to the specified `out`, using the
 /// specified `headerCols` to determine the appropriate width for each
@@ -239,12 +247,14 @@ static void populateData(bsl::vector<bsl::string>* data)
 
     // start with string of length 2 and go till length 2^30
     size_t length = 2;
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 0; i < 30; ++i) {
         bsl::string str("", bmqtst::TestHelperUtil::allocator());
         generateRandomString(&str, length);
         data->push_back(str);
         length *= 2;
     }
+    // NOLINTEND(*-magic-numbers)
 }
 
 template <typename D>
@@ -255,10 +265,12 @@ static void eZlibCompressDecompressHelper(
     const char*                                 expectedCompressed,
     const bmqt::CompressionAlgorithmType::Enum& algorithm)
 {
-    bmqu::MemOutStream             error(bmqtst::TestHelperUtil::allocator());
+    bmqu::MemOutStream error(bmqtst::TestHelperUtil::allocator());
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob compressed(&bufferFactory,
                            bmqtst::TestHelperUtil::allocator());
@@ -307,10 +319,12 @@ eZlibCompressDecompressHelper(bsls::Types::Int64* compressionTime,
                               bsls::Types::Int64* decompressionTime,
                               const D&            data)
 {
-    bmqu::MemOutStream             error(bmqtst::TestHelperUtil::allocator());
+    bmqu::MemOutStream error(bmqtst::TestHelperUtil::allocator());
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob compressed(&bufferFactory,
                            bmqtst::TestHelperUtil::allocator());
@@ -350,10 +364,12 @@ static void eZlibCompressionRatioHelper(bsls::Types::Int64* inputSize,
                                         const D&            data,
                                         int                 level)
 {
-    bmqu::MemOutStream             error(bmqtst::TestHelperUtil::allocator());
+    bmqu::MemOutStream error(bmqtst::TestHelperUtil::allocator());
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob compressed(&bufferFactory,
                            bmqtst::TestHelperUtil::allocator());
@@ -412,6 +428,7 @@ static void test1_breathingTest()
 // Testing:
 //   Basic functionality
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -473,9 +490,12 @@ static void test1_breathingTest()
                        "\xb0\x34\x0\x0\xa"
                        "\xf7\xd\x2d"}};
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+        // NOLINTBEGIN(performance-avoid-endl)
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const Test& test = k_DATA[idx];
 
             bsl::cout << test.d_line << "'" << test.d_data << "'" << bsl::endl;
@@ -490,6 +510,7 @@ static void test1_breathingTest()
                 test.d_expected,
                 bmqt::CompressionAlgorithmType::e_ZLIB);
         }
+        // NOLINTEND(performance-avoid-endl)
     }
 
     {
@@ -511,9 +532,11 @@ static void test1_breathingTest()
 
         // Test edge case of null buffer
         bmqu::MemOutStream error(bmqtst::TestHelperUtil::allocator());
+        // NOLINTBEGIN(*-magic-numbers)
         bdlbb::PooledBlobBufferFactory bufferFactory(
             1024,
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
         bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
         bdlbb::Blob compressed(&bufferFactory,
                                bmqtst::TestHelperUtil::allocator());
@@ -555,9 +578,11 @@ static void test1_breathingTest()
 
         // Test edge case of multiple buffers appended to a blob
         bmqu::MemOutStream error(bmqtst::TestHelperUtil::allocator());
+        // NOLINTBEGIN(*-magic-numbers)
         bdlbb::PooledBlobBufferFactory bufferFactory(
             1024,
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
         bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
         bdlbb::Blob compressed(&bufferFactory,
                                bmqtst::TestHelperUtil::allocator());
@@ -568,6 +593,7 @@ static void test1_breathingTest()
         onePtr.reset(one,
                      bslstl::SharedPtrNilDeleter(),
                      bmqtst::TestHelperUtil::allocator());
+        // NOLINTNEXTLINE(*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         bdlbb::BlobBuffer buf1(onePtr, bsl::strlen(one));
         input.appendDataBuffer(buf1);
 
@@ -576,6 +602,7 @@ static void test1_breathingTest()
         twoPtr.reset(two,
                      bslstl::SharedPtrNilDeleter(),
                      bmqtst::TestHelperUtil::allocator());
+        // NOLINTNEXTLINE(*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         bdlbb::BlobBuffer buf2(twoPtr, bsl::strlen(two));
         input.appendDataBuffer(buf2);
 
@@ -584,6 +611,7 @@ static void test1_breathingTest()
         threePtr.reset(three,
                        bslstl::SharedPtrNilDeleter(),
                        bmqtst::TestHelperUtil::allocator());
+        // NOLINTNEXTLINE(*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         bdlbb::BlobBuffer buf3(threePtr, bsl::strlen(three));
         input.appendDataBuffer(buf3);
 
@@ -619,6 +647,7 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(bdlbb::BlobUtil::compare(decompressed, input), 0);
     }
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 static void test2_compression_cluster_message()
 // ------------------------------------------------------------------------
@@ -634,6 +663,7 @@ static void test2_compression_cluster_message()
 // Testing:
 //   Compression/Decompression functionality for non-string input
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // The default allocator check fails in this test case because the
@@ -644,9 +674,11 @@ static void test2_compression_cluster_message()
 
         // Test case with cluster message as input data
         bmqu::MemOutStream error(bmqtst::TestHelperUtil::allocator());
+        // NOLINTBEGIN(*-magic-numbers)
         bdlbb::PooledBlobBufferFactory bufferFactory(
             1024,
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
         bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
         bdlbb::Blob compressed(&bufferFactory,
                                bmqtst::TestHelperUtil::allocator());
@@ -699,6 +731,7 @@ static void test2_compression_cluster_message()
         bsl::cout << "Decompressed size: " << decompressed.length() << endl;
     }
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 static void test3_compression_decompression_none()
 // ------------------------------------------------------------------------
@@ -715,6 +748,7 @@ static void test3_compression_decompression_none()
 // Testing:
 //   Basic functionality
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("NONE TYPE ALGORITHM TEST");
     {
@@ -732,9 +766,12 @@ static void test3_compression_decompression_none()
                        "Hello Hello Hello "
                        "Hello Hello"}};
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+        // NOLINTBEGIN(performance-avoid-endl)
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const Test& test = k_DATA[idx];
 
             PVV(test.d_line << "'" << test.d_data << "'");
@@ -749,8 +786,10 @@ static void test3_compression_decompression_none()
                 test.d_expected,
                 bmqt::CompressionAlgorithmType::e_NONE);
         }
+        // NOLINTEND(performance-avoid-endl)
     }
 }
+// NOLINTEND(*-avoid-c-arrays,performance-avoid-endl)
 
 // ============================================================================
 //                              PERFORMANCE TESTS
@@ -801,7 +840,9 @@ static void testN1_performanceCompressionDecompressionDefault()
 
     // Measure calculation time and report
     bsl::vector<TableRecord> tableRecords(bmqtst::TestHelperUtil::allocator());
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
     for (unsigned i = 0; i < data.size(); ++i) {
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         const int length = data[i].size();
 
         bsl::cout << "-----------------------\n"
@@ -843,6 +884,7 @@ static void testN1_performanceCompressionDecompressionDefault()
             << bmqu::PrintUtil::prettyTimeInterval(record.d_decompressionTime)
             << "\n\n";
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
     // Print performance comparison table
     bsl::vector<bsl::string> headerCols(bmqtst::TestHelperUtil::allocator());
@@ -871,6 +913,7 @@ static void testN2_calculateThroughput()
 //   Throughput (GB/s) of Compression and decompression of Zlib
 //   implementation in a single thread environment.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,performance-avoid-endl)
 {
     size_t                    length      = 1024;     // 1 Ki
     const bsls::Types::Uint64 k_NUM_ITERS = 1000000;  // 1 M
@@ -935,6 +978,7 @@ static void testN2_calculateThroughput()
          << " per second.\n"
          << endl;
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions,performance-avoid-endl)
 
 static void testN3_performanceCompressionRatio()
 // ------------------------------------------------------------------------
@@ -964,13 +1008,16 @@ static void testN3_performanceCompressionRatio()
     populateData(&data);
 
     // Measure calculation time and report per level
+    // NOLINTBEGIN(*-magic-numbers)
     for (int level = 0; level < 10; level++) {
         bsl::cout << "---------------------\n"
                   << " LEVEL = " << level << '\n'
                   << "---------------------\n";
         bsl::vector<CompressionRatioRecord> tableRecords(
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-type-member-init)
         for (unsigned i = 0; i < data.size(); ++i) {
+            // NOLINTNEXTLINE(*-narrowing-conversions)
             const int length = data[i].size();
 
             bsl::cout << "---------------------\n"
@@ -1008,6 +1055,7 @@ static void testN3_performanceCompressionRatio()
                       << "Compression Ratio : " << record.d_compressionRatio
                       << "\n\n";
         }
+        // NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-type-member-init)
         // Print compression ratio comparison table
         bsl::vector<bsl::string> headerCols(
             bmqtst::TestHelperUtil::allocator());
@@ -1017,6 +1065,7 @@ static void testN3_performanceCompressionRatio()
 
         printTable(bsl::cout, headerCols, tableRecords);
     }
+    // NOLINTEND(*-magic-numbers)
 }
 
 // Begin Benchmarking Tests
@@ -1040,6 +1089,7 @@ static void testN1_performanceCompressionDecompressionDefault_GoogleBenchmark(
 //   Performance of compressing and decompressing using the default
 //   implementation.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // The default allocator check fails in this test case because the
@@ -1047,6 +1097,7 @@ static void testN1_performanceCompressionDecompressionDefault_GoogleBenchmark(
 
     bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK PERFORMANCE: "
                                       "COMPRESS/DECOMPRESS ON BUFFER");
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     const int   length = state.range(0);
     bsl::string str("", bmqtst::TestHelperUtil::allocator());
     generateRandomString(&str, length);
@@ -1063,6 +1114,7 @@ static void testN1_performanceCompressionDecompressionDefault_GoogleBenchmark(
     }
     // </time>
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void testN2_calculateThroughput_GoogleBenchmark(benchmark::State& state)
 // ------------------------------------------------------------------------
@@ -1081,6 +1133,7 @@ static void testN2_calculateThroughput_GoogleBenchmark(benchmark::State& state)
 //   Throughput (GB/s) of Compression and decompression of Zlib
 //   implementation in a single thread environment.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK THROUGHPUT: "
                                       "COMPRESS/DECOMPRESS ON BUFFER");
@@ -1089,6 +1142,7 @@ static void testN2_calculateThroughput_GoogleBenchmark(benchmark::State& state)
     bsl::string buffer_data("", bmqtst::TestHelperUtil::allocator());
     generateRandomString(&buffer_data, length);
     // <time>
+    // NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
     for (unsigned int l = 0; l < state.range(0); ++l) {
         bsls::Types::Int64 compressionTotal = 0, decompressionTotal = 0;
         for (auto _ : state) {
@@ -1097,14 +1151,17 @@ static void testN2_calculateThroughput_GoogleBenchmark(benchmark::State& state)
                                           buffer_data);
         }
     }
+    // NOLINTEND(clang-analyzer-deadcode.DeadStores)
     // </time>
 }
+// NOLINTEND(*-magic-numbers)
 #endif  // BMQTST_BENCHMARK_ENABLED
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -1140,3 +1197,4 @@ int main(int argc, char* argv[])
 #endif
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

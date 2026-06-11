@@ -46,6 +46,7 @@ class TestChannelFactory;
 // ================================
 
 /// The OperationHandle returned by a `TestChannelFactory`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class TestChannelFactoryOpHandle : public ChannelFactoryOperationHandle {
   private:
     // DATA
@@ -82,12 +83,14 @@ class TestChannelFactoryOpHandle : public ChannelFactoryOperationHandle {
     // ChannelFactoryOperationHandle
     const bmqvt::PropertyBag& properties() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ========================
 // class TestChannelFactory
 // ========================
 
 /// Test implementation of the `ChannelFactory` protocol.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class TestChannelFactory : public ChannelFactory {
   public:
     // TYPES
@@ -206,6 +209,7 @@ class TestChannelFactory : public ChannelFactory {
     int  start() BSLS_KEYWORD_OVERRIDE;
     void stop() BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

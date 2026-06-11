@@ -47,6 +47,7 @@ class RoutingConfigurationUtils {
     // PRIVATE TYPES
     typedef bmqp_ctrlmsg::RoutingConfigurationFlags Flags;
 
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         // Enum that converts from bit position to bit mask.  You shouldn't
         // need to use this enum directly.  'RoutingConfigurationUtils''s
@@ -58,6 +59,7 @@ class RoutingConfigurationUtils {
         e_DELIVER_ALL               = (1 << Flags::E_DELIVER_ALL),
         e_HAS_MULTIPLE_SUB_STREAMS  = (1 << Flags::E_HAS_MULTIPLE_SUB_STREAMS)
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
   public:
     // CLASS METHODS

@@ -91,6 +91,7 @@ static void test2_startStopTest()
 
     BMQTST_ASSERT(!obj.isStarted());
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     int rc = obj.start(bsls::TimeInterval(0.1));
 
     BMQTST_ASSERT_EQ(rc, bmqt::GenericResult::e_TIMEOUT);
@@ -99,8 +100,10 @@ static void test2_startStopTest()
 
     obj.stop();
 
+    // NOLINTBEGIN(*-magic-numbers)
     bsl::shared_ptr<bmqimp::Event> event = obj.brokerSession().nextEvent(
         bsls::TimeInterval(0.1));
+    // NOLINTEND(*-magic-numbers)
 
     BMQTST_ASSERT(event);
     BMQTST_ASSERT_EQ(event->sessionEventType(),
@@ -124,6 +127,7 @@ static void test3_startStopAsyncTest()
 //   startAsync()
 //   stopAsync()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("START STOP TEST");
 
@@ -142,8 +146,10 @@ static void test3_startStopAsyncTest()
     obj.stopAsync();
 
     // Should be no DISCONNECTED event
+    // NOLINTBEGIN(*-magic-numbers)
     bsl::shared_ptr<bmqimp::Event> event = obj.brokerSession().nextEvent(
         bsls::TimeInterval(0.1));
+    // NOLINTEND(*-magic-numbers)
 
     BMQTST_ASSERT(event);
     BMQTST_ASSERT_EQ(event->sessionEventType(),
@@ -151,6 +157,7 @@ static void test3_startStopAsyncTest()
 
     BMQTST_ASSERT(!obj.isStarted());
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     int rc = obj.startAsync(bsls::TimeInterval(0.1));
     BMQTST_ASSERT_EQ(rc, bmqt::GenericResult::e_SUCCESS);
 
@@ -174,12 +181,14 @@ static void test3_startStopAsyncTest()
                      bmqt::SessionEventType::e_TIMEOUT);
     BMQTST_ASSERT(!obj.isStarted());
 }
+// NOLINTEND(*-magic-numbers)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -200,3 +209,4 @@ int main(int argc, char* argv[])
     //          generates a unique name using an ostringstream, hence the
     //          default allocator.
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

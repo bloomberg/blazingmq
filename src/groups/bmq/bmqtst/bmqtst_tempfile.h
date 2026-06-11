@@ -73,6 +73,7 @@ namespace bmqtst {
 /// This class provides a guard to create a file in the effective temporary
 /// directory for the current process that is automatically removed when an
 /// object of this class is destroyed.  This class is thread safe.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class TempFile {
     // DATA
     bsl::string d_path;
@@ -102,6 +103,7 @@ class TempFile {
     /// Return the path to the file.
     const bsl::string& path() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

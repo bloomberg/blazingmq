@@ -243,6 +243,7 @@ void ClusterProxy::processCommandDispatched(
     // Note that ClusterProxy only implements a subset of the commands that can
     // be sent to a cluster.
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<256> localAllocator(d_allocator_p);
     bmqu::MemOutStream                   os(&localAllocator);
     os << "Unknown command '" << command << "'";
@@ -405,12 +406,14 @@ void ClusterProxy::onPushEvent(const mqbevt::PushEvent& event)
     // Iterate over each message and route to appropriate queue.
 
     bmqp::Event rawEvent(event.blob().get(), d_allocator_p);
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<1024> lsa(d_allocator_p);
     bmqp::PushMessageIterator iter(&d_clusterData.bufferFactory(), &lsa);
     rawEvent.loadPushMessageIterator(&iter, false);
 
     BSLS_ASSERT_SAFE(iter.isValid());
     int rc = 0;
+    // NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
     while ((rc = iter.next()) == 1) {
         mqbi::Queue* queue = d_queueHelper.lookupQueue(
             iter.header().queueId());
@@ -442,6 +445,7 @@ void ClusterProxy::onPushEvent(const mqbevt::PushEvent& event)
                                  iter.header().flags(),
                                  bmqp::PushHeaderFlags::e_OUT_OF_ORDER));
     }
+    // NOLINTEND(clang-analyzer-deadcode.DeadStores)
 }
 
 void ClusterProxy::onAckEvent(const mqbevt::AckEvent& event)
@@ -462,6 +466,7 @@ void ClusterProxy::onAckEvent(const mqbevt::AckEvent& event)
 
     BSLS_ASSERT_SAFE(iter.isValid());
     int rc = 0;
+    // NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
     while ((rc = iter.next()) == 1) {
         const bmqp::AckMessage& ackMessage = iter.message();
 
@@ -485,9 +490,11 @@ void ClusterProxy::onAckEvent(const mqbevt::AckEvent& event)
 
         queue->onAckMessage(ackMessage);
     }
+    // NOLINTEND(clang-analyzer-deadcode.DeadStores)
 }
 
 void ClusterProxy::onRelayRejectEvent(const mqbevt::RejectEvent& event)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // executed by the *DISPATCHER* thread
 
@@ -524,6 +531,7 @@ void ClusterProxy::onRelayRejectEvent(const mqbevt::RejectEvent& event)
                        << ", subqueue Id: " << rejectMsg.subQueueId() << "]";
     }
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 // PRIVATE MANIPULATORS
 //   (virtual: mqbnet::SessionEventProcessor)
@@ -534,6 +542,7 @@ void ClusterProxy::processEvent(const bmqp::Event&   event,
 
     switch (event.type()) {
     case bmqp::EventType::e_CONTROL: {
+        // NOLINTNEXTLINE(*-magic-numbers)
         bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
         bmqp_ctrlmsg::ControlMessage          controlMessage(&localAllocator);
 
@@ -826,6 +835,7 @@ void ClusterProxy::processNodeStatusAdvisory(
 
 void ClusterProxy::processResponseDispatched(
     const bmqp_ctrlmsg::ControlMessage& response)
+// NOLINTBEGIN(*-magic-numbers)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -861,6 +871,7 @@ void ClusterProxy::processResponseDispatched(
                     bsls::TimeInterval(60));
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 // PRIVATE ACCESSORS
 void ClusterProxy::loadQueuesInfo(mqbcmd::StorageContent* out) const
@@ -902,11 +913,14 @@ ClusterProxy::ClusterProxy(
           0,      // Partition count.  Proxy has no notion of partition.
           false,  // isTemporary
           allocator)
+// NOLINTBEGIN(clang-analyzer-optin.cplusplus.VirtualCall)
 , d_activeNodeManager(d_clusterData.membership().netCluster()->nodes(),
                       description(),
                       mqbcfg::BrokerConfig::get().hostDataCenter())
+// NOLINTEND(clang-analyzer-optin.cplusplus.VirtualCall)
 , d_queueHelper(&d_clusterData, &d_state, 0, allocator)
 , d_nodeStatsMap(allocator)
+// NOLINTNEXTLINE(*-magic-numbers)
 , d_throttledFailedAckMessages(5000, 1)  // 1 log per 5s interval
 , d_clusterMonitor(&d_clusterData, &d_state, d_allocator_p)
 , d_activeNodeLookupEventHandle()
@@ -955,6 +969,7 @@ ClusterProxy::ClusterProxy(
 }
 
 ClusterProxy::~ClusterProxy()
+// NOLINTBEGIN(clang-analyzer-optin.cplusplus.VirtualCall)
 {
     BSLS_ASSERT_SAFE(!d_isStarted &&
                      "stop() must be called before destruction");
@@ -967,6 +982,7 @@ ClusterProxy::~ClusterProxy()
     d_shutdownChain.stop();
     d_shutdownChain.join();
 }
+// NOLINTEND(clang-analyzer-optin.cplusplus.VirtualCall)
 
 // MANIPULATORS
 //   (virtual: mqbi::Cluster)
@@ -1154,6 +1170,7 @@ void ClusterProxy::purgeAndGCQueueOnDomain(
     mqbcmd::ClusterResult*  result,
     BSLA_MAYBE_UNUSED const bsl::string& domainName)
 {
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<256> localAllocator(d_allocator_p);
     bmqu::MemOutStream                   os(&localAllocator);
     os << "Purge and GC queue not supported on a Proxy.";

@@ -42,6 +42,7 @@ namespace bmqt {
 /// This enum represents queue flags
 struct QueueFlags {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         /// The queue is opened in admin mode (Valid only for BlazingMQ admin
         /// tasks)
@@ -54,6 +55,7 @@ struct QueueFlags {
         /// message posted
         e_ACK = (1 << 3)
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // PUBLIC CONSTANTS
 

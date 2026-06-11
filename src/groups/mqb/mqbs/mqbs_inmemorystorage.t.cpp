@@ -96,33 +96,48 @@ using namespace bsl;
 namespace {
 
 // CONSTANTS
-const int  k_PARTITION_ID       = 1;
-const int  k_PROXY_PARTITION_ID = mqbi::Storage::k_INVALID_PARTITION_ID;
-const char k_HEX_QUEUE[]        = "ABCDEF1234";
+const int k_PARTITION_ID = 1;
+// NOLINTNEXTLINE(cppcoreguidelines-interfaces-global-init)
+const int k_PROXY_PARTITION_ID = mqbi::Storage::k_INVALID_PARTITION_ID;
+// NOLINTNEXTLINE(*-avoid-c-arrays)
+const char k_HEX_QUEUE[] = "ABCDEF1234";
 
 const bsls::Types::Int64 k_DEFAULT_MSG          = 20;
 const bsls::Types::Int64 k_DEFAULT_BYTES        = 2048;
 const double             k_MSG_WATERMARK_RATIO  = 0.8;
 const double             k_BYTE_WATERMARK_RATIO = 0.8;
-const char               k_URI_STR[]            = "bmq://mydomain/testqueue";
-const char               k_APP_ID1[]            = "app1";
-const char               k_APP_ID2[]            = "app2";
-const char               k_APP_ID3[]            = "app3";
+// NOLINTNEXTLINE(*-avoid-c-arrays)
+const char k_URI_STR[] = "bmq://mydomain/testqueue";
+// NOLINTNEXTLINE(*-avoid-c-arrays)
+const char k_APP_ID1[] = "app1";
+// NOLINTNEXTLINE(*-avoid-c-arrays)
+const char k_APP_ID2[] = "app2";
+// NOLINTNEXTLINE(*-avoid-c-arrays)
+const char k_APP_ID3[] = "app3";
 
+// NOLINTBEGIN(cert-err58-cpp,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 const mqbu::StorageKey k_QUEUE_KEY(mqbu::StorageKey::HexRepresentation(),
                                    k_HEX_QUEUE);
+// NOLINTEND(cert-err58-cpp,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+// NOLINTBEGIN(cert-err58-cpp)
 const mqbu::StorageKey k_APP_KEY1(mqbu::StorageKey::HexRepresentation(),
                                   "ABCDEF1111");
+// NOLINTEND(cert-err58-cpp)
+// NOLINTBEGIN(cert-err58-cpp)
 const mqbu::StorageKey k_APP_KEY2(mqbu::StorageKey::HexRepresentation(),
                                   "ABCDEF2222");
+// NOLINTEND(cert-err58-cpp)
+// NOLINTBEGIN(cert-err58-cpp)
 const mqbu::StorageKey k_APP_KEY3(mqbu::StorageKey::HexRepresentation(),
                                   "ABCDEF3333");
+// NOLINTEND(cert-err58-cpp)
 
 // ALIASES
 
 const bsls::Types::Int64 k_INT64_ZERO = 0;
 const bsls::Types::Int64 k_INT64_MAX =
     bsl::numeric_limits<bsls::Types::Int64>::max();
+// NOLINTNEXTLINE(cppcoreguidelines-interfaces-global-init)
 const mqbu::StorageKey k_NULL_KEY = mqbu::StorageKey::k_NULL_KEY;
 
 // FUNCTIONS
@@ -144,12 +159,14 @@ static bmqt::MessageGUID
 generateUniqueGUID(const bsl::vector<bmqt::MessageGUID>& guids)
 {
     bmqt::MessageGUID uniqueGUID;
+    // NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
     do {
         // This loop will exit from the first iteration due to the current
         // implementation of generator
 
         uniqueGUID = generateRandomGUID();
     } while (bsl::find(guids.begin(), guids.end(), uniqueGUID) != guids.end());
+    // NOLINTEND(cppcoreguidelines-avoid-do-while)
 
     return uniqueGUID;
 }
@@ -162,6 +179,7 @@ generateUniqueGUID(const bsl::vector<bmqt::MessageGUID>& guids)
 
 /// Tester class provides testing capabilities to verify both
 /// FileBackedStorage and InMemoryStorage
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct Tester {
   private:
     // PRIVATE TYPES
@@ -187,6 +205,7 @@ struct Tester {
     , d_mockQueueEngine(d_allocator_p)
     , d_replicatedStorage_mp()
     , d_records(d_allocator_p)
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     {
         d_mockDomain.capacityMeter()->setLimits(k_INT64_MAX, k_INT64_MAX);
         d_mockQueue._setQueueEngine(&d_mockQueueEngine);
@@ -206,6 +225,7 @@ struct Tester {
                                         d_allocator_p),
                                     d_allocator_p);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     ~Tester()
     {
@@ -273,6 +293,7 @@ struct Tester {
             }
         }
 
+        // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
         for (int i = 0; i < msgCount; i++) {
             const bmqt::MessageGUID& guid = guidHolder->at(guidCount -
                                                            msgCount + i);
@@ -306,6 +327,7 @@ struct Tester {
                 return rc;  // RETURN
             }
         }
+        // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
         return mqbi::StorageResult::e_SUCCESS;
     }
@@ -323,8 +345,10 @@ struct Tester {
 
         InsertRc insertRc = d_records.insert(bsl::make_pair(key, record));
         BSLS_ASSERT_SAFE(insertRc.second);
+        // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
         RecordIterator& recordItRef = *reinterpret_cast<RecordIterator*>(
             handle);
+        // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
         recordItRef = insertRc.first;
     }
 
@@ -333,6 +357,7 @@ struct Tester {
     Tester(const Tester&) BSLS_KEYWORD_DELETED;
     Tester& operator=(const Tester&) BSLS_KEYWORD_DELETED;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ===========
 // struct Test
@@ -340,6 +365,7 @@ struct Tester {
 
 /// Fixture instantiating a tester of `mqbs::InMemoryStorage` having already
 /// configured the storage with an InMemoryStorage configuration.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct Test : bmqtst::Test {
     // PUBLIC DATA
     Tester d_tester;
@@ -348,6 +374,7 @@ struct Test : bmqtst::Test {
     Test();
     ~Test() BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // -----------
 // struct Test
@@ -370,6 +397,7 @@ Test::~Test()
 //                                    TESTS
 // ----------------------------------------------------------------------------
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST(breathingTest)
 // ------------------------------------------------------------------------
 // BREATHING TEST
@@ -406,6 +434,7 @@ BMQTST_TEST(breathingTest)
     BMQTST_ASSERT_EQ(storage.queueOpRecordHandles().empty(), true);
 }
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST(configure)
 // ------------------------------------------------------------------------
 // CONFIGURE
@@ -419,6 +448,7 @@ BMQTST_TEST(configure)
 //  Testing:
 //   - configure(...) + config()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("CONFIGURE");
 
@@ -436,7 +466,9 @@ BMQTST_TEST(configure)
                      k_DEFAULT_BYTES + 5);
     BMQTST_ASSERT_EQ(storage.config(), inMemoryStorageConfig());
 }
+// NOLINTEND(*-magic-numbers)
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST_F(Test, unsupportedOperations)
 // ------------------------------------------------------------------------
 // UNSUPPORTED OPERATIONS
@@ -480,6 +512,7 @@ BMQTST_TEST_F(Test, unsupportedOperations)
     BMQTST_ASSERT_OPT_FAIL(storage.purge(appKey));
 }
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST_F(Test, put_noVirtualStorage)
 // ------------------------------------------------------------------------
 // Put Test - with no virtual storages
@@ -519,6 +552,7 @@ BMQTST_TEST_F(Test, put_noVirtualStorage)
     BMQTST_ASSERT_EQ(storage.numMessages(mqbu::StorageKey::k_NULL_KEY), 0);
 }
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST_F(Test, getMessageSize)
 // ------------------------------------------------------------------------
 // GET MESSAGE SIZE
@@ -526,6 +560,7 @@ BMQTST_TEST_F(Test, getMessageSize)
 // Testing:
 //   - 'getMessageSize(...)'
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     bmqtst::TestHelper::printTestName("GET MESSAGE SIZE");
 
@@ -555,7 +590,9 @@ BMQTST_TEST_F(Test, getMessageSize)
     BMQTST_ASSERT_EQ(storage.removeAll(mqbu::StorageKey::k_NULL_KEY),
                      mqbi::StorageResult::e_SUCCESS);
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST_F(Test, get_noVirtualStorages)
 // ------------------------------------------------------------------------
 // Get Test - with no virtual storages
@@ -578,6 +615,7 @@ BMQTST_TEST_F(Test, get_noVirtualStorages)
     mqbs::ReplicatedStorage& storage = d_tester.storage();
 
     // Check 'get' overloads
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     for (int i = 0; i < k_MSG_COUNT; ++i) {
         {
             mqbi::StorageMessageAttributes attributes;
@@ -610,6 +648,7 @@ BMQTST_TEST_F(Test, get_noVirtualStorages)
                 i);
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
     // Check 'get' with a non-existent GUID
     mqbi::StorageMessageAttributes attributes;
@@ -624,6 +663,7 @@ BMQTST_TEST_F(Test, get_noVirtualStorages)
                      mqbi::StorageResult::e_GUID_NOT_FOUND);
 }
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST_F(Test, remove_messageNotFound)
 // ------------------------------------------------------------------------
 // Remove Messages Test
@@ -646,6 +686,7 @@ BMQTST_TEST_F(Test, remove_messageNotFound)
                      mqbi::StorageResult::e_GUID_NOT_FOUND);
 }
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST_F(Test, removeMessage)
 // ------------------------------------------------------------------------
 // Remove Messages Test
@@ -685,6 +726,7 @@ BMQTST_TEST_F(Test, removeMessage)
     }
 }
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST_F(Test, addVirtualStorage)
 // ------------------------------------------------------------------------
 // ADD VIRTUAL STORAGE
@@ -693,6 +735,7 @@ BMQTST_TEST_F(Test, addVirtualStorage)
 //   Verifies the add operation for virtual storage in a
 //   'mqbs::InMemoryStorage'.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bmqtst::TestHelper::printTestName("ADD VIRTUAL STORAGE");
 
@@ -713,7 +756,9 @@ BMQTST_TEST_F(Test, addVirtualStorage)
         0);
     BMQTST_ASSERT_EQ(storage.numVirtualStorages(), 2);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST_F(Test, hasVirtualStorage)
 // ------------------------------------------------------------------------
 // Virtual Storage Test
@@ -722,6 +767,7 @@ BMQTST_TEST_F(Test, hasVirtualStorage)
 //   Verifies the 'hasVirtualStorage' check for virtual storages that were
 //   successfully added
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bmqtst::TestHelper::printTestName("HAS VIRTUAL STORAGE");
 
@@ -751,7 +797,9 @@ BMQTST_TEST_F(Test, hasVirtualStorage)
     BMQTST_ASSERT(!storage.hasVirtualStorage(k_APP_KEY3, &dummyAppId));
     BMQTST_ASSERT_EQ(dummyAppId, "");
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST_F(Test, removeVirtualStorage)
 // ------------------------------------------------------------------------
 // Virtual Storage Test
@@ -760,6 +808,7 @@ BMQTST_TEST_F(Test, removeVirtualStorage)
 //   Verifies the remove operation for virtual storage
 //   in a 'mqbs::InMemoryStorage'.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bmqtst::TestHelper::printTestName("REMOVE VIRTUAL STORAGE");
 
@@ -784,7 +833,9 @@ BMQTST_TEST_F(Test, removeVirtualStorage)
     BMQTST_ASSERT(!storage.hasVirtualStorage(k_APP_KEY2, &dummyAppId));
     BMQTST_ASSERT_EQ(storage.numVirtualStorages(), 0);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST(put_withVirtualStorages)
 // ------------------------------------------------------------------------
 // Put Test with virtual storages
@@ -793,6 +844,7 @@ BMQTST_TEST(put_withVirtualStorages)
 //   Verifies the 'put' operation in presense of virtual storages
 //   in a 'mqbs::InMemoryStorage'.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bmqtst::TestHelper::printTestName("PUT - WITH VIRTUAL STORAGES");
 
@@ -852,7 +904,9 @@ BMQTST_TEST(put_withVirtualStorages)
     BMQTST_ASSERT_EQ(storage.removeAll(mqbu::StorageKey::k_NULL_KEY),
                      mqbi::StorageResult::e_SUCCESS);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST(removeAllMessages_appKeyNotFound)
 // ------------------------------------------------------------------------
 // REMOVE ALL MESSAGES - APPKEY NOT FOUND
@@ -862,6 +916,7 @@ BMQTST_TEST(removeAllMessages_appKeyNotFound)
 //   in a 'mqbs::InMemoryStorage'.
 // ------------------------------------------------------------------------
 
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bmqtst::TestHelper::printTestName("REMOVE ALL MESSAGES "
                                       "- APPKEY NOT FOUND");
@@ -903,7 +958,9 @@ BMQTST_TEST(removeAllMessages_appKeyNotFound)
     BMQTST_ASSERT_EQ(storage.removeAll(k_APP_KEY2),
                      mqbi::StorageResult::e_APPKEY_NOT_FOUND);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST(removeAllMessages)
 // ------------------------------------------------------------------------
 // RemoveAll Messages Test
@@ -913,6 +970,7 @@ BMQTST_TEST(removeAllMessages)
 //   in a 'mqbs::InMemoryStorage'.
 // ------------------------------------------------------------------------
 
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bmqtst::TestHelper::printTestName("Remove All Messages Test");
 
@@ -969,7 +1027,9 @@ BMQTST_TEST(removeAllMessages)
     BMQTST_ASSERT_EQ(storage.numMessages(mqbu::StorageKey::k_NULL_KEY), 0);
     BMQTST_ASSERT_EQ(storage.numBytes(mqbu::StorageKey::k_NULL_KEY), 0);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST(get_withVirtualStorages)
 // ------------------------------------------------------------------------
 // Get Test With virtual storages
@@ -978,6 +1038,7 @@ BMQTST_TEST(get_withVirtualStorages)
 //   Verifies the 'get' operation in presence of virtual storages
 //   in a 'mqbs::InMemoryStorage'.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     bmqtst::TestHelper::printTestName("Get - with Virtual Storage Test");
 
@@ -1031,7 +1092,9 @@ BMQTST_TEST(get_withVirtualStorages)
     BMQTST_ASSERT_EQ(storage.removeAll(mqbu::StorageKey::k_NULL_KEY),
                      mqbi::StorageResult::e_SUCCESS);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-reinterpret-cast)
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST(confirm)
 // ------------------------------------------------------------------------
 // RELEASE REF
@@ -1040,6 +1103,7 @@ BMQTST_TEST(confirm)
 //   Verifies the 'releaseRef' operation in presence of virtual storages
 //   in a 'mqbs::InMemoryStorage'.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bmqtst::TestHelper::printTestName("RELEASE REF");
 
@@ -1109,7 +1173,9 @@ BMQTST_TEST(confirm)
     BSLS_ASSERT_OPT(storage.removeAll(k_NULL_KEY) ==
                     mqbi::StorageResult::e_SUCCESS);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST_F(Test, getIterator_noVirtualStorages)
 // ------------------------------------------------------------------------
 // Iterator Test
@@ -1118,6 +1184,7 @@ BMQTST_TEST_F(Test, getIterator_noVirtualStorages)
 //   Verifies the iterator in absence of virtual storages
 //   in a 'mqbs::InMemoryStorage'.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("Iterator- No virtual storages Test");
 
@@ -1136,6 +1203,7 @@ BMQTST_TEST_F(Test, getIterator_noVirtualStorages)
     iterator = storage.getIterator(mqbu::StorageKey::k_NULL_KEY);
 
     int msgData = 0;
+    // NOLINTBEGIN(cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-reinterpret-cast)
     do {
         BMQTST_ASSERT_EQ(iterator->guid(), guids[msgData]);
         BMQTST_ASSERT_EQ(
@@ -1149,6 +1217,7 @@ BMQTST_TEST_F(Test, getIterator_noVirtualStorages)
         msgData++;
         iterator->advance();
     } while (!iterator->atEnd());
+    // NOLINTEND(cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-reinterpret-cast)
 
     // Check iterator's 'reset'
     iterator->reset();
@@ -1160,6 +1229,7 @@ BMQTST_TEST_F(Test, getIterator_noVirtualStorages)
         storage.getIterator(&iterator, mqbu::StorageKey::k_NULL_KEY, guids[5]),
         mqbi::StorageResult::e_SUCCESS);
 
+    // NOLINTBEGIN(cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-reinterpret-cast)
     do {
         BMQTST_ASSERT_EQ(iterator->guid(), guids[msgData]);
         BMQTST_ASSERT_EQ(
@@ -1168,6 +1238,7 @@ BMQTST_TEST_F(Test, getIterator_noVirtualStorages)
         msgData++;
         iterator->advance();
     } while (!iterator->atEnd());
+    // NOLINTEND(cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-reinterpret-cast)
 
     // Check iterator with random GUID
     bmqt::MessageGUID randomGuid;
@@ -1180,7 +1251,9 @@ BMQTST_TEST_F(Test, getIterator_noVirtualStorages)
     BMQTST_ASSERT_EQ(storage.removeAll(mqbu::StorageKey::k_NULL_KEY),
                      mqbi::StorageResult::e_SUCCESS);
 }
+// NOLINTEND(*-magic-numbers)
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST(getIterator_withVirtualStorages)
 // ------------------------------------------------------------------------
 // Iterator Test
@@ -1189,6 +1262,7 @@ BMQTST_TEST(getIterator_withVirtualStorages)
 //   Verifies the iterator in presence of virtual storages
 //   in a 'mqbs::InMemoryStorage'.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bmqtst::TestHelper::printTestName("Iterator Test- In presence of Virtual");
 
@@ -1229,6 +1303,7 @@ BMQTST_TEST(getIterator_withVirtualStorages)
     // (Total 60 messages)
     iterator = storage.getIterator(mqbu::StorageKey::k_NULL_KEY);
 
+    // NOLINTBEGIN(cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-reinterpret-cast)
     do {
         BMQTST_ASSERT_EQ(iterator->guid(), guids[msgData]);
         BMQTST_ASSERT_EQ(
@@ -1237,6 +1312,7 @@ BMQTST_TEST(getIterator_withVirtualStorages)
         msgData++;
         iterator->advance();
     } while (!iterator->atEnd());
+    // NOLINTEND(cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-reinterpret-cast)
 
     // Check if count all 60 messages seen
     BMQTST_ASSERT_EQ(msgData, 60);
@@ -1245,6 +1321,7 @@ BMQTST_TEST(getIterator_withVirtualStorages)
     msgData  = 0;
     iterator = storage.getIterator(k_APP_KEY2);
 
+    // NOLINTBEGIN(cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-reinterpret-cast)
     do {
         BMQTST_ASSERT_EQ(iterator->guid(), guids[msgData]);
         BMQTST_ASSERT_EQ(
@@ -1253,6 +1330,7 @@ BMQTST_TEST(getIterator_withVirtualStorages)
         msgData++;
         iterator->advance();
     } while (!iterator->atEnd());
+    // NOLINTEND(cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-reinterpret-cast)
 
     BMQTST_ASSERT_EQ(msgData, 60);
 
@@ -1261,10 +1339,13 @@ BMQTST_TEST(getIterator_withVirtualStorages)
     msgData  = 0;
     iterator = storage.getIterator(k_APP_KEY1);
 
+    // NOLINTBEGIN(*-magic-numbers)
     for (int i = 20; i < 40; ++i) {
         storage.confirm(guids[i], k_APP_KEY1, 0);
     }
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-reinterpret-cast)
     do {
         // skip the 20 in between
         if (msgData == 20) {
@@ -1277,13 +1358,16 @@ BMQTST_TEST(getIterator_withVirtualStorages)
         msgData++;
         iterator->advance();
     } while (!iterator->atEnd());
+    // NOLINTEND(*-magic-numbers,cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-reinterpret-cast)
 
     BMQTST_ASSERT_EQ(msgData, 60);
 
     BMQTST_ASSERT_EQ(storage.removeAll(mqbu::StorageKey::k_NULL_KEY),
                      mqbi::StorageResult::e_SUCCESS);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST_F(Test, capacityMeter_limitMessages)
 // ------------------------------------------------------------------------
 // Capacity Meter Test
@@ -1328,6 +1412,7 @@ BMQTST_TEST_F(Test, capacityMeter_limitMessages)
     BMQTST_ASSERT_EQ(storage.capacityMeter()->messages(), 0);
 }
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST(capacityMeter_limitBytes)
 // ------------------------------------------------------------------------
 // Capacity Meter Test
@@ -1370,6 +1455,7 @@ BMQTST_TEST(capacityMeter_limitBytes)
     BMQTST_ASSERT_EQ(storage.capacityMeter()->bytes(), 0);
 }
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST(garbageCollect)
 // ------------------------------------------------------------------------
 // GARBAGE COLLECT
@@ -1379,6 +1465,7 @@ BMQTST_TEST(garbageCollect)
 //   in a 'mqbs::InMemoryStorage'.
 // ------------------------------------------------------------------------
 
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("GARBAGE COLLECT");
 
@@ -1404,7 +1491,7 @@ BMQTST_TEST(garbageCollect)
                      mqbi::StorageResult::e_SUCCESS);
 
     const bdlt::Datetime currentTimeUtc;
-    bsls::Types::Uint64 secondsFromEpoch = 5;
+    bsls::Types::Uint64  secondsFromEpoch = 5;
 
     mqbs::ReplicatedStorage& storage = tester.storage();
 
@@ -1432,7 +1519,9 @@ BMQTST_TEST(garbageCollect)
     BMQTST_ASSERT_EQ(storage.numMessages(mqbu::StorageKey::k_NULL_KEY), 0);
     BMQTST_ASSERT_EQ(storage.numBytes(mqbu::StorageKey::k_NULL_KEY), 0);
 }
+// NOLINTEND(*-magic-numbers)
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST_F(Test, addQueueOpRecordHandle)
 {
     // CONSTANTS
@@ -1460,6 +1549,7 @@ BMQTST_TEST_F(Test, addQueueOpRecordHandle)
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     BALL_LOG_SET_CATEGORY("MAIN");
 
@@ -1472,9 +1562,11 @@ int main(int argc, char* argv[])
         mqbcfg::BrokerConfig::set(brokerConfig);
 
         bsl::shared_ptr<bmqst::StatContext> statContext =
+            // NOLINTBEGIN(*-magic-numbers)
             mqbstat::BrokerStatsUtil::initializeStatContext(
                 30,
                 bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
 
         bmqtst::runTest(_testCase);
     }
@@ -1483,3 +1575,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

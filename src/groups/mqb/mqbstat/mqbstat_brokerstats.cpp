@@ -37,6 +37,7 @@ namespace mqbstat {
 namespace {
 
 /// Name of the stat context to create (holding all broker's statistics)
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 static const char k_BROKER_STAT_NAME[] = "broker";
 
 }  // close unnamed namespace
@@ -45,6 +46,7 @@ static const char k_BROKER_STAT_NAME[] = "broker";
 // class BrokerStats
 // -----------------
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BrokerStats BrokerStats::s_instance;
 
 BrokerStats& BrokerStats::instance()
@@ -62,6 +64,7 @@ bsls::Types::Int64 BrokerStats::getValue(const bmqst::StatContext& context,
     const bmqst::StatValue::SnapshotLocation latestSnapshot(0, 0);
     const bmqst::StatValue::SnapshotLocation oldestSnapshot(0, snapshotId);
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define STAT_RANGE(OPERATION, STAT)                                           \
     bmqst::StatUtil::OPERATION(                                               \
         context.value(bmqst::StatContext::e_DIRECT_VALUE, STAT),              \
@@ -107,10 +110,13 @@ bsl::shared_ptr<bmqst::StatContext>
 BrokerStatsUtil::initializeStatContext(int               historySize,
                                        bslma::Allocator* allocator)
 {
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<2048> localAllocator(allocator);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bmqst::StatContextConfiguration config(k_BROKER_STAT_NAME,
                                            &localAllocator);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     config.isTable(true)
         .defaultHistorySize(historySize)
         .statValueAllocator(allocator)

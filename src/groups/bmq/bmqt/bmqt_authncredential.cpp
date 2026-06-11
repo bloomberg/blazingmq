@@ -55,6 +55,7 @@ AuthnCredential::AuthnCredential(const AuthnCredential& other,
     // NOTHING
 }
 
+// NOLINTBEGIN(cppcoreguidelines-noexcept-move-operations,performance-noexcept-move-constructor)
 AuthnCredential::AuthnCredential(bslmf::MovableRef<AuthnCredential> otherRef,
                                  bslma::Allocator*                  allocator)
 : d_mechanism(bslmf::MovableRefUtil::move(
@@ -66,6 +67,7 @@ AuthnCredential::AuthnCredential(bslmf::MovableRef<AuthnCredential> otherRef,
 {
     // NOTHING
 }
+// NOLINTEND(cppcoreguidelines-noexcept-move-operations,performance-noexcept-move-constructor)
 
 // ASSIGNMENT
 
@@ -78,6 +80,7 @@ AuthnCredential& AuthnCredential::operator=(const AuthnCredential& rhs)
     return *this;
 }
 
+// NOLINTBEGIN(cppcoreguidelines-noexcept-move-operations,performance-noexcept-move-constructor)
 AuthnCredential&
 AuthnCredential::operator=(bslmf::MovableRef<AuthnCredential> rhsRef)
 {
@@ -88,6 +91,7 @@ AuthnCredential::operator=(bslmf::MovableRef<AuthnCredential> rhsRef)
     }
     return *this;
 }
+// NOLINTEND(cppcoreguidelines-noexcept-move-operations,performance-noexcept-move-constructor)
 
 AuthnCredential::~AuthnCredential()
 {

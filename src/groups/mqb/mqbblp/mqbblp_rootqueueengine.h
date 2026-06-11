@@ -77,6 +77,7 @@ class QueueState;
 // =======================
 
 /// QueueEngine implementation for use at the primary node.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
   private:
     // PRIVATE TYPES
@@ -468,6 +469,7 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
     bsl::shared_ptr<const mqbconfm::Domain> config() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                           INLINE DEFINITIONS

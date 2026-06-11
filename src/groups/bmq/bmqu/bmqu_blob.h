@@ -614,6 +614,7 @@ TYPE* BlobUtil::getAlignedObjectSafe(TYPE*               storage,
                                      const bdlbb::Blob&  blob,
                                      const BlobPosition& start,
                                      bool                copyFromBlob)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     return reinterpret_cast<TYPE*>(
         getAlignedSectionSafe(reinterpret_cast<char*>(storage),
@@ -623,12 +624,14 @@ TYPE* BlobUtil::getAlignedObjectSafe(TYPE*               storage,
                               bsls::AlignmentFromType<TYPE>::VALUE,
                               copyFromBlob));
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 template <typename TYPE>
 TYPE* BlobUtil::getAlignedObject(TYPE*               storage,
                                  const bdlbb::Blob&  blob,
                                  const BlobPosition& start,
                                  bool                copyFromBlob)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     return reinterpret_cast<TYPE*>(
         getAlignedSection(reinterpret_cast<char*>(storage),
@@ -638,6 +641,7 @@ TYPE* BlobUtil::getAlignedObject(TYPE*               storage,
                           bsls::AlignmentFromType<TYPE>::VALUE,
                           copyFromBlob));
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 inline bool BlobUtil::isDataContinuous(const bmqu::BlobPosition& start,
                                        const bmqu::BlobPosition& end)

@@ -44,6 +44,7 @@ namespace mqbcfg {
 // =========================
 
 /// This class provides a mechanism to manage the quorum for a cluster.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ClusterQuorumManager {
   public:
     // TYPES
@@ -87,6 +88,7 @@ class ClusterQuorumManager {
     /// Return the current quorum value.
     unsigned int quorum() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

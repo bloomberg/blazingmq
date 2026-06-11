@@ -47,6 +47,7 @@ class InitialConnectionContext;
 // ===================
 
 /// Protocol for an Authenticator
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Authenticator {
   public:
     // CREATORS
@@ -102,6 +103,7 @@ class Authenticator {
     virtual const bsl::optional<mqbcfg::Credential>&
     anonymousCredential() const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

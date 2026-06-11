@@ -56,11 +56,13 @@ StatConsumerUtil::findConsumerConfig(bsl::string_view name)
     const bsl::vector<mqbcfg::StatPluginConfig>& configs =
         mqbcfg::BrokerConfig::get().stats().plugins();
     bsl::vector<mqbcfg::StatPluginConfig>::const_iterator it = configs.begin();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; it != configs.cend(); ++it) {
         if (it->name() == name) {
             return &(*it);  // RETURN
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     return 0;
 }
 

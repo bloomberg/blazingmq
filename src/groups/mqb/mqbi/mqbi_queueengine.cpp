@@ -31,6 +31,7 @@ namespace mqbi {
 // -----------------
 
 const mqbu::StorageKey
+    // NOLINTNEXTLINE(cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
     QueueEngine::k_DEFAULT_APP_KEY(bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
 
 QueueEngine::~QueueEngine()

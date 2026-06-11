@@ -30,7 +30,9 @@ namespace mqbcfg {
 
 namespace {
 
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char LOG_CATEGORY[] = "MQBCFG.TCPINTERFACECONFIGVALIDATOR";
+// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 BALL_LOG_SET_NAMESPACE_CATEGORY(LOG_CATEGORY)
 
 /// @brief Transform the range that elements in the range [`begin`, `end`) and
@@ -67,9 +69,11 @@ TcpInterfaceConfigValidator::name(const mqbcfg::TcpInterfaceListener& listener)
 
 bool TcpInterfaceConfigValidator::isValidPort(
     const mqbcfg::TcpInterfaceListener& listener)
+// NOLINTBEGIN(*-magic-numbers)
 {
     return 0 <= listener.port() && listener.port() <= 65535;
 }
+// NOLINTEND(*-magic-numbers)
 
 TcpInterfaceConfigValidator::ErrorCode TcpInterfaceConfigValidator::operator()(
     const mqbcfg::TcpInterfaceConfig& config) const

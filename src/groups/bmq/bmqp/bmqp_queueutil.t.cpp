@@ -50,6 +50,7 @@ static void test1_createQueueIdFromHandleParameters()
 // Testing:
 //   createQueueIdFromHandleParameters
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("createQueueIdFromHandleParameters");
 
@@ -58,11 +59,15 @@ static void test1_createQueueIdFromHandleParameters()
         int          d_id;
         bool         d_hasSubId;
         unsigned int d_subId;
+        // NOLINTNEXTLINE(*-magic-numbers)
     } k_DATA[] = {{L_, 5, true, 16}, {L_, 15, false, 0}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         bmqp_ctrlmsg::QueueHandleParameters handleParams(
@@ -90,7 +95,9 @@ static void test1_createQueueIdFromHandleParameters()
                                bmqp::QueueId(test.d_id));
         }
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test2_extractSubQueueId()
 // ------------------------------------------------------------------------
@@ -106,6 +113,7 @@ static void test2_extractSubQueueId()
 // Testing:
 //   extractSubQueueId
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("extractSubQueueId");
 
@@ -114,11 +122,15 @@ static void test2_extractSubQueueId()
         int          d_id;
         bool         d_hasSubId;
         unsigned int d_subId;
+        // NOLINTNEXTLINE(*-magic-numbers)
     } k_DATA[] = {{L_, 5, true, 16}, {L_, 15, false, 0}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         bmqp_ctrlmsg::QueueStreamParameters streamParams(
@@ -157,7 +169,9 @@ static void test2_extractSubQueueId()
                 bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
         }
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test3_extractCanonicalHandleParameters()
 // ------------------------------------------------------------------------
@@ -176,6 +190,7 @@ static void test3_extractCanonicalHandleParameters()
 // Testing:
 //   extractCanonicalHandleParameters
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 {
     bmqtst::TestHelper::printTestName("extractCanonicalHandleParameters");
 
@@ -194,6 +209,7 @@ static void test3_extractCanonicalHandleParameters()
         int                 d_readCount;
         int                 d_writeCount;
         int                 d_adminCount;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {
         {L_,
          k_READ | k_WRITE,                   // flags
@@ -236,10 +252,14 @@ static void test3_extractCanonicalHandleParameters()
          1,                                       // writeCount
          0}                                       // adminCount
     };
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         bmqp_ctrlmsg::QueueHandleParameters handleParams(
@@ -281,7 +301,9 @@ static void test3_extractCanonicalHandleParameters()
         BMQTST_ASSERT_EQ(result.writeCount(), test.d_writeCount);
         BMQTST_ASSERT_EQ(result.adminCount(), test.d_adminCount);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 
 static void test4_isEmpty()
 // ------------------------------------------------------------------------
@@ -300,6 +322,7 @@ static void test4_isEmpty()
 // Testing:
 //   isEmpty
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("isEmpty");
 
@@ -347,9 +370,12 @@ static void test4_isEmpty()
          1}  // adminCount
     };
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         bmqp_ctrlmsg::QueueHandleParameters handleParams(
@@ -365,7 +391,9 @@ static void test4_isEmpty()
         BMQTST_ASSERT_EQ(bmqp::QueueUtil::isEmpty(handleParams),
                          test.d_expected);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test5_isValidFanoutConsumerSubId()
 {
@@ -391,6 +419,7 @@ static void test6_isValid()
 // Testing:
 //   isValid
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("isValid");
 
@@ -403,6 +432,7 @@ static void test6_isValid()
         int                 d_readCount;
         int                 d_writeCount;
         int                 d_adminCount;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {
         // Valid: READ flag with readCount > 0
         {L_, true, bmqt::QueueFlags::e_READ, 1, 0, 0},
@@ -436,10 +466,14 @@ static void test6_isValid()
          1,
          1073741818},
     };
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         bmqp_ctrlmsg::QueueHandleParameters handleParams(
@@ -457,13 +491,16 @@ static void test6_isValid()
                            bmqp::QueueUtil::isValid(handleParams),
                            test.d_expected);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -483,3 +520,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

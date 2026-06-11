@@ -49,6 +49,7 @@ namespace bmqio {
 
 /// A test implementation of the `Channel` protocol for use in test
 /// drivers.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class TestChannel : public Channel {
   public:
     // TYPES
@@ -236,7 +237,7 @@ class TestChannel : public Channel {
     /// The behaviour is undefined if the corresponding call queue is empty.
     ReadCall    popReadCall();
     WriteCall   popWriteCall();
-    CloseCall popCloseCall();
+    CloseCall   popCloseCall();
     OnCloseCall popOnCloseCall();
 
     CloseSignaler& closeSignaler();
@@ -255,10 +256,12 @@ class TestChannel : public Channel {
     /// otherwise.
     ///
     /// @remark Thread-safety: this routine is thread-safe.
+    // NOLINTBEGIN(*-magic-numbers)
     bool getWriteCall(
         TestChannel::WriteCall*   call,
         size_t                    index,
         const bsls::TimeInterval& interval = bsls::TimeInterval(0.1)) const;
+    // NOLINTEND(*-magic-numbers)
 
     /// @brief Ensure this channel has cached at least the specified number of
     ///        write calls, including the ones that were cached before calling
@@ -269,9 +272,11 @@ class TestChannel : public Channel {
     ///                 stop and return `false`.
     /// @return `true` if the specified number of messages (or more) is cached,
     ///         `false` otherwise.
+    // NOLINTBEGIN(*-magic-numbers)
     bool waitFor(
         size_t                    size     = 1,
         const bsls::TimeInterval& interval = bsls::TimeInterval(0.1)) const;
+    // NOLINTEND(*-magic-numbers)
 
     const Status& writeStatus() const;
 
@@ -311,6 +316,7 @@ class TestChannel : public Channel {
     const bsl::string&        peerUri() const BSLS_KEYWORD_OVERRIDE;
     const bmqvt::PropertyBag& properties() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

@@ -84,6 +84,7 @@ class TableRecordsRecord {
 // ==================
 
 /// Records of a `bmqst::StatContext` table.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class TableRecords {
   public:
     // PUBLIC TYPES
@@ -158,6 +159,7 @@ class TableRecords {
     /// Return the record at the specified `index`.
     const Record& record(int index) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

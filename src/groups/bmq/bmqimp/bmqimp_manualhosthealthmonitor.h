@@ -51,6 +51,7 @@ namespace bmqimp {
 
 /// Implementation of `HostHealthMonitor`, with methods for manipulation of
 /// the host health state.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ManualHostHealthMonitor : public bmqpi::HostHealthMonitor {
   private:
     // PRIVATE DATA
@@ -98,6 +99,7 @@ class ManualHostHealthMonitor : public bmqpi::HostHealthMonitor {
     /// Useful for unit-testing HostHealthMonitor-BrokerSession integration.
     bsl::size_t numRegistrants() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

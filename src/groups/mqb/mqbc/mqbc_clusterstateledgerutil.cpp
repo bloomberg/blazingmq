@@ -194,9 +194,11 @@ int ClusterStateLedgerUtil::extractLogId(mqbu::StorageKey*  logId,
     BALL_LOG_DEBUG << "Extracting log id from '" << logPath << "'";
 
     // Open file
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-vararg)
     int fd = ::open(logPath.c_str(),
                     O_RDONLY,
                     S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+    // NOLINTEND(cppcoreguidelines-pro-type-vararg)
     if (fd < 0) {
         BALL_LOG_ERROR << "'open()' failure for file [path: " << logPath
                        << ", errno: " << errno << " (" << bsl::strerror(errno)
@@ -211,6 +213,7 @@ int ClusterStateLedgerUtil::extractLogId(mqbu::StorageKey*  logId,
     int                    length  = sizeof(ClusterStateFileHeader);
     int                    numRead = 0;
     int                    rc      = ClusterStateLedgerUtilRc::e_UNKNOWN;
+    // NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
     do {
         rc = ::read(fd, reinterpret_cast<char*>(&header) + numRead, length);
         if (rc == 0) {
@@ -228,6 +231,7 @@ int ClusterStateLedgerUtil::extractLogId(mqbu::StorageKey*  logId,
         numRead += rc;
         length -= rc;
     } while (length > 0);
+    // NOLINTEND(*-narrowing-conversions,cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
 
     // POSTCONDITIONS
     BSLS_ASSERT_SAFE(length == 0);
@@ -247,6 +251,7 @@ int ClusterStateLedgerUtil::extractLogId(mqbu::StorageKey*  logId,
 
 int ClusterStateLedgerUtil::validateLog(mqbsi::Log::Offset* offset,
                                         const bsl::shared_ptr<mqbsi::Log>& log)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-init-variables)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(log);
@@ -254,9 +259,11 @@ int ClusterStateLedgerUtil::validateLog(mqbsi::Log::Offset* offset,
 
     // Read and validate file header
     ClusterStateFileHeader* fileHeader;
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     int rc = log->alias(reinterpret_cast<void**>(&fileHeader),
                         sizeof(ClusterStateFileHeader),
                         0);
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     if (rc != 0) {
         return rc * 100 + ClusterStateLedgerUtilRc::e_RECORD_ALIAS_FAILURE;
         // RETURN
@@ -269,8 +276,11 @@ int ClusterStateLedgerUtil::validateLog(mqbsi::Log::Offset* offset,
 
     // Read and validate each record and header in the log
     ClusterStateRecordHeader* recHeader;
-    mqbsi::Log::Offset        currOffset = fileHeader->headerWords() *
+    // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
+    mqbsi::Log::Offset currOffset = fileHeader->headerWords() *
                                     bmqp::Protocol::k_WORD_SIZE;
+    // NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
+    // NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-type-member-init,cppcoreguidelines-pro-type-reinterpret-cast)
     while (static_cast<mqbsi::Log::UnsignedOffset>(currOffset) +
                sizeof(ClusterStateRecordHeader) <=
            static_cast<bsls::Types::Uint64>(log->totalNumBytes())) {
@@ -330,16 +340,20 @@ int ClusterStateLedgerUtil::validateLog(mqbsi::Log::Offset* offset,
 
         currOffset += recordSize;
     }
+    // NOLINTEND(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-type-member-init,cppcoreguidelines-pro-type-reinterpret-cast)
 
     *offset = currOffset;
 
     return ClusterStateLedgerUtilRc::e_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-init-variables)
 
 int ClusterStateLedgerUtil::writeFileHeader(mqbsi::Ledger*          ledger,
                                             const mqbu::StorageKey& logId)
+// NOLINTBEGIN(*-magic-numbers)
 {
     ClusterStateFileHeader fileHeader;
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     const int headerWords = ClusterStateFileHeader::k_HEADER_NUM_WORDS;
     fileHeader.setProtocolVersion(mqbc::ClusterStateLedgerProtocol::k_VERSION)
         .setHeaderWords(headerWords)
@@ -356,6 +370,7 @@ int ClusterStateLedgerUtil::writeFileHeader(mqbsi::Ledger*          ledger,
 
     return ClusterStateLedgerUtilRc::e_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers)
 
 int ClusterStateLedgerUtil::appendRecord(
     bdlbb::Blob*                               blob,
@@ -363,6 +378,7 @@ int ClusterStateLedgerUtil::appendRecord(
     const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
     bsls::Types::Uint64                        timestamp,
     ClusterStateRecordType::Enum               recordType)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-type-member-init,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(blob);
@@ -379,6 +395,7 @@ int ClusterStateLedgerUtil::appendRecord(
 
     ClusterStateRecordHeader* recordHeader = new (blob->buffer(0).data())
         ClusterStateRecordHeader;
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     const int headerWords = ClusterStateRecordHeader::k_HEADER_NUM_WORDS;
     recordHeader->setHeaderWords(headerWords)
         .setRecordType(recordType)
@@ -416,28 +433,36 @@ int ClusterStateLedgerUtil::appendRecord(
 
     return ClusterStateLedgerUtilRc::e_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-type-member-init,cppcoreguidelines-pro-type-reinterpret-cast)
 
 int ClusterStateLedgerUtil::loadClusterMessage(
     bmqp_ctrlmsg::ClusterMessage*   message,
     const mqbsi::Ledger&            ledger,
     const ClusterStateRecordHeader& recordHeader,
     const mqbsi::LedgerRecordId&    recordId)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-init-variables)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(message);
     BSLS_ASSERT_SAFE(ledger.supportsAliasing());
 
-    char*                 entry;
+    char* entry;
+    // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
     mqbsi::LedgerRecordId adjustedRecordId(
         recordId.logId(),
         recordId.offset() +
             recordHeader.headerWords() * bmqp::Protocol::k_WORD_SIZE);
+    // NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
+    // NOLINTBEGIN(*-narrowing-conversions)
     const int msgLen = recordHeader.leaderAdvisoryWords() *
                        bmqp::Protocol::k_WORD_SIZE;
+    // NOLINTEND(*-narrowing-conversions)
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     int rc = ledger.aliasRecord(reinterpret_cast<void**>(&entry),
                                 msgLen,
                                 adjustedRecordId);
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     if (rc != 0) {
         return rc * 100 + ClusterStateLedgerUtilRc::e_RECORD_ALIAS_FAILURE;
         // RETURN
@@ -457,19 +482,23 @@ int ClusterStateLedgerUtil::loadClusterMessage(
 
     return ClusterStateLedgerUtilRc::e_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-init-variables)
 
 int ClusterStateLedgerUtil::loadClusterMessage(
     bmqp_ctrlmsg::ClusterMessage* message,
     const mqbsi::Ledger&          ledger,
     const mqbsi::LedgerRecordId&  recordId)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-init-variables)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(ledger.supportsAliasing());
 
     ClusterStateRecordHeader* header;
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     int rc = ledger.aliasRecord(reinterpret_cast<void**>(&header),
                                 sizeof(ClusterStateRecordHeader),
                                 recordId);
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     if (rc != 0) {
         return rc * 100 +
                ClusterStateLedgerUtilRc::e_RECORD_ALIAS_FAILURE;  // RETURN
@@ -482,18 +511,22 @@ int ClusterStateLedgerUtil::loadClusterMessage(
 
     return loadClusterMessage(message, ledger, *header, recordId);
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-init-variables)
 
 int ClusterStateLedgerUtil::loadClusterMessage(
     bmqp_ctrlmsg::ClusterMessage*   message,
     const ClusterStateRecordHeader& recordHeader,
     const bdlbb::Blob&              record,
     int                             offset)
+// NOLINTBEGIN(*-magic-numbers)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(message);
 
+    // NOLINTBEGIN(*-narrowing-conversions)
     const int recordHeaderSize = recordHeader.headerWords() *
                                  bmqp::Protocol::k_WORD_SIZE;
+    // NOLINTEND(*-narrowing-conversions)
 
     bmqu::MemOutStream os;
     int                rc = bmqp::ProtocolUtil::decodeMessage(os,
@@ -508,11 +541,13 @@ int ClusterStateLedgerUtil::loadClusterMessage(
 
     return ClusterStateLedgerUtilRc::e_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers)
 
 int ClusterStateLedgerUtil::loadClusterMessage(
     bmqp_ctrlmsg::ClusterMessage* message,
     const bdlbb::Blob&            record,
     int                           offset)
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions)
 {
     bmqu::BlobPosition headerPosition;
     int rc = bmqu::BlobUtil::findOffsetSafe(&headerPosition, record, offset);
@@ -542,6 +577,7 @@ int ClusterStateLedgerUtil::loadClusterMessage(
 
     return loadClusterMessage(message, *header, record, offset);
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions)
 
 }  // close package namespace
 }  // close enterprise namespace

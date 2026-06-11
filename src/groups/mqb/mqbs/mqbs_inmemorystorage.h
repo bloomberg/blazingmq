@@ -120,6 +120,7 @@ class InMemoryStorage_Item {
 // class InMemoryStorage
 // =====================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     // TBD
 
@@ -553,10 +554,12 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     void purge(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
 
+    // NOLINTNEXTLINE(cppcoreguidelines-explicit-virtual-functions)
     virtual void setPrimary() BSLS_KEYWORD_OVERRIDE;
 
     /// Calculate offsets of all Apps (after recovery) in the data stream.
     /// An App offset is the number of messages older than the App.
+    // NOLINTNEXTLINE(cppcoreguidelines-explicit-virtual-functions)
     virtual void calibrate() BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
@@ -570,6 +573,7 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     // ACCESSORS
     bool isProxy() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -717,6 +721,7 @@ inline bool InMemoryStorage::isPersistent() const
 
 inline bsls::Types::Int64
 InMemoryStorage::numMessages(const mqbu::StorageKey& appKey) const
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     if (appKey.isNull()) {
         return d_items.size();  // RETURN
@@ -724,6 +729,7 @@ InMemoryStorage::numMessages(const mqbu::StorageKey& appKey) const
 
     return d_virtualStorageCatalog.numMessages(appKey);
 }
+// NOLINTEND(*-narrowing-conversions)
 
 inline bsls::Types::Int64
 InMemoryStorage::numBytes(const mqbu::StorageKey& appKey) const

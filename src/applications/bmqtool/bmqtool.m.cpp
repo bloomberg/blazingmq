@@ -56,6 +56,7 @@ using namespace m_bmqtool;
 
 // On UNIX only, ignore the SIGPIPE signal.
 static void ignoreSigpipe()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init,performance-avoid-endl)
 {
 #ifdef BSLS_PLATFORM_OS_UNIX
     // Ignore SIGPIPE on Unix platforms.
@@ -68,6 +69,7 @@ static void ignoreSigpipe()
     }
 #endif
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init,performance-avoid-endl)
 
 class ShutdownContext {
   public:
@@ -88,10 +90,12 @@ class ShutdownContext {
     }
 };
 
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static ShutdownContext* s_shutdownContext_p = 0;
 
 extern "C" {
 static void shutdownApp(int sig)
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     // The number of received signals for immediate termination.
     static const int k_NUM_TO_TERMINATE = 5;
@@ -117,21 +121,26 @@ static void shutdownApp(int sig)
                   << "]" << bsl::endl;
     }
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 }  // close extern "C"
 
 /// Iterate over the specified `argc` arguments in the specified `argv`
 /// list, and return the argument of the `--profile` option, if found, or
 /// null if not found (or if `--profile` was the last argument; this error
 /// will be caught and reported by optparse later.)
+// NOLINTBEGIN(*-avoid-c-arrays)
 static const char* extractProfilePath(int argc, const char* argv[])
 {
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (int i = 0; i != argc; ++i) {
         if (bsl::strcmp(argv[i], "--profile") == 0) {
             return (i + 1 <= argc) ? argv[i + 1] : 0;  // RETURN
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     return 0;
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static bool loadProfile(CommandLineParameters* params, const char* profilePath)
 {
@@ -159,7 +168,10 @@ static bool loadProfile(CommandLineParameters* params, const char* profilePath)
     return true;
 }
 
+// NOLINTBEGIN(*-avoid-c-arrays)
 static bool parseArgs(Parameters* parameters, int argc, const char* argv[])
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     // Parameters is default initialized, get all default values ...
     CommandLineParameters params(bslma::Default::allocator());
@@ -191,6 +203,7 @@ static bool parseArgs(Parameters* parameters, int argc, const char* argv[])
     bsl::string jsonMessageProperties;
     bsl::string jsonSubscriptions;
 
+    // NOLINTBEGIN(*-avoid-c-arrays)
     balcl::OptionInfo specTable[] = {
         {"mode",
          "mode",
@@ -354,6 +367,7 @@ static bool parseArgs(Parameters* parameters, int argc, const char* argv[])
          "authentication data/credentials string",
          balcl::TypeInfo(&params.authnData()),
          balcl::OccurrenceInfo(params.authnData())}};
+    // NOLINTEND(*-avoid-c-arrays)
 
     balcl::CommandLine commandLine(specTable);
     if (commandLine.parse(argc, argv) != 0 || showHelp) {
@@ -430,12 +444,16 @@ static bool parseArgs(Parameters* parameters, int argc, const char* argv[])
 
     return true;
 }
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(*-avoid-c-arrays)
 
 // ====
 // main
 // ====
 
 int main(int argc, const char* argv[])
+// NOLINTBEGIN(cert-err33-c)
 {
     ignoreSigpipe();
 
@@ -487,6 +505,7 @@ int main(int argc, const char* argv[])
 
     // Memory debugging
     if (parameters.memoryDebug()) {
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         int bytesLeaked = ta.numBytesInUse();
         if (bytesLeaked > 0) {
             bsl::cerr << bytesLeaked << " bytes of memory were leaked!"
@@ -496,3 +515,4 @@ int main(int argc, const char* argv[])
 
     return 0;
 }
+// NOLINTEND(cert-err33-c)

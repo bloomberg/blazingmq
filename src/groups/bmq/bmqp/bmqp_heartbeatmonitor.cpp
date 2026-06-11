@@ -31,6 +31,7 @@ namespace bmqp {
 // -----------------------
 
 const bdlbb::Blob& HeartbeatMonitor::heartbeatReqBlob()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast,cppcoreguidelines-pro-type-union-access)
 {
     static bsls::ObjectBuffer<bdlbb::Blob> blob;
     BSLMT_ONCE_DO
@@ -48,8 +49,10 @@ const bdlbb::Blob& HeartbeatMonitor::heartbeatReqBlob()
     }
     return blob.object();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-const-cast,cppcoreguidelines-pro-type-union-access)
 
 const bdlbb::Blob& HeartbeatMonitor::heartbeatRspBlob()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast,cppcoreguidelines-pro-type-union-access)
 {
     static bsls::ObjectBuffer<bdlbb::Blob> blob;
     BSLMT_ONCE_DO
@@ -67,6 +70,7 @@ const bdlbb::Blob& HeartbeatMonitor::heartbeatRspBlob()
     }
     return blob.object();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-const-cast,cppcoreguidelines-pro-type-union-access)
 
 HeartbeatMonitor::HeartbeatMonitor(int maxMissedHeartbeats,
                                    int initialMissedHeartbeatCounter)

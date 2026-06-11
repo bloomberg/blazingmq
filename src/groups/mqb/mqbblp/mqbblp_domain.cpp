@@ -57,7 +57,9 @@ namespace mqbblp {
 
 namespace {
 
-const char k_NODE_IS_STOPPING[]              = "Node is stopping";
+// NOLINTNEXTLINE(*-avoid-c-arrays)
+const char k_NODE_IS_STOPPING[] = "Node is stopping";
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_DOMAIN_IS_REMOVING_OR_REMOVED[] = "Domain is removing or removed";
 
 /// Validates an application subscription.
@@ -94,6 +96,7 @@ int validateConfig(bsl::ostream&           errorDescription,
                    const mqbconfm::Domain* previousDefn,
                    const mqbconfm::Domain& newConfig,
                    bslma::Allocator*       allocator)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class,performance-avoid-endl)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -182,6 +185,7 @@ int validateConfig(bsl::ostream&           errorDescription,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class,performance-avoid-endl)
 
 /// Given a definition `defn` for `domain`, ensures that the values provided
 /// by `defn` are suitable and consistent for configuring `domain`. For any
@@ -286,6 +290,7 @@ Domain::~Domain()
 
 int Domain::configure(bsl::ostream&           errorDescription,
                       const mqbconfm::Domain& newConfig)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -389,6 +394,7 @@ int Domain::configure(bsl::ostream&           errorDescription,
     d_state = e_STARTED;
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 void Domain::teardown(const mqbi::Domain::TeardownCb& teardownCb)
 {
@@ -449,6 +455,7 @@ void Domain::openQueue(
     const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>& clientContext,
     const bmqp_ctrlmsg::QueueHandleParameters&                handleParameters,
     const mqbi::Domain::OpenQueueCallback&                    callback)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // will execute in DomainManager's IO requester thread
     // (TBD: for now, in client-session or cluster dispatcher thread)
@@ -499,8 +506,10 @@ void Domain::openQueue(
                              bdlf::PlaceHolders::_4,  // confirmationCookie
                              callback));
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 int Domain::registerQueue(const bsl::shared_ptr<mqbi::Queue>& queueSp)
+// NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-use-enum-class)
 {
     // executed by the associated CLUSTER's DISPATCHER thread
 
@@ -552,6 +561,7 @@ int Domain::registerQueue(const bsl::shared_ptr<mqbi::Queue>& queueSp)
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-narrowing-conversions,cppcoreguidelines-use-enum-class)
 
 void Domain::unregisterQueue(mqbi::Queue* queue)
 {
@@ -639,9 +649,11 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
             cfgSnapshot = d_config_sp;
         }
         if (cfgSnapshot) {
-            baljsn::Encoder                       encoder;
+            baljsn::Encoder encoder;
+            // NOLINTBEGIN(*-magic-numbers)
             bdlma::LocalSequentialAllocator<1024> localAllocator(
                 d_allocator_p);
+            // NOLINTEND(*-magic-numbers)
             bmqu::MemOutStream out(&localAllocator);
 
             baljsn::EncoderOptions options;
@@ -764,6 +776,7 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
         return rc;  // RETURN
     }
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<256> localAllocator(d_allocator_p);
     bmqu::MemOutStream                   os(&localAllocator);
     os << "Unknown command '" << command << "'";
@@ -822,6 +835,7 @@ void Domain::subtractQueueCount()
 // ACCESSORS
 int Domain::lookupQueue(bsl::shared_ptr<mqbi::Queue>* out,
                         const bmqt::Uri&              uri) const
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -844,6 +858,7 @@ int Domain::lookupQueue(bsl::shared_ptr<mqbi::Queue>* out,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 void Domain::loadAllQueues(
     bsl::vector<bsl::shared_ptr<mqbi::Queue> >* out) const

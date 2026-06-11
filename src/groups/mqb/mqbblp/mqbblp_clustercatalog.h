@@ -96,6 +96,7 @@ namespace mqbblp {
 // ====================
 
 /// Mechanism to manage a catalog of cluster objects.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ClusterCatalog {
   private:
     // CLASS-SCOPE CATEGORY
@@ -110,10 +111,12 @@ class ClusterCatalog {
     /// deliver it back to the `Negotiator` ~ this hackery mechanism is needed
     /// in order to avoid dependency cycles and keep `mqbnet` layer abstracted
     /// away from this logic.
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
     struct NegotiationUserData {
         bsl::string d_clusterName;
         int         d_myNodeId;
     };
+    // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
     typedef bmqp::RequestManager<bmqp_ctrlmsg::ControlMessage,
                                  bmqp_ctrlmsg::ControlMessage>
@@ -128,6 +131,7 @@ class ClusterCatalog {
     // PRIVATE TYPES
 
     /// Struct containing meta information associated to a created cluster.
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
     struct ClusterInfo {
         // PUBLIC DATA
 
@@ -137,6 +141,7 @@ class ClusterCatalog {
         /// Event processor associated to this cluster.
         mqbnet::SessionEventProcessor* d_eventProcessor_p;
     };
+    // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
     /// Map of `Cluster name` to `ClusterInfo` object.
     typedef bsl::unordered_map<bsl::string, ClusterInfo> ClustersMap;
@@ -353,6 +358,7 @@ class ClusterCatalog {
     /// the catalog.
     void getClusters(bsl::vector<bsl::shared_ptr<mqbi::Cluster> >* out) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================
 

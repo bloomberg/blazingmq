@@ -50,7 +50,9 @@ inline bool
 isValidPacketLength(int*                      packetLength,
                     const bdlbb::Blob&        inBlob,
                     const bmqu::BlobPosition& pos = bmqu::BlobPosition())
+// NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-type-member-init,cppcoreguidelines-pro-type-reinterpret-cast)
 {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     void* offsetByte = inBlob.buffer(pos.buffer()).data() + pos.byte();
 
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(
@@ -62,6 +64,7 @@ isValidPacketLength(int*                      packetLength,
         // All length bytes are in one contiguous buffer at a position that is
         // aligned, so we can directly read from it.
         const bdlb::BigEndianUint32* lengthBE =
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             reinterpret_cast<const bdlb::BigEndianUint32*>(offsetByte);
         *packetLength = *lengthBE;
     }
@@ -91,6 +94,7 @@ isValidPacketLength(int*                      packetLength,
 
     return true;
 }
+// NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-type-member-init,cppcoreguidelines-pro-type-reinterpret-cast)
 
 }  // close unnamed namespace
 
@@ -248,6 +252,7 @@ bool ChannelUtil::isLocalHost(const bsl::string_view& host)
 }
 
 bool ChannelUtil::isLocalHost(const ntsa::IpAddress& ip)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     static bsl::vector<ntsa::IpAddress>* s_localAddresses_p = 0;
 
@@ -270,15 +275,18 @@ bool ChannelUtil::isLocalHost(const ntsa::IpAddress& ip)
     }
 
     bsl::vector<ntsa::IpAddress>::const_iterator it;
+    // NOLINTBEGIN(clang-analyzer-core.CallAndMessage,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (it = s_localAddresses_p->begin(); it != s_localAddresses_p->end();
          ++it) {
         if (it->equals(ip)) {
             return true;  // RETURN
         }
     }
+    // NOLINTEND(clang-analyzer-core.CallAndMessage,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     return false;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 }  // close package namespace
 }  // close enterprise namespace

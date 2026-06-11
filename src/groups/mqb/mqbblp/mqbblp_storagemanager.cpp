@@ -774,6 +774,7 @@ void StorageManager::processStorageEventDispatched(
 
 void StorageManager::processPartitionSyncEvent(
     const mqbevt::StorageEvent& event)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
@@ -812,9 +813,11 @@ void StorageManager::processPartitionSyncEvent(
         return;  // RETURN
     }
 
-    PartitionInfo                    pinfo;
+    PartitionInfo pinfo;
+    // NOLINTBEGIN(*-narrowing-conversions)
     const ClusterStatePartitionInfo& cspinfo = d_clusterState_p->partition(
         pid);
+    // NOLINTEND(*-narrowing-conversions)
     pinfo.setPrimary(cspinfo.primaryNode());
     pinfo.setPrimaryLeaseId(cspinfo.primaryLeaseId());
     pinfo.setPrimaryStatus(cspinfo.primaryStatus());
@@ -838,6 +841,7 @@ void StorageManager::processPartitionSyncEvent(
         event.blob(),
         source));
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void StorageManager::processPartitionSyncEventDispatched(
     int                                 partitionId,
@@ -1079,6 +1083,7 @@ StorageManager::StorageManager(
 , d_partitionInfoVec(allocator)
 , d_minimumRequiredDiskSpace(0)
 , d_replicationFactor(0)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     BSLS_ASSERT_SAFE(allocator);
     BSLS_ASSERT_SAFE(d_clusterData_p);
@@ -1107,6 +1112,7 @@ StorageManager::StorageManager(
     // 'd_cluster_p' before the above non-nullness check.
     d_replicationFactor = (d_cluster_p->netCluster().nodes().size() / 2) + 1;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 StorageManager::~StorageManager()
 {
@@ -1192,6 +1198,7 @@ int StorageManager::updateQueuePrimary(const bmqt::Uri& uri,
 }
 
 int StorageManager::start(bsl::ostream& errorDescription)
+// NOLINTBEGIN(*-magic-numbers,clang-analyzer-deadcode.DeadStores,cppcoreguidelines-use-enum-class)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
@@ -1377,6 +1384,7 @@ int StorageManager::start(bsl::ostream& errorDescription)
     d_isStarted = true;
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,clang-analyzer-deadcode.DeadStores,cppcoreguidelines-use-enum-class)
 
 void StorageManager::stop()
 {
@@ -1596,6 +1604,7 @@ int StorageManager::configureStorage(
 }
 
 void StorageManager::processStorageEvent(const mqbevt::StorageEvent& event)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // executed by *CLUSTER DISPATCHER* thread
 
@@ -1642,6 +1651,7 @@ void StorageManager::processStorageEvent(const mqbevt::StorageEvent& event)
         bmqp_ctrlmsg::NodeStatus::E_STARTING ==
             d_clusterData_p->membership().selfNodeStatus() ||
         isZero(d_clusterData_p->electorInfo().leaderMessageSequence());
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     const ClusterStatePartitionInfo& pinfo = d_clusterState_p->partition(pid);
     if (!mqbc::StorageUtil::validateStorageEvent(
             rawEvent,
@@ -1665,6 +1675,7 @@ void StorageManager::processStorageEvent(const mqbevt::StorageEvent& event)
                              event.blob(),
                              source));
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void StorageManager::processStorageSyncRequest(
     const bmqp_ctrlmsg::ControlMessage& message,

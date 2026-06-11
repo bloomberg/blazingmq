@@ -66,6 +66,7 @@ BALL_LOG_SET_NAMESPACE_CATEGORY("MQBS.FILESTOREPROTOCOLPRINTER");
 // FREE FUNCTIONS
 bsl::ostream& operator<<(bsl::ostream&           stream,
                          const mqbs::DataHeader& dataHeader)
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqu::OutStreamFormatSaver fmtSaver(stream);
 
@@ -89,6 +90,7 @@ bsl::ostream& operator<<(bsl::ostream&           stream,
 
     return stream;
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 bsl::ostream& operator<<(bsl::ostream&               stream,
                          const mqbs::DataFileHeader& header)
@@ -133,6 +135,7 @@ bsl::ostream& operator<<(bsl::ostream&                     stream,
 
 bsl::ostream& operator<<(bsl::ostream&                 stream,
                          const mqbs::DataFileIterator& it)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     const char*  data;
     unsigned int length;
@@ -143,6 +146,7 @@ bsl::ostream& operator<<(bsl::ostream&                 stream,
 
     return stream;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 bsl::ostream& operator<<(bsl::ostream&                  stream,
                          const mqbs::QlistFileIterator& it)
@@ -182,6 +186,7 @@ bsl::ostream& operator<<(bsl::ostream&                    stream,
 
 bsl::ostream& operator<<(bsl::ostream&                          stream,
                          const bmqp::MessagePropertiesIterator& iterator)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     const size_t k_MIN_LENGTH = 128;
 
@@ -243,6 +248,7 @@ bsl::ostream& operator<<(bsl::ostream&                          stream,
 
     return stream;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 // ==================================
 // namespace FileStoreProtocolPrinter
@@ -251,6 +257,7 @@ bsl::ostream& operator<<(bsl::ostream&                          stream,
 namespace FileStoreProtocolPrinter {
 
 void printRecord(bsl::ostream& stream, const mqbs::MessageRecord& rec)
+// NOLINTBEGIN(*-magic-numbers)
 {
     bsl::vector<const char*> fields;
     fields.reserve(10);
@@ -270,6 +277,7 @@ void printRecord(bsl::ostream& stream, const mqbs::MessageRecord& rec)
 
     bsls::Types::Uint64 epochValue = rec.header().timestamp();
     bdlt::Datetime      datetime;
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime, epochValue);
     if (0 != rc) {
         printer << 0;
@@ -288,8 +296,10 @@ void printRecord(bsl::ostream& stream, const mqbs::MessageRecord& rec)
 
     stream << "\n";
 }
+// NOLINTEND(*-magic-numbers)
 
 void printRecord(bsl::ostream& stream, const mqbs::ConfirmRecord& rec)
+// NOLINTBEGIN(*-magic-numbers)
 {
     bsl::vector<const char*> fields;
     fields.reserve(7);
@@ -316,6 +326,7 @@ void printRecord(bsl::ostream& stream, const mqbs::ConfirmRecord& rec)
 
     bsls::Types::Uint64 epochValue = rec.header().timestamp();
     bdlt::Datetime      datetime;
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime, epochValue);
     if (0 != rc) {
         printer << 0;
@@ -327,6 +338,7 @@ void printRecord(bsl::ostream& stream, const mqbs::ConfirmRecord& rec)
             << rec.messageGUID();
     stream << "\n";
 }
+// NOLINTEND(*-magic-numbers)
 
 void printRecord(bsl::ostream& stream, const mqbs::DeletionRecord& rec)
 {
@@ -347,6 +359,7 @@ void printRecord(bsl::ostream& stream, const mqbs::DeletionRecord& rec)
 
     bsls::Types::Uint64 epochValue = rec.header().timestamp();
     bdlt::Datetime      datetime;
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime, epochValue);
     if (0 != rc) {
         printer << 0;
@@ -360,6 +373,7 @@ void printRecord(bsl::ostream& stream, const mqbs::DeletionRecord& rec)
 }
 
 void printRecord(bsl::ostream& stream, const mqbs::QueueOpRecord& rec)
+// NOLINTBEGIN(*-magic-numbers)
 {
     bsl::vector<const char*> fields;
     fields.reserve(8);
@@ -392,6 +406,7 @@ void printRecord(bsl::ostream& stream, const mqbs::QueueOpRecord& rec)
 
     bsls::Types::Uint64 epochValue = rec.header().timestamp();
     bdlt::Datetime      datetime;
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime, epochValue);
     if (0 != rc) {
         printer << 0;
@@ -410,8 +425,10 @@ void printRecord(bsl::ostream& stream, const mqbs::QueueOpRecord& rec)
 
     stream << "\n";
 }
+// NOLINTEND(*-magic-numbers)
 
 void printRecord(bsl::ostream& stream, const mqbs::JournalOpRecord& rec)
+// NOLINTBEGIN(*-magic-numbers)
 {
     bsl::vector<const char*> fields;
     fields.reserve(10);
@@ -431,6 +448,7 @@ void printRecord(bsl::ostream& stream, const mqbs::JournalOpRecord& rec)
 
     bsls::Types::Uint64 epochValue = rec.header().timestamp();
     bdlt::Datetime      datetime;
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime, epochValue);
     if (0 != rc) {
         printer << 0;
@@ -445,6 +463,7 @@ void printRecord(bsl::ostream& stream, const mqbs::JournalOpRecord& rec)
 
     stream << "\n";
 }
+// NOLINTEND(*-magic-numbers)
 
 void printOption(bsl::ostream&           stream,
                  BSLA_MAYBE_UNUSED const bmqp::OptionsView* ov,
@@ -461,17 +480,22 @@ void printOptions(bsl::ostream& stream, const char* options, unsigned int len)
         return;  // RETURN
     }
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
     bsl::shared_ptr<char> optionsAreaSp(const_cast<char*>(options),
                                         bslstl::SharedPtrNilDeleter(),
                                         0);
-    bdlbb::BlobBuffer     optionsBuffer(optionsAreaSp, len);
-    bdlbb::Blob           optionsBlob;
+    // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
+    // NOLINTNEXTLINE(*-narrowing-conversions)
+    bdlbb::BlobBuffer optionsBuffer(optionsAreaSp, len);
+    bdlbb::Blob       optionsBlob;
     optionsBlob.appendDataBuffer(optionsBuffer);
 
+    // NOLINTBEGIN(*-narrowing-conversions)
     bmqp::OptionsView optionsView(&optionsBlob,
                                   bmqu::BlobPosition(0, 0),
                                   len,
                                   bslma::Default::allocator(0));
+    // NOLINTEND(*-narrowing-conversions)
 
     if (!optionsView.isValid()) {
         stream << "   *** Invalid Options ***";
@@ -488,7 +512,9 @@ void printOptions(bsl::ostream& stream, const char* options, unsigned int len)
 }
 
 void printPayload(bsl::ostream& stream, const char* data, unsigned int len)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
+    // NOLINTNEXTLINE(*-magic-numbers)
     unsigned int minLen = bsl::min(len, 1024u);
     stream << "First " << minLen << " bytes of payload: \n";
     bdlb::Print::hexDump(stream, data, minLen);
@@ -496,6 +522,7 @@ void printPayload(bsl::ostream& stream, const char* data, unsigned int len)
         stream << "And " << (len - minLen) << " more bytes (redacted)";
     }
 }
+// NOLINTEND(*-narrowing-conversions)
 
 int printMessageProperties(unsigned int* propertiesAreaLen,
                            bsl::ostream& stream,
@@ -503,14 +530,18 @@ int printMessageProperties(unsigned int* propertiesAreaLen,
                            const bmqp::MessagePropertiesInfo& logic)
 {
     const bmqp::MessagePropertiesHeader& mph =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         *reinterpret_cast<const bmqp::MessagePropertiesHeader*>(appData);
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
     bsl::shared_ptr<char> propertiesAreaSp(const_cast<char*>(appData),
                                            bslstl::SharedPtrNilDeleter(),
                                            0);
+    // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
 
     *propertiesAreaLen = mph.messagePropertiesAreaWords() *
                          bmqp::Protocol::k_WORD_SIZE;
 
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     bdlbb::BlobBuffer propertiesBuffer(propertiesAreaSp, *propertiesAreaLen);
     bdlbb::Blob       propertiesBlob;
     propertiesBlob.appendDataBuffer(propertiesBuffer);
@@ -531,6 +562,7 @@ int printMessageProperties(unsigned int* propertiesAreaLen,
 }
 
 void printIterator(mqbs::DataFileIterator& it)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     bmqu::MemOutStream dataHeaderOsstr;
     bmqu::MemOutStream optionsOsstr;
@@ -590,6 +622,7 @@ void printIterator(mqbs::DataFileIterator& it)
         BALL_LOG_OUTPUT_STREAM << "\nPayload: " << '\n' << payloadOsstr.str();
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 void printIterator(mqbs::QlistFileIterator& it)
 {

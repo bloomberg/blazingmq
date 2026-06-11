@@ -61,6 +61,7 @@ ClusterStateManager::ClusterStateManager(
 : d_allocator_p(allocator)
 , d_allocators(d_allocator_p)
 , d_watchdogCtx()
+// NOLINTNEXTLINE(*-narrowing-conversions)
 , d_watchdogTimeoutInterval(watchdogTimeoutDuration)
 , d_watchdogNumRetries(watchdogNumRetries)
 , d_clusterConfig(clusterConfig)
@@ -327,6 +328,7 @@ void ClusterStateManager::do_updatePrimaryInPFSMs(
     const ClusterStateTableEvent::Enum eventType = event.first;
     const bsl::vector<int>&            modifiedPartitions =
         event.second.modifiedPartitions();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsl::vector<int>::const_iterator it = modifiedPartitions.cbegin();
          it != modifiedPartitions.cend();
          ++it) {
@@ -357,10 +359,12 @@ void ClusterStateManager::do_updatePrimaryInPFSMs(
                 d_state_p->partition(pid).primaryLeaseId());
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 void ClusterStateManager::do_sendFollowerLSNRequests(
     BSLA_MAYBE_UNUSED const EventWithMetadata& event)
+// NOLINTBEGIN(*-magic-numbers)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -398,6 +402,7 @@ void ClusterStateManager::do_sendFollowerLSNRequests(
     d_clusterData_p->multiRequestManager().sendRequest(contextSp,
                                                        bsls::TimeInterval(10));
 }
+// NOLINTEND(*-magic-numbers)
 
 void ClusterStateManager::do_sendFollowerLSNResponse(
     const EventWithMetadata& event)
@@ -559,10 +564,12 @@ void ClusterStateManager::do_sendFollowerClusterStateRequest(
         metadata.highestLSNNode(),
         bdlf::PlaceHolders::_1));
 
+    // NOLINTBEGIN(*-magic-numbers)
     bmqt::GenericResult::Enum rc = d_cluster_p->sendRequest(
         request,
         metadata.highestLSNNode(),
         bsls::TimeInterval(10));
+    // NOLINTEND(*-magic-numbers)
 
     if (rc != bmqt::GenericResult::e_SUCCESS) {
         InputMessages inputMessages(1, d_allocator_p);
@@ -716,6 +723,7 @@ void ClusterStateManager::do_storeFollowerLSNs(const EventWithMetadata& event)
 
     const ClusterFSMEventMetadata& metadata = event.second;
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (InputMessagesCIter cit = metadata.inputMessages().cbegin();
          cit != metadata.inputMessages().cend();
          ++cit) {
@@ -726,6 +734,7 @@ void ClusterStateManager::do_storeFollowerLSNs(const EventWithMetadata& event)
                       << cit->source()->nodeDescription() << " as "
                       << printLSN(cit->leaderSequenceNumber());
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 void ClusterStateManager::do_removeFollowerLSN(const EventWithMetadata& event)
@@ -825,6 +834,7 @@ void ClusterStateManager::do_sendRegistrationRequest(
                              bdlf::PlaceHolders::_1));
 
     bmqt::GenericResult::Enum rc =
+        // NOLINTNEXTLINE(*-magic-numbers)
         d_cluster_p->sendRequest(request, destNode, bsls::TimeInterval(10));
 
     if (rc != bmqt::GenericResult::e_SUCCESS) {
@@ -932,6 +942,7 @@ void ClusterStateManager::do_logStaleFollowerLSNResponse(
 
     const ClusterFSMEventMetadata& metadata = event.second;
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (InputMessagesCIter cit = metadata.inputMessages().cbegin();
          cit != metadata.inputMessages().cend();
          ++cit) {
@@ -942,6 +953,7 @@ void ClusterStateManager::do_logStaleFollowerLSNResponse(
                       << printLSN(cit->leaderSequenceNumber())
                       << " is stale.  Self is no longer leader.";
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 void ClusterStateManager::do_logStaleFollowerClusterStateResponse(
@@ -979,6 +991,7 @@ void ClusterStateManager::do_logFailFollowerLSNResponses(
                      d_clusterFSM.isSelfLeader());
 
     const ClusterFSMEventMetadata& metadata = event.second;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (InputMessagesCIter cit = metadata.inputMessages().cbegin();
          cit != metadata.inputMessages().cend();
          ++cit) {
@@ -988,6 +1001,7 @@ void ClusterStateManager::do_logFailFollowerLSNResponses(
                       << ": Received failure follower LSN response from "
                       << cit->source()->nodeDescription();
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 void ClusterStateManager::do_logFailFollowerClusterStateResponse(
@@ -1354,6 +1368,7 @@ void ClusterStateManager::onFollowerLSNResponse(
 
     InputMessages failureResponses(d_allocator_p);
     InputMessages successResponses(d_allocator_p);
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (NodeResponsePairsCIter cit = pairs.cbegin(); cit != pairs.cend();
          ++cit) {
         BSLS_ASSERT_SAFE(cit->first);
@@ -1403,6 +1418,7 @@ void ClusterStateManager::onFollowerLSNResponse(
 
         successResponses.emplace_back(inputMessage);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     if (!failureResponses.empty()) {
         applyFSMEvent(ClusterFSM::Event::e_FAIL_FOL_LSN_RSPN,
@@ -1423,6 +1439,7 @@ void ClusterStateManager::onFollowerLSNResponse(
 void ClusterStateManager::onRegistrationResponse(
     mqbnet::ClusterNode*    source,
     const RequestContextSp& requestContext)
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1486,10 +1503,12 @@ void ClusterStateManager::onRegistrationResponse(
 
     applyFSMEvent(ClusterFSM::Event::e_REGISTRATION_RSPN, metadata);
 }
+// NOLINTEND(bugprone-unchecked-optional-access)
 
 void ClusterStateManager::onFollowerClusterStateResponse(
     mqbnet::ClusterNode*    source,
     const RequestContextSp& requestContext)
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1558,6 +1577,7 @@ void ClusterStateManager::onFollowerClusterStateResponse(
                                           0,  // crashedFollowerNode
                                           resp.clusterStateSnapshot()));
 }
+// NOLINTEND(bugprone-unchecked-optional-access)
 
 // MANIPULATORS
 //   (virtual: mqbi::ClusterStateManager)
@@ -1816,6 +1836,7 @@ void ClusterStateManager::processLeaderSyncDataQuery(
 void ClusterStateManager::processFollowerLSNRequest(
     const bmqp_ctrlmsg::ControlMessage& message,
     mqbnet::ClusterNode*                source)
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1843,10 +1864,12 @@ void ClusterStateManager::processFollowerLSNRequest(
     applyFSMEvent(ClusterFSM::Event::e_FOL_LSN_RQST,
                   ClusterFSMEventMetadata(inputMessages));
 }
+// NOLINTEND(bugprone-unchecked-optional-access)
 
 void ClusterStateManager::processFollowerClusterStateRequest(
     const bmqp_ctrlmsg::ControlMessage& message,
     mqbnet::ClusterNode*                source)
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1874,10 +1897,12 @@ void ClusterStateManager::processFollowerClusterStateRequest(
     applyFSMEvent(ClusterFSM::Event::e_FOL_CSL_RQST,
                   ClusterFSMEventMetadata(inputMessages));
 }
+// NOLINTEND(bugprone-unchecked-optional-access)
 
 void ClusterStateManager::processRegistrationRequest(
     const bmqp_ctrlmsg::ControlMessage& message,
     mqbnet::ClusterNode*                source)
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1918,6 +1943,7 @@ void ClusterStateManager::processRegistrationRequest(
     applyFSMEvent(ClusterFSM::Event::e_REGISTRATION_RQST,
                   ClusterFSMEventMetadata(inputMessages, highestLSNNode));
 }
+// NOLINTEND(bugprone-unchecked-optional-access)
 
 void ClusterStateManager::processClusterStateEvent(
     const mqbevt::ClusterStateEvent& event)

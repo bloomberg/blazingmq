@@ -65,6 +65,7 @@ DispatcherEventSource::DispatcherEventSource(bslma::Allocator* allocator)
 DispatcherEventSource::~DispatcherEventSource()
 {
     // Make sure all the events have returned to the pool.
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define MQBA_ASSERT_POOL_FREE(pool)                                           \
     BSLS_ASSERT((pool).numObjects() == (pool).numAvailableObjects())
 

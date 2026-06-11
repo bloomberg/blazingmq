@@ -90,6 +90,7 @@ bool EncodingType::fromAscii(EncodingType::Enum*      out,
 }
 
 bool EncodingType::isValid(const bsl::string* string, bsl::ostream& stream)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     EncodingType::Enum value;
     if (fromAscii(&value, *string)) {
@@ -100,6 +101,7 @@ bool EncodingType::isValid(const bsl::string* string, bsl::ostream& stream)
            << "[undefined, raw, ber, bdex, xml, json, text or multiparts]\n";
     return false;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 }  // close package namespace
 }  // close enterprise namespace

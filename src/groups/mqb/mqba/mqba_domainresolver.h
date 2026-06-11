@@ -90,6 +90,7 @@ namespace mqba {
 // ====================
 
 /// Mechanism to resolve domain and find their associated cluster
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class DomainResolver {
   public:
     // TYPES
@@ -107,6 +108,7 @@ class DomainResolver {
 
     /// Structure representing the result of resolving a domain in the cache
     /// map.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct CacheEntry {
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(CacheEntry, bslma::UsesBslmaAllocator)
@@ -135,6 +137,7 @@ class DomainResolver {
         /// this data was generated.
         bdlt::Datetime d_cfgDirTimestamp;
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     /// Map of domain name to cache entry.
     typedef bsl::unordered_map<bsl::string,
@@ -258,6 +261,7 @@ class DomainResolver {
     int processCommand(const mqbcmd::DomainResolverCommand& command,
                        mqbcmd::Error*                       error);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

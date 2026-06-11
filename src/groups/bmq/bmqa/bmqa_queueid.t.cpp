@@ -52,6 +52,7 @@ static void test1_breathingTest()
 // Testing:
 //   Basic functionality.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -63,7 +64,7 @@ static void test1_breathingTest()
 
     PV("Default Constructor");
     {
-        bmqa::QueueId obj(bmqtst::TestHelperUtil::allocator());
+        bmqa::QueueId      obj(bmqtst::TestHelperUtil::allocator());
         bmqu::MemOutStream reason(bmqtst::TestHelperUtil::allocator());
         BMQTST_ASSERT_EQ(obj.isValid(&reason), false);
         BMQTST_ASSERT_EQ(reason.str(), "Invalid QueueId: 4294967295");
@@ -99,7 +100,8 @@ static void test1_breathingTest()
     PV("Valued Constructor - void ptr");
     {
         const char* buffer = "1234";
-        void*       ptr    = static_cast<void*>(const_cast<char*>(buffer));
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+        void* ptr = static_cast<void*>(const_cast<char*>(buffer));
 
         bmqa::QueueId obj(ptr, bmqtst::TestHelperUtil::allocator());
         BMQTST_ASSERT_EQ(obj.correlationId(), bmqt::CorrelationId(ptr));
@@ -168,9 +170,11 @@ static void test1_breathingTest()
 
         // Convert to bmqimp::Queue
         bsl::shared_ptr<bmqimp::Queue>& queue =
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             reinterpret_cast<bsl::shared_ptr<bmqimp::Queue>&>(obj);
 
         // Set uri to impl object
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const bmqt::Uri uri(k_QUEUE_URL, bmqtst::TestHelperUtil::allocator());
         BMQTST_ASSERT_EQ(uri.isValid(), true);
 
@@ -179,6 +183,7 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(obj.uri().asString(), k_QUEUE_URL);
     }
 }
+// NOLINTEND(*-avoid-c-arrays,performance-avoid-endl)
 
 static void test2_comparison()
 // ------------------------------------------------------------------------
@@ -198,6 +203,7 @@ static void test2_comparison()
 //   bool operator==(const bmqa::QueueId& lhs, const bmqa::QueueId& rhs);
 //   bool operator!=(const bmqa::QueueId& lhs, const bmqa::QueueId& rhs);
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("COMPARISON");
 
@@ -228,12 +234,14 @@ static void test2_comparison()
         BMQTST_ASSERT_EQ(obj1, obj2);
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -249,3 +257,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

@@ -85,6 +85,7 @@ template <bool pretty      = false,
           bool braceNeeded = true,
           int  braceIndent = 0,
           int  fieldIndent = 4>
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class JsonPrinter {
   private:
     // DATA
@@ -115,6 +116,7 @@ class JsonPrinter {
     template <typename TYPE>
     JsonPrinter& operator<<(const TYPE& value);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -164,6 +166,7 @@ template <typename TYPE>
 inline JsonPrinter<pretty, braceNeeded, braceIndent, fieldIndent>&
 JsonPrinter<pretty, braceNeeded, braceIndent, fieldIndent>::operator<<(
     const TYPE& value)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     BSLS_ASSERT_SAFE(d_counter < d_fields_p->size());
 
@@ -189,6 +192,7 @@ JsonPrinter<pretty, braceNeeded, braceIndent, fieldIndent>::operator<<(
 
     return *this;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 }  // close package namespace
 }  // close enterprise namespace

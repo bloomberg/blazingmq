@@ -192,27 +192,33 @@ struct ExecutorTraits {
 
 // CLASS METHODS
 template <class EXECUTOR, class FUNCTION>
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 inline void
 ExecutorTraits_Imp::post(const EXECUTOR& executor,
                          BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) f)
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 {
     executor.post(BSLS_COMPILERFEATURES_FORWARD(FUNCTION, f));
 }
 
 template <class EXECUTOR, class FUNCTION>
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 inline typename bsl::enable_if<
     ExecutorTraits_CanDispatch<EXECUTOR, FUNCTION>::value>::type
 ExecutorTraits_Imp::dispatch(const EXECUTOR& executor,
                              BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) f)
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 {
     executor.dispatch(BSLS_COMPILERFEATURES_FORWARD(FUNCTION, f));
 }
 
 template <class EXECUTOR, class FUNCTION>
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 inline typename bsl::enable_if<
     !ExecutorTraits_CanDispatch<EXECUTOR, FUNCTION>::value>::type
 ExecutorTraits_Imp::dispatch(const EXECUTOR& executor,
                              BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) f)
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 {
     executor.post(BSLS_COMPILERFEATURES_FORWARD(FUNCTION, f));
 }
@@ -222,22 +228,26 @@ ExecutorTraits_Imp::dispatch(const EXECUTOR& executor,
 // ---------------------
 
 // CLASS METHODS
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 template <class EXECUTOR>
 template <class FUNCTION>
 inline void
 ExecutorTraits<EXECUTOR>::post(const EXECUTOR& executor,
                                BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) f)
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 {
     ExecutorTraits_Imp::post(executor,
                              BSLS_COMPILERFEATURES_FORWARD(FUNCTION, f));
 }
 
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 template <class EXECUTOR>
 template <class FUNCTION>
 inline void
 ExecutorTraits<EXECUTOR>::dispatch(const EXECUTOR& executor,
                                    BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION)
                                        f)
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 {
     ExecutorTraits_Imp::dispatch(executor,
                                  BSLS_COMPILERFEATURES_FORWARD(FUNCTION, f));

@@ -45,6 +45,7 @@ namespace {
 const int k_RECORD_SIZE = 48;  // Size of a journal record.  Must be 4byte
                                // aligned.
 
+// NOLINTBEGIN(*-avoid-c-arrays)
 struct Data {
     // DATA
     bmqp::StorageMessageType::Enum d_messageType;
@@ -69,13 +70,17 @@ struct Data {
     Data(bslma::Allocator* allocator);
     Data(const Data& other, bslma::Allocator* allocator);
 };
+// NOLINTEND(*-avoid-c-arrays)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 Data::Data(bslma::Allocator* allocator)
 : d_payload(allocator)
 {
     // NOTHING
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 Data::Data(const Data& other, bslma::Allocator* allocator)
 : d_messageType(other.d_messageType)
 , d_flags(other.d_flags)
@@ -83,17 +88,24 @@ Data::Data(const Data& other, bslma::Allocator* allocator)
 , d_pid(other.d_pid)
 , d_journalOffsetWords(other.d_journalOffsetWords)
 , d_payload(other.d_payload, allocator)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bsl::memcpy(d_recordBuffer, other.d_recordBuffer, k_RECORD_SIZE);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 bmqt::EventBuilderResult::Enum appendMessage(unsigned int               index,
                                              bmqp::StorageEventBuilder* seb,
                                              bsl::vector<Data>* dataVec,
                                              bslma::Allocator*  allocator)
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     Data D(allocator);
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     unsigned int remainder = index % 6;
     if (0 == remainder) {
         D.d_messageType = bmqp::StorageMessageType::e_DATA;
@@ -132,20 +144,26 @@ bmqt::EventBuilderResult::Enum appendMessage(unsigned int               index,
 
     Data& Dref = dataVec->back();
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::shared_ptr<char> journalRecordBufferSp(Dref.d_recordBuffer,
                                                 bslstl::SharedPtrNilDeleter(),
                                                 allocator);
-    bdlbb::BlobBuffer     journalRecordBlobBuffer(journalRecordBufferSp,
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+    bdlbb::BlobBuffer journalRecordBlobBuffer(journalRecordBufferSp,
                                               k_RECORD_SIZE);
 
     if (bmqp::StorageMessageType::e_DATA == Dref.d_messageType ||
         bmqp::StorageMessageType::e_QLIST == Dref.d_messageType) {
+        // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
         bsl::shared_ptr<char> dataBufferSp(
             const_cast<char*>(Dref.d_payload.c_str()),
             bslstl::SharedPtrNilDeleter(),
             allocator);
+        // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
+        // NOLINTBEGIN(*-narrowing-conversions)
         bdlbb::BlobBuffer dataBlobBuffer(dataBufferSp,
                                          Dref.d_payload.length());
+        // NOLINTEND(*-narrowing-conversions)
 
         return seb->packMessage(D.d_messageType,
                                 D.d_pid,
@@ -161,6 +179,7 @@ bmqt::EventBuilderResult::Enum appendMessage(unsigned int               index,
                             D.d_journalOffsetWords,
                             journalRecordBlobBuffer);
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 }  // close unnamed namespace
 
@@ -181,12 +200,15 @@ static void test1_breathingTest()
 // Testing:
 //   Basic functionality
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-narrowing-conversions,clang-analyzer-deadcode.DeadStores,cppcoreguidelines-init-variables)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -208,18 +230,26 @@ static void test1_breathingTest()
                      static_cast<int>(sizeof(bmqp::EventHeader)));
     BMQTST_ASSERT_EQ(seb.messageCount(), 0);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
     bsl::shared_ptr<char> journalRecordBufferSp(
         const_cast<char*>(JOURNAL_REC),
         bslstl::SharedPtrNilDeleter(),
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
+    // NOLINTBEGIN(*-narrowing-conversions)
     bdlbb::BlobBuffer journalRecordBlobBuffer(journalRecordBufferSp,
                                               JOURNAL_REC_LEN);
+    // NOLINTEND(*-narrowing-conversions)
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
     bsl::shared_ptr<char> dataBufferSp(const_cast<char*>(PAYLOAD),
                                        bslstl::SharedPtrNilDeleter(),
                                        bmqtst::TestHelperUtil::allocator());
-    bdlbb::BlobBuffer     dataBlobBuffer(dataBufferSp, PAYLOAD_LEN);
+    // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
+    // NOLINTNEXTLINE(*-narrowing-conversions)
+    bdlbb::BlobBuffer dataBlobBuffer(dataBufferSp, PAYLOAD_LEN);
 
+    // NOLINTBEGIN(*-magic-numbers)
     bmqt::EventBuilderResult::Enum rc = seb.packMessage(
         bmqp::StorageMessageType::e_DATA,
         1,     // partitionId
@@ -227,6 +257,7 @@ static void test1_breathingTest()
         5000,  // journalOffsetW
         journalRecordBlobBuffer,
         dataBlobBuffer);
+    // NOLINTEND(*-magic-numbers)
 
     BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
     BMQTST_ASSERT_LT(PAYLOAD_LEN, static_cast<unsigned int>(seb.eventSize()));
@@ -280,6 +311,7 @@ static void test1_breathingTest()
 
     BMQTST_ASSERT_EQ(0, storageIter.next());  // we added only 1 msg
 }
+// NOLINTEND(*-narrowing-conversions,clang-analyzer-deadcode.DeadStores,cppcoreguidelines-init-variables)
 
 static void test2_storageEventHavingMultipleMessages()
 // ------------------------------------------------------------------------
@@ -291,10 +323,12 @@ static void test2_storageEventHavingMultipleMessages()
     bmqtst::TestHelper::printTestName("STORAGE EVENT HAVING MULTIPLE"
                                       " MESSAGES");
 
-    const int                      k_SPV = 2;  // Storage protocol version
+    const int k_SPV = 2;  // Storage protocol version
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -330,6 +364,7 @@ static void test2_storageEventHavingMultipleMessages()
 
     size_t dataIndex = 0;
 
+    // NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     while (1 == iter.next() && dataIndex < NUM_MSGS) {
         const Data& D = data[dataIndex];
 
@@ -378,6 +413,7 @@ static void test2_storageEventHavingMultipleMessages()
 
         ++dataIndex;
     }
+    // NOLINTEND(*-narrowing-conversions,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     BMQTST_ASSERT_EQ(data.size(), dataIndex);
     BMQTST_ASSERT_EQ(iter.isValid(), false);
@@ -390,12 +426,15 @@ static void test3_packMessage_payloadTooBig()
 // Concerns:
 //   Test behavior when trying to build *one* big message.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-init-variables,cppcoreguidelines-pro-type-const-cast)
 {
     bmqtst::TestHelper::printTestName("PACK MESSAGE - PAYLOAD TOO BIG");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -416,19 +455,27 @@ static void test3_packMessage_payloadTooBig()
     bigPayload.resize(bmqp::StorageHeader::k_MAX_PAYLOAD_SIZE_SOFT + 4, 'a');
     // Note that payload's size must be word aligned.
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
     bsl::shared_ptr<char> journalRecordBufferSp(
         const_cast<char*>(IGNORED_JOURNAL_REC),
         bslstl::SharedPtrNilDeleter(),
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
+    // NOLINTBEGIN(*-narrowing-conversions)
     bdlbb::BlobBuffer journalRecordBlobBuffer(
         journalRecordBufferSp,
         bsl::strlen(IGNORED_JOURNAL_REC));
+    // NOLINTEND(*-narrowing-conversions)
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
     bsl::shared_ptr<char> dataBufferSp(const_cast<char*>(bigPayload.c_str()),
                                        bslstl::SharedPtrNilDeleter(),
                                        bmqtst::TestHelperUtil::allocator());
-    bdlbb::BlobBuffer     dataBlobBuffer(dataBufferSp, bigPayload.length());
+    // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
+    // NOLINTNEXTLINE(*-narrowing-conversions)
+    bdlbb::BlobBuffer dataBlobBuffer(dataBufferSp, bigPayload.length());
 
+    // NOLINTBEGIN(*-magic-numbers)
     bmqt::EventBuilderResult::Enum rc = seb.packMessage(
         bmqp::StorageMessageType::e_DATA,
         1,    // partitionId
@@ -436,6 +483,7 @@ static void test3_packMessage_payloadTooBig()
         450,  // journalOffsetWords
         journalRecordBlobBuffer,
         dataBlobBuffer);
+    // NOLINTEND(*-magic-numbers)
 
     BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_PAYLOAD_TOO_BIG);
     BMQTST_ASSERT_EQ(seb.eventSize(),
@@ -513,6 +561,7 @@ static void test3_packMessage_payloadTooBig()
     BMQTST_ASSERT_EQ(0, res);
     BMQTST_ASSERT_EQ(false, storageIter.next());  // we added only 1 msg
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-init-variables,cppcoreguidelines-pro-type-const-cast)
 
 static void test4_packMessageRaw()
 // ------------------------------------------------------------------------
@@ -532,10 +581,12 @@ static void test4_packMessageRaw()
     // message. Finally, we will iterate event 'B' and verify it against the
     // messages packed in event 'A'.
 
-    const int                      k_SPV = 2;  // Storage protocol version
+    const int k_SPV = 2;  // Storage protocol version
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -607,6 +658,7 @@ static void test4_packMessageRaw()
 
     dataIndex = 0;
 
+    // NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     while (1 == iterB.next() && dataIndex < NUM_MSGS) {
         const Data& D = data[dataIndex];
 
@@ -655,6 +707,7 @@ static void test4_packMessageRaw()
 
         ++dataIndex;
     }
+    // NOLINTEND(*-narrowing-conversions,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     BMQTST_ASSERT_EQ(data.size(), dataIndex);
     BMQTST_ASSERT_EQ(iterB.isValid(), false);
@@ -677,10 +730,12 @@ static void test5_packMessageRaw_emptyMessage()
 {
     bmqtst::TestHelper::printTestName("PACK MESSAGE RAW - EMPTY MESSAGE");
 
-    const int                      k_SPV = 2;  // Storage protocol version
+    const int k_SPV = 2;  // Storage protocol version
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -724,10 +779,12 @@ static void test6_packMessageRaw_invalidPosition()
 {
     bmqtst::TestHelper::printTestName("PACK MESSAGE RAW - INVALID POSITION");
 
-    const int                      k_SPV = 2;  // Storage protocol version
+    const int k_SPV = 2;  // Storage protocol version
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -740,11 +797,15 @@ static void test6_packMessageRaw_invalidPosition()
                                   bmqtst::TestHelperUtil::allocator());
 
     // 1.
+    // NOLINTNEXTLINE(*-magic-numbers)
     bsl::string payloadStr(1024U, 'x', bmqtst::TestHelperUtil::allocator());
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
     bsl::shared_ptr<char> dataBufferSp(const_cast<char*>(payloadStr.c_str()),
                                        bslstl::SharedPtrNilDeleter(),
                                        bmqtst::TestHelperUtil::allocator());
-    bdlbb::BlobBuffer     dataBlobBuffer(dataBufferSp, payloadStr.length());
+    // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
+    // NOLINTNEXTLINE(*-narrowing-conversions)
+    bdlbb::BlobBuffer dataBlobBuffer(dataBufferSp, payloadStr.length());
 
     bdlbb::Blob message(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     message.appendDataBuffer(dataBlobBuffer);
@@ -764,6 +825,7 @@ static void test6_packMessageRaw_invalidPosition()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -792,3 +854,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

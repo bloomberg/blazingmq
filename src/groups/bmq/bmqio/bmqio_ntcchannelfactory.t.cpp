@@ -83,6 +83,7 @@ static bool ballFilter(const bsl::string&      messageSubstring,
 }
 
 // CONSTANTS
+// NOLINTNEXTLINE(cert-err58-cpp)
 static const bslstl::StringRef k_BALL_OBSERVER_NAME = "testDriverObserver";
 static const ChannelFactoryEvent::Enum CFE_CHANNEL_UP =
     ChannelFactoryEvent::e_CHANNEL_UP;
@@ -120,6 +121,7 @@ static const int k_ATTEMPT_INTERVAL_MS = 1;
 // ========================
 
 /// Information about a Channel stored by a `Tester`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct Tester_ChannelInfo {
     // DATA
     bsl::shared_ptr<Channel>               d_channel;
@@ -151,12 +153,14 @@ struct Tester_ChannelInfo {
         // NOTHING
     }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =========================
 // class Tester_ResultCbInfo
 // =========================
 
 /// Arguments used in a call to a ChannelFactory::ResultCallback.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct Tester_ResultCbInfo {
     // DATA
     ChannelFactoryEvent::Enum d_event;
@@ -185,12 +189,14 @@ struct Tester_ResultCbInfo {
         // NOTHING
     }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =======================
 // class Tester_HandleInfo
 // =======================
 
 /// Information about a connect or listen Handle stored by a `Tester`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct Tester_HandleInfo {
     // DATA
     bsl::shared_ptr<ChannelFactory::OpHandle> d_handle;
@@ -219,6 +225,7 @@ struct Tester_HandleInfo {
         // NOTHING
     }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ===========================
 // class Tester_ChannelVisitor
@@ -249,6 +256,7 @@ struct Tester_ChannelVisitor {
 /// Many of the functions take a `int line` argument, which is always
 /// passed `L_` and is used in assertion messages to find where an error
 /// occurred.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Tester {
     // PRIVATE TYPES
     typedef Tester_ChannelInfo                 ChannelInfo;
@@ -382,11 +390,13 @@ class Tester {
     /// Write the specified `data` to the channel with the specified
     /// `channelName` passing it the specified `highWatermark`, and verify
     /// that the resulting status has the specified `statusCategory`.
+    // NOLINTBEGIN(*-magic-numbers)
     void writeChannel(int                      line,
                       const bslstl::StringRef& channelName,
                       const bslstl::StringRef& data,
                       bsls::Types::Int64       highWatermark  = 2048,
                       StatusCategory::Enum     statusCategory = CAT_SUCCESS);
+    // NOLINTEND(*-magic-numbers)
 
     /// Read as many bytes as as the length of the specified `data` from
     /// the channel with the specified `channelName` and verify that it
@@ -473,6 +483,7 @@ class Tester {
     /// tested.
     NtcChannelFactory& object();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ------------
 // class Tester
@@ -537,12 +548,14 @@ void Tester::channelCloseCb(const bsl::string& channelName)
 
 void Tester::channelWatermarkCb(const bsl::string&         channelName,
                                 ChannelWatermarkType::Enum watermarkType)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PV("*** " << channelName << " " << watermarkType << ": "
               << " watermark callback");
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
     d_channelMap[channelName].d_watermarkEvents.emplace_back(watermarkType);
 }
+// NOLINTEND(performance-avoid-endl)
 
 void Tester::destroy()
 {
@@ -564,6 +577,7 @@ void Tester::destroy()
 // CREATORS
 Tester::Tester(bslma::Allocator* basicAllocator)
 : d_allocator_p(bslma::Default::allocator(basicAllocator))
+// NOLINTNEXTLINE(*-magic-numbers)
 , d_blobBufferFactory(0xFFFF, basicAllocator)
 , d_channelMap(basicAllocator)
 , d_handleMap(basicAllocator)
@@ -802,6 +816,7 @@ void Tester::writeChannel(int                      line,
                           const bslstl::StringRef& data,
                           bsls::Types::Int64       highWatermark,
                           StatusCategory::Enum     statusCategory)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     bdlbb::Blob writeData(&d_blobBufferFactory,
                           bmqtst::TestHelperUtil::allocator());
@@ -819,10 +834,12 @@ void Tester::writeChannel(int                      line,
     info.d_channel->write(&writeStatus, writeData, highWatermark);
     BMQTST_ASSERT_EQ_D(line, writeStatus.category(), statusCategory);
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void Tester::readChannel(int                      line,
                          const bslstl::StringRef& channelName,
                          const bslstl::StringRef& data)
+// NOLINTBEGIN(*-narrowing-conversions,performance-avoid-endl)
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
     ChannelInfo&                   info = d_channelMap[channelName];
@@ -833,12 +850,14 @@ void Tester::readChannel(int                      line,
     }
 
     bsls::Types::Int64 startTime = bsls::TimeUtil::getTimer();
+    // NOLINTBEGIN(*-magic-numbers)
     while (info.d_readData.length() < static_cast<int>(data.length()) &&
            (bsls::TimeUtil::getTimer() - startTime) <
                5 * bdlt::TimeUnitRatio::k_NS_PER_S) {
         bslmt::LockGuardUnlock<bslmt::Mutex> unlockGuard(&d_mutex);  // UNLOCK
         bslmt::ThreadUtil::microSleep(1000);
     }
+    // NOLINTEND(*-magic-numbers)
 
     if (info.d_readData.length() < static_cast<int>(data.length())) {
         PRINT(bdlbb::BlobUtilHexDumper(&info.d_readData));
@@ -857,8 +876,10 @@ void Tester::readChannel(int                      line,
 
     BMQTST_ASSERT_EQ_D(line, readString.c_str(), data);
 }
+// NOLINTEND(*-narrowing-conversions,performance-avoid-endl)
 
 void Tester::checkNoRead(int line, const bslstl::StringRef& channelName)
+// NOLINTBEGIN(*-magic-numbers)
 {
     bslmt::ThreadUtil::microSleep(5000);
 
@@ -866,6 +887,7 @@ void Tester::checkNoRead(int line, const bslstl::StringRef& channelName)
     ChannelInfo&                   info = d_channelMap[channelName];
     BMQTST_ASSERT_EQ_D(line, info.d_readData.length(), 0);
 }
+// NOLINTEND(*-magic-numbers)
 
 void Tester::checkResultCallback(int                       line,
                                  const bslstl::StringRef&  handleName,
@@ -879,12 +901,14 @@ void Tester::checkResultCallback(int                       line,
 
     HandleInfo& info = d_handleMap[handleName];
 
+    // NOLINTBEGIN(*-magic-numbers)
     while (info.d_resultCbCalls.empty() &&
            (bsls::TimeUtil::getTimer() - startTime) <
                5 * bdlt::TimeUnitRatio::k_NS_PER_S) {
         bslmt::LockGuardUnlock<bslmt::Mutex> unlockGuard(&d_mutex);
         bslmt::ThreadUtil::microSleep(1000);
     }
+    // NOLINTEND(*-magic-numbers)
 
     if (info.d_resultCbCalls.empty()) {
         BMQTST_ASSERT_D(line, false);
@@ -949,6 +973,7 @@ void Tester::checkResultCallback(int                      line,
 
 void Tester::checkNoResultCallback(int                      line,
                                    const bslstl::StringRef& handleName)
+// NOLINTBEGIN(*-magic-numbers)
 {
     bslmt::ThreadUtil::microSleep(5000);
 
@@ -956,6 +981,7 @@ void Tester::checkNoResultCallback(int                      line,
     HandleInfo&                    info = d_handleMap[handleName];
     BMQTST_ASSERT_D(line, info.d_resultCbCalls.empty());
 }
+// NOLINTEND(*-magic-numbers)
 
 void Tester::checkChannelClose(int                      line,
                                const bslstl::StringRef& channelName,
@@ -964,16 +990,20 @@ void Tester::checkChannelClose(int                      line,
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
     ChannelInfo&                   info = d_channelMap[channelName];
 
+    // NOLINTBEGIN(*-magic-numbers)
     bsls::Types::Int64 waitTime = closed
                                       ? 5 * bdlt::TimeUnitRatio::k_NS_PER_S
                                       : 5 * bdlt::TimeUnitRatio::k_NS_PER_MS;
+    // NOLINTEND(*-magic-numbers)
 
     bsls::Types::Int64 startTime = bsls::TimeUtil::getTimer();
+    // NOLINTBEGIN(*-magic-numbers)
     while (info.d_channel.get() &&
            (bsls::TimeUtil::getTimer() - startTime) < waitTime) {
         bslmt::LockGuardUnlock<bslmt::Mutex> unlockGuard(&d_mutex);
         bslmt::ThreadUtil::microSleep(1000);
     }
+    // NOLINTEND(*-magic-numbers)
 
     BMQTST_ASSERT_EQ_D(line, (!info.d_channel.get()), closed);
 }
@@ -986,12 +1016,14 @@ void Tester::checkChannelWatermark(int                        line,
     ChannelInfo&                   info = d_channelMap[channelName];
 
     bsls::Types::Int64 startTime = bsls::TimeUtil::getTimer();
+    // NOLINTBEGIN(*-magic-numbers)
     while (info.d_watermarkEvents.empty() &&
            (bsls::TimeUtil::getTimer() - startTime) <
                30 * bdlt::TimeUnitRatio::k_NS_PER_S) {
         bslmt::LockGuardUnlock<bslmt::Mutex> unlockGuard(&d_mutex);
         bslmt::ThreadUtil::microSleep(1000);
     }
+    // NOLINTEND(*-magic-numbers)
 
     if (info.d_watermarkEvents.empty()) {
         BMQTST_ASSERT_D("line: " << line << ", no watermark events received",
@@ -1273,6 +1305,7 @@ static void test3_watermarkTest()
 //   a) Hitting a channel's high watermark generates a high watermark and
 //      low watermark event.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("Watermark Test");
 
@@ -1287,9 +1320,11 @@ static void test3_watermarkTest()
     t.checkResultCallback(L_, "listenHandle", "listenChannel");
     t.checkResultCallback(L_, "connectHandle", "connectChannel");
 
+    // NOLINTBEGIN(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result)
     bsl::string largeMsg(10 * 1024 * 1024,
                          'a',
                          bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result)
 
     // Block the IO thread to make sure our first write doesn't finish
     // before we get to the second one
@@ -1303,6 +1338,7 @@ static void test3_watermarkTest()
     t.checkChannelWatermark(L_, "listenChannel", WAT_HIGH);
     t.checkChannelWatermark(L_, "listenChannel", WAT_LOW);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test2_connectListenFailTest()
 // ------------------------------------------------------------------------
@@ -1405,6 +1441,7 @@ static void test1_breathingTest()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -1429,3 +1466,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(0);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

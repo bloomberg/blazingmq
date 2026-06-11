@@ -79,6 +79,7 @@ class CompilationContext;
 class EvaluationContext;
 
 struct ErrorType {
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         /// no error
         e_OK = 0,
@@ -107,6 +108,7 @@ struct ErrorType {
         e_UNDEFINED        = -5,
         e_EVALUATION_LAST  = -5
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     /// Return the non-modifiable string error description corresponding to
     /// the specified enumeration `value`.
@@ -118,6 +120,7 @@ struct ErrorType {
 // ======================
 
 /// Interface for reading message properties.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class PropertiesReader {
   public:
     // CREATORS
@@ -132,12 +135,14 @@ class PropertiesReader {
     virtual bdld::Datum get(const bsl::string& name,
                             bslma::Allocator*  allocator) = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =====================
 // class SimpleEvaluator
 // =====================
 
 /// Evaluator for boolean expressions based on message properties.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class SimpleEvaluator {
   private:
     // PRIVATE TYPES
@@ -148,6 +153,7 @@ class SimpleEvaluator {
 
     /// Private abstract base class, from which all Expression classes are
     /// derived.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     class Expression {
       public:
         virtual ~Expression();
@@ -155,6 +161,7 @@ class SimpleEvaluator {
         /// Evaluate an Expression.
         virtual bdld::Datum evaluate(EvaluationContext& context) const = 0;
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     // Bison generates different code for different available standards:
     // - For C++ >= 11 it generates the 'emplace' with a move constructor, so
@@ -536,6 +543,7 @@ class SimpleEvaluator {
 
   public:
     // PUBLIC CONSTANTS
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum {
         /// The maximum length of an expression string.
         k_MAX_EXPRESSION_LENGTH = 128,
@@ -546,6 +554,7 @@ class SimpleEvaluator {
         /// The maximum number of properties allowed in a single expression.
         k_MAX_PROPERTIES = 10
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CREATORS
     SimpleEvaluator();
@@ -585,6 +594,7 @@ class SimpleEvaluator {
     friend class SimpleEvaluatorScanner;  // for access to Expression hierarchy
     friend class CompilationContext;      // for access to ExpressionPtr
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ========================
 // class CompilationContext
@@ -598,6 +608,7 @@ class CompilationContext {
 
   public:
     // PUBLIC TYPES
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum Type { e_BOOL, e_INT, e_STRING };
 
     /// The type of the property, as deduced from the type of the values
@@ -842,6 +853,7 @@ inline SimpleEvaluator::Comparison<Op>::Comparison(ExpressionPtr left,
 template <template <typename> class Op>
 bdld::Datum
 SimpleEvaluator::Comparison<Op>::evaluate(EvaluationContext& context) const
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     bdld::Datum left = d_left->evaluate(context);
     if (context.hasError()) {
@@ -891,6 +903,7 @@ SimpleEvaluator::Comparison<Op>::evaluate(EvaluationContext& context) const
 
     return bdld::Datum::createBoolean(Op<bsls::Types::Int64>()(a, b));
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 // ----------------------------------
 // template class SimpleEvaluator::Or
@@ -928,6 +941,7 @@ inline SimpleEvaluator::NumBinaryOperation<Op>::NumBinaryOperation(
 template <template <typename> class Op>
 bdld::Datum SimpleEvaluator::NumBinaryOperation<Op>::evaluate(
     EvaluationContext& context) const
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     bdld::Datum left = d_left->evaluate(context);
     if (context.hasError()) {
@@ -975,6 +989,7 @@ bdld::Datum SimpleEvaluator::NumBinaryOperation<Op>::evaluate(
 
     return bdld::Datum::createInteger64(result, context.d_allocator);
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 // ------------------------------------------
 // template class SimpleEvaluator::UnaryMinus

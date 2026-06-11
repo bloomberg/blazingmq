@@ -131,6 +131,7 @@ static void test3_recordMessageMatch()
 //
 // Testing:
 //   publish
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("RECORD MESSAGE MATCH");
 
@@ -148,9 +149,12 @@ static void test3_recordMessageMatch()
         {L_, "Normal full", "high_watermark", false},
     };
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PV(test.d_line << ": Testing: 'ScopedLogObserverUtil::match(\""
@@ -168,7 +172,9 @@ static void test3_recordMessageMatch()
                              bmqtst::TestHelperUtil::allocator()),
                          test.d_isMatch);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test4_usageExample()
 // ------------------------------------------------------------------------
@@ -209,6 +215,7 @@ static void test4_usageExample()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -226,3 +233,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

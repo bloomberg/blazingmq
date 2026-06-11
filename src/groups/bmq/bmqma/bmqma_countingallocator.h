@@ -107,6 +107,7 @@ namespace bmqma {
 
 /// An allocator reporting its allocations and deallocations to a
 /// `bmqst::StatContext`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class CountingAllocator BSLS_KEYWORD_FINAL : public bslma::Allocator {
   public:
     // PUBLIC TYPES
@@ -241,6 +242,7 @@ class CountingAllocator BSLS_KEYWORD_FINAL : public bslma::Allocator {
                       bslma::Allocator*        allocator = 0);
 
     /// Destroy this object.
+    // NOLINTNEXTLINE(cppcoreguidelines-explicit-virtual-functions)
     virtual ~CountingAllocator() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
@@ -264,6 +266,7 @@ class CountingAllocator BSLS_KEYWORD_FINAL : public bslma::Allocator {
     /// is undefined unless `0 <= size`.  Note that the alignment of the
     /// address returned conforms to the platform requirement for any object
     /// of the specified `size`.
+    // NOLINTNEXTLINE(cppcoreguidelines-explicit-virtual-functions)
     virtual void* allocate(size_type size) BSLS_KEYWORD_OVERRIDE;
 
     /// Return the memory block at the specified `address` back to this
@@ -272,6 +275,7 @@ class CountingAllocator BSLS_KEYWORD_FINAL : public bslma::Allocator {
     /// this function has no effect.  The behavior is undefined unless
     /// `address` was allocated using this allocator object and has not
     /// already been deallocated.
+    // NOLINTNEXTLINE(cppcoreguidelines-explicit-virtual-functions)
     virtual void deallocate(void* address) BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
@@ -280,6 +284,7 @@ class CountingAllocator BSLS_KEYWORD_FINAL : public bslma::Allocator {
     /// Return the stat context associated with this allocator, if any.
     const bmqst::StatContext* context() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

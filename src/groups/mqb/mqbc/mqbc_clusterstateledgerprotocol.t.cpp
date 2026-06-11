@@ -60,6 +60,7 @@ static void test1_breathingTest()
 // Testing:
 //   Basic functionality
 // --------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -125,10 +126,13 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(fh2.timestamp(), k_UINT64_MAX);
     }
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 template <typename ENUM_TYPE, typename ARRAY, int SIZE>
+// NOLINTBEGIN(*-avoid-c-arrays)
 static void printEnumHelper(ARRAY (&data)[SIZE])
 {
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < SIZE; ++idx) {
         const PrintTestData& test = data[idx];
 
@@ -158,9 +162,12 @@ static void printEnumHelper(ARRAY (&data)[SIZE])
 
         BMQTST_ASSERT_EQ(out.str(), expected.str());
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test2_enumPrint()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     // --------------------------------------------------------------------
     // ENUM LAYOUT
@@ -190,22 +197,26 @@ static void test2_enumPrint()
         BSLMF_ASSERT(mqbc::ClusterStateRecordType::k_HIGHEST_SUPPORTED_TYPE ==
                      mqbc::ClusterStateRecordType::e_ACK);
 
+        // NOLINTBEGIN(*-avoid-c-arrays)
         PrintTestData k_DATA[] = {
             {L_, mqbc::ClusterStateRecordType::e_UNDEFINED, "UNDEFINED"},
             {L_, mqbc::ClusterStateRecordType::e_SNAPSHOT, "SNAPSHOT"},
             {L_, mqbc::ClusterStateRecordType::e_UPDATE, "UPDATE"},
             {L_, mqbc::ClusterStateRecordType::e_COMMIT, "COMMIT"},
             {L_, mqbc::ClusterStateRecordType::e_ACK, "ACK"}};
+        // NOLINTEND(*-avoid-c-arrays)
 
         printEnumHelper<mqbc::ClusterStateRecordType>(k_DATA);
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -221,3 +232,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

@@ -114,6 +114,7 @@ struct MockNegotiator : public mqbnet::Negotiator {
 // ----------------------------------------------------------------------------
 
 static void test1_initialConnectionContext()
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
     bsl::shared_ptr<MockAuthenticator> authenticator =
@@ -190,12 +191,14 @@ static void test1_initialConnectionContext()
         }
     }
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -210,3 +213,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

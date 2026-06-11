@@ -48,9 +48,11 @@ calculateOutstandingRatio(bsl::size_t totalMessagesCount,
     BSLS_ASSERT_SAFE(totalMessagesCount >= deletedMessagesCount);
     bsl::size_t outstandingMessagesCount = totalMessagesCount -
                                            deletedMessagesCount;
+    // NOLINTBEGIN(*-magic-numbers)
     int ratio = static_cast<int>(bsl::floor(
         float(outstandingMessagesCount) / float(totalMessagesCount) * 100.0f +
         0.5f));
+    // NOLINTEND(*-magic-numbers)
     return bsl::make_pair(outstandingMessagesCount, ratio);
 }
 
@@ -650,12 +652,14 @@ void SearchDetailResult::addMessageDetails(const mqbs::MessageRecord& record,
                                                    d_allocator_p)));
 }
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 void SearchDetailResult::deleteMessageDetails(DetailsMap::iterator iterator)
 {
     // Erase record from both containers
     d_messageDetailsList.erase(iterator->second);
     d_messageDetailsMap.erase(iterator);
 }
+// NOLINTEND(performance-unnecessary-value-param)
 
 void SearchDetailResult::outputMessageDetails(
     const MessageDetails& messageDetails)
@@ -1037,11 +1041,13 @@ SearchGuidDecorator::SearchGuidDecorator(
 {
     // Build MessageGUID->StrGUID Map
     bsl::vector<bsl::string>::const_iterator it = guids.cbegin();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; it != guids.cend(); ++it) {
         bmqt::MessageGUID guid;
         guid.fromHex(it->c_str());
         d_guidsMap.emplace(guid, d_guids.insert(d_guids.cend(), guid));
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 bool SearchGuidDecorator::processMessageRecord(
@@ -1495,6 +1501,7 @@ bool SummaryProcessor::processJournalOpRecord(
 void SummaryProcessor::finalizeQueueDetails()
 {
     // Filter queue records map by records number
+    // NOLINTBEGIN(bugprone-unchecked-optional-access)
     for (QueueDetailsMap::iterator it = d_queueDetailsMap.begin();
          it != d_queueDetailsMap.end();) {
         const mqbu::StorageKey& queueKey = it->first;
@@ -1523,6 +1530,7 @@ void SummaryProcessor::finalizeQueueDetails()
             ++it;
         }
     }
+    // NOLINTEND(bugprone-unchecked-optional-access)
 }
 
 void SummaryProcessor::outputResult()

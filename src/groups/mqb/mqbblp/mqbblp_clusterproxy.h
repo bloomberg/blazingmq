@@ -113,6 +113,7 @@ namespace mqbblp {
 // ==================
 
 /// Proxy-like mechanism to communicate with a BlazingMQ cluster.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ClusterProxy : public mqbc::ClusterStateObserver,
                      public mqbi::Cluster,
                      public mqbnet::ClusterObserver,
@@ -124,6 +125,7 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
   private:
     // PRIVATE TYPES
 
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     class ChannelBuffer {
         bsl::deque<bdlbb::Blob> d_queue;
 
@@ -156,6 +158,7 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
 
         size_t bytes() const;
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     typedef bslma::ManagedPtr<bmqst::StatContext> StatContextMp;
 
@@ -632,6 +635,7 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// used by this cluster.
     const mqbnet::Cluster& netCluster() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

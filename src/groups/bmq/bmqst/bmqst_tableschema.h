@@ -51,6 +51,7 @@ class TableSchema;
 // =======================
 
 /// A column in a `bmqst::TableSchema`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class TableSchemaColumn {
   public:
     // PUBLIC TYPES
@@ -89,12 +90,14 @@ class TableSchemaColumn {
                   int                    level,
                   StatContext::ValueType type) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =================
 // class TableSchema
 // =================
 
 /// The columns of a `bmqst::Table`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class TableSchema {
   public:
     // PUBLIC TYPES
@@ -160,6 +163,7 @@ class TableSchema {
     int                      numColumns() const;
     const TableSchemaColumn& column(int index) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

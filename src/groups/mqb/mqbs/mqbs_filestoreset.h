@@ -46,6 +46,7 @@ namespace mqbs {
 
 /// This class provides a VST to capture the names of three files (data,
 /// journal and qlist) that are part of a `mqbs::FileStore`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class FileStoreSet BSLS_CPP11_FINAL {
   private:
     // DATA
@@ -90,11 +91,11 @@ class FileStoreSet BSLS_CPP11_FINAL {
     // ACCESSORS
 
     /// Get the value of the corresponding attribute.
-    const bsl::string& dataFile() const;
+    const bsl::string&  dataFile() const;
     bsls::Types::Uint64 dataFileSize() const;
-    const bsl::string& journalFile() const;
+    const bsl::string&  journalFile() const;
     bsls::Types::Uint64 journalFileSize() const;
-    const bsl::string& qlistFile() const;
+    const bsl::string&  qlistFile() const;
     bsls::Types::Uint64 qlistFileSize() const;
 
     /// Write a human-readable string representation of this object to the
@@ -110,6 +111,7 @@ class FileStoreSet BSLS_CPP11_FINAL {
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 

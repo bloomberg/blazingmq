@@ -77,6 +77,7 @@ void PutTester::populateBlob(bdlbb::Blob*              blob,
                              bool                      zeroLengthMsgs,
                              bslma::Allocator*         allocator,
                              bmqt::CompressionAlgorithmType::Enum cat)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     int seed        = bsl::numeric_limits<int>::max();
     int eventLength = sizeof(bmqp::EventHeader);
@@ -88,13 +89,16 @@ void PutTester::populateBlob(bdlbb::Blob*              blob,
                             reinterpret_cast<const char*>(eh),
                             eh->headerWords() * bmqp::Protocol::k_WORD_SIZE);
 
+    // NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-type-reinterpret-cast)
     for (size_t i = 0; i < numMsgs; ++i) {
         Data        data(bufferFactory, allocator);
         bdlbb::Blob properties(bufferFactory, allocator);
         bdlbb::Blob payload(bufferFactory, allocator);
-        int         blobSize     = bdlb::Random::generate15(&seed);
-        int         propAreaSize = blobSize / 2 +
+        int         blobSize = bdlb::Random::generate15(&seed);
+        // NOLINTBEGIN(*-narrowing-conversions)
+        int propAreaSize = blobSize / 2 +
                            sizeof(bmqp::MessagePropertiesHeader);
+        // NOLINTEND(*-narrowing-conversions)
 
         // Append properties.  Must have a valid
         // 'bmqp::MessagePropertiesHeader'.
@@ -234,12 +238,16 @@ void PutTester::populateBlob(bdlbb::Blob*              blob,
         }
         vec->push_back(data);
     }
+    // NOLINTEND(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-type-reinterpret-cast)
 
     // set EventHeader length
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     bmqp::EventHeader* e = reinterpret_cast<bmqp::EventHeader*>(
         blob->buffer(0).data());
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     e->setLength(eventLength);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 void PutTester::populateBlob(bdlbb::Blob*             blob,
                              bmqp::EventHeader*       eh,
@@ -252,6 +260,7 @@ void PutTester::populateBlob(bdlbb::Blob*             blob,
                              bmqt::CompressionAlgorithmType::Enum cat,
                              bdlbb::BlobBufferFactory* bufferFactory,
                              bslma::Allocator*         allocator)
+// NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // Payload is 36 bytes.  Per BlazingMQ protocol, it will require 4 bytes of
     // padding (ie 1 word)
@@ -263,6 +272,7 @@ void PutTester::populateBlob(bdlbb::Blob*             blob,
     bmqu::MemOutStream error(allocator);
     bdlbb::Blob        compressedBlob(bufferFactory, allocator);
     if (cat != bmqt::CompressionAlgorithmType::e_NONE) {
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         int payloadLength = bsl::strlen(payload);
         bmqp::Compression::compress(&compressedBlob,
                                     bufferFactory,
@@ -279,14 +289,17 @@ void PutTester::populateBlob(bdlbb::Blob*             blob,
         BSLS_ASSERT_SAFE(numWords >= 0);
         // Adding padding per BlazingMQ protocol
         bsl::string paddingCompressedBlob(padding, '\0');
+        // NOLINTBEGIN(*-narrowing-conversions)
         for (int index = 0; index < padding; index++) {
             paddingCompressedBlob[index] = padding;
         }
+        // NOLINTEND(*-narrowing-conversions)
         bdlbb::BlobUtil::append(&compressedBlob,
                                 paddingCompressedBlob.data(),
                                 padding);
     }
 
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     int payloadLenWords = bsl::strlen(payload) / bmqp::Protocol::k_WORD_SIZE;
 
     // 1 word of padding
@@ -312,8 +325,10 @@ void PutTester::populateBlob(bdlbb::Blob*             blob,
                                      bmqp::PutHeaderFlags::e_ACK_REQUESTED);
     ph.setFlags(flags);
 
+    // NOLINTBEGIN(*-narrowing-conversions,bugprone-implicit-widening-of-multiplication-result)
     int eventLength = sizeof(bmqp::EventHeader) +
                       ph.messageWords() * bmqp::Protocol::k_WORD_SIZE;
+    // NOLINTEND(*-narrowing-conversions,bugprone-implicit-widening-of-multiplication-result)
 
     // EventHeader
     eh->setLength(eventLength);
@@ -352,10 +367,12 @@ void PutTester::populateBlob(bdlbb::Blob*             blob,
                                    bsl::strlen(payload));
 
         // Adding padding per BlazingMQ protocol
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         const char padding[] = {4, 4, 4, 4};
         bdlbb::BlobUtil::append(blob, padding, 4);
     }
 }
+// NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-reinterpret-cast)
 
 void PutTester::populateBlob(bdlbb::Blob*                   blob,
                              bmqp::EventHeader*             eh,
@@ -369,6 +386,7 @@ void PutTester::populateBlob(bdlbb::Blob*                   blob,
                              bdlbb::BlobBufferFactory*      bufferFactory,
                              bmqt::CompressionAlgorithmType::Enum cat,
                              bslma::Allocator*                    allocator)
+// NOLINTBEGIN(*-narrowing-conversions,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     bmqu::BlobUtil::reserve(blob,
                             sizeof(bmqp::EventHeader) +
@@ -435,8 +453,10 @@ void PutTester::populateBlob(bdlbb::Blob*                   blob,
                                     &error,
                                     allocator);
     }
+    // NOLINTBEGIN(*-narrowing-conversions)
     const int payloadLenth = blob->length() - sizeof(bmqp::EventHeader) -
                              sizeof(bmqp::PutHeader);
+    // NOLINTEND(*-narrowing-conversions)
     int       numPaddingBytes = 0;
     const int numWords        = bmqp::ProtocolUtil::calcNumWordsAndPadding(
         &numPaddingBytes,
@@ -470,12 +490,14 @@ void PutTester::populateBlob(bdlbb::Blob*                   blob,
                                ph->headerWords() *
                                    bmqp::Protocol::k_WORD_SIZE);
 }
+// NOLINTEND(*-narrowing-conversions,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-type-reinterpret-cast)
 
 void PutTester::populateBlob(bdlbb::Blob* blob, int atLeastLen)
 {
     const char* k_FIXED_PAYLOAD =
         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdef";
 
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     const int k_FIXED_PAYLOAD_LEN = bsl::strlen(k_FIXED_PAYLOAD);
 
     int numIters = atLeastLen / k_FIXED_PAYLOAD_LEN + 1;

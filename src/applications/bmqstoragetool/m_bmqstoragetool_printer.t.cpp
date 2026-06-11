@@ -153,12 +153,14 @@ static void test1_humanReadableGuidTest()
         // Test not empty GUIDs list
         bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
         expectedStream << "\nThe following 10 GUID(s) not found:\n";
+        // NOLINTBEGIN(*-magic-numbers)
         for (int i = 0; i < 10; ++i) {
             bmqt::MessageGUID guid;
             mqbu::MessageGUIDUtil::generateGUID(&guid);
             expectedStream << guid << '\n';
             guids.push_back(guid);
         }
+        // NOLINTEND(*-magic-numbers)
 
         printer->printGuidsNotFound(guids);
 
@@ -198,8 +200,10 @@ static void test2_humanReadableMessageTest()
     for (; recordIter != records.cend(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_MESSAGE) {
+            // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
             const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
                 recordIter->second.buffer());
+            // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
             details.load(
                 new (*bmqtst::TestHelperUtil::allocator())
                     MessageDetails(msg,
@@ -211,16 +215,20 @@ static void test2_humanReadableMessageTest()
         }
         else if (rtype == RecordType::e_CONFIRM) {
             const ConfirmRecord& conf =
+                // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
                 *reinterpret_cast<const ConfirmRecord*>(
                     recordIter->second.buffer());
+            // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
             details->addConfirmRecord(conf,
                                       conf.header().sequenceNumber(),
                                       recordOffset(conf));
         }
         else if (rtype == RecordType::e_DELETION) {
             const DeletionRecord& del =
+                // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
                 *reinterpret_cast<const DeletionRecord*>(
                     recordIter->second.buffer());
+            // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
             details->addDeleteRecord(del,
                                      del.header().sequenceNumber(),
                                      recordOffset(del));
@@ -297,16 +305,21 @@ static void test3_humanReadableRecordsTest()
 
         // Simulate journal file
         JournalFile journalFile(1, bmqtst::TestHelperUtil::allocator());
+        // NOLINTBEGIN(*-magic-numbers)
         JournalFile::RecordBufferType buf = journalFile.makeQueueOpRecord(100,
                                                                           1);
+        // NOLINTEND(*-magic-numbers)
 
         const QueueOpRecord& queueOpRecord =
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             *reinterpret_cast<const QueueOpRecord*>(buf.buffer());
+        // NOLINTBEGIN(*-magic-numbers)
         RecordDetails<mqbs::QueueOpRecord> queueOpDetails(
             queueOpRecord,
             12345,
             56789,
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
 
         // Create printer
         bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
@@ -340,15 +353,19 @@ static void test3_humanReadableRecordsTest()
         // Simulate journal file
         JournalFile journalFile(1, bmqtst::TestHelperUtil::allocator());
         JournalFile::RecordBufferType buf =
+            // NOLINTNEXTLINE(*-magic-numbers)
             journalFile.makeJournalOpRecord(100, 1);
 
         const JournalOpRecord& journalOpRecord =
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             *reinterpret_cast<const JournalOpRecord*>(buf.buffer());
+        // NOLINTBEGIN(*-magic-numbers)
         RecordDetails<mqbs::JournalOpRecord> journalOpDetails(
             journalOpRecord,
             12345,
             56789,
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
 
         // Create printer
         bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
@@ -416,10 +433,12 @@ static void test4_humanReadableOffsetsTest()
         expectedStream << "\nThe following 10 offset(s) not found:\n";
 
         OffsetsVec vec(bmqtst::TestHelperUtil::allocator());
+        // NOLINTBEGIN(*-magic-numbers)
         for (bsls::Types::Int64 i = 1; i < 11; ++i) {
             vec.push_back(i);
             expectedStream << i << "\n";
         }
+        // NOLINTEND(*-magic-numbers)
 
         printer->printOffsetsNotFound(vec);
 
@@ -463,11 +482,13 @@ static void test5_humanReadableCompositesTest()
         expectedStream << "\nThe following 10 sequence number(s) not found:\n";
 
         CompositesVec vec(bmqtst::TestHelperUtil::allocator());
+        // NOLINTBEGIN(*-magic-numbers,cert-dcl16-c,modernize-use-emplace)
         for (unsigned int i = 1; i < 11; ++i) {
             vec.emplace_back(CompositeSequenceNumber(i, 2lu * i));
             expectedStream << "leaseId: " << i
                            << ", sequenceNumber: " << (2lu * i) << "\n";
         }
+        // NOLINTEND(*-magic-numbers,cert-dcl16-c,modernize-use-emplace)
 
         printer->printCompositesNotFound(vec);
 
@@ -486,6 +507,7 @@ static void test6_humanReadableFooterTest()
 //   HumanReadablePrinter::printFooter,
 //   HumanReadablePrinter::printExactMatchFooter
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("HUMAN FOOTER TEST");
 
@@ -555,6 +577,7 @@ static void test6_humanReadableFooterTest()
         BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test7_humanReadableOutstandingTest()
 // ------------------------------------------------------------------------
@@ -566,6 +589,7 @@ static void test7_humanReadableOutstandingTest()
 // Testing:
 //   HumanReadablePrinter::printOutstandingRatio
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("HUMAN OUTSTANDING TEST");
 
@@ -583,6 +607,7 @@ static void test7_humanReadableOutstandingTest()
         BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test8_humanReadableSummaryTest()
 // ------------------------------------------------------------------------
@@ -598,6 +623,7 @@ static void test8_humanReadableSummaryTest()
 //   HumanReadablePrinter::printRecordSummary
 //   HumanReadablePrinter::printJournalOpSummary
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("HUMAN SUMMARY TEST");
 
@@ -733,6 +759,7 @@ static void test8_humanReadableSummaryTest()
         BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test9_jsonPrettyGuidTest()
 // ------------------------------------------------------------------------
@@ -905,6 +932,7 @@ static void test9_jsonPrettyGuidTest()
                 bmqtst::TestHelperUtil::allocator());
 
             expectedStream << "{\n  \"GuidsNotFound\": [\n";
+            // NOLINTBEGIN(*-magic-numbers)
             for (int i = 0; i < 10; ++i) {
                 bmqt::MessageGUID guid;
                 mqbu::MessageGUIDUtil::generateGUID(&guid);
@@ -914,6 +942,7 @@ static void test9_jsonPrettyGuidTest()
                 expectedStream << "    \"" << guid << "\"";
                 guids.push_back(guid);
             }
+            // NOLINTEND(*-magic-numbers)
             expectedStream << "\n  ]\n}\n";
 
             printer->printGuidsNotFound(guids);
@@ -960,8 +989,10 @@ static void test10_jsonPrettyMessageTest()
     for (; recordIter != records.cend(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_MESSAGE) {
+            // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
             const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
                 recordIter->second.buffer());
+            // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
             details.load(
                 new (*bmqtst::TestHelperUtil::allocator())
                     MessageDetails(msg,
@@ -973,16 +1004,20 @@ static void test10_jsonPrettyMessageTest()
         }
         else if (rtype == RecordType::e_CONFIRM) {
             const ConfirmRecord& conf =
+                // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
                 *reinterpret_cast<const ConfirmRecord*>(
                     recordIter->second.buffer());
+            // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
             details->addConfirmRecord(conf,
                                       conf.header().sequenceNumber(),
                                       recordOffset(conf));
         }
         else if (rtype == RecordType::e_DELETION) {
             const DeletionRecord& del =
+                // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
                 *reinterpret_cast<const DeletionRecord*>(
                     recordIter->second.buffer());
+            // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
             details->addDeleteRecord(del,
                                      del.header().sequenceNumber(),
                                      recordOffset(del));
@@ -1076,16 +1111,21 @@ static void test11_jsonPrettyRecordsTest()
 
         // Simulate journal file
         JournalFile journalFile(1, bmqtst::TestHelperUtil::allocator());
+        // NOLINTBEGIN(*-magic-numbers)
         JournalFile::RecordBufferType buf = journalFile.makeQueueOpRecord(100,
                                                                           1);
+        // NOLINTEND(*-magic-numbers)
 
         const QueueOpRecord& queueOpRecord =
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             *reinterpret_cast<const QueueOpRecord*>(buf.buffer());
+        // NOLINTBEGIN(*-magic-numbers)
         RecordDetails<mqbs::QueueOpRecord> queueOpDetails(
             queueOpRecord,
             12345,
             56789,
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
 
         bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
         bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
@@ -1133,15 +1173,19 @@ static void test11_jsonPrettyRecordsTest()
         // Simulate journal file
         JournalFile journalFile(1, bmqtst::TestHelperUtil::allocator());
         JournalFile::RecordBufferType buf =
+            // NOLINTNEXTLINE(*-magic-numbers)
             journalFile.makeJournalOpRecord(100, 1);
 
         const JournalOpRecord& journalOpRecord =
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             *reinterpret_cast<const JournalOpRecord*>(buf.buffer());
+        // NOLINTBEGIN(*-magic-numbers)
         RecordDetails<mqbs::JournalOpRecord> journalOpDetails(
             journalOpRecord,
             12345,
             56789,
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
 
         bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
         bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
@@ -1235,6 +1279,7 @@ static void test12_jsonPrettyOffsetsTest()
                 bmqtst::TestHelperUtil::allocator());
             expectedStream << "{\n  \"OffsetsNotFound\": [";
             OffsetsVec vec(bmqtst::TestHelperUtil::allocator());
+            // NOLINTBEGIN(*-magic-numbers)
             for (bsls::Types::Int64 i = 0; i < 10; ++i) {
                 vec.push_back(i);
                 if (i != 0) {
@@ -1242,6 +1287,7 @@ static void test12_jsonPrettyOffsetsTest()
                 }
                 expectedStream << "\n    " << i;
             }
+            // NOLINTEND(*-magic-numbers)
             expectedStream << "\n  ]\n}\n";
             printer->printOffsetsNotFound(vec);
         }
@@ -1307,6 +1353,7 @@ static void test13_jsonPrettyCompositesTest()
             expectedStream << "{\n  \"SequenceNumbersNotFound\": [";
 
             CompositesVec vec(bmqtst::TestHelperUtil::allocator());
+            // NOLINTBEGIN(*-magic-numbers,cert-dcl16-c,modernize-use-emplace)
             for (unsigned int i = 1; i < 11; ++i) {
                 vec.emplace_back(CompositeSequenceNumber(i, 2lu * i));
                 if (i > 1) {
@@ -1316,6 +1363,7 @@ static void test13_jsonPrettyCompositesTest()
                                << "\", \"sequenceNumber\": \"" << (2lu * i)
                                << "\"}";
             }
+            // NOLINTEND(*-magic-numbers,cert-dcl16-c,modernize-use-emplace)
             expectedStream << "\n  ]\n}\n";
             printer->printCompositesNotFound(vec);
         }
@@ -1340,6 +1388,7 @@ static void test14_jsonPrettyFooterTest()
 //   JsonPrettyPrinter::printFooter
 //   JsonPrettyPrinter::printExactMatchFooter
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("PRETTY FOOTER TEST");
 
@@ -1467,6 +1516,7 @@ static void test14_jsonPrettyFooterTest()
         BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test15_jsonPrettyOutstandingTest()
 // ------------------------------------------------------------------------
@@ -1478,6 +1528,7 @@ static void test15_jsonPrettyOutstandingTest()
 // Testing:
 //   JsonPrettyPrinter::printOutstandingRatio
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("PRETTY OUTSTANDING TEST");
 
@@ -1503,6 +1554,7 @@ static void test15_jsonPrettyOutstandingTest()
     BMQTST_ASSERT_D(error, (rc == 0));
     BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test16_jsonPrettySummaryTest()
 // ------------------------------------------------------------------------
@@ -1518,6 +1570,7 @@ static void test16_jsonPrettySummaryTest()
 //   JsonPrettyPrinter::printRecordSummary
 //   JsonPrettyPrinter::printJournalOpSummary
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("PRETTY SUMMARY TEST");
 
@@ -1681,6 +1734,7 @@ static void test16_jsonPrettySummaryTest()
         BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test17_jsonLineGuidTest()
 // ------------------------------------------------------------------------
@@ -1853,6 +1907,7 @@ static void test17_jsonLineGuidTest()
                 bmqtst::TestHelperUtil::allocator());
 
             expectedStream << "{\n  \"GuidsNotFound\": [\n";
+            // NOLINTBEGIN(*-magic-numbers)
             for (int i = 0; i < 10; ++i) {
                 bmqt::MessageGUID guid;
                 mqbu::MessageGUIDUtil::generateGUID(&guid);
@@ -1862,6 +1917,7 @@ static void test17_jsonLineGuidTest()
                 expectedStream << "    \"" << guid << "\"";
                 guids.push_back(guid);
             }
+            // NOLINTEND(*-magic-numbers)
             expectedStream << "\n  ]\n}\n";
 
             printer->printGuidsNotFound(guids);
@@ -1908,8 +1964,10 @@ static void test18_jsonLineMessageTest()
     for (; recordIter != records.cend(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_MESSAGE) {
+            // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
             const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
                 recordIter->second.buffer());
+            // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
             details.load(
                 new (*bmqtst::TestHelperUtil::allocator())
                     MessageDetails(msg,
@@ -1921,16 +1979,20 @@ static void test18_jsonLineMessageTest()
         }
         else if (rtype == RecordType::e_CONFIRM) {
             const ConfirmRecord& conf =
+                // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
                 *reinterpret_cast<const ConfirmRecord*>(
                     recordIter->second.buffer());
+            // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
             details->addConfirmRecord(conf,
                                       conf.header().sequenceNumber(),
                                       recordOffset(conf));
         }
         else if (rtype == RecordType::e_DELETION) {
             const DeletionRecord& del =
+                // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
                 *reinterpret_cast<const DeletionRecord*>(
                     recordIter->second.buffer());
+            // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
             details->addDeleteRecord(del,
                                      del.header().sequenceNumber(),
                                      recordOffset(del));
@@ -2007,16 +2069,21 @@ static void test19_jsonLineRecordsTest()
 
         // Simulate journal file
         JournalFile journalFile(1, bmqtst::TestHelperUtil::allocator());
+        // NOLINTBEGIN(*-magic-numbers)
         JournalFile::RecordBufferType buf = journalFile.makeQueueOpRecord(100,
                                                                           1);
+        // NOLINTEND(*-magic-numbers)
 
         const QueueOpRecord& queueOpRecord =
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             *reinterpret_cast<const QueueOpRecord*>(buf.buffer());
+        // NOLINTBEGIN(*-magic-numbers)
         RecordDetails<mqbs::QueueOpRecord> queueOpDetails(
             queueOpRecord,
             12345,
             56789,
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
 
         bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
         bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
@@ -2061,15 +2128,19 @@ static void test19_jsonLineRecordsTest()
         // Simulate journal file
         JournalFile journalFile(1, bmqtst::TestHelperUtil::allocator());
         JournalFile::RecordBufferType buf =
+            // NOLINTNEXTLINE(*-magic-numbers)
             journalFile.makeJournalOpRecord(100, 1);
 
         const JournalOpRecord& journalOpRecord =
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             *reinterpret_cast<const JournalOpRecord*>(buf.buffer());
+        // NOLINTBEGIN(*-magic-numbers)
         RecordDetails<mqbs::JournalOpRecord> journalOpDetails(
             journalOpRecord,
             12345,
             56789,
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
 
         bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
         bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
@@ -2160,6 +2231,7 @@ static void test20_jsonLineOffsetsTest()
                 bmqtst::TestHelperUtil::allocator());
             expectedStream << "{\n  \"OffsetsNotFound\": [";
             OffsetsVec vec(bmqtst::TestHelperUtil::allocator());
+            // NOLINTBEGIN(*-magic-numbers)
             for (bsls::Types::Int64 i = 0; i < 10; ++i) {
                 vec.push_back(i);
                 if (i != 0) {
@@ -2167,6 +2239,7 @@ static void test20_jsonLineOffsetsTest()
                 }
                 expectedStream << "\n    " << i;
             }
+            // NOLINTEND(*-magic-numbers)
             expectedStream << "\n  ]\n}\n";
             printer->printOffsetsNotFound(vec);
         }
@@ -2232,6 +2305,7 @@ static void test21_jsonLineCompositesTest()
             expectedStream << "{\n  \"SequenceNumbersNotFound\": [";
 
             CompositesVec vec(bmqtst::TestHelperUtil::allocator());
+            // NOLINTBEGIN(*-magic-numbers,cert-dcl16-c,modernize-use-emplace)
             for (unsigned int i = 1; i < 11; ++i) {
                 vec.emplace_back(CompositeSequenceNumber(i, 2lu * i));
                 if (i > 1) {
@@ -2241,6 +2315,7 @@ static void test21_jsonLineCompositesTest()
                                << "\", \"sequenceNumber\": \"" << (2lu * i)
                                << "\"}";
             }
+            // NOLINTEND(*-magic-numbers,cert-dcl16-c,modernize-use-emplace)
             expectedStream << "\n  ]\n}\n";
             printer->printCompositesNotFound(vec);
         }
@@ -2264,6 +2339,7 @@ static void test22_jsonLineFooterTest()
 // Testing:
 //   JsonLinePrinter::printFooter
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("LINE FOOTER TEST");
 
@@ -2351,6 +2427,7 @@ static void test22_jsonLineFooterTest()
         BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test23_jsonLineOutstandingTest()
 // ------------------------------------------------------------------------
@@ -2362,6 +2439,7 @@ static void test23_jsonLineOutstandingTest()
 // Testing:
 //   JsonLinePrinter::printOutstandingRatio
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("LINE OUTSTANDING TEST");
 
@@ -2387,6 +2465,7 @@ static void test23_jsonLineOutstandingTest()
     BMQTST_ASSERT_D(error, (rc == 0));
     BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test24_jsonLineSummaryTest()
 // ------------------------------------------------------------------------
@@ -2402,6 +2481,7 @@ static void test24_jsonLineSummaryTest()
 //   JsonLinePrinter::printRecordSummary
 //   JsonLinePrinter::printJournalOpSummary
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("LINE SUMMARY TEST");
 
@@ -2563,12 +2643,14 @@ static void test24_jsonLineSummaryTest()
         BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -2606,3 +2688,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

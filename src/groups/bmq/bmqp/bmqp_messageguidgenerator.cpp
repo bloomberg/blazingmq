@@ -57,13 +57,18 @@ namespace {
 // counter fields in the first word (4 bytes).
 static const int k_GUID_VERSION_BITS      = 2;
 static const int k_GUID_VERSION_START_IDX = 30;
+// NOLINTBEGIN(cert-err58-cpp)
 static const int k_GUID_VERSION_MASK =
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     bdlb::BitMaskUtil::one(k_GUID_VERSION_START_IDX, k_GUID_VERSION_BITS);
+// NOLINTEND(cert-err58-cpp)
 
 static const int k_COUNTER_BITS      = 22;
 static const int k_COUNTER_START_IDX = 8;
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp)
 static const int k_COUNTER_MASK = bdlb::BitMaskUtil::one(k_COUNTER_START_IDX,
                                                          k_COUNTER_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp)
 
 const int k_GUID_VERSION_AND_COUNTER_BYTES = 3;
 
@@ -86,6 +91,7 @@ MessageGUIDGenerator::MessageGUIDGenerator(int sessionId, bool doIpResolving)
 , d_nanoSecondsFromEpoch(
       bsls::SystemTime::nowRealtimeClock().totalNanoseconds())
 , d_timerBaseOffset(bsls::TimeUtil::getTimer())
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // NOTE: 'BE' suffix in variable name implies that variable's value is
     //       big-endian (network byte order).
@@ -178,8 +184,10 @@ MessageGUIDGenerator::MessageGUIDGenerator(int sessionId, bool doIpResolving)
                   << ", sessionId: " << sessionId
                   << ", clientID: " << d_clientIdHex << "]";
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 void MessageGUIDGenerator::generateGUID(bmqt::MessageGUID* guid)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(guid);
@@ -197,6 +205,7 @@ void MessageGUIDGenerator::generateGUID(bmqt::MessageGUID* guid)
     //: o having setters in bmqt::MessageGUID, which is not ideal given that it
     //:   should be completely opaque to clients.
     //: o using friendship
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     char* buffer = reinterpret_cast<char*>(guid);
 
     // Populate GUIDVersionAndCounter
@@ -225,12 +234,14 @@ void MessageGUIDGenerator::generateGUID(bmqt::MessageGUID* guid)
     // Populate ClientId hash
     bsl::memcpy(buffer, d_clientId, k_CLIENT_ID_LEN_BINARY);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
 
 int MessageGUIDGenerator::extractFields(int*                     version,
                                         unsigned int*            counter,
                                         bsls::Types::Int64*      timerTick,
                                         bsl::string*             clientId,
                                         const bmqt::MessageGUID& guid)
+// NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(version);
@@ -238,6 +249,7 @@ int MessageGUIDGenerator::extractFields(int*                     version,
     BSLS_ASSERT_SAFE(timerTick);
     BSLS_ASSERT_SAFE(clientId);
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     const char* buffer = reinterpret_cast<const char*>(&guid);
 
     // Version and counter
@@ -277,14 +289,17 @@ int MessageGUIDGenerator::extractFields(int*                     version,
 
     return 0;  // RETURN
 }
+// NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
 
 bmqt::MessageGUID MessageGUIDGenerator::testGUID()
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     static bsls::AtomicUint s_counter(0);
 
     bmqt::MessageGUID  guid;
     const unsigned int counter = ++s_counter;
-    char*              buffer  = reinterpret_cast<char*>(&guid);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    char* buffer = reinterpret_cast<char*>(&guid);
 
     // Populate GUIDVersion
     const unsigned int version = (k_GUID_VERSION << k_GUID_VERSION_START_IDX);
@@ -306,9 +321,11 @@ bmqt::MessageGUID MessageGUIDGenerator::testGUID()
 
     return guid;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
 
 bsl::ostream& MessageGUIDGenerator::print(bsl::ostream&            stream,
                                           const bmqt::MessageGUID& guid)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     if (stream.bad()) {
         return stream;  // RETURN
@@ -338,8 +355,10 @@ bsl::ostream& MessageGUIDGenerator::print(bsl::ostream&            stream,
 
     return stream;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 bmqp_ctrlmsg::GuidInfo MessageGUIDGenerator::guidInfo() const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bmqp_ctrlmsg::GuidInfo ret;
 
@@ -348,6 +367,7 @@ bmqp_ctrlmsg::GuidInfo MessageGUIDGenerator::guidInfo() const
 
     return ret;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 }  // close package namespace
 }  // close enterprise namespace

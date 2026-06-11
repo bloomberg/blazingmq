@@ -112,6 +112,7 @@ namespace bmqt {
 /// Enumeration for the types of session events
 struct SessionEventType {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         /// Generic error
         e_ERROR = -1,
@@ -157,6 +158,7 @@ struct SessionEventType {
         /// Channel is at the high watermark
         e_CHANNEL_HIGH_WATERMARK = 18
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 

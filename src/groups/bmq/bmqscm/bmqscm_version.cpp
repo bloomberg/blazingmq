@@ -19,6 +19,7 @@
 namespace BloombergLP {
 
 #define STRINGIFY2(a) #a
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define STRINGIFY(a) STRINGIFY2(a)
 
 #define BMQSCM_VERSION_STRING                                                 \

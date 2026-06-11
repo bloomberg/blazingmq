@@ -46,6 +46,7 @@ static void test1_policy_constructor()
 // Testing:
 //   bmqex::ExecutionPolicy's constructor
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     typedef int ExecutorType;
     // NOTE: This is not a real executor type, but for the purpose of this
@@ -65,6 +66,7 @@ static void test1_policy_constructor()
     BMQTST_ASSERT_EQ(p.executor(), executor);
     BMQTST_ASSERT_EQ(p.allocator(), &allocator);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test2_policy_copyConstructor()
 // ------------------------------------------------------------------------
@@ -79,6 +81,7 @@ static void test2_policy_copyConstructor()
 // Testing:
 //   bmqex::ExecutionPolicy's copy constructor
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     typedef int   ExecutorType1;
     typedef float ExecutorType2;
@@ -123,6 +126,7 @@ static void test2_policy_copyConstructor()
         BMQTST_ASSERT_EQ(copy.allocator(), original.allocator());
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test3_policy_transformations()
 // ------------------------------------------------------------------------
@@ -143,6 +147,7 @@ static void test3_policy_transformations()
 //   bmqex::ExecutionPolicy::useExecutor
 //   bmqex::ExecutionPolicy::useAllocator
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     typedef int   ExecutorType1;
     typedef float ExecutorType2;
@@ -230,6 +235,7 @@ static void test3_policy_transformations()
         BMQTST_ASSERT_EQ(p2.allocator(), &allocator2);
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test4_util()
 // ------------------------------------------------------------------------
@@ -249,6 +255,7 @@ static void test4_util()
 //   bmqex::ExecutionPolicyUtil::useExecutor
 //   bmqex::ExecutionPolicyUtil::useAllocator
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     typedef int ExecutorType;
     // NOTE: This is not a real executor type, but for the purpose of this
@@ -320,12 +327,14 @@ static void test4_util()
         BMQTST_ASSERT_EQ(p.allocator(), &allocator);
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -344,3 +353,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

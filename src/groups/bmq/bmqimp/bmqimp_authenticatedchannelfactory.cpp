@@ -51,6 +51,7 @@ namespace {
 
 BALL_LOG_SET_NAMESPACE_CATEGORY("BMQIMP.AUTHENTICATEDCHANNELFACTORY");
 
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 enum RcEnum {
     rc_SUCCESS                         = 0,
     rc_PACKET_ENCODE_FAILURE           = -1,
@@ -63,6 +64,7 @@ enum RcEnum {
     rc_AUTHENTICATION_FAILURE          = -9,
     rc_NEGOTIATION_FAILURE             = -10
 };
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 /// Minimum buffer to subtract from lifetimeMs to avoid cutting too close
 static const bsls::Types::Uint64 k_REAUTHN_EARLY_BUFFER = 5000;
@@ -94,6 +96,7 @@ AuthenticatedChannelFactoryConfig::AuthenticatedChannelFactoryConfig(
     bslma::Allocator*         basicAllocator)
 : d_baseFactory_p(base)
 , d_scheduler_p(scheduler)
+// NOLINTNEXTLINE(performance-unnecessary-value-param)
 , d_authnCredentialCb(authnCredentialCb)
 , d_authenticationTimeout(authenticationTimeout)
 , d_blobSpPool_p(blobSpPool_p)
@@ -227,6 +230,7 @@ bsls::Types::Uint64 AuthenticatedChannelFactory::timeoutInterval(
     bsls::Types::Uint64 lifetimeMs) const
 {
     const bsls::Types::Uint64 intervalMsWithRatio =
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         static_cast<bsls::Types::Uint64>(lifetimeMs * k_REAUTHN_EARLY_RATIO);
     const bsls::Types::Uint64 intervalMsWithBuffer =
         saturatingSub(lifetimeMs, k_REAUTHN_EARLY_BUFFER);
@@ -350,6 +354,7 @@ bool AuthenticatedChannelFactory::processAuthenticationEvent(
     const bmqp::Event&                     event,
     const ResultCallback&                  cb,
     const bsl::shared_ptr<bmqio::Channel>& channel)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     bmqp_ctrlmsg::AuthenticationMessage response;
     const int rc = event.loadAuthenticationEvent(&response);
@@ -422,6 +427,7 @@ bool AuthenticatedChannelFactory::processAuthenticationEvent(
 
     return true;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 // CREATORS
 AuthenticatedChannelFactory::AuthenticatedChannelFactory(

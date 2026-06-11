@@ -186,6 +186,7 @@ class ExecutionUtil_FunctionRef {
 /// standard. Given an object `f` of type `F`, `f()` shall be a valid
 /// expression.
 template <class R, class F>
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ExecutionUtil_OneOffFunction {
   public:
     // TYPES
@@ -202,6 +203,7 @@ class ExecutionUtil_OneOffFunction {
 
     /// Provides a utility object that destroys the stored function object
     /// on destruction.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct DestroyFunctionOnScopeExit {
         // DATA
         FunctionValueType* d_functionValue_p;
@@ -216,6 +218,7 @@ class ExecutionUtil_OneOffFunction {
         /// Destroy the referred to function object.
         ~DestroyFunctionOnScopeExit();
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
   private:
     // PRIVATE DATA
@@ -260,6 +263,7 @@ class ExecutionUtil_OneOffFunction {
     /// function is invoked more than once.
     R operator()();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ====================================
 // class ExecutionUtil_UniqueTask
@@ -272,6 +276,7 @@ class ExecutionUtil_OneOffFunction {
 /// standard. Given an object `f` of type `F`, `f()` shall be a valid
 /// expression.
 template <class F>
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ExecutionUtil_UniqueTask {
   public:
     // TYPES
@@ -333,6 +338,7 @@ class ExecutionUtil_UniqueTask {
     /// function object invocation.
     void wait() const BSLS_KEYWORD_NOEXCEPT;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ====================
 // struct ExecutionUtil
@@ -449,9 +455,11 @@ inline R ExecutionUtil_FunctionRef<R, F>::operator()() const
 template <class R, class F>
 inline void ExecutionUtil_OneOffFunction<R, F>::invoke(
     BSLA_MAYBE_UNUSED bsl::true_type voidResultTag)
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
 {
     bslmf::Util::moveIfSupported(d_functionValue.object().value())();
 }
+// NOLINTEND(bugprone-unchecked-optional-access)
 
 template <class R, class F>
 inline R ExecutionUtil_OneOffFunction<R, F>::invoke(
@@ -461,6 +469,7 @@ inline R ExecutionUtil_OneOffFunction<R, F>::invoke(
 }
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 template <class R, class F>
 template <class F_PARAM>
 inline BSLS_KEYWORD_CONSTEXPR_CPP14
@@ -472,6 +481,7 @@ ExecutionUtil_OneOffFunction<R, F>::ExecutionUtil_OneOffFunction(
     // PRECONDITIONS
     BSLS_ASSERT(allocator);
 }
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 
 // MANIPULATORS
 template <class R, class F>
@@ -511,6 +521,7 @@ inline ExecutionUtil_OneOffFunction<R, F>::DestroyFunctionOnScopeExit ::
 // ------------------------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 template <class F>
 template <class F_PARAM>
 inline ExecutionUtil_UniqueTask<F>::ExecutionUtil_UniqueTask(
@@ -522,6 +533,7 @@ inline ExecutionUtil_UniqueTask<F>::ExecutionUtil_UniqueTask(
     // PRECONDITIONS
     BSLS_ASSERT(allocator);
 }
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 
 // MANIPULATORS
 template <class F>
@@ -559,10 +571,12 @@ inline void ExecutionUtil_UniqueTask<F>::wait() const BSLS_KEYWORD_NOEXCEPT
 
 // CLASS METHODS
 template <class EXECUTOR, class FUNCTION>
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 inline typename ExecutionUtil::ExecuteResult<ExecutionPolicy<EXECUTOR>,
                                              FUNCTION>::Type
 ExecutionUtil::execute(const ExecutionPolicy<EXECUTOR>& policy,
                        BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) f)
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 {
     switch (policy.blocking()) {
     case ExecutionProperty::e_NEVER_BLOCKING: {

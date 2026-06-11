@@ -82,6 +82,7 @@ class NegotiationContext;
 
 struct InitialConnectionState {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         e_INITIAL             = 0,  // Initial state.
         e_AUTHENTICATING      = 1,  // First message is authentication Request.
@@ -91,6 +92,7 @@ struct InitialConnectionState {
         e_NEGOTIATED           = 5,  // Negotiation success.  Final state.
         e_FAILED               = 6   // Final state.
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -142,6 +144,7 @@ bsl::ostream& operator<<(bsl::ostream&                stream,
 
 struct InitialConnectionEvent {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         e_NONE                 = 0,
         e_OUTBOUND_NEGOTIATION = 1,
@@ -151,6 +154,7 @@ struct InitialConnectionEvent {
         e_AUTHN_SUCCESS        = 5,
         e_ERROR                = 6
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -201,6 +205,7 @@ bsl::ostream& operator<<(bsl::ostream&                stream,
 // ==============================
 
 /// Each session being authenticated and negotiated get its own context.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class InitialConnectionContext {
   private:
     // CLASS-SCOPE CATEGORY
@@ -427,6 +432,7 @@ class InitialConnectionContext {
                   const bsl::string&                      error,
                   const bsl::shared_ptr<mqbnet::Session>& session) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 

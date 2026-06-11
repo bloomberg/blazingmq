@@ -224,6 +224,7 @@ bdld::Datum SimpleEvaluator::BooleanLiteral::evaluate(
 
 bdld::Datum
 SimpleEvaluator::UnaryMinus::evaluate(EvaluationContext& context) const
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     bdld::Datum expr = d_expression->evaluate(context);
     if (context.hasError()) {
@@ -245,6 +246,7 @@ SimpleEvaluator::UnaryMinus::evaluate(EvaluationContext& context) const
 
     return bdld::Datum::createInteger64(-value, context.d_allocator);
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 // ------------------------------------
 // class SimpleEvaluator::StringLiteral

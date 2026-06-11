@@ -57,11 +57,13 @@ SessionEvent::SessionEvent(const SessionEvent& other)
     // NOTHING
 }
 
+// NOLINTBEGIN(cert-oop54-cpp)
 SessionEvent& SessionEvent::operator=(const SessionEvent& rhs)
 {
     d_impl_sp = rhs.d_impl_sp;
     return *this;
 }
+// NOLINTEND(cert-oop54-cpp)
 
 bmqt::SessionEventType::Enum SessionEvent::type() const
 {
@@ -106,6 +108,7 @@ QueueId SessionEvent::queueId() const
     BSLS_ASSERT_OPT(queue);
 
     bsl::shared_ptr<bmqimp::Queue>& queueImplSpRef =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<bsl::shared_ptr<bmqimp::Queue>&>(queueId);
     queueImplSpRef = queue;
 

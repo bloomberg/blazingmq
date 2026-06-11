@@ -40,20 +40,30 @@ namespace {
 #endif
 
 // CONSTANTS
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-avoid-non-const-global-variables)
 static const char* TIME_INTERVAL_NS_UNITS[] =
     {"ns", "us", "ms", "s", "m", "h", "d", "w"};
-static int       TIME_INTERVAL_NS_SIZES[] = {1000, 1000, 1000, 60, 60, 24, 7};
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTNEXTLINE(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-avoid-non-const-global-variables)
+static int TIME_INTERVAL_NS_SIZES[] = {1000, 1000, 1000, 60, 60, 24, 7};
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 static const int NUM_TIME_INTERVAL_NS_UNITS = sizeof(TIME_INTERVAL_NS_UNITS) /
                                               sizeof(*TIME_INTERVAL_NS_UNITS);
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 BSLMF_ASSERT(NUM_TIME_INTERVAL_NS_UNITS - 1 ==
              (sizeof(TIME_INTERVAL_NS_SIZES) /
               sizeof(*TIME_INTERVAL_NS_SIZES)));
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 static const bsls::Types::Int64 k_NANOSECS_PER_SEC = 1000000000L;  // 1e9
 
+// NOLINTNEXTLINE(*-avoid-c-arrays,cppcoreguidelines-avoid-non-const-global-variables)
 static const char* MEMORY_UNITS[] = {"B", "KB", "MB", "GB", "TB", "PB", "EB"};
-static const int   NUM_MEMORY_UNITS = sizeof(MEMORY_UNITS) /
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+static const int NUM_MEMORY_UNITS = sizeof(MEMORY_UNITS) /
                                     sizeof(*MEMORY_UNITS);
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 /// From the specified `ns` return the appropriate TIME_INTERVAL_NS_UNITS
 /// element to use, and in the specified `num` and `remainder` return the
@@ -62,10 +72,12 @@ const char* timeIntervalNsHelper(bsls::Types::Int64* num,
                                  int*                remainder,
                                  bsls::Types::Int64  ns,
                                  int                 precision)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-constant-array-index)
 {
     bsls::Types::Int64 div   = 1;
     int                level = 0;
     for (; level < NUM_TIME_INTERVAL_NS_UNITS - 1; ++level) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         int unitSize = TIME_INTERVAL_NS_SIZES[level];
         if (ns < div * unitSize) {
             break;
@@ -80,6 +92,7 @@ const char* timeIntervalNsHelper(bsls::Types::Int64* num,
         bsl::pow(10.0, precision)));
     return TIME_INTERVAL_NS_UNITS[level];
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-constant-array-index)
 
 /// From the specified `bytes` return the appropriate MEMORY_UNITS
 /// element to use, and in the specified `num` and `remainder` return the
@@ -88,6 +101,7 @@ const char* memoryHelper(bsls::Types::Int64* num,
                          int*                remainder,
                          bsls::Types::Int64  bytes,
                          int                 precision)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-constant-array-index)
 {
     if (bytes == 0) {
         *num       = 0;
@@ -106,12 +120,14 @@ const char* memoryHelper(bsls::Types::Int64* num,
     int              highestBitSet  = higestBitIndex -
                         bdlb::BitUtil::numLeadingUnsetBits(
                             static_cast<bsl::uint64_t>(bytes));
+    // NOLINTNEXTLINE(*-magic-numbers)
     bsls::Types::Int64 level = highestBitSet / 10;
 
     if (level >= NUM_MEMORY_UNITS) {
         level = NUM_MEMORY_UNITS - 1;
     }
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bsls::Types::Int64 shift = level * 10;
 
     bsls::Types::Int64 div = 1LL << shift;
@@ -127,20 +143,24 @@ const char* memoryHelper(bsls::Types::Int64* num,
 
     return MEMORY_UNITS[level];
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-constant-array-index)
 
 char* printValueWithSeparatorImp(char*              buf,
                                  bsls::Types::Int64 value,
                                  int                groupSize,
                                  char               separator)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     bool negative = value < 0;
 
     int processedDigits = 0;
+    // NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     while (value) {
         if (processedDigits && (processedDigits % groupSize == 0)) {
             *(--buf) = separator;
         }
 
+        // NOLINTNEXTLINE(*-magic-numbers)
         bsls::Types::Int64 digit = value % 10;
         if (digit < 0) {
             digit *= -1;
@@ -152,6 +172,7 @@ char* printValueWithSeparatorImp(char*              buf,
 
         ++processedDigits;
     }
+    // NOLINTEND(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     if (processedDigits == 0) {
         *(--buf) = '0';
@@ -163,6 +184,7 @@ char* printValueWithSeparatorImp(char*              buf,
 
     return buf;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 }  // close anonymous namespace
 
@@ -180,15 +202,19 @@ int PrintUtil::printedValueLength(bsls::Types::Int64 value)
         value = -value;
     }
 
+    // NOLINTBEGIN(*-magic-numbers)
     while (value > 1000) {
         len += 3;
         value /= 1000;
     }
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTBEGIN(*-magic-numbers)
     while (value) {
         len += 1;
         value /= 10;
     }
+    // NOLINTEND(*-magic-numbers)
 
     return len > 0 ? len : 1;
 }
@@ -238,8 +264,10 @@ bsl::ostream& PrintUtil::printValueWithSeparator(bsl::ostream&      stream,
                                                  bsls::Types::Int64 value,
                                                  int                groupSize,
                                                  char               separator)
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers)
 {
-    char  buf[64];
+    char buf[64];
+    // NOLINTNEXTLINE(*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     char* pos = buf + 63;
     *pos      = '\0';
 
@@ -248,21 +276,26 @@ bsl::ostream& PrintUtil::printValueWithSeparator(bsl::ostream&      stream,
                                                 groupSize,
                                                 separator);
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers)
 
 bsl::ostream& PrintUtil::printValueWithSeparator(bsl::ostream& stream,
                                                  double        value,
                                                  int           precision,
                                                  int           groupSize,
                                                  char          separator)
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,cert-err33-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-vararg)
 {
-    char  buf[128];
+    char buf[128];
+    // NOLINTNEXTLINE(*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     char* pos = buf + 127;
     *pos      = '\0';
 
     if (precision > 0) {
-        double absValue  = bsl::abs(value);
-        int    remainder = static_cast<int>(bsl::floor(
+        double absValue = bsl::abs(value);
+        // NOLINTBEGIN(*-magic-numbers)
+        int remainder = static_cast<int>(bsl::floor(
             (absValue - bsl::floor(absValue)) * bsl::pow(10.0, precision)));
+        // NOLINTEND(*-magic-numbers)
 
         snprintf(pos - precision - 2,
                  precision + 2,
@@ -280,12 +313,14 @@ bsl::ostream& PrintUtil::printValueWithSeparator(bsl::ostream& stream,
                groupSize,
                separator);
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers,cert-err33-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-vararg)
 
 bsl::ostream& PrintUtil::printStringCentered(bsl::ostream&            stream,
                                              const bslstl::StringRef& str)
 {
     bsl::streamsize width = stream.width();
     if (width > static_cast<int>(str.length())) {
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         bsl::streamsize left = (width + str.length()) / 2;
         stream.width(left);
         stream << str;
@@ -301,14 +336,17 @@ bsl::ostream& PrintUtil::printStringCentered(bsl::ostream&            stream,
 bsl::ostream& PrintUtil::printMemory(bsl::ostream&      stream,
                                      bsls::Types::Int64 bytes,
                                      int                precision)
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-vararg)
 {
     bsls::Types::Int64 value;
     int                remainder = 0;
     const char* unit = memoryHelper(&value, &remainder, bytes, precision);
 
     char buf[64];
-    int  ret = snprintf(buf, sizeof(buf), "%lld", value);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-vararg)
+    int ret = snprintf(buf, sizeof(buf), "%lld", value);
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     char* end = buf + ret;
     if (unit != MEMORY_UNITS[0] && precision > 0) {
         ret = snprintf(end, sizeof(buf) - ret, ".%.*d", precision, remainder);
@@ -316,15 +354,19 @@ bsl::ostream& PrintUtil::printMemory(bsl::ostream&      stream,
     }
 
     *end++ = ' ';
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; *unit; ++unit) {
         *end++ = *unit;
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     *end++ = '\0';
 
     return stream << buf;
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-vararg)
 
 int PrintUtil::printedMemoryLength(bsls::Types::Int64 bytes, int precision)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     bsls::Types::Int64 value;
     int                remainder = 0;
@@ -338,10 +380,12 @@ int PrintUtil::printedMemoryLength(bsls::Types::Int64 bytes, int precision)
 
     return ret;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 bsl::ostream& PrintUtil::printTimeIntervalNs(bsl::ostream&      stream,
                                              bsls::Types::Int64 timeIntervalNs,
                                              int                precision)
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-vararg)
 {
     bsls::Types::Int64 value;
     int                remainder = 0;
@@ -349,9 +393,11 @@ bsl::ostream& PrintUtil::printTimeIntervalNs(bsl::ostream&      stream,
         timeIntervalNsHelper(&value, &remainder, timeIntervalNs, precision);
 
     char buf[64];
-    int  ret = snprintf(buf, sizeof(buf), "%lld", value);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-vararg)
+    int ret = snprintf(buf, sizeof(buf), "%lld", value);
 
     // 'end' points to the terminating NUL
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     char* end = buf + ret;
 
     if (unit != TIME_INTERVAL_NS_UNITS[0]) {
@@ -360,16 +406,20 @@ bsl::ostream& PrintUtil::printTimeIntervalNs(bsl::ostream&      stream,
     }
 
     *end++ = ' ';
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; *unit; ++unit) {
         *end++ = *unit;
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     *end++ = '\0';
 
     return stream << buf;
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-vararg)
 
 int PrintUtil::printedTimeIntervalNsLength(bsls::Types::Int64 timeIntervalNs,
                                            int                precision)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     bsls::Types::Int64 value;
     int                remainder = 0;
@@ -384,6 +434,7 @@ int PrintUtil::printedTimeIntervalNsLength(bsls::Types::Int64 timeIntervalNs,
 
     return ret;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 bsl::ostream& PrintUtil::printElapsedTime(bsl::ostream&          stream,
                                           const bsls::Stopwatch& stopwatch,
@@ -398,11 +449,14 @@ bsl::ostream& PrintUtil::printElapsedTime(bsl::ostream&          stream,
 
 bsl::ostream& PrintUtil::printOrdinal(bsl::ostream&      stream,
                                       bsls::Types::Int64 num)
+// NOLINTBEGIN(*-magic-numbers,bugprone-branch-clone)
 {
     stream << num;
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     int mod100 = static_cast<int>(num % 100);
-    int mod10  = static_cast<int>(num % 10);
+    // NOLINTNEXTLINE(*-magic-numbers)
+    int mod10 = static_cast<int>(num % 10);
 
     if (mod100 == 11 || mod100 == 12 || mod100 == 13) {
         return stream << "th";
@@ -420,6 +474,7 @@ bsl::ostream& PrintUtil::printOrdinal(bsl::ostream&      stream,
         return stream << "th";
     }
 }
+// NOLINTEND(*-magic-numbers,bugprone-branch-clone)
 
 bsl::ostream& PrintUtil::stringRefPrint(bsl::ostream&            stream,
                                         const bslstl::StringRef& stringRef,

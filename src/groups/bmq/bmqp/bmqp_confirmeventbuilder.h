@@ -82,6 +82,7 @@ namespace bmqp {
 // =========================
 
 /// Mechanism to build a BlazingMQ CONFIRM event
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ConfirmEventBuilder {
   public:
     // TYPES
@@ -159,6 +160,7 @@ class ConfirmEventBuilder {
     /// passed and kept in another thread while this builder object is used.
     const bsl::shared_ptr<bdlbb::Blob>& blob() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

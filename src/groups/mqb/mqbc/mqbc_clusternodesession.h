@@ -57,6 +57,7 @@ namespace mqbc {
 // ========================
 
 /// Provide a session for interaction with BlazingMQ cluster node.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ClusterNodeSession : public mqbi::DispatcherClient,
                            public mqbi::QueueHandleRequester,
                            public mqbi::InlineClient {
@@ -87,6 +88,7 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     /// Struct holding the state associated to a queue opened in by the
     /// cluster node.  TBD: this type also exists in `mqba::ClientSession`.
     /// It should be moved to a new component.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct QueueState {
         typedef bmqp::QueueInfo<SubQueueInfo> StreamsMap;
 
@@ -124,6 +126,7 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
         QueueState(const QueueState& original,
                    bslma::Allocator* basicAllocator = 0);
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     /// Map of queueId to QueueState
     typedef bsl::unordered_map<int, QueueState> QueueHandleMap;
@@ -325,6 +328,7 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
     handleRequesterContext() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                            INLINE DEFINITIONS
@@ -448,6 +452,7 @@ ClusterNodeSession::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     // 'd_cluster_p' after 'event' has been populated with 'this'.  Note that
     // the only events expected here are PUSH and ACK, for now.
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
     mqbi::DispatcherEvent& ev = const_cast<mqbi::DispatcherEvent&>(event);
     switch (event.type()) {
     case mqbi::DispatcherEventType::e_PUSH: {

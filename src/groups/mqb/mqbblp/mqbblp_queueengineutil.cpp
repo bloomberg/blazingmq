@@ -70,8 +70,10 @@ const int k_MAX_NANOSECONDS = 999999999;
 const int k_MAX_INSTANT_MESSAGES = 10;
 // Maximum messages logged with throttling in a short period of time.
 
+// NOLINTBEGIN(cppcoreguidelines-interfaces-global-init)
 const bsls::Types::Int64 k_NS_PER_MESSAGE =
     bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
+// NOLINTEND(cppcoreguidelines-interfaces-global-init)
 // Time interval between messages logged with throttling.
 
 #define BMQ_LOGTHROTTLE_INFO                                                  \
@@ -104,11 +106,13 @@ void releaseHandleAndInvoke(bdlmt::EventSchedulerEventHandle* handle,
 // Return delivered message's queue-time from the specified 'attributes'
 bsls::Types::Int64
 getMessageQueueTime(const mqbi::StorageMessageAttributes& attributes)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     bsls::Types::Int64 timeDelta;
     mqbs::StorageUtil::loadArrivalTimeDelta(&timeDelta, attributes);
     return timeDelta;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 /// Callback to use in `QueueEngineUtil_AppState::tryDeliverOneMessage`
 struct Visitor {
@@ -208,8 +212,8 @@ int QueueEngineUtil::validateUri(
     mqbi::QueueHandle*                         handle,
     const mqbi::QueueHandleRequesterContext*   clientContext)
 {
-    bmqt::Uri       uri;
-    bsl::string     error;
+    bmqt::Uri             uri;
+    bsl::string           error;
     BSLA_MAYBE_UNUSED int rc = bmqt::UriParser::parse(&uri,
                                                       &error,
                                                       handleParameters.uri());
@@ -268,6 +272,7 @@ int QueueEngineUtil::dumpMessageInTempfile(
     const bdlbb::Blob&             payload,
     const bmqp::MessageProperties* properties,
     bdlbb::BlobBufferFactory*      blobBufferFactory)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Return values are part of function contract.  Do not change them
@@ -313,6 +318,7 @@ int QueueEngineUtil::dumpMessageInTempfile(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 void QueueEngineUtil::logRejectMessage(
     const bmqt::MessageGUID&              msgGUID,
@@ -618,12 +624,14 @@ void QueueEngineUtil_ReleaseHandleProctor::invokeCallback()
     }
 }
 
+// NOLINTBEGIN(bugprone-exception-escape)
 QueueEngineUtil_ReleaseHandleProctor::~QueueEngineUtil_ReleaseHandleProctor()
 {
     invokeCallback();
     // 'd_refCount' can be non-zero in the case when RelayQE gets destroyed as
     // a result of conversion to Primary before CloseQueue response.
 }
+// NOLINTEND(bugprone-exception-escape)
 
 // ------------------------------------------
 // struct QueueEngineUtil_AppsDeliveryContext
@@ -668,7 +676,7 @@ bool QueueEngineUtil_AppsDeliveryContext::reset(
 
     if (haveProgress() && currentMessage && currentMessage->hasReceipt()) {
         d_currentMessage_p = currentMessage;
-        result           = true;
+        result             = true;
     }
     else {
         d_currentMessage_p = 0;
@@ -837,12 +845,14 @@ bool QueueEngineUtil_AppsDeliveryContext::haveProgress() const
 }
 
 bsls::Types::Int64 QueueEngineUtil_AppsDeliveryContext::timeDelta()
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
 {
     if (!d_timeDelta.has_value()) {
         d_timeDelta = getMessageQueueTime(d_currentMessage_p->attributes());
     }
     return d_timeDelta.value();
 }
+// NOLINTEND(bugprone-unchecked-optional-access)
 
 int QueueEngineUtil_AppsDeliveryContext::revCounter() const
 {
@@ -859,6 +869,7 @@ QueueEngineUtil_AppState::VirtualIterator::~VirtualIterator()
 }
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 QueueEngineUtil_AppState::QueueEngineUtil_AppState(
     mqbi::Queue*                  queue,
     bdlmt::EventScheduler*        scheduler,
@@ -880,6 +891,7 @@ QueueEngineUtil_AppState::QueueEngineUtil_AppState(
 , d_upstreamSubQueueId(upstreamSubQueueId)
 , d_isScheduled(false)
 , d_appOrdinal(mqbi::Storage::k_INVALID_ORDINAL)
+// NOLINTBEGIN(*-magic-numbers)
 {
     // Above, we retrieve domain config from 'queue' only if self node is a
     // cluster member, and pass a dummy config if self is proxy, because proxy
@@ -898,6 +910,8 @@ QueueEngineUtil_AppState::QueueEngineUtil_AppState(
     d_throttledEarlyExits.initialize(maxActionsPerInterval,
                                      5 * bdlt::TimeUnitRatio::k_NS_PER_S);
 }
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 QueueEngineUtil_AppState::~QueueEngineUtil_AppState()
 {
@@ -1126,6 +1140,7 @@ QueueEngineUtil_AppState::processDeliveryList(bsls::TimeInterval*    delay,
     bmqt::MessageGUID        firstGuid   = *it;
     size_t                   numMessages = 0;
 
+    // NOLINTBEGIN(bugprone-branch-clone)
     while (!list.isEnd(it)) {
         Routers::Result result = Routers::e_INVALID;
 
@@ -1183,6 +1198,7 @@ QueueEngineUtil_AppState::processDeliveryList(bsls::TimeInterval*    delay,
             list.next(&it);
         }
     };
+    // NOLINTEND(bugprone-branch-clone)
 
     if (numMessages) {
         BMQ_LOGTHROTTLE_INFO << "Queue '" << d_queue_p->description()
@@ -1436,12 +1452,14 @@ void QueueEngineUtil_AppState::clear()
 }
 
 void QueueEngineUtil_AppState::loadInternals(mqbcmd::AppState* out) const
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     out->appId()                = appId();
     out->numConsumers()         = d_routing_sp->d_consumers.size();
     out->redeliveryListLength() = d_redeliveryList.size();
     d_routing_sp->loadInternals(&out->roundRobinRouter());
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void QueueEngineUtil_AppState::reportStats(
     const mqbi::StorageIterator* message) const

@@ -41,10 +41,12 @@ namespace mqbstat {
 namespace {
 
 /// Name of the stat context to create (holding all cluster's statistics)
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 static const char k_CLUSTER_STAT_NAME[] = "clusters";
 
 /// Name of the stat context to create (holding all cluster node's
 /// statistics)
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 static const char k_CLUSTER_NODES_STAT_NAME[] = "clusterNodes";
 
 /// The default utilization value reported when we cannot
@@ -61,18 +63,21 @@ bsls::Types::Int64 ClusterStats::getValue(const bmqst::StatContext& context,
                                           int                       snapshotId,
                                           const Stat::Enum&         stat)
 
+// NOLINTBEGIN(*-magic-numbers)
 {
     // invoked from the SNAPSHOT thread
 
     const bmqst::StatValue::SnapshotLocation latestSnapshot(0, 0);
     const bmqst::StatValue::SnapshotLocation oldestSnapshot(0, snapshotId);
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define STAT_SINGLE(OPERATION, STAT)                                          \
     bmqst::StatUtil::OPERATION(                                               \
         context.value(bmqst::StatContext::e_DIRECT_VALUE,                     \
                       ClusterStatsIndex::STAT),                               \
         latestSnapshot)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define STAT_RANGE(OPERATION, STAT)                                           \
     bmqst::StatUtil::OPERATION(                                               \
         context.value(bmqst::StatContext::e_DIRECT_VALUE,                     \
@@ -208,6 +213,7 @@ bsls::Types::Int64 ClusterStats::getValue(const bmqst::StatContext& context,
 #undef STAT_RANGE
 #undef STAT_SINGLE
 }
+// NOLINTEND(*-magic-numbers)
 
 bsl::shared_ptr<PartitionStats>
 ClusterStats::getPartitionStats(int partitionId) const
@@ -241,6 +247,7 @@ void ClusterStats::initialize(const bsl::string&  name,
     // that the value set here (especially for 'role')' is not relevant as the
     // proper setters will be called right after by the appropriate higher
     // level components.
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<2048> localAllocator(allocator);
     d_statContext_mp = clusterStatContext->addSubcontext(
         bmqst::StatContextConfiguration(name, &localAllocator));
@@ -318,6 +325,7 @@ void ClusterStats::setPartitionCfgBytes(bsls::Types::Int64 dataBytes,
     d_statContext_mp->setValue(ClusterStatsIndex::e_CSL_CFG_BYTES, cslBytes);
     bsl::vector<bsl::shared_ptr<PartitionStats> >::const_iterator it =
         d_partitionsStats.cbegin();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; it != d_partitionsStats.cend(); ++it) {
         (*it)->statContext()->setValue(
             ClusterStatsIndex::e_PARTITION_CFG_DATA_BYTES,
@@ -326,6 +334,7 @@ void ClusterStats::setPartitionCfgBytes(bsls::Types::Int64 dataBytes,
             ClusterStatsIndex::e_PARTITION_CFG_JOURNAL_BYTES,
             journalBytes);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 // --------------------
@@ -381,10 +390,13 @@ bsl::shared_ptr<bmqst::StatContext>
 ClusterStatsUtil::initializeStatContextCluster(int               historySize,
                                                bslma::Allocator* allocator)
 {
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<2048> localAllocator(allocator);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bmqst::StatContextConfiguration config(k_CLUSTER_STAT_NAME,
                                            &localAllocator);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     config.isTable(true)
         .defaultHistorySize(historySize)
         .statValueAllocator(allocator)
@@ -424,10 +436,13 @@ ClusterStatsUtil::initializeStatContextClusterNodes(
     int               historySize,
     bslma::Allocator* allocator)
 {
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<2048> localAllocator(allocator);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bmqst::StatContextConfiguration config(k_CLUSTER_NODES_STAT_NAME,
                                            &localAllocator);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     config.isTable(true)
         .defaultHistorySize(historySize)
         .statValueAllocator(allocator)

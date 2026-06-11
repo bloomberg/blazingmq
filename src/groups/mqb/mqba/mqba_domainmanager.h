@@ -95,6 +95,7 @@ class DomainResolver;
 // ===================
 
 /// Manager for all queue domains.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class DomainManager BSLS_CPP11_FINAL : public mqbi::DomainFactory {
   private:
     // CLASS-SCOPE CATEGORY
@@ -371,6 +372,7 @@ class DomainManager BSLS_CPP11_FINAL : public mqbi::DomainFactory {
     mqbi::Domain*
     getDomain(const bsl::string& name) const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

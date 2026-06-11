@@ -33,6 +33,7 @@ namespace mqbstat {
 namespace {
 
 /// Name of the stat context to create (holding all dispatcher's statistics)
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 static const char k_DISPATCHER_STAT_NAME[] = "dispatcher";
 
 // Compile-time asserts to keep stat enums
@@ -75,6 +76,7 @@ bsls::Types::Int64 DispatcherStats::getValue(const bmqst::StatContext& context,
 
     const bmqst::StatValue::SnapshotLocation latestSnapshot(0, 0);
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define OLDEST_SNAPSHOT(STAT)                                                 \
     (bmqst::StatValue::SnapshotLocation(                                      \
         0,                                                                    \
@@ -84,15 +86,18 @@ bsls::Types::Int64 DispatcherStats::getValue(const bmqst::StatContext& context,
                    .historySize(0) -                                          \
                1)))
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define STAT_SINGLE(OPERATION, STAT)                                          \
     bmqst::StatUtil::OPERATION(                                               \
         context.value(bmqst::StatContext::e_DIRECT_VALUE, STAT),              \
         latestSnapshot)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define STAT_SINGLE_ABS(OPERATION, STAT)                                      \
     bmqst::StatUtil::OPERATION(                                               \
         context.value(bmqst::StatContext::e_DIRECT_VALUE, STAT))
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define STAT_RANGE(OPERATION, STAT)                                           \
     bmqst::StatUtil::OPERATION(                                               \
         context.value(bmqst::StatContext::e_DIRECT_VALUE, STAT),              \
@@ -200,6 +205,7 @@ DispatcherStatsUtil::initializeStatContext(int               historySize,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(allocator);
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bmqst::StatContextConfiguration config(k_DISPATCHER_STAT_NAME, allocator);
     config.isTable(true)
         .defaultHistorySize(historySize)
@@ -242,6 +248,7 @@ DispatcherStatsUtil::initializeQueueStatContext(bmqst::StatContext* parent,
                                                 bsl::string_view    client,
                                                 unsigned int      processorId,
                                                 bslma::Allocator* allocator)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     bmqst::StatContextConfiguration statConfig(name, allocator);
 
@@ -260,6 +267,7 @@ DispatcherStatsUtil::initializeQueueStatContext(bmqst::StatContext* parent,
 
     return statContext_sp;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 }  // close package namespace
 }  // close enterprise namespace

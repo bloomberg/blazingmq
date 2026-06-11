@@ -132,6 +132,7 @@ namespace mqbu {
 /// in with regards to a resource.
 struct ResourceUsageMonitorState {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         /// Monitor is in normal state
         e_STATE_NORMAL = 0,
@@ -140,6 +141,7 @@ struct ResourceUsageMonitorState {
         /// Monitor is full
         e_STATE_FULL = 2
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -186,6 +188,7 @@ bsl::ostream& operator<<(bsl::ostream&                   stream,
 /// ResourceUsageMonitor may undergo.
 struct ResourceUsageMonitorStateTransition {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         /// The state of the monitor hasn't changed
         e_NO_CHANGE,
@@ -196,6 +199,7 @@ struct ResourceUsageMonitorStateTransition {
         /// The monitored resource is full
         e_FULL
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 

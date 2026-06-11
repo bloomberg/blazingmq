@@ -65,6 +65,7 @@ class WordGenerator {
     /// Return the current word referred to by this generator.  If there are
     /// no more words, return the empty string.
     bslstl::StringRef operator()()
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     {
         if (d_current_p == d_end_p) {
             return bslstl::StringRef();  // RETURN
@@ -73,14 +74,18 @@ class WordGenerator {
             return *d_current_p++;  // RETURN
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 };
 
 // 'parseInt', 'parseInt64', and 'parseDouble', below, are wrappers around
 // their 'bdlb::NumericParseUtil' counterparts, except that the versions
 // defined here require that the entire input string is consumed by the parse.
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define DEFINE_STRICT_NUMERIC_PARSER(NAME, TYPE)                              \
-    int NAME(TYPE* result, const bslstl::StringRef& inputString)              \
+    int NAME(TYPE* result,                                                    \
+             const bslstl::StringRef&                                         \
+                 inputString) /* NOLINT(bugprone-macro-parentheses) */        \
     {                                                                         \
         bslstl::StringRef remainder;                                          \
         const int         rc = bdlb::NumericParseUtil::NAME(result,           \
@@ -119,6 +124,7 @@ DEFINE_STRICT_NUMERIC_PARSER(parseDouble, double)
 /// a valid selection (i.e. the default constructed `Value` is never
 /// returned).
 Value parseValue(const bslstl::StringRef& text)
+// NOLINTBEGIN(bugprone-branch-clone)
 {
     Value result;
 
@@ -154,6 +160,7 @@ Value parseValue(const bslstl::StringRef& text)
 
     return result;
 }
+// NOLINTEND(bugprone-branch-clone)
 
 /// Verify that the specified `next` will yield no more nonempty strings.
 /// Return zero if `next` is finished, or return a nonzero value if `next`
@@ -168,11 +175,13 @@ int expectEnd(bsl::string* error, WordGenerator next)
 
     *error = "Unexpected trailing words in an otherwise well-formed command: "
              "The extra words are:";
+    // NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
     do {
         *error += " ";
         *error += token;
         token = next();
     } while (!token.empty());
+    // NOLINTEND(cppcoreguidelines-avoid-do-while)
 
     return -1;
 }
@@ -182,7 +191,10 @@ int expectEnd(bsl::string* error, WordGenerator next)
 // signature, except for the type of the first parameter, we use a convenient
 // shortcut macro.
 #define DEF_FUNC(NAME, TYPE)                                                  \
-    int parse##NAME(TYPE* command, bsl::string* error, WordGenerator next)
+    int parse##NAME(                                                          \
+        TYPE*         command,                                                \
+        bsl::string*  error,                                                  \
+        WordGenerator next) /* NOLINT(bugprone-macro-parentheses) */
 // Load into the specified 'command' an object parsed from words supplied
 // by the specified 'next' function.  Return zero on success or a nonzero
 // value otherwise.  If an error occurs, load a diagnostic into the
@@ -288,12 +300,15 @@ int parseCommand(Command* command, bsl::string* error, WordGenerator next)
 int parseEncodingFormat(EncodingFormat::Value* format,
                         bsl::string*           error,
                         WordGenerator&         next)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     const bslstl::StringRef word = next();
 
+    // NOLINTBEGIN(*-avoid-c-arrays)
     const char errorCommon[] = "The ENCODING option must be followed by one "
                                "of the [TEXT, JSON_COMPACT, JSON_PRETTY] "
                                "settings (default: TEXT)";
+    // NOLINTEND(*-avoid-c-arrays)
 
     if (word.empty()) {
         *error += errorCommon;
@@ -318,6 +333,7 @@ int parseEncodingFormat(EncodingFormat::Value* format,
     *error += ", but the following was given: " + word;
     return -1;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 /// HELP ...
 int parseHelp(HelpCommand* command, bsl::string* error, WordGenerator next)
@@ -341,12 +357,15 @@ int parseHelp(HelpCommand* command, bsl::string* error, WordGenerator next)
 int parseDomainsCommand(DomainsCommand* domains,
                         bsl::string*    error,
                         WordGenerator   next)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     const bslstl::StringRef word = next();
 
+    // NOLINTBEGIN(*-avoid-c-arrays)
     const char errorCommon[] = "The DOMAINS command must be followed by one "
                                "of the [DOMAIN, RESOLVER, RECONFIGURE] "
                                "subcommands";
+    // NOLINTEND(*-avoid-c-arrays)
 
     if (word.empty()) {
         *error += errorCommon;
@@ -379,6 +398,7 @@ int parseDomainsCommand(DomainsCommand* domains,
     *error += ", but the following was given: " + word;
     return -1;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 /// DOMAINS DOMAIN ...
 int parseDomainCommand(Domain* domain, bsl::string* error, WordGenerator next)
@@ -1100,6 +1120,7 @@ int parseReplication(ReplicationCommand* command,
 int ParseUtil::parse(Command*                 command,
                      bsl::string*             error,
                      const bslstl::StringRef& input)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     // PRECONDITIONS
     BSLS_ASSERT(command);
@@ -1143,6 +1164,7 @@ int ParseUtil::parse(Command*                 command,
                         WordGenerator(words.data(),
                                       words.data() + words.size()));
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 }  // close package namespace
 }  // close enterprise namespace

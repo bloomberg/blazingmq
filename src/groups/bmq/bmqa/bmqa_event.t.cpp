@@ -44,6 +44,7 @@ static bmqa::Event convertEvent(const bsl::shared_ptr<bmqimp::Event>& event)
     bmqa::Event out;
 
     bsl::shared_ptr<bmqimp::Event>& implRef =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<bsl::shared_ptr<bmqimp::Event>&>(out);
 
     implRef = event;
@@ -58,11 +59,14 @@ static bmqa::Event convertEvent(const bsl::shared_ptr<bmqimp::Event>& event)
 // ----------------------------------------------------------------------------
 
 static void test1_breathingTest()
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     {
         PV("Creating a default uninitialized event");
         bsl::shared_ptr<bmqimp::Event> eventImpl(
@@ -104,12 +108,14 @@ static void test1_breathingTest()
         PV("Event: " << event);
     }
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -124,3 +130,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

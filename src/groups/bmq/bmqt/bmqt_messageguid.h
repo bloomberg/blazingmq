@@ -92,6 +92,7 @@ namespace bmqt {
 
 /// This class provides a value-semantic type to represent a global unique
 /// ID for BlazingMQ messages.
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-special-member-functions)
 class MessageGUID {
     // FRIENDS
     friend bool operator==(const MessageGUID& lhs, const MessageGUID& rhs);
@@ -104,6 +105,7 @@ class MessageGUID {
     // TYPES
 
     /// Enum representing the size of a buffer needed to represent a GUID
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         /// Binary format of the GUID
         e_SIZE_BINARY = 16,
@@ -111,6 +113,7 @@ class MessageGUID {
         /// Hexadecimal string representation of the GUID
         e_SIZE_HEX = 2 * e_SIZE_BINARY
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(MessageGUID,
@@ -198,6 +201,7 @@ class MessageGUID {
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
 };
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 
@@ -283,23 +287,32 @@ class MessageGUIDHashAlgo {
 // -----------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline MessageGUID::MessageGUID()
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bsl::memcpy(d_buffer, k_UNSET_GUID, e_SIZE_BINARY);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 inline MessageGUID::~MessageGUID()
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
 #ifdef BSLS_ASSERT_SAFE_IS_ACTIVE
     bsl::memcpy(d_buffer, k_UNSET_GUID, e_SIZE_BINARY);
 #endif
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 // ACCESSORS
 inline bool MessageGUID::isUnset() const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     return 0 == bsl::memcmp(d_buffer, k_UNSET_GUID, e_SIZE_BINARY);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 // FREE FUNCTIONS
 template <class HASH_ALGORITHM>
@@ -315,10 +328,12 @@ void hashAppend(HASH_ALGORITHM& hashAlgo, const MessageGUID& guid)
 
 inline bool MessageGUIDLess::operator()(const MessageGUID& lhs,
                                         const MessageGUID& rhs) const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     return 0 >
            bsl::memcmp(lhs.d_buffer, rhs.d_buffer, MessageGUID::e_SIZE_BINARY);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 // -------------------------
 // class MessageGUIDHashAlgo
@@ -333,6 +348,7 @@ inline MessageGUIDHashAlgo::MessageGUIDHashAlgo()
 // MANIPULATORS
 inline void MessageGUIDHashAlgo::operator()(const void*              data,
                                             BSLA_MAYBE_UNUSED size_t numBytes)
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // Implementation note: the implementation is based on Jon Maiga's research
     // on different bit mixers and their qualities (look for `mxm`):
@@ -348,20 +364,24 @@ inline void MessageGUIDHashAlgo::operator()(const void*              data,
     struct LocalFuncs {
         /// Return the "mxm" bit mix on the specified `x`.
         inline static bsls::Types::Uint64 mix(bsls::Types::Uint64 x)
+        // NOLINTBEGIN(*-magic-numbers)
         {
             x *= 0xbf58476d1ce4e5b9ULL;
             x ^= x >> 56;
             x *= 0x94d049bb133111ebULL;
             return x;
         }
+        // NOLINTEND(*-magic-numbers)
 
         /// Return the hash combination of the specified `lhs` and `rhs`.
         inline static bsls::Types::Uint64 combine(bsls::Types::Uint64 lhs,
                                                   bsls::Types::Uint64 rhs)
+        // NOLINTBEGIN(*-magic-numbers)
         {
             lhs ^= rhs + 0x517cc1b727220a95 + (lhs << 6) + (lhs >> 2);
             return lhs;
         }
+        // NOLINTEND(*-magic-numbers)
     };
 
     // `data` buffer might not be aligned to 8 bytes, so recasting the pointer
@@ -373,6 +393,7 @@ inline void MessageGUIDHashAlgo::operator()(const void*              data,
     parts[1] = LocalFuncs::mix(parts[1]);
     d_result = LocalFuncs::combine(parts[0], parts[1]);
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 inline MessageGUIDHashAlgo::result_type MessageGUIDHashAlgo::computeHash()
 {
@@ -388,10 +409,13 @@ inline MessageGUIDHashAlgo::result_type MessageGUIDHashAlgo::computeHash()
 // FREE OPERATORS
 inline bool bmqt::operator==(const bmqt::MessageGUID& lhs,
                              const bmqt::MessageGUID& rhs)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     return 0 ==
            bsl::memcmp(lhs.d_buffer, rhs.d_buffer, MessageGUID::e_SIZE_BINARY);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 inline bool bmqt::operator!=(const bmqt::MessageGUID& lhs,
                              const bmqt::MessageGUID& rhs)

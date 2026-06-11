@@ -95,6 +95,7 @@ static void test1_breathingTest()
     BMQTST_ASSERT_EQ(client->numSubcontexts(), 1);
     BMQTST_ASSERT_EQ(domain->numSubcontexts(), 1);
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQTST_ASSERT_EQ_TO_0_CLIENTSTAT(PARAM)                               \
     BMQTST_ASSERT_EQ(                                                         \
         0,                                                                    \
@@ -105,6 +106,7 @@ static void test1_breathingTest()
                                    1,                                         \
                                    ClientStat::PARAM));
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQTST_ASSERT_EQ_TO_0_DOMAINSTAT(PARAM)                               \
     BMQTST_ASSERT_EQ(                                                         \
         0,                                                                    \
@@ -167,6 +169,7 @@ static void test2_queueStatsClient()
 // Testing:
 //   QueueStatsClient manipulation
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("QueueStatsClient");
 
@@ -229,6 +232,7 @@ static void test2_queueStatsClient()
     queueStatsClient.onEvent(QueueStatsClient::EventType::e_PUT, 9);
     client->snapshot();
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQTST_ASSERT_EQ_CLIENTSTAT(PARAM, SNAPSHOT, VALUE)                   \
     BMQTST_ASSERT_EQ(                                                         \
         VALUE,                                                                \
@@ -251,6 +255,7 @@ static void test2_queueStatsClient()
 
 #undef BMQTST_ASSERT_EQ_CLIENTSTAT
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test3_queueStatsDomain()
 // ------------------------------------------------------------------------
@@ -268,6 +273,7 @@ static void test3_queueStatsDomain()
 // Testing:
 //   QueueStatsDomain manipulation
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-init-variables)
 {
     bmqtst::TestHelper::printTestName("QueueStatsDomain");
 
@@ -289,6 +295,7 @@ static void test3_queueStatsDomain()
 
     const int k_DUMMY = 0;
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQTST_ASSERT_EQ_DOMAINSTAT(PARAM, SNAPSHOT, VALUE)                   \
     BMQTST_ASSERT_EQ(                                                         \
         VALUE,                                                                \
@@ -412,6 +419,7 @@ static void test3_queueStatsDomain()
 
 #undef BMQTST_ASSERT_EQ_DOMAINSTAT
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-init-variables)
 
 static void test4_queueStatsDomainContent()
 // ------------------------------------------------------------------------
@@ -429,9 +437,11 @@ static void test4_queueStatsDomainContent()
 // Testing:
 //   QueueStatsDomain manipulation
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("QueueStatsDomainContent");
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQTST_ASSERT_EQ_DOMAINSTAT(PARAM, SNAPSHOT, VALUE)                   \
     BMQTST_ASSERT_EQ(VALUE,                                                   \
                      mqbstat::QueueStatsDomain::getValue(                     \
@@ -514,6 +524,7 @@ static void test4_queueStatsDomainContent()
 
 #undef BMQTST_ASSERT_EQ_DOMAINSTAT
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test5_appIdMetrics()
 // ------------------------------------------------------------------------
@@ -535,6 +546,7 @@ static void test5_appIdMetrics()
 // Testing:
 //   QueueStatsDomain manipulation with per-appId metrics
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,modernize-use-emplace)
 {
     bmqtst::TestHelper::printTestName("AppIdMetrics");
 
@@ -681,12 +693,14 @@ static void test5_appIdMetrics()
                 mqbstat::QueueStatsDomain::Stat::e_CONFIRM_TIME_MAX));
     }
 }
+// NOLINTEND(*-magic-numbers,modernize-use-emplace)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -695,9 +709,11 @@ int main(int argc, char* argv[])
         mqbcfg::BrokerConfig::set(brokerConfig);
 
         bsl::shared_ptr<bmqst::StatContext> statContext =
+            // NOLINTBEGIN(*-magic-numbers)
             mqbstat::BrokerStatsUtil::initializeStatContext(
                 30,
                 bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
         switch (_testCase) {
         case 0:
         case 5: test5_appIdMetrics(); break;
@@ -715,3 +731,4 @@ int main(int argc, char* argv[])
     TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
     // Do not check fro default/global allocator usage.
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

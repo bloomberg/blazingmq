@@ -230,11 +230,14 @@ class JournalFileIterator {
 // -------------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline JournalFileIterator::JournalFileIterator()
 {
     clear();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline JournalFileIterator::JournalFileIterator(
     const MappedFileDescriptor* mfd,
     const FileHeader&           fileHeader,
@@ -242,6 +245,7 @@ inline JournalFileIterator::JournalFileIterator(
 {
     reset(mfd, fileHeader, reverseMode);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline void JournalFileIterator::clear()
@@ -264,6 +268,7 @@ inline bool JournalFileIterator::isValid() const
 }
 
 inline bool JournalFileIterator::hasRecordSizeRemaining() const
+// NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
 {
     BSLS_ASSERT_SAFE(isValid());
     if (d_blockIter.isForwardIterator()) {
@@ -271,6 +276,7 @@ inline bool JournalFileIterator::hasRecordSizeRemaining() const
     }
     return d_blockIter.remaining() >= d_recordSize;
 }
+// NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
 inline bool JournalFileIterator::isReverseMode() const
 {

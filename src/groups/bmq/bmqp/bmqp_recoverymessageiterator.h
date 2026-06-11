@@ -75,6 +75,7 @@ namespace bmqp {
 
 /// An iterator providing read-only sequential access to messages contained
 /// into a `RecoveryEvent`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class RecoveryMessageIterator {
   private:
     // DATA
@@ -170,6 +171,7 @@ class RecoveryMessageIterator {
     /// RecoveryMessageIterator to the specified `stream`.
     void dumpBlob(bsl::ostream& stream) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                            INLINE DEFINITIONS
@@ -187,6 +189,7 @@ inline RecoveryMessageIterator::RecoveryMessageIterator()
     // NOTHING
 }
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline RecoveryMessageIterator::RecoveryMessageIterator(
     const bdlbb::Blob* blob,
     const EventHeader& eventHeader)
@@ -194,7 +197,9 @@ inline RecoveryMessageIterator::RecoveryMessageIterator(
 {
     reset(blob, eventHeader);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline RecoveryMessageIterator::RecoveryMessageIterator(
     const RecoveryMessageIterator& src)
 : d_blobIter(0,
@@ -204,6 +209,7 @@ inline RecoveryMessageIterator::RecoveryMessageIterator(
 {
     copyFrom(src);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline RecoveryMessageIterator&

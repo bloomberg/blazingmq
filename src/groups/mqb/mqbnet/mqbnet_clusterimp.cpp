@@ -192,9 +192,11 @@ ClusterImp::ClusterImp(const bsl::string&                      name,
 , d_failedWritesThrottler()
 , d_mutex()
 , d_isReadEnabled(false)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // Create the nodes
     bsl::vector<mqbcfg::ClusterNode>::const_iterator nodeIt;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (nodeIt = d_nodesConfig.begin(); nodeIt != d_nodesConfig.end();
          ++nodeIt) {
         d_nodes.emplace_back(this, *nodeIt, blobBufferFactory);
@@ -203,12 +205,14 @@ ClusterImp::ClusterImp(const bsl::string&                      name,
             d_selfNode = d_nodesList.back();
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     // 1 log per 1 second interval
     d_failedWritesThrottler.initialize(
         1,
         bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND);
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 ClusterImp::~ClusterImp()
 {

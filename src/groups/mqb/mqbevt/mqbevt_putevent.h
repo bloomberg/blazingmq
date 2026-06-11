@@ -57,6 +57,7 @@ namespace mqbevt {
 // ==============
 
 /// Concrete dispatcher event for 'e_PUT' type events.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class PutEvent : public mqbi::DispatcherEvent {
   public:
     // CLASS DATA
@@ -179,6 +180,7 @@ class PutEvent : public mqbi::DispatcherEvent {
                         int           level = 0,
                         int spacesPerLevel  = 4) const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

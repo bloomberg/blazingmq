@@ -29,6 +29,7 @@ using namespace BloombergLP;
 //                                  UTILITIES
 // ----------------------------------------------------------------------------
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST(breathing)
 {
     BMQTST_ASSERT_SAFE_FAIL(mqbcfg::BrokerConfig::get());
@@ -54,6 +55,7 @@ BMQTST_TEST(breathing)
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -61,3 +63,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

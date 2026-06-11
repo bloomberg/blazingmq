@@ -325,6 +325,7 @@ int InitialConnectionContext::decodeInitialConnectionMessage(
                  bmqp_ctrlmsg::AuthenticationMessage,
                  bmqp_ctrlmsg::NegotiationMessage>* message,
     const bdlbb::Blob&                              blob)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     BSLS_ASSERT(message);
 
@@ -337,6 +338,7 @@ int InitialConnectionContext::decodeInitialConnectionMessage(
         rc_INVALID_CONTROL_EVENT        = -4
     };
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
 
     bmqp::Event event(&blob, &localAllocator);
@@ -389,6 +391,7 @@ int InitialConnectionContext::decodeInitialConnectionMessage(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 void InitialConnectionContext::createNegotiationContext()
 {
@@ -514,6 +517,7 @@ void InitialConnectionContext::handleEvent(
     const bsl::variant<bsl::monostate,
                        bmqp_ctrlmsg::AuthenticationMessage,
                        bmqp_ctrlmsg::NegotiationMessage>& message)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // executed by an *AUTHENTICATION* or one of the *IO* threads
 
@@ -701,6 +705,7 @@ void InitialConnectionContext::handleEvent(
         complete(rc, errStream.str(), session);
     }
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 // ACCESSORS
 bool InitialConnectionContext::isIncoming() const

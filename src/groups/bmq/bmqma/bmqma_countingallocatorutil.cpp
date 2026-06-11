@@ -39,13 +39,16 @@ namespace bmqma {
 namespace {
 
 /// statContext of the main counting allocator
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 bsls::ObjectBuffer<bmqst::StatContext> g_statContext;
 
 /// Main counting allocator; provided to the top allocator store
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 bsls::ObjectBuffer<bmqma::CountingAllocator> g_topAllocator;
 
 /// Top-level allocator store providing `bmqma::CountingAllocator` objects
 /// created from the main counting allocator.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 bsls::ObjectBuffer<bmqma::CountingAllocatorStore> g_topAllocatorStore;
 
 /// Atomic flag to keep track of whether `initGlobalAllocators` has been
@@ -54,6 +57,7 @@ bsls::ObjectBuffer<bmqma::CountingAllocatorStore> g_topAllocatorStore;
 /// the value of this flag, triggering an assertion error if it is `true`
 /// (i.e. the method was previously called) and setting it to `true`
 /// otherwise.
+// NOLINTNEXTLINE(cert-err58-cpp,cppcoreguidelines-avoid-non-const-global-variables)
 bsls::AtomicBool g_initialized(false);
 
 }  // close unnamed namespace
@@ -68,6 +72,7 @@ void CountingAllocatorUtil::initGlobalAllocators(
     bsl::string_view             topAllocatorName,
     bsls::Types::Uint64          allocationLimit,
     const bsl::function<void()>& allocationLimitCb)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(g_initialized.testAndSwap(false, true) != true);
@@ -80,12 +85,14 @@ void CountingAllocatorUtil::initGlobalAllocators(
     new (g_statContext.buffer()) bmqst::StatContext(
         bmqst::StatContextConfiguration(globalStatContextName),
         alloc);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
     bmqst::StatContext& stats = g_statContext.object();
 
     new (g_topAllocator.buffer())
         bmqma::CountingAllocator(topAllocatorName, &stats, alloc);
 
     // Create the topAllocatorStore and the default and global allocators
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
     bmqma::CountingAllocator& topAllocator = g_topAllocator.object();
     if (allocationLimit > 0) {
         topAllocator.setAllocationLimit(allocationLimit, allocationLimitCb);
@@ -94,29 +101,36 @@ void CountingAllocatorUtil::initGlobalAllocators(
     new (g_topAllocatorStore.buffer())
         bmqma::CountingAllocatorStore(&topAllocator);
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
     bmqma::CountingAllocatorStore& topStore = g_topAllocatorStore.object();
     bslma::Default::setGlobalAllocator(topStore.get("Global Allocator"));
     bslma::Default::setDefaultAllocatorRaw(topStore.get("Default Allocator"));
 }
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
 
 bmqst::StatContext* CountingAllocatorUtil::globalStatContext()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(g_initialized);
 
     return &g_statContext.object();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
 
 bmqma::CountingAllocatorStore& CountingAllocatorUtil::topAllocatorStore()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(g_initialized);
 
     return g_topAllocatorStore.object();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
 
 void CountingAllocatorUtil::printAllocations(bsl::ostream&             stream,
                                              const bmqst::StatContext& context)
+// NOLINTBEGIN(*-magic-numbers)
 {
     bdlma::LocalSequentialAllocator<2048> localAllocator;
 
@@ -127,6 +141,7 @@ void CountingAllocatorUtil::printAllocations(bsl::ostream&             stream,
 
     bmqst::TableUtil::printTable(stream, tip);
 }
+// NOLINTEND(*-magic-numbers)
 
 }  // close package namespace
 }  // close enterprise namespace

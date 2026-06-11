@@ -42,6 +42,7 @@ const double k_DEFAULT_HI_THRESHOLD = 0.80;
 void computeWatermarkRatio(double*            watermarkRatio,
                            bsls::Types::Int64 capacity,
                            bsls::Types::Int64 watermark)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(watermarkRatio);
@@ -54,6 +55,7 @@ void computeWatermarkRatio(double*            watermarkRatio,
         *watermarkRatio = static_cast<double>(watermark) / capacity;
     }
 }
+// NOLINTEND(*-narrowing-conversions)
 
 }  // close unnamed namespace
 
@@ -156,11 +158,15 @@ ResourceUsageMonitor::updateValueInternal(ResourceAttributes* attributes,
     typedef ResourceUsageMonitorState           RUMState;
     typedef ResourceUsageMonitorStateTransition RUMStateTransition;
 
-    RUMStateTransition::Enum ret          = RUMStateTransition::e_NO_CHANGE;
+    RUMStateTransition::Enum ret = RUMStateTransition::e_NO_CHANGE;
+    // NOLINTBEGIN(*-narrowing-conversions)
     const bsls::Types::Int64 lowWatermark = attributes->capacity() *
                                             attributes->lowWatermarkRatio();
+    // NOLINTEND(*-narrowing-conversions)
+    // NOLINTBEGIN(*-narrowing-conversions)
     const bsls::Types::Int64 highWatermark = attributes->capacity() *
                                              attributes->highWatermarkRatio();
+    // NOLINTEND(*-narrowing-conversions)
 
     attributes->setValue(attributes->value() + delta);
 
@@ -307,6 +313,7 @@ void ResourceUsageMonitor::reset(bsls::Types::Int64 byteCapacity,
                                  bsls::Types::Int64 byteHighWatermark,
                                  bsls::Types::Int64 messageLowWatermark,
                                  bsls::Types::Int64 messageHighWatermark)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0.0 <= byteLowWatermark &&
@@ -344,6 +351,7 @@ void ResourceUsageMonitor::reset(bsls::Types::Int64 byteCapacity,
                  messageLowWatermarkRatio,
                  messageHighWatermarkRatio);
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 void ResourceUsageMonitor::resetByRatio(bsls::Types::Int64 byteCapacity,
                                         bsls::Types::Int64 messageCapacity,
@@ -376,6 +384,7 @@ void ResourceUsageMonitor::reconfigure(bsls::Types::Int64 byteCapacity,
                                        bsls::Types::Int64 byteHighWatermark,
                                        bsls::Types::Int64 messageLowWatermark,
                                        bsls::Types::Int64 messageHighWatermark)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0.0 <= byteLowWatermark &&
@@ -413,6 +422,7 @@ void ResourceUsageMonitor::reconfigure(bsls::Types::Int64 byteCapacity,
                        messageLowWatermarkRatio,
                        messageHighWatermarkRatio);
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 void ResourceUsageMonitor::reconfigureByRatio(
     bsls::Types::Int64 byteCapacity,
@@ -495,6 +505,7 @@ ResourceUsageMonitor::update(bsls::Types::Int64 bytesDelta,
 bsl::ostream& ResourceUsageMonitor::print(bsl::ostream& stream,
                                           int           level,
                                           int           spacesPerLevel) const
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     stream << bmqu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
            << state() << " " << "[Messages (" << messageState()
@@ -519,6 +530,7 @@ bsl::ostream& ResourceUsageMonitor::print(bsl::ostream& stream,
 
     return stream;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 }  // close package namespace
 }  // close enterprise namespace

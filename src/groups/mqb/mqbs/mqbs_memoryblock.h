@@ -95,15 +95,19 @@ class MemoryBlock {
 // -----------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline MemoryBlock::MemoryBlock()
 {
     clear();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline MemoryBlock::MemoryBlock(char* base, bsls::Types::Uint64 size)
 {
     reset(base, size);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline void MemoryBlock::clear()

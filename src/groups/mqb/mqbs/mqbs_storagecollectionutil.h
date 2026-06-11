@@ -54,6 +54,7 @@ namespace mqbs {
 /// be sorted on.
 struct StorageCollectionUtilSortMetric {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         /// Alphanumeric order of its queue's URI
         e_QUEUE_URI = 0,
@@ -63,6 +64,7 @@ struct StorageCollectionUtilSortMetric {
         e_BYTE_COUNT = 2
 
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 

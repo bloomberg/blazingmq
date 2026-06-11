@@ -784,6 +784,7 @@ struct MockSessionUtil {
 // =================
 
 /// Mechanism to mock a `bmqa::Session`
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class MockSession : public AbstractSession {
   public:
     // TYPES
@@ -868,6 +869,7 @@ class MockSession : public AbstractSession {
 
     /// Struct holding attributes associated with an asynchronous queue
     /// operation executed with a user-specified callback
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
     struct Job {
         // PUBLIC DATA
 
@@ -884,11 +886,13 @@ class MockSession : public AbstractSession {
         /// Status of the queue operation
         int d_status;
     };
+    // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
     typedef bdlb::Variant<Event, Job> EventOrJob;
 
     /// Enumeration for the methods in the `MockSession` protocol.  Each
     /// enum value corresponds to a method.
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Method {
         e_START,
         e_START_ASYNC,
@@ -912,6 +916,7 @@ class MockSession : public AbstractSession {
         e_CONFIRM_MESSAGE,
         e_CONFIRM_MESSAGES
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     struct Call {
         // PUBLIC TYPES
@@ -1525,6 +1530,7 @@ class MockSession : public AbstractSession {
     /// confirmed by the application.
     size_t unconfirmedMessages() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

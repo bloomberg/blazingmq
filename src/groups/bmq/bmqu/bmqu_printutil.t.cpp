@@ -46,6 +46,7 @@ static void test1_prettyNumberInt64()
 //   Proper behavior of
 //   'prettyNumber(stream, value, groupSize, separator)'
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("prettyNumber (Int64)");
 
@@ -60,6 +61,7 @@ static void test1_prettyNumberInt64()
         int                d_groupSize;
         char               d_separator;
         const char*        d_expected;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {
         {L_, 0, 3, ' ', "0"},
         {L_, k_INTMAX, 2, '.', "9.22.33.72.03.68.54.77.58.07"},
@@ -72,10 +74,14 @@ static void test1_prettyNumberInt64()
         {L_, 12345, 5, ',', "12345"},
         {L_, 12345, 6, ',', "12345"},
     };
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         // function
@@ -107,6 +113,7 @@ static void test1_prettyNumberInt64()
             BMQTST_ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
         }
     }
+    // NOLINTEND(performance-avoid-endl)
 
     PV("Ensure assertion when group size <= 0");
     {
@@ -116,6 +123,7 @@ static void test1_prettyNumberInt64()
             bmqu::PrintUtil::prettyNumber(bsl::cout, 123, -2, ','));
     }
 }
+// NOLINTEND(*-avoid-c-arrays,performance-avoid-endl)
 
 static void test2_prettyNumberDouble()
 // ------------------------------------------------------------------------
@@ -131,6 +139,7 @@ static void test2_prettyNumberDouble()
 //   Proper behavior of
 //   'prettyNumber(stream, value, precision, groupSize, sep)'
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,clang-analyzer-optin.performance.Padding,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("prettyNumber (Double)");
 
@@ -141,6 +150,7 @@ static void test2_prettyNumberDouble()
         int         d_groupSize;
         char        d_separator;
         const char* d_expected;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {
         {L_, 0.0, 2, 3, ' ', "0.00"},
         {L_, 1234567.342324, 3, 3, ',', "1,234,567.342"},
@@ -153,10 +163,14 @@ static void test2_prettyNumberDouble()
         {L_, 12345.9876, 4, 3, ',', "12,345.9876"},
         {L_, 12345.9876, 5, 3, ',', "12,345.98760"},
     };
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         // function
@@ -192,6 +206,7 @@ static void test2_prettyNumberDouble()
             BMQTST_ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
         }
     }
+    // NOLINTEND(performance-avoid-endl)
 
     PV("Ensure assertion when group size <= 0");
     {
@@ -201,6 +216,7 @@ static void test2_prettyNumberDouble()
             bmqu::PrintUtil::prettyNumber(bsl::cout, 123.0, 0, -2, ','));
     }
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers,clang-analyzer-optin.performance.Padding,performance-avoid-endl)
 
 static void test3_prettyBytes()
 // ------------------------------------------------------------------------
@@ -215,6 +231,7 @@ static void test3_prettyBytes()
 // Testing:
 //   Proper behavior of 'prettyBytes(stream, bytes, precision)'
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("prettyBytes");
 
@@ -225,6 +242,7 @@ static void test3_prettyBytes()
 
     PVV("k_INTMAX=" << k_INTMAX);
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TO_I64(X) static_cast<bsls::Types::Int64>(X)
 
     struct Test {
@@ -232,6 +250,7 @@ static void test3_prettyBytes()
         bsls::Types::Int64 d_value;
         int                d_precision;
         const char*        d_expected;
+        // NOLINTBEGIN(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result)
     } k_DATA[] = {
         {L_, 0, 3, "0  B"},
         {L_, 500, 0, "500  B"},
@@ -258,12 +277,16 @@ static void test3_prettyBytes()
         {L_, k_INTMIN, 2, "-8192.00 PB"},
         {L_, k_INTMAX, 2, "8192.00 PB"},
     };
+    // NOLINTEND(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result)
 
 #undef TO_I64
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         // function
@@ -289,7 +312,9 @@ static void test3_prettyBytes()
             BMQTST_ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
         }
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding,performance-avoid-endl)
 
 static void test4_prettyTimeInterval()
 // ------------------------------------------------------------------------
@@ -304,6 +329,7 @@ static void test4_prettyTimeInterval()
 // Testing:
 //   Proper behavior of 'prettyTimeInterval(stream, timeNs, precision)'
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 {
     bmqtst::TestHelper::printTestName("prettyTimeInterval");
 
@@ -317,6 +343,7 @@ static void test4_prettyTimeInterval()
         bsls::Types::Int64 d_value;
         int                d_precision;
         const char*        d_expected;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {
         {L_, 10, 3, "10 ns"},
         {L_, -10, 3, "-10 ns"},
@@ -342,10 +369,14 @@ static void test4_prettyTimeInterval()
         {L_, 923456789123456LL, 1, "1.5 w"},   // 1.5268w
         {L_, 923456789123456LL, 2, "1.53 w"},  // 1.5268w
     };
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         // function
@@ -373,13 +404,16 @@ static void test4_prettyTimeInterval()
             BMQTST_ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
         }
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -397,3 +431,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

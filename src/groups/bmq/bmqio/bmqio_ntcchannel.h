@@ -61,6 +61,7 @@ namespace bmqio {
 
 /// This class describes the state of a single read operation. This class
 /// is not thread safe.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class NtcRead {
     // INSTANCE DATA
     bmqio::Channel::ReadCallback d_callback;
@@ -116,6 +117,7 @@ class NtcRead {
     /// Return the allocator this object was created with.
     bslma::Allocator* allocator() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ==================
 // class NtcReadQueue
@@ -123,6 +125,7 @@ class NtcRead {
 
 /// This class provides a queue of read operations. This class is not
 /// thread safe.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class NtcReadQueue {
     // PRIVATE TYPES
 
@@ -178,23 +181,27 @@ class NtcReadQueue {
     /// Return true if the queue is empty, otherwise return false.
     bool empty() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ================
 // class NtcChannel
 // ================
 
 /// Mechanism for a bi-directional async channel implemented using NTC.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class NtcChannel : public bmqio::Channel,
                    public bmqio::ChannelFactoryOperationHandle,
                    public ntci::StreamSocketSession,
                    public bsl::enable_shared_from_this<NtcChannel> {
     // PRIVATE TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum State {
         e_STATE_DEFAULT,
         e_STATE_OPEN,
         e_STATE_CLOSING,
         e_STATE_CLOSED
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // INSTANCE DATA
     bslmt::Mutex                          d_mutex;
@@ -436,6 +443,7 @@ class NtcChannel : public bmqio::Channel,
     /// undefined unless the channel has succesfully established a connection.
     const ntci::StreamSocket& streamSocket() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =====================
 // struct NtcChannelUtil
@@ -460,6 +468,7 @@ struct NtcChannelUtil {
 
 /// This class provides a handle to an ongoing `listen` operation of
 /// a channel factory.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class NtcListener : public bmqio::ChannelFactoryOperationHandle,
                     public bsl::enable_shared_from_this<NtcListener> {
   public:
@@ -474,12 +483,14 @@ class NtcListener : public bmqio::ChannelFactoryOperationHandle,
 
   private:
     // PRIVATE TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum State {
         e_STATE_DEFAULT,
         e_STATE_OPEN,
         e_STATE_CLOSING,
         e_STATE_CLOSED
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // INSTANCE DATA
     bslmt::Mutex                          d_mutex;
@@ -569,6 +580,7 @@ class NtcListener : public bmqio::ChannelFactoryOperationHandle,
     /// Return the allocator this object was created with.
     bslma::Allocator* allocator() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ======================
 // struct NtcListenerUtil

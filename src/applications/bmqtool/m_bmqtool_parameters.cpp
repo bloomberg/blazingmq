@@ -123,6 +123,7 @@ bool ParametersVerbosity::fromAscii(ParametersVerbosity::Value* out,
 }
 
 bool ParametersVerbosity::isValid(const bsl::string* str, bsl::ostream& stream)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     ParametersVerbosity::Value value;
     if (fromAscii(&value, *str) == true) {
@@ -133,6 +134,7 @@ bool ParametersVerbosity::isValid(const bsl::string* str, bsl::ostream& stream)
            << "[silent, trace, debug, info, warning, error or fatal]\n";
     return false;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 // =====================
 // struct ParametersMode
@@ -193,6 +195,7 @@ bool ParametersMode::fromAscii(ParametersMode::Value*   out,
 }
 
 bool ParametersMode::isValid(const bsl::string* str, bsl::ostream& stream)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     ParametersMode::Value value;
     if (fromAscii(&value, *str) == true) {
@@ -202,6 +205,7 @@ bool ParametersMode::isValid(const bsl::string* str, bsl::ostream& stream)
     stream << "Error: mode parameter must be one of [cli, auto, syschk]\n";
     return false;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 // ========================
 // struct ParametersLatency
@@ -260,6 +264,7 @@ bool ParametersLatency::fromAscii(ParametersLatency::Value* out,
 }
 
 bool ParametersLatency::isValid(const bsl::string* str, bsl::ostream& stream)
+// NOLINTBEGIN(cppcoreguidelines-init-variables,performance-avoid-endl)
 {
     ParametersLatency::Value value;
     if (fromAscii(&value, *str) == true) {
@@ -270,11 +275,13 @@ bool ParametersLatency::isValid(const bsl::string* str, bsl::ostream& stream)
            << bsl::endl;
     return false;
 }
+// NOLINTEND(cppcoreguidelines-init-variables,performance-avoid-endl)
 
 // ================
 // class Parameters
 // ================
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 Parameters::Parameters(bslma::Allocator* allocator)
 : d_broker(allocator)
 , d_queueUri(allocator)
@@ -293,6 +300,7 @@ Parameters::Parameters(bslma::Allocator* allocator)
     const bool            rc = from(bsl::cerr, params);
     BSLS_ASSERT_OPT(rc);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 bsl::ostream&
 Parameters::print(bsl::ostream& stream, int level, int spacesPerLevel) const
@@ -341,6 +349,7 @@ Parameters::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 
 bool Parameters::from(bsl::ostream&                stream,
                       const CommandLineParameters& params)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // Convert 'string' to 'ParametersXXX::Value'
     ParametersVerbosity::Value paramVerbosity;
@@ -398,6 +407,7 @@ bool Parameters::from(bsl::ostream&                stream,
             return false;  // RETURN
         }
         const int eventsDurationMs =
+            // NOLINTNEXTLINE(*-narrowing-conversions)
             eventsCount * bdlt::TimeUnitRatio::k_MILLISECONDS_PER_SECOND;
         const int numPosts = eventsDurationMs / params.postInterval();
         eventsCount        = params.postRate() * numPosts;
@@ -448,6 +458,7 @@ bool Parameters::from(bsl::ostream&                stream,
 
     return true;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 void Parameters::dump(bsl::ostream& stream) const
 {

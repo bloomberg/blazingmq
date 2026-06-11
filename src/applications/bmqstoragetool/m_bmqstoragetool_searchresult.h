@@ -84,6 +84,7 @@ namespace m_bmqstoragetool {
 // ==================
 
 /// This class provides an interface for search processors.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class SearchResult {
   protected:
     // PROTECTED TYPES
@@ -143,6 +144,7 @@ class SearchResult {
     /// Return a reference to the non-modifiable printer
     virtual const bsl::shared_ptr<Printer>& printer() const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =======================
 // class SearchShortResult
@@ -508,6 +510,7 @@ class SearchExactMatchResult : public SearchResult {
 
 /// This class provides a base decorator that handles
 /// given `component`.
+// NOLINTBEGIN(cppcoreguidelines-non-private-member-variables-in-classes)
 class SearchResultDecorator : public SearchResult {
   protected:
     bsl::shared_ptr<SearchResult> d_searchResult;
@@ -569,6 +572,7 @@ class SearchResultDecorator : public SearchResult {
     /// Return a reference to the non-modifiable printer
     const bsl::shared_ptr<Printer>& printer() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-non-private-member-variables-in-classes)
 
 // ====================================
 // class SearchResultTimestampDecorator

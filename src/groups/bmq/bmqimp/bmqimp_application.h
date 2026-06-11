@@ -82,6 +82,7 @@ namespace bmqimp {
 // =================
 
 /// Top level object to manipulate a session with bmqbrkr
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Application {
   public:
     // PUBLIC TYPES
@@ -307,6 +308,7 @@ class Application {
     /// Asynchronously and gracefully stop the connection.
     void stopAsync();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

@@ -43,6 +43,7 @@ namespace mqbstat {
 
 namespace {
 
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_LOG_CATEGORY[] = "MQBSTAT.STATSFILELOGGER";
 
 }  // close unnamed namespace
@@ -66,6 +67,7 @@ StatsFileLogger::StatsFileLogger(bsl::string_view       filePattern,
 }
 
 void StatsFileLogger::start()
+// NOLINTBEGIN(*-magic-numbers)
 {
     const mqbcfg::StatsPrinterConfig& printer =
         mqbcfg::BrokerConfig::get().stats().printer();
@@ -98,6 +100,7 @@ void StatsFileLogger::start()
                        << "' [rc: " << rc << "]";
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 void StatsFileLogger::stop()
 {
@@ -105,6 +108,7 @@ void StatsFileLogger::stop()
 }
 
 void StatsFileLogger::logStats(const PrinterCb& printerCb)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(printerCb);
@@ -130,6 +134,7 @@ void StatsFileLogger::logStats(const PrinterCb& printerCb)
         record_sp,
         ball::Context(ball::Transmission::e_MANUAL_PUBLISH, 0, 1));
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 }  // close package namespace
 }  // close enterprise namespace

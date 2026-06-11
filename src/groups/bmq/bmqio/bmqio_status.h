@@ -47,6 +47,7 @@ namespace bmqio {
 /// This enum represents the various category of errors.
 struct StatusCategory {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         e_SUCCESS       = 0,
         e_GENERIC_ERROR = 1,
@@ -55,6 +56,7 @@ struct StatusCategory {
         e_CANCELED      = 4,
         e_LIMIT         = 5
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -97,6 +99,7 @@ bsl::ostream& operator<<(bsl::ostream& stream, StatusCategory::Enum value);
 // ============
 
 /// Connection or I/O operation result status.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Status {
   private:
     // DATA
@@ -179,6 +182,7 @@ class Status {
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 bsl::ostream& operator<<(bsl::ostream& stream, const Status& value);

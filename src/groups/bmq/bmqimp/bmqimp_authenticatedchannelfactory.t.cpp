@@ -97,6 +97,7 @@ AuthnCredentialCb makeDefaultCredentialCb()
 // -----------------
 
 /// Reusable test infrastructure for AuthenticatedChannelFactory tests.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class TestContext {
   private:
     // DATA
@@ -171,17 +172,22 @@ class TestContext {
     /// Return a reference offering modifiable access to the base factory.
     TestChannelFactory& baseFactory();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 void TestContext::connectResultCb(ChannelFactoryEvent::Enum       event,
                                   const Status&                   status,
                                   const bsl::shared_ptr<Channel>& channel)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PVV("ConnectResultCb: [event: " << event << ", status: " << status
                                     << ", channel: " << channel.get() << "]");
     d_results.emplace_back(event, status);
 }
+// NOLINTEND(performance-avoid-endl)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 TestContext::TestContext(const AuthnCredentialCb& authnCredentialCb)
+// NOLINTNEXTLINE(*-magic-numbers)
 : d_bufferFactory(4096, bmqtst::TestHelperUtil::allocator())
 , d_blobSpPool(
       bmqp::BlobPoolUtil::createBlobPool(&d_bufferFactory,
@@ -194,9 +200,11 @@ TestContext::TestContext(const AuthnCredentialCb& authnCredentialCb)
 , d_channel(&d_channelImpl, bslstl::SharedPtrNilDeleter())
 , d_results(bmqtst::TestHelperUtil::allocator())
 , d_connectHandle()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 {
     d_scheduler.start();
 
+    // NOLINTBEGIN(*-magic-numbers)
     AuthenticatedChannelFactoryConfig config(
         &d_baseFactory,
         &d_scheduler,
@@ -204,18 +212,23 @@ TestContext::TestContext(const AuthnCredentialCb& authnCredentialCb)
         bsls::TimeInterval(30),  // authentication timeout
         d_blobSpPool.get(),
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     new (d_factory.buffer())
         AuthenticatedChannelFactory(config,
                                     bmqtst::TestHelperUtil::allocator());
 }
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 TestContext::~TestContext()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 {
     d_factory.object()
         .bmqimp::AuthenticatedChannelFactory::~AuthenticatedChannelFactory();
     d_scheduler.stop();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
 
 void TestContext::connect()
 {
@@ -317,9 +330,11 @@ TestChannel& TestContext::testChannel()
 }
 
 AuthenticatedChannelFactory& TestContext::obj()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 {
     return d_factory.object();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
 
 TestChannelFactory& TestContext::baseFactory()
 {
@@ -332,6 +347,7 @@ TestChannelFactory& TestContext::baseFactory()
 //                                    TESTS
 // ----------------------------------------------------------------------------
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST(NoCredentialCallback)
 // ------------------------------------------------------------------------
 // NO CREDENTIAL CALLBACK
@@ -362,6 +378,7 @@ BMQTST_TEST(NoCredentialCallback)
     BMQTST_ASSERT_EQ(ctx.testChannel().numWriteCalls(), 0U);
 }
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST(BaseFactoryFailure)
 // ------------------------------------------------------------------------
 // BASE FACTORY FAILURE
@@ -397,6 +414,7 @@ BMQTST_TEST(BaseFactoryFailure)
     BMQTST_ASSERT_EQ(ctx.testChannel().numWriteCalls(), 0U);
 }
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST(SuccessfulAuthentication)
 // ------------------------------------------------------------------------
 // SUCCESSFUL AUTHENTICATION
@@ -438,6 +456,7 @@ BMQTST_TEST(SuccessfulAuthentication)
     BMQTST_ASSERT_EQ(ctx.resultsCount(), 0U);
 }
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST(AuthenticationWithLifetime)
 // ------------------------------------------------------------------------
 // AUTHENTICATION WITH LIFETIME
@@ -453,6 +472,7 @@ BMQTST_TEST(AuthenticationWithLifetime)
 //   3. Advance scheduler past the computed timeout interval (5000ms).
 //   4. Verify a reauthentication request is written to the channel.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     TestContext ctx;
 
@@ -465,6 +485,7 @@ BMQTST_TEST(AuthenticationWithLifetime)
 
     // Simulate broker success response with lifetimeMs = 10000
     bdlbb::Blob response =
+        // NOLINTNEXTLINE(*-magic-numbers)
         ctx.buildAuthResponse(bmqp_ctrlmsg::StatusCategory::E_SUCCESS, 10000);
     ctx.simulateBrokerResponse(response);
 
@@ -486,7 +507,9 @@ BMQTST_TEST(AuthenticationWithLifetime)
     BMQTST_ASSERT_EQ(ctx.testChannel().numWriteCalls(), 1U);
     ctx.testChannel().popWriteCall();
 }
+// NOLINTEND(*-magic-numbers)
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST(CredentialCallbackFailure)
 // ------------------------------------------------------------------------
 // CREDENTIAL CALLBACK FAILURE
@@ -529,6 +552,7 @@ BMQTST_TEST(CredentialCallbackFailure)
     BMQTST_ASSERT_EQ(ctx.testChannel().numReadCalls(), 0U);
 }
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST(WriteFailure)
 // ------------------------------------------------------------------------
 // WRITE FAILURE
@@ -564,6 +588,7 @@ BMQTST_TEST(WriteFailure)
     BMQTST_ASSERT_EQ(ctx.testChannel().numReadCalls(), 0U);
 }
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST(ReadSetupFailure)
 // ------------------------------------------------------------------------
 // READ SETUP FAILURE
@@ -600,6 +625,7 @@ BMQTST_TEST(ReadSetupFailure)
     BMQTST_ASSERT_EQ(ctx.resultsCount(), 0U);
 }
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST(ReadCallbackFailure)
 // ------------------------------------------------------------------------
 // READ CALLBACK FAILURE
@@ -639,6 +665,7 @@ BMQTST_TEST(ReadCallbackFailure)
     BMQTST_ASSERT_EQ(ctx.resultsCount(), 0U);
 }
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST(InvalidBrokerResponse)
 // ------------------------------------------------------------------------
 // INVALID BROKER RESPONSE
@@ -673,9 +700,11 @@ BMQTST_TEST(InvalidBrokerResponse)
         authMessage.makeAuthenticationRequest();
     req.mechanism() = "BASIC";
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         4096,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool =
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -702,6 +731,7 @@ BMQTST_TEST(InvalidBrokerResponse)
     BMQTST_ASSERT_EQ(ctx.resultsCount(), 0U);
 }
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST(BrokerResponseNotAuthenticationEvent)
 // ------------------------------------------------------------------------
 // BROKER RESPONSE NOT AUTHENTICATION EVENT
@@ -735,9 +765,11 @@ BMQTST_TEST(BrokerResponseNotAuthenticationEvent)
     controlMessage.choice().status().category() =
         bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         4096,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool =
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -763,6 +795,7 @@ BMQTST_TEST(BrokerResponseNotAuthenticationEvent)
     BMQTST_ASSERT_EQ(ctx.resultsCount(), 0U);
 }
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST(AuthenticationRefused)
 // ------------------------------------------------------------------------
 // AUTHENTICATION REFUSED
@@ -796,6 +829,7 @@ BMQTST_TEST(AuthenticationRefused)
     BMQTST_ASSERT_EQ(ctx.resultsCount(), 0U);
 }
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST(ChannelDownCancelsReauthentication)
 // ------------------------------------------------------------------------
 // CHANNEL DOWN CANCELS REAUTHENTICATION
@@ -810,6 +844,7 @@ BMQTST_TEST(ChannelDownCancelsReauthentication)
 //   3. Advance scheduler past the reauthentication time.
 //   4. Verify no additional writes to channel.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     TestContext ctx;
 
@@ -822,6 +857,7 @@ BMQTST_TEST(ChannelDownCancelsReauthentication)
 
     // Simulate broker success response with lifetimeMs = 10000
     bdlbb::Blob response =
+        // NOLINTNEXTLINE(*-magic-numbers)
         ctx.buildAuthResponse(bmqp_ctrlmsg::StatusCategory::E_SUCCESS, 10000);
     ctx.simulateBrokerResponse(response);
 
@@ -840,12 +876,14 @@ BMQTST_TEST(ChannelDownCancelsReauthentication)
     // No additional writes to channel (timer was cancelled)
     BMQTST_ASSERT_EQ(ctx.testChannel().numWriteCalls(), 0U);
 }
+// NOLINTEND(*-magic-numbers)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -853,3 +891,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

@@ -79,6 +79,7 @@ struct ClusterStateLedgerCommitStatus {
     // TYPES
 
     /// Enumeration used to distinguish among different type of commit status.
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         /// Operation was success.
         e_SUCCESS = 0,
@@ -87,6 +88,7 @@ struct ClusterStateLedgerCommitStatus {
         /// Operation timeout.
         e_TIMEOUT = -2
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -143,12 +145,14 @@ struct ClusterStateLedgerConsistency {
     // TYPES
 
     // Enumeration used to distinguish among different consistency criteria.
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         /// Leader does not wait for acks from any followers.
         e_EVENTUAL,
         /// Leader waits for acks from majority of the followers.
         e_STRONG
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -215,6 +219,7 @@ bsl::ostream& operator<<(bsl::ostream&                       stream,
 /// @todo Apply the specified message to self and replicate if self is leader.
 ///
 /// @todo Notify via 'commitCb' when consistency level has been achieved.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ClusterStateLedger {
   public:
     // TYPES
@@ -332,6 +337,7 @@ class ClusterStateLedger {
     virtual bslma::ManagedPtr<ClusterStateLedgerIterator>
     getIterator() const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 

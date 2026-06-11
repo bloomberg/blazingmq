@@ -60,6 +60,7 @@ static void checkValueSp(int                          line,
                          const PropertyBag&           bag,
                          const bslstl::StringRef&     key,
                          const bsl::shared_ptr<void>& expected)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bslma::ManagedPtr<PropertyBagValue> bagValue;
 
@@ -77,12 +78,14 @@ static void checkValueSp(int                          line,
 
     BMQTST_ASSERT_EQ_D("lines " << line, bagValue->thePtr(), expected);
 }
+// NOLINTEND(performance-avoid-endl)
 
 // ============================================================================
 //                                    TESTS
 // ----------------------------------------------------------------------------
 
 static void test1_breathingTest()
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("Breathing Test");
 
@@ -149,8 +152,10 @@ static void test1_breathingTest()
         BMQTST_ASSERT(bagValue->isPtr());
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test2_copyAndAssignment()
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("Copy and Assignment");
 
@@ -189,8 +194,10 @@ static void test2_copyAndAssignment()
         BMQTST_ASSERT(!obj3.load(static_cast<int*>(0), "someIntVal"));
     }
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 static void test3_print()
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // We can't use 'bmqu::MemOutStream' because bmqu is above bmqvt, so use
@@ -252,6 +259,7 @@ static void test3_print()
         BMQTST_ASSERT_EQ(out.str(), expected);
     }
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 static void test4_loadAllImport()
 {
@@ -283,6 +291,7 @@ static void test4_loadAllImport()
 }
 
 static void test5_propertyBagUtil()
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     bmqtst::TestHelper::printTestName("PropertyBagUtil");
 
@@ -292,6 +301,7 @@ static void test5_propertyBagUtil()
     PropertyBag obj(bmqtst::TestHelperUtil::allocator());
     obj.set("int1", 1).set("int2", 2).set("str1", "abc").set("str2", longStr);
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<10 * 1024> arena;
     PropertyBag                                obj2(&arena);
     obj2.set("int3", 3).set("int1", 7);
@@ -309,10 +319,12 @@ static void test5_propertyBagUtil()
     bslstl::StringRef str2;
     obj2.load(&str2, "str2");
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     char* arenaPtr = reinterpret_cast<char*>(&arena);
     BMQTST_ASSERT(str2.data() >= arenaPtr &&
                   str2.data() < arenaPtr + sizeof(arena));
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 static void test6_valueOverwrite()
 {
@@ -347,6 +359,7 @@ static void test6_valueOverwrite()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -366,3 +379,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

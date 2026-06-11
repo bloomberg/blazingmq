@@ -207,6 +207,7 @@ class PartitionFSMEventData {
 
 /// This class provides a finite state machine for controlling partition
 /// state.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class PartitionFSM {
   private:
     // CLASS-SCOPE CATEGORY
@@ -302,6 +303,7 @@ class PartitionFSM {
     /// Return true if self node is healed, false otherwise.
     bool isSelfHealed() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

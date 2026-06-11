@@ -113,6 +113,7 @@ class ReplicatedStorage;
 
 /// Mechanism to store BlazingMQ messages in file. This component is
 /// *const-thread* safe.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class FileStore BSLS_KEYWORD_FINAL : public DataStore {
   private:
     // CLASS-SCOPE CATEGORY
@@ -1050,6 +1051,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// the current primary.
     const LeaseIdToSeqNumMap& highestSeqNums() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =======================
 // class FileStoreIterator
@@ -1188,12 +1190,15 @@ inline void FileStore::insertDataStoreRecord(DataStoreRecordHandle*    handle,
     recordIteratorToHandle(handle, recordIt);
 }
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 inline void FileStore::recordIteratorToHandle(DataStoreRecordHandle* handle,
                                               const RecordIterator   recordIt)
+// NOLINTEND(performance-unnecessary-value-param)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(handle);
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     RecordIterator& recordItRef = *reinterpret_cast<RecordIterator*>(handle);
     recordItRef                 = recordIt;
 }
@@ -1368,6 +1373,7 @@ inline DataStoreRecordHandle FileStoreIterator::handle() const
 {
     // Here we use our knowledge of internal layout of 'DataStoreRecordHandle'.
     DataStoreRecordHandle result;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     RecordIterator& recordItRef = *reinterpret_cast<RecordIterator*>(&result);
     recordItRef                 = d_iterator;
     return result;

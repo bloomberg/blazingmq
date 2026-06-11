@@ -218,6 +218,7 @@ int BlobUtil::writeBytes(const bdlbb::Blob*  blob,
                          const BlobPosition& pos,
                          const char*         buf,
                          int                 length)
+// NOLINTBEGIN(*-magic-numbers)
 {
     // PRECONDITIONS
     // Ensure that the position + length byte fits within the blob.
@@ -228,6 +229,7 @@ int BlobUtil::writeBytes(const bdlbb::Blob*  blob,
     }
 
     BlobPosition curPos(pos);
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     while (length) {
         const int toWrite = bsl::min(length,
                                      bufferSize(*blob, curPos.buffer()) -
@@ -240,9 +242,11 @@ int BlobUtil::writeBytes(const bdlbb::Blob*  blob,
         buf += toWrite;
         length -= toWrite;
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     return 0;
 }
+// NOLINTEND(*-magic-numbers)
 
 void BlobUtil::appendBlobFromIndex(bdlbb::Blob*       destination,
                                    const bdlbb::Blob& source,
@@ -253,6 +257,7 @@ void BlobUtil::appendBlobFromIndex(bdlbb::Blob*       destination,
     int                      offsetInBufferInt = offsetInBuffer;
     int                      dataToCopy        = length;
     const bdlbb::BlobBuffer* buffer = &source.buffer(startBufferIndex);
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     while (dataToCopy) {
         const int bufferSize = buffer->size();
         if (0 < bufferSize) {
@@ -266,11 +271,13 @@ void BlobUtil::appendBlobFromIndex(bdlbb::Blob*       destination,
         }
         ++buffer;
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 int BlobUtil::appendToBlob(bdlbb::Blob*       dest,
                            const bdlbb::Blob& src,
                            const BlobSection& section)
+// NOLINTBEGIN(*-magic-numbers)
 {
     dest->trimLastDataBuffer();
 
@@ -289,7 +296,9 @@ int BlobUtil::appendToBlob(bdlbb::Blob*       dest,
             dest->numDataBuffers() - 1);
         const bdlbb::BlobBuffer& srcBuf = src.buffer(start.buffer());
 
-        const char* destEnd  = destBuf.data() + destBuf.size();
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        const char* destEnd = destBuf.data() + destBuf.size();
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         const char* srcStart = srcBuf.data() + start.byte();
 
         // Check if src directly follows dest, and they both have the same
@@ -339,8 +348,10 @@ int BlobUtil::appendToBlob(bdlbb::Blob*       dest,
         }
         else {
             // Have to chop off the beginning (needs aliasing)
+            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             bsl::shared_ptr<char> buf(srcBuf.buffer(),
                                       srcBuf.data() + pos.byte());
+            // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             bdlbb::BlobBuffer newBuf(bslmf::MovableRefUtil::move(buf), size);
             dest->appendDataBuffer(bslmf::MovableRefUtil::move(newBuf));
         }
@@ -364,6 +375,7 @@ int BlobUtil::appendToBlob(bdlbb::Blob*       dest,
         }
         else {
             // Have to chop off the beginning (needs aliasing)
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             bsl::shared_ptr<char> srcBuf(buf.buffer(), buf.data() + startPos);
             bdlbb::BlobBuffer     newBuf(bslmf::MovableRefUtil::move(srcBuf),
                                      size);
@@ -373,11 +385,13 @@ int BlobUtil::appendToBlob(bdlbb::Blob*       dest,
 
     return 0;
 }
+// NOLINTEND(*-magic-numbers)
 
 int BlobUtil::appendToBlob(bdlbb::Blob*        dest,
                            const bdlbb::Blob&  src,
                            const BlobPosition& start,
                            int                 length)
+// NOLINTBEGIN(*-magic-numbers)
 {
     BSLS_ASSERT_SAFE(dest);
 
@@ -402,10 +416,12 @@ int BlobUtil::appendToBlob(bdlbb::Blob*        dest,
 
     return 0;
 }
+// NOLINTEND(*-magic-numbers)
 
 int BlobUtil::appendToBlob(bdlbb::Blob*        dest,
                            const bdlbb::Blob&  src,
                            const BlobPosition& start)
+// NOLINTBEGIN(*-magic-numbers)
 {
     BSLS_ASSERT_SAFE(dest);
 
@@ -432,6 +448,7 @@ int BlobUtil::appendToBlob(bdlbb::Blob*        dest,
 
     return 0;
 }
+// NOLINTEND(*-magic-numbers)
 
 void BlobUtil::copyToRawBufferFromIndex(char*              destination,
                                         const bdlbb::Blob& source,
@@ -441,6 +458,7 @@ void BlobUtil::copyToRawBufferFromIndex(char*              destination,
 {
     BlobPosition curPos(startBufferIndex, offsetInBuffer);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     while (length != 0) {
         const bdlbb::BlobBuffer& buffer = source.buffer(curPos.buffer());
         const int buffSize              = bufferSize(source, curPos.buffer());
@@ -454,6 +472,7 @@ void BlobUtil::copyToRawBufferFromIndex(char*              destination,
         curPos.setBuffer(curPos.buffer() + 1);
         curPos.setByte(0);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 int BlobUtil::compareSection(int*                cmpResult,
@@ -463,13 +482,16 @@ int BlobUtil::compareSection(int*                cmpResult,
                              int                 length)
 {
     BlobPosition p(pos);
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     while (length > 0 && p.buffer() < blob.numDataBuffers()) {
         const int bufLen = bufferSize(blob, p.buffer()) - p.byte();
         const int cmpLen = bsl::min(bufLen, length);
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         const int cmpRet = bsl::memcmp(data,
                                        blob.buffer(p.buffer()).data() +
                                            p.byte(),
                                        cmpLen);
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         if (cmpRet != 0) {
             *cmpResult = cmpRet < 0 ? -1 : 1;
             return 0;  // RETURN
@@ -480,6 +502,7 @@ int BlobUtil::compareSection(int*                cmpResult,
         p.setBuffer(p.buffer() + 1);
         p.setByte(0);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     if (length > 0) {
         return -1;  // RETURN
@@ -508,6 +531,7 @@ int BlobUtil::readUpToNBytes(char*               buf,
     const int          numBuffers  = blob.numDataBuffers();
     bmqu::BlobPosition cursor(start);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     while (length != 0 && (cursor.buffer() != numBuffers)) {
         const bdlbb::BlobBuffer& buffer   = blob.buffer(cursor.buffer());
         const int                buffSize = bufferSize(blob, cursor.buffer());
@@ -521,6 +545,7 @@ int BlobUtil::readUpToNBytes(char*               buf,
         cursor.setBuffer(cursor.buffer() + 1);
         cursor.setByte(0);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     return static_cast<int>(outPosition - buf);
 }
@@ -529,6 +554,7 @@ int BlobUtil::readNBytes(char*               buf,
                          const bdlbb::Blob&  blob,
                          const BlobPosition& start,
                          int                 length)
+// NOLINTBEGIN(*-magic-numbers)
 {
     const int ret = readUpToNBytes(buf, blob, start, length);
 
@@ -542,6 +568,7 @@ int BlobUtil::readNBytes(char*               buf,
         return -2;  // RETURN
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 char* BlobUtil::getAlignedSectionSafe(char*               storage,
                                       const bdlbb::Blob&  blob,
@@ -556,6 +583,7 @@ char* BlobUtil::getAlignedSectionSafe(char*               storage,
         return 0;  // RETURN
     }
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     char* startPos = blob.buffer(start.buffer()).data() + start.byte();
 
     if (((start.buffer() == end.buffer()) ||
@@ -590,6 +618,7 @@ char* BlobUtil::getAlignedSection(char*               storage,
         return 0;  // RETURN
     }
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     char* startPos = blob.buffer(start.buffer()).data() + start.byte();
 
     if (((start.buffer() == end.buffer()) ||
@@ -616,11 +645,13 @@ char* BlobUtil::getAlignedSection(char*               storage,
 // -----------------------
 
 // CREATORS
+// NOLINTBEGIN(*-magic-numbers)
 BlobStartHexDumper::BlobStartHexDumper(const bdlbb::Blob* blob)
 : d_blob_p(blob)
 , d_length(1024)
 {
 }
+// NOLINTEND(*-magic-numbers)
 
 BlobStartHexDumper::BlobStartHexDumper(const bdlbb::Blob* blob, int length)
 : d_blob_p(blob)

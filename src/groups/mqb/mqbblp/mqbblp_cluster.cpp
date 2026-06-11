@@ -144,6 +144,7 @@ Cluster::ValidationResult::toAscii(Cluster::ValidationResult::Enum value)
 
 // PRIVATE MANIPULATORS
 void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-use-enum-class)
 {
     // executed by the *DISPATCHER* thread
 
@@ -330,6 +331,7 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
 
     *rc = rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-use-enum-class)
 
 void Cluster::stopDispatched()
 {
@@ -558,6 +560,7 @@ void Cluster::processCommandDispatched(mqbcmd::ClusterResult*        result,
         return;  // RETURN
     }
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<256> localAllocator(d_allocator_p);
     bmqu::MemOutStream                   os(&localAllocator);
     os << "Unknown command '" << command << "'";
@@ -807,6 +810,7 @@ void Cluster::onPutEvent(const mqbevt::PutEvent& event)
     int rc     = 0;
     int msgNum = 0;
 
+    // NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-type-const-cast)
     while ((rc = putIt.next()) == 1) {
         const bmqp::QueueId     queueId(putIt.header().queueId(),
                                     bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
@@ -941,6 +945,7 @@ void Cluster::onPutEvent(const mqbevt::PutEvent& event)
                                            appDataSp,
                                            optionsSp);
     }
+    // NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-type-const-cast)
 
     // Check if the PUT event was valid
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc < 0)) {
@@ -995,6 +1000,7 @@ void Cluster::onRelayAckEvent(const mqbevt::AckEvent& event)
     BSLS_ASSERT_SAFE(ackIt.isValid());
 
     int rc = 0;
+    // NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
     while ((rc = ackIt.next()) == 1) {
         const bmqp::AckMessage& ackMessage = ackIt.message();
 
@@ -1019,6 +1025,7 @@ void Cluster::onRelayAckEvent(const mqbevt::AckEvent& event)
 
         queue->onAckMessage(ackMessage);
     }
+    // NOLINTEND(clang-analyzer-deadcode.DeadStores)
 }
 
 void Cluster::onConfirmEvent(const mqbevt::ConfirmEvent& event)
@@ -1277,16 +1284,19 @@ void Cluster::onRelayRejectEvent(const mqbevt::RejectEvent& event)
     const bmqp::QueueId       queueId(id, subId);
     mqbc::ClusterNodeSession* ns = 0;
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<256> localAllocator(d_allocator_p);
     bmqu::MemOutStream                   errorStream(&localAllocator);
 
     bool isValid = validateRelayMessage(&ns, &errorStream, pid);
     if (isValid) {
         bmqt::GenericResult::Enum rc =
+            // NOLINTBEGIN(*-narrowing-conversions)
             ns->clusterNode()->channel().writeReject(
                 queueId.id(),
                 queueId.subId(),
                 rejectMessage.messageGUID());
+        // NOLINTEND(*-narrowing-conversions)
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
                 rc != bmqt::GenericResult::e_SUCCESS)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -1538,12 +1548,14 @@ void Cluster::onRelayPushEvent(const mqbevt::PushEvent& event)
 
     bmqp::Event rawEvent(event.blob().get(), d_allocator_p);
     BSLS_ASSERT_SAFE(rawEvent.isPushEvent());
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<1024> lsa(d_allocator_p);
     bmqp::PushMessageIterator pushIt(&d_clusterData.bufferFactory(), &lsa);
     rawEvent.loadPushMessageIterator(&pushIt, false);
     BSLS_ASSERT_SAFE(pushIt.isValid());
 
     int rc = 0;
+    // NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
     while (1 == (rc = pushIt.next())) {
         const bmqp::PushHeader& pushHeader = pushIt.header();
 
@@ -1622,6 +1634,7 @@ void Cluster::onRelayPushEvent(const mqbevt::PushEvent& event)
         // retrieve the value of this flag from the storage when forwarding
         // this PUSH message downstream.
     }
+    // NOLINTEND(clang-analyzer-deadcode.DeadStores)
 }
 
 void Cluster::onRecoveryStatus(
@@ -1695,6 +1708,7 @@ void Cluster::onRecoveryStatusDispatched(
         // necessary so that in case this node becomes the leader, it can use
         // appropriate leaseId values.
 
+        // NOLINTBEGIN(*-narrowing-conversions)
         for (size_t pid = 0; pid < primaryLeaseIds.size(); ++pid) {
             if (0 == d_state.partition(pid).primaryLeaseId()) {
                 // This node hasn't heard from the leader yet.  Update
@@ -1724,25 +1738,30 @@ void Cluster::onRecoveryStatusDispatched(
             }
             // else: all good.
         }
+        // NOLINTEND(*-narrowing-conversions)
 
         BALL_LOG_INFO_BLOCK
         {
             BALL_LOG_OUTPUT_STREAM << description()
                                    << ": current primary leaseIds: \n";
             BALL_LOG_OUTPUT_STREAM << "    PartitionId    PrimaryLeaseId";
+            // NOLINTBEGIN(*-narrowing-conversions)
             for (size_t pid = 0; pid < d_state.partitions().size(); ++pid) {
                 BALL_LOG_OUTPUT_STREAM
                     << "\n         " << pid << "             "
                     << d_state.partition(pid).primaryLeaseId();
             }
+            // NOLINTEND(*-narrowing-conversions)
         }
 
         // Iterate over each recovered storage for each partition in the
         // StorageMgr and register the recovered queue uri/key info with
         // 'ClusterOrchestrator'.
+        // NOLINTBEGIN(*-narrowing-conversions)
         for (size_t pid = 0; pid < d_state.partitions().size(); ++pid) {
             bslma::ManagedPtr<mqbi::StorageManagerIterator> itMp;
             itMp = d_storageManager_mp->getIterator(pid);
+            // NOLINTBEGIN(*-narrowing-conversions)
             while (itMp && *itMp) {
                 const bmqt::Uri uri(itMp->uri().canonical());
                 BSLS_ASSERT_SAFE(itMp->storage()->partitionId() ==
@@ -1763,7 +1782,9 @@ void Cluster::onRecoveryStatusDispatched(
 
                 ++(*itMp);
             }
+            // NOLINTEND(*-narrowing-conversions)
         }
+        // NOLINTEND(*-narrowing-conversions)
     }
 
     // Indicate queue helper to apply any buffered queue assignment advisories.
@@ -1821,6 +1842,7 @@ void Cluster::logSummaryStateDispatched() const
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
     bmqu::MemOutStream                    os(&localAllocator);
 
@@ -1875,6 +1897,7 @@ void Cluster::onProxyConnectionUpDispatched(
     const bsl::shared_ptr<bmqio::Channel>& channel,
     const bmqp_ctrlmsg::ClientIdentity&    identity,
     const bsl::string&                     description)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1900,10 +1923,12 @@ void Cluster::onProxyConnectionUpDispatched(
                                                        description);
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 void Cluster::processResponseDispatched(
     const bmqp_ctrlmsg::ControlMessage& response,
     mqbnet::ClusterNode*                source)
+// NOLINTBEGIN(*-magic-numbers)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1937,6 +1962,7 @@ void Cluster::processResponseDispatched(
         sendRequest(request, source, bsls::TimeInterval(60));
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 void Cluster::loadNodesInfo(mqbcmd::NodeStatuses* out) const
 {
@@ -2084,12 +2110,18 @@ Cluster::Cluster(const bslstl::StringRef&           name,
                         &d_state,
                         d_allocators.get("ClusterOrchestrator"))
 , d_clusterMonitor(&d_clusterData, &d_state, d_allocator_p)
-, d_throttledFailedPutMessages(5000, 5)      // 5 logs per 5s interval
-, d_throttledFailedAckMessages(5000, 5)      // 5 logs per 5s interval
-, d_throttledDroppedAckMessages(5000, 5)     // 5 logs per 5s interval
+// NOLINTNEXTLINE(*-magic-numbers)
+, d_throttledFailedPutMessages(5000, 5)  // 5 logs per 5s interval
+// NOLINTNEXTLINE(*-magic-numbers)
+, d_throttledFailedAckMessages(5000, 5)  // 5 logs per 5s interval
+// NOLINTNEXTLINE(*-magic-numbers)
+, d_throttledDroppedAckMessages(5000, 5)  // 5 logs per 5s interval
+// NOLINTNEXTLINE(*-magic-numbers)
 , d_throttledFailedConfirmMessages(5000, 5)  // 5 logs per 5s interval
-, d_throttledFailedPushMessages(5000, 5)     // 5 logs per 5s interval
-, d_throttledDroppedPushMessages(5000, 5)    // 5 logs per 5s interval
+// NOLINTNEXTLINE(*-magic-numbers)
+, d_throttledFailedPushMessages(5000, 5)  // 5 logs per 5s interval
+// NOLINTNEXTLINE(*-magic-numbers)
+, d_throttledDroppedPushMessages(5000, 5)  // 5 logs per 5s interval
 , d_logSummarySchedulerHandle()
 , d_queueGcSchedulerHandle()
 , d_stopRequestsManager_p(stopRequestsManager)
@@ -2170,6 +2202,7 @@ Cluster::Cluster(const bslstl::StringRef&           name,
 }
 
 Cluster::~Cluster()
+// NOLINTBEGIN(clang-analyzer-optin.cplusplus.VirtualCall)
 {
     BSLS_ASSERT_SAFE(!d_isStarted &&
                      "stop() must be called before destruction");
@@ -2186,9 +2219,11 @@ Cluster::~Cluster()
     d_shutdownChain.stop();
     d_shutdownChain.join();
 }
+// NOLINTEND(clang-analyzer-optin.cplusplus.VirtualCall)
 
 // MANIPULATORS
 int Cluster::start(bsl::ostream& errorDescription)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     int rc;
     dispatcher()->execute(bdlf::BindUtil::bind(&Cluster::startDispatched,
@@ -2218,6 +2253,7 @@ int Cluster::start(bsl::ostream& errorDescription)
 
     return rc;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 void Cluster::initiateShutdown(const VoidFunctor& callback)
 {
@@ -2513,6 +2549,7 @@ void Cluster::processControlMessage(
 void Cluster::processClusterControlMessage(
     const bmqp_ctrlmsg::ControlMessage& message,
     mqbnet::ClusterNode*                source)
+// NOLINTBEGIN(bugprone-branch-clone)
 {
     // executed by the *IO* thread
 
@@ -2688,6 +2725,7 @@ void Cluster::processClusterControlMessage(
     } break;  // BREAK
     }
 }
+// NOLINTEND(bugprone-branch-clone)
 
 template <typename EVENT_TYPE, bool IS_RELAY>
 inline void Cluster::sendToDispatcher(const bmqp::Event&   event,
@@ -2725,6 +2763,7 @@ inline void Cluster::sendToDispatcher(const bmqp::Event&   event,
 
 void Cluster::processEvent(const bmqp::Event&   event,
                            mqbnet::ClusterNode* source)
+// NOLINTBEGIN(bugprone-branch-clone)
 {
     // executed by the *IO* thread
 
@@ -2745,6 +2784,7 @@ void Cluster::processEvent(const bmqp::Event&   event,
             return;  // RETURN
         }
 
+        // NOLINTNEXTLINE(*-magic-numbers)
         bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
         bmqp_ctrlmsg::ControlMessage          message(&localAllocator);
 
@@ -2863,6 +2903,7 @@ void Cluster::processEvent(const bmqp::Event&   event,
     } break;  // BREAK
     }
 }
+// NOLINTEND(bugprone-branch-clone)
 
 void Cluster::onDispatcherEvent(const mqbi::DispatcherEvent& event)
 {
@@ -3099,6 +3140,7 @@ void Cluster::onProcessedAdminCommand(
     const bmqp_ctrlmsg::ControlMessage& adminCommandCtrlMsg,
     int                                 rc,
     const bsl::string&                  result)
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
 {
     if (rc != 0) {
         BALL_LOG_ERROR << "Error processing routed command [rc: " << rc << "] "
@@ -3107,6 +3149,7 @@ void Cluster::onProcessedAdminCommand(
 
     // Regardless of rc, send the admin command response back to the source for
     // the client to read.
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
     bmqp_ctrlmsg::ControlMessage          response(&localAllocator);
 
@@ -3117,6 +3160,7 @@ void Cluster::onProcessedAdminCommand(
 
     d_clusterData.messageTransmitter().sendMessageSafe(response, source);
 }
+// NOLINTEND(bugprone-unchecked-optional-access)
 
 void Cluster::loadClusterStatus(mqbcmd::ClusterResult* result)
 {
@@ -3309,6 +3353,7 @@ void Cluster::getPrimaryNodes(int*          rc,
                               bsl::ostream& errorDescription,
                               bsl::vector<mqbnet::ClusterNode*>* nodes,
                               bool* isSelfPrimary) const
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(rc);
@@ -3327,6 +3372,7 @@ void Cluster::getPrimaryNodes(int*          rc,
     nodes->clear();
     *isSelfPrimary = false;
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (mqbc::ClusterState::PartitionsInfo::const_iterator pit =
              partitionsInfo.begin();
          pit != partitionsInfo.end();
@@ -3368,15 +3414,18 @@ void Cluster::getPrimaryNodes(int*          rc,
             return;  // RETURN
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     *rc = rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 void Cluster::getPartitionPrimaryNode(int*                  rc,
                                       bsl::ostream&         errorDescription,
                                       mqbnet::ClusterNode** node,
                                       bool*                 isSelfPrimary,
                                       int                   partitionId) const
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(rc);
@@ -3431,6 +3480,7 @@ void Cluster::getPartitionPrimaryNode(int*                  rc,
         *rc = rc_ERROR;
     }
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 }  // close package namespace
 }  // close enterprise namespace

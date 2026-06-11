@@ -32,6 +32,7 @@ namespace mqbs {
 // MANIPULATORS
 int DataFileIterator::reset(const MappedFileDescriptor* mfd,
                             const FileHeader&           fileHeader)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     BSLS_ASSERT_SAFE(mfd);
     enum RcEnum {
@@ -70,8 +71,10 @@ int DataFileIterator::reset(const MappedFileDescriptor* mfd,
 
     // Skip the FileHeader to point to the DataFileHeader.
 
+    // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
     bool rc = d_blockIter.advance(fileHeader.headerWords() *
                                   bmqp::Protocol::k_WORD_SIZE);
+    // NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
     if (!rc) {
         // Not enough space for FileHeader.
 
@@ -133,8 +136,10 @@ int DataFileIterator::reset(const MappedFileDescriptor* mfd,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 int DataFileIterator::nextRecord()
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -212,6 +217,7 @@ int DataFileIterator::nextRecord()
 
     return rc_HAS_NEXT;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 void DataFileIterator::flipDirection()
 {
@@ -244,12 +250,15 @@ void DataFileIterator::flipDirection()
 // ACCESSORS
 void DataFileIterator::loadApplicationData(const char**  data,
                                            unsigned int* length) const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
-    const DataHeader& dh    = dataHeader();
-    const int   headerSize  = dh.headerWords() * bmqp::Protocol::k_WORD_SIZE;
-    const int   optionsSize = dh.optionsWords() * bmqp::Protocol::k_WORD_SIZE;
+    const DataHeader& dh  = dataHeader();
+    const int headerSize  = dh.headerWords() * bmqp::Protocol::k_WORD_SIZE;
+    const int optionsSize = dh.optionsWords() * bmqp::Protocol::k_WORD_SIZE;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     const char* begin = d_blockIter.block()->base() + d_blockIter.position() +
                         headerSize + optionsSize;
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     const unsigned int paddedLen = (dh.messageWords() *
                                     bmqp::Protocol::k_WORD_SIZE) -
                                    headerSize - optionsSize;
@@ -259,9 +268,11 @@ void DataFileIterator::loadApplicationData(const char**  data,
     *data   = begin;
     *length = paddedLen - begin[paddedLen - 1];  // length == unpadded len
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 void DataFileIterator::loadOptions(const char**  data,
                                    unsigned int* length) const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     const DataHeader& dh  = dataHeader();
     const int headerSize  = dh.headerWords() * bmqp::Protocol::k_WORD_SIZE;
@@ -277,6 +288,7 @@ void DataFileIterator::loadOptions(const char**  data,
 
     *length = static_cast<unsigned int>(optionsSize);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 }  // close package namespace
 }  // close enterprise namespace

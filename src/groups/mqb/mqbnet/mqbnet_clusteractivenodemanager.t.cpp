@@ -70,9 +70,11 @@ static void test2_activeNodeWithinDC()
     // Set up mock cluster
     mqbcfg::ClusterDefinition clusterConfig(
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     mqbnet::MockCluster mockCluster(clusterConfig,
                                     &bufferFactory,
                                     bmqtst::TestHelperUtil::allocator());
@@ -162,9 +164,11 @@ static void test3_activeNodeOutsideDC()
     // Set up mock cluster
     mqbcfg::ClusterDefinition clusterConfig(
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     mqbnet::MockCluster mockCluster(clusterConfig,
                                     &bufferFactory,
                                     bmqtst::TestHelperUtil::allocator());
@@ -240,9 +244,11 @@ static void test4_panicInExtendedMode()
     // Set up mock cluster
     mqbcfg::ClusterDefinition clusterConfig(
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     mqbnet::MockCluster mockCluster(clusterConfig,
                                     &bufferFactory,
                                     bmqtst::TestHelperUtil::allocator());
@@ -321,6 +327,7 @@ static void test4_panicInExtendedMode()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -338,3 +345,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

@@ -49,8 +49,10 @@ class AuthnCredential {
     explicit AuthnCredential(const AuthnCredential& other,
                              bslma::Allocator*      allocator = 0);
 
+    // NOLINTBEGIN(cppcoreguidelines-noexcept-move-operations,performance-noexcept-move-constructor)
     explicit AuthnCredential(bslmf::MovableRef<AuthnCredential> other,
                              bslma::Allocator*                  allocator = 0);
+    // NOLINTEND(cppcoreguidelines-noexcept-move-operations,performance-noexcept-move-constructor)
 
     /// Create an `AuthnCredential` object with the specified `mechanism`
     /// and `data`, using the specified `allocator` to supply memory.  If
@@ -63,6 +65,7 @@ class AuthnCredential {
 
     // ASSIGNMENT (no allocator parameters)
     AuthnCredential& operator=(const AuthnCredential& rhs);
+    // NOLINTNEXTLINE(cppcoreguidelines-noexcept-move-operations,performance-noexcept-move-constructor)
     AuthnCredential& operator=(bslmf::MovableRef<AuthnCredential> rhs);
 
     // ACCESSORS

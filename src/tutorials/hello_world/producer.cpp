@@ -48,6 +48,7 @@ using namespace BloombergLP;
 
 namespace {
 typedef bsl::vector<bsl::string> TestMessages;
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_QUEUE_URL[] = "bmq://bmq.test.mem.priority/test-queue";
 const int  k_QUEUE_ID    = 1;
 }  // close unnamed namespace
@@ -92,12 +93,15 @@ static bool postEvent(const bsl::string&   text,
 /// does not exist already.  Each queue is identified by a short URL
 /// containing a namespace and a queue name.
 static void produce(bmqa::Session* session)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
-    bmqa::QueueId         queueId(k_QUEUE_ID);
+    bmqa::QueueId queueId(k_QUEUE_ID);
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bmqa::OpenQueueStatus openStatus = session->openQueueSync(
         &queueId,
         k_QUEUE_URL,
         bmqt::QueueFlags::e_WRITE);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const TestMessages testMessages = {"Hello world!",
                                        "message 1",
                                        "message 2",
@@ -124,6 +128,7 @@ static void produce(bmqa::Session* session)
         return;  // RETURN
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 //=============================================================================
 //                              MAIN PROGRAM

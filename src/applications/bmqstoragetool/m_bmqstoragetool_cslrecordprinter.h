@@ -138,6 +138,7 @@ void CslRecordPrinter<PRINTER_TYPE>::printRecordDetails(
     const bsl::string&                    recStr,
     const mqbc::ClusterStateRecordHeader& header,
     const mqbsi::LedgerRecordId&          recId)
+// NOLINTBEGIN(*-magic-numbers)
 {
     d_fields.clear();
     d_fields.reserve(10);  // max number of fields
@@ -165,6 +166,7 @@ void CslRecordPrinter<PRINTER_TYPE>::printRecordDetails(
 
     const bsls::Types::Uint64 epochValue = header.timestamp();
     bdlt::Datetime            datetime;
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     const int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime, epochValue);
     if (0 != rc) {
         *d_printer_mp << 0;
@@ -181,6 +183,7 @@ void CslRecordPrinter<PRINTER_TYPE>::printRecordDetails(
 
     d_printer_mp.reset();
 }
+// NOLINTEND(*-magic-numbers)
 
 template <typename PRINTER_TYPE>
 void CslRecordPrinter<PRINTER_TYPE>::printRecordsSummary(

@@ -30,8 +30,10 @@ namespace {
 const int k_MAX_INSTANT_MESSAGES = 10;
 // Maximum messages logged with throttling in a short period of time.
 
+// NOLINTBEGIN(cppcoreguidelines-interfaces-global-init)
 const bsls::Types::Int64 k_NS_PER_MESSAGE =
     bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND / k_MAX_INSTANT_MESSAGES;
+// NOLINTEND(cppcoreguidelines-interfaces-global-init)
 // Time interval between messages logged with throttling.
 
 #define BMQ_LOGTHROTTLE_INFO                                                  \

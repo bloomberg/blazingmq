@@ -46,6 +46,7 @@ using namespace bsl;
 
 namespace {
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct TestType {
     // CLASS LEVEL DATA
     static int s_numAliveInstances;
@@ -58,11 +59,13 @@ struct TestType {
     explicit TestType(int value, bslma::Allocator* basicAllocator = 0)
     : d_allocator_p(bslma::Default::allocator(basicAllocator))
     , d_value(basicAllocator)
+    // NOLINTBEGIN(*-magic-numbers,cert-err33-c,cppcoreguidelines-pro-type-vararg)
     {
         d_value.resize(16);
         bsl::sprintf(&d_value[0], "%d", value);
         ++s_numAliveInstances;
     }
+    // NOLINTEND(*-magic-numbers,cert-err33-c,cppcoreguidelines-pro-type-vararg)
 
     explicit TestType(const char* value, bslma::Allocator* basicAllocator = 0)
     : d_allocator_p(bslma::Default::allocator(basicAllocator))
@@ -93,6 +96,7 @@ struct TestType {
     // ACCESSORS
     int valueAsInt() const { return bsl::stoi(d_value); }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 bool operator==(const TestType& lhs, const TestType& rhs)
@@ -129,6 +133,7 @@ static void test1_breathingTest()
 // Testing:
 //   Basic functionality
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -167,17 +172,20 @@ static void test1_breathingTest()
         }
 
         int i = 1;
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (ObjType::iterator it = obj.begin(); it != obj.end(); ++it, ++i) {
             BMQTST_ASSERT_EQ_D(i, it->valueAsInt(), i);
             BMQTST_ASSERT_EQ_D(i, (*it).valueAsInt(), i);
         }
         i = 1;
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (ObjType::const_iterator it = constObj.begin();
              it != constObj.end();
              ++it, ++i) {
             BMQTST_ASSERT_EQ_D(i, it->valueAsInt(), i);
             BMQTST_ASSERT_EQ_D(i, (*it).valueAsInt(), i);
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 
     {
@@ -192,19 +200,23 @@ static void test1_breathingTest()
 
         // Iterator operator+=
         int i = 1;
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (ObjType::iterator it = obj.begin(); it != obj.end();
              it += 1, ++i) {
             BMQTST_ASSERT_EQ_D(i, it->valueAsInt(), i);
             BMQTST_ASSERT_EQ_D(i, (*it).valueAsInt(), i);
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
         // Iterator operator-=
         i = k_NB_ITEMS;
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (ObjType::iterator it = obj.end(); i > 0; --i) {
             it -= 1;
             BMQTST_ASSERT_EQ_D(i, it->valueAsInt(), i);
             BMQTST_ASSERT_EQ_D(i, (*it).valueAsInt(), i);
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
         {
             // Misc. iterator expressions
@@ -214,6 +226,7 @@ static void test1_breathingTest()
             BMQTST_ASSERT_EQ((--it)->valueAsInt(), 1);
             BMQTST_ASSERT_EQ(it[0].valueAsInt(), 1);
 
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             ObjType::iterator it2 = it++;
             BMQTST_ASSERT_EQ(it2->valueAsInt(), 1);
             BMQTST_ASSERT_EQ(it->valueAsInt(), 2);
@@ -228,6 +241,7 @@ static void test1_breathingTest()
             BMQTST_ASSERT(it - it2 == 1);
             BMQTST_ASSERT(it[0] == it2[1]);
 
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             ObjType::iterator it3 = --it;
             BMQTST_ASSERT_EQ(it3->valueAsInt(), 1);
             BMQTST_ASSERT_EQ(it2->valueAsInt(), 1);
@@ -250,10 +264,12 @@ static void test1_breathingTest()
             BMQTST_ASSERT_EQ((++it)->valueAsInt(), 2);
             BMQTST_ASSERT_EQ((--it)->valueAsInt(), 1);
 
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             ObjType::const_iterator it2 = it++;
             BMQTST_ASSERT_EQ(it2->valueAsInt(), 1);
             BMQTST_ASSERT_EQ(it->valueAsInt(), 2);
 
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             ObjType::const_iterator it3 = --it;
             BMQTST_ASSERT_EQ(it3->valueAsInt(), 1);
             BMQTST_ASSERT_EQ(it2->valueAsInt(), 1);
@@ -313,11 +329,13 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(true, objCopy.begin() != objCopy.end());
 
         int i = 1;
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (ObjType::iterator it = objCopy.begin(); it != objCopy.end();
              ++it) {
             BMQTST_ASSERT_EQ_D(i, it->valueAsInt(), i);
             ++i;
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
         objCopy.clear();
         BMQTST_ASSERT_EQ(true, objCopy.empty());
@@ -401,15 +419,19 @@ static void test1_breathingTest()
             ObjType obj1(bmqtst::TestHelperUtil::allocator());
             ObjType obj2(bmqtst::TestHelperUtil::allocator());
 
+            // NOLINTBEGIN(*-magic-numbers)
             for (int i = 0; i < 50; ++i) {
                 obj1.push_back(
                     TestType("a", bmqtst::TestHelperUtil::allocator()));
             }
+            // NOLINTEND(*-magic-numbers)
 
+            // NOLINTBEGIN(*-magic-numbers)
             for (int i = 0; i < 100; ++i) {
                 obj2.push_back(
                     TestType("b", bmqtst::TestHelperUtil::allocator()));
             }
+            // NOLINTEND(*-magic-numbers)
 
             BMQTST_ASSERT_EQ(150, TestType::s_numAliveInstances);
 
@@ -422,15 +444,19 @@ static void test1_breathingTest()
             ObjType obj1(bmqtst::TestHelperUtil::allocator());
             ObjType obj2(bmqtst::TestHelperUtil::allocator());
 
+            // NOLINTBEGIN(*-magic-numbers)
             for (int i = 0; i < 50; ++i) {
                 obj1.push_back(
                     TestType("a", bmqtst::TestHelperUtil::allocator()));
             }
+            // NOLINTEND(*-magic-numbers)
 
+            // NOLINTBEGIN(*-magic-numbers)
             for (int i = 0; i < 100; ++i) {
                 obj2.push_back(
                     TestType("b", bmqtst::TestHelperUtil::allocator()));
             }
+            // NOLINTEND(*-magic-numbers)
 
             BMQTST_ASSERT_EQ(150, TestType::s_numAliveInstances);
 
@@ -443,10 +469,12 @@ static void test1_breathingTest()
             ObjType* obj = new (*bmqtst::TestHelperUtil::allocator())
                 ObjType(bmqtst::TestHelperUtil::allocator());
 
+            // NOLINTBEGIN(*-magic-numbers)
             for (int i = 0; i < 50; ++i) {
                 obj->push_back(
                     TestType("a", bmqtst::TestHelperUtil::allocator()));
             }
+            // NOLINTEND(*-magic-numbers)
 
             BMQTST_ASSERT_EQ(50, TestType::s_numAliveInstances);
 
@@ -456,6 +484,7 @@ static void test1_breathingTest()
         }
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 
 static void test2_outOfBoundValidation()
 // ------------------------------------------------------------------------
@@ -466,6 +495,7 @@ static void test2_outOfBoundValidation()
 //   safe mode.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("OUT OF BOUND VALIDATION");
 
@@ -496,6 +526,7 @@ static void test2_outOfBoundValidation()
         static_cast<void>(constObj);
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test3_noMemoryAllocation()
 // ------------------------------------------------------------------------
@@ -562,6 +593,7 @@ static void test5_resize()
 //   Functionality of the 'resize' method with respect to contractual
 //   guarantees as well as memory allocation.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result)
 {
     bmqtst::TestHelper::printTestName("RESIZE");
 
@@ -591,6 +623,7 @@ static void test5_resize()
     }
 
     // k_FULL_LENGTH exercises both static and dynamic parts of 'bmqc_array'.
+    // NOLINTNEXTLINE(bugprone-implicit-widening-of-multiplication-result)
     const size_t k_FULL_LEN = 2 * k_STATIC_LEN;
 
     // 3) Resize to twice the static length
@@ -626,6 +659,7 @@ static void test5_resize()
     BMQTST_ASSERT_EQ(TestType::s_numAliveInstances, 0);
     BMQTST_ASSERT_EQ(ta.numAllocations(), numAllocations + 1);
 }
+// NOLINTEND(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result)
 
 static void test6_assign()
 // ------------------------------------------------------------------------
@@ -641,15 +675,19 @@ static void test6_assign()
     bslma::TestAllocator ta("testAlloc");
 
     ObjType obj(&ta);
+    // NOLINTBEGIN(*-magic-numbers)
     for (int i = 0; i < k_STATIC_LEN + 5; ++i) {
         obj.push_back(TestType(i, bmqtst::TestHelperUtil::allocator()));
     }
+    // NOLINTEND(*-magic-numbers)
 
     bsl::vector<TestType> srcVec(bmqtst::TestHelperUtil::allocator());
+    // NOLINTBEGIN(*-magic-numbers,modernize-use-emplace)
     for (int i = 0; i < 2 * k_STATIC_LEN; ++i) {
         srcVec.push_back(
             TestType(10 * i, bmqtst::TestHelperUtil::allocator()));
     }
+    // NOLINTEND(*-magic-numbers,modernize-use-emplace)
 
     // Assign to 'obj' from 'srcVec'
     obj.assign(srcVec.begin(), srcVec.end());
@@ -669,6 +707,7 @@ static void test7_algorithms()
 //   Make sure that the array and elements in it are in sane condition
 //   after invoking std algos on a populated array.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("ALGORITHMS");
 
@@ -678,19 +717,24 @@ static void test7_algorithms()
         ObjType obj(bmqtst::TestHelperUtil::allocator());
 
         // Populate array: {30, 29, ..., 1}
+        // NOLINTBEGIN(*-magic-numbers)
         for (int i = 30; i >= 0; --i) {
             obj.push_back(TestType(i, bmqtst::TestHelperUtil::allocator()));
         }
+        // NOLINTEND(*-magic-numbers)
 
         // Apply 'bsl::sort'
         bsl::sort(obj.begin(), obj.end());
 
         // Verify: {1, 2, ..., 30}
+        // NOLINTBEGIN(*-magic-numbers)
         for (int i = 0; i <= 30; ++i) {
             BMQTST_ASSERT_EQ_D(i, obj[i].valueAsInt(), i);
         }
+        // NOLINTEND(*-magic-numbers)
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test8_allocatorProp()
 // ------------------------------------------------------------------------
@@ -700,6 +744,7 @@ static void test8_allocatorProp()
 //   Make sure that the array copies elements while propagating the correct
 //   allocator.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("ALLOCPROP");
 
@@ -719,12 +764,14 @@ static void test8_allocatorProp()
 
         bslma::TestAllocator ta;
 
+        // NOLINTNEXTLINE(*-magic-numbers)
         bmqc::Array<bsl::string, 10> obj(&ta);
 
         obj.push_back("foo");
         BMQTST_ASSERT_EQ(true, obj.back().get_allocator().mechanism() == &ta);
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test9_copyAssignDifferentStaticLength()
 // ------------------------------------------------------------------------
@@ -734,6 +781,7 @@ static void test9_copyAssignDifferentStaticLength()
 //   Make sure that the array copy constructor and copy assignment works
 //   for arrays of different static lengths.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("COPYASSIGNDIFFLEN");
 
@@ -794,6 +842,7 @@ static void test9_copyAssignDifferentStaticLength()
     {
         bslma::TestAllocator ta;
 
+        // NOLINTNEXTLINE(*-magic-numbers)
         bmqc::Array<TestType, 24> rhs(&ta);
 
         rhs.resize(2, TestType(42));
@@ -820,6 +869,7 @@ static void test9_copyAssignDifferentStaticLength()
     {
         bslma::TestAllocator ta;
 
+        // NOLINTNEXTLINE(*-magic-numbers)
         bmqc::Array<TestType, 24> rhs(&ta);
 
         rhs.resize(2, TestType(42));
@@ -845,6 +895,7 @@ static void test9_copyAssignDifferentStaticLength()
         }
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test10_pushBackSelfRef()
 // ------------------------------------------------------------------------
@@ -877,20 +928,26 @@ static void test10_pushBackSelfRef()
 using namespace BloombergLP;
 
 static void VectorIteration_GoogleBenchmark(benchmark::State& state)
+// NOLINTBEGIN(*-magic-numbers,clang-analyzer-deadcode.DeadStores)
 {
     bslma::TestAllocator ta;
+    // NOLINTNEXTLINE(*-magic-numbers)
     bmqc::Array<int, 16> vec(&ta);
 
     vec.resize(state.range(0), 42);
     for (auto _ : state) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (auto it = vec.begin(); it != vec.end(); ++it) {
         }
     }
 }
+// NOLINTEND(*-magic-numbers,clang-analyzer-deadcode.DeadStores)
 
 static void VectorFindLarge_GoogleBenchmark(benchmark::State& state)
+// NOLINTBEGIN(*-magic-numbers,bugprone-unused-return-value,clang-analyzer-deadcode.DeadStores)
 {
     bslma::TestAllocator ta;
+    // NOLINTNEXTLINE(*-magic-numbers)
     bmqc::Array<int, 16> vec(&ta);
 
     vec.resize(state.range(0), 42);
@@ -900,30 +957,39 @@ static void VectorFindLarge_GoogleBenchmark(benchmark::State& state)
         static_cast<void>(bsl::find(vec.begin(), vec.end(), 22));
     }
 }
+// NOLINTEND(*-magic-numbers,bugprone-unused-return-value,clang-analyzer-deadcode.DeadStores)
 
 static void VectorPushBack_GoogleBenchmark(benchmark::State& state)
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bslma::TestAllocator ta;
     for (auto _ : state) {
+        // NOLINTNEXTLINE(*-magic-numbers)
         bmqc::Array<int, 16> vec(&ta);
+        // NOLINTBEGIN(*-magic-numbers)
         for (int i = 0; i < state.range(0); ++i) {
             vec.push_back(42);
         }
+        // NOLINTEND(*-magic-numbers)
     };
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void VectorAssign_GoogleBenchmark(benchmark::State& state)
+// NOLINTBEGIN(*-magic-numbers,clang-analyzer-deadcode.DeadStores)
 {
     bslma::TestAllocator ta;
     bsl::vector<int>     data(&ta);
 
     data.resize(state.range(0), 42);
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bmqc::Array<int, 16> vec(&ta);
     for (auto _ : state) {
         vec.assign(data.begin(), data.end());
     }
 }
+// NOLINTEND(*-magic-numbers,clang-analyzer-deadcode.DeadStores)
 
 #endif  // BMQTST_BENCHMARK_ENABLED
 
@@ -932,6 +998,7 @@ static void VectorAssign_GoogleBenchmark(benchmark::State& state)
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
     switch (_testCase) {
@@ -966,3 +1033,4 @@ int main(int argc, char* argv[])
     }
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

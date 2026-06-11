@@ -38,12 +38,14 @@ namespace bmqu {
 /// check the state (`tryEnter`/`leave`), change it to open (`open`), and to
 /// close (`closeAndDrain`) waiting for all `leave` calls matching `tryEnter`
 /// calls.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class AtomicGate {
   private:
     // PRIVATE TYPES
 
     /// The Enum values have arithmetical meaning and cannot be changed, or
     /// extended, or reordered.
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum Enum { e_INIT = 0, e_CLOSE = 1, e_ENTER = 2 };
 
     // PRIVATE DATA
@@ -79,6 +81,7 @@ class AtomicGate {
     /// `tryEnter`.
     void leave();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ================
 // class GateKeeper
@@ -101,6 +104,7 @@ class GateKeeper {
     // TYPES
 
     /// RAII wrapper for `AtomicGate::tryEnter` and `AtomicGate::leave`.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     class Status {
       private:
         // DATA
@@ -127,6 +131,7 @@ class GateKeeper {
         /// Return true if the gate was successfully entered.
         bool isOpen() const;
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
   public:
     // CREATORS

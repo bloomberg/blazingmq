@@ -57,6 +57,7 @@ namespace mqbsl {
 /// Provide a mechanism to store application-defined records.  An object of
 /// this class owns multiple `mqbsi::Log` instances, and records may span
 /// across these multiple instances.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Ledger BSLS_KEYWORD_FINAL : public mqbsi::Ledger {
   private:
     // CLASS-SCOPE CATEGORY
@@ -81,11 +82,13 @@ class Ledger BSLS_KEYWORD_FINAL : public mqbsi::Ledger {
     typedef LogsMap::const_iterator                       LogsMapCIt;
 
     struct LedgerState {
+        // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
         enum Enum {
             // enum representing the state of the ledger
             e_OPENED = 0,
             e_CLOSED = 1
         };
+        // NOLINTEND(cppcoreguidelines-use-enum-class)
     };
 
   private:
@@ -339,6 +342,7 @@ class Ledger BSLS_KEYWORD_FINAL : public mqbsi::Ledger {
     // identified by 'logId'.  The behavior is undefined unless there is a
     // log instance identified by 'logId' in this ledger.
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -378,9 +382,11 @@ inline const Ledger::Logs& Ledger::logs() const
 }
 
 inline const Ledger::LogSp& Ledger::currentLog() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
 {
     return const_cast<Ledger*>(this)->currentLog();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-const-cast)
 
 inline bsls::Types::Int64
 Ledger::outstandingNumBytes(const mqbu::StorageKey& logId) const

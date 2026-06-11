@@ -39,6 +39,7 @@ using namespace bsl;
 
 namespace {
 
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_LOG_CATEGORY[] = "BMQU.THROTTLEDACTION.TESTDRIVER";
 
 /// Increment the specified `n` by one.
@@ -81,6 +82,7 @@ static void test1_breathingTest()
 // Testing:
 //   ThrottledActionParams
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -115,6 +117,7 @@ static void test1_breathingTest()
     BMQTST_ASSERT_EQ(obj.d_countSinceLastReset, 1);
     BMQTST_ASSERT_GE(obj.d_lastResetTime, 0LL);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 static void test2_throttleNoReset()
 // ------------------------------------------------------------------------
@@ -258,6 +261,7 @@ static void test3_throttleWithDefaultReset()
 // Testing:
 //   BMQU_THROTTLEDACTION_THROTTLE(P, ACTION)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
@@ -361,6 +365,7 @@ static void test3_throttleWithDefaultReset()
     BMQTST_ASSERT_EQ(obj.d_countSinceLastReset, k_MAX_COUNT_PER_INTERVAL + 2);
     BMQTST_ASSERT_GT(obj.d_lastResetTime, 0LL);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 static void test4_throttleWithCustomReset()
 // ------------------------------------------------------------------------
@@ -504,6 +509,7 @@ static void test4_throttleWithCustomReset()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -523,3 +529,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

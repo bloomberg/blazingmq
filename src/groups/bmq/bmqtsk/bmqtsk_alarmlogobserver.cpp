@@ -85,8 +85,10 @@ void AlarmLogObserver::publish(const ball::Record&     record,
     if (bmqu::StringUtil::startsWith(alarmType, "RAW_")) {
         // We are stripping out the 'RAW_' prefix from the alarm identification
         // string.
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         const bslstl::StringRef categoryStr(alarmType.c_str() + 4,
                                             alarmType.length() - 4);
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         generateAlarm(categoryStr, record.fixedFields().messageRef());
         return;  // RETURN
     }

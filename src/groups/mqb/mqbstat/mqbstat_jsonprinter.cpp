@@ -187,6 +187,7 @@ struct ConversionUtils {
 /// - Don't want to expose `bdljsn` names and symbols to the outer scope.
 /// - Member fields and functions defined for this implementation are used only
 ///   locally, so there is no reason to make it visible.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class JsonPrinter::JsonPrinterImpl {
   private:
     // CLASS-SCOPE CATEGORY
@@ -236,6 +237,7 @@ class JsonPrinter::JsonPrinterImpl {
     /// THREAD: This method is called in the `snapshot` thread.
     void printStats(bsl::ostream& stream, bool compact);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 inline JsonPrinter::JsonPrinterImpl::JsonPrinterImpl(
     const StatContextsMap& statContextsMap,

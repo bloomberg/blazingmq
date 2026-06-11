@@ -72,6 +72,7 @@
                 ++testStatus;                                                 \
         }                                                                     \
     }
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define ASSERT_EQUALS(X, Y) ASSERT_EQUALS_SKIP(X, Y, false)
 
 // Asserts that X != Y
@@ -88,6 +89,7 @@
                 ++testStatus;                                                 \
         }                                                                     \
     }
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define ASSERT_NOT_EQUALS(X, Y) ASSERT_NOT_EQUALS_SKIP(X, Y, false)
 
 // Loop version of ASSERT_EQUALS
@@ -105,6 +107,7 @@
                 ++testStatus;                                                 \
         }                                                                     \
     }
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOOP_ASSERT_EQUALS(I, X, Y) LOOP_ASSERT_EQUALS_SKIP(I, X, Y, false)
 
 // Loop version of ASSERT_NOT_EQUALS
@@ -148,6 +151,7 @@
                 ++testStatus;                                                 \
         }                                                                     \
     }
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define ASSERT_LESS(X, Y) ASSERT_LESS_SKIP(X, Y, false)
 
 // Loop version of ASSERT_LESS
@@ -180,7 +184,9 @@
                 ++testStatus;                                                 \
         }                                                                     \
     }
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOOP_ASSERT_LESS(I, X, Y) LOOP_ASSERT_LESS_SKIP(I, X, Y, false)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOOP2_ASSERT_LESS(I, J, X, Y) LOOP2_ASSERT_LESS_SKIP(I, J, X, Y, false)
 
 // Asserts that X <= Y
@@ -197,6 +203,7 @@
                 ++testStatus;                                                 \
         }                                                                     \
     }
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define ASSERT_LE(X, Y) ASSERT_LE_SKIP(X, Y, false)
 
 // Loop version of ASSERT_LE
@@ -229,7 +236,9 @@
                 ++testStatus;                                                 \
         }                                                                     \
     }
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOOP_ASSERT_LE(I, X, Y) LOOP_ASSERT_LE_SKIP(I, X, Y, false)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOOP2_ASSERT_LE(I, J, X, Y) LOOP2_ASSERT_LE_SKIP(I, J, X, Y, false)
 
 // Asserts that X >= Y
@@ -246,6 +255,7 @@
                 ++testStatus;                                                 \
         }                                                                     \
     }
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define ASSERT_GE(X, Y) ASSERT_GE_SKIP(X, Y, false)
 
 // Loop version of ASSERT_LE
@@ -278,7 +288,9 @@
                 ++testStatus;                                                 \
         }                                                                     \
     }
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOOP_ASSERT_GE(I, X, Y) LOOP_ASSERT_GE_SKIP(I, X, Y, false)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOOP2_ASSERT_GE(I, J, X, Y) LOOP2_ASSERT_GE_SKIP(I, J, X, Y, false)
 
 //=============================================================================
@@ -286,6 +298,7 @@
 //-----------------------------------------------------------------------------
 
 // Initialize BALL logging based on verbosity command line arguments
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define INIT_BALL_LOGGING_VERBOSITY(VERBOSE, VERY_VERBOSE)                    \
     ball::FileObserver observer;                                              \
     observer.disableFileLogging();                                            \

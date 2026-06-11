@@ -115,6 +115,7 @@ static void test2_settersTest()
 // Testing:
 //   Setters and getters
 // --------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("SETTERS TEST");
 
@@ -123,6 +124,7 @@ static void test2_settersTest()
     // Check setters
     const char k_URI[] = "bmq://ts.trades.myapp/my.queue?id=my.app";
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bmqt::Uri uri(k_URI, bmqtst::TestHelperUtil::allocator());
 
     const unsigned int        k_SQID       = 2U;
@@ -170,6 +172,7 @@ static void test2_settersTest()
 
     BMQTST_ASSERT(!obj.hasDefaultSubQueueId());
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers)
 
 static void test3_printQueueStateTest()
 // --------------------------------------------------------------------
@@ -193,6 +196,7 @@ static void test3_printQueueStateTest()
 //   bsl::ostream& operator<<(bsl::ostream&            stream,
 //                            bmqimp::QueueState::Enum value);
 // --------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("PRINT QUEUE STATE");
 
@@ -217,9 +221,11 @@ static void test3_printQueueStateTest()
                   {bmqimp::QueueState::e_CLOSED, "CLOSED"},
                   {bmqimp::QueueState::e_PENDING, "PENDING"}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
@@ -246,6 +252,7 @@ static void test3_printQueueStateTest()
         BMQTST_ASSERT_EQ(out.str(), expected.str());
     }
 }
+// NOLINTEND(*-avoid-c-arrays,performance-avoid-endl)
 
 static void test4_printTest()
 // --------------------------------------------------------------------
@@ -268,6 +275,7 @@ static void test4_printTest()
 //   bsl::ostream& operator<<(bsl::ostream& stream,
 //                            bmqimp::Queue rhs);
 // --------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("PRINT");
 
@@ -275,6 +283,7 @@ static void test4_printTest()
 
     const char k_URI[] = "bmq://ts.trades.myapp/my.queue?id=my.app";
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bmqt::Uri uri(k_URI, bmqtst::TestHelperUtil::allocator());
 
     const unsigned int        k_SQID       = 2U;
@@ -336,6 +345,7 @@ static void test4_printTest()
 
     BMQTST_ASSERT_EQ(out.str(), expected.str());
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers,performance-avoid-endl)
 
 static void test5_comparisonTest()
 // --------------------------------------------------------------------
@@ -354,6 +364,7 @@ static void test5_comparisonTest()
 // Testing:
 //   bool operator==(const bmqimp::Queue& lhs, const bmqimp::Queue& rhs);
 // --------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("COMPARISON TEST");
 
@@ -365,6 +376,7 @@ static void test5_comparisonTest()
     // Check setters
     const char k_URI[] = "bmq://ts.trades.myapp/my.queue?id=my.app";
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bmqt::Uri uri(k_URI, bmqtst::TestHelperUtil::allocator());
 
     const unsigned int        k_SQID       = 2U;
@@ -397,6 +409,7 @@ static void test5_comparisonTest()
 
     BMQTST_ASSERT(obj1 == obj2);
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers)
 
 static void test6_statTest()
 // --------------------------------------------------------------------
@@ -412,6 +425,7 @@ static void test6_statTest()
 // Testing:
 //   bmqimp::QueueStatsUtil and bmqimp::Queue statistic manipulators
 // --------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Check for default allocator is explicitly disabled as
@@ -423,6 +437,7 @@ static void test6_statTest()
 
     const char k_URI[] = "bmq://ts.trades.myapp/my.queue?id=my.app";
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bmqt::Uri                uri(k_URI, bmqtst::TestHelperUtil::allocator());
     bmqimp::QueueState::Enum k_STATE = bmqimp::QueueState::e_OPENED;
     bmqimp::Queue            obj(bmqtst::TestHelperUtil::allocator());
@@ -471,9 +486,11 @@ static void test6_statTest()
 
     BMQTST_ASSERT_EQ(rootStatContext.numSubcontexts(), 1);
 
-    const char                k_STAT_NAME[] = "queues";
+    const char k_STAT_NAME[] = "queues";
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const bmqst::StatContext* k_pSubContext = rootStatContext.getSubcontext(
         k_STAT_NAME);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     BMQTST_ASSERT(k_pSubContext != 0);
     BMQTST_ASSERT_EQ(k_pSubContext->numValues(), 3);
@@ -509,6 +526,7 @@ static void test6_statTest()
     BMQTST_ASSERT_SAFE_FAIL(obj.statUpdateOnMessage(1, true));
     BMQTST_ASSERT_SAFE_FAIL(obj.statReportCompressionRatio(2));
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 }  // close unnamed namespace
 
@@ -517,6 +535,7 @@ static void test6_statTest()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -536,3 +555,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

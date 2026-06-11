@@ -49,6 +49,7 @@ struct NotifyingDeleter {
 
 /// Provides a guard that does cleanup in case `SharedResource_Base::reset`
 /// fails with an exception.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct ResetGuard {
     // DATA
     SharedResource_Base* d_sharedResource_p;
@@ -74,6 +75,7 @@ struct ResetGuard {
     // MANIPULATORS
     void release() BSLS_KEYWORD_NOEXCEPT { d_sharedResource_p = 0; }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close unnamed namespace
 

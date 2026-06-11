@@ -140,6 +140,7 @@ static void test1_clusterStateLedgerIterator_protocol()
 // Testing:
 //   PROTOCOL TEST
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("CLUSTER STATE LEDGER ITERATOR - "
                                       "PROTOCOL TEST");
@@ -174,12 +175,14 @@ static void test1_clusterStateLedgerIterator_protocol()
         BSLS_PROTOCOLTEST_ASSERT(testObj, print(os));
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -194,3 +197,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

@@ -45,21 +45,26 @@ namespace {
 // Subcontext names
 
 /// StatContext name of the top level statContext
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_STATCONTEXT_NAME[] = "system";
 
 /// StatContext name of the CPU top level statContext
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_SUBCONTEXT_CPU[] = "cpu";
 
 /// StatContext name of the MEM top level statContext
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_SUBCONTEXT_MEM[] = "mem";
 
 /// StatContext name of the OPERATING-SYSTEM top level statContext
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_SUBCONTEXT_OS[] = "os";
 
 /// Multiplier to use for reporting CPU stats from PerformanceMonitor into
 /// statContext
 const int k_CPU_MULTIPLIER = 1000;
 
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 enum {
     // Constants for the index of each stat value in their respective context
 
@@ -96,6 +101,7 @@ enum {
     /// process ran or because the current process exceeded its time slice
     k_STAT_OS_INVOLUNTARY_CTX_SWITCHES = 4
 };
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 typedef bsl::function<
     double(const bmqst::StatContext& statCtx, int snapshotId, int statId)>
@@ -169,15 +175,18 @@ bsls::Types::Int64 genericAccessor(const bmqst::StatContext& statContext,
 StatMonitor::StatMonitor(int historySize, bslma::Allocator* allocator)
 : d_performanceMonitor(allocator)
 , d_pid(bdls::ProcessUtil::getProcessId())
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 , d_systemStatContext(bmqst::StatContextConfiguration(k_STATCONTEXT_NAME,
                                                       allocator)
                           .defaultHistorySize(historySize + 1)
                           .value("uptime", bmqst::StatValue::e_CONTINUOUS),
                       allocator)
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 , d_cpuStatContext_mp(0)
 , d_memStatContext_mp(0)
 , d_osStatContext_mp(0)
 , d_isStarted(false)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // Create the CPU, MEM and RESOURCE-USAGE subContexts
     d_cpuStatContext_mp = d_systemStatContext.addSubcontext(
@@ -197,6 +206,7 @@ StatMonitor::StatMonitor(int historySize, bslma::Allocator* allocator)
             .value("nvcsw", bmqst::StatValue::e_CONTINUOUS)
             .value("nivcsw", bmqst::StatValue::e_CONTINUOUS));
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 StatMonitor::~StatMonitor()
 {
@@ -235,6 +245,7 @@ bmqst::StatContext* StatMonitor::statContext()
 }
 
 void StatMonitor::snapshot()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init,cppcoreguidelines-pro-type-union-access)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(isStarted() && "'start' was not called");
@@ -254,9 +265,11 @@ void StatMonitor::snapshot()
         static_cast<bsls::Types::Int64>(it->elapsedTime()));
 
     // Convenient macro to retrieve the value 'T' applying a multiplier 'M'
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PERFVAL(T, M)                                                         \
     (static_cast<bsls::Types::Int64>(                                         \
-        it->latestValue(balb::PerformanceMonitor::T) * M))
+        it->latestValue(balb::PerformanceMonitor::T) *                        \
+        M)) /* NOLINT(bugprone-macro-parentheses) */
 
     // CPU: report CPU values * k_STAT_MULTIPLIER because statContext only
     // handles Int64, not float, so multiply by k_STAT_MULTIPLIER to keep some
@@ -307,6 +320,7 @@ void StatMonitor::snapshot()
     // Snapshot the stat context
     d_systemStatContext.snapshot();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init,cppcoreguidelines-pro-type-union-access)
 
 // ----------------------
 // struct StatMonitorUtil
@@ -392,6 +406,7 @@ StatMonitorUtil::getOperatingSystemStat(const bmqst::StatContext& statContext,
         bmqst::StatValue::SnapshotLocation(0, snapshotId));
 }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define ACCESSOR_METHOD_SYSTEM(NAME, ID)                                      \
     bsls::Types::Int64 StatMonitorUtil::NAME(                                 \
         const bmqst::StatContext& statContext,                                \
@@ -405,6 +420,7 @@ StatMonitorUtil::getOperatingSystemStat(const bmqst::StatContext& statContext,
         return genericAccessor(statContext, snapshotId, ID, accessor);        \
     }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define ACCESSOR_METHOD_CPU(NAME, ID)                                         \
     double StatMonitorUtil::NAME(const bmqst::StatContext& statContext,       \
                                  int                       snapshotId)        \
@@ -421,6 +437,7 @@ StatMonitorUtil::getOperatingSystemStat(const bmqst::StatContext& statContext,
                                accessor);                                     \
     }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define ACCESSOR_METHOD_MEM(NAME, ID)                                         \
     bsls::Types::Int64 StatMonitorUtil::NAME(                                 \
         const bmqst::StatContext& statContext,                                \
@@ -438,6 +455,7 @@ StatMonitorUtil::getOperatingSystemStat(const bmqst::StatContext& statContext,
                                accessor);                                     \
     }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define ACCESSOR_METHOD_OS(NAME, ID)                                          \
     bsls::Types::Int64 StatMonitorUtil::NAME(                                 \
         const bmqst::StatContext& statContext,                                \
@@ -457,17 +475,27 @@ StatMonitorUtil::getOperatingSystemStat(const bmqst::StatContext& statContext,
 
 ACCESSOR_METHOD_SYSTEM(uptime, k_STAT_SYSTEM_UPTIME)
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 ACCESSOR_METHOD_CPU(cpuUser, k_STAT_CPU_USER)
+// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 ACCESSOR_METHOD_CPU(cpuSystem, k_STAT_CPU_SYSTEM)
+// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 ACCESSOR_METHOD_CPU(cpuAll, k_STAT_CPU_ALL)
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 ACCESSOR_METHOD_MEM(memResident, k_STAT_MEM_RESIDENT)
+// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 ACCESSOR_METHOD_MEM(memVirtual, k_STAT_MEM_VIRTUAL)
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 ACCESSOR_METHOD_OS(minorPageFaults, k_STAT_OS_MINOR_PAGE_FAULTS)
+// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 ACCESSOR_METHOD_OS(majorPageFaults, k_STAT_OS_MAJOR_PAGE_FAULTS)
+// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 ACCESSOR_METHOD_OS(numSwaps, k_STAT_OS_NUM_SWAPS)
+// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 ACCESSOR_METHOD_OS(voluntaryContextSwitches, k_STAT_OS_VOLUNTARY_CTX_SWITCHES)
+// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 ACCESSOR_METHOD_OS(involuntaryContextSwitches,
                    k_STAT_OS_INVOLUNTARY_CTX_SWITCHES)
 

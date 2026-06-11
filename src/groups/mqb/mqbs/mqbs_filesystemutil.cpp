@@ -185,6 +185,7 @@ namespace mqbs {
 
 namespace {
 
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_OTHER_FS_NAME[] = "OTHER";
 
 #ifdef BSLS_PLATFORM_OS_LINUX
@@ -234,6 +235,7 @@ void loadNameFromFsType(bsl::string* buffer, long ftype)
 // ---------------------
 
 void FileSystemUtil::loadFileSystemName(bsl::string* buffer, const char* path)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-member-init)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(path);
@@ -293,11 +295,13 @@ void FileSystemUtil::loadFileSystemName(bsl::string* buffer, const char* path)
 
 #endif
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-member-init)
 
 int FileSystemUtil::loadFileSystemSpace(bsl::ostream&       errorDescription,
                                         bsls::Types::Int64* available,
                                         bsls::Types::Int64* total,
                                         const char*         path)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 {
     // PRECONDTIONS
     BSLS_ASSERT_SAFE(path);
@@ -320,6 +324,7 @@ int FileSystemUtil::loadFileSystemSpace(bsl::ostream&       errorDescription,
              static_cast<bsls::Types::Int64>(buf.f_frsize);
     return 0;
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 int FileSystemUtil::open(MappedFileDescriptor* mfd,
                          const char*           filename,
@@ -327,7 +332,9 @@ int FileSystemUtil::open(MappedFileDescriptor* mfd,
                          bool                  readOnly,
                          bsl::ostream&         errorDescription,
                          bool                  prefaultPages)
+// NOLINTBEGIN(bugprone-assignment-in-if-condition,cppcoreguidelines-init-variables,cppcoreguidelines-pro-type-vararg)
 {
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum { rc_SUCCESS = 0, rc_OPEN_FAILURE = -1, rc_MMAP_FAILURE = -2 };
 
     int fd    = -1;
@@ -390,8 +397,10 @@ int FileSystemUtil::open(MappedFileDescriptor* mfd,
 
     return 0;
 }
+// NOLINTEND(bugprone-assignment-in-if-condition,cppcoreguidelines-init-variables,cppcoreguidelines-pro-type-vararg)
 
 int FileSystemUtil::close(MappedFileDescriptor* mfd)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(mfd);
@@ -437,11 +446,13 @@ int FileSystemUtil::close(MappedFileDescriptor* mfd)
 
     return returnRC;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int FileSystemUtil::grow(int                 fd,
                          bsls::Types::Uint64 fileSize,
                          bool                reserveOnDisk,
                          bsl::ostream&       errorDescription)
+// NOLINTBEGIN(*-narrowing-conversions,bugprone-assignment-in-if-condition,cppcoreguidelines-use-enum-class)
 {
     enum {
         rc_SUCCESS                     = 0,
@@ -478,11 +489,14 @@ int FileSystemUtil::grow(int                 fd,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-narrowing-conversions,bugprone-assignment-in-if-condition,cppcoreguidelines-use-enum-class)
 
 int FileSystemUtil::grow(MappedFileDescriptor* mfd,
                          bool                  reserveOnDisk,
                          bsl::ostream&         errorDescription)
+// NOLINTBEGIN(*-magic-numbers)
 {
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum RcEnum { rc_SUCCESS = 0, rc_INVALID_MFD = -1, rc_GROW_ERROR = -2 };
 
     if (!mfd->isValid()) {
@@ -496,13 +510,16 @@ int FileSystemUtil::grow(MappedFileDescriptor* mfd,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers)
 
 int FileSystemUtil::truncate(MappedFileDescriptor* mfd,
                              bsls::Types::Uint64   size,
                              bsl::ostream&         errorDescription)
 {
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum { rc_SUCCESS = 0, rc_FAILURE = -1 };
 
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     int rc = ::ftruncate(mfd->fd(), size);
     if (0 != rc) {
         errorDescription << "ftruncate() failed for file fd [" << mfd->fd()
@@ -518,6 +535,7 @@ int FileSystemUtil::truncate(MappedFileDescriptor* mfd,
 
 int FileSystemUtil::move(const bslstl::StringRef& oldAbsoluteFilename,
                          const bslstl::StringRef& newLocation)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     enum {
         rc_SUCCESS            = 0,
@@ -550,11 +568,13 @@ int FileSystemUtil::move(const bslstl::StringRef& oldAbsoluteFilename,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int FileSystemUtil::fallocate(int                 fd,
                               bsls::Types::Uint64 offset,
                               bsls::Types::Uint64 length,
                               bsl::ostream&       errorDescription)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     enum {
         rc_UNSUPPORTED     = 1,
@@ -565,6 +585,7 @@ int FileSystemUtil::fallocate(int                 fd,
 
 #if defined(BSLS_PLATFORM_OS_LINUX)
 
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     int rc = ::fallocate(fd, 0 /* mode */, offset, length);
 
     if (0 != rc) {
@@ -633,6 +654,7 @@ int FileSystemUtil::fallocate(int                 fd,
 
 #endif
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 void FileSystemUtil::madvise(void*               mapping,
                              bsls::Types::Uint64 size,
@@ -651,6 +673,7 @@ int FileSystemUtil::flush(void*               mapping,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(mapping);
 
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum { rc_SUCCESS = 0, rc_MSYNC_FAILURE = -1 };
 
     int rc = ::msync(mapping, size, MS_SYNC);

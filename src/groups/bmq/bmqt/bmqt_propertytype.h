@@ -57,6 +57,7 @@ namespace bmqt {
 /// This enum represents the supported data types for a message property.
 struct PropertyType {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         e_UNDEFINED = 0,
         e_BOOL      = 1,
@@ -67,6 +68,7 @@ struct PropertyType {
         e_STRING    = 6,
         e_BINARY    = 7
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CONSTANTS
 

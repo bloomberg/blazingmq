@@ -37,6 +37,7 @@ namespace mqbs {
 // ----------------------------
 
 int FileStoreProtocolUtil::hasBmqHeader(const MappedFileDescriptor& mfd)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     enum {
         rc_SUCCESS              = 0,
@@ -60,8 +61,10 @@ int FileStoreProtocolUtil::hasBmqHeader(const MappedFileDescriptor& mfd)
         return rc_MAGIC_MISMATCH;  // RETURN
     }
 
+    // NOLINTBEGIN(bugprone-misplaced-widening-cast)
     const size_t headerSize = static_cast<size_t>(fh->headerWords() *
                                                   bmqp::Protocol::k_WORD_SIZE);
+    // NOLINTEND(bugprone-misplaced-widening-cast)
 
     if (0 == headerSize) {
         return rc_INVALID_HEADER_SIZE;  // RETURN
@@ -81,16 +84,20 @@ int FileStoreProtocolUtil::hasBmqHeader(const MappedFileDescriptor& mfd)
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 const FileHeader&
 FileStoreProtocolUtil::bmqHeader(const MappedFileDescriptor& mfd)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     BSLS_ASSERT_SAFE(0 == hasBmqHeader(mfd));
     return reinterpret_cast<const FileHeader&>(*(mfd.block().base()));
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 int FileStoreProtocolUtil::hasValidFirstRolloverSyncPointRecord(
     const MappedFileDescriptor& journalFd)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     enum {
         rc_SUCCESS                          = 0,
@@ -161,15 +168,18 @@ int FileStoreProtocolUtil::hasValidFirstRolloverSyncPointRecord(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 bsls::Types::Uint64 FileStoreProtocolUtil::lastJournalSyncPoint(
     const MappedFileDescriptor& mfd,
     const FileHeader&           fileHeader,
     const JournalFileHeader&    journalHeader)
 {
+    // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
     bsls::Types::Uint64 recordStartOffset = (fileHeader.headerWords() +
                                              journalHeader.headerWords()) *
                                             bmqp::Protocol::k_WORD_SIZE;
+    // NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
     if (mfd.fileSize() <= recordStartOffset) {
         return 0;  // RETURN
@@ -232,6 +242,7 @@ bsls::Types::Uint64 FileStoreProtocolUtil::lastJournalRecord(
     const FileHeader&           fileHeader,
     const JournalFileHeader&    journalHeader,
     bsls::Types::Uint64         lastJournalSyncPoint)
+// NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
 {
     // Need to scan forward from the 'lastJournalSyncPoint' until we encounter
     // an incomplete/corrupted record.  The record preceding this
@@ -294,6 +305,7 @@ bsls::Types::Uint64 FileStoreProtocolUtil::lastJournalRecord(
 
     return prevRecordPos;
 }
+// NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
 int FileStoreProtocolUtil::calculateMd5Digest(
     bdlde::Md5::Md5Digest*    buffer,
@@ -307,6 +319,7 @@ int FileStoreProtocolUtil::calculateMd5Digest(
 
     bmqu::BlobPosition endPos;
     int                rc =
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         bmqu::BlobUtil::findOffsetSafe(&endPos, blob, startPos, length - 1);
     if (0 != rc) {
         return rc;  // RETURN
@@ -314,6 +327,7 @@ int FileStoreProtocolUtil::calculateMd5Digest(
 
     bdlde::Md5         hasher;
     bmqu::BlobPosition pos(startPos);
+    // NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     while (length) {
         unsigned int len = bsl::min(
             static_cast<int>(length),
@@ -325,6 +339,7 @@ int FileStoreProtocolUtil::calculateMd5Digest(
         pos.setByte(0);
         length -= len;
     }
+    // NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     hasher.loadDigest(buffer);
     return 0;
@@ -346,10 +361,13 @@ void FileStoreProtocolUtil::loadAppInfos(
 
         unsigned int paddedLen = appIdHeader->appIdLengthWords() *
                                  bmqp::Protocol::k_WORD_SIZE;
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         const char* appIdBegin = appIdsBlock.base() + offset +
                                  sizeof(AppIdHeader);
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
         bslma::Allocator* alloc = appIdKeyPairs->get_allocator();
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         mqbi::Storage::AppInfos::value_type appIdKeyPair(
             bsl::string(appIdBegin,
                         paddedLen - appIdBegin[paddedLen - 1],
@@ -357,6 +375,7 @@ void FileStoreProtocolUtil::loadAppInfos(
             mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
                              appIdBegin + paddedLen),
             alloc);
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         appIdKeyPairs->insert(appIdKeyPair);
 
         // Move to beginning of next AppIdHeader.

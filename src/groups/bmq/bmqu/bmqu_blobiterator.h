@@ -42,6 +42,7 @@ namespace bmqu {
 // ==================
 
 /// A blob iterator
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class BlobIterator {
   public:
     // PUBLIC TYPES
@@ -164,6 +165,7 @@ class BlobIterator {
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 
@@ -207,6 +209,7 @@ inline BlobIterator::BlobIterator(const BlobIterator& other)
 }
 
 // MANIPULATORS
+// NOLINTBEGIN(bugprone-unhandled-self-assignment,cert-oop54-cpp)
 inline BlobIterator& BlobIterator::operator=(const BlobIterator& rhs)
 {
     d_blob_p          = rhs.d_blob_p;
@@ -216,6 +219,7 @@ inline BlobIterator& BlobIterator::operator=(const BlobIterator& rhs)
 
     return *this;
 }
+// NOLINTEND(bugprone-unhandled-self-assignment,cert-oop54-cpp)
 
 inline const BlobIterator& BlobIterator::operator++()
 {
@@ -276,9 +280,11 @@ inline bool BlobIterator::operator!=(const BlobIterator& rhs) const
 }
 
 inline const char& BlobIterator::operator*() const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     return d_blob_p->buffer(d_pos.buffer()).data()[d_pos.byte()];
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 inline bool BlobIterator::atEnd() const
 {

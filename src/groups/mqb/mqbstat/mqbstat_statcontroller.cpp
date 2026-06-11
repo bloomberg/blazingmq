@@ -75,10 +75,13 @@ namespace {
 const int k_MAX_INSTANT_MESSAGES = 1;
 // Maximum messages logged with throttling in a short period of time.
 
+// NOLINTBEGIN(cppcoreguidelines-interfaces-global-init)
 const bsls::Types::Int64 k_NS_PER_MESSAGE = 15 *
                                             bdlt::TimeUnitRatio::k_NS_PER_M;
+// NOLINTEND(cppcoreguidelines-interfaces-global-init)
 // Time interval between messages logged with throttling.
 
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_PUBLISHINTERVAL_SUFFIX[] = ".PUBLISHINTERVAL";
 
 typedef bsl::unordered_set<mqbplug::PluginFactory*> PluginFactories;
@@ -328,7 +331,7 @@ void StatController::captureStatsAndSemaphorePost(
         // outdated existing one.
         const bool savedNextSnapshot = snapshot();
         if (savedNextSnapshot) {
-            const bool compact = (encoding ==
+            const bool         compact = (encoding ==
                                   mqbcmd::EncodingFormat::JSON_COMPACT);
             bmqu::MemOutStream os(d_allocator_p);
             d_jsonPrinter_mp->printStats(os, compact);
@@ -352,6 +355,7 @@ void StatController::captureStatsAndSemaphorePost(
 void StatController::setTunable(mqbcmd::StatResult*       result,
                                 const mqbcmd::SetTunable& tunable,
                                 bslmt::Semaphore*         semaphore)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     // executed by the *SCHEDULER* thread
 
@@ -372,14 +376,17 @@ void StatController::setTunable(mqbcmd::StatResult*       result,
                               tunable.name().end()),
             k_PUBLISHINTERVAL_SUFFIX)) {
         // Target consumer's name is whatever precedes ".PUBLISHINTERVAL".
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         bslstl::StringRef consumerName(tunable.name().begin(),
                                        tunable.name().begin() + suffixPos);
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
         // Look up the target configuration.
         const mqbcfg::StatPluginConfig* targetConsumerCfg = 0;
         {
             bsl::vector<mqbcfg::StatPluginConfig>::const_iterator it =
                 statsCfg.plugins().begin();
+            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             for (; it != statsCfg.plugins().end(); ++it) {
                 if (bdlb::StringRefUtil::areEqualCaseless(it->name(),
                                                           consumerName)) {
@@ -387,6 +394,7 @@ void StatController::setTunable(mqbcmd::StatResult*       result,
                     break;
                 }
             }
+            // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         }
         if (!targetConsumerCfg) {
             bmqu::MemOutStream output;
@@ -402,6 +410,7 @@ void StatController::setTunable(mqbcmd::StatResult*       result,
         {
             bsl::vector<StatConsumerMp>::const_iterator it =
                 d_statConsumers.begin();
+            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             for (; it != d_statConsumers.end(); ++it) {
                 if (bdlb::StringRefUtil::areEqualCaseless(it->get()->name(),
                                                           consumerName)) {
@@ -409,6 +418,7 @@ void StatController::setTunable(mqbcmd::StatResult*       result,
                     break;
                 }
             }
+            // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         }
         if (!targetConsumer) {
             bmqu::MemOutStream output;
@@ -438,7 +448,9 @@ void StatController::setTunable(mqbcmd::StatResult*       result,
             return;  // RETURN
         }
 
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         int newValue = tunable.value().theInteger();
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         int oldValue = targetConsumer->publishInterval().seconds();
 
         if (newValue == -1) {
@@ -475,10 +487,12 @@ void StatController::setTunable(mqbcmd::StatResult*       result,
     result->makeError();
     result->error().message() = output.str();
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 void StatController::getTunable(mqbcmd::StatResult* result,
                                 const bsl::string&  tunable,
                                 bslmt::Semaphore*   semaphore)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     // executed by the *SCHEDULER* thread
 
@@ -492,13 +506,16 @@ void StatController::getTunable(mqbcmd::StatResult* result,
             bslstl::StringRef(tunable.begin() + suffixPos, tunable.end()),
             k_PUBLISHINTERVAL_SUFFIX)) {
         // Target consumer's name is whatever precedes ".PUBLISHINTERVAL".
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         bslstl::StringRef consumerName(tunable.begin(),
                                        tunable.begin() + suffixPos);
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
         // Look up the target consumer.
         mqbplug::StatConsumer*                      targetConsumer = 0;
         bsl::vector<StatConsumerMp>::const_iterator it =
             d_statConsumers.begin();
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (; it != d_statConsumers.end(); ++it) {
             if (bdlb::StringRefUtil::areEqualCaseless(it->get()->name(),
                                                       consumerName)) {
@@ -506,6 +523,7 @@ void StatController::getTunable(mqbcmd::StatResult* result,
                 break;
             }
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         if (!targetConsumer) {
             bmqu::MemOutStream output;
             output << "StatConsumer '" << consumerName << "' does not exist";
@@ -533,6 +551,7 @@ void StatController::getTunable(mqbcmd::StatResult* result,
     result->makeError();
     result->error().message() = output.str();
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 void StatController::listTunables(mqbcmd::StatResult* result,
                                   bslmt::Semaphore*   semaphore)
@@ -551,6 +570,7 @@ void StatController::listTunables(mqbcmd::StatResult* result,
     mqbcmd::Tunables& tunables = result->makeTunables();
 
     bsl::vector<StatConsumerMp>::const_iterator it = d_statConsumers.begin();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; it != d_statConsumers.end(); ++it) {
         mqbcmd::Tunable& tunable = tunables.tunables().emplace_back();
 
@@ -573,6 +593,7 @@ void StatController::listTunables(mqbcmd::StatResult* result,
                "or as -1 to reset the publish interval to default value.";
         tunable.description() = description.str();
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 bool StatController::snapshot()
@@ -630,6 +651,7 @@ void StatController::snapshotAndNotify()
 
     // StatConsumers will report all stats
     bsl::vector<StatConsumerMp>::iterator it = d_statConsumers.begin();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; it != d_statConsumers.end(); ++it) {
         try {
             (*it)->onSnapshot();
@@ -638,6 +660,7 @@ void StatController::snapshotAndNotify()
             BALL_LOG_ERROR << "#PLUGIN_ERROR " << e.what();
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     const bool willPrint = d_snapshotTracker.willPrintOnNextSnapshot();
     d_snapshotTracker.onSnapshot();
@@ -696,6 +719,7 @@ int StatController::validateConfig(bsl::ostream& errorDescription) const
 
     bsl::vector<mqbcfg::StatPluginConfig>::const_iterator it =
         brkrCfg.stats().plugins().begin();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; it != brkrCfg.stats().plugins().end(); ++it) {
         if (it->name().empty()) {
             errorDescription << "StatController: Plugin 'name' must be given "
@@ -724,6 +748,7 @@ int StatController::validateConfig(bsl::ostream& errorDescription) const
             return -1;  // RETURN
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     return 0;
 }
 
@@ -768,6 +793,7 @@ StatController::StatController(const CommandProcessorFn& commandProcessor,
 }
 
 int StatController::start(bsl::ostream& errorDescription)
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     const mqbcfg::AppConfig& brkrCfg = mqbcfg::BrokerConfig::get();
 
@@ -813,9 +839,11 @@ int StatController::start(bsl::ostream& errorDescription)
     int maxInterval = brkrCfg.stats().printer().printInterval();
     bsl::vector<mqbcfg::StatPluginConfig>::const_iterator consumerIt =
         brkrCfg.stats().plugins().begin();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; consumerIt != brkrCfg.stats().plugins().end(); ++consumerIt) {
         maxInterval = bsl::max(maxInterval, consumerIt->publishInterval());
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     d_systemStatMonitor_mp =
         bslma::ManagedPtrUtil::allocateManaged<mqbstat::StatMonitor>(
             d_allocator_p,
@@ -890,6 +918,7 @@ int StatController::start(bsl::ostream& errorDescription)
                 mqbcfg::BrokerConfig::get().stats().plugins();
             bsl::vector<mqbcfg::StatPluginConfig>::const_iterator cfgIt =
                 consumersCfg.begin();
+            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             for (; cfgIt != consumersCfg.end(); ++cfgIt) {
                 if (bdlb::StringRefUtil::areEqualCaseless(cfgIt->name(),
                                                           consumer->name())) {
@@ -897,6 +926,7 @@ int StatController::start(bsl::ostream& errorDescription)
                     break;
                 }
             }
+            // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             if (!consumerCfg) {
                 BALL_LOG_ERROR << "No configuration found for StatConsumer '"
                                << consumer->name() << "'";
@@ -968,17 +998,20 @@ int StatController::start(bsl::ostream& errorDescription)
 
     return 0;
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 void StatController::stop()
 {
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define STOP_OBJ(OBJ, NAME)                                                   \
     if (OBJ) {                                                                \
-        OBJ->stop();                                                          \
+        OBJ->stop(); /* NOLINT(bugprone-macro-parentheses) */                 \
     }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define DESTROY_OBJ(OBJ, NAME)                                                \
     if (OBJ) {                                                                \
-        OBJ.clear();                                                          \
+        OBJ.clear(); /* NOLINT(bugprone-macro-parentheses) */                 \
     }
 
     // Stop the scheduler and cancel all clocks first to prevent any additional
@@ -990,9 +1023,11 @@ void StatController::stop()
 
     // Stop everything
     bsl::vector<StatConsumerMp>::iterator it = d_statConsumers.begin();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; it != d_statConsumers.end(); ++it) {
         STOP_OBJ((*it), it->name());
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     if (d_snapshotTracker.statId() > 0) {
         // Stats were logged with `statId()` id from scheduler already.
@@ -1021,9 +1056,11 @@ void StatController::stop()
     STOP_OBJ(d_systemStatMonitor_mp, "SystemStatMonitor");
 
     // Destroy everything!!
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (it = d_statConsumers.begin(); it != d_statConsumers.end(); ++it) {
         DESTROY_OBJ((*it), it->name());
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     DESTROY_OBJ(d_jsonStatsFileLogger_mp, "JsonStatsFileLogger");
     DESTROY_OBJ(d_tableStatsFileLogger_mp, "TableStatsFileLogger");
     DESTROY_OBJ(d_tablePrinter_mp, "TablePrinter");

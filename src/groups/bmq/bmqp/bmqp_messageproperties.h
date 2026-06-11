@@ -70,6 +70,7 @@ class MessagePropertiesIterator;
 /// This VST keeps a knowledge about unique sequence of Properties.  The
 /// goal is to return the index of a given property.
 /// Once created, it is read-only.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class MessageProperties_Schema BSLS_KEYWORD_FINAL {
   private:
     // PRIVATE TYPES
@@ -112,12 +113,14 @@ class MessageProperties_Schema BSLS_KEYWORD_FINAL {
     // PUBLIC ACCESSORS
     bool loadIndex(int* index, bsl::string_view name) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =======================
 // class MessageProperties
 // =======================
 
 /// Provide a VST representing message properties.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class MessageProperties {
     // FRIENDS
     friend class MessagePropertiesIterator;
@@ -177,6 +180,7 @@ class MessageProperties {
 
     typedef bsls::ObjectBuffer<bdlbb::Blob> BlobObjectBuffer;
 
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum RcEnum {
         rc_SUCCESS                          = 0,
         rc_NO_MSG_PROPERTIES_HEADER         = -1,
@@ -194,6 +198,7 @@ class MessageProperties {
         rc_PROPERTY_NAME_STREAMIN_FAILURE   = -13,
         rc_DUPLICATE_PROPERTY_NAME          = -14
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
   public:
     // PUBLIC TYPES
@@ -223,7 +228,7 @@ class MessageProperties {
     // _before_ any property can change to
     // use when reading incrementally.
 
-    mutable BlobObjectBuffer d_blob;  // Wire representation.
+    mutable BlobObjectBuffer   d_blob;    // Wire representation.
     mutable const bdlbb::Blob* d_blob_p;  // Wire representation.
 
     int d_mphSize;
@@ -515,6 +520,7 @@ class MessageProperties {
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 
@@ -703,7 +709,7 @@ bmqt::GenericResult::Enum MessageProperties::setProperty(bsl::string_view name,
         bsl::make_pair(name, Property()));
     Property& p = insertRc.first->second;
 
-    p.d_length  = newPropValueLen;
+    p.d_length = newPropValueLen;
     assignTo(&p, value);
 
     // This cannot have `bsl::string_view` type.
@@ -784,6 +790,7 @@ inline const TYPE& MessageProperties::getProperty(bsl::string_view name) const
 template <class TYPE>
 inline const TYPE& MessageProperties::getPropertyOr(bsl::string_view name,
                                                     const TYPE& value) const
+// NOLINTBEGIN(bugprone-return-const-ref-from-parameter)
 {
     PropertyMapConstIter cit = findProperty(name);
     if (cit == d_properties.end()) {
@@ -800,9 +807,11 @@ inline const TYPE& MessageProperties::getPropertyOr(bsl::string_view name,
 
     return p.d_value.the<TYPE>();
 }
+// NOLINTEND(bugprone-return-const-ref-from-parameter)
 
 inline MessageProperties::PropertyMapIter
 MessageProperties::findProperty(bsl::string_view name) const
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     PropertyMapIter cit = d_properties.find(name);
     if (cit != d_properties.end()) {
@@ -865,6 +874,7 @@ MessageProperties::findProperty(bsl::string_view name) const
 
     return d_properties.end();
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 // MANIPULATORS
 inline int MessageProperties::setPropertyAsBool(bsl::string_view name,
@@ -1055,6 +1065,7 @@ MessageProperties::getPropertyAsInt64Or(bsl::string_view   name,
 inline const bsl::string&
 MessageProperties::getPropertyAsStringOr(bsl::string_view   name,
                                          const bsl::string& value) const
+// NOLINTBEGIN(bugprone-return-const-ref-from-parameter)
 {
     PropertyMapIter it = findProperty(name);
     if (it == d_properties.end()) {
@@ -1067,6 +1078,7 @@ MessageProperties::getPropertyAsStringOr(bsl::string_view   name,
 
     return v.the<bsl::string>();
 }
+// NOLINTEND(bugprone-return-const-ref-from-parameter)
 
 inline const bsl::vector<char>&
 MessageProperties::getPropertyAsBinaryOr(bsl::string_view         name,

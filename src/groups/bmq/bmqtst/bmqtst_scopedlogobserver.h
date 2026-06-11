@@ -94,6 +94,7 @@ namespace bmqtst {
 
 /// This mechanism implements a scoped implementation of the log observer
 /// protocol used for testing purposes.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ScopedLogObserver : public ball::ObserverAdapter {
   private:
     // PRIVATE DATA
@@ -174,6 +175,7 @@ class ScopedLogObserver : public ball::ObserverAdapter {
     BSLMF_NESTED_TRAIT_DECLARATION(ScopedLogObserver,
                                    bslma::UsesBslmaAllocator)
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================
 // struct ScopedLogObserverUtil

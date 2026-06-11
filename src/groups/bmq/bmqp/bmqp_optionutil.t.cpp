@@ -82,6 +82,7 @@ bmqp::OptionUtil::OptionMeta appendOption(bmqp::OptionUtil::OptionsBox* box,
     typedef bmqp::OptionUtil::OptionMeta OptionMeta;
     typedef bmqt::EventBuilderResult     Result;
 
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     const int payloadSize = payload.length();
     if (!padding) {
         BSLS_ASSERT_SAFE(0 == payloadSize % bmqp::Protocol::k_WORD_SIZE);
@@ -99,6 +100,7 @@ bmqp::OptionUtil::OptionMeta appendOption(bmqp::OptionUtil::OptionsBox* box,
 const char* validateOption(const char*                         p,
                            const bmqp::OptionUtil::OptionMeta& meta,
                            const bsl::string&                  payload)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     // TODO_POISON_PILL Test for *packed* option when OptionsBox::add() is
     //                  updated
@@ -125,12 +127,15 @@ const char* validateOption(const char*                         p,
     p += payload.length();
 
     // The optional padding bytes should all be equal to the size of padding.
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (int i = 0; i < meta.padding(); ++i) {
         BMQTST_ASSERT_EQ(meta.padding(), *p);
         ++p;
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     return p;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 }  // close unnamed namespace
 
@@ -157,6 +162,7 @@ static void test1_basicOptionMetaProperties()
 //   -static OptionMeta OptionUtil::OptionMeta::forNullOption();
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BASIC OPTIONMETA PROPERTIES");
 
@@ -168,6 +174,7 @@ static void test1_basicOptionMetaProperties()
 
     PV("A payload without padding")
     {
+        // NOLINTBEGIN(*-magic-numbers)
         for (int size = 0; size < 10; ++size) {
             if (0 != size % bmqp::Protocol::k_WORD_SIZE) {
                 BMQTST_ASSERT_SAFE_FAIL(OptionMeta::forOption(type, size));
@@ -183,10 +190,12 @@ static void test1_basicOptionMetaProperties()
                 BMQTST_ASSERT_EQ(type, meta.type());
             }
         }
+        // NOLINTEND(*-magic-numbers)
     }
 
     PV("A payload with zero with padding")
     {
+        // NOLINTBEGIN(*-magic-numbers)
         for (int size = 0; size < 10; ++size) {
             const OptionMeta meta = OptionMeta::forOptionWithPadding(type,
                                                                      size);
@@ -199,6 +208,7 @@ static void test1_basicOptionMetaProperties()
             BMQTST_ASSERT_EQ(padding, meta.padding());
             BMQTST_ASSERT_EQ(type, meta.type());
         }
+        // NOLINTEND(*-magic-numbers)
     }
 
     PV("A null option")
@@ -213,6 +223,7 @@ static void test1_basicOptionMetaProperties()
         BMQTST_ASSERT_SAFE_FAIL(meta.type());
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test2_basicOptionsBoxCanAdd()
 // ------------------------------------------------------------------------
@@ -229,6 +240,7 @@ static void test2_basicOptionsBoxCanAdd()
 //                                         const OptionMeta& option) const;
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("OPTIONSBOX CAN ADD");
 
@@ -272,11 +284,13 @@ static void test2_basicOptionsBoxCanAdd()
         const int smallPayload      = 12;  // Just 12 bytes
         const int maxAllowedContent = k_MAX_SIZE_SOFT -
                                       k_MAX_TYPE * (smallPayload + headerSize);
-        const int oneTooMany         = maxAllowedContent + 1;
+        const int oneTooMany = maxAllowedContent + 1;
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         const int testContentSizes[] = {4, maxAllowedContent, oneTooMany};
         for (unsigned int i = 0;
              i < (sizeof(testContentSizes) / sizeof(testContentSizes[0]));
              ++i) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const int    contentSize = testContentSizes[i];
             const LimitT limit = maxCanBeAdded(contentSize, smallPayload);
             if (contentSize == oneTooMany) {
@@ -298,10 +312,12 @@ static void test2_basicOptionsBoxCanAdd()
     PV("Rule 4. Fail with e_OPTION_TOO_BIG when size excluding options + size"
        "of all options > EventHeader::k_MAX_SIZE_SOFT")
     {
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         const int testContentSizes[] = {4, 2 * k_MAX_SIZE};
         for (unsigned int i = 0;
              i < (sizeof(testContentSizes) / sizeof(testContentSizes[0]));
              ++i) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const int    contentSize = testContentSizes[i];
             const int    maxPayload  = k_MAX_SIZE - headerSize;
             const LimitT limit       = maxCanBeAdded(contentSize, maxPayload);
@@ -309,6 +325,7 @@ static void test2_basicOptionsBoxCanAdd()
         }
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test3_checkOptionsBlobSegment()
 // ------------------------------------------------------------------------
@@ -325,6 +342,7 @@ static void test3_checkOptionsBlobSegment()
 //                                     const OptionMeta&  option);
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("CHECK OPTIONS BLOB SEGMENT");
 
@@ -336,8 +354,9 @@ static void test3_checkOptionsBlobSegment()
         bmqp::EventHeader::k_MAX_SIZE_SOFT,
         bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-    bsl::string header     = "....";  // Fake headers
-    int         headerSize = header.size();
+    bsl::string header = "....";  // Fake headers
+    // NOLINTNEXTLINE(*-narrowing-conversions)
+    int headerSize = header.size();
     bdlbb::BlobUtil::append(&blob, header.c_str(), headerSize);
 
     // Add the first option (that needs padding)
@@ -352,7 +371,8 @@ static void test3_checkOptionsBlobSegment()
         true);
 
     // Add the second option (that needs no padding)
-    bsl::string      p2    = " world!!";
+    bsl::string p2 = " world!!";
+    // NOLINTBEGIN(*-narrowing-conversions)
     const OptionMeta meta2 = appendOption(
         &box,
         &blob,
@@ -360,12 +380,15 @@ static void test3_checkOptionsBlobSegment()
         p2,
         headerSize + p1.size(),
         false);
+    // NOLINTEND(*-narrowing-conversions)
 
     bsl::string canary = "canary";
     bdlbb::BlobUtil::append(&blob, canary.c_str(), canary.size());
 
+    // NOLINTBEGIN(*-narrowing-conversions)
     const int expectedSize = headerSize + meta1.size() + meta2.size() +
                              canary.size();
+    // NOLINTEND(*-narrowing-conversions)
     BMQTST_ASSERT_EQ(expectedSize, blob.length());
     BMQTST_ASSERT_EQ(1, blob.numDataBuffers());
     BMQTST_ASSERT_EQ(
@@ -388,12 +411,14 @@ static void test3_checkOptionsBlobSegment()
         BMQTST_ASSERT_EQ(0, bsl::memcmp(p, canary.c_str(), canary.size()));
     }
 }
+// NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 
 // ============================================================================
 //                                MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -410,3 +435,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

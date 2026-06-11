@@ -113,6 +113,7 @@ namespace mqbnet {
 ///  - applying application logic to pending items as in the overload
 ///    case when different types of item need different treatment
 ///    (NACKing excessive PUTs).
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Channel {
   private:
     // CLASS-SCOPE CATEGORY
@@ -130,6 +131,7 @@ class Channel {
 
     /// Const references to everything needed to writeBufferedItem PUT.
     /// This is template parameter to generalized writing code.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct PutArgs {
         const bmqp::PutHeader&              d_putHeader;
         const bsl::shared_ptr<bdlbb::Blob>& d_data_sp;
@@ -138,8 +140,10 @@ class Channel {
 
         ~PutArgs();
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     /// Const references to generic PUSH data.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct PushArgsBase {
         const int                                  d_queueId;
         const bmqt::MessageGUID&                   d_msgId;
@@ -156,10 +160,12 @@ class Channel {
 
         ~PushArgsBase();
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     /// Const references to everything needed to writeBufferedItem PUSH with
     /// data.
     /// This is template parameter to generalized writing code.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct ExplicitPushArgs : PushArgsBase {
         const bsl::shared_ptr<bdlbb::Blob>& d_data_sp;
 
@@ -169,10 +175,12 @@ class Channel {
 
         ~ExplicitPushArgs();
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     /// Const references to everything needed to writeBufferedItem PUSH
     /// without data.
     /// This is template parameter to generalized writing code.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct ImplicitPushArgs : PushArgsBase {
         const bmqp::Protocol::SubQueueInfosArray& d_subQueueInfos;
 
@@ -180,8 +188,10 @@ class Channel {
 
         ~ImplicitPushArgs();
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
     /// Const references to everything needed to writeBufferedItem ACK.
     /// This is template parameter to generalized writing code.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct AckArgs {
         const int                d_status;
         const int                d_correlationId;
@@ -192,9 +202,11 @@ class Channel {
 
         ~AckArgs();
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     /// Const references to everything needed to writeBufferedItem CONFIRM.
     /// This is template parameter to generalized writing code.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct ConfirmArgs {
         const int                d_queueId;
         const int                d_subQueueId;
@@ -204,9 +216,11 @@ class Channel {
 
         ~ConfirmArgs();
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     /// Const references to everything needed to writeBufferedItem REJECT.
     /// This is template parameter to generalized writing code.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct RejectArgs {
         const int                d_queueId;
         const int                d_subQueueId;
@@ -216,12 +230,14 @@ class Channel {
 
         ~RejectArgs();
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     /// Const references to everything needed to writeBufferedItem
     /// bdlbb::Blob.
     /// This is template parameter to generalized writing code.
     /// This struct also simulates a (one-time) Builder since there is no
     /// `control` builder.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct ControlArgs {
         bmqp::EventType::Enum               d_type;
         const bsl::shared_ptr<bdlbb::Blob>& d_data_sp;
@@ -239,8 +255,10 @@ class Channel {
         size_t             messageCount() const;
         const bdlbb::Blob& blob() const;
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     /// VST representing event data buffered (due to high watermark).
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct Item {
         // discriminator
         bmqp::EventType::Enum d_type;
@@ -311,7 +329,9 @@ class Channel {
 
         const bsl::shared_ptr<bdlbb::Blob>& data();
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Mode {
         /// Call 'popFront' on the buffer.
         /// This puts internal thread into sleep until there are any events.
@@ -324,7 +344,9 @@ class Channel {
         /// Flush all builders to IO, and circle back to `e_BLOCK` state.
         e_IDLE
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
+    // NOLINTBEGIN(*-avoid-c-arrays)
     struct Stats {
         static const int k_MAX_ITEM_TYPE =
             bmqp::EventType::e_REPLICATION_RECEIPT + 1;
@@ -343,9 +365,11 @@ class Channel {
 
         void reset();
     };
+    // NOLINTEND(*-avoid-c-arrays)
 
   public:
     // PUBLIC TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum EnumState {
         /// Need resetting because of a connection change
         e_RESET = 0,
@@ -357,6 +381,7 @@ class Channel {
         /// HWM
         e_HWM = 4
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
   private:
     // CONSTANTS
@@ -623,6 +648,7 @@ class Channel {
 
     bsls::Types::Uint64 numBytes() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -992,14 +1018,17 @@ inline Channel::Stats::Stats()
 }
 
 inline void Channel::Stats::addItem(bmqp::EventType::Enum type, size_t size)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
 {
     ++d_numItemsTotal;
     d_numBytes += size;
 
     ++d_numItems[type];
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
 inline void Channel::Stats::removeItem(bmqp::EventType::Enum type, size_t size)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
 {
     BSLS_ASSERT_SAFE(d_numItemsTotal > 0);
     --d_numItemsTotal;
@@ -1007,6 +1036,7 @@ inline void Channel::Stats::removeItem(bmqp::EventType::Enum type, size_t size)
     d_numBytes -= size;
     --d_numItems[type];
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
 // -------------
 // class Channel
@@ -1106,9 +1136,11 @@ inline unsigned int Channel::numItems() const
 }
 
 inline unsigned int Channel::numItems(bmqp::EventType::Enum type) const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
 {
     return d_stats.d_numItems[type];
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
 inline bsls::Types::Uint64 Channel::numBytes() const
 {

@@ -72,8 +72,10 @@ namespace {
 const int k_MAX_INSTANT_MESSAGES = 10;
 // Maximum messages logged with throttling in a short period of time.
 
+// NOLINTBEGIN(cppcoreguidelines-interfaces-global-init)
 const bsls::Types::Int64 k_NS_PER_MESSAGE =
     bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
+// NOLINTEND(cppcoreguidelines-interfaces-global-init)
 // Time interval between messages logged with throttling.
 
 #define BMQ_LOGTHROTTLE_INFO                                                  \
@@ -93,6 +95,7 @@ const bsls::Types::Int64 k_NS_PER_MESSAGE =
 // ====================
 
 /// An utility class for limiting printing of large objects to a stream.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class LimitedPrinter {
   private:
     // DATA
@@ -117,6 +120,7 @@ class LimitedPrinter {
   public:
     // CREATORS
     template <class PRINTABLE>
+    // NOLINTBEGIN(*-magic-numbers)
     LimitedPrinter(const PRINTABLE&  printable,
                    bsl::size_t       maxPrintBytes = 2048,
                    bslma::Allocator* allocator     = 0)
@@ -125,6 +129,7 @@ class LimitedPrinter {
     {
         d_out << printable;
     }
+    // NOLINTEND(*-magic-numbers)
 
   private:
     // NOT IMPLEMENTED
@@ -133,6 +138,7 @@ class LimitedPrinter {
     /// Copy constructor and assignment operator removed.
     LimitedPrinter& operator=(const LimitedPrinter&) BSLS_KEYWORD_DELETED;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 struct Event {
     const mqbi::QueueHandle* d_handle_p;
@@ -174,6 +180,7 @@ inline bsl::ostream& operator<<(bsl::ostream& stream, const Event& event)
     return stream;
 }
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct VirtualIterator : mqbblp::QueueEngineUtil_AppState::VirtualIterator {
     mqbblp::PushStreamIterator* d_start_p;
     const bsls::Types::Uint64   d_stop;
@@ -191,6 +198,7 @@ struct VirtualIterator : mqbblp::QueueEngineUtil_AppState::VirtualIterator {
     ~VirtualIterator() BSLS_KEYWORD_OVERRIDE;
     const mqbi::StorageIterator* next() BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 VirtualIterator::~VirtualIterator()
 {
@@ -225,6 +233,7 @@ const mqbi::StorageIterator* VirtualIterator::next()
 
 bool isConfigureErrorPermanent(
     const bmqp_ctrlmsg::StatusCategory::Value& value)
+// NOLINTBEGIN(bugprone-branch-clone)
 {
     switch (value) {
     case bmqp_ctrlmsg::StatusCategory::E_SUCCESS: {
@@ -261,6 +270,7 @@ bool isConfigureErrorPermanent(
     }
     BSLA_UNREACHABLE;
 }
+// NOLINTEND(bugprone-branch-clone)
 
 }  // close unnamed namespace
 
@@ -270,6 +280,7 @@ bool isConfigureErrorPermanent(
 
 /// A guard class to remember to clean-up after `deliverMessages()` if we're
 /// in broadcast mode.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class RelayQueueEngine::AutoPurger {
   private:
     // DATE
@@ -285,6 +296,7 @@ class RelayQueueEngine::AutoPurger {
     }
 
     ~AutoPurger()
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     {
         // executed by the *DISPATCHER* thread
         // PRECONDITIONS
@@ -301,7 +313,9 @@ class RelayQueueEngine::AutoPurger {
             d_relayQueueEngine.d_storageIter_mp->reset();
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ----------------------
 // class RelayQueueEngine
@@ -365,6 +379,7 @@ void RelayQueueEngine::onHandleConfiguredDispatched(
     mqbi::QueueHandle*                                      handle,
     const bmqp_ctrlmsg::StreamParameters&    downStreamParameters,
     const bsl::shared_ptr<ConfigureContext>& context)
+// NOLINTBEGIN(*-magic-numbers)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -484,6 +499,7 @@ void RelayQueueEngine::onHandleConfiguredDispatched(
         processAppRedelivery(upstreamSubQueueId, app);
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 void RelayQueueEngine::onHandleReleased(
     const bmqp_ctrlmsg::Status&                                  status,
@@ -1005,11 +1021,13 @@ void RelayQueueEngine::applyConfiguration(App_State&        app,
         consumer.registerSubscriptions(handle);
     }
     if (!invalid.empty()) {
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (InvalidItems::const_iterator cit = invalid.cbegin();
              cit != invalid.cend();
              ++cit) {
             cit->lock()->invalidate();
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         app.routing()->finalize();
     }
 
@@ -1019,6 +1037,7 @@ void RelayQueueEngine::applyConfiguration(App_State&        app,
 }
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 RelayQueueEngine::RelayQueueEngine(QueueState*             queueState,
                                    const mqbconfm::Domain& domainConfig,
                                    bslma::Allocator*       allocator)
@@ -1032,6 +1051,7 @@ RelayQueueEngine::RelayQueueEngine(QueueState*             queueState,
 , d_storageIter_mp()
 , d_realStorageIter_mp()
 , d_allocator_p(allocator)
+// NOLINTBEGIN(*-magic-numbers)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(queueState);
@@ -1046,6 +1066,8 @@ RelayQueueEngine::RelayQueueEngine(QueueState*             queueState,
     resetState();  // Ensure 'resetState' is doing what is expected, similarly
                    // to the constructor.
 }
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 RelayQueueEngine::~RelayQueueEngine()
 {
@@ -1110,6 +1132,7 @@ mqbi::QueueHandle* RelayQueueEngine::getHandle(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define CALLBACK(CAT, RC, MSG, HAN)                                           \
     if (callback) {                                                           \
         bmqp_ctrlmsg::Status status(d_allocator_p);                           \
@@ -1144,9 +1167,11 @@ mqbi::QueueHandle* RelayQueueEngine::getHandle(
     }
 
     mqbi::QueueHandle* queueHandle =
+        // NOLINTBEGIN(*-narrowing-conversions)
         d_queueState_p->handleCatalog().getHandleByRequester(
             *clientContext,
             handleParameters.qId());
+    // NOLINTEND(*-narrowing-conversions)
     if (queueHandle) {
         // Already aware of this queueId from this client.
         if (QueueEngineUtil::validateUri(handleParameters,
@@ -1539,6 +1564,7 @@ void RelayQueueEngine::afterNewMessage()
 int RelayQueueEngine::onConfirmMessage(mqbi::QueueHandle*       handle,
                                        const bmqt::MessageGUID& msgGUID,
                                        unsigned int upstreamSubQueueId)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -1584,11 +1610,13 @@ int RelayQueueEngine::onConfirmMessage(mqbi::QueueHandle*       handle,
 
     return rc_NON_ZERO_REFERENCES;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 int RelayQueueEngine::onRejectMessage(
     BSLA_MAYBE_UNUSED mqbi::QueueHandle* handle,
     const bmqt::MessageGUID&             msgGUID,
     unsigned int                         upstreamSubQueueId)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // Specified 'subQueueId' is the downstream one.  Need to convert it into
     // corresponding appKey.
@@ -1654,6 +1682,7 @@ int RelayQueueEngine::onRejectMessage(
 
     return result;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void RelayQueueEngine::beforeMessageRemoved(const bmqt::MessageGUID& msgGUID)
 {
@@ -1682,6 +1711,7 @@ void RelayQueueEngine::beforeMessageRemoved(const bmqt::MessageGUID& msgGUID)
 
 void RelayQueueEngine::afterQueuePurged(const bsl::string&      appId,
                                         const mqbu::StorageKey& appKey)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -1735,6 +1765,7 @@ void RelayQueueEngine::afterQueuePurged(const bsl::string&      appId,
         }
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 void RelayQueueEngine::afterPostMessage()
 {
@@ -1932,6 +1963,7 @@ void RelayQueueEngine::push(mqbi::StorageMessageAttributes*     attributes,
     }
 
     // Count only those subQueueIds which 'storage' is aware of.
+    // NOLINTBEGIN(cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bmqp::Protocol::SubQueueInfosArray::iterator it =
              subscriptions.begin();
          it != subscriptions.end();
@@ -2049,6 +2081,7 @@ void RelayQueueEngine::push(mqbi::StorageMessageAttributes*     attributes,
             ++count;
         }
     }
+    // NOLINTEND(cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     if (count) {
         // Pass correct ref count
@@ -2122,17 +2155,20 @@ void RelayQueueEngine::storePushIfProxy(
             BSLS_ASSERT_SAFE(dataStreamMessage);
 
             // Reusing previously cached ordinals.
+            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             for (bmqp::Protocol::SubQueueInfosArray::const_iterator cit =
                      subQueueIds.begin();
                  cit != subQueueIds.end();
                  ++cit) {
                 if (cit->id() > 0) {
+                    // NOLINTNEXTLINE(*-narrowing-conversions)
                     const int         ordinal = cit->id() - 1;
                     mqbi::AppMessage& appMsg = dataStreamMessage->app(ordinal);
                     appMsg.setPushState();
                     appMsg.d_rdaInfo = cit->rdaInfo();
                 }
             }
+            // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         }
     }
 }
@@ -2140,6 +2176,7 @@ void RelayQueueEngine::storePushIfProxy(
 void RelayQueueEngine::beforeOneAppRemoved(unsigned int upstreamSubQueueId)
 {
     while (!d_storageIter_mp->atEnd()) {
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         const int numApps = d_storageIter_mp->numApps();
         if (numApps > 1) {
             // Removal of App's elements will not invalidate 'd_storageIter_mp'

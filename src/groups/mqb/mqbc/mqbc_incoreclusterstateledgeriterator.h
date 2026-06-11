@@ -57,6 +57,7 @@ namespace mqbc {
 /// @bbref{mqbc::ClusterStateLedgerIterator} interface to iterate through an
 /// @bbref{mqbc::IncoreClusterStateLedger}.  Note that any ledger iterated by
 /// this component *must* support aliasing.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class IncoreClusterStateLedgerIterator BSLS_KEYWORD_FINAL
 : public ClusterStateLedgerIterator {
   private:
@@ -180,6 +181,7 @@ class IncoreClusterStateLedgerIterator BSLS_KEYWORD_FINAL
     /// Return the current ledger record Id.
     const mqbsi::LedgerRecordId& currRecordId() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 
@@ -208,9 +210,11 @@ inline IncoreClusterStateLedgerIterator::IncoreClusterStateLedgerIterator(
     // NOTHING
 }
 
+// NOLINTBEGIN(bugprone-unhandled-self-assignment,cert-oop54-cpp)
 inline IncoreClusterStateLedgerIterator&
 IncoreClusterStateLedgerIterator::operator=(
     const IncoreClusterStateLedgerIterator& rhs)
+// NOLINTEND(bugprone-unhandled-self-assignment,cert-oop54-cpp)
 {
     d_firstInvocation    = rhs.d_firstInvocation;
     d_isValid            = rhs.d_isValid;

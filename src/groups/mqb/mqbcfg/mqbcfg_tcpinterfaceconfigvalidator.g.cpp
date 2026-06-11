@@ -67,6 +67,7 @@ TEST(TcpInterfaceConfigValidatorTest, nonUniqueNamesAreInvalid)
 }
 
 TEST(TcpInterfaceConfigValidatorTest, nonUniquePortsAreInvalid)
+// NOLINTBEGIN(*-magic-numbers)
 {
     mqbcfg::TcpInterfaceConfigValidator validator;
     mqbcfg::TcpInterfaceConfig          config;
@@ -88,8 +89,10 @@ TEST(TcpInterfaceConfigValidatorTest, nonUniquePortsAreInvalid)
     EXPECT_EQ(mqbcfg::TcpInterfaceConfigValidator::k_DUPLICATE_PORT,
               validator(config));
 }
+// NOLINTEND(*-magic-numbers)
 
 TEST(TcpInterfaceConfigValidatorTest, outOfRangePortsAreInvalid)
+// NOLINTBEGIN(*-magic-numbers)
 {
     mqbcfg::TcpInterfaceConfigValidator validator;
 
@@ -111,12 +114,14 @@ TEST(TcpInterfaceConfigValidatorTest, outOfRangePortsAreInvalid)
                   validator(config));
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -126,3 +131,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

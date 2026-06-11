@@ -42,6 +42,7 @@ using namespace bsl;
 //=============================================================================
 //                      STANDARD BDE ASSERT TEST MACROS
 //-----------------------------------------------------------------------------
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static int testStatus = 0;
 
 //=============================================================================
@@ -180,7 +181,9 @@ class TestTableInfoProvider : public bmqst::TableInfoProvider {
 //-----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,performance-avoid-endl)
 {
+    // NOLINTNEXTLINE(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     int test    = argc > 1 ? atoi(argv[1]) : 0;
     int verbose = argc > 2;
 
@@ -218,9 +221,12 @@ int main(int argc, char* argv[])
         } DATA[] = {
             {L_, "a b c", {"1 2 3", "4 5 6"}, "a,b,c\n1,2,3\n4,5,6\n"},
         };
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const int NUM_DATA = sizeof(DATA) / sizeof(*DATA);
 
+        // NOLINTBEGIN(performance-avoid-endl)
         for (int dataIdx = 0; dataIdx < NUM_DATA; ++dataIdx) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const TestData& data = DATA[dataIdx];
             const int       LINE = data.d_line;
 
@@ -230,16 +236,20 @@ int main(int argc, char* argv[])
 
             tip.addHeaderLevel(bmqst::TestUtil::stringVector(data.d_header));
 
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
             const char* const* rows = data.d_rows;
+            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             while (*rows) {
                 tip.addRow(bmqst::TestUtil::stringVector(*rows));
                 ++rows;
             }
+            // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
             bmqu::MemOutStream stream;
             bmqst::TableUtil::printCsv(stream, tip);
             ASSERT_EQUALS(stream.str(), data.d_expected);
         }
+        // NOLINTEND(performance-avoid-endl)
 
     } break;
     case 3: {
@@ -343,9 +353,12 @@ case 3: {
         } DATA[] = {
             {L_, "a b c", {"1 2 3", "4 5 6"}},
         };
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const int NUM_DATA = sizeof(DATA) / sizeof(*DATA);
 
+        // NOLINTBEGIN(performance-avoid-endl)
         for (int dataIdx = 0; dataIdx < NUM_DATA; ++dataIdx) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const TestData& data = DATA[dataIdx];
             const int       LINE = data.d_line;
 
@@ -357,18 +370,22 @@ case 3: {
             expected.push_back(bmqst::TestUtil::stringVector(data.d_header));
             tip.addHeaderLevel(expected.back());
 
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
             const char* const* rows = data.d_rows;
+            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             while (*rows) {
                 expected.push_back(bmqst::TestUtil::stringVector(*rows));
                 tip.addRow(expected.back());
                 ++rows;
             }
+            // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
             bsl::vector<bsl::vector<bsl::string> > output;
             int ret = bmqst::TableUtil::outputToVector(&output, tip);
             ASSERT_EQUALS(ret, 0);
             ASSERT_EQUALS(output, expected);
         }
+        // NOLINTEND(performance-avoid-endl)
 
     } break;
     case 1: {
@@ -412,3 +429,4 @@ case 3: {
     }
     return testStatus;
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers,performance-avoid-endl)

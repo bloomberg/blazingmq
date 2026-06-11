@@ -61,6 +61,7 @@ static void test1_breathingTest()
 //                int,
 //                bool)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("Breathing Test");
 
@@ -88,6 +89,7 @@ static void test1_breathingTest()
         bdlbb::Blob blob(&factory, bmqtst::TestHelperUtil::allocator());
         blob.setLength(BLOB_LENGTH);
 
+        // NOLINTNEXTLINE(*-magic-numbers)
         bmqu::BlobIterator obj(&blob, bmqu::BlobPosition(12, 0), 4, true);
 
         PVVV("iterator = " << obj);
@@ -98,6 +100,7 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(&blob, obj.blob());
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test2_advance()
 // ------------------------------------------------------------------------
@@ -120,6 +123,7 @@ static void test2_advance()
 //   blob();
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("Advance Test");
 
@@ -155,9 +159,11 @@ static void test2_advance()
         // Move to end of blob, advancing length
         {L_, 12, 0, 4, true, {1, 3}, true, 13, 0},
     };
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const int NUM_DATA = sizeof(DATA) / sizeof(*DATA);
 
     for (int dataIdx = 0; dataIdx < NUM_DATA; ++dataIdx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const TestData& data = DATA[dataIdx];
 
         bdlbb::PooledBlobBufferFactory factory(
@@ -172,9 +178,11 @@ static void test2_advance()
                                 data.d_lengthOrSteps,
                                 data.d_advancingLength);
 
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
         for (int i = 0; data.d_advancements[i]; ++i) {
             iter.advance(data.d_advancements[i]);
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
         BMQTST_ASSERT_EQ_D("line " << data.d_line, iter.blob(), &blob);
         BMQTST_ASSERT_EQ_D("line " << data.d_line,
@@ -188,6 +196,7 @@ static void test2_advance()
                            iter.position());
     }
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers)
 
 static void test3_forwardIterator()
 // --------------------------------------------------------------------
@@ -221,6 +230,7 @@ static void test3_forwardIterator()
 //   bsl::swap(BlobIterator&, BlobIterator&)
 //   bsl::iterator_traits<BlobIterator>::reference
 // --------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("Forward Iterator Test");
 
@@ -247,9 +257,11 @@ static void test3_forwardIterator()
         // Move to end of blob, advancing length
         {L_, 12, 0, 4, 13, 0},
     };
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const int NUM_DATA = sizeof(DATA) / sizeof(*DATA);
 
     for (int dataIdx = 0; dataIdx < NUM_DATA; ++dataIdx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const TestData& data = DATA[dataIdx];
 
         bdlbb::PooledBlobBufferFactory factory(
@@ -266,6 +278,7 @@ static void test3_forwardIterator()
         iter4 = iter;
         BMQTST_ASSERT_EQ_D("line " << data.d_line, iter, iter4);
 
+        // NOLINTBEGIN(cppcoreguidelines-init-variables)
         for (int i = 0; i < data.d_length; ++i) {
             BMQTST_ASSERT_NE_D("line " << data.d_line, iter, end);
             const bmqu::BlobPosition p(iter.position());
@@ -275,8 +288,10 @@ static void test3_forwardIterator()
             BMQTST_ASSERT_EQ_D("line " << data.d_line, c, *iter);
             ++iter;
         }
+        // NOLINTEND(cppcoreguidelines-init-variables)
         BMQTST_ASSERT_EQ_D("line " << data.d_line, iter, end);
 
+        // NOLINTBEGIN(cppcoreguidelines-init-variables)
         for (int i = 0; i < data.d_length; ++i, ++iter3) {
             BMQTST_ASSERT_EQ_D("line " << data.d_line, iter2, iter3);
             BMQTST_ASSERT_NE_D("line " << data.d_line, iter2, end);
@@ -287,6 +302,7 @@ static void test3_forwardIterator()
             bmqu::BlobUtil::readNBytes(&c, blob, p, 1);
             BMQTST_ASSERT_EQ_D("line " << data.d_line, c, r);
         }
+        // NOLINTEND(cppcoreguidelines-init-variables)
         BMQTST_ASSERT_EQ_D("line " << data.d_line, iter2, iter3);
         BMQTST_ASSERT_EQ_D("line " << data.d_line, iter2, end);
         BMQTST_ASSERT_EQ_D("line " << data.d_line, iter3, end);
@@ -299,12 +315,14 @@ static void test3_forwardIterator()
         BMQTST_ASSERT_EQ_D("line " << data.d_line, iter4, end);
     }
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -321,3 +339,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

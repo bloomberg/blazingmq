@@ -41,12 +41,18 @@ namespace m_bmqtool {
 
 namespace {
 
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_LOG_SESSION_CATEGORY[] = "SESSION";
-const char k_LOG_PUSH_CATEGORY[]    = "PUSH";
-const char k_LOG_ACK_CATEGORY[]     = "ACK";
-const char k_LOG_PUT_CATEGORY[]     = "PUT";
+// NOLINTNEXTLINE(*-avoid-c-arrays)
+const char k_LOG_PUSH_CATEGORY[] = "PUSH";
+// NOLINTNEXTLINE(*-avoid-c-arrays)
+const char k_LOG_ACK_CATEGORY[] = "ACK";
+// NOLINTNEXTLINE(*-avoid-c-arrays)
+const char k_LOG_PUT_CATEGORY[] = "PUT";
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_LOG_CONFIRM_CATEGORY[] = "CONFIRM";
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class LogRecord {
   private:
     ball::Record         d_record;
@@ -91,13 +97,16 @@ class LogRecord {
         return &attributes.messageStreamBuf();
     }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 template <typename T>
 LogRecord& operator<<(LogRecord& record, const T& value)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     record.d_os << value;
     return record;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 static void printSingleLine(LogRecord& record, const bdlbb::Blob& blob)
 {
     for (int i = 0; i < blob.numDataBuffers(); ++i) {
@@ -146,6 +155,7 @@ void FileLogger::writeSessionEvent(const bmqa::SessionEvent& event)
         return;  // RETURN
     }
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     LogRecord record(d_out, k_LOG_SESSION_CATEGORY);
     record << event.type() << "|";  // session event type
 
@@ -163,6 +173,7 @@ void FileLogger::writeAckMessage(const bmqa::Message& message)
         return;  // RETURN
     }
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     LogRecord record(d_out, k_LOG_ACK_CATEGORY);
     record << message.queueId().uri().asString() << "|"  // QueueUri
            << message.correlationId() << "|"             // CorrelationId
@@ -177,6 +188,7 @@ void FileLogger::writeConfirmMessage(const bmqa::Message& message)
         return;  // RETURN
     }
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     LogRecord record(d_out, k_LOG_CONFIRM_CATEGORY);
     record << message.queueId().uri().asString() << "|"  // QueueUri
            << message.messageGUID() << "|";              // MessageGUID
@@ -189,6 +201,7 @@ void FileLogger::writePushMessage(const bmqa::Message& message)
         return;  // RETURN
     }
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     LogRecord record(d_out, k_LOG_PUSH_CATEGORY);
     record << message.queueId().uri().asString() << "|"  // QueueUri
            << message.messageGUID() << "|";              // MessageGUID
@@ -205,6 +218,7 @@ void FileLogger::writePutMessage(const bmqa::Message& message)
         return;  // RETURN
     }
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     LogRecord record(d_out, k_LOG_PUT_CATEGORY);
     record << message.queueId().uri().asString() << "|"  // QueueUri
            << message.correlationId() << "|"             // CorrelationId

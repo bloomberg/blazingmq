@@ -124,6 +124,7 @@ struct SubscriptionId {
 // ===========
 
 /// Value-semantic type representing an event
+// NOLINTBEGIN(clang-analyzer-optin.performance.Padding,cppcoreguidelines-special-member-functions)
 class Event {
   public:
     // TYPES
@@ -146,6 +147,7 @@ class Event {
     /// Enum identifying the type of the Event
     struct EventType {
         // TYPES
+        // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
         enum Enum {
             /// Uninitialized event
             e_UNINITIALIZED,
@@ -158,11 +160,13 @@ class Event {
             /// User request event
             e_REQUEST
         };
+        // NOLINTEND(cppcoreguidelines-use-enum-class)
     };
 
     /// Enum identify mode of MessageEvent
     struct MessageEventMode {
         // TYPES
+        // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
         enum Enum { e_UNINITIALIZED, e_READ, e_WRITE };
     };
 
@@ -548,6 +552,7 @@ class Event {
     const bsl::shared_ptr<Queue>
     lookupQueue(int queueId, unsigned int subscriptionId) const;
 };
+// NOLINTEND(clang-analyzer-optin.performance.Padding,cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 

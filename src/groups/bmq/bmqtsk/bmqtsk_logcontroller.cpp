@@ -80,6 +80,7 @@ static void bslsLogHandler(bsls::LogSeverity::Enum severity,
                            const char*             file,
                            int                     line,
                            const char*             message)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // Custom message handler for bsls::Log.  Redirect the specified
     // 'message', the specified 'file' and the specified 'line' to
@@ -101,6 +102,7 @@ static void bslsLogHandler(bsls::LogSeverity::Enum severity,
 
     ball::Log::logMessage(category, balSev, file, line, message);
 };
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 }  // close unnamed namespace
 
@@ -135,8 +137,10 @@ LogControllerConfig::CategoryProperties::CategoryProperties(
 LogControllerConfig::LogControllerConfig(bslma::Allocator* allocator)
 : d_fileName(allocator)
 , d_fileMaxAgeDays(0)
+// NOLINTNEXTLINE(*-magic-numbers)
 , d_rotationBytes(128 * 1024 * 1024)  // 128 MB
-, d_rotationSeconds(60 * 60 * 24)     // 1 day
+// NOLINTNEXTLINE(*-magic-numbers)
+, d_rotationSeconds(60 * 60 * 24)  // 1 day
 , d_logfileFormat("%d (%t) %s %F:%l %m\n\n", allocator)
 , d_consoleFormat("%d (%t) %s %F:%l %m\n", allocator)
 , d_loggingVerbosity(ball::Severity::e_INFO)
@@ -147,6 +151,7 @@ LogControllerConfig::LogControllerConfig(bslma::Allocator* allocator)
 , d_syslogAppName("")
 , d_syslogVerbosity(ball::Severity::e_ERROR)
 , d_categories(allocator)
+// NOLINTNEXTLINE(*-magic-numbers)
 , d_recordBufferSizeBytes(32 * 1024)  // 32 KB
 , d_recordingVerbosity(ball::Severity::e_OFF)
 , d_triggerVerbosity(ball::Severity::e_OFF)
@@ -204,6 +209,7 @@ LogControllerConfig::operator=(const LogControllerConfig& rhs)
 }
 
 int LogControllerConfig::addCategoryProperties(const bsl::string& properties)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // NOTE:
     //: o the 'properties' parameter *must* remain a string, and not a
@@ -232,6 +238,7 @@ int LogControllerConfig::addCategoryProperties(const bsl::string& properties)
     d_categories[tokens[0]] = CategoryProperties(severity, tokens[2]);
     return 0;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 void LogControllerConfig::clearCategoriesProperties()
 {
@@ -318,6 +325,7 @@ int LogController::processInfoCommand(BSLA_MAYBE_UNUSED bsl::istream& cmd,
 }
 
 int LogController::processVerbCommand(bsl::istream& cmd, bsl::ostream& os)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     bsl::string severity;
     cmd >> severity;
@@ -338,8 +346,10 @@ int LogController::processVerbCommand(bsl::istream& cmd, bsl::ostream& os)
 
     return 0;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 int LogController::processConsoleCommand(bsl::istream& cmd, bsl::ostream& os)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     bsl::string severity;
     cmd >> severity;
@@ -377,8 +387,10 @@ int LogController::processConsoleCommand(bsl::istream& cmd, bsl::ostream& os)
 
     return 0;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 int LogController::processCategoryCommand(bsl::istream& cmd, bsl::ostream& os)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     bsl::string category;
     bsl::string severity;
@@ -412,6 +424,7 @@ int LogController::processCategoryCommand(bsl::istream& cmd, bsl::ostream& os)
 
     return 0;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 int LogController::tryRegisterObserver(ball::Observer* observer)
 {
@@ -436,10 +449,12 @@ LogController::LogController(bdlmt::EventScheduler* scheduler,
 , d_isInitialized(false)
 , d_config(allocator)
 , d_multiplexObserver(allocator)
+// NOLINTBEGIN(*-magic-numbers)
 , d_fileObserver(ball::Severity::e_OFF,  // disable stdout (we use Console)
                  false,                  // use UTC time
                  8192,                   // maxQueueLogEntries
                  allocator)
+// NOLINTEND(*-magic-numbers)
 , d_alarmLog(allocator)
 , d_consoleObserver(allocator)
 , d_syslogObserver(allocator)
@@ -459,6 +474,7 @@ LogController::~LogController()
 
 int LogController::initialize(bsl::ostream&              errorDescription,
                               const LogControllerConfig& config)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(!d_isInitialized &&
@@ -655,6 +671,7 @@ int LogController::initialize(bsl::ostream&              errorDescription,
     d_config        = config;
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 void LogController::shutdown()
 {

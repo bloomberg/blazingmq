@@ -83,6 +83,7 @@ int TableRecordsRecord::level() const
 void TableRecords::addContext(const StatContext* context,
                               int                level,
                               bool               isFilteredOut)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-member-init)
 {
     if (!isFilteredOut) {
         d_records.push_back(
@@ -147,6 +148,7 @@ void TableRecords::addContext(const StatContext* context,
 
     d_sortBuffer.resize(sortBufferStartSize);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-member-init)
 
 // CREATORS
 TableRecords::TableRecords(bslma::Allocator* basicAllocator)

@@ -152,17 +152,20 @@ struct PushBackRndSleep {
     // ACCESSORS
     template <class CONTAINER, class VALUE>
     void operator()(CONTAINER* container, const VALUE& value) const
+    // NOLINTBEGIN(cppcoreguidelines-init-variables,cppcoreguidelines-pro-type-reinterpret-cast)
     {
         unsigned nsec;
         bdlb::RandomDevice::getRandomBytesNonBlocking(
             reinterpret_cast<unsigned char*>(&nsec),
             sizeof(nsec));
 
+        // NOLINTNEXTLINE(*-magic-numbers,*-narrowing-conversions)
         bsls::TimeInterval sleepTime(0, (nsec % 50000000) + 1);
         bslmt::ThreadUtil::sleep(sleepTime);  // from 1 to 50 ms
 
         container->pushBack(value);
     }
+    // NOLINTEND(cppcoreguidelines-init-variables,cppcoreguidelines-pro-type-reinterpret-cast)
 };
 
 // =====================
@@ -178,6 +181,7 @@ struct ThrowException {
 
     // ACCESSORS
     BSLA_NORETURN
+    // NOLINTNEXTLINE(*-magic-numbers)
     void operator()() const { throw static_cast<int>(42); }
 };
 
@@ -312,11 +316,13 @@ static void test1_usageExample()
 
     // receive data from 10 clients
     bmqu::OperationChainLink link(chain.allocator());
+    // NOLINTBEGIN(*-magic-numbers)
     for (int i = 0; i < 10; ++i) {
         link.insert(bdlf::BindUtil::bind(&UsageExample::receive,
                                          bdlf::PlaceHolders::_1),
                     &UsageExample::onDataReceived);
     }
+    // NOLINTEND(*-magic-numbers)
 
     chain.append(&link);
 
@@ -392,6 +398,7 @@ static void test3_chain_startStop(bdlmt::ThreadPool* threadPool)
 //   2. Stop the chain and make sure operations in the chain stops
 //      executing, while 'stop' does not block the calling thread.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-init-variables)
 {
     // PRECONDITIONS
     BSLS_ASSERT(threadPool);
@@ -496,6 +503,7 @@ static void test3_chain_startStop(bdlmt::ThreadPool* threadPool)
                          0);
     }
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-init-variables)
 
 static void test4_chain_join(bdlmt::ThreadPool* threadPool)
 // ------------------------------------------------------------------------
@@ -688,6 +696,7 @@ test6_chain_append2(BSLA_MAYBE_UNUSED bdlmt::ThreadPool* threadPool)
 //      they appear in the list. Also make sure input links are left empty
 //      after the append.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // PRECONDITIONS
     BSLS_ASSERT(threadPool);
@@ -699,6 +708,7 @@ test6_chain_append2(BSLA_MAYBE_UNUSED bdlmt::ThreadPool* threadPool)
 
         // append links
         bmqu::OperationChainLink** links =
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             reinterpret_cast<bmqu::OperationChainLink**>(0x01);
 
         chain.append(links, 0);
@@ -719,6 +729,7 @@ test6_chain_append2(BSLA_MAYBE_UNUSED bdlmt::ThreadPool* threadPool)
         bmqu::OperationChainLink link3(chain.allocator());
 
         // append links
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         bmqu::OperationChainLink* links[] = {&link1, &link2, &link3};
         chain.append(links, 3);
 
@@ -751,6 +762,7 @@ test6_chain_append2(BSLA_MAYBE_UNUSED bdlmt::ThreadPool* threadPool)
         link3.insert(NullOperation());
 
         // append links
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         bmqu::OperationChainLink* links[] = {&link1, &link2, &link3};
         chain.append(links, 3);
 
@@ -768,6 +780,7 @@ test6_chain_append2(BSLA_MAYBE_UNUSED bdlmt::ThreadPool* threadPool)
         BMQTST_ASSERT_EQ(link3.numOperations(), 0u);
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 static void
 test7_chain_appendInplace(BSLA_MAYBE_UNUSED bdlmt::ThreadPool* threadPool)
@@ -1190,6 +1203,7 @@ static void test12_link_creators()
 //   2. Move-construct a link from another link and make sure that the
 //      contents of the moved-from link is moved to the new link.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-cplusplus.Move)
 {
     // 1. default constructor
     {
@@ -1223,6 +1237,7 @@ static void test12_link_creators()
                          bmqtst::TestHelperUtil::allocator());
     }
 }
+// NOLINTEND(clang-analyzer-cplusplus.Move)
 
 static void test13_link_assignment()
 // ------------------------------------------------------------------------
@@ -1239,6 +1254,7 @@ static void test13_link_assignment()
 //   2. Move-assign a link to itself and make sure that the link stays in a
 //      valid state.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-cplusplus.Move)
 {
     // 1. regular move-assignment
     {
@@ -1281,6 +1297,7 @@ static void test13_link_assignment()
                          bmqtst::TestHelperUtil::allocator());
     }
 }
+// NOLINTEND(clang-analyzer-cplusplus.Move)
 
 static void test14_link_insert()
 // ------------------------------------------------------------------------
@@ -1414,6 +1431,7 @@ static void test16_link_swap()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -1460,3 +1478,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

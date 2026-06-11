@@ -120,6 +120,7 @@ namespace bmqu {
 // ====================
 
 /// This mechanism implements a scoped guard for an ostream's format state.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class OutStreamFormatSaver {
   private:
     // DATA
@@ -157,6 +158,7 @@ class OutStreamFormatSaver {
     /// Reset the saved state.
     void reset();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

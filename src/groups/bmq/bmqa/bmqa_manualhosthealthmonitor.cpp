@@ -54,6 +54,7 @@ ManualHostHealthMonitor::observeHostHealth(const HostHealthChangeFn& cb)
 void ManualHostHealthMonitor::setState(bmqt::HostHealthState::Enum newState)
 {
     bmqimp::ManualHostHealthMonitor* impl =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<bmqimp::ManualHostHealthMonitor*>(d_impl_sp.get());
     impl->setState(newState);
 }

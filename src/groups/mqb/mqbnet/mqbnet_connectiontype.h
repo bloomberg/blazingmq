@@ -26,6 +26,7 @@ namespace mqbnet {
 struct ConnectionType {
     // Enum representing the type of session being negotiated, from that
     // side of the connection's point of view.
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         e_UNKNOWN,
         e_CLUSTER_PROXY,   // Proxy (me) -> broker (outgoing)
@@ -33,6 +34,7 @@ struct ConnectionType {
         e_CLIENT,          // Client or proxy -> me (incoming)
         e_ADMIN            // Admin client -> me (incoming)
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 };
 
 }  // close package namespace

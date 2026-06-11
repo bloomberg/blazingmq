@@ -57,6 +57,7 @@ namespace mqba {
 
 /// Implementation of mqbi::DispatcherEventSource using object pools for
 /// efficient event allocation.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class DispatcherEventSource BSLS_KEYWORD_FINAL
 : public mqbi::DispatcherEventSource {
   public:
@@ -129,6 +130,7 @@ class DispatcherEventSource BSLS_KEYWORD_FINAL
     bsl::shared_ptr<mqbevt::StorageEvent>
     getStorageEvent() BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

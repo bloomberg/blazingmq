@@ -88,6 +88,7 @@ namespace mqbblp {
 // ========================
 
 /// Mechanism to manage queues on a cluster.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ClusterQueueHelper BSLS_KEYWORD_FINAL
 : public mqbc::ClusterStateObserver,
   public mqbc::ClusterMembershipObserver,
@@ -128,6 +129,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// Private struct holding attributes related to a substream of a queue.
     struct SubQueueContext {
         /// State of the upstream for the given subStream
+        // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
         enum Enum {
             /// Answer Close/Configure requests immediately.  RelayQueueEngine
             /// caches new Configuration coming from Clients.  Close requests
@@ -144,6 +146,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
             /// Reopen has failed.
             k_FAILED
         };
+        // NOLINTEND(cppcoreguidelines-use-enum-class)
 
         //  This code relies on the fact that there can NOT be a Close request
         //  before corresponding Open response.
@@ -217,6 +220,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
     /// Publicly visible struct holding all live information related to a
     /// queue.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct QueueLiveState {
       public:
         // PUBLIC DATA
@@ -303,6 +307,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         /// Return `false` if there is a handle or handle creation in progress.
         bool isIdle() const;
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     typedef bsl::unordered_map<const mqbnet::ClusterNode*,
                                bsl::weak_ptr<StopContext> >
@@ -337,6 +342,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// Structure encapsulating the entire context associated with the open
     /// queue request.  One such context is created per each openQueue
     /// request.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct OpenQueueContext {
         // PUBLIC DATA
 
@@ -377,12 +383,14 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
         QueueContext* queueContext() const;
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     typedef bsl::shared_ptr<OpenQueueContext> OpenQueueContextSp;
 
     /// Structure representing all information and context associated to a
     /// queue, whether the queue is opened, being opened, or just aware due
     /// to a leader advisory message.
+    // NOLINTBEGIN(cppcoreguidelines-non-private-member-variables-in-classes,cppcoreguidelines-special-member-functions)
     struct QueueContext {
       public:
         // PUBLIC DATA
@@ -426,6 +434,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         /// Return the partition id associated with this object.
         int partitionId() const;
     };
+    // NOLINTEND(cppcoreguidelines-non-private-member-variables-in-classes,cppcoreguidelines-special-member-functions)
 
     typedef bsl::shared_ptr<QueueContext> QueueContextSp;
 
@@ -438,6 +447,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// queue which have a proper valid unique queueId.
     typedef bsl::unordered_map<int, QueueContext*> QueueContextByIdMap;
 
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct PartitionReopenCycle {
         ClusterQueueHelper* d_owner_p;
         bsls::Types::Uint64 d_generationCount;
@@ -454,6 +464,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         int                 partitionId() const;
         bool                isSuccess() const;
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     typedef bsl::unordered_map<int, bsl::weak_ptr<PartitionReopenCycle> >
         ReopenCycles;
@@ -1138,6 +1149,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// This can only be true when all cluster nodes support StopRequest V2.
     bool isShutdownLogicOn() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

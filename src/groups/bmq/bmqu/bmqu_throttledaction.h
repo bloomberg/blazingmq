@@ -126,8 +126,10 @@ struct ThrottledActionParams {
     /// defining an action that should be executed at most the specified
     /// `maxCountPerInterval` times during the specified `intervalMs`
     /// milliseconds time frame.
+    // NOLINTBEGIN(*-magic-numbers)
     explicit ThrottledActionParams(int intervalMs          = 3000,
                                    int maxCountPerInterval = 1);
+    // NOLINTEND(*-magic-numbers)
 };
 
 // ======
@@ -144,6 +146,7 @@ struct ThrottledActionParams {
 // use a standard 'RESET' action that displays a BALL_LOG_INFO of the
 // number of times 'ACTION' got skipped due to throttling.
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQU_THROTTLEDACTION_THROTTLE_WITH_RESET(P, ACTION, RESET)            \
     BMQU_THROTTLEDACTION_THROTTLE_INTERNAL(P, ACTION, RESET)
 // Throttle the specified 'ACTION' using the specified parameters 'P' and
@@ -151,37 +154,52 @@ struct ThrottledActionParams {
 // inside the 'RESET' code to reference the number of times 'ACTION' got
 // skipped due to throttling.
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQU_THROTTLEDACTION_THROTTLE_NO_RESET(P, ACTION)                     \
     BMQU_THROTTLEDACTION_THROTTLE_INTERNAL(P, ACTION, {})
 // Throttle the specified 'ACTION' using the specified parameters 'P' and
 // use a void reset action.
 
-#define BMQU_THROTTLEDACTION_THROTTLE_INTERNAL(P, ACTION, RESET)              \
-    {                                                                         \
-        const bsls::Types::Int64 _now =                                       \
-            BloombergLP::bsls::TimeUtil::getTimer();                          \
-                                                                              \
-        if ((_now - P.d_lastResetTime) >= P.d_intervalNano) {                 \
-            int                _numSkipped = P.d_countSinceLastReset;         \
-            bsls::Types::Int64 _resetTime  = P.d_lastResetTime;               \
-            if (P.d_lastResetTime.testAndSwap(_resetTime, _now) ==            \
-                _resetTime) {                                                 \
-                P.d_countSinceLastReset -= _numSkipped;                       \
-                if (_numSkipped > P.d_maxCountPerInterval) {                  \
-                    _numSkipped -= P.d_maxCountPerInterval;                   \
-                    {                                                         \
-                        RESET;                                                \
-                    }                                                         \
-                }                                                             \
-            }                                                                 \
-        }                                                                     \
-                                                                              \
-        if (++P.d_countSinceLastReset <= P.d_maxCountPerInterval) {           \
-            ACTION;                                                           \
-        }                                                                     \
-        else {                                                                \
-            /* Action was skipped because of throttling */                    \
-        }                                                                     \
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define BMQU_THROTTLEDACTION_THROTTLE_INTERNAL(P, ACTION, RESET)                       \
+    {                                                                                  \
+        const bsls::Types::Int64 _now =                                                \
+            BloombergLP::bsls::TimeUtil::getTimer();                                   \
+                                                                                       \
+        if ((_now - P.d_lastResetTime) >=                                              \
+            P.d_intervalNano) { /* NOLINT(bugprone-macro-parentheses) */               \
+            int _numSkipped =                                                          \
+                P.d_countSinceLastReset; /* NOLINT(bugprone-macro-parentheses)         \
+                                          */                                           \
+            bsls::Types::Int64 _resetTime =                                            \
+                P.d_lastResetTime; /* NOLINT(bugprone-macro-parentheses) */            \
+            if (P.d_lastResetTime.testAndSwap(                                         \
+                    _resetTime,                                                        \
+                    _now) == /* NOLINT(bugprone-macro-parentheses) */                  \
+                _resetTime) {                                                          \
+                P.d_countSinceLastReset -=                                             \
+                    _numSkipped; /* NOLINT(bugprone-macro-parentheses) */              \
+                if (_numSkipped >                                                      \
+                    P.d_maxCountPerInterval) { /* NOLINT(bugprone-macro-parentheses)   \
+                                                */                                     \
+                    _numSkipped -=                                                     \
+                        P.d_maxCountPerInterval; /* NOLINT(bugprone-macro-parentheses) \
+                                                  */                                   \
+                    {                                                                  \
+                        RESET;                                                         \
+                    }                                                                  \
+                }                                                                      \
+            }                                                                          \
+        }                                                                              \
+                                                                                       \
+        if (++P.d_countSinceLastReset <=                                               \
+            P.d_maxCountPerInterval) { /* NOLINT(bugprone-macro-parentheses)           \
+                                        */                                             \
+            ACTION;                                                                    \
+        }                                                                              \
+        else {                                                                         \
+            /* Action was skipped because of throttling */                             \
+        }                                                                              \
     }
 // Throttle the specified 'ACTION' using the specified parameters 'P' and
 // the specified reset action 'RESET'.

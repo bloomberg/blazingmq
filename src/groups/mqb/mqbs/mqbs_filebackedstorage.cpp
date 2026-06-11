@@ -64,6 +64,7 @@ const int k_GC_HISTORY_BATCH_SIZE = 1000;
 // PRIVATE MANIPULATORS
 void FileBackedStorage::purgeCommon(const mqbu::StorageKey& appKey,
                                     bool                    asPrimary)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // This method is common to both primary and replica nodes, when a queue or
     // a specified virtual storage is purged.  QueueEngine should not be
@@ -99,6 +100,7 @@ void FileBackedStorage::purgeCommon(const mqbu::StorageKey& appKey,
         d_virtualStorageCatalog.removeAll(appKey, asPrimary);
     }
 }
+// NOLINTEND(*-narrowing-conversions)
 
 // CREATORS
 FileBackedStorage::FileBackedStorage(
@@ -162,6 +164,7 @@ FileBackedStorage::get(bsl::shared_ptr<bdlbb::Blob>*   appData,
                        bsl::shared_ptr<bdlbb::Blob>*   options,
                        mqbi::StorageMessageAttributes* attributes,
                        const bmqt::MessageGUID&        msgGUID) const
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     RecordHandleMap::const_iterator it = d_handles.find(msgGUID);
     if (it == d_handles.end()) {
@@ -185,10 +188,12 @@ FileBackedStorage::get(bsl::shared_ptr<bdlbb::Blob>*   appData,
 
     return mqbi::StorageResult::e_SUCCESS;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 mqbi::StorageResult::Enum
 FileBackedStorage::get(mqbi::StorageMessageAttributes* attributes,
                        const bmqt::MessageGUID&        msgGUID) const
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     BSLS_ASSERT_SAFE(queue());
 
@@ -213,6 +218,7 @@ FileBackedStorage::get(mqbi::StorageMessageAttributes* attributes,
 
     return mqbi::StorageResult::e_SUCCESS;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 bool FileBackedStorage::hasReceipt(const bmqt::MessageGUID& msgGUID) const
 {
@@ -491,6 +497,7 @@ FileBackedStorage::confirm(const bmqt::MessageGUID& msgGUID,
 
 mqbi::StorageResult::Enum
 FileBackedStorage::releaseRef(const bmqt::MessageGUID& guid, bool asPrimary)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     RecordHandleMapIter it = d_handles.find(guid);
     if (it == d_handles.end()) {
@@ -564,9 +571,11 @@ FileBackedStorage::releaseRef(const bmqt::MessageGUID& guid, bool asPrimary)
         return mqbi::StorageResult::e_NON_ZERO_REFERENCES;
     }
 }
+// NOLINTEND(*-narrowing-conversions)
 
 mqbi::StorageResult::Enum
 FileBackedStorage::remove(const bmqt::MessageGUID& msgGUID, int* msgSize)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     RecordHandleMap::iterator it = d_handles.find(msgGUID);
     if (it == d_handles.end()) {
@@ -623,9 +632,11 @@ FileBackedStorage::remove(const bmqt::MessageGUID& msgGUID, int* msgSize)
 
     return mqbi::StorageResult::e_SUCCESS;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 mqbi::StorageResult::Enum
 FileBackedStorage::removeAll(const mqbu::StorageKey& appKey)
+// NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-init-variables)
 {
     mqbi::StorageResult::Enum rc;
     const bsls::Types::Uint64 timestamp = bdlt::EpochUtil::convertToTimeT64(
@@ -665,6 +676,7 @@ FileBackedStorage::removeAll(const mqbu::StorageKey& appKey)
 
     return rc;
 }
+// NOLINTEND(*-narrowing-conversions,cppcoreguidelines-init-variables)
 
 bool FileBackedStorage::removeVirtualStorage(const mqbu::StorageKey& appKey,
                                              bool                    asPrimary)
@@ -703,10 +715,12 @@ bool FileBackedStorage::removeVirtualStorage(const mqbu::StorageKey& appKey,
     return mqbi::StorageResult::e_SUCCESS == rc;
 }
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 mqbi::StorageResult::Enum
 FileBackedStorage::writePurgeRecordImpl(bsls::Types::Uint64         timestamp,
                                         const mqbu::StorageKey&     appKey,
                                         const DataStoreRecordHandle start)
+// NOLINTEND(performance-unnecessary-value-param)
 {
     DataStoreRecordHandle handle;
     int                   rc = d_store_p->writeQueuePurgeRecord(&handle,
@@ -775,14 +789,15 @@ void FileBackedStorage::flushStorage()
 int FileBackedStorage::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc,
                                          bsls::Types::Uint64 secondsFromEpoch,
                                          int                 limit)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // Executed by QUEUE dispatcher thread
     BSLS_ASSERT_SAFE(d_store_p);
 
     bsls::Types::Uint64 latestMsgTimestampEpoch = 0;
 
-    int                numMsgsDeleted     = 0;
-    int                numMsgsUnreceipted = 0;
+    int                numMsgsDeleted      = 0;
+    int                numMsgsUnreceipted  = 0;
     bsls::Types::Int64 now                 = bmqu::Time::highResolutionTimer();
     bsls::Types::Int64 deduplicationTimeNs = 0;
     if (queue() && queue()->domain()) {
@@ -910,8 +925,10 @@ int FileBackedStorage::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc,
 
     return numMsgsDeleted;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void FileBackedStorage::gcHistory(bsls::Types::Int64 now)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     const int rc = d_handles.gc(now, k_GC_HISTORY_BATCH_SIZE);
     if (0 != rc) {
@@ -920,6 +937,7 @@ void FileBackedStorage::gcHistory(bsls::Types::Int64 now)
                 d_handles.historySize());
     }
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void FileBackedStorage::processMessageRecord(
     const bmqt::MessageGUID&     guid,
@@ -940,10 +958,12 @@ void FileBackedStorage::processMessageRecord(
         irc.first->second->d_refCount = refCount;
 
         bsl::shared_ptr<mqbi::DataStreamMessage> dataStreamMessage =
+            // NOLINTBEGIN(*-narrowing-conversions)
             d_virtualStorageCatalog.createDataStreamMessage(
                 msgLen,
                 refCount +
                     static_cast<unsigned int>(d_autoConfirmHandles.size()));
+        // NOLINTEND(*-narrowing-conversions)
 
         if (!d_autoConfirmHandles.empty()) {
             if (!d_currentlyAutoConfirming.isUnset()) {
@@ -1061,6 +1081,7 @@ void FileBackedStorage::processConfirmRecord(
 }
 
 void FileBackedStorage::processDeletionRecord(const bmqt::MessageGUID& guid)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     RecordHandleMapIter it = d_handles.find(guid);
     if (it == d_handles.end()) {
@@ -1121,6 +1142,7 @@ void FileBackedStorage::processDeletionRecord(const bmqt::MessageGUID& guid)
         ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
             d_handles.historySize());
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void FileBackedStorage::addQueueOpRecordHandle(
     const DataStoreRecordHandle& handle)
@@ -1140,6 +1162,7 @@ void FileBackedStorage::addQueueOpRecordHandle(
 }
 
 void FileBackedStorage::purge(const mqbu::StorageKey& appKey)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     purgeCommon(appKey, false);
 
@@ -1158,6 +1181,7 @@ void FileBackedStorage::purge(const mqbu::StorageKey& appKey)
         queue()->queueEngine()->afterQueuePurged(appId, appKey);
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 void FileBackedStorage::selectForAutoConfirming(
     const bmqt::MessageGUID& msgGUID)

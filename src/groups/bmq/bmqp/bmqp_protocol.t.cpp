@@ -62,6 +62,7 @@ struct PrintTestData {
 //                                    TESTS
 // ----------------------------------------------------------------------------
 static void test1_breathingTest()
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // --------------------------------------------------------------------
     // BREATHING TEST  bmqp::EventHeader
@@ -191,6 +192,7 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(info.rdaInfo().isUnlimited(), false);
 
         // Create SubQueueInfo with non-default ctor
+        // NOLINTNEXTLINE(*-magic-numbers)
         bmqp::SubQueueInfo info2(888U);
         info2.rdaInfo().setCounter(29U);
         BMQTST_ASSERT_EQ(info2.id(), 888U);
@@ -535,6 +537,7 @@ static void test1_breathingTest()
         // -----------------------------
         bmqp::AckMessage am;
 
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         unsigned char zeroGuidBuf[bmqt::MessageGUID::e_SIZE_BINARY];
         bsl::memset(zeroGuidBuf, 0, bmqt::MessageGUID::e_SIZE_BINARY);
         bmqt::MessageGUID zeroGuid;
@@ -550,6 +553,7 @@ static void test1_breathingTest()
         const int status  = 2;
         const int corrId  = 11;
 
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         unsigned char onesGuidBuf[bmqt::MessageGUID::e_SIZE_BINARY];
         bsl::memset(onesGuidBuf, 1, bmqt::MessageGUID::e_SIZE_BINARY);
         bmqt::MessageGUID onesGuid;
@@ -599,6 +603,7 @@ static void test1_breathingTest()
         // -----------------------------
         bmqp::ConfirmMessage cm;
 
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         unsigned char zeroGuidBuf[bmqt::MessageGUID::e_SIZE_BINARY];
         bsl::memset(zeroGuidBuf, 0, bmqt::MessageGUID::e_SIZE_BINARY);
         bmqt::MessageGUID zeroGuid;
@@ -612,6 +617,7 @@ static void test1_breathingTest()
         const int queueId    = 5;
         const int subQueueId = 9;
 
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         unsigned char onesGuidBuf[bmqt::MessageGUID::e_SIZE_BINARY];
         bsl::memset(onesGuidBuf, 1, bmqt::MessageGUID::e_SIZE_BINARY);
         bmqt::MessageGUID onesGuid;
@@ -652,6 +658,7 @@ static void test1_breathingTest()
         // ----------------------------
         bmqp::RejectMessage rm;
 
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         unsigned char zeroGuidBuf[bmqt::MessageGUID::e_SIZE_BINARY];
         bsl::memset(zeroGuidBuf, 0, bmqt::MessageGUID::e_SIZE_BINARY);
         bmqt::MessageGUID zeroGuid;
@@ -665,6 +672,7 @@ static void test1_breathingTest()
         const int queueId    = 5;
         const int subQueueId = 9;
 
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         unsigned char onesGuidBuf[bmqt::MessageGUID::e_SIZE_BINARY];
         bsl::memset(onesGuidBuf, 1, bmqt::MessageGUID::e_SIZE_BINARY);
         bmqt::MessageGUID onesGuid;
@@ -731,7 +739,8 @@ static void test1_breathingTest()
         bmqp::RecoveryHeader rh;
 
         const int numWords = sizeof(rh) / 4;
-        char      md5Digest[bmqp::RecoveryHeader::k_MD5_DIGEST_LEN];
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
+        char md5Digest[bmqp::RecoveryHeader::k_MD5_DIGEST_LEN];
         bsl::memset(md5Digest, 1, bmqp::RecoveryHeader::k_MD5_DIGEST_LEN);
 
         BMQTST_ASSERT_EQ(0, rh.isFinalChunk());
@@ -768,8 +777,10 @@ static void test1_breathingTest()
                                      bmqp::RecoveryHeader::k_MD5_DIGEST_LEN));
     }
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 static void test2_bitManipulation()
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-type-member-init)
 {
     // --------------------------------------------------------------------
     // BIT MANIPULATION ROUTINES TEST
@@ -1053,8 +1064,10 @@ static void test2_bitManipulation()
         BMQTST_ASSERT_EQ(static_cast<unsigned int>(L), 4037236647u);
     }
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-type-member-init)
 
 static void test3_flagUtils()
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     // --------------------------------------------------------------------
     // FLAG UTILS
@@ -1101,9 +1114,12 @@ static void test3_flagUtils()
                       {L_, bmqp::PutHeaderFlags::e_UNUSED3, false},
                       {L_, bmqp::PutHeaderFlags::e_UNUSED4, false}};
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+        // NOLINTBEGIN(performance-avoid-endl)
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const Test& test = k_DATA[idx];
 
             int flags = 0;
@@ -1123,6 +1139,7 @@ static void test3_flagUtils()
             bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
             bmqp::PutHeaderFlagUtil::prettyPrint(out, flags);
             const bslstl::StringRef& flagsString = out.str();
+            // NOLINTBEGIN(performance-avoid-endl)
             for (int currFlagVal = 1;
                  currFlagVal < (1 << bmqp::PutHeaderFlags::k_VALUE_COUNT);
                  currFlagVal = currFlagVal << 1) {
@@ -1140,6 +1157,7 @@ static void test3_flagUtils()
                         expectedIsSet);
                 }
             }
+            // NOLINTEND(performance-avoid-endl)
 
             // 3. Verify that, with this flag set, the flags are correctly
             // identified as 'isValid' or not 'isValid'.
@@ -1152,6 +1170,7 @@ static void test3_flagUtils()
             BMQTST_ASSERT(
                 !bmqp::PutHeaderFlagUtil::isSet(flags, test.d_value));
         }
+        // NOLINTEND(performance-avoid-endl)
     }
 
     {
@@ -1168,9 +1187,12 @@ static void test3_flagUtils()
                       {L_, bmqp::PushHeaderFlags::e_OUT_OF_ORDER, true},
                       {L_, bmqp::PushHeaderFlags::e_UNUSED4, false}};
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+        // NOLINTBEGIN(performance-avoid-endl)
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const Test& test = k_DATA[idx];
 
             int flags = 0;
@@ -1191,6 +1213,7 @@ static void test3_flagUtils()
             bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
             bmqp::PushHeaderFlagUtil::prettyPrint(out, flags);
             const bslstl::StringRef& flagsString = out.str();
+            // NOLINTBEGIN(performance-avoid-endl)
             for (int currFlagVal = 1;
                  currFlagVal < (1 << bmqp::PushHeaderFlags::k_VALUE_COUNT);
                  currFlagVal = currFlagVal << 1) {
@@ -1208,6 +1231,7 @@ static void test3_flagUtils()
                         expectedIsSet);
                 }
             }
+            // NOLINTEND(performance-avoid-endl)
 
             // 3. Verify that, with this flag set, the flags are correctly
             // identified as 'isValid' or not 'isValid'.
@@ -1220,6 +1244,7 @@ static void test3_flagUtils()
             BMQTST_ASSERT(
                 !bmqp::PushHeaderFlagUtil::isSet(flags, test.d_value));
         }
+        // NOLINTEND(performance-avoid-endl)
     }
 
     {
@@ -1237,9 +1262,12 @@ static void test3_flagUtils()
             {L_, bmqp::StorageHeaderFlags::e_UNUSED3, false},
             {L_, bmqp::StorageHeaderFlags::e_UNUSED4, false}};
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+        // NOLINTBEGIN(performance-avoid-endl)
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const Test& test = k_DATA[idx];
 
             int flags = 0;
@@ -1264,6 +1292,7 @@ static void test3_flagUtils()
                 out,
                 static_cast<unsigned char>(flags));
             const bslstl::StringRef& flagsString = out.str();
+            // NOLINTBEGIN(performance-avoid-endl)
             for (int currFlagVal = 1;
                  currFlagVal < (1 << bmqp::StorageHeaderFlags::k_VALUE_COUNT);
                  currFlagVal = currFlagVal << 1) {
@@ -1283,6 +1312,7 @@ static void test3_flagUtils()
                                        expectedIsSet);
                 }
             }
+            // NOLINTEND(performance-avoid-endl)
 
             // 3. Verify that, with this flag set, the flags are correctly
             //    identified as 'isValid' or not 'isValid'.
@@ -1298,12 +1328,16 @@ static void test3_flagUtils()
                 static_cast<unsigned char>(flags),
                 test.d_value));
         }
+        // NOLINTEND(performance-avoid-endl)
     }
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 template <typename ENUM_TYPE, typename ARRAY, int SIZE>
+// NOLINTBEGIN(*-avoid-c-arrays)
 static void printEnumHelper(ARRAY (&data)[SIZE])
 {
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < SIZE; ++idx) {
         const PrintTestData& test = data[idx];
 
@@ -1333,9 +1367,12 @@ static void printEnumHelper(ARRAY (&data)[SIZE])
 
         BMQTST_ASSERT_EQ(out.str(), expected.str());
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test4_enumPrint()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     // --------------------------------------------------------------------
     // ENUM LAYOUT
@@ -1380,6 +1417,7 @@ static void test4_enumPrint()
         BSLMF_ASSERT(bmqp::EventType::e_AUTHENTICATION ==
                      bmqp::EventType::k_HIGHEST_SUPPORTED_EVENT_TYPE);
 
+        // NOLINTBEGIN(*-avoid-c-arrays)
         PrintTestData k_DATA[] = {
             {L_, bmqp::EventType::e_UNDEFINED, "UNDEFINED"},
             {L_, bmqp::EventType::e_CONTROL, "CONTROL"},
@@ -1399,6 +1437,7 @@ static void test4_enumPrint()
              bmqp::EventType::e_REPLICATION_RECEIPT,
              "REPLICATION_RECEIPT"},
             {L_, bmqp::EventType::e_AUTHENTICATION, "AUTHENTICATION"}};
+        // NOLINTEND(*-avoid-c-arrays)
 
         printEnumHelper<bmqp::EventType>(k_DATA);
     }
@@ -1411,10 +1450,12 @@ static void test4_enumPrint()
         BSLMF_ASSERT(bmqp::EncodingType::e_JSON ==
                      bmqp::EncodingType::k_HIGHEST_SUPPORTED_ENCODING_TYPE);
 
+        // NOLINTBEGIN(*-avoid-c-arrays)
         PrintTestData k_DATA[] = {
             {L_, bmqp::EncodingType::e_UNKNOWN, "UNKNOWN"},
             {L_, bmqp::EncodingType::e_BER, "BER"},
             {L_, bmqp::EncodingType::e_JSON, "JSON"}};
+        // NOLINTEND(*-avoid-c-arrays)
 
         printEnumHelper<bmqp::EncodingType>(k_DATA);
     }
@@ -1427,11 +1468,13 @@ static void test4_enumPrint()
         BSLMF_ASSERT(bmqp::OptionType::k_HIGHEST_SUPPORTED_TYPE ==
                      bmqp::OptionType::e_SUB_QUEUE_INFOS);
 
+        // NOLINTBEGIN(*-avoid-c-arrays)
         PrintTestData k_DATA[] = {
             {L_, bmqp::OptionType::e_UNDEFINED, "UNDEFINED"},
             {L_, bmqp::OptionType::e_SUB_QUEUE_IDS_OLD, "SUB_QUEUE_IDS_OLD"},
             {L_, bmqp::OptionType::e_MSG_GROUP_ID, "MSG_GROUP_ID"},
             {L_, bmqp::OptionType::e_SUB_QUEUE_INFOS, "SUB_QUEUE_INFOS"}};
+        // NOLINTEND(*-avoid-c-arrays)
 
         printEnumHelper<bmqp::OptionType>(k_DATA);
     }
@@ -1447,6 +1490,7 @@ static void test4_enumPrint()
         BSLMF_ASSERT(bmqp::PutHeaderFlags::k_HIGHEST_PUT_FLAG ==
                      bmqp::PutHeaderFlags::e_UNUSED4);
 
+        // NOLINTBEGIN(*-avoid-c-arrays)
         PrintTestData k_DATA[] = {
             {L_, bmqp::PutHeaderFlags::e_ACK_REQUESTED, "ACK_REQUESTED"},
             {L_,
@@ -1454,6 +1498,7 @@ static void test4_enumPrint()
              "MESSAGE_PROPERTIES"},
             {L_, bmqp::PutHeaderFlags::e_UNUSED3, "UNUSED3"},
             {L_, bmqp::PutHeaderFlags::e_UNUSED4, "UNUSED4"}};
+        // NOLINTEND(*-avoid-c-arrays)
 
         printEnumHelper<bmqp::PutHeaderFlags>(k_DATA);
     }
@@ -1469,6 +1514,7 @@ static void test4_enumPrint()
         BSLMF_ASSERT(bmqp::PushHeaderFlags::k_HIGHEST_PUSH_FLAG ==
                      bmqp::PushHeaderFlags::e_UNUSED4);
 
+        // NOLINTBEGIN(*-avoid-c-arrays)
         PrintTestData k_DATA[] = {
             {L_,
              bmqp::PushHeaderFlags::e_IMPLICIT_PAYLOAD,
@@ -1478,6 +1524,7 @@ static void test4_enumPrint()
              "MESSAGE_PROPERTIES"},
             {L_, bmqp::PushHeaderFlags::e_OUT_OF_ORDER, "OUT_OF_ORDER"},
             {L_, bmqp::PushHeaderFlags::e_UNUSED4, "UNUSED4"}};
+        // NOLINTEND(*-avoid-c-arrays)
 
         printEnumHelper<bmqp::PushHeaderFlags>(k_DATA);
     }
@@ -1492,6 +1539,7 @@ static void test4_enumPrint()
             bmqp::StorageMessageType::k_HIGHEST_SUPPORTED_STORAGE_MSG_TYPE ==
             bmqp::StorageMessageType::e_QUEUE_OP);
 
+        // NOLINTBEGIN(*-avoid-c-arrays)
         PrintTestData k_DATA[] = {
             {L_, bmqp::StorageMessageType::e_UNDEFINED, "UNDEFINED"},
             {L_, bmqp::StorageMessageType::e_DATA, "DATA"},
@@ -1500,6 +1548,7 @@ static void test4_enumPrint()
             {L_, bmqp::StorageMessageType::e_DELETION, "DELETION"},
             {L_, bmqp::StorageMessageType::e_JOURNAL_OP, "JOURNAL_OP"},
             {L_, bmqp::StorageMessageType::e_QUEUE_OP, "QUEUE_OP"}};
+        // NOLINTEND(*-avoid-c-arrays)
 
         printEnumHelper<bmqp::StorageMessageType>(k_DATA);
     }
@@ -1517,6 +1566,7 @@ static void test4_enumPrint()
         BSLMF_ASSERT(bmqp::StorageHeaderFlags::k_HIGHEST_STORAGE_FLAG ==
                      bmqp::StorageHeaderFlags::e_UNUSED5);
 
+        // NOLINTBEGIN(*-avoid-c-arrays)
         PrintTestData k_DATA[] = {
             {L_,
              bmqp::StorageHeaderFlags::e_RECEIPT_REQUESTED,
@@ -1525,6 +1575,7 @@ static void test4_enumPrint()
             {L_, bmqp::StorageHeaderFlags::e_UNUSED3, "UNUSED3"},
             {L_, bmqp::StorageHeaderFlags::e_UNUSED4, "UNUSED4"},
             {L_, bmqp::StorageHeaderFlags::e_UNUSED5, "UNUSED5"}};
+        // NOLINTEND(*-avoid-c-arrays)
 
         printEnumHelper<bmqp::StorageHeaderFlags>(k_DATA);
     }
@@ -1539,17 +1590,21 @@ static void test4_enumPrint()
                          k_HIGHEST_SUPPORTED_RECOVERY_CHUNK_TYPE ==
                      bmqp::RecoveryFileChunkType::e_QLIST);
 
+        // NOLINTBEGIN(*-avoid-c-arrays)
         PrintTestData k_DATA[] = {
             {L_, bmqp::RecoveryFileChunkType::e_UNDEFINED, "UNDEFINED"},
             {L_, bmqp::RecoveryFileChunkType::e_DATA, "DATA"},
             {L_, bmqp::RecoveryFileChunkType::e_JOURNAL, "JOURNAL"},
             {L_, bmqp::RecoveryFileChunkType::e_QLIST, "QLIST"}};
+        // NOLINTEND(*-avoid-c-arrays)
 
         printEnumHelper<bmqp::RecoveryFileChunkType>(k_DATA);
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test5_enumIsomorphism()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     // --------------------------------------------------------------------
     // ENUM LAYOUT
@@ -1613,12 +1668,14 @@ static void test5_enumIsomorphism()
 
 #undef TEST_ISOMORPHISM
 }
+// NOLINTEND(performance-avoid-endl)
 
 template <typename ENUM_UTIL_TYPE, typename FLAG_TYPE>
 static void enumFromStringHelper(FLAG_TYPE          expectedFlags,
                                  const bsl::string& corrStr,
                                  const bsl::string& incorrStr,
                                  const bsl::string& errOutput)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     bmqu::MemOutStream errStream(bmqtst::TestHelperUtil::allocator());
     FLAG_TYPE          outFlags;
@@ -1630,8 +1687,10 @@ static void enumFromStringHelper(FLAG_TYPE          expectedFlags,
     BMQTST_ASSERT_EQ(rc, -1);
     BMQTST_ASSERT_EQ(errStream.str(), errOutput);
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 static void test6_enumFromString()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     // --------------------------------------------------------------------
     // ENUM UTIL fromString
@@ -1703,6 +1762,7 @@ static void test6_enumFromString()
                                                       incorrStr,
                                                       errOutput);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test7_eventHeaderUtil()
 // --------------------------------------------------------------------
@@ -1722,6 +1782,7 @@ static void test7_eventHeaderUtil()
 //   EventHeaderUtil::setControlEventEncodingType
 //   EventHeaderUtil::controlEventEncodingType
 // --------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("EVENT HEADER UTIL");
 
@@ -1735,12 +1796,15 @@ static void test7_eventHeaderUtil()
             {L_, bmqp::EncodingType::e_JSON},
         };
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
         bmqp::EventHeader eventHeader(bmqp::EventType::e_CONTROL);
         // Set each encoding type in succession, and ensure that the encoding
         // returned is always the one last set
+        // NOLINTBEGIN(performance-avoid-endl)
         for (size_t idx = 0; idx != k_NUM_DATA; ++idx) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const Test& test = k_DATA[idx];
 
             // 1. Set the encoding type
@@ -1753,13 +1817,16 @@ static void test7_eventHeaderUtil()
             BMQTST_ASSERT_EQ(test.d_value,
                              bmqp::EventHeaderUtil::encodingType(eventHeader));
         }
+        // NOLINTEND(performance-avoid-endl)
     }
 }
+// NOLINTEND(*-avoid-c-arrays,performance-avoid-endl)
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -1780,3 +1847,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

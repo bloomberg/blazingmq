@@ -46,6 +46,7 @@ namespace {
 static bool regexMatch(const bslstl::StringRef& str,
                        const char*              pattern,
                        bslma::Allocator*        allocator)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(allocator);
@@ -66,26 +67,32 @@ static bool regexMatch(const bslstl::StringRef& str,
 
     return rc == 0;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 int doWork_cpuIntensive()
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     const int k_1K = 1000;
 
     int                   multiplier = 1;
     volatile unsigned int sum        = 0;
     for (int i = 0; i < (k_1K * multiplier); ++i) {
+        // NOLINTNEXTLINE(*-magic-numbers)
         volatile int a = 50 * 9873 / 3;
         sum            = sum + a;
 
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         volatile int b = a * (a ^ (~0U));
         sum            = sum + b;
 
+        // NOLINTNEXTLINE(*-magic-numbers,*-narrowing-conversions)
         volatile int c = (a * (b ^ (~0U))) % 999983;
         sum            = sum + c;
     }
 
     return sum;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void doWork(double rate, double duration)
 {
@@ -125,6 +132,7 @@ static void test1_usageExample()
 // Testing:
 //   Usage example
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("USAGE EXAMPLE");
 
@@ -240,6 +248,7 @@ static void test1_usageExample()
 
     bmqu::Time::shutdown();
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 static void test2_totalElapsed()
 // ------------------------------------------------------------------------
@@ -254,6 +263,7 @@ static void test2_totalElapsed()
 // Testing:
 //   'bsls::Types::Int64 totalElapsed() const'
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("TOTAL ELAPSED");
 
@@ -268,12 +278,14 @@ static void test2_totalElapsed()
 
     BMQTST_ASSERT_EQ(obj.totalElapsed(), 123);
 }
+// NOLINTEND(*-magic-numbers)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -293,3 +305,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

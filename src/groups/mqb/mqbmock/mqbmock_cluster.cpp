@@ -84,6 +84,7 @@ void Cluster::_initializeClusterDefinition(
     const bsl::vector<mqbcfg::ClusterNode>& nodes,
     bool                                    isFSMWorkflow,
     bool                                    doesFSMwriteQLIST)
+// NOLINTBEGIN(*-magic-numbers)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(!d_isStarted &&
@@ -125,6 +126,7 @@ void Cluster::_initializeClusterDefinition(
     config.thresholdNode()     = 60;
     config.thresholdFailover() = 120;
 }
+// NOLINTEND(*-magic-numbers)
 
 void Cluster::_initializeNetcluster()
 {
@@ -216,6 +218,7 @@ Cluster::Cluster(bslma::Allocator*        allocator,
                  const bslstl::StringRef& archive)
 : d_allocator_p(allocator)
 , d_name(name, allocator)
+// NOLINTNEXTLINE(*-magic-numbers)
 , d_bufferFactory(1024, allocator)
 , d_blobSpPool(bdlf::BindUtil::bind(&createBlob,
                                     &d_bufferFactory,

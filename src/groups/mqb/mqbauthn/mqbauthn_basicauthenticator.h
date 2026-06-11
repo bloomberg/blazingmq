@@ -61,6 +61,7 @@ namespace mqbauthn {
 // class BasicAuthenticationResult
 // ===============================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class BasicAuthenticationResult : public mqbplug::AuthenticationResult {
   private:
     // DATA
@@ -87,11 +88,13 @@ class BasicAuthenticationResult : public mqbplug::AuthenticationResult {
     const bsl::optional<bsls::Types::Uint64>&
     lifetimeMs() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ========================
 // class BasicAuthenticator
 // ========================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class BasicAuthenticator : public mqbplug::Authenticator {
   public:
     // PUBLIC CLASS DATA
@@ -158,11 +161,13 @@ class BasicAuthenticator : public mqbplug::Authenticator {
     /// Stop the authenticator.
     void stop() BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =====================================
 // class BasicAuthenticatorPluginFactory
 // =====================================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class BasicAuthenticatorPluginFactory
 : public mqbplug::AuthenticatorPluginFactory {
   public:
@@ -174,6 +179,7 @@ class BasicAuthenticatorPluginFactory
     bslma::ManagedPtr<mqbplug::Authenticator>
     create(bslma::Allocator* allocator) BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

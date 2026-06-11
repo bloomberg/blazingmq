@@ -76,17 +76,20 @@ static void threadFunction(bsl::vector<unsigned int>* out,
     out->reserve(in.size());
     barrier->wait();
 
+    // NOLINTBEGIN(cppcoreguidelines-init-variables)
     for (bsl::vector<unsigned int>::size_type i = 0; i < in.size(); ++i) {
         unsigned int crc32c;
         crc32c = bmqp::Crc32c::calculate(in[i], i + 1);
         out->push_back(crc32c);
     }
+    // NOLINTEND(cppcoreguidelines-init-variables)
 }
 
 /// Populate the specified `bufferLengths` with various lengths in
 /// increasing sorted order.  Return the maximum length populated.  Note
 /// that `bufferLengths` will be cleared.
 static int populateBufferLengthsSorted(bsl::vector<int>* bufferLengths)
+// NOLINTBEGIN(*-magic-numbers)
 {
     BSLS_ASSERT_SAFE(bufferLengths);
 
@@ -121,6 +124,7 @@ static int populateBufferLengthsSorted(bsl::vector<int>* bufferLengths)
 
     return bufferLengths->back();
 }
+// NOLINTEND(*-magic-numbers)
 
 #ifdef BMQTST_BENCHMARK_ENABLED
 /// Populate the specified `bufferLengths` with various lengths in
@@ -128,6 +132,7 @@ static int populateBufferLengthsSorted(bsl::vector<int>* bufferLengths)
 /// internals Note that upper bound is 64 Ki
 static void populateBufferLengthsSorted_GoogleBenchmark_Small(
     benchmark::internal::Benchmark* b)
+// NOLINTBEGIN(*-magic-numbers)
 {
     std::vector<long int> buffLens;
     buffLens.push_back(11);
@@ -153,12 +158,14 @@ static void populateBufferLengthsSorted_GoogleBenchmark_Small(
         b->Args({i});
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 /// Populate the specified `bufferLengths` with various lengths in
 /// increasing soorted order. Apply these arguments to Google Benchmark
 /// internals Note that upper bound is 64Mi
 static void populateBufferLengthsSorted_GoogleBenchmark_Large(
     benchmark::internal::Benchmark* b)
+// NOLINTBEGIN(*-magic-numbers)
 {
     std::vector<long int> buffLens;
     buffLens.push_back(11);
@@ -189,6 +196,7 @@ static void populateBufferLengthsSorted_GoogleBenchmark_Large(
         b->Args({i});
     }
 }
+// NOLINTEND(*-magic-numbers)
 #endif
 
 /// Print the specified `headers` to the specified `out` in the following
@@ -245,6 +253,7 @@ static void printTableRows(bsl::ostream&                   out,
 
     out << bsl::right << bsl::fixed;
 
+    // NOLINTBEGIN(*-narrowing-conversions)
     for (bsl::vector<TableRecord>::size_type i = 0; i < tableRecords.size();
          ++i) {
         const TableRecord& record = tableRecords[i];
@@ -261,6 +270,7 @@ static void printTableRows(bsl::ostream&                   out,
 
         out << '\n';
     }
+    // NOLINTEND(*-narrowing-conversions)
 }
 
 /// Print a table having the specified `headerCols` and `tableRecords` to
@@ -302,6 +312,7 @@ static void test1_breathingTest()
 // Testing:
 //   Basic functionality
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,clang-analyzer-deadcode.DeadStores,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -388,6 +399,7 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(crc32cDefault, expectedCrc);
     }
 }
+// NOLINTEND(*-magic-numbers,clang-analyzer-deadcode.DeadStores,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 
 static void test2_calculateOnBuffer()
 // ------------------------------------------------------------------------
@@ -406,6 +418,7 @@ static void test2_calculateOnBuffer()
 //   Correctness of CRC32-C calculation on an entire buffer at once using
 //   both the default and software flavors for calculating CRC32-C.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 {
     bmqtst::TestHelper::printTestName("CALCULATE CRC32-C ON BUFFER");
 
@@ -413,6 +426,7 @@ static void test2_calculateOnBuffer()
         int          d_line;
         const char*  d_buffer;
         unsigned int d_expectedCrc32c;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {{L_, "", 0},
                   {L_, "DYB|O", 0},
                   {L_, "0", 0x629E1AE0},
@@ -432,10 +446,14 @@ static void test2_calculateOnBuffer()
                   {L_, "gaaXsSP1al", 0xC4E61D23},
                   {L_, "2Wm9bbNDehd", 0x54A11873},
                   {L_, "GamS0NJhAl8y", 0x0044AC66}};
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": calculating CRC32-C (w/o previous) on '"
@@ -460,7 +478,9 @@ static void test2_calculateOnBuffer()
                            crc32cDefault,
                            0u);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 
 static void test3_calculateOnMisalignedBuffer()
 // ------------------------------------------------------------------------
@@ -490,6 +510,7 @@ static void test3_calculateOnMisalignedBuffer()
 //                                      unsigned int  length,
 //                                      unsigned int  crc = k_NULL_CRC32C);
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding,cppcoreguidelines-pro-type-member-init)
 {
     bmqtst::TestHelper::printTestName(
         "CALCULATE CRC32-C ON MISALIGNED BUFFER");
@@ -513,6 +534,7 @@ static void test3_calculateOnMisalignedBuffer()
         int          d_line;
         const char*  d_buffer;
         unsigned int d_expectedCrc32c;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {{L_, "", 0},
                   {L_, "DYB|O", 0},
                   {L_, "0", 0x629E1AE0},
@@ -532,13 +554,17 @@ static void test3_calculateOnMisalignedBuffer()
                   {L_, "gaaXsSP1al", 0xC4E61D23},
                   {L_, "2Wm9bbNDehd", 0x54A11873},
                   {L_, "GamS0NJhAl8y", 0x0044AC66}};
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test&        test          = k_DATA[idx];
         const unsigned int testBufLength = strlen(test.d_buffer);
 
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
         for (unsigned int i = 1; i < k_MY_ALIGNMENT; ++i) {
             const unsigned int newBufLength = testBufLength + i + 1;
 
@@ -565,6 +591,7 @@ static void test3_calculateOnMisalignedBuffer()
 
             // Default
             unsigned int crc32cDefault =
+                // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
                 bmqp::Crc32c::calculate(allocPtr + i, testBufLength);
 
             // Verify correctness
@@ -572,8 +599,10 @@ static void test3_calculateOnMisalignedBuffer()
                                crc32cDefault,
                                test.d_expectedCrc32c);
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
     }
 }
+// NOLINTEND(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding,cppcoreguidelines-pro-type-member-init)
 
 /// Plan:
 ///   - For various buffers, calculate CRC32-C for a prefix chunk of the
@@ -586,6 +615,7 @@ static void test3_calculateOnMisalignedBuffer()
 ///   both the default and software flavors.
 /// ------------------------------------------------------------------------
 static void test4_calculateOnBufferWithPreviousCrc()
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName(
         "CALCULATE CRC32-C ON BUFFER WITH PREVIOUS CRC");
@@ -595,6 +625,7 @@ static void test4_calculateOnBufferWithPreviousCrc()
         const char*  d_buffer;
         unsigned int d_prefixLen;
         unsigned int d_expectedCrc32c;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {
         // Note that for d_buffer[0:d_prefixLen] (the prefix string ) we
         // already asserted that we calculated the correct CRC32-C values in
@@ -620,10 +651,14 @@ static void test4_calculateOnBufferWithPreviousCrc()
         {L_, "gaaXsSP1aldsafad", 10, 0xFD5078EF},
         {L_, "2Wm9bbNDehd32qf", 11, 0x9F7277C6},
         {L_, "GamS0NJhAl8yw3th", 12, 0x6033D909}};
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": calculating CRC32-C (with previous CRC) on '"
@@ -669,7 +704,9 @@ static void test4_calculateOnBufferWithPreviousCrc()
                            crc32cDefault,
                            previousCrc);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test5_multithreadedCrc32cDefault()
 // ------------------------------------------------------------------------
@@ -693,6 +730,7 @@ static void test5_multithreadedCrc32cDefault()
 //   Correctness of default (possibly hardware-based) CRC32-C calculation
 //   in a multithreaded environment.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     bmqtst::TestHelperUtil::ignoreCheckGblAlloc() = true;
@@ -764,6 +802,7 @@ static void test5_multithreadedCrc32cDefault()
         bmqtst::TestHelperUtil::allocator()->deallocate(payloads[i]);
     }
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 static void test7_calculateOnBlob()
 // ------------------------------------------------------------------------
@@ -788,6 +827,7 @@ static void test7_calculateOnBlob()
 //   Correctness of CRC32-C calculation on an entire blob at once using
 //   the default flavor.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bmqtst::TestHelper::printTestName(
         "CALCULATE CRC32-C ON BLOB w/o PREVIOUS CRC");
@@ -817,6 +857,7 @@ static void test7_calculateOnBlob()
         onePtr.reset(one,
                      bslstl::SharedPtrNilDeleter(),
                      bmqtst::TestHelperUtil::allocator());
+        // NOLINTNEXTLINE(*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         bdlbb::BlobBuffer buf1(onePtr, bsl::strlen(one));
 
         blob.appendDataBuffer(buf1);
@@ -826,6 +867,7 @@ static void test7_calculateOnBlob()
         twoPtr.reset(two,
                      bslstl::SharedPtrNilDeleter(),
                      bmqtst::TestHelperUtil::allocator());
+        // NOLINTNEXTLINE(*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         bdlbb::BlobBuffer buf2(twoPtr, bsl::strlen(two));
 
         blob.appendDataBuffer(buf2);
@@ -835,6 +877,7 @@ static void test7_calculateOnBlob()
         threePtr.reset(three,
                        bslstl::SharedPtrNilDeleter(),
                        bmqtst::TestHelperUtil::allocator());
+        // NOLINTNEXTLINE(*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         bdlbb::BlobBuffer buf3(threePtr, bsl::strlen(three));
 
         blob.appendDataBuffer(buf3);
@@ -851,6 +894,7 @@ static void test7_calculateOnBlob()
 
         bdlbb::Blob blob(bmqtst::TestHelperUtil::allocator());
 
+        // NOLINTBEGIN(*-avoid-c-arrays)
         char buf[] = "This will be put in a blob buffer of typical"
                      " size, and then we will test the crc32c calculation"
                      " (blob version) with only one blob buffer to ensure"
@@ -867,10 +911,12 @@ static void test7_calculateOnBlob()
                      "#######################################################"
                      "#######################################################"
                      "#######################################################";
+        // NOLINTEND(*-avoid-c-arrays)
         bsl::shared_ptr<char> bufSP;
         bufSP.reset(buf,
                     bslstl::SharedPtrNilDeleter(),
                     bmqtst::TestHelperUtil::allocator());
+        // NOLINTNEXTLINE(*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         bdlbb::BlobBuffer blobBuf(bufSP, bsl::strlen(buf));
 
         blob.appendDataBuffer(blobBuf);
@@ -882,6 +928,7 @@ static void test7_calculateOnBlob()
         BMQTST_ASSERT_EQ(crc32cDefault, expectedCrc32c);
     }
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 static void test8_calculateOnBlobWithPreviousCrc()
 
@@ -908,6 +955,7 @@ static void test8_calculateOnBlobWithPreviousCrc()
 //   Correctness of CRC32-C calculation on an entire blob with a previous CRC
 //   using both the default and software flavors.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bmqtst::TestHelper::printTestName(
         "CALCULATE CRC32-C ON BLOB WITH PREVIOUS CRC");
@@ -937,6 +985,7 @@ static void test8_calculateOnBlobWithPreviousCrc()
         onePtr.reset(one,
                      bslstl::SharedPtrNilDeleter(),
                      bmqtst::TestHelperUtil::allocator());
+        // NOLINTNEXTLINE(*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         bdlbb::BlobBuffer buf1(onePtr, bsl::strlen(one));
 
         blob1.appendDataBuffer(buf1);
@@ -948,6 +997,7 @@ static void test8_calculateOnBlobWithPreviousCrc()
         twoPtr.reset(two,
                      bslstl::SharedPtrNilDeleter(),
                      bmqtst::TestHelperUtil::allocator());
+        // NOLINTNEXTLINE(*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         bdlbb::BlobBuffer buf2(twoPtr, bsl::strlen(two));
 
         blob2.appendDataBuffer(buf2);
@@ -957,6 +1007,7 @@ static void test8_calculateOnBlobWithPreviousCrc()
         threePtr.reset(three,
                        bslstl::SharedPtrNilDeleter(),
                        bmqtst::TestHelperUtil::allocator());
+        // NOLINTNEXTLINE(*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         bdlbb::BlobBuffer buf3(threePtr, bsl::strlen(three));
 
         blob2.appendDataBuffer(buf3);
@@ -977,16 +1028,19 @@ static void test8_calculateOnBlobWithPreviousCrc()
         // One
         bdlbb::Blob blob1(bmqtst::TestHelperUtil::allocator());
 
+        // NOLINTBEGIN(*-avoid-c-arrays)
         char one[] = "This will be put in a blob buffer of typical"
                      " size, and then we will test the crc32c calculation"
                      " (blob version) with only one blob buffer to ensure"
                      " that the logic of the loop works even for one blob"
                      " buffer. Moreover, append some lines bellow to increase"
                      " the size of this buffer.";
+        // NOLINTEND(*-avoid-c-arrays)
         bsl::shared_ptr<char> oneSP;
         oneSP.reset(one,
                     bslstl::SharedPtrNilDeleter(),
                     bmqtst::TestHelperUtil::allocator());
+        // NOLINTNEXTLINE(*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         bdlbb::BlobBuffer blobBuf1(oneSP, bsl::strlen(one));
 
         blob1.appendDataBuffer(blobBuf1);
@@ -994,6 +1048,7 @@ static void test8_calculateOnBlobWithPreviousCrc()
         // Two
         bdlbb::Blob blob2(bmqtst::TestHelperUtil::allocator());
 
+        // NOLINTBEGIN(*-avoid-c-arrays)
         char two[] = "#######################################################"
                      "#######################################################"
                      "#######################################################"
@@ -1004,11 +1059,13 @@ static void test8_calculateOnBlobWithPreviousCrc()
                      "#######################################################"
                      "#######################################################"
                      "#######################################################";
+        // NOLINTEND(*-avoid-c-arrays)
 
         bsl::shared_ptr<char> twoSP;
         twoSP.reset(two,
                     bslstl::SharedPtrNilDeleter(),
                     bmqtst::TestHelperUtil::allocator());
+        // NOLINTNEXTLINE(*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         bdlbb::BlobBuffer blobBuf2(twoSP, bsl::strlen(two));
 
         blob2.appendDataBuffer(blobBuf2);
@@ -1023,6 +1080,7 @@ static void test8_calculateOnBlobWithPreviousCrc()
         BMQTST_ASSERT_EQ(crc32cDefault, expectedCrc32c);
     }
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 // ============================================================================
 //                              PERFORMANCE TESTS
@@ -1038,6 +1096,7 @@ static void testN1_performanceDefaultUserInput()
 //                               unsigned int  length);
 //   on an user input.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-vararg,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName(
         "PERFORMANCE: CALCULATE CRC32-C DEFAULT ON USER INPUT");
@@ -1056,6 +1115,7 @@ static void testN1_performanceDefaultUserInput()
     }
     bsls::Types::Int64 endTime = bsls::TimeUtil::getTimer();
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     const unsigned char* sum = reinterpret_cast<const unsigned char*>(&crc32c);
 
     printf("\nCRC32-C : %02x%02x%02x%02x\n", sum[0], sum[1], sum[2], sum[3]);
@@ -1063,6 +1123,7 @@ static void testN1_performanceDefaultUserInput()
     cout << "Average Time (nano sec): " << (endTime - startTime) / k_NUM_ITERS
          << "\n\n";
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-vararg,performance-avoid-endl)
 
 static void testN2_performanceDefault()
 // ------------------------------------------------------------------------
@@ -1100,6 +1161,7 @@ static void testN2_performanceDefault()
 
     // Measure calculation time and report
     bsl::vector<TableRecord> tableRecords(bmqtst::TestHelperUtil::allocator());
+    // NOLINTBEGIN(cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-member-init,cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-type-vararg)
     for (unsigned i = 0; i < bufferLengths.size(); ++i) {
         const int length = bufferLengths[i];
 
@@ -1167,6 +1229,7 @@ static void testN2_performanceDefault()
                   << "  Ratio (bdlde::Crc32 / Default): " << record.d_ratio
                   << "\n\n";
     }
+    // NOLINTEND(cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-member-init,cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-type-vararg)
     // Print performance comparison table
     bsl::vector<bsl::string> headerCols;
     headerCols.emplace_back("Size(B)");
@@ -1201,6 +1264,7 @@ static void testN3_defaultCalculateThroughput()
 //   Throughput (GB/s) of CRC32-C calculation using the default
 //   implementation in a single thread environment.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-narrowing-conversions,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName(
         "BENCHMARK: CALCULATE CRC32-C THROUGPUT DEFAULT");
@@ -1253,6 +1317,7 @@ static void testN3_defaultCalculateThroughput()
     bmqtst::TestHelperUtil::allocator()->deallocate(buf);
     static_cast<void>(resultDef);
 }
+// NOLINTEND(*-narrowing-conversions,performance-avoid-endl)
 
 BSLA_MAYBE_UNUSED
 static void testN3_bdldCalculateThroughput()
@@ -1273,6 +1338,7 @@ static void testN3_bdldCalculateThroughput()
 //   Throughput (GB/s) of CRC32-C calculation using the
 //   BDE implementation in a single thread environment.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-narrowing-conversions,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName(
         "BENCHMARK: CALCULATE CRC32-C THROUGPUT BDE");
@@ -1323,6 +1389,7 @@ static void testN3_bdldCalculateThroughput()
     bmqtst::TestHelperUtil::allocator()->deallocate(buf);
     static_cast<void>(resultBde);
 }
+// NOLINTEND(*-narrowing-conversions,performance-avoid-endl)
 
 BSLA_MAYBE_UNUSED
 static void testN4_calculateSerialDefault()
@@ -1357,6 +1424,7 @@ static void testN4_calculateSerialDefault()
 
     // Measure calculation time and report
     bsl::vector<TableRecord> tableRecords(bmqtst::TestHelperUtil::allocator());
+    // NOLINTBEGIN(cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-member-init,cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-type-vararg)
     for (unsigned i = 0; i < bufferLengths.size(); ++i) {
         const int length = bufferLengths[i];
 
@@ -1395,6 +1463,7 @@ static void testN4_calculateSerialDefault()
                   << "  CRC32-C (Default)          : " << record.d_timeOne
                   << '\n';
     }
+    // NOLINTEND(cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-member-init,cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-type-vararg)
     // Print performance comparison table
     bsl::vector<bsl::string> headerCols;
     headerCols.emplace_back("Size(B)");
@@ -1442,6 +1511,7 @@ static void testN5_bdldPerformanceSoftware()
 
     // Measure calculation time and report
     bsl::vector<TableRecord> tableRecords(bmqtst::TestHelperUtil::allocator());
+    // NOLINTBEGIN(cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-member-init,cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-type-vararg)
     for (unsigned i = 0; i < bufferLengths.size(); ++i) {
         const int length = bufferLengths[i];
 
@@ -1485,6 +1555,7 @@ static void testN5_bdldPerformanceSoftware()
                   << "  bdlde::Crc32                   : " << record.d_timeTwo
                   << '\n';
     }
+    // NOLINTEND(cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-member-init,cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-type-vararg)
     // Print performance comparison table
     bsl::vector<bsl::string> headerCols;
     headerCols.emplace_back("Size(B)");
@@ -1535,6 +1606,7 @@ static void testN6_bmqpPerformanceDefault()
 
     // Measure calculation time and report
     bsl::vector<TableRecord> tableRecords(bmqtst::TestHelperUtil::allocator());
+    // NOLINTBEGIN(cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-member-init,cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-type-vararg)
     for (unsigned i = 0; i < bufferLengths.size(); ++i) {
         const int length = bufferLengths[i];
 
@@ -1577,6 +1649,7 @@ static void testN6_bmqpPerformanceDefault()
                   << "  Default                       : " << record.d_timeOne
                   << '\n';
     }
+    // NOLINTEND(cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-member-init,cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-type-vararg)
     // Print performance comparison table
     bsl::vector<bsl::string> headerCols;
     headerCols.emplace_back("Size(B)");
@@ -1626,6 +1699,7 @@ static void testN6_bdldPerformanceDefault()
 
     // Measure calculation time and report
     bsl::vector<TableRecord> tableRecords(bmqtst::TestHelperUtil::allocator());
+    // NOLINTBEGIN(cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-member-init,cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-type-vararg)
     for (unsigned i = 0; i < bufferLengths.size(); ++i) {
         const int length = bufferLengths[i];
 
@@ -1670,6 +1744,7 @@ static void testN6_bdldPerformanceDefault()
                   << "  bdlde::Crc32                  : " << record.d_timeTwo
                   << '\n';
     }
+    // NOLINTEND(cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-member-init,cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-type-vararg)
     // Print performance comparison table
     bsl::vector<bsl::string> headerCols;
     headerCols.emplace_back("Size(B)");
@@ -1694,6 +1769,7 @@ testN1_performanceDefaultUserInput_GoogleBenchmark(benchmark::State& state)
 //       bmqp::Crc32c::calculate()
 //   on an user input.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName(
         "GOOGLE BENCHMARK PERFORMANCE: "
@@ -1712,6 +1788,7 @@ testN1_performanceDefaultUserInput_GoogleBenchmark(benchmark::State& state)
         }
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores,performance-avoid-endl)
 
 static void
 testN3_defaultCalculateThroughput_GoogleBenchmark(benchmark::State& state)
@@ -1734,6 +1811,7 @@ testN3_defaultCalculateThroughput_GoogleBenchmark(benchmark::State& state)
 //   Throughput (GB/s) of CRC32-C calculation using the default
 //   implementation in a single thread environment.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK: "
                                       "CALCULATE CRC32-C THROUGHPUT DEFAULT");
@@ -1751,9 +1829,11 @@ testN3_defaultCalculateThroughput_GoogleBenchmark(benchmark::State& state)
         bmqtst::TestHelperUtil::allocator()->deallocate(buf);
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void
 testN3_bdldCalculateThroughput_GoogleBenchmark(benchmark::State& state)
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     //=======================================================================//
     //                           [3] BDE bdlde::crc32
@@ -1776,6 +1856,7 @@ testN3_bdldCalculateThroughput_GoogleBenchmark(benchmark::State& state)
     // </time>
     bmqtst::TestHelperUtil::allocator()->deallocate(buf);
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void
 testN4_calculateSerialDefault_GoogleBenchmark(benchmark::State& state)
@@ -1795,6 +1876,7 @@ testN4_calculateSerialDefault_GoogleBenchmark(benchmark::State& state)
 // Testing:
 //   Performance of crc32c calculation using the default implementation
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK PERFORMANCE: "
                                       "CALCULATE CRC32-C DEFAULT");
@@ -1812,6 +1894,7 @@ testN4_calculateSerialDefault_GoogleBenchmark(benchmark::State& state)
     //                     [1] Crc32c (default)
     // <time>
     for (auto _ : state) {
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         const int length = state.range(0);
         for (int k = 0; k < length; ++k) {
             bmqp::Crc32c::calculate(buffer, length);
@@ -1820,6 +1903,7 @@ testN4_calculateSerialDefault_GoogleBenchmark(benchmark::State& state)
     // </time>
     bmqtst::TestHelperUtil::allocator()->deallocate(buffer);
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void
 testN5_bdldPerformanceSoftware_GoogleBenchmark(benchmark::State& state)
@@ -1838,6 +1922,7 @@ testN5_bdldPerformanceSoftware_GoogleBenchmark(benchmark::State& state)
 // Testing:
 //   Performance of calculating CRC32-C using the BDE software implementation.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelper::printTestName(
         "GOOGLE BENCHMARK PERFORMANCE: "
@@ -1854,6 +1939,7 @@ testN5_bdldPerformanceSoftware_GoogleBenchmark(benchmark::State& state)
     //===================================================================//
     //                         [2] BDE bdlde::crc32
 
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     const int    length = state.range(0);
     bdlde::Crc32 crcBde(buffer, length);
     // <time>
@@ -1867,6 +1953,7 @@ testN5_bdldPerformanceSoftware_GoogleBenchmark(benchmark::State& state)
 
     bmqtst::TestHelperUtil::allocator()->deallocate(buffer);
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 BSLA_MAYBE_UNUSED
 static void
@@ -1889,6 +1976,7 @@ testN6_bmqpPerformanceDefault_GoogleBenchmark(benchmark::State& state)
 // Testing:
 //   Performance of calculating CRC32-C using the default implementation.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK PERFORMANCE: "
                                       "CALCULATE CRC32-C ON BUFFER DEFAULT");
@@ -1907,16 +1995,19 @@ testN6_bmqpPerformanceDefault_GoogleBenchmark(benchmark::State& state)
 
     // <time>
     for (auto _ : state) {
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         const int length = state.range(0);
         bmqp::Crc32c::calculate(buffer, length);
     }
     // </time>
     bmqtst::TestHelperUtil::allocator()->deallocate(buffer);
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 BSLA_MAYBE_UNUSED
 static void
 testN6_bdldPerformanceDefault_GoogleBenchmark(benchmark::State& state)
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     //===================================================================//
     //                         [2] BDE bdlde::crc32
@@ -1934,6 +2025,7 @@ testN6_bdldPerformanceDefault_GoogleBenchmark(benchmark::State& state)
 
     // <time>
     for (auto _ : state) {
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         const int    length = state.range(0);
         bdlde::Crc32 crcBde(buffer, length);
         crcBde.checksumAndReset();
@@ -1942,6 +2034,7 @@ testN6_bdldPerformanceDefault_GoogleBenchmark(benchmark::State& state)
     }
     bmqtst::TestHelperUtil::allocator()->deallocate(buffer);
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 #endif  // BMQTST_BENCHMARK_ENABLED
 
@@ -1950,6 +2043,7 @@ testN6_bdldPerformanceDefault_GoogleBenchmark(benchmark::State& state)
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     // We explicitly initialize before the 'TEST_PROLOG' to circumvent a
     // case where the associated logging infrastructure triggers a default
@@ -2014,3 +2108,4 @@ int main(int argc, char* argv[])
 #endif
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

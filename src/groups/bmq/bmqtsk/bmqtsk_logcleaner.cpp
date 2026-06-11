@@ -70,6 +70,7 @@ namespace bmqtsk {
 
 // PRIVATE MANIPULATORS
 void LogCleaner::cleanLogs()
+// NOLINTBEGIN(*-magic-numbers)
 {
     // EXECUTED FROM SYSTEM EXECUTOR THREAD
 
@@ -89,6 +90,7 @@ void LogCleaner::cleanLogs()
     bdls::FilesystemUtil::findMatchingPaths(&files, d_filePattern.c_str());
 
     int filesDeleted = 0;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsl::vector<bsl::string>::iterator it = files.begin();
          it != files.end();
          ++it) {
@@ -115,10 +117,12 @@ void LogCleaner::cleanLogs()
             }
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     BALL_LOG_INFO << "Cleaning files matching '" << d_filePattern << "' "
                   << "completed, " << filesDeleted << " file(s) deleted.";
 }
+// NOLINTEND(*-magic-numbers)
 
 // CREATORS
 LogCleaner::LogCleaner(bdlmt::EventScheduler* scheduler,

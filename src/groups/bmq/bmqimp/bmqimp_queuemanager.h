@@ -147,6 +147,7 @@ struct QueueManager_QueueInfo {
 
 /// Mechanism to manage queues and their interactions with the BlazingMQ
 /// broker.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class QueueManager {
   public:
     // TYPES
@@ -377,6 +378,7 @@ class QueueManager {
     /// `canonicalUri`.
     unsigned int subStreamCount(const bsl::string& canonicalUri) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

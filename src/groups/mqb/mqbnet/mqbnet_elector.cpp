@@ -56,8 +56,10 @@ namespace {
 const int k_MAX_INSTANT_MESSAGES = 10;
 // Maximum messages logged with throttling in a short period of time.
 
+// NOLINTBEGIN(cppcoreguidelines-interfaces-global-init)
 const bsls::Types::Int64 k_NS_PER_MESSAGE =
     bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
+// NOLINTEND(cppcoreguidelines-interfaces-global-init)
 // Time interval between messages logged with throttling.
 
 #define BMQ_LOGTHROTTLE_WARN                                                  \
@@ -365,7 +367,9 @@ bool ElectorTransitionReason::fromAscii(ElectorTransitionReason::Enum* out,
 // -------------------------
 
 // CONSTANTS
+// NOLINTNEXTLINE(cppcoreguidelines-interfaces-global-init)
 const int ElectorStateMachine::k_INVALID_NODE_ID;
+// NOLINTNEXTLINE(cppcoreguidelines-interfaces-global-init)
 const int ElectorStateMachine::k_ALL_NODES_ID = Cluster::k_ALL_NODES_ID;
 
 // PRIVATE MANIPULATORS
@@ -1825,7 +1829,9 @@ void ElectorStateMachine::applyTimer(ElectorStateMachineOutput*  out,
 // -------------
 
 // CONSTANTS
+// NOLINTNEXTLINE(cppcoreguidelines-interfaces-global-init)
 const int Elector::k_INVALID_NODE_ID;
+// NOLINTNEXTLINE(cppcoreguidelines-interfaces-global-init)
 const int Elector::k_ALL_NODES_ID = Cluster::k_ALL_NODES_ID;
 
 // PRIVATE MANIPULATORS
@@ -1971,6 +1977,7 @@ void Elector::scheduleTimer(ElectorTimerEventType::Enum type)
         //     randomNum = min + (rand() % (max - min + 1))
         // where, min = 0 & max = d_config.maxRandomWaitTimeoutMs() for us
 
+        // NOLINTNEXTLINE(cert-msc30-c,cert-msc50-cpp)
         int randomMs = bsl::rand() % (d_config.maxRandomWaitTimeoutMs() + 1);
 
         bsls::TimeInterval after(bmqu::Time::nowMonotonicClock());
@@ -2095,6 +2102,7 @@ void Elector::emitIOEvent(const ElectorStateMachineOutput& output)
     // 'emitIOEvent' is currently always called while 'd_lock' is held, but
     // that's an implementation side effect, not part of contract.  That's why
     // we create the builder on stack instead of making it a class member.
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<256> localAllocator(d_allocator_p);
     bmqp::SchemaEventBuilder             builder(d_blobSpPool_p,
                                      bmqp::EncodingType::e_BER,
@@ -2273,6 +2281,7 @@ Elector::~Elector()
 
 // MANIPULATORS
 int Elector::start()
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
@@ -2351,6 +2360,7 @@ int Elector::start()
         bdlf::BindUtil::bind(&Elector::initialWaitTimeoutCb, this));
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 void Elector::stop()
 {

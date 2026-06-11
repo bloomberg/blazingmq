@@ -137,6 +137,7 @@ struct IncoreClusterStateLedger_ClusterMessageInfo {
 /// @todo Apply the specified message to self and replicate if self is leader.
 ///
 /// @todo Notify via `commitCb` when consistency level has been achieved.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
   public:
     // TYPES
@@ -408,6 +409,7 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     ///         dispatcher thread.
     const mqbsi::Ledger* ledger() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

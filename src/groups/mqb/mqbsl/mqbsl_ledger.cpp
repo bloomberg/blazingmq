@@ -46,6 +46,7 @@ namespace mqbsl {
 
 namespace {
 
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_LOG_CATEGORY[] = "MQBSL.LEDGER";
 
 /// Populate the specified `logFlags` with the appropriate log flags base on
@@ -78,6 +79,7 @@ struct FileLastModificationTimeLess {
 
 bool FileLastModificationTimeLess::operator()(const bsl::string& lhs,
                                               const bsl::string& rhs) const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     BALL_LOG_SET_CATEGORY(k_LOG_CATEGORY);
 
@@ -99,6 +101,7 @@ bool FileLastModificationTimeLess::operator()(const bsl::string& lhs,
 
     return lhsTime < rhsTime;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 }  // close anonymous namespace
 
@@ -133,6 +136,7 @@ int Ledger::reopen(int flags)
     populateLogFlags(&logFlags, flags);
 
     int rc = LedgerOpResult::e_UNKNOWN;
+    // NOLINTBEGIN(*-magic-numbers)
     for (LogsMapIt it = d_logs.begin(); it != d_logs.end(); ++it) {
         rc = it->second->open(logFlags);
         if (rc != LogOpResult::e_SUCCESS) {
@@ -140,6 +144,7 @@ int Ledger::reopen(int flags)
         }
         d_outstandingNumBytes += it->second->outstandingNumBytes();
     }
+    // NOLINTEND(*-magic-numbers)
 
     // POSTCONDITIONS
     BSLS_ASSERT_SAFE(d_outstandingNumBytes == d_totalNumBytes);
@@ -204,6 +209,7 @@ bool Ledger::addNew(LogSp* logSp)
 }
 
 int Ledger::addNewAndOpen(LogSp* logSp)
+// NOLINTBEGIN(*-magic-numbers)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(logSp);
@@ -222,6 +228,7 @@ int Ledger::addNewAndOpen(LogSp* logSp)
 
     return LedgerOpResult::e_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers)
 
 // PRIVATE ACCESSORS
 bool Ledger::canWrite(int length) const
@@ -245,6 +252,7 @@ int Ledger::find(Log** logPtr, const mqbu::StorageKey& logId) const
 }
 
 int Ledger::rollOverImpl(const mqbu::StorageKey& oldLogId)
+// NOLINTBEGIN(*-magic-numbers)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!d_isReadOnly);
@@ -272,10 +280,12 @@ int Ledger::rollOverImpl(const mqbu::StorageKey& oldLogId)
 
     return LedgerOpResult::e_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers)
 
 int Ledger::rollOver()
+// NOLINTBEGIN(*-magic-numbers)
 {
-    LogSp& lastLog = currentLog();
+    LogSp&       lastLog      = currentLog();
     const size_t lastLogIndex = d_logs.size() - 1;
 
     // Flush the log and roll over
@@ -302,12 +312,14 @@ int Ledger::rollOver()
 
     return LedgerOpResult::e_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers)
 
 template <typename RECORD, typename OFFSET>
 int Ledger::writeRecordImpl(LedgerRecordId* recordId,
                             const RECORD&   record,
                             OFFSET          offset,
                             int             length)
+// NOLINTBEGIN(*-magic-numbers)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_state == LedgerState::e_OPENED);
@@ -346,8 +358,10 @@ int Ledger::writeRecordImpl(LedgerRecordId* recordId,
 
     return LedgerOpResult::e_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers)
 
 int Ledger::closeAndCleanup(const LogSp& log, const size_t logIndex)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_logs.size() == d_logList.size());
@@ -391,6 +405,7 @@ int Ledger::closeAndCleanup(const LogSp& log, const size_t logIndex)
 
     return LedgerOpResult::e_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 // CREATORS
 Ledger::Ledger(const mqbsi::LedgerConfig& config, bslma::Allocator* allocator)
@@ -421,6 +436,7 @@ Ledger::~Ledger()
 // MANIPULATORS
 //   (virtual 'mqbsi::Ledger')
 int Ledger::open(int flags)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     if (d_state == LedgerState::e_OPENED) {
         BALL_LOG_WARN << "Ledger is already opened";
@@ -476,6 +492,7 @@ int Ledger::open(int flags)
 
     // Create logs for selected files, open and insert them into internal data
     // structures
+    // NOLINTBEGIN(*-magic-numbers)
     for (bsl::vector<bsl::string>::size_type i = 0; i < files.size(); ++i) {
         const bsl::string& logFullPath = files[i];
 
@@ -540,6 +557,7 @@ int Ledger::open(int flags)
         d_totalNumBytes += log->totalNumBytes();
         d_outstandingNumBytes += log->outstandingNumBytes();
     }
+    // NOLINTEND(*-magic-numbers)
 
     if (d_logs.empty()) {
         return LedgerOpResult::e_LOG_OPEN_FAILURE;  // RETURN
@@ -551,6 +569,7 @@ int Ledger::open(int flags)
     guard.release();
     return LedgerOpResult::e_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 int Ledger::close()
 {
@@ -560,6 +579,7 @@ int Ledger::close()
     }
 
     int rc = LedgerOpResult::e_UNKNOWN;
+    // NOLINTBEGIN(*-magic-numbers)
     for (LogsMapIt it = d_logs.begin(); it != d_logs.end(); ++it) {
         if (it->second->isOpened()) {
             rc = it->second->close();
@@ -569,6 +589,7 @@ int Ledger::close()
             }
         }
     }
+    // NOLINTEND(*-magic-numbers)
 
     d_state      = LedgerState::e_CLOSED;
     d_isReadOnly = false;
@@ -647,6 +668,7 @@ int Ledger::writeRecord(LedgerRecordId*           recordId,
 int Ledger::writeRecord(LedgerRecordId*          recordId,
                         const bdlbb::Blob&       record,
                         const bmqu::BlobSection& section)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_state == LedgerState::e_OPENED);
@@ -661,8 +683,10 @@ int Ledger::writeRecord(LedgerRecordId*          recordId,
 
     return writeRecord(recordId, record, section.start(), length);
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 int Ledger::flush()
+// NOLINTBEGIN(*-magic-numbers)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_state == LedgerState::e_OPENED);
@@ -678,12 +702,14 @@ int Ledger::flush()
 
     return LedgerOpResult::e_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers)
 
 // ACCESSORS
 //   (virtual 'mqbsi::Ledger')
 int Ledger::readRecord(void*                 entry,
                        int                   length,
                        const LedgerRecordId& recordId) const
+// NOLINTBEGIN(*-magic-numbers)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_state == LedgerState::e_OPENED);
@@ -703,10 +729,12 @@ int Ledger::readRecord(void*                 entry,
 
     return LedgerOpResult::e_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers)
 
 int Ledger::readRecord(bdlbb::Blob*          entry,
                        int                   length,
                        const LedgerRecordId& recordId) const
+// NOLINTBEGIN(*-magic-numbers)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_state == LedgerState::e_OPENED);
@@ -726,10 +754,12 @@ int Ledger::readRecord(bdlbb::Blob*          entry,
 
     return LedgerOpResult::e_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers)
 
 int Ledger::aliasRecord(void**                entry,
                         int                   length,
                         const LedgerRecordId& recordId) const
+// NOLINTBEGIN(*-magic-numbers)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_state == LedgerState::e_OPENED);
@@ -753,10 +783,12 @@ int Ledger::aliasRecord(void**                entry,
 
     return LedgerOpResult::e_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers)
 
 int Ledger::aliasRecord(bdlbb::Blob*          entry,
                         int                   length,
                         const LedgerRecordId& recordId) const
+// NOLINTBEGIN(*-magic-numbers)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_state == LedgerState::e_OPENED);
@@ -780,6 +812,7 @@ int Ledger::aliasRecord(bdlbb::Blob*          entry,
 
     return LedgerOpResult::e_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers)
 
 }  // close package namespace
 }  // close enterprise namespace

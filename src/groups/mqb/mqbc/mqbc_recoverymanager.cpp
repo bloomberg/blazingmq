@@ -163,6 +163,7 @@ void RecoveryManager::stop()
 }
 
 int RecoveryManager::deprecateFileSet(int partitionId)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
@@ -190,6 +191,7 @@ int RecoveryManager::deprecateFileSet(int partitionId)
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 void RecoveryManager::setExpectedDataChunkRange(
     int                                          partitionId,
@@ -274,6 +276,7 @@ int RecoveryManager::processSendDataChunks(
     const bmqp_ctrlmsg::PartitionSequenceNumber& beginSeqNum,
     const bmqp_ctrlmsg::PartitionSequenceNumber& endSeqNum,
     const mqbs::FileStore&                       fs)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
@@ -414,9 +417,12 @@ int RecoveryManager::processSendDataChunks(
 
     bool isDone = false;
 
+    // NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-init-variables)
     while (!isDone && rc == 0) {
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         char* journalRecordBase = mappedJournalFd->block().base() +
                                   journalIt.recordOffset();
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         int journalRecordLen = mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
         char*                          payloadRecordBase = 0;
         int                            payloadRecordLen  = 0;
@@ -537,6 +543,7 @@ int RecoveryManager::processSendDataChunks(
             }
         }
     }
+    // NOLINTEND(*-magic-numbers,cppcoreguidelines-init-variables)
 
     if (!isDone) {
         BSLS_ASSERT_SAFE(rc == 1);
@@ -578,6 +585,7 @@ int RecoveryManager::processSendDataChunks(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int RecoveryManager::processReceiveDataChunks(
     const bsl::shared_ptr<bdlbb::Blob>& blob,
@@ -586,6 +594,7 @@ int RecoveryManager::processReceiveDataChunks(
     int                                 partitionId,
     const bmqp_ctrlmsg::PartitionSequenceNumber&
         firstSyncPointAfterRolloverSeqNum)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
@@ -672,6 +681,7 @@ int RecoveryManager::processReceiveDataChunks(
     event.loadStorageMessageIterator(&iter);
     BSLS_ASSERT_SAFE(iter.isValid());
 
+    // NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     while (1 == iter.next()) {
         const bmqp::StorageHeader&                header = iter.header();
         bmqu::BlobPosition                        recordPosition;
@@ -813,11 +823,13 @@ int RecoveryManager::processReceiveDataChunks(
             if (header.messageType() ==
                     bmqp::StorageMessageType::e_JOURNAL_OP &&
                 firstSyncPointAfterRolloverSeqNum == recordPSN) {
-                mqbs::OffsetPtr<const mqbs::FileHeader>  fhJ(journal.block(),
+                mqbs::OffsetPtr<const mqbs::FileHeader> fhJ(journal.block(),
                                                             0);
+                // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
                 mqbs::OffsetPtr<mqbs::JournalFileHeader> jfh(
                     journal.block(),
                     fhJ->headerWords() * bmqp::Protocol::k_WORD_SIZE);
+                // NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
                 // Set offset in JournalFileHeader
                 jfh->setFirstSyncPointAfterRolloverOffsetWords(
@@ -857,9 +869,11 @@ int RecoveryManager::processReceiveDataChunks(
             return rc_LAST_DATA_CHUNK;  // RETURN
         }
     }  // end: while loop
+    // NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 int RecoveryManager::createRecoveryFileSet(bsl::ostream&    errorDescription,
                                            mqbs::FileStore* fs,
@@ -931,6 +945,7 @@ int RecoveryManager::createRecoveryFileSet(bsl::ostream&    errorDescription,
 
 int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
                                          int           partitionId)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
@@ -1064,6 +1079,7 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
     bool isLastJournalRecord = true;          // ie, first in iteration
     bool isLastMessageRecord = true;          // ie, first in iteration
     bool isLastQlistRecord   = d_qListAware;  // ie, first in iteration
+    // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result,clang-analyzer-deadcode.DeadStores)
     while (1 == (rc = jit.nextRecord())) {
         const mqbs::RecordHeader& recHeader = jit.recordHeader();
         mqbs::RecordType::Enum    rt        = recHeader.type();
@@ -1294,6 +1310,7 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
             break;  // BREAK
         }
     }
+    // NOLINTEND(bugprone-implicit-widening-of-multiplication-result,clang-analyzer-deadcode.DeadStores)
 
     BALL_LOG_INFO_BLOCK
     {
@@ -1312,8 +1329,10 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int RecoveryManager::closeRecoveryFileSet(int partitionId)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
@@ -1516,10 +1535,12 @@ int RecoveryManager::closeRecoveryFileSet(int partitionId)
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int RecoveryManager::recoverPSN(bmqp_ctrlmsg::PartitionSequenceNumber* psn,
                                 int  partitionId,
                                 bool firstSyncPointAfterRolllover)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
@@ -1583,6 +1604,7 @@ int RecoveryManager::recoverPSN(bmqp_ctrlmsg::PartitionSequenceNumber* psn,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 void RecoveryManager::setLiveDataSource(mqbnet::ClusterNode* source,
                                         int                  partitionId)
@@ -1657,6 +1679,7 @@ int RecoveryManager::loadBufferedStorageEvents(
     BSLS_ASSERT_SAFE(source);
     BSLS_ASSERT_SAFE(0 <= partitionId);
 
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum { rc_SUCCESS = 0, rc_UNEXPECTED_SOURCE = -1 };
 
     RecoveryContext& recoveryCtx = d_recoveryContextVec[partitionId];

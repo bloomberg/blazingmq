@@ -81,6 +81,7 @@ class MessageProperties;
 
 /// An iterator providing read-only sequential access to messages contained
 /// into a `PushEvent`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class PushMessageIterator {
   private:
     // PRIVATE TYPES
@@ -385,6 +386,7 @@ class PushMessageIterator {
     /// Return the size (in bytes) of wire representation for the message.
     int totalSize() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -416,6 +418,7 @@ inline PushMessageIterator::PushMessageIterator(
     // NOTHING
 }
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline PushMessageIterator::PushMessageIterator(
     const bdlbb::Blob*        blob,
     const EventHeader&        eventHeader,
@@ -431,7 +434,9 @@ inline PushMessageIterator::PushMessageIterator(
 {
     reset(blob, eventHeader, decompressFlag);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline PushMessageIterator::PushMessageIterator(const PushMessageIterator& src,
                                                 bslma::Allocator* allocator)
 : d_blobIter(0,
@@ -444,6 +449,7 @@ inline PushMessageIterator::PushMessageIterator(const PushMessageIterator& src,
 {
     copyFrom(src);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline PushMessageIterator&

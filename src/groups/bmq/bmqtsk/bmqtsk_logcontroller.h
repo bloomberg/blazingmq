@@ -154,6 +154,7 @@ namespace bmqtsk {
 // =========================
 
 /// VST representing the configuration for a `LogController` object.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class LogControllerConfig {
   public:
     // TYPES
@@ -328,12 +329,14 @@ class LogControllerConfig {
     /// Return the value of the corresponding attribute.
     const CategoryPropertiesMap& categoriesProperties() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ===================
 // class LogController
 // ===================
 
 /// Mechanism to initialize and manipulate the ball log infrastructure.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class LogController {
   private:
     // DATA
@@ -506,6 +509,7 @@ class LogController {
     /// observer.
     const ConsoleObserver& consoleObserver() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -518,6 +522,7 @@ class LogController {
 template <typename OBJ>
 int LogControllerConfig::fromObj(bsl::ostream& errorDescription,
                                  const OBJ&    obj)
+// NOLINTBEGIN(*-magic-numbers)
 {
     (*this)
         .setFileName(obj.fileName())
@@ -575,6 +580,7 @@ int LogControllerConfig::fromObj(bsl::ostream& errorDescription,
         return -1;  // RETURN
     }
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsl::vector<bsl::string>::const_iterator it =
              obj.categories().begin();
          it != obj.categories().end();
@@ -586,9 +592,11 @@ int LogControllerConfig::fromObj(bsl::ostream& errorDescription,
             return -2;  // RETURN
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     return 0;
 }
+// NOLINTEND(*-magic-numbers)
 
 inline LogControllerConfig&
 LogControllerConfig::setFileName(const bslstl::StringRef& value)

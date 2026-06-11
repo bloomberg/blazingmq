@@ -92,6 +92,7 @@ struct ResultRegistry<bmqa::CloseQueueStatus> {
 //                                    TESTS
 // ----------------------------------------------------------------------------
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct EventHandler : public bmqa::SessionEventHandler {
     typedef bdlb::Variant<bmqa::OpenQueueStatus,
                           bmqa::ConfigureQueueStatus,
@@ -262,14 +263,18 @@ struct EventHandler : public bmqa::SessionEventHandler {
         d_receivedResults.clear();
     }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 static void test1_staticMethods()
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("STATIC METHODS");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         4 * 1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     {
         PVV("Create Session Event");
@@ -400,8 +405,10 @@ static void test1_staticMethods()
                          properties.getPropertyAsInt32("x"));
     }
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 static void test2_call()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("CALL");
 
@@ -459,8 +466,10 @@ static void test2_call()
         BMQTST_ASSERT_EQ(eventHandler.d_assertsInvoked, 1u);
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test3_queueManagement()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("QUEUE MANAGEMENT");
 
@@ -528,6 +537,7 @@ static void test3_queueManagement()
                                        openQueueCallback);
 
             typedef bsl::shared_ptr<bmqimp::Queue>& QueueImplPtr;
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             QueueImplPtr implPtr = reinterpret_cast<QueueImplPtr>(queueId1);
 
             BMQTST_ASSERT_EQ(implPtr->uri(), uri1);
@@ -567,6 +577,7 @@ static void test3_queueManagement()
                                        openQueueCallback);
 
             typedef bsl::shared_ptr<bmqimp::Queue>& QueueImplPtr;
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             QueueImplPtr implPtr = reinterpret_cast<QueueImplPtr>(queueId1);
 
             BMQTST_ASSERT_EQ(implPtr->uri(), uri1);
@@ -690,6 +701,7 @@ static void test3_queueManagement()
                          testOpenQueueResult);
 
         typedef bsl::shared_ptr<bmqimp::Queue>& QueueImplPtr;
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         QueueImplPtr implPtr = reinterpret_cast<QueueImplPtr>(queueId1);
 
         BMQTST_ASSERT_EQ(implPtr->uri(), uri1);
@@ -715,8 +727,10 @@ static void test3_queueManagement()
         BMQTST_ASSERT_EQ(mockSession.closeQueueSync(&queueId1), closeResult1);
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test4_queueManagementSync()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("QUEUE MANAGEMENT SYNC MODE");
 
@@ -757,6 +771,7 @@ static void test4_queueManagementSync()
 
         BMQTST_ASSERT_EQ(mockSession.openQueueAsync(&queueId1, uri1, 10), 0);
         typedef bsl::shared_ptr<bmqimp::Queue>& QueueImplPtr;
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         QueueImplPtr implPtr = reinterpret_cast<QueueImplPtr>(queueId1);
 
         BMQTST_ASSERT_EQ(implPtr->uri(), uri1);
@@ -791,6 +806,7 @@ static void test4_queueManagementSync()
 
         BMQTST_ASSERT_EQ(mockSession.openQueueAsync(&queueId1, uri1, 10), 0);
         typedef bsl::shared_ptr<bmqimp::Queue>& QueueImplPtr;
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         QueueImplPtr implPtr = reinterpret_cast<QueueImplPtr>(queueId1);
 
         BMQTST_ASSERT_EQ(implPtr->uri(), uri1);
@@ -808,8 +824,10 @@ static void test4_queueManagementSync()
         BMQTST_ASSERT_EQ(implPtr->state(), bmqimp::QueueState::e_OPENED);
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test5_confirmingMessages()
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("CONSUME AND CONFIRM");
 
@@ -823,14 +841,17 @@ static void test5_confirmingMessages()
         bmqt::SessionOptions(bmqtst::TestHelperUtil::allocator()),
         bmqtst::TestHelperUtil::allocator());
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         4 * 1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     bmqt::CorrelationId corrId(1);
     bmqa::QueueId       queueId(corrId);
 
     typedef bsl::shared_ptr<bmqimp::Queue>& QueueImplPtr;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     QueueImplPtr implPtr = reinterpret_cast<QueueImplPtr>(queueId);
 
     // Quickly make a valid queue available.
@@ -983,8 +1004,10 @@ static void test5_confirmingMessages()
         }
     }
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 static void test6_runThrough()
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("RUN THROUGH");
 
@@ -998,9 +1021,11 @@ static void test6_runThrough()
         bmqt::SessionOptions(bmqtst::TestHelperUtil::allocator()),
         bmqtst::TestHelperUtil::allocator());
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         4 * 1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqt::CorrelationId corrId(1);
     bmqa::QueueId       queueId(corrId);
     bsl::string         input = "bmq://my.domain/queue";
@@ -1178,6 +1203,7 @@ static void test6_runThrough()
 
         // Quickly make a valid queue available.
         typedef bsl::shared_ptr<bmqimp::Queue>& QueueImplPtr;
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         QueueImplPtr implPtr = reinterpret_cast<QueueImplPtr>(queueId);
 
         implPtr->setState(bmqimp::QueueState::e_OPENED);
@@ -1244,8 +1270,10 @@ static void test6_runThrough()
     // Clear the handler since we dont care about the events emitted
     eventHandler.clearEvents();
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 static void test7_postAndAccess()
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("POST AND ACCESS");
 
@@ -1271,9 +1299,11 @@ static void test7_postAndAccess()
     EventHandler::openQueue(&mockSession, &queueId, uri);
 
     // Build payloads
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         4 * 1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob payload1(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob payload2(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob payload3(&bufferFactory, bmqtst::TestHelperUtil::allocator());
@@ -1401,8 +1431,10 @@ static void test7_postAndAccess()
     // builder is released and destroyed in the correct order.
     builder.reset();
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test8_postBlockedToSuspendedQueue()
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("POST BLOCKED TO SUSPENDED QUEUE");
 
@@ -1429,13 +1461,16 @@ static void test8_postBlockedToSuspendedQueue()
 
     // Set the queue to suspended.
     typedef bsl::shared_ptr<bmqimp::Queue>& QueueImplPtr;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     QueueImplPtr implPtr = reinterpret_cast<QueueImplPtr>(queueId);
     implPtr->setIsSuspended(true);
 
     // Build payload
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         4 * 1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob payload(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bdlbb::BlobUtil::append(&payload, "hello!", 7);
 
@@ -1457,12 +1492,14 @@ static void test8_postBlockedToSuspendedQueue()
     // builder is released and destroyed in the correct order.
     builder.reset();
 }
+// NOLINTEND(*-magic-numbers)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -1484,3 +1521,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

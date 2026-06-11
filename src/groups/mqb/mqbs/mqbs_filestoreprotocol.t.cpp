@@ -64,6 +64,7 @@ static void test1_breathingTest()
 // Testing:
 //   Basic functionality of protocol structs
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -458,6 +459,7 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(fh2.magic(), 0xdeadbeef);
     }
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 static void test2_manipulators()
 // ------------------------------------------------------------------------
@@ -467,6 +469,7 @@ static void test2_manipulators()
 // Concerns:
 //   Test protocol structs with edge/corner values
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("MANIPULATORS");
 
@@ -510,9 +513,11 @@ static void test2_manipulators()
          k_INT_MAX},
     };
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const int NUM_DATA = sizeof(DATA) / sizeof(*DATA);
 
     for (int dataIdx = 0; dataIdx < NUM_DATA; ++dataIdx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const TestData& data = DATA[dataIdx];
 
         // Create default FileHeader
@@ -545,6 +550,7 @@ static void test2_manipulators()
         BMQTST_ASSERT_EQ_D(dataIdx, fh.partitionId(), data.d_expectedGID);
     }
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test3_printTest()
 // ------------------------------------------------------------------------
@@ -561,6 +567,7 @@ static void test3_printTest()
 //   operator<<(bsl::ostream& stream, const QueueOpRecord& rhs)
 //   operator<<(bsl::ostream& stream, const JournalOpRecord& rhs)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("PRINT TEST");
 
@@ -767,12 +774,14 @@ static void test3_printTest()
         BMQTST_ASSERT_EQ(stream.str(), "INVALID");
     }
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -789,3 +798,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

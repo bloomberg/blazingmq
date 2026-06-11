@@ -58,6 +58,7 @@ namespace bmqt {
 /// This enum represents generic common status
 struct GenericResult {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         /// Operation was success
         e_SUCCESS = 0,
@@ -81,6 +82,7 @@ struct GenericResult {
         /// and the 'bmqp_ctrlmsg.xsd::StatusCategory' one
         e_LAST = e_NOT_READY
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -132,6 +134,7 @@ bsl::ostream& operator<<(bsl::ostream& stream, GenericResult::Enum value);
 /// This enum represents the result of an openQueue operation
 struct OpenQueueResult {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         // GENERIC
         e_SUCCESS          = GenericResult::e_SUCCESS,
@@ -159,6 +162,7 @@ struct OpenQueueResult {
         /// The correlationdId is not unique
         e_CORRELATIONID_NOT_UNIQUE = -102
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -210,6 +214,7 @@ bsl::ostream& operator<<(bsl::ostream& stream, OpenQueueResult::Enum value);
 /// This enum represents the result of a configureQueue operation
 struct ConfigureQueueResult {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         // GENERIC
         e_SUCCESS          = GenericResult::e_SUCCESS,
@@ -229,6 +234,7 @@ struct ConfigureQueueResult {
         // ERRORS
         e_INVALID_QUEUE = -101
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -281,6 +287,7 @@ bsl::ostream& operator<<(bsl::ostream&              stream,
 /// This enum represents the result of a closeQueue operation
 struct CloseQueueResult {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         // GENERIC
         e_SUCCESS          = GenericResult::e_SUCCESS,
@@ -306,6 +313,7 @@ struct CloseQueueResult {
         /// The queue provided is invalid
         e_INVALID_QUEUE = -101
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -358,6 +366,7 @@ bsl::ostream& operator<<(bsl::ostream& stream, CloseQueueResult::Enum value);
 /// operation
 struct EventBuilderResult {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         // GENERIC
         e_SUCCESS = GenericResult::e_SUCCESS,
@@ -375,6 +384,7 @@ struct EventBuilderResult {
 
         e_QUEUE_SUSPENDED = -108
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -426,6 +436,7 @@ bsl::ostream& operator<<(bsl::ostream& stream, EventBuilderResult::Enum value);
 /// This enum represents the result code status of an ack message
 struct AckResult {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         // GENERIC
         e_SUCCESS          = GenericResult::e_SUCCESS,
@@ -461,6 +472,7 @@ struct AckResult {
         /// The storage (on disk) is full
         e_STORAGE_FAILURE = -104
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -511,6 +523,7 @@ bsl::ostream& operator<<(bsl::ostream& stream, AckResult::Enum value);
 /// This enum represents the result code status of a post message
 struct PostResult {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         // GENERIC
         e_SUCCESS          = GenericResult::e_SUCCESS,
@@ -529,6 +542,7 @@ struct PostResult {
         /// broker are temporarily rejecting new messages.
         e_BW_LIMIT = 100
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 

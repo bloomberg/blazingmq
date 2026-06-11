@@ -50,6 +50,7 @@ namespace {
 
 BALL_LOG_SET_NAMESPACE_CATEGORY("MQBPLUG.PLUGINMANAGER");
 
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_PLUGIN_ENTRY_POINT[] = "instantiatePluginLibrary";
 
 typedef void (*PluginEntryFnPtr)(bslma::ManagedPtr<mqbplug::PluginLibrary>*,
@@ -91,6 +92,7 @@ void PluginManager::enableRequiredPlugins(
     bsl::ostream&                           errorDescription,
     int*                                    rc)
 {
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum RcEnum { rc_SUCCESS = 0, rc_ACTIVATION_FAILED = -1 };
 
     // If an error was encountered during a prior 'loadPluginLibrary()' call,
@@ -126,10 +128,12 @@ void PluginManager::enableRequiredPlugins(
 
             // Count how many plugins provided by this library share this name.
             // If this evaluates to more than '1', it will be an error.
+            // NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
             int numLibInstances = 1 + bsl::count_if(
                                           pluginInfoIt + 1,
                                           pluginLibrary->plugins().cend(),
                                           findPluginFn);
+            // NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
             // Update 'requiredPlugins' with how many matches
             // were found.
@@ -191,6 +195,7 @@ void PluginManager::loadPluginLibrary(const char*            path,
                                       RequiredPluginsRecord* requiredPlugins,
                                       bsl::ostream&          errorDescription,
                                       int*                   rc)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     BALL_LOG_INFO << "Loading '" << path << "' as a candidate plugin object";
 
@@ -221,8 +226,10 @@ void PluginManager::loadPluginLibrary(const char*            path,
     dlerror();
 
     // Find the entry-point for instantiating the 'PluginLibrary' object.
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-reinterpret-cast)
     PluginEntryFnPtr entryPoint = reinterpret_cast<PluginEntryFnPtr>(
         dlsym(objectHandle, k_PLUGIN_ENTRY_POINT));
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-reinterpret-cast)
     char* dlerrorText = dlerror();
     if (dlerrorText != NULL) {
         BALL_LOG_WARN << "Error while loading plugin entry point [symbol: '"
@@ -264,6 +271,7 @@ void PluginManager::loadPluginLibrary(const char*            path,
 
         bsl::vector<PluginInfo>::const_iterator it =
             pluginLibrary->plugins().cbegin();
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (; it != pluginLibrary->plugins().cend(); ++it) {
             bool enabled = bsl::find(pluginsProvided.cbegin(),
                                      pluginsProvided.cend(),
@@ -273,6 +281,7 @@ void PluginManager::loadPluginLibrary(const char*            path,
                            << it->name() << " (version: " << it->version()
                            << ")\n    " << it->description() << "\n";
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         BALL_LOG_INFO << summaryBuilder.str();
     }
 
@@ -290,9 +299,11 @@ void PluginManager::loadPluginLibrary(const char*            path,
             bslmf::MovableRefUtil::move(objectHandleMp));
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 int PluginManager::start(const mqbcfg::Plugins& pluginsConfig,
                          bsl::ostream&          errorDescription)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Value for the various RC error categories.
@@ -308,9 +319,11 @@ int PluginManager::start(const mqbcfg::Plugins& pluginsConfig,
     {
         bsl::vector<bsl::string>::const_iterator it =
             pluginsConfig.enabled().cbegin();
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (; it != pluginsConfig.enabled().cend(); ++it) {
             requiredPlugins[*it] = 0;
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 
     // If no plugin is enabled at all, log a warning.
@@ -330,6 +343,7 @@ int PluginManager::start(const mqbcfg::Plugins& pluginsConfig,
     const bsl::vector<bsl::string>* libraries = &pluginsConfig.libraries();
 
     bsl::vector<bsl::string>::const_iterator libraryIt = libraries->cbegin();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; libraryIt != libraries->cend(); ++libraryIt) {
         bsl::string pattern(*libraryIt);
         if (int status = bdls::PathUtil::appendIfValid(&pattern, "*.so")) {
@@ -357,6 +371,7 @@ int PluginManager::start(const mqbcfg::Plugins& pluginsConfig,
             break;  // BREAK
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     // If any required plugins could not be located in the plugin-libraries
     // from the paths provided, exit with error during broker startup.
@@ -403,6 +418,7 @@ int PluginManager::start(const mqbcfg::Plugins& pluginsConfig,
     }
     return rc;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 void PluginManager::stop()
 {
@@ -412,9 +428,11 @@ void PluginManager::stop()
     // Deactivate all plugin-libraries.
     bsl::vector<bslma::ManagedPtr<PluginLibrary> >::const_iterator it =
         d_pluginLibraries.cbegin();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; it != d_pluginLibraries.cend(); ++it) {
         (*it)->deactivate();
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     // Destroy all 'PluginLibrary' objects, which closes handles returned by
     // 'dlopen()' in the process.

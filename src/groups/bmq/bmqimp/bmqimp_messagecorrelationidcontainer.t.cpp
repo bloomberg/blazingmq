@@ -65,9 +65,11 @@ struct IterateAndInvokeHelper {
     /// object.  The specified `deleteVisitedItem` relates to the item with
     /// the specified `handle`.  It is always set to `false` in this visitor
     /// implementation.
+    // NOLINTBEGIN(performance-unnecessary-value-param)
     bool insertIntoMap(bool*                   deleteVisitedItem,
                        const bmqt::MessageGUID handle,
                        const QAC&              qac)
+    // NOLINTEND(performance-unnecessary-value-param)
     {
         d_corrIdMap[handle] = qac;
         *deleteVisitedItem  = false;
@@ -81,6 +83,7 @@ struct IterateAndInvokeHelper {
 // ----------------------------------------------------------------------------
 
 static void test1_addFindRemove()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("ADD FIND REMOVE");
 
@@ -135,6 +138,7 @@ static void test1_addFindRemove()
         BMQTST_ASSERT_EQ(container.size(), 0U);
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test2_iterateAndInvoke()
 {
@@ -175,6 +179,7 @@ static void test2_iterateAndInvoke()
 }
 
 static void test3_associate()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("ASSOCIATE");
 
@@ -215,12 +220,14 @@ static void test3_associate()
                          bmqimp::Queue::k_INVALID_QUEUE_ID);
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -237,3 +244,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

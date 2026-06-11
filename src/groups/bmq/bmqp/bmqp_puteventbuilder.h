@@ -90,6 +90,7 @@ namespace bmqp {
 // =====================
 
 /// Mechanism to build a BlazingMQ PUT event
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class PutEventBuilder {
   public:
     // TYPES
@@ -100,6 +101,7 @@ class PutEventBuilder {
   private:
     // TYPES
     /// Mechanism to automatically reset PutEventBuilder on a built message
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct ResetGuard {
         // DATA
         PutEventBuilder& d_putEventBuilder;
@@ -109,6 +111,7 @@ class PutEventBuilder {
 
         ~ResetGuard();
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     // DATA
     /// Allocator to use.
@@ -353,6 +356,7 @@ class PutEventBuilder {
 
     const bmqp::MessageProperties* messageProperties() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

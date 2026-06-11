@@ -31,6 +31,7 @@ namespace mqbcfg {
 
 namespace {
 
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 const AppConfig* s_config_p;
 
 mqbcfg::AppConfig* getImpl()

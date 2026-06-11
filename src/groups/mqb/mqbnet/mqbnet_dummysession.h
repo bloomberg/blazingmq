@@ -69,6 +69,7 @@ class ClusterNode;
 // ==================
 
 /// dummy `mqbnet::Session` implementation
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class DummySession : public Session {
   private:
     // CLASS-SCOPE CATEGORY
@@ -167,6 +168,7 @@ class DummySession : public Session {
     /// Return a printable description of this session (e.g. for logging).
     bsl::string_view description() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

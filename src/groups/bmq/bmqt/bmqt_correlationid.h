@@ -227,6 +227,7 @@ class CorrelationId {
 
   public:
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Type {
         /// the 'CorrelationId' holds a 64-bit integer
         e_NUMERIC,
@@ -239,6 +240,7 @@ class CorrelationId {
         /// the 'CorrelationId' is not set
         e_UNSET
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHOD
 
@@ -537,6 +539,7 @@ void hashAppend(HASH_ALGORITHM& hashAlgo, const CorrelationId& value)
 
 inline bool CorrelationIdLess::operator()(const CorrelationId& lhs,
                                           const CorrelationId& rhs) const
+// NOLINTBEGIN(cppcoreguidelines-init-variables,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // If 'lhs' and 'rhs' have different types, they are compared by their
     // corresponding type indices.  Otherwise, they are compared by value.
@@ -565,6 +568,7 @@ inline bool CorrelationIdLess::operator()(const CorrelationId& lhs,
 
     return result;
 }
+// NOLINTEND(cppcoreguidelines-init-variables,cppcoreguidelines-pro-type-reinterpret-cast)
 
 }  // close package namespace
 

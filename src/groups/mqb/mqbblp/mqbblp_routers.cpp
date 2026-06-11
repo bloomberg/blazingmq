@@ -43,6 +43,7 @@ namespace mqbblp {
 namespace {
 
 /// VST to control the scope of Resolver
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ScopeExit {
     mqbblp::Routers::QueueRoutingContext* d_queue_p;
 
@@ -62,6 +63,7 @@ class ScopeExit {
     ScopeExit(const ScopeExit&);
     ScopeExit& operator=(const ScopeExit&);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close unnamed namespace
 
@@ -279,6 +281,7 @@ void Routers::AppContext::load(
     bool loggedErrors = false;
 
     const size_t nSubscriptions = streamParameters.subscriptions().size();
+    // NOLINTBEGIN(cppcoreguidelines-init-variables)
     for (size_t i = 0; i < nSubscriptions; ++i) {
         const bmqp_ctrlmsg::Subscription& config =
             streamParameters.subscriptions()[i];
@@ -400,6 +403,7 @@ void Routers::AppContext::load(
                                                     itGroup);
         }
     }
+    // NOLINTEND(cppcoreguidelines-init-variables)
 }
 
 unsigned int Routers::AppContext::finalize()

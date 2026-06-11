@@ -33,6 +33,7 @@ using namespace bsl;
 // ----------------------------------------------------------------------------
 
 static void test1_breathingTest()
+// NOLINTBEGIN(cppcoreguidelines-init-variables,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -64,8 +65,10 @@ static void test1_breathingTest()
     str = bmqt::HostHealthState::toAscii(obj);
     BMQTST_ASSERT_EQ(str, "UNHEALTHY");
 }
+// NOLINTEND(cppcoreguidelines-init-variables,performance-avoid-endl)
 
 static void test2_printTest()
+// NOLINTBEGIN(*-avoid-c-arrays,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("PRINT");
 
@@ -78,9 +81,11 @@ static void test2_printTest()
                   {bmqt::HostHealthState::e_HEALTHY, "HEALTHY"},
                   {bmqt::HostHealthState::e_UNHEALTHY, "UNHEALTHY"}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
@@ -104,12 +109,14 @@ static void test2_printTest()
         BMQTST_ASSERT_EQ(out.str(), expected.str());
     }
 }
+// NOLINTEND(*-avoid-c-arrays,performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -125,3 +132,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

@@ -97,6 +97,7 @@ AckEventBuilder::AckEventBuilder(const BlobSpCreator& blobSpCreator,
 }
 
 void AckEventBuilder::reset()
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     d_blob_sp = d_blobSpCreator();
 
@@ -122,6 +123,7 @@ void AckEventBuilder::reset()
     // AckHeader
     new (d_blob_sp->buffer(0).data() + sizeof(EventHeader)) AckHeader();
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 bmqt::EventBuilderResult::Enum
 AckEventBuilder::appendMessage(int                      status,
@@ -172,8 +174,10 @@ const bsl::shared_ptr<bdlbb::Blob>& AckEventBuilder::blob() const
 
     // Fix packet's length in header now that we know it.  Following is valid
     // (see comment in reset).
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     EventHeader& eh = *reinterpret_cast<EventHeader*>(
         d_blob_sp->buffer(0).data());
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     eh.setLength(d_blob_sp->length());
 
     return d_blob_sp;
