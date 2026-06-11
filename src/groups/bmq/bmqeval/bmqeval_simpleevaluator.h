@@ -58,6 +58,7 @@
 // BDE
 #include <bdld_datum.h>
 #include <bsl_functional.h>
+#include <bsl_limits.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
@@ -966,7 +967,8 @@ bdld::Datum SimpleEvaluator::NumBinaryOperation<Op>::evaluate(
 
     if ((bsl::is_same<Op<int>, bsl::divides<int> >::value ||
          bsl::is_same<Op<int>, bsl::modulus<int> >::value) &&
-        b == 0) {
+        (b == 0 ||
+         (a == bsl::numeric_limits<bsls::Types::Int64>::min() && b == -1))) {
         context.setError(ErrorType::e_ARITHMETIC);
         return bdld::Datum::createNull();  // RETURN
     }
